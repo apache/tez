@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.conf.Configuration;
@@ -67,11 +68,13 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DetailedPartitionStatsProto;
 
 public class ShuffleUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
   public static final String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+  private static final long MB = 1024l * 1024l;
 
   //Shared by multiple threads
   private static volatile SSLFactory sslFactory;
@@ -400,7 +403,8 @@ public class ShuffleUtils {
   public static void generateEventOnSpill(List<Event> eventList, boolean finalMergeEnabled,
       boolean isLastEvent, OutputContext context, int spillId, TezSpillRecord spillRecord,
       int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
-      @Nullable long[] partitionStats) throws IOException {
+      @Nullable long[] partitionStats, boolean reportDetailedPartitionStats)
+      throws IOException {
     Preconditions.checkArgument(eventList != null, "EventList can't be null");
 
     context.notifyProgress();
@@ -420,34 +424,50 @@ public class ShuffleUtils {
         finalMergeEnabled, isLastEvent, pathComponent);
 
     if (finalMergeEnabled || isLastEvent) {
-      ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
-          ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
-
-      long outputSize = context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES).getValue();
-
-      //Set this information only when required.  In pipelined shuffle, multiple events would end
-      // up adding up to final outputsize.  This is needed for auto-reduce parallelism to work
-      // properly.
-      vmBuilder.setOutputSize(outputSize);
-
-      //set partition stats
-      if (partitionStats != null && partitionStats.length > 0) {
-        RoaringBitmap stats = getPartitionStatsForPhysicalOutput(partitionStats);
-        DataOutputBuffer dout = new DataOutputBuffer();
-        stats.serialize(dout);
-        ByteString partitionStatsBytes = TezCommonUtils.compressByteArrayToByteString(dout.getData());
-        vmBuilder.setPartitionStats(partitionStatsBytes);
-      }
-
-      VertexManagerEvent vmEvent = VertexManagerEvent.create(
-          context.getDestinationVertexName(), vmBuilder.build().toByteString().asReadOnlyByteBuffer());
+      VertexManagerEvent vmEvent = generateVMEvent(context, partitionStats,
+          reportDetailedPartitionStats);
       eventList.add(vmEvent);
     }
-
 
     CompositeDataMovementEvent csdme =
         CompositeDataMovementEvent.create(0, numPhysicalOutputs, payload);
     eventList.add(csdme);
+  }
+
+  public static VertexManagerEvent generateVMEvent(OutputContext context,
+      long[] sizePerPartition, boolean reportDetailedPartitionStats)
+          throws IOException {
+    ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
+        ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
+
+    long outputSize = context.getCounters().
+        findCounter(TaskCounter.OUTPUT_BYTES).getValue();
+
+    // Set this information only when required.  In pipelined shuffle,
+    // multiple events would end up adding up to final output size.
+    // This is needed for auto-reduce parallelism to work properly.
+    vmBuilder.setOutputSize(outputSize);
+
+    //set partition stats
+    if (sizePerPartition != null && sizePerPartition.length > 0) {
+      if (reportDetailedPartitionStats) {
+        vmBuilder.setDetailedPartitionStats(
+            getDetailedPartitionStatsForPhysicalOutput(sizePerPartition));
+      } else {
+        RoaringBitmap stats = getPartitionStatsForPhysicalOutput(
+            sizePerPartition);
+        DataOutputBuffer dout = new DataOutputBuffer();
+        stats.serialize(dout);
+        ByteString partitionStatsBytes =
+            TezCommonUtils.compressByteArrayToByteString(dout.getData());
+        vmBuilder.setPartitionStats(partitionStatsBytes);
+      }
+    }
+
+    VertexManagerEvent vmEvent = VertexManagerEvent.create(
+        context.getDestinationVertexName(),
+        vmBuilder.build().toByteString().asReadOnlyByteBuffer());
+    return vmEvent;
   }
 
   /**
@@ -469,6 +489,29 @@ public class ShuffleUtils {
     return partitionStats;
   }
 
+  static long ceil(long a, long b) {
+    return (a + (b - 1)) / b;
+  }
+
+  /**
+   * Detailed partition stats
+   *
+   * @param sizes actual partition sizes
+   */
+  public static DetailedPartitionStatsProto
+  getDetailedPartitionStatsForPhysicalOutput(long[] sizes) {
+    DetailedPartitionStatsProto.Builder builder =
+        DetailedPartitionStatsProto.newBuilder();
+    for (int i=0; i<sizes.length; i++) {
+      // Round the size up. So 1 byte -> the value of sizeInMB == 1
+      // Throws IllegalArgumentException if value is greater than
+      // Integer.MAX_VALUE. That should be ok given Integer.MAX_VALUE * MB
+      // means PB.
+      int sizeInMb = Ints.checkedCast(ceil(sizes[i], MB));
+      builder.addSizeInMb(sizeInMb);
+    }
+    return builder.build();
+  }
 
   /**
    * Log individual fetch complete event.

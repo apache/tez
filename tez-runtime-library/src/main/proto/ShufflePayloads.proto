@@ -41,9 +41,16 @@ message InputInformationEventPayloadProto {
   optional int32 partition_range = 1;
 }
 
+// DetailedPartitionStatsProto represents size of a list of partitions.
+// It is more accurate than the partition_stats.
+message DetailedPartitionStatsProto {
+  repeated int32 size_in_mb = 1;
+}
+
 message VertexManagerEventPayloadProto {
   optional int64 output_size = 1;
   optional bytes partition_stats = 2;
+  optional DetailedPartitionStatsProto detailed_partition_stats = 3;
 }
 
 message ShuffleEdgeManagerConfigPayloadProto {

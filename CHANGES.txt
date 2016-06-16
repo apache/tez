@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3216. Add support for more precise partition stats in VertexManagerEvent.
   TEZ-3296. Tez job can hang if two vertices at the same root distance have different task requirements
   TEZ-3294. DAG.createDag() does not clear local state on repeat calls.
   TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.

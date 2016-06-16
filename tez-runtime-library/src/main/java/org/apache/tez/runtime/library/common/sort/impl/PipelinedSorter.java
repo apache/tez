@@ -347,9 +347,10 @@ public class PipelinedSorter extends ExternalSorter {
   private void sendPipelinedShuffleEvents() throws IOException{
     List<Event> events = Lists.newLinkedList();
     String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
-    ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false, outputContext,
-        (numSpills - 1), indexCacheList.get(numSpills - 1), partitions, sendEmptyPartitionDetails,
-        pathComponent, partitionStats);
+    ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false,
+        outputContext, (numSpills - 1), indexCacheList.get(numSpills - 1),
+        partitions, sendEmptyPartitionDetails, pathComponent, partitionStats,
+        reportDetailedPartitionStats());
     outputContext.sendEvents(events);
     LOG.info(outputContext.getDestinationVertexName() +
         ": Added spill event for spill (final update=false), spillId=" + (numSpills - 1));
@@ -671,7 +672,8 @@ public class PipelinedSorter extends ExternalSorter {
           String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
           ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
               outputContext, i, indexCacheList.get(i), partitions,
-              sendEmptyPartitionDetails, pathComponent, partitionStats);
+              sendEmptyPartitionDetails, pathComponent, partitionStats,
+              reportDetailedPartitionStats());
           LOG.info(outputContext.getDestinationVertexName() + ": Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
         }
         outputContext.sendEvents(events);

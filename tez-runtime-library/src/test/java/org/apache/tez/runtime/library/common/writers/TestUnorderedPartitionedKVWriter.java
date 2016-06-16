@@ -79,6 +79,7 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
@@ -115,14 +116,28 @@ public class TestUnorderedPartitionedKVWriter {
   private static FileSystem localFs;
 
   private boolean shouldCompress;
+  private ReportPartitionStats reportPartitionStats;
 
-  public TestUnorderedPartitionedKVWriter(boolean shouldCompress) {
+  public TestUnorderedPartitionedKVWriter(boolean shouldCompress,
+      ReportPartitionStats reportPartitionStats) {
     this.shouldCompress = shouldCompress;
+    this.reportPartitionStats = reportPartitionStats;
   }
 
-  @Parameters
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "test[{0}, {1}, {2}]")
   public static Collection<Object[]> data() {
-    Object[][] data = new Object[][] { { false }, { true } };
+    Object[][] data = new Object[][] {
+        { false, ReportPartitionStats.DISABLED },
+        { false, ReportPartitionStats.ENABLED },
+        { false, ReportPartitionStats.NONE },
+        { false, ReportPartitionStats.MEMORY_OPTIMIZED },
+        { false, ReportPartitionStats.PRECISE },
+        { true, ReportPartitionStats.DISABLED },
+        { true, ReportPartitionStats.ENABLED },
+        { true, ReportPartitionStats.NONE },
+        { true, ReportPartitionStats.MEMORY_OPTIMIZED },
+        { true, ReportPartitionStats.PRECISE }};
     return Arrays.asList(data);
   }
 
@@ -415,36 +430,54 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(0, expectedValues.size());
   }
 
-  private long[] getPartitionStats(
-      VertexManagerEvent vme) throws IOException {
+  private int[] getPartitionStats(VertexManagerEvent vme) throws IOException {
     RoaringBitmap partitionStats = new RoaringBitmap();
     ShuffleUserPayloads.VertexManagerEventPayloadProto
         payload = ShuffleUserPayloads.VertexManagerEventPayloadProto
         .parseFrom(ByteString.copyFrom(vme.getUserPayload()));
-    assertTrue(payload.hasPartitionStats());
-    ByteString compressedPartitionStats = payload.getPartitionStats();
-    byte[] rawData = TezCommonUtils.decompressByteStringToByteArray(
-        compressedPartitionStats);
-    ByteArrayInputStream bin = new ByteArrayInputStream(rawData);
-    partitionStats.deserialize(new DataInputStream(bin));
-    long[] stats = new long[partitionStats.getCardinality()];
-    Iterator<Integer> it = partitionStats.iterator();
-    final DATA_RANGE_IN_MB[] RANGES = DATA_RANGE_IN_MB.values();
-    final int RANGE_LEN = RANGES.length;
-    while (it.hasNext()) {
-      int pos = it.next();
-      int index = ((pos) / RANGE_LEN);
-      int rangeIndex = ((pos) % RANGE_LEN);
-      if (RANGES[rangeIndex].getSizeInMB() > 0) {
-        stats[index] += RANGES[rangeIndex].getSizeInMB();
-      }
+    if (!reportPartitionStats.isEnabled()) {
+      assertFalse(payload.hasPartitionStats());
+      assertFalse(payload.hasDetailedPartitionStats());
+      return null;
     }
-    return stats;
+    if (reportPartitionStats.isPrecise()) {
+      assertTrue(payload.hasDetailedPartitionStats());
+      List<Integer> sizeInMBList =
+          payload.getDetailedPartitionStats().getSizeInMbList();
+      int[] stats = new int[sizeInMBList.size()];
+      for (int i=0; i<sizeInMBList.size(); i++) {
+        stats[i] += sizeInMBList.get(i);
+      }
+      return stats;
+    } else {
+      assertTrue(payload.hasPartitionStats());
+      ByteString compressedPartitionStats = payload.getPartitionStats();
+      byte[] rawData = TezCommonUtils.decompressByteStringToByteArray(
+          compressedPartitionStats);
+      ByteArrayInputStream bin = new ByteArrayInputStream(rawData);
+      partitionStats.deserialize(new DataInputStream(bin));
+      int[] stats = new int[partitionStats.getCardinality()];
+      Iterator<Integer> it = partitionStats.iterator();
+      final DATA_RANGE_IN_MB[] RANGES = DATA_RANGE_IN_MB.values();
+      final int RANGE_LEN = RANGES.length;
+      while (it.hasNext()) {
+        int pos = it.next();
+        int index = ((pos) / RANGE_LEN);
+        int rangeIndex = ((pos) % RANGE_LEN);
+        if (RANGES[rangeIndex].getSizeInMB() > 0) {
+          stats[index] += RANGES[rangeIndex].getSizeInMB();
+        }
+      }
+      return stats;
+    }
   }
 
   private void verifyPartitionStats(VertexManagerEvent vme,
       BitSet expectedPartitionsWithData) throws IOException {
-    long[] stats = getPartitionStats(vme);
+    int[] stats = getPartitionStats(vme);
+    if (stats == null) {
+      return;
+    }
     for (int i = 0; i < stats.length; i++) {
       // The stats should be greater than zero if and only if
       // the partition has data
@@ -922,6 +955,8 @@ public class TestUnorderedPartitionedKVWriter {
       conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC,
           DefaultCodec.class.getName());
     }
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        reportPartitionStats.getType());
     return conf;
   }
 

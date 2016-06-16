@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.junit.Test;
 
 public class TestOrderedPartitionedKVEdgeConfig {
@@ -132,7 +133,8 @@ public class TestOrderedPartitionedKVEdgeConfig {
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, "1111");
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, "0.22f");
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "CustomSorter");
-    additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, "true");
+    additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        ReportPartitionStats.MEMORY_OPTIMIZED.getType());
     additionalConfs.put("file.shouldExist", "file");
 
     OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
@@ -173,9 +175,11 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals("io", outputConf.get("io.shouldExist"));
     assertEquals("file", outputConf.get("file.shouldExist"));
     assertEquals("fs", outputConf.get("fs.shouldExist"));
-    assertEquals(true, outputConf.getBoolean(TezRuntimeConfiguration
-            .TEZ_RUNTIME_REPORT_PARTITION_STATS,
+    ReportPartitionStats partitionStats =
+        ReportPartitionStats.fromString(outputConf.get(
+        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
         TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
+    assertEquals(true, partitionStats.isEnabled());
 
 
     assertEquals(3, inputConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 0));

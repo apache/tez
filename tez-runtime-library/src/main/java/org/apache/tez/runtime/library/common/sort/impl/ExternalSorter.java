@@ -53,6 +53,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
@@ -159,16 +160,19 @@ public abstract class ExternalSorter {
   protected final TezCounter numAdditionalSpills;
   // Number of files offered via shuffle-handler to consumers.
   protected final TezCounter numShuffleChunks;
+  // How partition stats should be reported.
+  final ReportPartitionStats reportPartitionStats;
 
   public ExternalSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;
     this.partitions = numOutputs;
-    boolean reportPartitionStats = conf.getBoolean(TezRuntimeConfiguration
-            .TEZ_RUNTIME_REPORT_PARTITION_STATS,
-        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT);
-    this.partitionStats = (reportPartitionStats) ? (new long[partitions]) : null;
+    reportPartitionStats = ReportPartitionStats.fromString(
+        conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
+    partitionStats = reportPartitionStats.isEnabled() ?
+        (new long[partitions]) : null;
 
     cleanup = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT,
         TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT_DEFAULT);
@@ -202,7 +206,8 @@ public abstract class ExternalSorter {
         + ", valueSerializerClass=" + valSerializer
         + ", comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
         + ", partitioner=" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS)
-        + ", serialization=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
+        + ", serialization=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY)
+        + ", reportPartitionStats=" + reportPartitionStats);
 
     //    counters    
     mapOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
@@ -411,5 +416,9 @@ public abstract class ExternalSorter {
     long outputRecords = outputContext.getCounters()
         .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
     statsReporter.reportItemsProcessed(outputRecords);
+  }
+
+  public boolean reportDetailedPartitionStats() {
+    return reportPartitionStats.isPrecise();
   }
 }

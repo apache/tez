@@ -38,6 +38,7 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
@@ -98,6 +99,7 @@ public class TestOnFileSortedOutput {
   private boolean sendEmptyPartitionViaEvent;
   //Partition index for which data should not be written to.
   private int emptyPartitionIdx;
+  private ReportPartitionStats reportPartitionStats;
 
   /**
    * Constructor
@@ -107,13 +109,14 @@ public class TestOnFileSortedOutput {
    * @param sorterThreads number of threads needed for sorter (required only for pipelined sorter)
    * @param emptyPartitionIdx for which data should not be generated
    */
-  public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent, SorterImpl sorterImpl,
-      int sorterThreads, int emptyPartitionIdx) throws IOException {
+  public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent,
+      SorterImpl sorterImpl, int sorterThreads, int emptyPartitionIdx,
+      ReportPartitionStats reportPartitionStats) throws IOException {
     this.sendEmptyPartitionViaEvent = sendEmptyPartitionViaEvent;
     this.emptyPartitionIdx = emptyPartitionIdx;
     this.sorterImpl = sorterImpl;
     this.sorterThreads = sorterThreads;
-
+    this.reportPartitionStats = reportPartitionStats;
     conf = new Configuration();
 
     workingDir = new Path(".", this.getClass().getName());
@@ -135,7 +138,8 @@ public class TestOnFileSortedOutput {
 
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED,
         sendEmptyPartitionViaEvent);
-
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        reportPartitionStats.getType());
     outputSize.set(0);
     numRecords.set(0);
     fs.mkdirs(workingDir);
@@ -147,27 +151,39 @@ public class TestOnFileSortedOutput {
     fs.delete(workingDir, true);
   }
 
-  @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3}]")
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "test[{0}, {1}, {2}, {3}, {4}]")
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
-    //empty_partition_via_events_enabled, noOfSortThreads, partitionToBeEmpty
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, -1 });
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, 0 });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, -1 });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0 });
+    //empty_partition_via_events_enabled, noOfSortThreads,
+    // partitionToBeEmpty, reportPartitionStats
+    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, -1,
+        ReportPartitionStats.ENABLED });
+    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, -1,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.PRECISE  });
 
     //Pipelined sorter
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, -1 });
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, 0 });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, -1 });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0 });
-
+    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, -1,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, -1,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.ENABLED  });
+    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.PRECISE  });
     return parameters;
   }
 
   private void startSortedOutput(int partitions) throws Exception {
     OutputContext context = createTezOutputContext();
-    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, true);
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     doReturn(payLoad).when(context).getUserPayload();
@@ -299,7 +315,11 @@ public class TestOnFileSortedOutput {
         .parseFrom(
             ByteString.copyFrom(((VertexManagerEvent) eventList.get(0)).getUserPayload()));
 
-    assertTrue(vmPayload.hasPartitionStats());
+    if (reportPartitionStats.isPrecise()) {
+      assertTrue(vmPayload.hasDetailedPartitionStats());
+    } else {
+      assertTrue(vmPayload.hasPartitionStats());
+    }
     assertEquals(HOST, payload.getHost());
     assertEquals(PORT, payload.getPort());
     assertEquals(UniqueID, payload.getPathComponent());

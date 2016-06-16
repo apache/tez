@@ -40,6 +40,7 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -404,10 +405,11 @@ public class TestPipelinedSorter {
     writeData(sorter, numKeys, keySize);
 
     //partition stats;
-    boolean partitionStats = conf.getBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_REPORT_PARTITION_STATS, TezRuntimeConfiguration
-        .TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT);
-    if (partitionStats) {
+    ReportPartitionStats partitionStats =
+        ReportPartitionStats.fromString(conf.get(
+        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
+    if (partitionStats.isEnabled()) {
       assertTrue(sorter.getPartitionStats() != null);
     }
 

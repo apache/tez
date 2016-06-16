@@ -175,11 +175,16 @@ public class TezRuntimeConfiguration {
   /**
    * Report partition statistics (e.g better scheduling in ShuffleVertexManager). TEZ-2496
    * This can be enabled/disabled at vertex level.
+   * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats}
+   * defines the list of values that can be specified.
+   * TODO TEZ-3303 Given ShuffleVertexManager doesn't consume precise stats
+   * yet. So do not set the value to "precise" yet when ShuffleVertexManager is used.
    */
-  @ConfigurationProperty(type = "boolean")
-  public static final String TEZ_RUNTIME_REPORT_PARTITION_STATS = TEZ_RUNTIME_PREFIX +
-      "report.partition.stats";
-  public static final boolean TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT = true;
+  @ConfigurationProperty
+  public static final String TEZ_RUNTIME_REPORT_PARTITION_STATS =
+      TEZ_RUNTIME_PREFIX + "report.partition.stats";
+  public static final String TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT =
+      ReportPartitionStats.MEMORY_OPTIMIZED.getType();
 
   /**
    * Size of the buffer to use if not writing directly to disk.
@@ -634,5 +639,71 @@ public class TezRuntimeConfiguration {
   @Private
   public static Map<String, String> getOtherConfigDefaults() {
     return Collections.unmodifiableMap(otherConfMap);
+  }
+
+  public enum ReportPartitionStats {
+    @Deprecated
+    /**
+     * Don't report partition stats. It is the same as NONE.
+     * It is defined to maintain backward compatibility given
+     * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
+     * to be boolean type.
+     */
+    DISABLED("false"),
+
+    @Deprecated
+    /**
+     * Report partition stats. It is the same as MEMORY_OPTIMIZED.
+     * It is defined to maintain backward compatibility given
+     * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
+     * to be boolean type.
+     */
+    ENABLED("true"),
+
+    /**
+     * Don't report partition stats.
+     */
+    NONE("none"),
+
+    /**
+     * Report partition stats with less precision to reduce
+     * memory and CPU overhead
+     */
+    MEMORY_OPTIMIZED("memory_optimized"),
+
+    /**
+     * Report precise partition stats in MB.
+     */
+    PRECISE("precise");
+
+    private final String type;
+
+    private ReportPartitionStats(String type) {
+      this.type = type;
+    }
+
+    public final String getType() {
+      return type;
+    }
+
+    public boolean isEnabled() {
+      return !equals(ReportPartitionStats.DISABLED) &&
+              !equals(ReportPartitionStats.NONE);
+    }
+
+    public boolean isPrecise() {
+      return equals(ReportPartitionStats.PRECISE);
+    }
+
+    public static ReportPartitionStats fromString(String type) {
+      if (type != null) {
+        for (ReportPartitionStats b : ReportPartitionStats.values()) {
+          if (type.equalsIgnoreCase(b.type)) {
+            return b;
+          }
+        }
+      }
+      throw new IllegalArgumentException("Invalid type " + type);
+    }
   }
 }
