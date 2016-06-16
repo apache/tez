@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3296. Tez job can hang if two vertices at the same root distance have different task requirements
   TEZ-3294. DAG.createDag() does not clear local state on repeat calls.
   TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
@@ -60,6 +61,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3296. Tez job can hang if two vertices at the same root distance have different task requirements
   TEZ-3294. DAG.createDag() does not clear local state on repeat calls.
   TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
@@ -510,6 +512,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3296. Tez job can hang if two vertices at the same root distance have different task requirements
   TEZ-3294. DAG.createDag() does not clear local state on repeat calls.
   TEZ-3297. Deadlock scenario in AM during ShuffleVertexManager auto reduce.
   TEZ-3296. Tez fails to compile against hadoop 2.8 after MAPREDUCE-5870
