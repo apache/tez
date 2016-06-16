@@ -88,6 +88,7 @@ public class TestAnalyzer {
   
   private boolean usingATS = true;
   private boolean downloadedSimpleHistoryFile = false;
+  private static String yarnTimelineAddress;
 
   @BeforeClass
   public static void setupClass() throws Exception {
@@ -137,6 +138,7 @@ public class TestAnalyzer {
 
     miniTezCluster.init(conf);
     miniTezCluster.start();
+    yarnTimelineAddress = miniTezCluster.getConfig().get(YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS);
   }
 
   private TezConfiguration createCommonTezLog() throws Exception {
@@ -156,7 +158,8 @@ public class TestAnalyzer {
   private void createTezSessionATS() throws Exception {
     TezConfiguration tezConf = createCommonTezLog();
     tezConf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, true);
-    tezConf.set(YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS, "0.0.0.0:8188");
+    tezConf.set(YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS,
+        miniTezCluster.getConfig().get(YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS));
     tezConf.setBoolean(TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS, true);
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
         ATSHistoryLoggingService.class.getName());
@@ -255,7 +258,7 @@ public class TestAnalyzer {
     DagInfo dagInfo = null;
     if (usingATS) {
       //Export the data from ATS
-      String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR };
+      String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
   
       int result = ATSImportTool.process(args);
       assertTrue(result == 0);
