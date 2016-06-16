@@ -49,7 +49,7 @@ public class DAGSchedulerNaturalOrder extends DAGScheduler {
     int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
 
     // natural priority. Handles failures and retries.
-    int priorityLowLimit = (vertexDistanceFromRoot + 1) * 3;
+    int priorityLowLimit = ((vertexDistanceFromRoot + 1) * dag.getTotalVertices() * 3) + (vertex.getVertexId().getId() * 3);
     int priorityHighLimit = priorityLowLimit - 2;
 
     if (LOG.isDebugEnabled()) {
