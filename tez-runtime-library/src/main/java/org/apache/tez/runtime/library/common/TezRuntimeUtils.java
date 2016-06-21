@@ -41,6 +41,8 @@ public class TezRuntimeUtils {
   private static final Logger LOG = LoggerFactory
       .getLogger(TezRuntimeUtils.class);
   
+  private TezRuntimeUtils() {}
+  
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
     return String.format("%s_%06d", vertexName, taskIndex);
   }

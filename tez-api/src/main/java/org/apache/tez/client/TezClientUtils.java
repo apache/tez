@@ -118,6 +118,9 @@ public class TezClientUtils {
   private static Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
+  
+  private TezClientUtils() {}
+
   private static FileStatus[] getLRFileStatus(String fileName, Configuration conf) throws
       IOException {
     URI uri;

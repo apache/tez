@@ -34,6 +34,8 @@ public class Utils {
 
   private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
+  private Utils() {}
+
   public static String getContainerLauncherIdentifierString(int launcherIndex, AppContext appContext) {
     String name;
     try {

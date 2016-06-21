@@ -38,6 +38,8 @@ public class TezYARNUtils {
   
   private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
 
+  private TezYARNUtils() {}
+
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
 

@@ -45,6 +45,8 @@ public class Utils {
 
   private static final String LOG4J_CONFIGURATION = "log4j.configuration";
 
+  private Utils() {}
+
   /**
    * Parse tez counters from json
    *

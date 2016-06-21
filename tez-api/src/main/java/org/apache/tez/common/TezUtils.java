@@ -52,6 +52,8 @@ public class TezUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtils.class);
 
+  private TezUtils() {}
+
   /**
    * Allows changing the log level for task / AM logging. </p>
    *

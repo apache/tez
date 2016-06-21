@@ -34,6 +34,8 @@ public class Utils {
 
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
+  private Utils() {}
+
   public static String getShortClassName(String className) {
     int pos = className.lastIndexOf(".");
     if (pos != -1 && pos < className.length() - 1) {

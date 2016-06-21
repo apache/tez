@@ -40,7 +40,9 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 public class SecureShuffleUtils {
   public static final String HTTP_HEADER_URL_HASH = "UrlHash";
   public static final String HTTP_HEADER_REPLY_URL_HASH = "ReplyHash";
-  
+
+  private SecureShuffleUtils() {}
+
   /**
    * Base64 encoded hash of msg
    * @param msg

@@ -47,6 +47,8 @@ public class MRInputUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInputUtils.class);
 
+  private MRInputUtils() {}
+
   public static TaskSplitMetaInfo[] readSplits(Configuration conf) throws IOException {
     TaskSplitMetaInfo[] allTaskSplitMetaInfo;
     allTaskSplitMetaInfo = SplitMetaInfoReaderTez

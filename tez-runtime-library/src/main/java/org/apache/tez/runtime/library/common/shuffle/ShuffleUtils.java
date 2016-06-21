@@ -84,6 +84,8 @@ public class ShuffleUtils {
         }
       };
 
+  private ShuffleUtils() {}
+
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
       throws IOException {
     DataInputByteBuffer in = new DataInputByteBuffer();

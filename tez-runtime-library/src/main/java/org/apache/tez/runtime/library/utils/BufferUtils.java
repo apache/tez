@@ -26,6 +26,8 @@ import org.apache.hadoop.io.DataOutputBuffer;
 
 @Private
 public class BufferUtils {
+  private BufferUtils() {}
+
   public static int compare(DataInputBuffer buf1, DataInputBuffer buf2) {
     byte[] b1 = buf1.getData();
     byte[] b2 = buf2.getData();

@@ -34,6 +34,8 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class TezEventUtils {
 
+  private TezEventUtils() {}
+
   public static TezEventProto toProto(TezEvent event) throws IOException {
     TezEventProto.Builder evtBuilder =
         TezEventProto.newBuilder();

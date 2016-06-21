@@ -27,6 +27,8 @@ import org.apache.hadoop.yarn.api.records.URL;
 
 public class TezConverterUtils {
 
+  private TezConverterUtils() {}
+
   /**
    * return a {@link URI} from a given url
    * 

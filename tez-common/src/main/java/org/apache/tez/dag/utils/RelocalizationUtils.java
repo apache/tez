@@ -40,6 +40,8 @@ import com.google.common.collect.Lists;
 @InterfaceAudience.Private
 public class RelocalizationUtils {
   
+  private RelocalizationUtils() {}
+
   public static List<URL> processAdditionalResources(Map<String, URI> additionalResources,
       Configuration conf, String destDir) throws IOException, TezException {
     if (additionalResources == null || additionalResources.isEmpty()) {
