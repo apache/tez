@@ -36,6 +36,8 @@ public class Limits {
   private static int GROUPS_MAX;
   private static int COUNTERS_MAX;
   private static boolean initialized = false;
+  private int totalCounters;
+  private LimitExceededException firstViolation;
 
   private static synchronized void ensureInitialized() {
     if (initialized) {
@@ -62,9 +64,6 @@ public class Limits {
         + ", MAX_COUNTERS=" + COUNTERS_MAX);
   }
 
-  private int totalCounters;
-  private LimitExceededException firstViolation;
-
   public static String filterName(String name, int maxLen) {
     return name.length() > maxLen ? name.substring(0, maxLen - 1) : name;
   }
@@ -77,6 +76,19 @@ public class Limits {
   public static String filterGroupName(String name) {
     ensureInitialized();
     return filterName(name, GROUP_NAME_MAX);
+  }
+
+  public synchronized static void setConfiguration(Configuration conf) {
+    if (Limits.conf == null && conf != null) {
+      Limits.conf = conf;
+    }
+  }
+
+  @VisibleForTesting
+  @InterfaceAudience.Private
+  public synchronized static void reset() {
+    conf = null;
+    initialized = false;
   }
 
   public synchronized void checkCounters(int size) {
@@ -109,19 +121,6 @@ public class Limits {
 
   public synchronized LimitExceededException violation() {
     return firstViolation;
-  }
-
-  public synchronized static void setConfiguration(Configuration conf) {
-    if (Limits.conf == null && conf != null) {
-      Limits.conf = conf;
-    }
-  }
-
-  @VisibleForTesting
-  @InterfaceAudience.Private
-  public synchronized static void reset() {
-    conf = null;
-    initialized = false;
   }
 
 }

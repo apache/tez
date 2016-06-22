@@ -43,6 +43,26 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
   private final Mac mac;
 
   /**
+   * Default constructor
+   */
+  public JobTokenSecretManager() {
+    this(null);
+  }
+
+  public JobTokenSecretManager(SecretKey key) {
+    this.masterKey = (key == null) ? generateSecret() : key;
+    this.currentJobTokens = new TreeMap<String, SecretKey>();
+    try {
+      mac = Mac.getInstance(DEFAULT_HMAC_ALGORITHM);
+      mac.init(masterKey);
+    } catch (NoSuchAlgorithmException nsa) {
+      throw new IllegalArgumentException("Can't find " + DEFAULT_HMAC_ALGORITHM + " algorithm.", nsa);
+    } catch (InvalidKeyException ike) {
+      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
+    }
+  }
+
+  /**
    * Convert the byte[] to a secret key
    * @param key the byte[] to create the secret key from
    * @return the secret key
@@ -71,27 +91,6 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
       return mac.doFinal(msg);
     }
   }
-
-  /**
-   * Default constructor
-   */
-  public JobTokenSecretManager() {
-    this(null);
-  }
-
-  public JobTokenSecretManager(SecretKey key) {
-    this.masterKey = (key == null) ? generateSecret() : key;
-    this.currentJobTokens = new TreeMap<String, SecretKey>();
-    try {
-      mac = Mac.getInstance(DEFAULT_HMAC_ALGORITHM);
-      mac.init(masterKey);
-    } catch (NoSuchAlgorithmException nsa) {
-      throw new IllegalArgumentException("Can't find " + DEFAULT_HMAC_ALGORITHM + " algorithm.", nsa);
-    } catch (InvalidKeyException ike) {
-      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
-    }
-  }
-
 
   /**
    * Create a new password/secret for the given job token identifier.

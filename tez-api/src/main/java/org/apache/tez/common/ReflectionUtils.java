@@ -35,6 +35,9 @@ import org.apache.tez.dag.api.TezUncheckedException;
 public class ReflectionUtils {
 
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
+  // Parameters for addResourcesToSystemClassLoader
+  private static final Class<?>[] parameters = new Class[]{URL.class};
+  private static Method sysClassLoaderMethod = null;
 
   @Private
   public static Class<?> getClazz(String className) throws TezReflectionException {
@@ -115,10 +118,6 @@ public class ReflectionUtils {
         .currentThread().getContextClassLoader());
     Thread.currentThread().setContextClassLoader(classLoader);
   }
-
-  // Parameters for addResourcesToSystemClassLoader
-  private static final Class<?>[] parameters = new Class[]{URL.class};
-  private static Method sysClassLoaderMethod = null;
 
   @Private
   public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) {

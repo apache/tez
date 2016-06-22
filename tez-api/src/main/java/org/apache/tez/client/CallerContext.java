@@ -62,6 +62,20 @@ public class CallerContext {
   private CallerContext() {
   }
 
+  private CallerContext(String context, String callerId, String callerType,
+      @Nullable String blob) {
+    if (callerId != null || callerType != null) {
+      setCallerIdAndType(callerId, callerType);
+    }
+    setContext(context);
+    setBlob(blob);
+  }
+
+  private CallerContext(String context, @Nullable String blob) {
+    setContext(context);
+    setBlob(blob);
+  }
+
   /**
    * Instantiate the Caller Context
    * @param context Context in which Tez is being invoked. For example, HIVE or PIG.
@@ -93,21 +107,6 @@ public class CallerContext {
     return new CallerContext(context, blob);
   }
 
-
-  private CallerContext(String context, String callerId, String callerType,
-      @Nullable String blob) {
-    if (callerId != null || callerType != null) {
-      setCallerIdAndType(callerId, callerType);
-    }
-    setContext(context);
-    setBlob(blob);
-  }
-
-  private CallerContext(String context, @Nullable String blob) {
-    setContext(context);
-    setBlob(blob);
-  }
-
   public String getCallerType() {
     return callerType;
   }
@@ -118,6 +117,16 @@ public class CallerContext {
 
   public String getBlob() {
     return blob;
+  }
+
+  /**
+   * @param blob Free-form text or a json-representation of relevant meta-data.
+   *             This can be used to describe the work being done. For example, for Hive,
+   *             this could be the Hive query text.
+   */
+  public CallerContext setBlob(@Nullable String blob) {
+    this.blob = blob;
+    return this;
   }
 
   public String getContext() {
@@ -147,16 +156,6 @@ public class CallerContext {
         "Caller Id and Caller Type cannot be null or empty");
     this.callerType = callerType;
     this.callerId = callerId;
-    return this;
-  }
-
-  /**
-   * @param blob Free-form text or a json-representation of relevant meta-data.
-   *             This can be used to describe the work being done. For example, for Hive,
-   *             this could be the Hive query text.
-   */
-  public CallerContext setBlob(@Nullable String blob) {
-    this.blob = blob;
     return this;
   }
 
