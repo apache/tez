@@ -247,7 +247,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       try {
         // this breaks badly on partitioned input - please use responsibly
         Preconditions.checkArgument(partition == 0, "Partition == 0");
-        final String tmpSuffix = "" + System.currentTimeMillis() + ".tmp";
+        final String tmpSuffix = System.currentTimeMillis() + ".tmp";
         final String finalOutput = getMapOutputFile(srcAttemptId.getPathComponent());
         final Path outputPath = localDirAllocator.getLocalPathForWrite(finalOutput, compressedLength, conf);
         final TezSpillRecord spillRec = new TezSpillRecord(1);

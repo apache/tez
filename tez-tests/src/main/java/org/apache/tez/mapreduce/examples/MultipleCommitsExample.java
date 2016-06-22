@@ -206,7 +206,7 @@ public class MultipleCommitsExample extends TezExampleBase {
       String uv12OutputPathPrefix, int uv12OutputNum,
       String v3OutputPathPrefix, int v3OutputNum, boolean commitOnVertexSuccess) throws IOException {
     DAG dag = DAG.create("multipleCommitsDAG");
-    dag.setConf(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, !commitOnVertexSuccess + "");
+    dag.setConf(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, Boolean.toString(!commitOnVertexSuccess));
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(MultipleOutputProcessor.class.getName())
         .setUserPayload(
             new MultipleOutputProcessor.MultipleOutputProcessorConfig(

@@ -100,11 +100,11 @@ public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
             recorList.add(attemptInfo.getTaskAttemptId());
             recorList.add(attemptInfo.getNodeId());
             recorList.add(source);
-            recorList.add(spillCount + "");
+            recorList.add(Long.toString(spillCount));
             recorList.add(attemptInfo.getTimeTaken() + "");
-            recorList.add(outBytes + "");
-            recorList.add(outputRecords + "");
-            recorList.add(spilledRecords + "");
+            recorList.add(Long.toString(outBytes));
+            recorList.add(Long.toString(outputRecords));
+            recorList.add(Long.toString(spilledRecords));
             recorList.add("Consider increasing " + TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB
                 + ". Try increasing container size.");
 

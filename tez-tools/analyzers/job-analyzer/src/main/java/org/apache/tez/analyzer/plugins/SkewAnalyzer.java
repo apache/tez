@@ -157,10 +157,10 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
           result.add(attemptInfo.getTaskAttemptId());
           result.add(counterGroup);
           result.add(attemptInfo.getNodeId());
-          result.add(inputGroupsCount + "");
-          result.add(inputRecordsCount + "");
-          result.add(ratio + "");
-          result.add(shuffleBytesPerSource + "");
+          result.add(Long.toString(inputGroupsCount));
+          result.add(Long.toString(inputRecordsCount));
+          result.add(Float.toString(ratio));
+          result.add(Long.toString(shuffleBytesPerSource));
           result.add(attemptInfo.getTimeTaken() + "");
           result.add("Please check partitioning. Otherwise consider increasing memLimit");
 
@@ -220,10 +220,10 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
             result.add(attemptInfo.getTaskAttemptId());
             result.add(counterGroup);
             result.add(attemptInfo.getNodeId());
-            result.add(inputGroupsCount + "");
-            result.add(inputRecordsCount + "");
-            result.add(ratio + "");
-            result.add(shuffleBytesPerSource + "");
+            result.add(Long.toString(inputGroupsCount));
+            result.add(Long.toString(inputRecordsCount));
+            result.add(Float.toString(ratio));
+            result.add(Long.toString(shuffleBytesPerSource));
             result.add(attemptInfo.getTimeTaken() + "");
             result.add("Some task attempts are getting > 60% of reduce input records. "
                 + "Consider adjusting parallelism & check partition logic");
@@ -277,10 +277,10 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
           result.add(attemptInfo.getTaskAttemptId());
           result.add(counterGroup);
           result.add(attemptInfo.getNodeId());
-          result.add(inputGroupsCount + "");
-          result.add(inputRecordsCount + "");
-          result.add(ratio + "");
-          result.add(shuffleBytesPerSource + "");
+          result.add(Long.toString(inputGroupsCount));
+          result.add(Long.toString(inputRecordsCount));
+          result.add(Float.toString(ratio));
+          result.add(Long.toString(shuffleBytesPerSource));
           result.add(attemptInfo.getTimeTaken() + "");
           result.add("Consider increasing parallelism.");
 

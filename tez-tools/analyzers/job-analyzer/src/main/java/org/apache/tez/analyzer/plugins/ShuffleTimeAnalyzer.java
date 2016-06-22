@@ -131,9 +131,9 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
             }
             result.add(comments);
 
-            result.add(reduceInputGroupsVal + "");
-            result.add(reduceInputRecordsVal + "");
-            result.add("" + (1.0f * reduceInputGroupsVal / reduceInputRecordsVal));
+            result.add(Long.toString(reduceInputGroupsVal));
+            result.add(Long.toString(reduceInputRecordsVal));
+            result.add(Float.toString(1.0f * reduceInputGroupsVal / reduceInputRecordsVal));
             result.add(getCounterValue(TaskCounter.SHUFFLE_BYTES, counterGroupName, attemptInfo));
 
             result.add(Long.toString(attemptInfo.getTimeTaken()));

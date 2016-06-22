@@ -133,7 +133,7 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
   }
 
   private void addToResult(String vertexName, long currentTime, int concurrentTasks) {
-    String[] record = { currentTime + "", vertexName, concurrentTasks + "" };
+    String[] record = { Long.toString(currentTime), vertexName, Integer.toString(concurrentTasks) };
     csvResult.addRecord(record);
   }
 
