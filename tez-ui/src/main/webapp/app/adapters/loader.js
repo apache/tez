@@ -18,10 +18,11 @@
  */
 
 import DS from 'ember-data';
+import NameMixin from '../mixins/name';
 
 var MoreString = more.String;
 
-export default DS.RESTAdapter.extend({
+export default DS.RESTAdapter.extend(NameMixin, {
   _isLoader: true,
 
   buildURL: function(modelName, id, snapshot, requestType, query, params) {

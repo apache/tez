@@ -24,10 +24,6 @@ export function initialize(/* application */) {
     tooltipClass: 'generic-tooltip'
   });
 
-  Ember.$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
-    jqXHR.requestOptions = originalOptions;
-  });
-
   Ember.$.ajaxSetup({
     cache: false
   });

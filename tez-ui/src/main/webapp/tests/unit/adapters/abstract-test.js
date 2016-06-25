@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
+
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('adapter:abstract', 'Unit | Adapter | abstract', {
@@ -35,6 +37,9 @@ test('Basic creation test', function(assert) {
 
   assert.ok(adapter.ajaxOptions);
   assert.ok(adapter.pathForType);
+
+  assert.ok(adapter.normalizeErrorResponse);
+  assert.ok(adapter._loaderAjax);
 });
 
 test('host, namespace & pathTypeHash test', function(assert) {
@@ -106,5 +111,151 @@ test('pathForType test', function(assert) {
   assert.equal(adapter.pathForType("typ"), testHash.typ);
   assert.throws(function () {
     adapter.pathForType("noType");
+  });
+});
+
+test('normalizeErrorResponse test', function(assert) {
+  let adapter = this.subject(),
+      status = "200",
+      testTitle = "title",
+      strPayload = "StringPayload",
+      objPayload = {x: 1, message: testTitle},
+      testHeaders = {},
+      response;
+
+  response = adapter.normalizeErrorResponse(status, testHeaders, strPayload);
+  assert.equal(response[0].title, undefined);
+  assert.equal(response[0].status, status);
+  assert.equal(response[0].detail, strPayload);
+  assert.equal(response[0].headers, testHeaders);
+
+  response = adapter.normalizeErrorResponse(status, testHeaders, objPayload);
+  assert.equal(response[0].title, testTitle);
+  assert.equal(response[0].status, status);
+  assert.deepEqual(response[0].detail, objPayload);
+  assert.equal(response[0].headers, testHeaders);
+});
+
+test('normalizeErrorResponse html payload test', function(assert) {
+  let adapter = this.subject(),
+      status = "200",
+      htmlPayload = "StringPayload <b>boldText</b> <script>scriptText</script> <style>styleText</style>",
+      testHeaders = {},
+      response;
+
+  response = adapter.normalizeErrorResponse(status, testHeaders, htmlPayload);
+  assert.equal(response[0].detail, "StringPayload boldText");
+});
+
+test('_loaderAjax resolve test', function(assert) {
+  let result = {},
+      adapter = this.subject({
+        ajax: function () {
+          assert.ok(1);
+          return Ember.RSVP.resolve(result);
+        }
+      });
+
+  assert.expect(1 + 1);
+
+  adapter._loaderAjax().then(function (val) {
+    assert.equal(val.data, result);
+  });
+});
+
+test('_loaderAjax reject, without title test', function(assert) {
+  let errorInfo = {
+        status: "500",
+        detail: "testDetails"
+      },
+      msg = "Msg",
+      testUrl = "http://foo.bar",
+      testQuery = {},
+      testNS = "namespace",
+      adapter = this.subject({
+        outOfReachMessage: "OutOfReach",
+        ajax: function () {
+          assert.ok(1);
+          return Ember.RSVP.reject({
+            message: msg,
+            errors:[errorInfo]
+          });
+        }
+      });
+
+  assert.expect(1 + 7);
+
+  adapter._loaderAjax(testUrl, testQuery, testNS).catch(function (val) {
+    assert.equal(val.message, `${msg} » ${errorInfo.status}: Error accessing ${testUrl}`);
+    assert.equal(val.details, errorInfo.detail);
+    assert.equal(val.requestInfo.adapterName, "abstract");
+    assert.equal(val.requestInfo.url, testUrl);
+
+    assert.equal(val.requestInfo.queryParams, testQuery);
+    assert.equal(val.requestInfo.namespace, testNS);
+
+    assert.ok(val.requestInfo.hasOwnProperty("responseHeaders"));
+  });
+});
+
+test('_loaderAjax reject, with title test', function(assert) {
+  let errorInfo = {
+        status: "500",
+        title: "Server Error",
+        detail: "testDetails"
+      },
+      msg = "Msg",
+      testUrl = "url",
+      adapter = this.subject({
+        outOfReachMessage: "OutOfReach",
+        ajax: function () {
+          assert.ok(1);
+          return Ember.RSVP.reject({
+            message: msg,
+            errors:[errorInfo]
+          });
+        }
+      });
+
+  assert.expect(1 + 5);
+
+  adapter._loaderAjax(testUrl).catch(function (val) {
+    assert.equal(val.message, `${msg} » ${errorInfo.status}: ${errorInfo.title}`);
+    assert.equal(val.details, errorInfo.detail);
+    assert.equal(val.requestInfo.adapterName, "abstract");
+    assert.equal(val.requestInfo.url, testUrl);
+
+    assert.ok(val.requestInfo.hasOwnProperty("responseHeaders"));
+  });
+});
+
+test('_loaderAjax reject, status 0 test', function(assert) {
+  let errorInfo = {
+        status: 0,
+        title: "Server Error",
+        detail: "testDetails"
+      },
+      msg = "Msg",
+      testUrl = "url",
+      adapter = this.subject({
+        outOfReachMessage: "OutOfReach",
+        ajax: function () {
+          assert.ok(1);
+          return Ember.RSVP.reject({
+            message: msg,
+            errors:[errorInfo]
+          });
+        }
+      });
+
+  assert.expect(1 + 5);
+
+  adapter._loaderAjax(testUrl).catch(function (val) {
+    assert.equal(val.message, `${msg} » ${adapter.outOfReachMessage}`);
+    assert.equal(val.details, errorInfo.detail);
+    assert.equal(val.requestInfo.adapterName, "abstract");
+    assert.equal(val.requestInfo.url, testUrl);
+
+    assert.ok(val.requestInfo.hasOwnProperty("responseHeaders"));
   });
 });

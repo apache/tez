@@ -18,14 +18,22 @@
 
 <div class="message" {{action "toggleDetailsDisplay"}}>
   <i class="fa fa-exclamation-circle"></i>
-  {{#if code}}
-    <b>{{code}}</b> :
-  {{/if}}
   {{message}}
   <i class="show-details fa {{if showDetails 'fa-minus-circle' 'fa-plus-circle'}}"></i>
 </div>
-<div class="details {{if showDetails "visible"}}">{{{details}}}{{#if stack}}<b>Stack:</b>
-    {{stack}}
+
+<div class="details {{if showDetails "visible"}}">
+  {{#if error.details}}
+    <b>Details:</b>
+    <p>{{txt error.details type="json"}}</p>
+  {{/if}}
+  {{#if error.requestInfo}}
+    <b>Request:</b>
+    <p>{{txt error.requestInfo type="json"}}</p>
+  {{/if}}
+  {{#if error.stack}}
+    <b>Stack:</b>
+    <p>{{error.stack}}</p>
   {{/if}}
 </div>
 <i class="close-button fa fa-arrow-circle-down" {{action "close"}}></i>

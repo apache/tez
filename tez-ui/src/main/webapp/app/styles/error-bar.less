@@ -44,22 +44,31 @@
   color: @text-red;
 
   .message, .details {
-    overflow: scroll;
-    max-height: 100px;
-
+    max-height: 150px;
     text-align: left;
+  }
+
+  .message {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-right: 30px;
   }
 
   .details {
     display: none;
     visibility: hidden;
+    overflow: scroll;
 
     margin-bottom: 10px;
 
     border-top: 1px @border-lite solid;
 
     .force-scrollbar;
-    white-space: pre-line;
+
+    p {
+      white-space: pre-wrap;
+    }
 
     &.visible {
       display: block;

@@ -34,6 +34,8 @@ test('Basic creation', function(assert) {
   assert.ok(adapter._loaderAjax);
   assert.ok(adapter.queryRecord);
   assert.ok(adapter.query);
+
+  assert.equal(adapter.get("name"), "loader");
 });
 
 test('buildURL test', function(assert) {

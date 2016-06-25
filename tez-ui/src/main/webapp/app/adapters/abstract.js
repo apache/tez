@@ -53,18 +53,63 @@ export default LoaderAdapter.extend({
     return path;
   },
 
-  normalizeErrorResponse: function(status, headers, payload) {
-    var response;
-
-    if(payload && payload.exception && !payload.errors) {
-      payload = `${payload.exception}\n${payload.message}\n${payload.javaClassName}`;
-      response = this._super(status, headers, payload);
+  normalizeErrorResponse: function (status, headers, payload) {
+    var title;
+    switch(typeof payload) {
+      case "object":
+        title = payload.message;
+      break;
+      case "string":
+        let html = Ember.$(payload.bold());
+        html.find('script').remove();
+        html.find('style').remove();
+        payload = html.text().trim();
+      break;
     }
-    else {
-      response = this._super(status, headers, payload);
-      Ember.set(response, '0.title', this.get("outOfReachMessage"));
-    }
 
-    return response;
+    return [{
+      title: title,
+      status: status,
+      headers: headers,
+      detail: payload
+    }];
+  },
+
+  _loaderAjax: function (url, queryParams, namespace) {
+    var requestInfo = {
+          adapterName: this.get("name"),
+          url: url
+        },
+        that = this;
+
+    return this._super(url, queryParams, namespace).catch(function (error) {
+      var message = `${error.message} »`,
+          status = Ember.get(error, "errors.0.status");
+
+      if(status === 0) {
+        let outOfReachMessage = that.get("outOfReachMessage");
+        message = `${message} ${outOfReachMessage}`;
+      }
+      else {
+        let title = Ember.get(error, "errors.0.title") || `Error accessing ${url}`;
+        message = `${message} ${status}: ${title}`;
+      }
+
+      requestInfo.responseHeaders = Ember.get(error, "errors.0.headers");
+      if(queryParams) {
+        requestInfo.queryParams = queryParams;
+      }
+      if(namespace) {
+        requestInfo.namespace = namespace;
+      }
+
+      Ember.setProperties(error, {
+        message: message,
+        details: Ember.get(error, "errors.0.detail"),
+        requestInfo: requestInfo
+      });
+
+      throw(error);
+    });
   }
 });

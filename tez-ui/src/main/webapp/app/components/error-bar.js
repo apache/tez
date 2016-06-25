@@ -26,57 +26,21 @@ export default Ember.Component.extend({
 
   visible: false,
   detailsAvailable: false,
+  showDetails: false,
+  displayTimerId: 0,
 
   classNames: ['error-bar'],
   classNameBindings: ['visible', 'detailsAvailable'],
 
-  code: null,
   message: null,
-  details: null,
-  stack: null,
 
-  showDetails: false,
-
-  displayTimerId: 0,
-
-  _errorObserver: Ember.observer("error", function () {
-    var error = this.get("error"),
-
-        code = Ember.get(error, "errors.0.status"),
-        title = Ember.get(error, "errors.0.title"),
-        message = error.message || "Error",
-        details = Ember.get(error, "errors.0.detail") || "",
-        stack = error.stack,
-        lineEndIndex = Math.min(message.indexOf('\n'), message.indexOf('<br'));
-
-    if(code === "0") {
-      code = "";
-    }
-
-    if(title) {
-      message += ". " + title;
-    }
-
-    if(lineEndIndex > 0) {
-      if(details) {
-        details = "\n" + details;
-      }
-      details = message.substr(lineEndIndex) + details;
-      message = message.substr(0, lineEndIndex);
-    }
-
-    if(details) {
-      details += "\n";
-    }
+  _errorObserver: Ember.on("init", Ember.observer("error", function () {
+    var error = this.get("error");
 
     if(error) {
       this.setProperties({
-        code: code,
-        message: message,
-        details: details,
-        stack: stack,
-
-        detailsAvailable: !!(details || stack),
+        message: error.message || "Error",
+        detailsAvailable: !!(error.details || error.requestInfo || error.stack),
         visible: true
       });
 
@@ -86,7 +50,7 @@ export default Ember.Component.extend({
     else {
       this.close();
     }
-  }),
+  })),
 
   clearTimer: function () {
     clearTimeout(this.get("displayTimerId"));
@@ -105,5 +69,4 @@ export default Ember.Component.extend({
       this.close();
     }
   }
-
 });
