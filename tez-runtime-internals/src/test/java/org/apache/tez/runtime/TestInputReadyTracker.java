@@ -19,6 +19,7 @@
 package org.apache.tez.runtime;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
@@ -43,9 +44,9 @@ import com.google.common.collect.Sets;
 
 public class TestInputReadyTracker {
 
-  private static final long SLEEP_TIME = 500l;
+  private static final long SLEEP_TIME = 2000l;
   
-  @Test(timeout = 5000)
+  @Test(timeout = 20000)
   public void testWithoutGrouping1() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 
@@ -66,7 +67,8 @@ public class TestInputReadyTracker {
     
     startTime = System.nanoTime();
     setDelayedInputReady(input2);
-    inputReadyTracker.waitForAllInputsReady(requestList);
+    assertFalse(inputReadyTracker.waitForAllInputsReady(requestList, 0));
+    assertTrue(inputReadyTracker.waitForAllInputsReady(requestList, -1));
     readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
     // Ensure the method returned only after the specific Input was told it is ready
@@ -75,7 +77,7 @@ public class TestInputReadyTracker {
     assertTrue(input1.isReady);
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 20000)
   public void testWithoutGrouping2() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 
@@ -124,7 +126,9 @@ public class TestInputReadyTracker {
     requestList.add(input3);
     startTime = System.nanoTime();
     setDelayedInputReady(input3);
-    readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
+    readyInput = inputReadyTracker.waitForAnyInputReady(requestList, 0);
+    assertNull(readyInput);
+    readyInput = inputReadyTracker.waitForAnyInputReady(requestList, -1);
     assertEquals(input3, readyInput);
     readyTime = System.nanoTime();
     // Should have moved into ready state - only happens when the setReady function is invoked.
@@ -135,7 +139,7 @@ public class TestInputReadyTracker {
     assertTrue(input2.isReady);
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 20000)
   public void testGrouped() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
 
