@@ -63,7 +63,30 @@ public interface ProcessorContext extends TaskContext {
    * @throws InterruptedException
    */
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException;
-  
+
+  /**
+   * Blocking call which returns when any of the specified Inputs is ready for
+   * consumption.
+   *
+   * There can be multiple parallel invocations of this function - where each
+   * invocation blocks on the Inputs that it specifies.
+   *
+   * If multiple Inputs are ready, any one of them may be returned by this
+   * method - including an Input which may have been returned in a previous
+   * call. If invoking this method multiple times, it's recommended to remove
+   * previously completed Inputs from the invocation list.
+   *
+   * @param inputs
+   *          the list of Inputs to monitor
+   * @param timeoutMillis
+   *          timeout to return in milliseconds. If this value is negative,
+   *          this function will wait forever until all inputs get ready
+   *          or interrupted.
+   * @return the Input which is ready for consumption. return null when timeout occurs.
+   * @throws InterruptedException
+   */
+  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException;
+
   /**
    * Blocking call which returns only after all of the specified Inputs are
    * ready for consumption.
@@ -76,4 +99,22 @@ public interface ProcessorContext extends TaskContext {
    * @throws InterruptedException
    */
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException;
+
+  /**
+   * Blocking call which returns only after all of the specified Inputs are
+   * ready for consumption with timeout.
+   *
+   * There can be multiple parallel invocations of this function - where each
+   * invocation blocks on the Inputs that it specifies.
+   *
+   * @param inputs
+   *          the list of Inputs to monitor
+   * @param timeoutMillis
+   *          timeout to return in milliseconds. If this value is negative,
+   *          this function will wait forever until all inputs get ready
+   *          or interrupted.
+   * @return Return true if all inputs are ready. Otherwise, return false.
+   * @throws InterruptedException
+   */
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException;
 }

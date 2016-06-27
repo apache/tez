@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -77,17 +79,36 @@ public class InputReadyTracker {
   }
 
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
+    return waitForAnyInputReady(inputs, -1);
+  }
+
+  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, true);
-    return inputReadyMonitor.awaitCondition();
+    try {
+      return inputReadyMonitor.awaitCondition(timeoutMillis);
+    } catch (TimeoutException e) {
+      return null;
+    }
   }
 
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
+    waitForAllInputsReady(inputs, -1);
+  }
+
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
+    boolean succeeded = true;
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, false);
-    inputReadyMonitor.awaitCondition();
+
+    try {
+      inputReadyMonitor.awaitCondition(timeoutMillis);
+    } catch (TimeoutException e) {
+      succeeded = false;
+    }
+    return succeeded;
   }
 
   private class InputReadyMonitor {
@@ -101,7 +122,7 @@ public class InputReadyTracker {
       this.selectOne = anyOne;
     }
 
-    public Input awaitCondition() throws InterruptedException {
+    public Input awaitCondition(long timeoutMillis) throws InterruptedException, TimeoutException {
       lock.lock();
       try {
         while (pendingInputs.size() > 0) {
@@ -117,7 +138,14 @@ public class InputReadyTracker {
             }
           }
           if (pendingInputs.size() > 0) {
-            condition.await();
+            if (timeoutMillis >= 0) {
+              boolean succeeded = condition.await(timeoutMillis, TimeUnit.MILLISECONDS);
+              if (!succeeded) {
+                throw new TimeoutException("pending Inputs timeout");
+              }
+            } else { // timeout < 0
+              condition.await();
+            }
           }
         }
       } finally {

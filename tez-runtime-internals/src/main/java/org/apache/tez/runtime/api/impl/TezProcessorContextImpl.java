@@ -120,12 +120,22 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
-    return inputReadyTracker.waitForAnyInputReady(inputs);
+    return waitForAnyInputReady(inputs, -1);
+  }
+
+  @Override
+  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
+    return inputReadyTracker.waitForAnyInputReady(inputs, timeoutMillis);
   }
 
   @Override
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
-    inputReadyTracker.waitForAllInputsReady(inputs);
+    waitForAllInputsReady(inputs, -1);
+  }
+
+  @Override
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
+    return inputReadyTracker.waitForAllInputsReady(inputs, timeoutMillis);
   }
 
   @Override
