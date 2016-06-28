@@ -28,6 +28,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -38,6 +39,8 @@ import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
@@ -138,9 +141,11 @@ public class TestMRInput {
     List<Event> events = new LinkedList<>();
     events.add(diEvent);
     mrInput.handleEvents(events);
+    TezCounter counter = mrInput.getContext().getCounters()
+        .findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES);
+    assertEquals(counter.getValue(), TestInputSplit.length);
     assertTrue(TestInputFormat.invoked.get());
   }
-
 
   /**
    * Test class to verify
@@ -210,9 +215,11 @@ public class TestMRInput {
 
   public static class TestInputSplit implements InputSplit {
 
+    public static long length = Math.abs(new Random().nextLong());
+
     @Override
     public long getLength() throws IOException {
-      return 0;
+      return length;
     }
 
     @Override
