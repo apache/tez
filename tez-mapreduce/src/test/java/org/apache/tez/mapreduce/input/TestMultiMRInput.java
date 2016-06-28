@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.SequenceFileInputFormat;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
@@ -141,8 +143,9 @@ public class TestMultiMRInput {
     List<Event> eventList = new ArrayList<Event>();
 
     String file1 = "file1";
+    AtomicLong file1Length = new AtomicLong();
     LinkedHashMap<LongWritable, Text> data1 = createInputData(localFs, workDir, jobConf, file1, 0,
-        10);
+        10, file1Length);
     SequenceFileInputFormat<LongWritable, Text> format =
         new SequenceFileInputFormat<LongWritable, Text>();
     InputSplit[] splits = format.getSplits(jobConf, 1);
@@ -171,13 +174,16 @@ public class TestMultiMRInput {
         assertEquals(val, data1.remove(key));
       }
       try {
-        boolean hasNext = reader.next(); //should throw exception
+        reader.next(); //should throw exception
         fail();
       } catch(IOException e) {
         assertTrue(e.getMessage().contains("For usage, please refer to"));
       }
     }
     assertEquals(1, readerCount);
+    long counterValue = input.getContext().getCounters()
+        .findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES).getValue();
+    assertEquals(file1Length.get(), counterValue);
   }
 
   @Test(timeout = 5000)
@@ -202,12 +208,14 @@ public class TestMultiMRInput {
     LinkedHashMap<LongWritable, Text> data = new LinkedHashMap<LongWritable, Text>();
 
     String file1 = "file1";
+    AtomicLong file1Length = new AtomicLong();
     LinkedHashMap<LongWritable, Text> data1 = createInputData(localFs, workDir, jobConf, file1, 0,
-        10);
+        10, file1Length);
 
     String file2 = "file2";
+    AtomicLong file2Length = new AtomicLong();
     LinkedHashMap<LongWritable, Text> data2 = createInputData(localFs, workDir, jobConf, file2, 10,
-        20);
+        20, file2Length);
 
     data.putAll(data1);
     data.putAll(data2);
@@ -245,12 +253,15 @@ public class TestMultiMRInput {
       }
 
       try {
-        boolean hasNext = reader.next(); //should throw exception
+        reader.next(); //should throw exception
         fail();
       } catch(IOException e) {
         assertTrue(e.getMessage().contains("For usage, please refer to"));
       }
     }
+    long counterValue = input.getContext().getCounters()
+        .findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES).getValue();
+    assertEquals(file1Length.get() + file2Length.get(), counterValue);
     assertEquals(2, readerCount);
   }
 
@@ -273,7 +284,7 @@ public class TestMultiMRInput {
     List<Event> eventList = new ArrayList<Event>();
 
     String file1 = "file1";
-    createInputData(localFs, workDir, jobConf, file1, 0, 10);
+    createInputData(localFs, workDir, jobConf, file1, 0, 10, new AtomicLong());
     SequenceFileInputFormat<LongWritable, Text> format =
         new SequenceFileInputFormat<LongWritable, Text>();
     InputSplit[] splits = format.getSplits(jobConf, 1);
@@ -325,9 +336,8 @@ public class TestMultiMRInput {
   }
 
   public static LinkedHashMap<LongWritable, Text> createInputData(FileSystem fs, Path workDir,
-                                                                  JobConf job, String filename,
-                                                                  long startKey,
-                                                                  long numKeys) throws IOException {
+      JobConf job, String filename, long startKey, long numKeys, AtomicLong fileLength)
+          throws IOException {
     LinkedHashMap<LongWritable, Text> data = new LinkedHashMap<LongWritable, Text>();
     Path file = new Path(workDir, filename);
     LOG.info("Generating data at path: " + file);
@@ -346,6 +356,7 @@ public class TestMultiMRInput {
         writer.append(key, value);
         LOG.info("<k, v> : <" + key.get() + ", " + value + ">");
       }
+      fileLength.set(writer.getLength());
     } finally {
       writer.close();
     }

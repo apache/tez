@@ -84,7 +84,12 @@ public enum TaskCounter {
    * 
    */
   INPUT_RECORDS_PROCESSED,
-  
+
+  /**
+   * Number bytes for a task context, currently used by MRInput.
+   */
+  INPUT_SPLIT_LENGTH_BYTES,
+
   // 
   /**
    * Represents the number of actual output records.

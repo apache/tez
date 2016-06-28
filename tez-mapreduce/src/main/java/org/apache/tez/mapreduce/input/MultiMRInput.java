@@ -40,6 +40,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.mapreduce.input.base.MRInputBase;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -168,29 +169,43 @@ public class MultiMRInput extends MRInputBase {
       LOG.debug(getContext().getSourceVertexName() + " initializing Reader: " + eventCount.get());
     }
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(event.getUserPayload()));
-    Object split = null;
     MRReader reader = null;
     JobConf localJobConf = new JobConf(jobConf);
+    long splitLength = -1;
     if (useNewApi) {
-      split = MRInputUtils.getNewSplitDetailsFromEvent(splitProto, localJobConf);
-      reader = new MRReaderMapReduce(localJobConf, (org.apache.hadoop.mapreduce.InputSplit) split,
+      InputSplit split = MRInputUtils.getNewSplitDetailsFromEvent(splitProto, localJobConf);
+      try {
+        splitLength = split.getLength();
+      } catch (InterruptedException e) {
+        LOG.warn("Got interrupted while reading split length: ", e);
+      }
+      reader = new MRReaderMapReduce(localJobConf, split,
           getContext().getCounters(), inputRecordCounter, getContext().getApplicationId()
           .getClusterTimestamp(), getContext().getTaskVertexIndex(), getContext()
           .getApplicationId().getId(), getContext().getTaskIndex(), getContext()
           .getTaskAttemptNumber(), getContext());
       if (LOG.isDebugEnabled()) {
         LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
-            split.getClass().getName() + ", NewSplit: " + split);
+            split.getClass().getName() + ", NewSplit: " + split + ", length: " + splitLength);
       }
-
+      if (splitLength != -1) {
+        getContext().getCounters().findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES)
+            .increment(splitLength);
+      }
     } else {
-      split = MRInputUtils.getOldSplitDetailsFromEvent(splitProto, localJobConf);
-      reader = new MRReaderMapred(localJobConf, (org.apache.hadoop.mapred.InputSplit) split,
+      org.apache.hadoop.mapred.InputSplit split =
+          MRInputUtils.getOldSplitDetailsFromEvent(splitProto, localJobConf);
+      splitLength = split.getLength();
+      reader = new MRReaderMapred(localJobConf, split,
           getContext().getCounters(), inputRecordCounter, getContext());
       if (LOG.isDebugEnabled()) {
         LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
-            split.getClass().getName() + ", OldSplit: " + split);
+            split.getClass().getName() + ", OldSplit: " + split + ", length: " + splitLength);
       }
+    }
+    if (splitLength != -1) {
+      getContext().getCounters().findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES)
+          .increment(splitLength);
     }
     LOG.info(getContext().getSourceVertexName() + " initialized RecordReader from event");
     return reader;
