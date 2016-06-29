@@ -188,10 +188,6 @@ public class MultiMRInput extends MRInputBase {
         LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", NewSplit: " + split + ", length: " + splitLength);
       }
-      if (splitLength != -1) {
-        getContext().getCounters().findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES)
-            .increment(splitLength);
-      }
     } else {
       org.apache.hadoop.mapred.InputSplit split =
           MRInputUtils.getOldSplitDetailsFromEvent(splitProto, localJobConf);
