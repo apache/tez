@@ -440,13 +440,17 @@ public class MergeManager {
   }
   
   synchronized void unreserve(long size) {
-    commitMemory -= size;
     usedMemory -= size;
     if (LOG.isDebugEnabled()) {
       LOG.debug("Notifying unreserve : size=" + size + ", commitMemory=" + commitMemory + ", usedMemory=" + usedMemory
           + ", mergeThreshold=" + mergeThreshold);
     }
     notifyAll();
+  }
+
+  public synchronized void releaseCommittedMemory(long size) {
+    commitMemory -= size;
+    unreserve(size);
   }
 
   public synchronized void closeInMemoryFile(MapOutput mapOutput) { 
