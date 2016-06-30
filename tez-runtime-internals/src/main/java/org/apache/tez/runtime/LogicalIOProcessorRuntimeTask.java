@@ -1054,4 +1054,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   public HadoopShim getHadoopShim() {
     return hadoopShim;
   }
+
+  @Private
+  @VisibleForTesting
+  public Configuration getTaskConf() {
+    return tezConf;
+  }
 }

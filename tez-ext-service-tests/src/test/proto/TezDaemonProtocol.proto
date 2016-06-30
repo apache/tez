@@ -44,6 +44,7 @@ message TaskSpecProto {
   repeated IOSpecProto output_specs = 6;
   repeated GroupInputSpecProto grouped_input_specs = 7;
   optional int32 vertex_parallelism = 8;
+  optional ConfigurationProto task_conf = 9;
 }
 
 

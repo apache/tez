@@ -15,12 +15,18 @@
 package org.apache.tez.util;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.InputSpec;
@@ -29,6 +35,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.GroupInputSpecProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.IOSpecProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto;
+import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.TaskSpecProto.Builder;
 
 public class ProtoConverters {
 
@@ -65,15 +72,24 @@ public class ProtoConverters {
       }
     }
 
+    Configuration taskConf = null;
+    if (taskSpecProto.hasTaskConf()) {
+      taskConf = new Configuration(false);
+      Map<String, String> confMap =
+          DagTypeConverters.convertConfFromProto(taskSpecProto.getTaskConf());
+      for (Entry<String, String> e : confMap.entrySet()) {
+        taskConf.set(e.getKey(), e.getValue());
+      }
+    }
     TaskSpec taskSpec =
         new TaskSpec(taskAttemptID, taskSpecProto.getDagName(), taskSpecProto.getVertexName(),
             taskSpecProto.getVertexParallelism(), processorDescriptor, inputSpecList,
-            outputSpecList, groupInputSpecs);
+            outputSpecList, groupInputSpecs, taskConf);
     return taskSpec;
   }
 
   public static TaskSpecProto convertTaskSpecToProto(TaskSpec taskSpec) {
-    TaskSpecProto.Builder builder = TaskSpecProto.newBuilder();
+    Builder builder = TaskSpecProto.newBuilder();
     builder.setTaskAttemptIdString(taskSpec.getTaskAttemptID().toString());
     builder.setDagName(taskSpec.getDAGName());
     builder.setVertexName(taskSpec.getVertexName());
@@ -101,6 +117,17 @@ public class ProtoConverters {
         builder.addGroupedInputSpecs(convertGroupInputSpecToProto(groupInputSpec));
 
       }
+    }
+    if (taskSpec.getTaskConf() != null) {
+      ConfigurationProto.Builder confBuilder = ConfigurationProto.newBuilder();
+      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        confBuilder.addConfKeyValues(PlanKeyValuePair.newBuilder()
+            .setKey(entry.getKey())
+            .setValue(entry.getValue()).build());
+      }
+      builder.setTaskConf(confBuilder.build());
     }
     return builder.build();
   }

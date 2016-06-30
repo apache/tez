@@ -190,7 +190,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     ProcessorDescriptor processorDesc = createProcessorDescriptor();
     TaskSpec taskSpec = new TaskSpec(taskAttemptID,
         dagName, vertexName, parallelism, processorDesc,
-        createInputSpecList(), createOutputSpecList(), null);
+        createInputSpecList(), createOutputSpecList(), null, null);
     return taskSpec;
   }
 

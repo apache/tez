@@ -740,7 +740,7 @@ public class TestTaskExecution2 {
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(processorConf)));
     TaskSpec taskSpec =
         new TaskSpec(taskAttemptId, "dagName", "vertexName", -1, processorDescriptor,
-            new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null);
+            new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null, null);
 
     TezTaskRunner2 taskRunner;
     if (testRunner) {
