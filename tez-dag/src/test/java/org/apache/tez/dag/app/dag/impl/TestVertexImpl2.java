@@ -49,6 +49,8 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -60,6 +62,7 @@ import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -433,13 +436,18 @@ public class TestVertexImpl2 {
       ExecutionContextTestInfoHolder vertexInfo) {
     VertexPlan vertexPlan = createVertexPlanForExeuctionContextTests(vertexInfo);
     VertexWrapper vertexWrapper =
-        new VertexWrapper(vertexInfo.appContext, vertexPlan, new Configuration(false));
+        new VertexWrapper(vertexInfo.appContext, vertexPlan, new Configuration(false), true);
     return vertexWrapper;
   }
 
   private VertexPlan createVertexPlanForExeuctionContextTests(ExecutionContextTestInfoHolder info) {
+    ConfigurationProto confProto = ConfigurationProto.newBuilder()
+        .addConfKeyValues(PlanKeyValuePair.newBuilder().setKey("foo").setValue("bar").build())
+        .addConfKeyValues(PlanKeyValuePair.newBuilder().setKey("foo1").setValue("bar2").build())
+        .build();
     VertexPlan.Builder vertexPlanBuilder = VertexPlan.newBuilder()
         .setName(info.vertexName)
+        .setVertexConf(confProto)
         .setTaskConfig(DAGProtos.PlanTaskConfiguration.newBuilder()
             .setNumTasks(10)
             .setJavaOpts("dontcare")
@@ -502,7 +510,8 @@ public class TestVertexImpl2 {
     final VertexImpl vertex;
     final VertexPlan vertexPlan;
 
-    VertexWrapper(AppContext appContext, VertexPlan vertexPlan, Configuration conf) {
+    VertexWrapper(AppContext appContext, VertexPlan vertexPlan, Configuration conf,
+                  boolean checkVertexOnlyConf) {
       if (appContext == null) {
         mockAppContext = createDefaultMockAppContext();
         DAG mockDag = mock(DAG.class);
@@ -512,6 +521,9 @@ public class TestVertexImpl2 {
         mockAppContext = appContext;
       }
 
+      Configuration dagConf = new Configuration(false);
+      dagConf.set("abc1", "xyz1");
+      dagConf.set("foo1", "bar1");
 
       this.vertexPlan = vertexPlan;
 
@@ -520,11 +532,19 @@ public class TestVertexImpl2 {
               "testvertex", conf, mock(EventHandler.class), mock(TaskCommunicatorManagerInterface.class),
               mock(Clock.class), mock(TaskHeartbeatHandler.class), false, mockAppContext,
               VertexLocationHint.create(new LinkedList<TaskLocationHint>()), null,
-              new TaskSpecificLaunchCmdOption(conf), mock(StateChangeNotifier.class));
+              new TaskSpecificLaunchCmdOption(conf), mock(StateChangeNotifier.class),
+              dagConf);
+
+      if (checkVertexOnlyConf) {
+        Assert.assertEquals("xyz1", vertex.vertexOnlyConf.get("abc1"));
+        Assert.assertEquals("bar2", vertex.vertexOnlyConf.get("foo1"));
+        Assert.assertEquals("bar", vertex.vertexOnlyConf.get("foo"));
+      }
+
     }
 
     VertexWrapper(VertexPlan vertexPlan, Configuration conf) {
-      this(null, vertexPlan, conf);
+      this(null, vertexPlan, conf, false);
     }
   }
 

@@ -236,7 +236,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private long cachedCountersTimestamp = 0;
   private Resource taskResource;
 
+  // Merged/combined vertex level config
   private Configuration vertexConf;
+  // Vertex specific configs only ( include the dag specific configs too )
+  // Useful when trying to serialize only the diff from global configs
+  @VisibleForTesting
+  Configuration vertexOnlyConf;
   
   private final boolean isSpeculationEnabled;
 
@@ -854,19 +859,22 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       TaskHeartbeatHandler thh, boolean commitVertexOutputs,
       AppContext appContext, VertexLocationHint vertexLocationHint,
       Map<String, VertexGroupInfo> dagVertexGroups, TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption,
-      StateChangeNotifier entityStatusTracker) {
+      StateChangeNotifier entityStatusTracker, Configuration dagOnlyConf) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
     this.vertexName = StringInterner.weakIntern(vertexName);
     this.vertexConf = new Configuration(dagConf);
-    // override dag configuration by using vertex's specified configuration
+    this.vertexOnlyConf = new Configuration(dagOnlyConf);
     if (vertexPlan.hasVertexConf()) {
       ConfigurationProto confProto = vertexPlan.getVertexConf();
       for (PlanKeyValuePair keyValuePair : confProto.getConfKeyValuesList()) {
         TezConfiguration.validateProperty(keyValuePair.getKey(), Scope.VERTEX);
         vertexConf.set(keyValuePair.getKey(), keyValuePair.getValue());
+        vertexOnlyConf.set(keyValuePair.getKey(), keyValuePair.getValue());
       }
     }
+
+
     this.clock = clock;
     this.appContext = appContext;
     this.commitVertexOutputs = commitVertexOutputs;
@@ -1567,7 +1575,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return TaskSpec.createBaseTaskSpec(getDAG().getName(),
         getName(), getTotalTasks(), getProcessorDescriptor(),
         getInputSpecList(taskIndex), getOutputSpecList(taskIndex), 
-        getGroupInputSpecList(taskIndex));
+        getGroupInputSpecList(taskIndex), vertexOnlyConf);
   }
 
   @Override

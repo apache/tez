@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
   TEZ-3314. Double counting input bytes in MultiMRInput.
   TEZ-3308. Add counters to capture input split length.
@@ -70,6 +71,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
   TEZ-3314. Double counting input bytes in MultiMRInput.
   TEZ-3308. Add counters to capture input split length.

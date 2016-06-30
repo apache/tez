@@ -17,7 +17,9 @@ package org.apache.tez.runtime.task;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -93,6 +95,7 @@ public class TezTaskRunner2 {
   private final Condition oobSignalCondition = oobSignalLock.newCondition();
 
   private volatile long taskKillStartTime  = 0;
+  final Configuration taskConf;
 
   private final HadoopShim hadoopShim;
 
@@ -114,7 +117,15 @@ public class TezTaskRunner2 {
     this.executor = executor;
     this.umbilicalAndErrorHandler = new UmbilicalAndErrorHandler();
     this.hadoopShim = hadoopShim;
-    this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs,
+    this.taskConf = new Configuration(tezConf);
+    if (taskSpec.getTaskConf() != null) {
+      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        taskConf.set(entry.getKey(), entry.getValue());
+      }
+    }
+    this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
         objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim);
   }

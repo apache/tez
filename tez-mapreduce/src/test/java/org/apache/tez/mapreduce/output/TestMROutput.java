@@ -192,7 +192,7 @@ public class TestMROutput {
         dagName, vertexName, -1,
         procDesc,
         inputSpecs,
-        outputSpecs, null);
+        outputSpecs, null, null);
 
     FileSystem fs = FileSystem.getLocal(conf);
     Path workDir =

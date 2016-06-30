@@ -198,7 +198,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private long cachedCountersTimestamp = 0;
   private Set<TezVertexID> reRunningVertices = new HashSet<TezVertexID>();
 
+  // Combined configs for the DAG
   private final Configuration dagConf;
+  // DAG specific configs only
+  // Useful when trying to serialize only the diff from global configs
+  private final Configuration dagOnlyConf;
+
   private final DAGPlan jobPlan;
 
   private final AtomicBoolean internalErrorTriggered = new AtomicBoolean(false);
@@ -499,6 +504,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.dagId = dagId;
     this.jobPlan = jobPlan;
     this.dagConf = new Configuration(amConf);
+    this.dagOnlyConf = new Configuration(false);
     Iterator<PlanKeyValuePair> iter =
         jobPlan.getDagConf().getConfKeyValuesList().iterator();
     // override the amConf by using DAG level configuration
@@ -506,6 +512,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       PlanKeyValuePair keyValPair = iter.next();
       TezConfiguration.validateProperty(keyValPair.getKey(), Scope.DAG);
       this.dagConf.set(keyValPair.getKey(), keyValPair.getValue());
+      this.dagOnlyConf.set(keyValPair.getKey(), keyValPair.getValue());
     }
     this.dagName = (jobPlan.getName() != null) ? jobPlan.getName() : "<missing app name>";
     this.userName = appUserName;
@@ -1626,7 +1633,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         dag.eventHandler, dag.taskCommunicatorManagerInterface,
         dag.clock, dag.taskHeartbeatHandler,
         !dag.commitAllOutputsOnSuccess, dag.appContext, vertexLocationHint,
-        dag.vertexGroups, dag.taskSpecificLaunchCmdOption, dag.entityUpdateTracker);
+        dag.vertexGroups, dag.taskSpecificLaunchCmdOption, dag.entityUpdateTracker,
+        dag.dagOnlyConf);
     return v;
   }
 
