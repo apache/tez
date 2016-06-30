@@ -65,7 +65,13 @@ ALL CHANGES:
   TEZ-3292. Tez UI: UTs breaking with timezone change
   TEZ-3288. Tez UI: Display more details in the error bar
 
-Release 0.8.4: Unreleased
+Release 0.8.5: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
+Release 0.8.4: 2016-07-06
 
 INCOMPATIBLE CHANGES
 
