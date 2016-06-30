@@ -178,6 +178,32 @@ public class TestMergeManager {
     Assert.assertTrue(mergeManager.postMergeMemLimit == initialMemoryAvailable);
   }
 
+  @Test(timeout = 10000)
+  public void testReservationAccounting() throws IOException {
+    Configuration conf = new TezConfiguration(defaultConf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
+    MergeManager mergeManager =
+        new MergeManager(conf, localFs, null, inputContext, null, null, null, null,
+        mock(ExceptionReporter.class), 2000000, null, false, -1);
+    mergeManager.configureAndStart();
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+    MapOutput mapOutput = mergeManager.reserve(null, 1, 1, 0);
+    assertEquals(1, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+    mapOutput.abort();
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+    mapOutput = mergeManager.reserve(null, 2, 2, 0);
+    mergeManager.closeInMemoryFile(mapOutput);
+    assertEquals(2, mergeManager.getUsedMemory());
+    assertEquals(2, mergeManager.getCommitMemory());
+    mergeManager.releaseCommittedMemory(2);
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+  }
+
   @Test(timeout=20000)
   public void testIntermediateMemoryMergeAccounting() throws Exception {
     Configuration conf = new TezConfiguration(defaultConf);

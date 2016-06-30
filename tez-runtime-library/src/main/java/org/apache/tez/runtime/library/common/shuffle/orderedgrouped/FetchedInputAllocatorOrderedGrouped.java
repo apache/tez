@@ -36,4 +36,5 @@ public interface FetchedInputAllocatorOrderedGrouped {
 
   void unreserve(long bytes);
 
+  void releaseCommittedMemory(long bytes);
 }

@@ -451,13 +451,18 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
   @Override
   public synchronized void unreserve(long size) {
-    commitMemory -= size;
     usedMemory -= size;
     if (LOG.isDebugEnabled()) {
       LOG.debug("Notifying unreserve : size=" + size + ", commitMemory=" + commitMemory + ", usedMemory=" + usedMemory
           + ", mergeThreshold=" + mergeThreshold);
     }
     notifyAll();
+  }
+
+  @Override
+  public synchronized void releaseCommittedMemory(long size) {
+    commitMemory -= size;
+    unreserve(size);
   }
 
   @Override
