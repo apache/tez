@@ -258,7 +258,7 @@ public class InMemoryReader extends Reader {
     buffer = null;
     // Inform the MergeManager
     if (merger != null) {
-      merger.unreserve(bufferSize);
+      merger.releaseCommittedMemory(bufferSize);
     }
   }
 }
