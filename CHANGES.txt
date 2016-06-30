@@ -7,6 +7,13 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+
+Release 0.8.4: 2016-07-06
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
   TEZ-3314. Double counting input bytes in MultiMRInput.
