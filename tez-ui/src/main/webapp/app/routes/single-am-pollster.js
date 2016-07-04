@@ -26,7 +26,7 @@ export default AmPollsterRoute.extend({
     return isComplete === false && this._super();
   }),
 
-  _loadedValueObserver: Ember.observer("loadedValue", function () {
+  _loadedValueObserver: Ember.observer("loadedValue.loadTime", function () {
     var loadedValue = this.get("loadedValue");
     this.set("polledRecords", loadedValue ? [this.get("loadedValue")] : null);
   })

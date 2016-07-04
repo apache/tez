@@ -77,9 +77,21 @@
       </tr>
     </tbody>
   </table>
+{{else}}
+  {{partial "loading"}}
+{{/if}}
 
+<!--
+  * Splitting the conditional blocks so that stats from inside the outlet,
+    is aligned with the details table.
+  * Keeping outlet outside the conditional block so that the loading of DAG
+    details doesn’t affect the outlet content.
+-->
+<span class="{{unless loaded 'no-visible'}}">
   {{outlet}}
+</span>
 
+{{#if loaded}}
   {{#if model.callerDescription}}
     {{caller-info type=model.callerContext info=model.callerDescription}}
   {{/if}}
@@ -94,7 +106,4 @@
       </div>
     </div>
   {{/if}}
-
-{{else}}
-  {{partial "loading"}}
 {{/if}}

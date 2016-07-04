@@ -65,6 +65,7 @@ ALL CHANGES:
   TEZ-3264. Tez UI: UI discrepancies
   TEZ-3292. Tez UI: UTs breaking with timezone change
   TEZ-3288. Tez UI: Display more details in the error bar
+  TEZ-3318. Tez UI: Polling is not restarted after RM recovery
 
 Release 0.8.5: Unreleased
 
