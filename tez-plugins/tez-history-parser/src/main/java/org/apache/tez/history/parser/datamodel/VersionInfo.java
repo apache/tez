@@ -24,10 +24,10 @@ public class VersionInfo {
   private final String revision;
   private final String version;
 
-  public VersionInfo(String buildTime, String revision, String version) {
-    this.buildTime = buildTime;
-    this.revision = revision;
+  public VersionInfo(String version, String revision, String buildTime) {
     this.version = version;
+    this.revision = revision;
+    this.buildTime = buildTime;
   }
 
   public String getBuildTime() {

@@ -156,7 +156,7 @@ public class ATSFileParser extends BaseParser implements ATSData {
           String version = tezVersion.optString(Constants.VERSION);
           String buildTime = tezVersion.optString(Constants.BUILD_TIME);
           String revision = tezVersion.optString(Constants.REVISION);
-          this.versionInfo = new VersionInfo(version, buildTime, revision);
+          this.versionInfo = new VersionInfo(version, revision, buildTime);
         }
         //TODO: might need to parse config info? (e.g, hive settings etc. could consume memory)
       }
