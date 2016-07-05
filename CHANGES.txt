@@ -14,6 +14,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3323. Update licese and notice for xml-apis jar. Also update year in notice to 2016.
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
