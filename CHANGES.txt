@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.8.4: Unreleased
+Release 0.8.5: Unreleased
 
 INCOMPATIBLE CHANGES
 
@@ -55,6 +55,7 @@ ALL CHANGES:
   TEZ-3259. Tez UI: Build issue - File saver package is not working well with bower
   TEZ-3262. Tez UI : zip.js is not having a bower friendly versioning system
   TEZ-3281. Tez UI: Swimlane improvements
+  TEZ-3318. Tez UI: Polling is not restarted after RM recovery
 
 Release 0.8.3: 2016-04-14 
 
