@@ -1,14 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.8.5: Unreleased
-
-INCOMPATIBLE CHANGES
-
-ALL CHANGES:
-
-
-Release 0.8.4: In progress.
+Release 0.8.4: 2016-07-08
 
 INCOMPATIBLE CHANGES
 
