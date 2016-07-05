@@ -1217,7 +1217,8 @@ public class TezConfiguration extends Configuration {
 
   /**
    * String value that is a class name.
-   * Specify the class to use for logging history data
+   * Specify the class to use for logging history data.
+   * To disable, set this to "org.apache.tez.dag.history.logging.impl.DevNullHistoryLoggingService"
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
