@@ -26,3 +26,9 @@ as part of a piece of software, but not individually.
 See the license for details.  http://scripts.sil.org/OFL.
 More information on included fonts can be found in the LICENSE file
 within the tez-ui-*.war file.
+
+This product bundles Apache XML Commons XML APIs.
+  Portions of this software were originally based on the following:
+     - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
+     - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+     - software copyright (c) 2000 World Wide Web Consortium, http://www.w3.org
