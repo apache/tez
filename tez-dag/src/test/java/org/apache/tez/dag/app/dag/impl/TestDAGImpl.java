@@ -2277,13 +2277,13 @@ public class TestDAGImpl {
     dispatcher.await();
     for (int i=0; i<3; ++i) {
       Vertex v = mrrDag.getVertex("vertex"+(i+1));
-      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       TezCounters ctrs = new TezCounters();
       for (int j = 0; j < 50; ++j) {
         ctrs.findCounter("g", "c" + i + "_" + j).increment(1);
       }
       ((VertexImpl) v).setCounters(ctrs);
+      dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
+        TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
       Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
