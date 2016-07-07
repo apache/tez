@@ -83,6 +83,7 @@ public class DagInfo extends BaseInfo {
   private Map<String, VertexInfo> vertexNameMap;
 
   private Multimap<Container, TaskAttemptInfo> containerMapping;
+  private Map<String, String> config;
 
   DagInfo(JSONObject jsonObject) throws JSONException {
     super(jsonObject);
@@ -348,6 +349,14 @@ public class DagInfo extends BaseInfo {
     }
 
     vertexNameMap.put(vertexInfo.getVertexName(), vertexInfo);
+  }
+
+  void setAppConfig(Map<String, String> config) {
+    this.config = config;
+  }
+
+  public Map<String, String> getAppConfig() {
+    return (config != null) ? Collections.unmodifiableMap(config) : null;
   }
 
   void setVersionInfo(VersionInfo versionInfo) {

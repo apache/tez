@@ -26,11 +26,13 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class BaseParser {
 
   protected DagInfo dagInfo;
   protected VersionInfo versionInfo;
+  protected Map<String, String> config;
   protected final List<VertexInfo> vertexList;
   protected final List<TaskInfo> taskList;
   protected final List<TaskAttemptInfo> attemptList;
@@ -95,6 +97,7 @@ public abstract class BaseParser {
     }
 
     dagInfo.setVersionInfo(versionInfo);
+    dagInfo.setAppConfig(config);
   }
 
   /**

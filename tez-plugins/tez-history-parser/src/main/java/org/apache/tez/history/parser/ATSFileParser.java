@@ -19,6 +19,7 @@
 package org.apache.tez.history.parser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.BaseParser;
@@ -39,6 +40,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -158,7 +160,15 @@ public class ATSFileParser extends BaseParser implements ATSData {
           String revision = tezVersion.optString(Constants.REVISION);
           this.versionInfo = new VersionInfo(version, revision, buildTime);
         }
-        //TODO: might need to parse config info? (e.g, hive settings etc. could consume memory)
+        //Parse Config info
+        this.config = Maps.newHashMap();
+        JSONObject configNode = otherInfoNode.getJSONObject(Constants.CONFIG);
+        Iterator it = configNode.keys();
+        while(it.hasNext()) {
+          String key = (String) it.next();
+          String value = configNode.getString(key);
+          config.put(key, value);
+        }
       }
       LOG.debug("Finished parsing tez application");
     }

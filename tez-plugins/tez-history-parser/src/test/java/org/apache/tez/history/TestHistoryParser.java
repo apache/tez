@@ -210,6 +210,7 @@ public class TestHistoryParser {
     DagInfo dagInfoFromATS = getDagInfo(dagId);
     verifyDagInfo(dagInfoFromATS, true);
     verifyJobSpecificInfo(dagInfoFromATS);
+    checkConfig(dagInfoFromATS);
 
     //Now run with SimpleHistoryLogging
     dagId = runWordCount(WordCount.TokenProcessor.class.getName(),
@@ -242,6 +243,16 @@ public class TestHistoryParser {
     DagInfo dagInfo = parser.getDAGData(dagId);
     assertTrue(dagInfo.getDagId().equals(dagId));
     return dagInfo;
+  }
+
+  private void checkConfig(DagInfo dagInfo) {
+    assertTrue("DagInfo is " + dagInfo, dagInfo != null);
+    //Check configs
+    assertTrue("DagInfo config size=" + dagInfo.getAppConfig().size(),
+        dagInfo.getAppConfig().size() > 0);
+    //Sample config element
+    assertTrue("DagInfo config=" + dagInfo.getAppConfig(),
+        Integer.parseInt(dagInfo.getAppConfig().get("dfs.replication")) > 0);
   }
 
   private void verifyJobSpecificInfo(DagInfo dagInfo) {
@@ -373,6 +384,8 @@ public class TestHistoryParser {
 
     //Parse ATS data
     DagInfo dagInfo = getDagInfo(dagId);
+    //Applicable for ATS dataset
+    checkConfig(dagInfo);
 
     //Verify DAGInfo. Verifies vertex, task, taskAttempts in recursive manner
     verifyDagInfo(dagInfo, true);
