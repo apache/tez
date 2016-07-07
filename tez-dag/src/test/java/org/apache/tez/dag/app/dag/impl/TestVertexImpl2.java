@@ -39,6 +39,8 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.TaskAttemptListener;
@@ -271,8 +273,14 @@ public class TestVertexImpl2 {
       doReturn(new Credentials()).when(mockDag).getCredentials();
       doReturn(mockDag).when(mockAppContext).getCurrentDAG();
 
+      ConfigurationProto confProto = ConfigurationProto.newBuilder()
+          .addConfKeyValues(PlanKeyValuePair.newBuilder().setKey("foo").setValue("bar").build())
+          .addConfKeyValues(PlanKeyValuePair.newBuilder().setKey("foo1").setValue("bar2").build())
+          .build();
+
       vertexPlan = DAGProtos.VertexPlan.newBuilder()
           .setName(vertexName)
+          .setVertexConf(confProto)
           .setTaskConfig(DAGProtos.PlanTaskConfiguration.newBuilder()
               .setJavaOpts(initialJavaOpts)
               .setNumTasks(numTasks)
@@ -286,12 +294,20 @@ public class TestVertexImpl2 {
               .build())
           .setType(DAGProtos.PlanVertexType.NORMAL).build();
 
+      Configuration dagConf = new Configuration(false);
+      dagConf.set("abc1", "xyz1");
+      dagConf.set("foo1", "bar1");
+
       vertex =
           new VertexImpl(TezVertexID.fromString("vertex_1418197758681_0001_1_00"), vertexPlan,
               "testvertex", conf, mock(EventHandler.class), mock(TaskAttemptListener.class),
               mock(Clock.class), mock(TaskHeartbeatHandler.class), false, mockAppContext,
               VertexLocationHint.create(new LinkedList<TaskLocationHint>()), null,
-              new TaskSpecificLaunchCmdOption(conf), mock(StateChangeNotifier.class));
+              new TaskSpecificLaunchCmdOption(conf), mock(StateChangeNotifier.class), dagConf);
+
+      assertEquals("xyz1", vertex.vertexOnlyConf.get("abc1"));
+      assertEquals("bar2", vertex.vertexOnlyConf.get("foo1"));
+      assertEquals("bar", vertex.vertexOnlyConf.get("foo"));
     }
   }
 }

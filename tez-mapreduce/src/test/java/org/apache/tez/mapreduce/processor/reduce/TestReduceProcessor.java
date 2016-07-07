@@ -204,7 +204,7 @@ public class TestReduceProcessor {
         reduceVertexName, -1,
         reduceProcessorDesc,
         Collections.singletonList(reduceInputSpec),
-        Collections.singletonList(reduceOutputSpec), null);
+        Collections.singletonList(reduceOutputSpec), null, null);
 
     Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
     serviceConsumerMetadata.put(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID,

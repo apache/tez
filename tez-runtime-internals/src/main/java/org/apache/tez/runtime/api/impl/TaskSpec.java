@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -42,6 +44,7 @@ public class TaskSpec implements Writable {
   private List<OutputSpec> outputSpecList;
   private List<GroupInputSpec> groupInputSpecList;
   private int vertexParallelism = -1;
+  private Configuration taskConf;
 
   public TaskSpec() {
   }
@@ -49,17 +52,27 @@ public class TaskSpec implements Writable {
   public static TaskSpec createBaseTaskSpec(String dagName, String vertexName,
       int vertexParallelism, ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
-      @Nullable List<GroupInputSpec> groupInputSpecList) {
+      @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
     return new TaskSpec(dagName, vertexName, vertexParallelism, processorDescriptor, inputSpecList,
-        outputSpecList, groupInputSpecList);
+        outputSpecList, groupInputSpecList, taskConf);
   }
 
   public TaskSpec(
       String dagName, String vertexName,
       int vertexParallelism,
       ProcessorDescriptor processorDescriptor,
-      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
       @Nullable List<GroupInputSpec> groupInputSpecList) {
+    this(dagName, vertexName, vertexParallelism, processorDescriptor, inputSpecList,
+        outputSpecList, groupInputSpecList, null);
+  }
+
+  public TaskSpec(
+      String dagName, String vertexName,
+      int vertexParallelism,
+      ProcessorDescriptor processorDescriptor,
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+      @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
     checkNotNull(dagName, "dagName is null");
     checkNotNull(vertexName, "vertexName is null");
     checkNotNull(processorDescriptor, "processorDescriptor is null");
@@ -73,14 +86,25 @@ public class TaskSpec implements Writable {
     this.outputSpecList = outputSpecList;
     this.groupInputSpecList = groupInputSpecList;
     this.vertexParallelism = vertexParallelism;
+    this.taskConf = taskConf;
+  }
+
+  public TaskSpec(TezTaskAttemptID taskAttemptID,
+                  String dagName, String vertexName,
+                  int vertexParallelism,
+                  ProcessorDescriptor processorDescriptor,
+                  List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+                  @Nullable List<GroupInputSpec> groupInputSpecList) {
+    this(taskAttemptID, dagName, vertexName, vertexParallelism, processorDescriptor, inputSpecList,
+        outputSpecList, groupInputSpecList, null);
   }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
       String dagName, String vertexName,
       int vertexParallelism,
       ProcessorDescriptor processorDescriptor,
-      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList, 
-      @Nullable List<GroupInputSpec> groupInputSpecList) {
+      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+      @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
     checkNotNull(taskAttemptID, "taskAttemptID is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(vertexName, "vertexName is null");
@@ -95,6 +119,7 @@ public class TaskSpec implements Writable {
     this.outputSpecList = outputSpecList;
     this.groupInputSpecList = groupInputSpecList;
     this.vertexParallelism = vertexParallelism;
+    this.taskConf = taskConf;
   }
 
   public String getDAGName() {
@@ -129,6 +154,10 @@ public class TaskSpec implements Writable {
     return groupInputSpecList;
   }
 
+  public Configuration getTaskConf() {
+    return taskConf;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     taskAttemptId.write(out);
@@ -150,6 +179,12 @@ public class TaskSpec implements Writable {
       for (GroupInputSpec group : groupInputSpecList) {
         group.write(out);
       }
+    } else {
+      out.writeBoolean(false);
+    }
+    if (taskConf != null) {
+      out.writeBoolean(true);
+      taskConf.write(out);
     } else {
       out.writeBoolean(false);
     }
@@ -188,6 +223,11 @@ public class TaskSpec implements Writable {
         groupInputSpecList.add(group);
       }
     }
+    boolean hasVertexConf = in.readBoolean();
+    if (hasVertexConf) {
+      taskConf = new Configuration(false);
+      taskConf.readFields(in);
+    }
   }
 
   @Override
@@ -215,6 +255,9 @@ public class TaskSpec implements Writable {
         sb.append("{" + group.toString() + "}, ");
       }
       sb.append("]");
+    }
+    if (taskConf != null) {
+      sb.append(", taskConfEntryCount=" + taskConf.size());
     }
     return sb.toString();
   }

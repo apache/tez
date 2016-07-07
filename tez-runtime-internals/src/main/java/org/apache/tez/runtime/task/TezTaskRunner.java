@@ -23,7 +23,9 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,6 +46,7 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -53,11 +56,13 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
   private static final Logger LOG = LoggerFactory.getLogger(TezTaskRunner.class);
 
   private final Configuration tezConf;
-  private final LogicalIOProcessorRuntimeTask task;
+  @VisibleForTesting
+  final LogicalIOProcessorRuntimeTask task;
   private final UserGroupInformation ugi;
 
   private final TaskReporter taskReporter;
   private final ListeningExecutorService executor;
+  final Configuration taskConf;
   private volatile ListenableFuture<Void> taskFuture;
   private volatile Thread waitingThread;
   private volatile Throwable firstException;
@@ -78,7 +83,15 @@ public class TezTaskRunner implements TezUmbilical, ErrorReporter {
     this.ugi = ugi;
     this.taskReporter = taskReporter;
     this.executor = executor;
-    task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, tezConf, localDirs, this,
+    this.taskConf = new Configuration(tezConf);
+    if (taskSpec.getTaskConf() != null) {
+      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        taskConf.set(entry.getKey(), entry.getValue());
+      }
+    }
+    task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs, this,
         serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, objectRegistry, pid,
         executionContext, memAvailable);
     taskRunning = new AtomicBoolean(false);

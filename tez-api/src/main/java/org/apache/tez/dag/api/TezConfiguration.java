@@ -749,7 +749,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
       + "scale.memory.enabled";
   @Private
@@ -760,7 +760,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS = TEZ_TASK_PREFIX
       + "scale.memory.allocator.class";
   @Private
@@ -773,7 +773,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
       + "scale.memory.reserve-fraction";
   @Private
@@ -785,7 +785,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
       TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.per-io";
 
@@ -794,7 +794,7 @@ public class TezConfiguration extends Configuration {
   /**
    * Max cumulative total reservation for additional IOs.
    */
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
       TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.max";
   /*
@@ -804,7 +804,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @Unstable
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS =
       TEZ_TASK_PREFIX + "scale.memory.ratios";
 

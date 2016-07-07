@@ -2258,6 +2258,8 @@ public class TestVertexImpl {
     LOG.info("Setting up vertices from dag plan, verticesCnt=" + vCnt);
     vertices = new HashMap<String, VertexImpl>();
     vertexIdMap = new HashMap<TezVertexID, VertexImpl>();
+    Configuration dagConf = new Configuration(false);
+    dagConf.set("abc", "foobar");
     for (int i = 0; i < vCnt; ++i) {
       VertexPlan vPlan = dagPlan.getVertex(i);
       String vName = vPlan.getName();
@@ -2269,17 +2271,18 @@ public class TestVertexImpl {
         if (customInitializer == null) {
           v = new VertexImplWithControlledInitializerManager(vertexId, vPlan, vPlan.getName(), conf,
               dispatcher.getEventHandler(), taskAttemptListener,
-              clock, thh, appContext, locationHint, dispatcher, updateTracker);
+              clock, thh, appContext, locationHint, dispatcher, updateTracker, dagConf);
         } else {
           v = new VertexImplWithRunningInputInitializer(vertexId, vPlan, vPlan.getName(), conf,
               dispatcher.getEventHandler(), taskAttemptListener,
-              clock, thh, appContext, locationHint, dispatcher, customInitializer, updateTracker);
+              clock, thh, appContext, locationHint, dispatcher, customInitializer, updateTracker,
+              dagConf);
         }
       } else {
         v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
             dispatcher.getEventHandler(), taskAttemptListener,
             clock, thh, true, appContext, locationHint, vertexGroups, taskSpecificLaunchCmdOption,
-            updateTracker);
+            updateTracker, dagConf);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -3120,6 +3123,7 @@ public class TestVertexImpl {
     TaskEventScheduleTask event = (TaskEventScheduleTask) taskEventDispatcher.events.get(0);
     Assert.assertEquals(mockLocation, event.getTaskLocationHint());
     Assert.assertNotNull(event.getBaseTaskSpec());
+    Assert.assertEquals("foobar", event.getBaseTaskSpec().getTaskConf().get("abc"));
   }
   
   @Test(timeout = 5000)
@@ -5417,7 +5421,7 @@ public class TestVertexImpl {
       VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
           dispatcher.getEventHandler(), taskAttemptListener,
           clock, thh, true, appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
-          updateTracker);
+          updateTracker, new Configuration(false));
       v.setInputVertices(new HashMap());
       vertexIdMap.put(vId, v);
       vertices.put(v.getName(), v);
@@ -5452,11 +5456,12 @@ public class TestVertexImpl {
                                                  VertexLocationHint vertexLocationHint,
                                                  DrainDispatcher dispatcher,
                                                  InputInitializer presetInitializer,
-                                                 StateChangeNotifier updateTracker) {
+                                                 StateChangeNotifier updateTracker,
+                                                 Configuration dagConf) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
           appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
-          updateTracker);
+          updateTracker, dagConf);
       this.presetInitializer = presetInitializer;
     }
 
@@ -5491,11 +5496,12 @@ public class TestVertexImpl {
                                                       AppContext appContext,
                                                       VertexLocationHint vertexLocationHint,
                                                       DrainDispatcher dispatcher,
-                                                      StateChangeNotifier updateTracker) {
+                                                      StateChangeNotifier updateTracker,
+                                                      Configuration dagConf) {
       super(vertexId, vertexPlan, vertexName, conf, eventHandler,
           taskAttemptListener, clock, thh, true,
           appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
-          updateTracker);
+          updateTracker, dagConf);
       this.dispatcher = dispatcher;
     }
 

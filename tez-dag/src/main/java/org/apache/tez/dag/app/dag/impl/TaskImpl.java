@@ -830,9 +830,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TezTaskAttemptID attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
     TaskSpec taskSpec = null;
     if (baseTaskSpec != null) {
-      taskSpec = new TaskSpec(attemptId, baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
+      taskSpec = new TaskSpec(attemptId,
+          baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
           baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
-          baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs());
+          baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs(),
+          baseTaskSpec.getTaskConf());
     }
     return new TaskAttemptImpl(attemptId, eventHandler,
         taskAttemptListener, conf, clock, taskHeartbeatHandler, appContext,
