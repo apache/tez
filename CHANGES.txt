@@ -483,6 +483,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
   TEZ-3305. TestAnalyzer fails on Hadoop 2.7.
