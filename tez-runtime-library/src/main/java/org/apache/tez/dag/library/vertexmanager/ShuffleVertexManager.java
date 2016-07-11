@@ -961,8 +961,10 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     
     tasksFractionToSchedule = Math.max(0, Math.min(1, tasksFractionToSchedule));
 
-    int numTasksToSchedule = 
-        ((int)(tasksFractionToSchedule * totalTasksToSchedule) - 
+    // round up to avoid the corner case that single task cannot be scheduled until src completed
+    // fraction reach max
+    int numTasksToSchedule =
+        ((int)(Math.ceil(tasksFractionToSchedule * totalTasksToSchedule)) -
          (totalTasksToSchedule - numPendingTasks));
     
     if (numTasksToSchedule > 0) {
