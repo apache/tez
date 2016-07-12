@@ -47,7 +47,7 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 public class TokenCache {
   
   private static final Logger LOG = LoggerFactory.getLogger(TokenCache.class);
-
+  private static final Text SESSION_TOKEN = new Text("SessionToken");
   
   /**
    * auxiliary method to get user's secret keys..
@@ -59,9 +59,9 @@ public class TokenCache {
       return null;
     return credentials.getSecretKey(alias);
   }
-  
+
   /**
-   * Convenience method to obtain delegation tokens from namenodes 
+   * Convenience method to obtain delegation tokens from namenodes
    * corresponding to the paths passed.
    * @param credentials
    * @param ps array of paths
@@ -95,7 +95,7 @@ public class TokenCache {
    * @param conf
    * @throws IOException
    */
-  static void obtainTokensForFileSystemsInternal(FileSystem fs, 
+  static void obtainTokensForFileSystemsInternal(FileSystem fs,
       Credentials credentials, Configuration conf) throws IOException {
     // TODO Change this to use YARN utilities once YARN-1664 is fixed.
     String delegTokenRenewer = Master.getMasterPrincipal(conf);
@@ -112,8 +112,6 @@ public class TokenCache {
       }
     }
   }
-
-  private static final Text SESSION_TOKEN = new Text("SessionToken");
 
   /**
    * store session specific token

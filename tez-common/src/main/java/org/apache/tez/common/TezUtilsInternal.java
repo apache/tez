@@ -60,8 +60,40 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 @Private
 public class TezUtilsInternal {
 
+  @Private
+  public static final int MAX_VERTEX_NAME_LENGTH = 40;
   private static final Logger LOG = LoggerFactory.getLogger(TezUtilsInternal.class);
+  private static final Pattern pattern = Pattern.compile("\\W");
 
+<<<<<<< Updated upstream
+=======
+  private TezUtilsInternal() {}
+//
+//  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
+//      IOException {
+//    FileInputStream confPBBinaryStream = null;
+//    ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+//    try {
+//      confPBBinaryStream =
+//          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
+//      confProtoBuilder.mergeFrom(confPBBinaryStream);
+//    } finally {
+//      if (confPBBinaryStream != null) {
+//        confPBBinaryStream.close();
+//      }
+//    }
+//
+//    ConfigurationProto confProto = confProtoBuilder.build();
+//
+//    List<PlanKeyValuePair> kvPairList = confProto.getConfKeyValuesList();
+//    if (kvPairList != null && !kvPairList.isEmpty()) {
+//      for (PlanKeyValuePair kvPair : kvPairList) {
+//        conf.set(kvPair.getKey(), kvPair.getValue());
+//      }
+//    }
+//  }
+
+>>>>>>> Stashed changes
   public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
       IOException {
     FileInputStream confPBBinaryStream = null;
@@ -88,31 +120,6 @@ public class TezUtilsInternal {
       }
     }
   }
-//
-//  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
-//      IOException {
-//    FileInputStream confPBBinaryStream = null;
-//    ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
-//    try {
-//      confPBBinaryStream =
-//          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
-//      confProtoBuilder.mergeFrom(confPBBinaryStream);
-//    } finally {
-//      if (confPBBinaryStream != null) {
-//        confPBBinaryStream.close();
-//      }
-//    }
-//
-//    ConfigurationProto confProto = confProtoBuilder.build();
-//
-//    List<PlanKeyValuePair> kvPairList = confProto.getConfKeyValuesList();
-//    if (kvPairList != null && !kvPairList.isEmpty()) {
-//      for (PlanKeyValuePair kvPair : kvPairList) {
-//        conf.set(kvPair.getKey(), kvPair.getValue());
-//      }
-//    }
-//  }
-
 
   public static byte[] compressBytes(byte[] inBytes) throws IOException {
     StopWatch sw = new StopWatch().start();
@@ -167,10 +174,6 @@ public class TezUtilsInternal {
     byte[] output = bos.toByteArray();
     return output;
   }
-
-  private static final Pattern pattern = Pattern.compile("\\W");
-  @Private
-  public static final int MAX_VERTEX_NAME_LENGTH = 40;
 
   @Private
   public static String cleanVertexName(String vertexName) {

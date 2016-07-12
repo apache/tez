@@ -35,14 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SVGUtils {
 
-  private static int MAX_DAG_RUNTIME = 0;
   private static final int SCREEN_WIDTH = 1800;
-
-  public SVGUtils() {    
-  }
-
-  private int Y_MAX;
-  private int X_MAX;
   private static final DecimalFormat secondFormat = new DecimalFormat("#.##");
   private static final int X_BASE = 100;
   private static final int Y_BASE = 100;
@@ -57,7 +50,14 @@ public class SVGUtils {
   private static final String CRITICAL_COLOR = "IndianRed";
   private static final float RECT_OPACITY = 1.0f;
   private static final String TITLE_BR = "&#13;";
+  private static int MAX_DAG_RUNTIME = 0;
+  List<String> svgLines = new LinkedList<>();
+  private int Y_MAX;
+  private int X_MAX;
 
+  public SVGUtils() {
+  }
+  
   public static String getTimeStr(final long millis) {
     long minutes = TimeUnit.MILLISECONDS.toMinutes(millis)
             - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis));
@@ -68,11 +68,9 @@ public class SVGUtils {
     long seconds = millis - TimeUnit.MINUTES.toMillis(
         TimeUnit.MILLISECONDS.toMinutes(millis));
     b.append(secondFormat.format(seconds/1000.0) + "s");
-    
-    return b.toString(); 
+
+    return b.toString();
   }
-  
-  List<String> svgLines = new LinkedList<>();
   
   private final int addOffsetX(int x) {
     int xOff = x + X_BASE;
