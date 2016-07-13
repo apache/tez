@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.events;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
@@ -621,6 +622,27 @@ public class TestHistoryEventsProtoConversion {
           event.getDataEvents().get(0).getTaskAttemptId());
       Assert.assertEquals(event.getTaskFailureType(), deserializedEvent.getTaskFailureType());
       logEvents(event, deserializedEvent);
+    }
+    {
+      // toString shouldn't include null fields
+      TezTaskAttemptID taId =
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+          TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 0), 0);
+      long timestamp = 1024L;
+      List<DataEventDependencyInfo> events = Lists.newArrayList();
+      events.add(new DataEventDependencyInfo(timestamp, taId));
+      events.add(new DataEventDependencyInfo(timestamp, taId));
+      TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+          TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
+        "vertex1", 10001l, 1000434444l, TaskAttemptState.SUCCEEDED, null, null,
+        null, new TezCounters(), events, null, 0, null, 0, null, null, null, null, null);
+      String eventStr = event.toString();
+      String[] items = new String[] {"taskFailureType", "errorEnum", "diagnostics", "containerId",
+          "nodeId", "nodeHttpAddress"};
+      for (String item : items) {
+        assertFalse(eventStr.contains(item));
+      }
     }
   }
 
