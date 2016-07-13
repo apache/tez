@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3303. Have ShuffleVertexManager consume more precise partition stats.
   TEZ-1248. Reduce slow-start should special case 1 reducer runs.
   TEZ-3327. ATS Parser: Populate config details available in dag.
   TEZ-3325. Flaky test in TestDAGImpl.testCounterLimits.

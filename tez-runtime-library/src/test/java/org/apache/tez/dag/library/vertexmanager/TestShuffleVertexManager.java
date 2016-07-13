@@ -330,9 +330,9 @@ public class TestShuffleVertexManager {
      */
     scheduledTasks.clear();
     //{5,9,12,18} in bitmap
-    long[] sizes = new long[]{(0l), (1000l * 1000l),
-                              (1010 * 1000l * 1000l), (50 * 1000l * 1000l)};
-    vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex");
+    final long MB = 1024l * 1024l;
+    long[] sizes = new long[]{(0l), (1 * MB), (964 * MB), (48 * MB)};
+    vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex", false);
 
     manager = createManager(conf, mockContext, 0.01f, 0.75f);
     manager.onVertexStarted(emptyCompletions);
@@ -361,6 +361,37 @@ public class TestShuffleVertexManager {
     Assert.assertEquals(1, manager.stats[1]); //1 MB bucket
     Assert.assertEquals(100, manager.stats[2]); //100 MB bucket
     Assert.assertEquals(10, manager.stats[3]); //10 MB bucket
+
+    // Testing for detailed partition stats
+    vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex", true);
+
+    manager = createManager(conf, mockContext, 0.01f, 0.75f);
+    manager.onVertexStarted(emptyCompletions);
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+
+    taId1 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_0");
+    vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId1));
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+
+    Assert.assertEquals(4, manager.stats.length);
+    Assert.assertEquals(0, manager.stats[0]);
+    Assert.assertEquals(1, manager.stats[1]);
+    Assert.assertEquals(964, manager.stats[2]);
+    Assert.assertEquals(48, manager.stats[3]);
+
+    // sending again from a different version of the same task has not impact
+    taId2 = TezTaskAttemptID.fromString("attempt_1436907267600_195589_1_00_000000_1");
+    vmEvent.setProducerAttemptIdentifier(new TaskAttemptIdentifierImpl("dag", mockSrcVertexId1, taId2));
+    manager.onVertexManagerEventReceived(vmEvent);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+
+    Assert.assertEquals(4, manager.stats.length);
+    Assert.assertEquals(0, manager.stats[0]);
+    Assert.assertEquals(1, manager.stats[1]);
+    Assert.assertEquals(964, manager.stats[2]);
+    Assert.assertEquals(48, manager.stats[3]);
 
     /**
      * Test for TEZ-978
@@ -1017,7 +1048,11 @@ public class TestShuffleVertexManager {
     Assert.assertTrue(scheduledTasks.size() == 3);
   }
 
-  VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, String vertexName)
+  VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, String vertexName) throws IOException {
+    return getVertexManagerEvent(sizes, totalSize, vertexName, false);
+  }
+
+  VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, String vertexName, boolean reportDetailedStats)
       throws IOException {
     ByteBuffer payload = null;
     if (sizes != null) {
@@ -1026,12 +1061,22 @@ public class TestShuffleVertexManager {
       partitionStats.serialize(dout);
       ByteString
           partitionStatsBytes = TezCommonUtils.compressByteArrayToByteString(dout.getData());
-      payload =
-          VertexManagerEventPayloadProto.newBuilder()
-              .setOutputSize(totalSize)
-              .setPartitionStats(partitionStatsBytes)
-              .build().toByteString()
-              .asReadOnlyByteBuffer();
+      if (reportDetailedStats) {
+        payload =
+            VertexManagerEventPayloadProto.newBuilder()
+                .setOutputSize(totalSize)
+                .setDetailedPartitionStats(ShuffleUtils.getDetailedPartitionStatsForPhysicalOutput(sizes))
+                .build().toByteString()
+                .asReadOnlyByteBuffer();
+      } else {
+        payload =
+            VertexManagerEventPayloadProto.newBuilder()
+                .setOutputSize(totalSize)
+                .setPartitionStats(partitionStatsBytes)
+                .build().toByteString()
+                .asReadOnlyByteBuffer();
+      }
+
     } else {
       payload =
           VertexManagerEventPayloadProto.newBuilder()

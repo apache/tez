@@ -555,6 +555,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
   }
 
   @VisibleForTesting
+  void parseDetailedPartitionStats(List<Integer> partitionStats) {
+    Preconditions.checkState(stats != null, "Stats should be initialized");
+    for (int i = 0; i< partitionStats.size(); i++) {
+      stats[i] += partitionStats.get(i);
+    }
+  }
+
+  @VisibleForTesting
   void parsePartitionStats(RoaringBitmap partitionStats) {
     Preconditions.checkState(stats != null, "Stats should be initialized");
     Iterator<Integer> it = partitionStats.iterator();
@@ -618,10 +626,15 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
           partitionStats.deserialize(new DataInputStream(bin));
 
           parsePartitionStats(partitionStats);
+
         } catch (IOException e) {
           throw new TezUncheckedException(e);
         }
+      } else if (proto.hasDetailedPartitionStats()) {
+        List<Integer> detailedPartitionStats = proto.getDetailedPartitionStats().getSizeInMbList();
+        parseDetailedPartitionStats(detailedPartitionStats);
       }
+
       srcInfo.numVMEventsReceived++;
       srcInfo.outputSize += sourceTaskOutputSize;
       completedSourceTasksOutputSize += sourceTaskOutputSize;
