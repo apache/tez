@@ -395,6 +395,8 @@ public class MROutput extends AbstractLogicalOutput {
         throw new IOException(cnfe);
       }
 
+      initCommitter(jobConf, useNewApi);
+
       try {
         newRecordWriter =
             newOutputFormat.getRecordWriter(newApiTaskAttemptContext);
@@ -409,6 +411,8 @@ public class MROutput extends AbstractLogicalOutput {
       oldOutputFormat = jobConf.getOutputFormat();
       outputFormatClassName = oldOutputFormat.getClass().getName();
 
+      initCommitter(jobConf, useNewApi);
+
       FileSystem fs = FileSystem.get(jobConf);
       String finalName = getOutputName();
 
@@ -416,7 +420,6 @@ public class MROutput extends AbstractLogicalOutput {
           oldOutputFormat.getRecordWriter(
               fs, jobConf, finalName, new MRReporter(getContext().getCounters()));
     }
-    initCommitter(jobConf, useNewApi);
 
     LOG.info(getContext().getDestinationVertexName() + ": "
         + "outputFormat=" + outputFormatClassName
