@@ -508,14 +508,14 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     }
     pendingStateUpdates.clear();
 
+    // track the tasks in this vertex
+    updatePendingTasks();
+
     for (VertexManagerEvent vmEvent : pendingVMEvents) {
       handleVertexManagerEvent(vmEvent);
     }
     pendingVMEvents.clear();
-    
-    // track the tasks in this vertex
-    updatePendingTasks();
-    
+
     LOG.info("OnVertexStarted vertex: " + getContext().getVertexName() +
              " with " + totalNumBipartiteSourceTasks + " source tasks and " +
              totalTasksToSchedule + " pending tasks");
