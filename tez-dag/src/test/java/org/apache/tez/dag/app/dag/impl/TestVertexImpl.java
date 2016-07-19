@@ -40,6 +40,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,6 +62,7 @@ import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.test.GraceShuffleVertexManagerForTest;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2256,6 +2258,102 @@ public class TestVertexImpl {
     return dag;
   }
 
+  private DAGPlan createDAGPlanForGraceParallelism() throws IOException {
+    LOG.info("Setting up grace parallelism dag plan");
+    return DAGPlan.newBuilder()
+        .setName("GraceParallelismDAG")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("A")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("A.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("")
+                        .build()
+                )
+                .addOutEdgeId("A_B")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("B")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("B.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("")
+                        .build()
+                )
+                .addInEdgeId("A_B")
+                .addOutEdgeId("B_C")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("C")
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("C.class"))
+                .setType(PlanVertexType.NORMAL)
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(-1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("")
+                        .build()
+                )
+                .setVertexManagerPlugin(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(GraceShuffleVertexManagerForTest.class.getName())
+                    .setTezUserPayload(
+                        DAGProtos.TezUserPayloadProto.newBuilder()
+                            .setUserPayload(
+                                GraceShuffleVertexManagerForTest.newConfBuilder()
+                                    .setGrandparentVertex("A")
+                                    .setDesiredParallelism(1)
+                                    .toByteString()
+                            )
+                            .build()
+                    )
+                )
+                .addInEdgeId("B_C")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("A_B"))
+                .setInputVertexName("A")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("A_B.class"))
+                .setOutputVertexName("B")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("A_B")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("B_C"))
+                .setInputVertexName("B")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("B_C.class"))
+                .setOutputVertexName("C")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("B_C")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
+  }
+
   private void setupVertices() {
     int vCnt = dagPlan.getVertexCount();
     LOG.info("Setting up vertices from dag plan, verticesCnt=" + vCnt);
@@ -2536,6 +2634,17 @@ public class TestVertexImpl {
     if (checkRunningState) {
       Assert.assertEquals(VertexState.RUNNING, v.getState());
     }
+  }
+
+  private void completeAllTasksSuccessfully(Vertex v) {
+    Assert.assertEquals(VertexState.RUNNING, v.getState());
+    Set<TezTaskID> tasks = v.getTasks().keySet();
+    Assert.assertFalse(tasks.isEmpty());
+    for (TezTaskID task : tasks) {
+      dispatcher.getEventHandler()
+          .handle(new VertexEventTaskCompleted(task, TaskState.SUCCEEDED));
+    }
+    dispatcher.await();
   }
 
   @Test(timeout = 5000)
@@ -5883,16 +5992,9 @@ public class TestVertexImpl {
     Assert.assertEquals(VertexState.INITED, vC.getState());
 
     //Send VertexManagerEvent
-    long[] sizes = new long[]{(100 * 1000l * 1000l)};
-    Event vmEvent = getVertexManagerEvent(sizes, 1060000000, "B");
-
-    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(
-        TezTaskID.getInstance(vC.getVertexId(), 1), 1);
-    EventMetaData sourceInfo = new EventMetaData(EventProducerConsumerType.INPUT, "B", "C", taId);
-    TezEvent tezEvent = new TezEvent(vmEvent, sourceInfo);
-    dispatcher.getEventHandler().handle(new VertexEventRouteEvent(vC.getVertexId(),
-        Lists.newArrayList(tezEvent)));
-    dispatcher.await();
+    long[] sizes = new long[]{(100_000_000L)};
+    Event vmEvent = getVertexManagerEvent(sizes, 1_060_000_000L, vB);
+    sendTaskGeneratedEvent(vmEvent, EventProducerConsumerType.INPUT, vC, vB);
     Assert.assertEquals(VertexState.INITED, vC.getState());
 
     //vB start
@@ -5902,7 +6004,48 @@ public class TestVertexImpl {
 
   }
 
-  VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, String vertexName)
+  @Test(timeout = 5000)
+  public void testVertexGraceParallelism() throws IOException, TezException {
+    setupPreDagCreation();
+    dagPlan = createDAGPlanForGraceParallelism();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    initVertex(vA);
+    Assert.assertEquals(VertexState.INITED, vA.getState());
+    Assert.assertEquals(VertexState.INITED, vB.getState());
+    Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
+
+    long[] sizes = new long[]{(100_000_000L)};
+    Event vmEvent = getVertexManagerEvent(sizes, 1_060_000_000L, vC);
+    sendTaskGeneratedEvent(vmEvent, EventProducerConsumerType.OUTPUT, vB, vC);
+    Assert.assertEquals(VertexState.INITIALIZING, vC.getState());
+
+    startVertex(vA);
+    completeAllTasksSuccessfully(vA);
+    Assert.assertEquals(VertexState.SUCCEEDED, vA.getState());
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+  }
+
+  private void sendTaskGeneratedEvent(Event event, EventProducerConsumerType generator,
+                                      Vertex taskVertex, Vertex edgeVertex) {
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(
+        TezTaskID.getInstance(taskVertex.getVertexId(), 1), 1);
+    EventMetaData sourceInfo = new EventMetaData(generator,
+        taskVertex.getName(), edgeVertex.getName(), taId);
+    sendVertexEventRouteEvent(taskVertex, new TezEvent(event, sourceInfo));
+  }
+
+  private void sendVertexEventRouteEvent(Vertex sourceVertex, TezEvent... tezEvents) {
+    dispatcher.getEventHandler().handle(new VertexEventRouteEvent(sourceVertex.getVertexId(),
+        Arrays.asList(tezEvents)));
+    dispatcher.await();
+  }
+
+  private VertexManagerEvent getVertexManagerEvent(long[] sizes, long totalSize, Vertex vertex)
       throws IOException {
     ByteBuffer payload = null;
     if (sizes != null) {
@@ -5924,7 +6067,7 @@ public class TestVertexImpl {
               .build().toByteString()
               .asReadOnlyByteBuffer();
     }
-    VertexManagerEvent vmEvent = VertexManagerEvent.create(vertexName, payload);
+    VertexManagerEvent vmEvent = VertexManagerEvent.create(vertex.getName(), payload);
     return vmEvent;
   }
 
