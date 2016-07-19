@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3348. NullPointerException in Tez MROutput while trying to write using Parquet's DeprecatedParquetOutputFormat.
   TEZ-3356. Fix initializing of stats when custom ShuffleVertexManager is used.
   TEZ-3329. Tez ATS data is incomplete for a vertex which fails or gets killed before initialization.
   TEZ-3235. Modify Example TestOrderedWordCount job to test the IPC limit for large dag plans.

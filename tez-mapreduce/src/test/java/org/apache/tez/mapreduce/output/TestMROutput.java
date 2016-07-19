@@ -34,14 +34,17 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DataSinkDescriptor;
@@ -166,6 +169,58 @@ public class TestMROutput {
     assertEquals(org.apache.hadoop.mapred.FileOutputCommitter.class, output.committer.getClass());
   }
 
+  // test to try and use the WorkOutputPathOutputFormat - this checks that the getDefaultWorkFile is
+  // set while creating recordWriters
+  @Test(timeout = 5000)
+  public void testNewAPI_WorkOutputPathOutputFormat() throws Exception {
+    String outputPath = "/tmp/output";
+    Configuration conf = new Configuration();
+    conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
+    DataSinkDescriptor dataSink = MROutput
+      .createConfigBuilder(conf, NewAPI_WorkOutputPathReadingOutputFormat.class, outputPath)
+      .build();
+
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    MROutput output = new MROutput(outputContext, 2);
+    output.initialize();
+
+    assertEquals(true, output.isMapperOutput);
+    assertEquals(true, output.useNewApi);
+    assertEquals(NewAPI_WorkOutputPathReadingOutputFormat.class, output.newOutputFormat.getClass());
+    assertNull(output.oldOutputFormat);
+    assertNotNull(output.newApiTaskAttemptContext);
+    assertNull(output.oldApiTaskAttemptContext);
+    assertNotNull(output.newRecordWriter);
+    assertNull(output.oldRecordWriter);
+    assertEquals(FileOutputCommitter.class, output.committer.getClass());
+  }
+
+  // test to try and use the WorkOutputPathOutputFormat - this checks that the workOutput path is
+  // set while creating recordWriters
+  @Test(timeout = 5000)
+  public void testOldAPI_WorkOutputPathOutputFormat() throws Exception {
+    String outputPath = "/tmp/output";
+    Configuration conf = new Configuration();
+    conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
+    DataSinkDescriptor dataSink = MROutput
+      .createConfigBuilder(conf, OldAPI_WorkOutputPathReadingOutputFormat.class, outputPath)
+      .build();
+
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    MROutput output = new MROutput(outputContext, 2);
+    output.initialize();
+
+    assertEquals(false, output.isMapperOutput);
+    assertEquals(false, output.useNewApi);
+    assertEquals(OldAPI_WorkOutputPathReadingOutputFormat.class, output.oldOutputFormat.getClass());
+    assertNull(output.newOutputFormat);
+    assertNotNull(output.oldApiTaskAttemptContext);
+    assertNull(output.newApiTaskAttemptContext);
+    assertNotNull(output.oldRecordWriter);
+    assertNull(output.newRecordWriter);
+    assertEquals(org.apache.hadoop.mapred.FileOutputCommitter.class, output.committer.getClass());
+  }
+
   private OutputContext createMockOutputContext(UserPayload payload) {
     OutputContext outputContext = mock(OutputContext.class);
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
@@ -199,7 +254,7 @@ public class TestMROutput {
         new Path(new Path(System.getProperty("test.build.data", "/tmp")),
                  "TestMapOutput").makeQualified(fs.getUri(), fs.getWorkingDirectory());
 
-    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+    return new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
         conf,
@@ -209,7 +264,6 @@ public class TestMROutput {
         new HashMap<String, String>(),
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
         Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim());
-    return task;
   }
   
   public static class TestOutputCommitter extends OutputCommitter {
@@ -279,6 +333,47 @@ public class TestMROutput {
     public OutputCommitter getOutputCommitter(TaskAttemptContext context)
         throws IOException, InterruptedException {
       return new TestOutputCommitter();
+    }
+  }
+
+  // OldAPI OutputFormat class that reads the workoutput path while creating recordWriters
+  public static class OldAPI_WorkOutputPathReadingOutputFormat extends org.apache.hadoop.mapred.FileOutputFormat<String, String> {
+    public static class NoOpRecordWriter implements org.apache.hadoop.mapred.RecordWriter<String, String> {
+      @Override
+      public void write(String key, String value) throws IOException {}
+
+      @Override
+      public void close(Reporter reporter) throws IOException {}
+    }
+
+    @Override
+    public org.apache.hadoop.mapred.RecordWriter<String, String> getRecordWriter(
+      FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
+      // check work output path is not null
+      Path workOutputPath = org.apache.hadoop.mapred.FileOutputFormat.getWorkOutputPath(job);
+      assertNotNull(workOutputPath);
+      return new NoOpRecordWriter();
+    }
+  }
+
+  // NewAPI OutputFormat class that reads the default work file while creating recordWriters
+  public static class NewAPI_WorkOutputPathReadingOutputFormat extends FileOutputFormat<String, String> {
+    public static class NoOpRecordWriter extends RecordWriter<String, String> {
+      @Override
+      public void write(String key, String value) throws IOException, InterruptedException {
+      }
+
+      @Override
+      public void close(TaskAttemptContext context) throws IOException, InterruptedException {
+      }
+    }
+
+    @Override
+    public RecordWriter<String, String> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
+      // check default work file is not null
+      Path workOutputPath = getDefaultWorkFile(job, ".foo");
+      assertNotNull(workOutputPath);
+      return new NoOpRecordWriter();
     }
   }
 
