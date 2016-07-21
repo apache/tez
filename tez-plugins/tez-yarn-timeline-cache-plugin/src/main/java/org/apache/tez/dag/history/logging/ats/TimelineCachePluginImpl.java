@@ -23,20 +23,26 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.server.timeline.NameValuePair;
 import org.apache.hadoop.yarn.server.timeline.TimelineEntityGroupPlugin;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
+public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implements Configurable {
+  private static final Logger LOG = LoggerFactory.getLogger(TimelineCachePluginImpl.class);
 
   private static Set<String> summaryEntityTypes;
   private static Set<String> knownEntityTypes;
@@ -54,11 +60,27 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
         EntityTypes.TEZ_APPLICATION.name());
   }
 
+  private Configuration conf;
+
+  private Set<Integer> allNumGroupsPerDag;
+
   // Empty public constructor
   public TimelineCachePluginImpl() {
+    setConf(new TezConfiguration());
   }
 
-  private TimelineEntityGroupId convertToTimelineEntityGroupId(String entityType, String entityId) {
+  private Set<TimelineEntityGroupId> createTimelineEntityGroupIds(TezDAGID dagId) {
+    ApplicationId appId = dagId.getApplicationId();
+    HashSet<TimelineEntityGroupId> groupIds = Sets.newHashSet(
+        TimelineEntityGroupId.newInstance(appId, appId.toString()),
+        TimelineEntityGroupId.newInstance(appId, dagId.toString()));
+    for (int numGroupsPerDag : allNumGroupsPerDag) {
+      groupIds.add(TimelineEntityGroupId.newInstance(appId, dagId.getGroupId(numGroupsPerDag)));
+    }
+    return groupIds;
+  }
+
+  private Set<TimelineEntityGroupId> convertToTimelineEntityGroupIds(String entityType, String entityId) {
     if (entityType == null || entityType.isEmpty()
         || entityId == null || entityId.isEmpty()) {
       return null;
@@ -66,27 +88,23 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
     if (entityType.equals(EntityTypes.TEZ_DAG_ID.name())) {
       TezDAGID dagId = TezDAGID.fromString(entityId);
       if (dagId != null) {
-        return TimelineEntityGroupId.newInstance(dagId.getApplicationId(), dagId.toString());
+        return createTimelineEntityGroupIds(dagId);
       }
     } else if (entityType.equals(EntityTypes.TEZ_VERTEX_ID.name())) {
       TezVertexID vertexID = TezVertexID.fromString(entityId);
       if (vertexID != null) {
-        return TimelineEntityGroupId.newInstance(vertexID.getDAGId().getApplicationId(),
-            vertexID.getDAGId().toString());
+        return createTimelineEntityGroupIds(vertexID.getDAGId());
       }
 
     } else if (entityType.equals(EntityTypes.TEZ_TASK_ID.name())) {
       TezTaskID taskID = TezTaskID.fromString(entityId);
       if (taskID != null) {
-        return TimelineEntityGroupId.newInstance(taskID.getVertexID().getDAGId().getApplicationId(),
-            taskID.getVertexID().getDAGId().toString());
+        return createTimelineEntityGroupIds(taskID.getVertexID().getDAGId());
       }
     } else if (entityType.equals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())) {
       TezTaskAttemptID taskAttemptID = TezTaskAttemptID.fromString(entityId);
       if (taskAttemptID != null) {
-        return TimelineEntityGroupId.newInstance(
-            taskAttemptID.getTaskID().getVertexID().getDAGId().getApplicationId(),
-            taskAttemptID.getTaskID().getVertexID().getDAGId().toString());
+        return createTimelineEntityGroupIds(taskAttemptID.getTaskID().getVertexID().getDAGId());
       }
     } else if (entityType.equals(EntityTypes.TEZ_CONTAINER_ID.name())) {
       String cId = entityId;
@@ -95,9 +113,9 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
       }
       ContainerId containerId = ContainerId.fromString(cId);
       if (containerId != null) {
-        return TimelineEntityGroupId.newInstance(
+        return Sets.newHashSet(TimelineEntityGroupId.newInstance(
             containerId.getApplicationAttemptId().getApplicationId(),
-            containerId.getApplicationAttemptId().getApplicationId().toString());
+            containerId.getApplicationAttemptId().getApplicationId().toString()));
       }
     }
     return null;
@@ -113,15 +131,7 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
         || summaryEntityTypes.contains(entityType)) {
       return null;
     }
-    TimelineEntityGroupId groupId = convertToTimelineEntityGroupId(primaryFilter.getName(),
-        primaryFilter.getValue().toString());
-    if (groupId != null) {
-      TimelineEntityGroupId appGroupId =
-          TimelineEntityGroupId.newInstance(groupId.getApplicationId(),
-              groupId.getApplicationId().toString());
-      return Sets.newHashSet(groupId, appGroupId);
-    }
-    return null;
+    return convertToTimelineEntityGroupIds(primaryFilter.getName(), primaryFilter.getValue().toString());
   }
 
   @Override
@@ -129,14 +139,7 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
     if (!knownEntityTypes.contains(entityType) || summaryEntityTypes.contains(entityType)) {
       return null;
     }
-    TimelineEntityGroupId groupId = convertToTimelineEntityGroupId(entityType, entityId);
-    if (groupId != null) {
-      TimelineEntityGroupId appGroupId =
-          TimelineEntityGroupId.newInstance(groupId.getApplicationId(),
-              groupId.getApplicationId().toString());
-      return Sets.newHashSet(groupId, appGroupId);
-    }
-    return null;
+    return convertToTimelineEntityGroupIds(entityType, entityId);
   }
 
   @Override
@@ -147,20 +150,53 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin {
         || entityIds == null || entityIds.isEmpty()) {
       return null;
     }
-    Set<TimelineEntityGroupId> groupIds = new HashSet<TimelineEntityGroupId>();
-    Set<ApplicationId> appIdSet = new HashSet<ApplicationId>();
 
+    Set<TimelineEntityGroupId> groupIds = new HashSet<TimelineEntityGroupId>();
     for (String entityId : entityIds) {
-      TimelineEntityGroupId groupId = convertToTimelineEntityGroupId(entityType, entityId);
+      Set<TimelineEntityGroupId> groupId = convertToTimelineEntityGroupIds(entityType, entityId);
       if (groupId != null) {
-        groupIds.add(groupId);
-        appIdSet.add(groupId.getApplicationId());
+        groupIds.addAll(groupId);
       }
     }
-    for (ApplicationId appId : appIdSet) {
-      groupIds.add(TimelineEntityGroupId.newInstance(appId, appId.toString()));
-    }
     return groupIds;
+  }
+
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf instanceof TezConfiguration ? conf : new TezConfiguration(conf);
+
+    this.allNumGroupsPerDag = loadAllNumDagsPerGroup();
+  }
+
+  private Set<Integer> loadAllNumDagsPerGroup() {
+    Set<Integer> allNumDagsPerGroup = new HashSet<Integer>();
+
+    int numDagsPerGroup = conf.getInt(TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP,
+        TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP_DEFAULT);
+    if (numDagsPerGroup > 1) {
+      // Add current numDagsPerGroup from config.
+      allNumDagsPerGroup.add(numDagsPerGroup);
+    }
+
+    // Add the older values from config.
+    int [] usedNumGroups = conf.getInts(TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_CACHE_PLUGIN_OLD_NUM_DAGS_PER_GROUP);
+    if (usedNumGroups != null) {
+      for (int i = 0; i < usedNumGroups.length; ++i) {
+        allNumDagsPerGroup.add(usedNumGroups[i]);
+      }
+    }
+
+    // Warn for performance impact
+    if (allNumDagsPerGroup.size() > 3) {
+      LOG.warn("Too many entries in " + TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_CACHE_PLUGIN_OLD_NUM_DAGS_PER_GROUP +
+          ", this can result in slower lookup from Yarn Timeline server or slower load times in TezUI.");
+    }
+    return allNumDagsPerGroup;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return conf;
   }
 
 }
