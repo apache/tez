@@ -54,7 +54,8 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
 
   private static final Logger LOG = LoggerFactory.getLogger(ATSV15HistoryLoggingService.class);
 
-  private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
+  @VisibleForTesting
+  LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
 
   private Thread eventHandlingThread;
@@ -80,6 +81,8 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSV15HistoryACLPolicyManager";
   private HistoryACLPolicyManager historyACLPolicyManager;
+
+  private int numDagsPerGroup;
 
   public ATSV15HistoryLoggingService() {
     super(ATSV15HistoryLoggingService.class.getName());
@@ -151,6 +154,8 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       historyACLPolicyManager = null;
     }
 
+    numDagsPerGroup = conf.getInt(TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP,
+        TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP_DEFAULT);
   }
 
   @Override
@@ -290,8 +295,10 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       case VERTEX_GROUP_COMMIT_STARTED:
       case VERTEX_GROUP_COMMIT_FINISHED:
       case DAG_RECOVERED:
-        return TimelineEntityGroupId.newInstance(event.getDagID().getApplicationId(),
-            event.getDagID().toString());
+        String entityGroupId = numDagsPerGroup > 1
+            ? event.getDagID().getGroupId(numDagsPerGroup)
+            : event.getDagID().toString();
+        return TimelineEntityGroupId.newInstance(event.getDagID().getApplicationId(), entityGroupId);
       case APP_LAUNCHED:
       case AM_LAUNCHED:
       case AM_STARTED:
