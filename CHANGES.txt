@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3357. Change TimelineCachePlugin to handle DAG grouping.
   TEZ-3348. NullPointerException in Tez MROutput while trying to write using Parquet's DeprecatedParquetOutputFormat.
   TEZ-3356. Fix initializing of stats when custom ShuffleVertexManager is used.
   TEZ-3329. Tez ATS data is incomplete for a vertex which fails or gets killed before initialization.

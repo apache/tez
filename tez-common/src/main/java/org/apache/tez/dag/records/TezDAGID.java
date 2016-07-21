@@ -176,6 +176,25 @@ public class TezDAGID extends TezID {
     return appendTo(new StringBuilder(DAG)).toString();
   }
 
+  // The groupId prefix.
+  private static final String DAG_GROUPID_PREFIX = "daggroup";
+
+  /**
+   * Generate a DAG group id which groups multiple DAGs into one group.
+   *
+   * @param numDagsPerGroup The number of DAGs present in one group.
+   * @return The group id to be used for grouping numDagsPerGroup into one group.
+   */
+  public String getGroupId(int numDagsPerGroup) {
+    if (numDagsPerGroup <= 1) {
+      throw new IllegalArgumentException("numDagsPerGroup has to be more than one. Got: " + numDagsPerGroup);
+    }
+    return DAG_GROUPID_PREFIX + SEPARATOR +
+        getApplicationId().getClusterTimestamp() + SEPARATOR +
+        tezAppIdFormat.get().format(getApplicationId().getId()) + SEPARATOR +
+        tezDagIdFormat.get().format(getId() / numDagsPerGroup);
+  }
+
   public static TezDAGID fromString(String dagId) {
     int id = 0;
     int appId = 0;
