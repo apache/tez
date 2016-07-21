@@ -77,6 +77,7 @@ ALL CHANGES:
   TEZ-3288. Tez UI: Display more details in the error bar
   TEZ-3318. Tez UI: Polling is not restarted after RM recovery
   TEZ-3329. Tez ATS data is incomplete for a vertex which fails or gets killed before initialization
+  TEZ-3333. Tez UI: Handle cases where Vertex/Task/Task Attempt data is missing
 
 Release 0.8.5: Unreleased
 

@@ -17,15 +17,20 @@
 }}
 
 {{#if loaded}}
-  <div id="graphical-view-component-container">
-    {{em-tgraph
+  {{#if model.length}}
+    <div id="graphical-view-component-container">
+      {{em-tgraph
       data=viewData
       vertexProperties=visibleColumns
       entityClicked='entityClicked'
       configure='openColumnSelector'
-    }}
-    <div class="dag-view-legend">Refresh updates only the tooltip values. When sources & sinks are hidden, double click green bubble to toggle visibility locally.</div>
-  </div>
+      }}
+      <div class="dag-view-legend">Refresh updates only the tooltip values. When sources & sinks are hidden, double click green bubble to toggle visibility locally.</div>
+    </div>
+  {{else}}
+    <h2>Data not available to display graphical view!</h2>
+    <h4>No vertex data found in YARN Timeline Server.</h4>
+  {{/if}}
 {{else}}
   {{partial "loading"}}
 {{/if}}

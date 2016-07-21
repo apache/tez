@@ -38,3 +38,16 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.columns);
 });
+
+test('definition test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    beforeSort: {bind: Ember.K},
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    }
+  });
+
+  assert.ok(controller.get("definition.recordType"), "vertex");
+});

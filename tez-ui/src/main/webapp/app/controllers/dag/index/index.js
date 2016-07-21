@@ -78,6 +78,12 @@ export default MultiTableController.extend({
     observePath: true
   }]),
 
+  definition: Ember.computed("model", function () {
+    var definition = this._super();
+    definition.set("recordType", "vertex");
+    return definition;
+  }),
+
   stats: Ember.computed("model.@each.loadTime", function () {
     var vertices = this.get("model");
 
