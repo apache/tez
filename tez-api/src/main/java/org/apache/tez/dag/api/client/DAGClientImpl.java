@@ -242,11 +242,11 @@ public class DAGClientImpl extends DAGClient {
         if (dagStatus.isCompleted()) {
           return dagStatus;
         }
-      } catch (ApplicationNotFoundException e) {
-        LOG.info("Failed to fetch DAG data for completed DAG from YARN Timeline"
-            + " - Application not found by YARN", e);
       } catch (TezException e) {
-        if (LOG.isDebugEnabled()) {
+        if (e.getCause() instanceof ApplicationNotFoundException) {
+          LOG.info("Failed to fetch DAG data for completed DAG from YARN Timeline"
+            + " - Application not found by YARN", e);
+        } else if (LOG.isDebugEnabled()) {
           LOG.info("DAGStatus fetch failed." + e.getMessage());
         }
       }
@@ -296,12 +296,12 @@ public class DAGClientImpl extends DAGClient {
         if (vertexCompletionStates.contains(vertexStatus.getState())) {
           return vertexStatus;
         }
-      } catch (ApplicationNotFoundException e) {
-        LOG.info("Failed to fetch Vertex data for completed DAG from YARN Timeline"
-            + " - Application not found by YARN", e);
-        return null;
       } catch (TezException e) {
-        if (LOG.isDebugEnabled()) {
+        if (e.getCause() instanceof ApplicationNotFoundException) {
+          LOG.info("Failed to fetch Vertex data for completed DAG from YARN Timeline"
+            + " - Application not found by YARN", e);
+          return null;
+        } else if (LOG.isDebugEnabled()) {
           LOG.debug("ERROR fetching vertex data from Yarn Timeline. " + e.getMessage());
         }
       }
@@ -361,11 +361,13 @@ public class DAGClientImpl extends DAGClient {
     } catch (DAGNotRunningException e) {
       LOG.info("DAG is no longer running", e);
       dagCompleted = true;
-    } catch (ApplicationNotFoundException e) {
-      LOG.info("DAG is no longer running - application not found by YARN", e);
-      dagCompleted = true;
     } catch (TezException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to ApplicationNotFound / n/w issue or due to AM completed.
+      // if its due to application found found we handle it
+      if (e.getCause() instanceof ApplicationNotFoundException) {
+        LOG.info("DAG is no longer running - application not found by YARN", e);
+        dagCompleted = true;
+      }
     } catch (IOException e) {
       // can be either due to a n/w issue of due to AM completed.
     }
@@ -385,11 +387,13 @@ public class DAGClientImpl extends DAGClient {
     } catch (DAGNotRunningException e) {
       LOG.info("DAG is no longer running", e);
       dagCompleted = true;
-    } catch (ApplicationNotFoundException e) {
-      LOG.info("DAG is no longer running - application not found by YARN", e);
-      dagCompleted = true;
     } catch (TezException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to ApplicationNotFound / n/w issue or due to AM completed.
+      // if its due to application found found we handle it
+      if (e.getCause() instanceof ApplicationNotFoundException) {
+        LOG.info("DAG is no longer running - application not found by YARN", e);
+        dagCompleted = true;
+      }
     } catch (IOException e) {
       // can be either due to a n/w issue of due to AM completed.
     }
