@@ -107,14 +107,16 @@ export default MultiTableController.extend({
       target: "_blank"
     },
     getCellContent: function (row) {
-      return [{
-        href: row.get("logURL"),
-        text: "View"
-      }, {
-        href: row.get("logURL"),
-        text: "Download",
-        download: true
-      }];
+      if(row.get("logURL")) {
+        return [{
+          href: row.get("logURL"),
+          text: "View"
+        }, {
+          href: row.get("logURL"),
+          text: "Download",
+          download: true
+        }];
+      }
     }
   }])
 });
