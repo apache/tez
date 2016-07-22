@@ -38,4 +38,31 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+
+  assert.equal(controller.get("columns.length"), 10);
+});
+
+test('Log column test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    beforeSort: {bind: Ember.K},
+    initVisibleColumns: Ember.K,
+    getCounterColumns: function () {
+      return [];
+    }
+  }),
+  url = "http://abc.com",
+  logColumnDef = controller.get("columns").findBy('id', 'log'),
+  content;
+
+  assert.notOk(logColumnDef.getCellContent(Ember.Object.create()));
+
+  content = logColumnDef.getCellContent(Ember.Object.create({
+    logURL: url
+  }));
+  assert.equal(content[0].href, url);
+  assert.equal(content[0].text, "View");
+  assert.equal(content[1].href, url);
+  assert.equal(content[1].text, "Download");
+  assert.equal(content[1].download, true);
 });

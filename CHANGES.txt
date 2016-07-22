@@ -15,6 +15,7 @@ ALL CHANGES:
   TEZ-3235. Modify Example TestOrderedWordCount job to test the IPC limit for large dag plans.
   TEZ-3337. Do not log empty fields of TaskAttemptFinishedEvent to avoid confusion.
   TEZ-1248. Reduce slow-start should special case 1 reducer runs.
+  TEZ-3370. Tez UI: Display the log link as N/A if the app does not provide a log link
 
 Release 0.8.4: 2016-07-08
 
