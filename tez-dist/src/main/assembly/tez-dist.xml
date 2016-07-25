@@ -22,6 +22,9 @@
   <moduleSets>
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
+      <excludes>
+        <exclude>org.apache.tez:tez-aux-services</exclude>
+      </excludes>
       <binaries>
         <outputDirectory>/</outputDirectory>
         <unpack>false</unpack>

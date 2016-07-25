@@ -48,6 +48,7 @@
         <module>tez-yarn-timeline-history</module>
         <module>tez-yarn-timeline-history-with-acls</module>
         <module>tez-history-parser</module>
+        <module>tez-aux-services</module>
       </modules>
     </profile>
     <profile>
@@ -61,6 +62,7 @@
         <module>tez-yarn-timeline-cache-plugin</module>
         <module>tez-yarn-timeline-history-with-fs</module>
         <module>tez-history-parser</module>
+        <module>tez-aux-services</module>
       </modules>
     </profile>
 

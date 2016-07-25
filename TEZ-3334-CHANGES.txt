@@ -1,0 +1,7 @@
+Apache Tez Change Log
+=====================
+
+INCOMPATIBLE CHANGES:
+
+ALL CHANGES:
+  TEZ-3355. Tez Custom Shuffle Handler POC
