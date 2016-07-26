@@ -18,32 +18,39 @@
 
 package org.apache.tez.dag.history;
 
+import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.TezUncheckedException;
 
 public enum HistoryEventType {
-  APP_LAUNCHED,
-  AM_LAUNCHED,
-  AM_STARTED,
-  DAG_SUBMITTED,
-  DAG_INITIALIZED,
-  DAG_STARTED,
-  DAG_FINISHED,
-  DAG_KILL_REQUEST,
-  VERTEX_INITIALIZED,
-  VERTEX_STARTED,
-  VERTEX_CONFIGURE_DONE,
-  VERTEX_FINISHED,
-  TASK_STARTED,
-  TASK_FINISHED,
-  TASK_ATTEMPT_STARTED,
-  TASK_ATTEMPT_FINISHED,
-  CONTAINER_LAUNCHED,
-  CONTAINER_STOPPED,
-  DAG_COMMIT_STARTED,
-  VERTEX_COMMIT_STARTED,
-  VERTEX_GROUP_COMMIT_STARTED,
-  VERTEX_GROUP_COMMIT_FINISHED,
-  DAG_RECOVERED;
+  APP_LAUNCHED(HistoryLogLevel.AM),
+  AM_LAUNCHED(HistoryLogLevel.AM),
+  AM_STARTED(HistoryLogLevel.AM),
+  DAG_SUBMITTED(HistoryLogLevel.DAG),
+  DAG_INITIALIZED(HistoryLogLevel.DAG),
+  DAG_STARTED(HistoryLogLevel.DAG),
+  DAG_FINISHED(HistoryLogLevel.DAG),
+  DAG_KILL_REQUEST(HistoryLogLevel.DAG),
+  VERTEX_INITIALIZED(HistoryLogLevel.VERTEX),
+  VERTEX_STARTED(HistoryLogLevel.VERTEX),
+  VERTEX_CONFIGURE_DONE(HistoryLogLevel.VERTEX),
+  VERTEX_FINISHED(HistoryLogLevel.VERTEX),
+  TASK_STARTED(HistoryLogLevel.TASK),
+  TASK_FINISHED(HistoryLogLevel.TASK),
+  TASK_ATTEMPT_STARTED(HistoryLogLevel.ALL),
+  TASK_ATTEMPT_FINISHED(HistoryLogLevel.ALL),
+  CONTAINER_LAUNCHED(HistoryLogLevel.ALL),
+  CONTAINER_STOPPED(HistoryLogLevel.ALL),
+  DAG_COMMIT_STARTED(HistoryLogLevel.DAG),
+  VERTEX_COMMIT_STARTED(HistoryLogLevel.VERTEX),
+  VERTEX_GROUP_COMMIT_STARTED(HistoryLogLevel.VERTEX),
+  VERTEX_GROUP_COMMIT_FINISHED(HistoryLogLevel.VERTEX),
+  DAG_RECOVERED(HistoryLogLevel.DAG);
+
+  private final HistoryLogLevel historyLogLevel;
+
+  private HistoryEventType(HistoryLogLevel historyLogLevel) {
+    this.historyLogLevel = historyLogLevel;
+  }
 
   public static boolean isDAGSpecificEvent(HistoryEventType historyEventType) {
     switch (historyEventType) {
@@ -77,6 +84,8 @@ public enum HistoryEventType {
     }
   }
 
-
-
+  public HistoryLogLevel getHistoryLogLevel() {
+    return historyLogLevel;
   }
+
+}
