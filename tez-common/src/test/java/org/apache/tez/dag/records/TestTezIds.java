@@ -146,5 +146,29 @@ public class TestTezIds {
   }
 
 
+  public void testGetGroupIds() {
+    ApplicationId appId = ApplicationId.newInstance(0, 1);
+    int numDagsPerGroup = 5;
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+
+    // All dags within one group should have same id.
+    String groupId1 = dagId.getGroupId(numDagsPerGroup);
+    for (int i = 0; i < numDagsPerGroup; ++i) {
+      Assert.assertEquals(TezDAGID.getInstance(appId, i + 1).getGroupId(numDagsPerGroup), groupId1);
+    }
+
+    // Assert different id across groups.
+    Assert.assertNotEquals(
+        TezDAGID.getInstance(appId, numDagsPerGroup + 1).getGroupId(numDagsPerGroup), groupId1);
+
+    // Invalid values -1, 0, 1 should throw IllegalArgumentException.
+    for (int i = -1; i < 2; ++i) {
+      try {
+        dagId.getGroupId(i);
+        Assert.fail("Expected IllegalArgumentException for numDagsPerGroup: " + i);
+      } catch (IllegalArgumentException e) {
+      }
+    }
+  }
 
 }

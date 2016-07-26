@@ -187,12 +187,13 @@ public class TezDAGID extends TezID {
    */
   public String getGroupId(int numDagsPerGroup) {
     if (numDagsPerGroup <= 1) {
-      throw new IllegalArgumentException("numDagsPerGroup has to be more than one. Got: " + numDagsPerGroup);
+      throw new IllegalArgumentException("numDagsPerGroup has to be more than one. Got: " +
+          numDagsPerGroup);
     }
     return DAG_GROUPID_PREFIX + SEPARATOR +
         getApplicationId().getClusterTimestamp() + SEPARATOR +
         tezAppIdFormat.get().format(getApplicationId().getId()) + SEPARATOR +
-        tezDagIdFormat.get().format(getId() / numDagsPerGroup);
+        tezDagIdFormat.get().format((getId() - 1) / numDagsPerGroup);
   }
 
   public static TezDAGID fromString(String dagId) {
