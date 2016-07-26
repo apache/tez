@@ -62,6 +62,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.SessionNotReady;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -362,7 +363,18 @@ public class TezClient {
             "Credentials cannot be set after the session App Master has been started");
     amConfig.setCredentials(credentials);
   }
-  
+
+  /**
+   * Sets the history log level for this session. It will be in effect for DAGs submitted after this
+   * call.
+   *
+   * @param historyLogLevel The log level to be used.
+   */
+  public synchronized void setHistoryLogLevel(HistoryLogLevel historyLogLevel) {
+    amConfig.getTezConfiguration().setEnum(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL,
+        historyLogLevel);
+  }
+
   @Private
   @VisibleForTesting
   public synchronized void setUpHistoryAclManager(HistoryACLPolicyManager myAclPolicyManager) {

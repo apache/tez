@@ -19,19 +19,11 @@
 package org.apache.tez.dag.history.ats.acls;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Random;
-
-import javax.ws.rs.core.MediaType;
 
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -46,26 +38,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
-import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
-import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
-import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.security.DAGAccessControls;
+import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
@@ -76,15 +60,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-
-import org.mockito.Matchers;
-
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 public class TestATSHistoryV15 {
@@ -102,8 +78,6 @@ public class TestATSHistoryV15 {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestATSHistoryV15.class.getName() + "-tmpDir";
   private static Path atsActivePath;
-
-  private static String user;
 
   @BeforeClass
   public static void setup() throws IOException {
@@ -144,7 +118,6 @@ public class TestATSHistoryV15 {
         LOG.info("Failed to start Mini Tez Cluster", e);
       }
     }
-    user = UserGroupInformation.getCurrentUser().getShortUserName();
     timelineAddress = mrrTezCluster.getConfig().get(
         YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS);
     if (timelineAddress != null) {
@@ -167,7 +140,7 @@ public class TestATSHistoryV15 {
     }
   }
 
-  @Test (timeout=50000)
+  @Test(timeout=50000)
   public void testSimpleDAG() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -211,24 +184,77 @@ public class TestATSHistoryV15 {
       assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
 
       // Verify HDFS data
-      int count = verifyATSDataOnHDFS(atsActivePath, 0, applicationId);
-      Assert.assertTrue("Count is: " + count, count > 0);
-
+      int count = verifyATSDataOnHDFS(atsActivePath, applicationId);
+      Assert.assertEquals("Count is: " + count, 2, count);
     } finally {
       if (tezSession != null) {
         tezSession.stop();
       }
     }
-
   }
 
-  private int verifyATSDataOnHDFS(Path p, int count, ApplicationId applicationId) throws IOException {
+  @Test
+  public void testATSLogLevelNone() throws Exception {
+    TezClient tezSession = null;
+    ApplicationId applicationId;
+    String viewAcls = "nobody nobody_group";
+    try {
+      SleepProcessorConfig spConf = new SleepProcessorConfig(1);
+
+      DAG dag = DAG.create("TezSleepProcessor");
+      Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
+              SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+          Resource.newInstance(256, 1));
+      dag.addVertex(vertex);
+
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+
+      tezConf.set(YarnConfiguration.TIMELINE_SERVICE_ENTITYGROUP_FS_STORE_SUMMARY_ENTITY_TYPES,
+          "TEZ_DAG_ID");
+
+      tezConf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewAcls);
+      tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
+          ATSV15HistoryLoggingService.class.getName());
+      Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
+          .nextInt(100000))));
+      remoteFs.mkdirs(remoteStagingDir);
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
+
+      tezSession = TezClient.create("TezSleepProcessor", tezConf, true);
+      tezSession.start();
+
+      applicationId = tezSession.getAppMasterApplicationId();
+      dag.setHistoryLogLevel(HistoryLogLevel.NONE);
+
+      DAGClient dagClient = tezSession.submitDAG(dag);
+
+      DAGStatus dagStatus = dagClient.getDAGStatus(null);
+      while (!dagStatus.isCompleted()) {
+        LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
+            + dagStatus.getState());
+        Thread.sleep(500l);
+        dagStatus = dagClient.getDAGStatus(null);
+      }
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+      // Verify HDFS data
+      int count = verifyATSDataOnHDFS(atsActivePath, applicationId);
+      Assert.assertEquals("Count is: " + count, 1, count);
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+
+  private int verifyATSDataOnHDFS(Path p, ApplicationId applicationId) throws IOException {
+    int count = 0;
     RemoteIterator<LocatedFileStatus> iter = remoteFs.listFiles(p, true);
     while (iter.hasNext()) {
       LocatedFileStatus f = iter.next();
       LOG.info("Found file " + f.toString());
       if (f.isDirectory()) {
-        verifyATSDataOnHDFS(f.getPath(), count, applicationId);
+        count += verifyATSDataOnHDFS(f.getPath(), applicationId);
       } else {
         if (f.getPath().getName().contains(
             "" + applicationId.getClusterTimestamp() + "_" + applicationId.getId())) {
@@ -240,7 +266,7 @@ public class TestATSHistoryV15 {
   }
 
   @Test
-  public void testGetGroupId() {
+  public void testGetGroupId() throws Exception {
     ApplicationId appId = ApplicationId.newInstance(1000l, 1);
     TezDAGID dagid = TezDAGID.getInstance(appId, 1);
     for (final HistoryEventType eventType : HistoryEventType.values()) {
@@ -290,8 +316,8 @@ public class TestATSHistoryV15 {
         default:
           Assert.assertEquals(dagid.toString(), grpId.getTimelineEntityGroupId());
       }
+      service.close();
     }
   }
-
 
 }
