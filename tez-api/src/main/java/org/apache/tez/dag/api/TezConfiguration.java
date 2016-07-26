@@ -1257,7 +1257,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
   public static final String TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP =
-      TEZ_PREFIX + "history.timeline.num-dags-per-group";
+      TEZ_PREFIX + "history.logging.timeline.num-dags-per-group";
   public static final int TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP_DEFAULT = 1;
 
   /**
