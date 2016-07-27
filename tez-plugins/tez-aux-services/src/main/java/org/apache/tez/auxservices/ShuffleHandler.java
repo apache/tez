@@ -901,7 +901,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final List<String> keepAliveList = q.get("keepAlive");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
-        keepAliveParam = Boolean.valueOf(keepAliveList.get(0));
+        keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
         if (LOG.isDebugEnabled()) {
           LOG.debug("KeepAliveParam : " + keepAliveList
             + " : " + keepAliveParam);
