@@ -95,12 +95,12 @@ public class ATSFileParser extends BaseParser implements ATSData {
     //Process vertex information
     Preconditions.checkState(verticesJson != null, "Vertex json can not be null");
     if (verticesJson != null) {
-      LOG.info("Started parsing vertex");
+      LOG.debug("Started parsing vertex");
       for (int i = 0; i < verticesJson.length(); i++) {
         VertexInfo vertexInfo = VertexInfo.create(verticesJson.getJSONObject(i));
         vertexList.add(vertexInfo);
       }
-      LOG.info("Finished parsing vertex");
+      LOG.debug("Finished parsing vertex");
     }
   }
 
@@ -195,7 +195,7 @@ public class ATSFileParser extends BaseParser implements ATSData {
       Enumeration<? extends ZipEntry> zipEntries = atsZipFile.entries();
       while (zipEntries.hasMoreElements()) {
         ZipEntry zipEntry = zipEntries.nextElement();
-        LOG.info("Processing " + zipEntry.getName());
+        LOG.debug("Processing " + zipEntry.getName());
         InputStream inputStream = atsZipFile.getInputStream(zipEntry);
         JSONObject jsonObject = readJson(inputStream);
 
