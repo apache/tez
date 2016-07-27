@@ -74,7 +74,7 @@ public class TezConstants {
    * The service id for the NodeManager plugin used to share intermediate data
    * between vertices.
    */
-  public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+  public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "tez_shuffle";
   
   public static final String TEZ_PREWARM_DAG_NAME_PREFIX = "TezPreWarmDAG";
 

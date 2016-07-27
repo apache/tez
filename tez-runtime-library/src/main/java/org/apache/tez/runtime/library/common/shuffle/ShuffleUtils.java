@@ -73,7 +73,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DetailedP
 public class ShuffleUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
-  public static final String SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+  public static final String SHUFFLE_HANDLER_SERVICE_ID = "tez_shuffle";
   private static final long MB = 1024l * 1024l;
 
   //Shared by multiple threads

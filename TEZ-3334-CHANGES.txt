@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3378. Move Shuffle Handler configuration into the Tez namespace
   TEZ-3377. Remove ShuffleHandler dependency on mapred.FadvisedChunkedFile and mapred.FadvisedFileRegion
   TEZ-3380. Shuffle Handler: Replace primitive wrapper's valueOf method with parse* method to avoid unnecessary boxing/unboxing
   TEZ-3355. Tez Custom Shuffle Handler POC

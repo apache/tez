@@ -146,10 +146,10 @@ public class ShuffleHandler extends AuxiliaryService {
   private static final Log LOG = LogFactory.getLog(ShuffleHandler.class);
   private static final Log AUDITLOG =
       LogFactory.getLog(ShuffleHandler.class.getName()+".audit");
-  public static final String SHUFFLE_MANAGE_OS_CACHE = "mapreduce.shuffle.manage.os.cache";
+  public static final String SHUFFLE_MANAGE_OS_CACHE = "tez.shuffle.manage.os.cache";
   public static final boolean DEFAULT_SHUFFLE_MANAGE_OS_CACHE = true;
 
-  public static final String SHUFFLE_READAHEAD_BYTES = "mapreduce.shuffle.readahead.bytes";
+  public static final String SHUFFLE_READAHEAD_BYTES = "tez.shuffle.readahead.bytes";
   public static final int DEFAULT_SHUFFLE_READAHEAD_BYTES = 4 * 1024 * 1024;
   public static final String USERCACHE = "usercache";
   public static final String APPCACHE = "appcache";
@@ -160,7 +160,7 @@ public class ShuffleHandler extends AuxiliaryService {
       "^.*(?:connection.*reset|connection.*closed|broken.*pipe).*$",
       Pattern.CASE_INSENSITIVE);
 
-  private static final String STATE_DB_NAME = "mapreduce_shuffle_state";
+  private static final String STATE_DB_NAME = "tez_shuffle_state";
   private static final String STATE_DB_SCHEMA_VERSION_KEY = "shuffle-schema-version";
   protected static final Version CURRENT_VERSION_INFO =
       Version.newInstance(1, 0);
@@ -191,45 +191,45 @@ public class ShuffleHandler extends AuxiliaryService {
 
   private DB stateDb = null;
 
-  public static final String MAPREDUCE_SHUFFLE_SERVICEID =
-      "mapreduce_shuffle";
+  public static final String TEZ_SHUFFLE_SERVICEID =
+      "tez_shuffle";
 
-  public static final String SHUFFLE_PORT_CONFIG_KEY = "mapreduce.shuffle.port";
-  public static final int DEFAULT_SHUFFLE_PORT = 13562;
+  public static final String SHUFFLE_PORT_CONFIG_KEY = "tez.shuffle.port";
+  public static final int DEFAULT_SHUFFLE_PORT = 13563;
 
   public static final String SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED =
-      "mapreduce.shuffle.connection-keep-alive.enable";
+      "tez.shuffle.connection-keep-alive.enable";
   public static final boolean DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED = false;
 
   public static final String SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT =
-      "mapreduce.shuffle.connection-keep-alive.timeout";
+      "tez.shuffle.connection-keep-alive.timeout";
   public static final int DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT = 5; //seconds
 
   public static final String SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE =
-      "mapreduce.shuffle.mapoutput-info.meta.cache.size";
+      "tez.shuffle.mapoutput-info.meta.cache.size";
   public static final int DEFAULT_SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE =
       1000;
 
   public static final String CONNECTION_CLOSE = "close";
 
   public static final String SUFFLE_SSL_FILE_BUFFER_SIZE_KEY =
-    "mapreduce.shuffle.ssl.file.buffer.size";
+    "tez.shuffle.ssl.file.buffer.size";
 
   public static final int DEFAULT_SUFFLE_SSL_FILE_BUFFER_SIZE = 60 * 1024;
 
-  public static final String MAX_SHUFFLE_CONNECTIONS = "mapreduce.shuffle.max.connections";
+  public static final String MAX_SHUFFLE_CONNECTIONS = "tez.shuffle.max.connections";
   public static final int DEFAULT_MAX_SHUFFLE_CONNECTIONS = 0; // 0 implies no limit
 
-  public static final String MAX_SHUFFLE_THREADS = "mapreduce.shuffle.max.threads";
+  public static final String MAX_SHUFFLE_THREADS = "tez.shuffle.max.threads";
   // 0 implies Netty default of 2 * number of available processors
   public static final int DEFAULT_MAX_SHUFFLE_THREADS = 0;
 
   public static final String SHUFFLE_BUFFER_SIZE =
-      "mapreduce.shuffle.transfer.buffer.size";
+      "tez.shuffle.transfer.buffer.size";
   public static final int DEFAULT_SHUFFLE_BUFFER_SIZE = 128 * 1024;
 
   public static final String  SHUFFLE_TRANSFERTO_ALLOWED =
-      "mapreduce.shuffle.transferTo.allowed";
+      "tez.shuffle.transferTo.allowed";
   public static final boolean DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED = true;
   public static final boolean WINDOWS_DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED =
       false;
@@ -238,14 +238,14 @@ public class ShuffleHandler extends AuxiliaryService {
    open simultaneously during shuffle
    */
   public static final String SHUFFLE_MAX_SESSION_OPEN_FILES =
-      "mapreduce.shuffle.max.session-open-files";
+      "tez.shuffle.max.session-open-files";
   public static final int DEFAULT_SHUFFLE_MAX_SESSION_OPEN_FILES = 3;
 
   boolean connectionKeepAliveEnabled = false;
   int connectionKeepAliveTimeOut;
   int mapOutputMetaInfoCacheSize;
 
-  @Metrics(about="Shuffle output metrics", context="mapred")
+  @Metrics(about="Shuffle output metrics", context="mapred", name="tez")
   static class ShuffleMetrics implements ChannelFutureListener {
     @Metric("Shuffle output in bytes")
         MutableCounterLong shuffleOutputBytes;
@@ -368,7 +368,7 @@ public class ShuffleHandler extends AuxiliaryService {
   }
 
   ShuffleHandler(MetricsSystem ms) {
-    super(MAPREDUCE_SHUFFLE_SERVICEID);
+    super(TEZ_SHUFFLE_SERVICEID);
     metrics = ms.register(new ShuffleMetrics());
   }
 
