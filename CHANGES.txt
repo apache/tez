@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3382. Tez analyzer: Should be resilient to new counters.
   TEZ-3379. Tez analyzer: Move sysout to log4j.
   TEZ-3376. Fix groupId generation to account for dagId starting with 1.
   TEZ-3359. Add granular log levels for HistoryLoggingService.
