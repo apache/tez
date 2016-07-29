@@ -123,16 +123,16 @@ public class TestATSV15HistoryLoggingService {
   public void testDAGGroupingGroupingEnabled() throws Exception {
     int numDagsPerGroup = 100;
     ATSV15HistoryLoggingService service = createService(numDagsPerGroup);
-    TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
+    TezDAGID dagId1 = TezDAGID.getInstance(appId, 1);
     for (DAGHistoryEvent event : makeHistoryEvents(dagId1, service)) {
       service.handle(event);
     }
-    TezDAGID dagId2 = TezDAGID.getInstance(appId, numDagsPerGroup - 1);
+    TezDAGID dagId2 = TezDAGID.getInstance(appId, numDagsPerGroup );
     for (DAGHistoryEvent event : makeHistoryEvents(dagId2, service)) {
       service.handle(event);
     }
 
-    TezDAGID dagId3 = TezDAGID.getInstance(appId, numDagsPerGroup);
+    TezDAGID dagId3 = TezDAGID.getInstance(appId, numDagsPerGroup + 1);
     for (DAGHistoryEvent event : makeHistoryEvents(dagId3, service)) {
       service.handle(event);
     }
