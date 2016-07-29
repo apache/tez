@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3384. Fix TestATSV15HistoryLoggingService::testDAGGroupingGroupingEnabled unit test.
   TEZ-3382. Tez analyzer: Should be resilient to new counters.
   TEZ-3379. Tez analyzer: Move sysout to log4j.
   TEZ-3376. Fix groupId generation to account for dagId starting with 1.
@@ -93,6 +94,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3384. Fix TestATSV15HistoryLoggingService::testDAGGroupingGroupingEnabled unit test.
   TEZ-3376. Fix groupId generation to account for dagId starting with 1.
   TEZ-3359. Add granular log levels for HistoryLoggingService.
   TEZ-3374. Change TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP conf key name.
