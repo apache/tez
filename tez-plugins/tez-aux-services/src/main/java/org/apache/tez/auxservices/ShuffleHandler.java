@@ -119,6 +119,7 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
 import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
+import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponse;
@@ -128,7 +129,6 @@ import org.jboss.netty.handler.codec.http.QueryStringDecoder;
 import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 import org.jboss.netty.util.CharsetUtil;
-import org.mortbay.jetty.HttpHeaders;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
@@ -1119,12 +1119,12 @@ public class ShuffleHandler extends AuxiliaryService {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Setting connection close header...");
         }
-        response.setHeader(HttpHeaders.CONNECTION, CONNECTION_CLOSE);
+        response.setHeader(HttpHeaders.Names.CONNECTION, CONNECTION_CLOSE);
       } else {
-        response.setHeader(HttpHeaders.CONTENT_LENGTH,
+        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH,
           String.valueOf(contentLength));
-        response.setHeader(HttpHeaders.CONNECTION, HttpHeaders.KEEP_ALIVE);
-        response.setHeader(HttpHeaders.KEEP_ALIVE, "timeout="
+        response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+        response.setHeader(HttpHeaders.Values.KEEP_ALIVE, "timeout="
             + connectionKeepAliveTimeOut);
         LOG.info("Content Length in shuffle : " + contentLength);
       }
