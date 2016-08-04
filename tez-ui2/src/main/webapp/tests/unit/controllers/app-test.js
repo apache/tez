@@ -20,7 +20,7 @@ import Ember from 'ember';
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:dag', 'Unit | Controller | dag', {
+moduleFor('controller:app', 'Unit | Controller | app', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -34,4 +34,24 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.tabs);
+});
+
+test('breadcrumbs test', function(assert) {
+  let appID = 123,
+  appName = "app123",
+  controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K,
+    model: {
+      app: {
+        name: appName
+      },
+      appID: appID
+    }
+  });
+
+  assert.equal(controller.get("breadcrumbs.length"), 1);
+  assert.equal(controller.get("breadcrumbs.0.text"), `Application [ ${appName} ]`);
+  assert.equal(controller.get("breadcrumbs.0.routeName"), 'app.index');
+  assert.equal(controller.get("breadcrumbs.0.model"), appID);
 });

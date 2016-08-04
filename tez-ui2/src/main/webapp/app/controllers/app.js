@@ -27,7 +27,7 @@ export default ParentController.extend({
     return [{
       text: `Application [ ${name} ]`,
       routeName: "app.index",
-      model: this.get("model.entityID")
+      model: this.get("model.appID")
     }];
   }),
 
