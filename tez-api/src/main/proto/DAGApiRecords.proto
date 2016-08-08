@@ -287,8 +287,40 @@ message TezCountersProto {
   repeated TezCounterGroupProto counter_groups = 1;
 }
 
+message DAGInformationProto {
+  required string name = 1;
+  required string dagId = 2;
+  repeated VertexInformationProto vertices = 3;
+}
+
+message VertexInformationProto {
+  required string name = 1;
+  required string id = 2;
+  repeated TaskInformationProto tasks = 3;
+}
+
+message TaskInformationProto {
+  required string id = 1;
+  required TaskStateProto state = 2;
+  required int64 scheduledTime = 3;
+  required int64 startTime = 4;
+  required int64 endTime = 5;
+  required string successfulAttemptId = 6;
+  required string diagnostics = 7;
+  optional TezCountersProto taskCounters = 8;
+}
+
 enum StatusGetOptsProto {
   GET_COUNTERS = 0;
+}
+
+enum TaskStateProto {
+  TASK_NEW = 0;
+  TASK_SCHEDULED = 1;
+  TASK_RUNNING = 2;
+  TASK_SUCCEEDED = 3;
+  TASK_FAILED = 4;
+  TASK_KILLED = 5;
 }
 
 message VertexLocationHintProto {

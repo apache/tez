@@ -76,6 +76,35 @@ message ShutdownSessionRequestProto {
 message ShutdownSessionResponseProto {
 }
 
+message GetDAGInformationRequestProto {
+  required string dagId = 1;
+}
+
+message GetDAGInformationResponseProto {
+  optional DAGInformationProto dagInformation = 1;
+}
+
+message GetTaskInformationRequestProto {
+  required string dagId = 1;
+  required string vertexId = 2;
+  required string taskId = 3;
+}
+
+message GetTaskInformationResponseProto {
+  optional TaskInformationProto taskInformation = 1;
+}
+
+message GetTaskInformationListRequestProto {
+  required string dagId = 1;
+  required string vertexId = 2;
+  required string startTaskId = 3;
+  optional int32 limit = 4;
+}
+
+message GetTaskInformationListResponseProto {
+  repeated TaskInformationProto taskInformation = 1;
+}
+
 enum TezAppMasterStatusProto {
   INITIALIZING = 0;
   READY = 1;
@@ -93,7 +122,12 @@ message GetAMStatusResponseProto {
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
+  rpc getDAGInformation (GetDAGInformationRequestProto) returns (GetDAGInformationResponseProto);
+
   rpc getVertexStatus (GetVertexStatusRequestProto) returns (GetVertexStatusResponseProto);
+  rpc getTaskInformation (GetTaskInformationRequestProto) returns (GetTaskInformationResponseProto);
+  rpc getTaskInformationList (GetTaskInformationListRequestProto) returns (GetTaskInformationListResponseProto);
+
   rpc tryKillDAG (TryKillDAGRequestProto) returns (TryKillDAGResponseProto);
   rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
   rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
