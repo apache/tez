@@ -305,8 +305,8 @@ message TaskInformationProto {
   required int64 scheduledTime = 3;
   required int64 startTime = 4;
   required int64 endTime = 5;
-  required string successfulAttemptId = 6;
-  required string diagnostics = 7;
+  required string diagnostics = 6;
+  optional string successfulAttemptId = 7;
   optional TezCountersProto taskCounters = 8;
 }
 

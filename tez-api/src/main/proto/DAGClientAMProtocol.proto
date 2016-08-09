@@ -97,7 +97,7 @@ message GetTaskInformationResponseProto {
 message GetTaskInformationListRequestProto {
   required string dagId = 1;
   required string vertexId = 2;
-  required string startTaskId = 3;
+  optional string startTaskId = 3;
   optional int32 limit = 4;
 }
 
