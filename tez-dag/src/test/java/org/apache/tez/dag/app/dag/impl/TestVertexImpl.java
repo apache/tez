@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
@@ -3086,6 +3087,9 @@ public class TestVertexImpl {
     Assert.assertEquals(numTasks, v.getTotalTasks());
     Map<TezTaskID, Task> tasks = v.getTasks();
     Assert.assertEquals(numTasks, tasks.size());
+    Iterable<Task> taskIterable = v.getTaskSubset(v.getTotalTasks());
+    Assert.assertEquals(numTasks, Iterables.size(taskIterable));
+
     // check all indices
     int i = 0;
     // iteration maintains order due to linked hash map
@@ -6530,6 +6534,67 @@ public class TestVertexImpl {
 //    argCaptor = ArgumentCaptor.forClass(DAGHistoryEvent.class);
 //    verify(historyEventHandler, atLeast(1)).handle(argCaptor.capture());
 //    verifyHistoryEvents(argCaptor.getAllValues(), HistoryEventType.VERTEX_DATA_MOVEMENT_EVENTS_GENERATED, 1);
+  }
+
+  @Test(timeout = 5000)
+  public void testVertexTaskPagination() throws IOException, TezException {
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan2();
+    setupPostDagCreation();
+
+    VertexImpl vA = vertices.get("A");
+    VertexImpl vB = vertices.get("B");
+    VertexImpl vC = vertices.get("C");
+
+    //vA init & start
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(vA.getVertexId(),
+      VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vA.getState());
+    Assert.assertEquals(VertexState.NEW, vB.getState());
+    Assert.assertEquals(VertexState.NEW, vC.getState());
+
+    //vB init
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(),
+      VertexEventType.V_INIT));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.INITED, vB.getState());
+    Assert.assertEquals(VertexState.INITED, vC.getState());
+
+    //Send VertexManagerEvent
+    long[] sizes = new long[]{(100_000_000L)};
+    Event vmEvent = getVertexManagerEvent(sizes, 1_060_000_000L, vB);
+    sendTaskGeneratedEvent(vmEvent, EventProducerConsumerType.INPUT, vC, vB);
+    Assert.assertEquals(VertexState.INITED, vC.getState());
+
+    //vB start
+    dispatcher.getEventHandler().handle(new VertexEvent(vB.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+    Assert.assertEquals(VertexState.RUNNING, vC.getState());
+
+    // we have 2 tasks for vB
+    // checking some pagination calls on them
+
+    Iterable<Task> taskIterable = vB.getTaskSubset(1);
+    Assert.assertEquals("Incorrect number of tasks returned", 1, Iterables.size(taskIterable));
+    Task task1 = taskIterable.iterator().next();
+
+    // check requesting for more tasks than left, we should return only number left
+    taskIterable = vB.getTaskSubset(task1, 10);
+    Assert.assertEquals("Incorrect number of tasks returned", 1, Iterables.size(taskIterable));
+    Task task2 = taskIterable.iterator().next();
+
+    Assert.assertNotEquals(task1.getTaskId(), task2.getTaskId());
+
+    //check that we don't get anything if we ask again from task2
+    taskIterable = vB.getTaskSubset(task2, 1);
+    Assert.assertEquals("Incorrect number of tasks returned", 0, Iterables.size(taskIterable));
+
+    // try requesting for tasks again from the start
+    taskIterable = vB.getTaskSubset(10);
+    Assert.assertEquals("Incorrect number of tasks returned", 2, Iterables.size(taskIterable));
   }
 
   private void verifyHistoryEvents(List<DAGHistoryEvent> events, HistoryEventType eventType, int expectedTimes) {

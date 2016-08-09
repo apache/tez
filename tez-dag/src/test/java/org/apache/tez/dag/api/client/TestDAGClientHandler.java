@@ -22,17 +22,27 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Lists;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.api.oldrecords.TaskReport;
+import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.TaskReportImpl;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.collections.Sets;
@@ -47,11 +57,28 @@ public class TestDAGClientHandler {
     when(mockTezDAGId.getId()).thenReturn(1);
     when(mockTezDAGId.toString()).thenReturn("dag_9999_0001_1");
 
+    String testDagName = "Test DAG";
     DAG mockDAG = mock(DAG.class);
     when(mockDAG.getID()).thenReturn(mockTezDAGId);
+    when(mockDAG.getName()).thenReturn(testDagName);
     DAGStatusBuilder mockDagStatusBuilder = mock(DAGStatusBuilder.class);
     when(mockDAG.getDAGStatus(anySetOf(StatusGetOpts.class))).thenReturn(
         mockDagStatusBuilder);
+
+    Vertex mockVertex = mock(Vertex.class);
+    Task mockTask = mock(Task.class);
+    TaskReport taskReport = mock(TaskReport.class);
+    TezTaskID taskID = TezTaskID.fromString("task_100_0001_1_02_000000");
+
+    when(mockDAG.getVertices()).thenReturn(new HashMap<TezVertexID, Vertex>());
+    when(mockDAG.getVertex(any(TezVertexID.class))).thenReturn(mockVertex);
+    when(mockVertex.getTask(any(TezTaskID.class))).thenReturn(mockTask);
+    when(mockVertex.getTaskSubset(1)).thenReturn(Lists.newArrayList(mockTask));
+    when(mockTask.getTaskId()).thenReturn(taskID);
+    when(mockTask.getState()).thenReturn(TaskState.RUNNING);
+    when(mockTask.getReport()).thenReturn(taskReport);
+    when(taskReport.getStartTime()).thenReturn(123l);
+
     VertexStatusBuilder mockVertexStatusBuilder =
         mock(VertexStatusBuilder.class);
     when(mockDAG.getVertexStatus(anyString(), anySetOf(StatusGetOpts.class)))
@@ -79,6 +106,45 @@ public class TestDAGClientHandler {
     DAGStatus dagStatus = dagClientHandler.getDAGStatus("dag_9999_0001_1", 
         Sets.newSet(StatusGetOpts.GET_COUNTERS));
     assertEquals(mockDagStatusBuilder, dagStatus);
+
+    // getDAGInformation
+    try {
+      dagClientHandler.getDAGInformation("dag_9999_0001_2");
+      fail("should not come here");
+    } catch (TezException e) {
+      assertTrue(e.getMessage().contains("Unknown dagId"));
+    }
+    DAGInformation dagInfo = dagClientHandler.getDAGInformation("dag_9999_0001_1");
+    assertNotNull(dagInfo);
+    assertEquals("dag_9999_0001_1", dagInfo.getDAGID());
+    assertEquals(testDagName, dagInfo.getName());
+    assertTrue(dagInfo.getVertexInformation().isEmpty());
+
+    // getTaskInformation
+    try {
+      dagClientHandler.getTaskInformation("dag_9999_0001_2", "vertex_100_0001_1_02", "task_100_0001_1_02_000000");
+      fail("should not come here");
+    } catch (TezException e) {
+      assertTrue(e.getMessage().contains("Unknown dagId"));
+    }
+
+    TaskInformation taskInfo = dagClientHandler.getTaskInformation("dag_9999_0001_1", "vertex_100_0001_1_02", "task_100_0001_1_02_000000");
+    assertNotNull(taskInfo);
+    assertNotNull(taskID);
+    assertEquals(taskID.toString(), taskInfo.getID());
+
+    // getTaskInformationList
+    try {
+      dagClientHandler.getTaskInformationList("dag_9999_0001_2", "vertex_100_0001_1_02", "task_100_0001_1_02_000000", 1);
+      fail("should not come here");
+    } catch (TezException e) {
+      assertTrue(e.getMessage().contains("Unknown dagId"));
+    }
+
+    List<TaskInformation> taskInfoList = dagClientHandler.getTaskInformationList("dag_9999_0001_1", "vertex_100_0001_1_02", null, 1);
+    assertNotNull(taskInfoList);
+    assertTrue(taskInfoList.size() == 1);
+    assertEquals(taskID.toString(), taskInfoList.iterator().next().getID());
 
     // getVertexStatus
     try {

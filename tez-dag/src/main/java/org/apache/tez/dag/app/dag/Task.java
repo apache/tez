@@ -73,4 +73,5 @@ public interface Task {
   long getFirstAttemptStartTime();
 
   long getFinishTime();
+  long getScheduledTime();
 }

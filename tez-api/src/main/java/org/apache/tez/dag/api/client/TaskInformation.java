@@ -71,6 +71,10 @@ public class TaskInformation {
     return proxy.getId();
   }
 
+  public String getDiagnostics() {
+    return proxy.getDiagnostics();
+  }
+
   public Long getScheduledTime() {
     return proxy.getScheduledTime();
   }
@@ -108,10 +112,12 @@ public class TaskInformation {
       TaskInformation other = (TaskInformation) obj;
       return getState().equals(other.getState())
         && getID().equals(other.getID())
+        && getDiagnostics().equals(other.getDiagnostics())
         && getScheduledTime().equals(other.getScheduledTime())
         && getStartTime().equals(other.getStartTime())
         && getEndTime().equals(other.getEndTime())
-        && getSuccessfulAttemptID().equals(other.getSuccessfulAttemptID())
+        && (( getSuccessfulAttemptID() == null && other.getSuccessfulAttemptID() == null)
+          || getSuccessfulAttemptID().equals(other.getSuccessfulAttemptID()))
         &&
         ((getTaskCounters() == null && other.getTaskCounters() == null)
           || getTaskCounters().equals(other.getTaskCounters()));
@@ -125,6 +131,7 @@ public class TaskInformation {
     int result = prime + getState().hashCode();
 
     String id = getID();
+    String diagnostics = getDiagnostics();
     Long scheduledTime = getScheduledTime();
     Long startTime = getStartTime();
     Long endTime = getEndTime();
@@ -133,6 +140,8 @@ public class TaskInformation {
 
     result = prime * result +
       ((id == null)? 0 : id.hashCode());
+    result = prime * result +
+      ((diagnostics == null)? 0 : diagnostics.hashCode());
     result = prime * result +
       ((scheduledTime == null)? 0 : scheduledTime.hashCode());
     result = prime * result +
@@ -151,10 +160,11 @@ public class TaskInformation {
   public String toString() {
     return ("state=" + getState()
       + ", id=" + getID()
+      + ", diagnostics=" + getDiagnostics()
       + ", scheduledTime=" + getScheduledTime()
       + ", startTime=" + getStartTime()
       + ", endTime=" + getEndTime()
-      + ", successfulAttemptId=" + getSuccessfulAttemptID()
+      + ", successfulAttemptId=" + ( getSuccessfulAttemptID() == null ? "null" : getSuccessfulAttemptID())
       + ", counters="
       + (getTaskCounters() == null ? "null" : getTaskCounters().toString()));
   }

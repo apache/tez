@@ -30,7 +30,6 @@ public class DAGInformationBuilder extends DAGInformation {
     super(DAGInformationProto.newBuilder());
   }
 
-  // name id vertex list
   public void setName(String name) {
     getBuilder().setName(name);
   }

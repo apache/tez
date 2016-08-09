@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.dag;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,6 +67,14 @@ import org.apache.tez.runtime.api.impl.OutputSpec;
  */
 public interface Vertex extends Comparable<Vertex> {
 
+  // used to compare Tasks using their TaskIds
+  class TaskIdComparator implements Comparator<Task> {
+    @Override
+    public int compare(Task lhs, Task rhs) {
+      return lhs.getTaskId().compareTo(rhs.getTaskId());
+    }
+  }
+
   TezVertexID getVertexId();
   public VertexPlan getVertexPlan();
 
@@ -88,6 +97,9 @@ public interface Vertex extends Comparable<Vertex> {
 
   int getMaxTaskConcurrency();
   Map<TezTaskID, Task> getTasks();
+  Iterable<Task> getTaskSubset(int limit);
+  Iterable<Task> getTaskSubset(Task startTask, int limit);
+
   Task getTask(TezTaskID taskID);
   Task getTask(int taskIndex);
   List<String> getDiagnostics();

@@ -38,6 +38,10 @@ public class TaskInformationBuilder extends TaskInformation {
     getBuilder().setId(id);
   }
 
+  public void setDiagnostics(String diagnostics) {
+    getBuilder().setDiagnostics(diagnostics);
+  }
+
   public void setScheduledTime(Long scheduledTime) {
     getBuilder().setScheduledTime(scheduledTime);
   }

@@ -112,8 +112,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskImpl.class);
 
-  private static final String LINE_SEPARATOR = System
-    .getProperty("line.separator");
+  public static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
   protected final Configuration conf;
   protected final TaskCommunicatorManagerInterface taskCommunicatorManagerInterface;
@@ -557,6 +556,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock.lock();
     try {
       return finishTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public long getScheduledTime() {
+    readLock.lock();
+    try {
+      return scheduledTime;
     } finally {
       readLock.unlock();
     }

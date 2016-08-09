@@ -32,14 +32,24 @@ import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClientHandler;
+import org.apache.tez.dag.api.client.DAGInformation;
+import org.apache.tez.dag.api.client.DAGInformationBuilder;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
+import org.apache.tez.dag.api.client.TaskInformation;
+import org.apache.tez.dag.api.client.TaskInformationBuilder;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.VertexStatusBuilder;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAllDAGsResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGInformationResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationListRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationListResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
@@ -106,6 +116,72 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       DAGStatusBuilder builder = (DAGStatusBuilder) status;
       return GetDAGStatusResponseProto.newBuilder().
                                 setDagStatus(builder.getProto()).build();
+    } catch (TezException e) {
+      throw wrapException(e);
+    }
+  }
+
+  @Override
+  public GetDAGInformationResponseProto getDAGInformation(RpcController controller,
+      GetDAGInformationRequestProto request) throws ServiceException {
+    UserGroupInformation user = getRPCUser();
+    try {
+      String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform get DAG information operation");
+      }
+      DAGInformation information = real.getDAGInformation(dagId);
+      assert information instanceof DAGInformationBuilder;
+      DAGInformationBuilder builder = (DAGInformationBuilder) information;
+      return
+        GetDAGInformationResponseProto.newBuilder()
+        .setDagInformation(builder.getProto())
+        .build();
+    } catch (TezException e) {
+      throw wrapException(e);
+    }
+  }
+
+  @Override
+  public GetTaskInformationResponseProto getTaskInformation(RpcController controller,
+      GetTaskInformationRequestProto request) throws ServiceException {
+    UserGroupInformation user = getRPCUser();
+    try {
+      String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform get Task information operation");
+      }
+      TaskInformation taskInformation = real.getTaskInformation(dagId, request.getVertexId(), request.getTaskId());
+      assert taskInformation instanceof TaskInformationBuilder;
+      TaskInformationBuilder builder = (TaskInformationBuilder) taskInformation;
+      return GetTaskInformationResponseProto.newBuilder()
+        .setTaskInformation(builder.getProto())
+        .build();
+    } catch (TezException e) {
+      throw wrapException(e);
+    }
+  }
+
+  @Override
+  public GetTaskInformationListResponseProto getTaskInformationList(RpcController controller,
+      GetTaskInformationListRequestProto request) throws ServiceException {
+    UserGroupInformation user = getRPCUser();
+    try {
+      String dagId = request.getDagId();
+      if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
+        throw new AccessControlException("User " + user + " cannot perform get Task information operation");
+      }
+      String startTaskId = request.hasStartTaskId() ? request.getStartTaskId() : null;
+      List<TaskInformation> taskInformationList =
+        real.getTaskInformationList(dagId, request.getVertexId(), startTaskId, request.getLimit());
+      GetTaskInformationListResponseProto.Builder builder = GetTaskInformationListResponseProto.newBuilder();
+      for(TaskInformation taskInformation : taskInformationList) {
+        assert taskInformation instanceof TaskInformationBuilder;
+        TaskInformationBuilder taskInfoBuilder = (TaskInformationBuilder) taskInformation;
+        builder.addTaskInformation(taskInfoBuilder.getProto());
+      }
+
+      return builder.build();
     } catch (TezException e) {
       throw wrapException(e);
     }
