@@ -626,9 +626,11 @@ public class TezClient {
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
     }
+
     LOG.info("Submitted dag to TezSession"
         + ", sessionName=" + clientName
         + ", applicationId=" + sessionAppId
+        + ", dagId=" + dagId
         + ", dagName=" + dag.getName());
     return new DAGClientImpl(sessionAppId, dagId,
         dagClientConf, frameworkClient);
