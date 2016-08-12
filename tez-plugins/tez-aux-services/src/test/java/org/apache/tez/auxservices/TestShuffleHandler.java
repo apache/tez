@@ -1091,6 +1091,8 @@ public class TestShuffleHandler {
 
     final ShuffleHandler sh = new MockShuffleHandler();
     Configuration conf = new Configuration();
+    // The Shuffle handler port associated with the service is bound to but not used.
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     sh.init(conf);
     sh.start();
     int maxOpenFiles =conf.getInt(ShuffleHandler.SHUFFLE_MAX_SESSION_OPEN_FILES,
