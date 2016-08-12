@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3412. Modify ShuffleHandler to use Constants.DAG_PREFIX and fix AttemptPathIdentifier#toString()
   TEZ-3410. ShuffleHandler should use Path.SEPARATOR instead "/"
   TEZ-3408. Allow Task Output Files to reside in DAG specific directories for Custom Shuffle Handler
   TEZ-3238. Shuffle service name should be configureable and should not be hardcoded to ‘mapreduce_shuffle’

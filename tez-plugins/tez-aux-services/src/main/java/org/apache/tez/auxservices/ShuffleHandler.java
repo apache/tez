@@ -68,6 +68,7 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.hadoop.metrics2.MetricsSystem;
@@ -1056,8 +1057,8 @@ public class ShuffleHandler extends AuxiliaryService {
       final String baseStr =
           USERCACHE + Path.SEPARATOR + user + Path.SEPARATOR
               + APPCACHE + Path.SEPARATOR
-              + appID.toString() + Path.SEPARATOR + "dag_" + dagId +
-              Path.SEPARATOR + "output" + Path.SEPARATOR;
+              + appID.toString() + Path.SEPARATOR + Constants.DAG_PREFIX +
+              dagId + Path.SEPARATOR + "output" + Path.SEPARATOR;
       return baseStr;
     }
 
@@ -1354,7 +1355,7 @@ public class ShuffleHandler extends AuxiliaryService {
     public String toString() {
       return "AttemptPathIdentifier{" +
           "jobId='" + jobId + '\'' +
-          ", dagId=" + dagId +
+          ", dagId='" + dagId + '\'' +
           ", user='" + user + '\'' +
           ", attemptId='" + attemptId + '\'' +
           '}';
