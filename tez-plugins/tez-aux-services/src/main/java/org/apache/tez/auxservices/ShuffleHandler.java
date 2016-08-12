@@ -833,9 +833,9 @@ public class ShuffleHandler extends AuxiliaryService {
           String base = getBaseLocation(key.jobId, key.dagId, key.user);
           String attemptBase = base + key.attemptId;
           Path indexFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + "/" + INDEX_FILE_NAME, conf);
+              attemptBase + Path.SEPARATOR + INDEX_FILE_NAME, conf);
           Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + "/" + DATA_FILE_NAME, conf);
+              attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
 
           if (LOG.isDebugEnabled()) {
             LOG.debug("Loaded : " + key + " via loader");
@@ -1054,9 +1054,10 @@ public class ShuffleHandler extends AuxiliaryService {
           ApplicationId.newInstance(Long.parseLong(jobID.getJtIdentifier()),
             jobID.getId());
       final String baseStr =
-          USERCACHE + "/" + user + "/"
-              + APPCACHE + "/"
-              + appID.toString() + "/dag_" + dagId + "/output" + "/";
+          USERCACHE + Path.SEPARATOR + user + Path.SEPARATOR
+              + APPCACHE + Path.SEPARATOR
+              + appID.toString() + Path.SEPARATOR + "dag_" + dagId +
+              Path.SEPARATOR + "output" + Path.SEPARATOR;
       return baseStr;
     }
 
