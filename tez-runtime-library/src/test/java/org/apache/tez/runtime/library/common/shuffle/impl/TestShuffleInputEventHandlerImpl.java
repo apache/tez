@@ -44,6 +44,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
@@ -167,7 +168,8 @@ public class TestShuffleInputEventHandlerImpl {
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
     doReturn(shuffleMetaData).when(inputContext)
-        .getServiceProviderMetaData(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+        .getServiceProviderMetaData(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
     doReturn(executionContext).when(inputContext).getExecutionContext();
     return inputContext;
   }
@@ -183,7 +185,8 @@ public class TestShuffleInputEventHandlerImpl {
     Token<JobTokenIdentifier> token = new Token(new JobTokenIdentifier(), new JobTokenSecretManager(null));
     token.write(out);
     doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).getServiceConsumerMetaData(
-        TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID);
+        conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
 
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
     ShuffleManager realShuffleManager = new ShuffleManager(inputContext, conf, 2,

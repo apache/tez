@@ -34,6 +34,7 @@ import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.OutputContext;
@@ -99,7 +100,7 @@ public class TestPipelinedSorter {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    this.outputContext = createMockOutputContext(counters, appId, uniqueId);
+    this.outputContext = createMockOutputContext(counters, appId, uniqueId, getConf());
   }
 
   public static Configuration getConf() {
@@ -753,7 +754,7 @@ public class TestPipelinedSorter {
   }
 
   private static OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
-      String uniqueId) throws IOException {
+      String uniqueId, Configuration conf) throws IOException {
     OutputContext outputContext = mock(OutputContext.class);
 
     ExecutionContext execContext = new ExecutionContextImpl("localhost");
@@ -762,7 +763,8 @@ public class TestPipelinedSorter {
     serviceProviderMetaData.writeInt(80);
     doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(outputContext)
         .getServiceProviderMetaData
-            (ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID);
+            (conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+                TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
 
     doReturn(execContext).when(outputContext).getExecutionContext();
     doReturn(mock(OutputStatisticsReporter.class)).when(outputContext).getStatisticsReporter();

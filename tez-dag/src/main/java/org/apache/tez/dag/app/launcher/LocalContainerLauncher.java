@@ -118,13 +118,6 @@ public class LocalContainerLauncher extends ContainerLauncher {
     this.tal = taskCommunicatorManagerInterface;
     this.workingDirectory = workingDirectory;
     this.isLocalMode = isLocalMode;
-    if (isLocalMode) {
-      localEnv = Maps.newHashMap();
-      AuxiliaryServiceHelper.setServiceDataIntoEnv(
-          ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID, ByteBuffer.allocate(4).putInt(0), localEnv);
-    } else {
-      localEnv = System.getenv();
-    }
 
     // Check if the hostname is set in the environment before overriding it.
     String host = isLocalMode ? InetAddress.getLocalHost().getHostName() :
@@ -137,6 +130,15 @@ public class LocalContainerLauncher extends ContainerLauncher {
     } catch (IOException e) {
       throw new TezUncheckedException(
           "Failed to parse user payload for " + LocalContainerLauncher.class.getSimpleName(), e);
+    }
+    if (isLocalMode) {
+      String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+          TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+      localEnv = Maps.newHashMap();
+      AuxiliaryServiceHelper.setServiceDataIntoEnv(
+          auxiliaryService, ByteBuffer.allocate(4).putInt(0), localEnv);
+    } else {
+      localEnv = System.getenv();
     }
     numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
         TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);

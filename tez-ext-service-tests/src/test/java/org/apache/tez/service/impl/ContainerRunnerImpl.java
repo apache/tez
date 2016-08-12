@@ -132,9 +132,9 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
   public void serviceStart() {
   }
 
-  public void setShufflePort(int shufflePort) {
+  public void setShufflePort(String auxiliaryService, int shufflePort) {
     AuxiliaryServiceHelper.setServiceDataIntoEnv(
-        TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
+        auxiliaryService,
         ByteBuffer.allocate(4).putInt(shufflePort), localEnv);
   }
 
@@ -417,7 +417,9 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
 
       Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
       Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
-      serviceConsumerMetadata.put(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
+      String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+          TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+      serviceConsumerMetadata.put(auxiliaryService,
           TezCommonUtils.convertJobTokenToBytes(jobToken));
       Multimap<String, String> startedInputsMap = HashMultimap.create();
 

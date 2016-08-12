@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.protobuf.ByteString;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
@@ -117,6 +118,7 @@ public class TestUnorderedPartitionedKVWriter {
 
   private boolean shouldCompress;
   private ReportPartitionStats reportPartitionStats;
+  private Configuration defaultConf = new Configuration();
 
   public TestUnorderedPartitionedKVWriter(boolean shouldCompress,
       ReportPartitionStats reportPartitionStats) {
@@ -160,7 +162,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
 
     int maxSingleBufferSizeBytes = 2047;
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
@@ -256,7 +258,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
     Random random = new Random();
 
     Configuration conf = createConfiguration(outputContext, Text.class, Text.class, shouldCompress,
@@ -524,7 +526,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
         shouldCompress, -1);
@@ -708,7 +710,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
         shouldCompress, -1);
@@ -899,7 +901,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
-      String uniqueId) {
+      String uniqueId, Configuration conf) {
     OutputContext outputContext = mock(OutputContext.class);
     doReturn(counters).when(outputContext).getCounters();
     doReturn(appId).when(outputContext).getApplicationId();
@@ -922,7 +924,8 @@ public class TestUnorderedPartitionedKVWriter {
         portBuffer.reset();
         return portBuffer;
       }
-    }).when(outputContext).getServiceProviderMetaData(eq(ShuffleUtils.SHUFFLE_HANDLER_SERVICE_ID));
+    }).when(outputContext).getServiceProviderMetaData(eq(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT)));
 
     Path outDirBase = new Path(TEST_ROOT_DIR, "outDir_" + uniqueId);
     String[] outDirs = new String[] { outDirBase.toString() };

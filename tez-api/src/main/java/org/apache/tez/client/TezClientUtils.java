@@ -692,7 +692,9 @@ public class TezClientUtils {
     // provide this to AuxServices running on the AM node - in case tasks run within the AM,
     // and no other task runs on this node.
     Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
-    serviceData.put(TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID,
+    String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    serviceData.put(auxiliaryService,
         TezCommonUtils.serializeServiceData(TokenCache.getSessionToken(amLaunchCredentials)));
 
     // Setup ContainerLaunchContext for AM container

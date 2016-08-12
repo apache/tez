@@ -138,6 +138,16 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT = true;
 
   /**
+   * String value. Specifies the name of the shuffle auxiliary service.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID = TEZ_AM_PREFIX +
+      "shuffle.auxiliary-service.id";
+  public static final String TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT =
+      "mapreduce_shuffle";
+
+  /**
    * String value. Specifies a directory where Tez can create temporary job artifacts.
    */
   @ConfigurationScope(Scope.AM)

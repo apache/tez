@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.shufflehandler.ShuffleHandler;
@@ -86,7 +87,9 @@ public class TezTestService extends AbstractService implements ContainerRunner {
   @Override
   public void serviceStart() throws Exception {
     ShuffleHandler.initializeAndStart(shuffleHandlerConf);
-    containerRunner.setShufflePort(ShuffleHandler.get().getPort());
+    String auxiliaryService = getConfig().get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    containerRunner.setShufflePort(auxiliaryService, ShuffleHandler.get().getPort());
     server.start();
     containerRunner.start();
   }
