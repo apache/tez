@@ -24,6 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.tez.runtime.library.common.Constants;
 
 /**
  * Manipulate the working area for the transient store for components in tez-runtime-library
@@ -37,6 +38,7 @@ public abstract class TezTaskOutput {
 
   protected final Configuration conf;
   protected final String uniqueId;
+  protected final String dagId;
 
   /**
    * @param conf     the configuration from which local-dirs will be picked up
@@ -45,10 +47,12 @@ public abstract class TezTaskOutput {
    *                 container is used for multiple tasks, this id should be unique for inputs /
    *                 outputs spanning across tasks. This is also expected to be unique across all
    *                 tasks for a vertex.
+   * @param dagID    DAG identifier for the specific job
    */
-  public TezTaskOutput(Configuration conf, String uniqueId) {
+  public TezTaskOutput(Configuration conf, String uniqueId, int dagID) {
     this.conf = conf;
     this.uniqueId = uniqueId;
+    this.dagId = Constants.DAG_PREFIX + dagID + Path.SEPARATOR;
   }
 
   /**

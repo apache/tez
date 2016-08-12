@@ -258,6 +258,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
+    int dagId = 1;
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
     Random random = new Random();
 
@@ -391,7 +392,7 @@ public class TestUnorderedPartitionedKVWriter {
 
     // Verify the data
     // Verify the actual data
-    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
+    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId, dagId);
     Path outputFilePath = kvWriter.finalOutPath;
     Path spillFilePath = kvWriter.finalIndexPath;
     if (numRecordsWritten > 0) {
@@ -526,6 +527,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
+    int dagId = 1;
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
@@ -690,7 +692,7 @@ public class TestUnorderedPartitionedKVWriter {
     verify(outputContext, atLeast(1)).notifyProgress();
 
     // Verify if all spill files are available.
-    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
+    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId, dagId);
 
     if (numRecordsWritten > 0) {
       int numSpills = kvWriter.numSpills.get();
@@ -710,6 +712,7 @@ public class TestUnorderedPartitionedKVWriter {
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
+    int dagId = 1;
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, defaultConf);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
@@ -847,7 +850,7 @@ public class TestUnorderedPartitionedKVWriter {
     }
 
     // Verify the actual data
-    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId);
+    TezTaskOutput taskOutput = new TezTaskOutputFiles(conf, uniqueId, dagId);
     Path outputFilePath = kvWriter.finalOutPath;
     Path spillFilePath = kvWriter.finalIndexPath;
 

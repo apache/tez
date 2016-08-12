@@ -25,6 +25,7 @@ public class Constants {
   // TODO NEWTEZ Check which of these constants are expecting specific pieces of information which are being removed - like taskAttemptId
   
   public static final String TEZ = "tez";
+  public static final String DAG_PREFIX = "dag_";
 
   public static final String MAP_OUTPUT_FILENAME_STRING = "file.out";
   public static final String MAP_OUTPUT_INDEX_SUFFIX_STRING = ".index";

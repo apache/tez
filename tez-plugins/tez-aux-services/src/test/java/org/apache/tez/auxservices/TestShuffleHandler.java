@@ -99,7 +99,6 @@ import org.slf4j.LoggerFactory;
 public class TestShuffleHandler {
   static final long MiB = 1024 * 1024;
   private static final Logger LOG = LoggerFactory.getLogger(TestShuffleHandler.class);
-
   class MockShuffleHandler extends org.apache.tez.auxservices.ShuffleHandler {
     @Override
     protected Shuffle getShuffle(final Configuration conf) {
@@ -110,15 +109,19 @@ public class TestShuffleHandler {
             throws IOException {
         }
         @Override
-        protected MapOutputInfo getMapOutputInfo(String mapId, int reduce,
-            String jobId, String user) throws IOException {
+        protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
+                                                 int reduce, String jobId,
+                                                 String user)
+            throws IOException {
           // Do nothing.
           return null;
         }
         @Override
         protected void populateHeaders(List<String> mapIds, String jobId,
-            String user, int reduce, HttpRequest request,
-            HttpResponse response, boolean keepAliveParam,
+                                       String dagId, String user, int reduce,
+                                       HttpRequest request,
+                                       HttpResponse response,
+                                       boolean keepAliveParam,
             Map<String, MapOutputInfo> infoMap) throws IOException {
           // Do nothing.
         }
@@ -232,14 +235,18 @@ public class TestShuffleHandler {
         // replace the shuffle handler with one stubbed for testing
         return new Shuffle(conf) {
           @Override
-          protected MapOutputInfo getMapOutputInfo(String mapId, int reduce,
-              String jobId, String user) throws IOException {
+          protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
+                                                   int reduce, String jobId,
+                                                   String user)
+              throws IOException {
             return null;
           }
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
-              String user, int reduce, HttpRequest request,
-              HttpResponse response, boolean keepAliveParam,
+                                         String dagId, String user, int reduce,
+                                         HttpRequest request,
+                                         HttpResponse response,
+                                         boolean keepAliveParam,
               Map<String, MapOutputInfo> infoMap) throws IOException {
             // Only set response headers and skip everything else
             // send some dummy value for content-length
@@ -294,7 +301,7 @@ public class TestShuffleHandler {
     // then closing the connection
     URL url = new URL("http://127.0.0.1:"
       + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-      + "/mapOutput?job=job_12345_1&reduce=1&map=attempt_12345_1_m_1_0");
+      + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0");
     HttpURLConnection conn = (HttpURLConnection)url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
         ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
@@ -327,8 +334,10 @@ public class TestShuffleHandler {
         // replace the shuffle handler with one stubbed for testing
         return new Shuffle(conf) {
           @Override
-          protected MapOutputInfo getMapOutputInfo(String mapId, int reduce,
-              String jobId, String user) throws IOException {
+          protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
+                                                   int reduce,
+                                                   String jobId, String user)
+              throws IOException {
             return null;
           }
           @Override
@@ -339,9 +348,12 @@ public class TestShuffleHandler {
 
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
-              String user, int reduce, HttpRequest request,
-              HttpResponse response, boolean keepAliveParam,
-              Map<String, MapOutputInfo> infoMap) throws IOException {
+                                         String dagId, String user,
+                                         int reduce, HttpRequest request,
+                                         HttpResponse response,
+                                         boolean keepAliveParam,
+                                         Map<String, MapOutputInfo> infoMap)
+              throws IOException {
             // Send some dummy data (populate content length details)
             ShuffleHeader header =
                 new ShuffleHeader("attempt_12345_1_m_1_0", 5678, 5678, 1);
@@ -409,7 +421,7 @@ public class TestShuffleHandler {
             + shuffleHandler.getConfig().get(
               ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
     URL url =
-        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&reduce=1&"
+        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
             + "map=attempt_12345_1_m_1_0");
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -429,7 +441,7 @@ public class TestShuffleHandler {
 
     // For keepAlive via URL
     url =
-        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&reduce=1&"
+        new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
             + "map=attempt_12345_1_m_1_0&keepAlive=true");
     conn = (HttpURLConnection) url.openConnection();
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -465,7 +477,7 @@ public class TestShuffleHandler {
               + shuffleHandler.getConfig().get(
                 ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
       URL url =
-          new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&reduce=1&"
+          new URL(shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&"
               + "map=attempt_12345_1_m_1_0");
       conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -503,7 +515,7 @@ public class TestShuffleHandler {
     // then closing the connection
     URL url = new URL("http://127.0.0.1:"
       + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-      + "/mapOutput?job=job_12345_1&reduce=1&map=attempt_12345_1_m_1_0");
+      + "/mapOutput?job=job_12345_1&&dag=1reduce=1&map=attempt_12345_1_m_1_0");
     for (int i = 0; i < failureNum; ++i) {
       HttpURLConnection conn = (HttpURLConnection)url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -536,15 +548,19 @@ public class TestShuffleHandler {
         // replace the shuffle handler with one stubbed for testing
         return new Shuffle(conf) {
           @Override
-          protected MapOutputInfo getMapOutputInfo(String mapId, int reduce,
-              String jobId, String user) throws IOException {
+          protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
+                                                   int reduce, String jobId,
+                                                   String user)
+              throws IOException {
             // Do nothing.
             return null;
           }
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
-              String user, int reduce, HttpRequest request,
-              HttpResponse response, boolean keepAliveParam,
+                                         String dagId, String user, int reduce,
+                                         HttpRequest request,
+                                         HttpResponse response,
+                                         boolean keepAliveParam,
               Map<String, MapOutputInfo> infoMap) throws IOException {
             // Do nothing.
           }
@@ -585,7 +601,7 @@ public class TestShuffleHandler {
     for (int i = 0; i < connAttempts; i++) {
       String URLstring = "http://127.0.0.1:"
            + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-           + "/mapOutput?job=job_12345_1&reduce=1&map=attempt_12345_1_m_"
+           + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_"
            + i + "_0";
       URL url = new URL(URLstring);
       conns[i] = (HttpURLConnection)url.openConnection();
@@ -685,7 +701,7 @@ public class TestShuffleHandler {
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                       ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                  + "/mapOutput?job=job_12345_0001&reduce=" + reducerId
+                  + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerId
                   + "&map=attempt_12345_1_m_1_0");
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -722,7 +738,8 @@ public class TestShuffleHandler {
         StringUtils.join(Path.SEPARATOR,
             new String[] { logDir.getAbsolutePath(),
                 ShuffleHandler.USERCACHE, user,
-                ShuffleHandler.APPCACHE, appId, "output", appAttemptId });
+                ShuffleHandler.APPCACHE, appId,"dag_1/" + "output",
+                appAttemptId });
     File appAttemptDir = new File(attemptDir);
     appAttemptDir.mkdirs();
     System.out.println(appAttemptDir.getAbsolutePath());
@@ -924,7 +941,8 @@ public class TestShuffleHandler {
       Token<JobTokenIdentifier> jt) throws IOException {
     URL url = new URL("http://127.0.0.1:"
         + shuffle.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-        + "/mapOutput?job=job_12345_0001&reduce=0&map=attempt_12345_1_m_1_0");
+        + "/mapOutput?job=job_12345_0001&dag=1&reduce=0" +
+        "&map=attempt_12345_1_m_1_0");
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     String encHash = SecureShuffleUtils.hashFromString(
         SecureShuffleUtils.buildMsgFrom(url),
@@ -967,7 +985,7 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected void populateHeaders(List<String> mapIds,
-              String outputBaseStr, String user, int reduce,
+              String outputBaseStr, String dagId, String user, int reduce,
               HttpRequest request, HttpResponse response,
               boolean keepAliveParam, Map<String, MapOutputInfo> infoMap)
               throws IOException {
@@ -1021,7 +1039,7 @@ public class TestShuffleHandler {
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                       ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                  + "/mapOutput?job=job_12345_0001&reduce=" + reducerId
+                  + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerId
                   + "&map=attempt_12345_1_m_1_0");
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -1116,7 +1134,7 @@ public class TestShuffleHandler {
     Mockito.doAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        String uri = "/mapOutput?job=job_12345_1&reduce=1";
+        String uri = "/mapOutput?job=job_12345_1&dag=1&reduce=1";
         for (int i = 0; i < 100; i++)
           uri = uri.concat("&map=attempt_12345_1_m_" + i + "_0");
         return uri;

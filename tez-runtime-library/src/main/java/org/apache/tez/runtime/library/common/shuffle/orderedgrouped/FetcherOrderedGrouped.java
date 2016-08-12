@@ -717,9 +717,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       throws IOException {
     LocalDirAllocator localDirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
     suffix = suffix != null ? suffix : "";
-
-    String pathFromLocalDir = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR +
-        pathComponent + Path.SEPARATOR + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
+    String outputPath = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR +
+        pathComponent + Path.SEPARATOR +
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING + suffix;
+    String pathFromLocalDir = getPathForLocalDir(outputPath);
 
     return localDirAllocator.getLocalPathToRead(pathFromLocalDir.toString(), conf);
   }
@@ -749,6 +750,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     for (InputAttemptIdentifier id : origlist) {
       remaining.put(id.toString(), id);
     }
+  }
+
+  private String getPathForLocalDir(String suffix) {
+    if(ShuffleUtils.isTezShuffleHandler(conf)) {
+      return Constants.DAG_PREFIX + dagId + Path.SEPARATOR + suffix;
+    }
+    return suffix;
   }
 }
 

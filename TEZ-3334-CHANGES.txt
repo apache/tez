@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3408. Allow Task Output Files to reside in DAG specific directories for Custom Shuffle Handler
   TEZ-3238. Shuffle service name should be configureable and should not be hardcoded to ‘mapreduce_shuffle’
   TEZ-3390. Package Shuffle Handler as a shaded uber-jar
   TEZ-3378. Move Shuffle Handler configuration into the Tez namespace

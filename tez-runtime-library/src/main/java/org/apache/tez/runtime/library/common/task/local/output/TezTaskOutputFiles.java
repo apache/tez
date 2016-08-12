@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.Constants;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
 /**
  * Manipulate the working area for the transient store for components in tez-runtime-library
@@ -40,9 +41,9 @@ import org.apache.tez.runtime.library.common.Constants;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TezTaskOutputFiles extends TezTaskOutput {
-  
-  public TezTaskOutputFiles(Configuration conf, String uniqueId) {
-    super(conf, uniqueId);
+
+  public TezTaskOutputFiles(Configuration conf, String uniqueId, int dagID) {
+    super(conf, uniqueId, dagID);
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TezTaskOutputFiles.class);
@@ -60,7 +61,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
   /*
-   * ${appDir}/output/${uniqueId}
+   * if service_id = mapreduce_shuffle  then "${appDir}/output/${uniqueId}"
+   * if service_id = tez_shuffle  then "${appDir}/dagId/output/${uniqueId}"
    */
   private Path getAttemptOutputDir() {
     if (LOG.isDebugEnabled()) {
@@ -68,7 +70,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
           + Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + "/"
           + uniqueId);
     }
-    return new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR, uniqueId);
+    String dagPath = getDagOutputDir(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
+    return new Path(dagPath, uniqueId);
   }
 
 
@@ -201,7 +204,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException {
     Preconditions.checkArgument(spillNumber >= 0, "Provide a valid spill number " + spillNumber);
-    Path taskAttemptDir = new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR,
+    String dagPath = getDagOutputDir(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
+    Path taskAttemptDir = new Path(dagPath,
         String.format(SPILL_FILE_DIR_PATTERN, uniqueId, spillNumber));
     Path outputDir = new Path(taskAttemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
@@ -222,8 +226,9 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   public Path getSpillIndexFileForWrite(int spillNumber, long size)
       throws IOException {
     Preconditions.checkArgument(spillNumber >= 0, "Provide a valid spill number " + spillNumber);
-    Path taskAttemptDir = new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR,
-        String.format(SPILL_FILE_DIR_PATTERN, uniqueId, spillNumber));
+    String dagPath = getDagOutputDir(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
+    Path taskAttemptDir = new Path(dagPath, String.format(
+        SPILL_FILE_DIR_PATTERN, uniqueId, spillNumber));
     Path outputDir = new Path(taskAttemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
         Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
     return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
@@ -247,7 +252,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getInputFileForWrite(int srcIdentifier,
       int spillNum, long size) throws IOException {
-    return lDirAlloc.getLocalPathForWrite(getSpillFileName(srcIdentifier, spillNum), size, conf);
+    String dagPath = getDagOutputDir(getSpillFileName(srcIdentifier, spillNum));
+    return lDirAlloc.getLocalPathForWrite(dagPath, size, conf);
   }
 
   /**
@@ -264,5 +270,9 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public String getSpillFileName(int srcId, int spillNum) {
     return String.format(SPILL_FILE_PATTERN, uniqueId, srcId, spillNum);
+  }
+
+  private String getDagOutputDir(String child) {
+    return ShuffleUtils.isTezShuffleHandler(conf) ? dagId.concat(child) : child;
   }
 }

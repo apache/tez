@@ -134,7 +134,9 @@ public class UnorderedKVInput extends AbstractLogicalInput {
           TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
       this.inputManager = new SimpleFetchedInputAllocator(
-          TezUtilsInternal.cleanVertexName(getContext().getSourceVertexName()), getContext().getUniqueIdentifier(), conf,
+          TezUtilsInternal.cleanVertexName(getContext().getSourceVertexName()),
+          getContext().getUniqueIdentifier(),
+          getContext().getDagIdentifier(), conf,
           getContext().getTotalMemoryAvailableToTask(),
           memoryUpdateCallbackHandler.getMemoryAssigned());
 

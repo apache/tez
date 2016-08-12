@@ -666,10 +666,16 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     return idxRecord;
   }
 
-  private static final String getMapOutputFile(String pathComponent) {
-    return Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR
-        + pathComponent + Path.SEPARATOR
-        + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
+  private final String getMapOutputFile(String pathComponent) {
+    String outputPath = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + Path.SEPARATOR +
+        pathComponent + Path.SEPARATOR +
+        Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
+
+    if(ShuffleUtils.isTezShuffleHandler(conf)) {
+      return Constants.DAG_PREFIX + this.dagIdentifier + Path.SEPARATOR +
+          outputPath;
+    }
+    return outputPath;
   }
 
   @VisibleForTesting

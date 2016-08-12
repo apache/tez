@@ -306,14 +306,16 @@ public class ShuffleHandler extends AuxiliaryService {
     private String user;
     private Map<String, Shuffle.MapOutputInfo> infoMap;
     private String jobId;
+    private String dagId;
 
     public ReduceContext(List<String> mapIds, int rId,
                          ChannelHandlerContext context, String usr,
                          Map<String, Shuffle.MapOutputInfo> mapOutputInfoMap,
-                         String jobId) {
+                         String jobId, String dagId) {
 
       this.mapIds = mapIds;
       this.reduceId = rId;
+      this.dagId = dagId;
       /**
       * Atomic count for tracking the no. of map outputs that are yet to
       * complete. Multiple futureListeners' operationComplete() can decrement
@@ -828,7 +830,7 @@ public class ShuffleHandler extends AuxiliaryService {
         @Override
         public AttemptPathInfo load(AttemptPathIdentifier key) throws
             Exception {
-          String base = getBaseLocation(key.jobId, key.user);
+          String base = getBaseLocation(key.jobId, key.dagId, key.user);
           String attemptBase = base + key.attemptId;
           Path indexFileName = lDirAlloc.getLocalPathToRead(
               attemptBase + "/" + INDEX_FILE_NAME, conf);
@@ -907,16 +909,18 @@ public class ShuffleHandler extends AuxiliaryService {
       final List<String> mapIds = splitMaps(q.get("map"));
       final List<String> reduceQ = q.get("reduce");
       final List<String> jobQ = q.get("job");
+      final List<String> dagIdQ = q.get("dag");
       if (LOG.isDebugEnabled()) {
         LOG.debug("RECV: " + request.getUri() +
             "\n  mapId: " + mapIds +
             "\n  reduceId: " + reduceQ +
             "\n  jobId: " + jobQ +
+            "\n  dagId: " + dagIdQ +
             "\n  keepAlive: " + keepAliveParam);
       }
 
-      if (mapIds == null || reduceQ == null || jobQ == null) {
-        sendError(ctx, "Required param job, map and reduce", BAD_REQUEST);
+      if (mapIds == null || reduceQ == null || jobQ == null || dagIdQ == null) {
+        sendError(ctx, "Required param job, dag, map and reduce", BAD_REQUEST);
         return;
       }
       if (reduceQ.size() != 1 || jobQ.size() != 1) {
@@ -933,9 +937,11 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       int reduceId;
       String jobId;
+      String dagId;
       try {
         reduceId = Integer.parseInt(reduceQ.get(0));
         jobId = jobQ.get(0);
+        dagId = dagIdQ.get(0);
       } catch (NumberFormatException e) {
         sendError(ctx, "Bad reduce parameter", BAD_REQUEST);
         return;
@@ -965,7 +971,7 @@ public class ShuffleHandler extends AuxiliaryService {
       String user = userRsrc.get(jobId);
 
       try {
-        populateHeaders(mapIds, jobId, user, reduceId, request,
+        populateHeaders(mapIds, jobId, dagId, user, reduceId, request,
           response, keepAliveParam, mapOutputInfoMap);
       } catch(IOException e) {
         ch.write(response);
@@ -977,7 +983,7 @@ public class ShuffleHandler extends AuxiliaryService {
       ch.write(response);
       //Initialize one ReduceContext object per messageReceived call
       ReduceContext reduceContext = new ReduceContext(mapIds, reduceId, ctx,
-          user, mapOutputInfoMap, jobId);
+          user, mapOutputInfoMap, jobId, dagId);
       for (int i = 0; i < Math.min(maxSessionOpenFiles, mapIds.size()); i++) {
         ChannelFuture nextMap = sendMap(reduceContext);
         if(nextMap == null) {
@@ -1008,8 +1014,9 @@ public class ShuffleHandler extends AuxiliaryService {
         try {
           MapOutputInfo info = reduceContext.getInfoMap().get(mapId);
           if (info == null) {
-            info = getMapOutputInfo(mapId, reduceContext.getReduceId(),
-                reduceContext.getJobId(), reduceContext.getUser());
+            info = getMapOutputInfo(reduceContext.dagId, mapId,
+                reduceContext.getReduceId(), reduceContext.getJobId(),
+                reduceContext.getUser());
           }
           nextMap = sendMapOutput(
               reduceContext.getCtx(),
@@ -1041,7 +1048,7 @@ public class ShuffleHandler extends AuxiliaryService {
       return sb.toString();
     }
 
-    private String getBaseLocation(String jobId, String user) {
+    private String getBaseLocation(String jobId, String dagId, String user) {
       final JobID jobID = JobID.forName(jobId);
       final ApplicationId appID =
           ApplicationId.newInstance(Long.parseLong(jobID.getJtIdentifier()),
@@ -1049,16 +1056,17 @@ public class ShuffleHandler extends AuxiliaryService {
       final String baseStr =
           USERCACHE + "/" + user + "/"
               + APPCACHE + "/"
-              + appID.toString() + "/output" + "/";
+              + appID.toString() + "/dag_" + dagId + "/output" + "/";
       return baseStr;
     }
 
-    protected MapOutputInfo getMapOutputInfo(String mapId, int reduce,
-        String jobId, String user) throws IOException {
+    protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
+                                             int reduce, String jobId,
+                                             String user) throws IOException {
       AttemptPathInfo pathInfo;
       try {
         AttemptPathIdentifier identifier = new AttemptPathIdentifier(
-            jobId, user, mapId);
+            jobId, dagId, user, mapId);
         pathInfo = pathCache.get(identifier);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Retrieved pathInfo for " + identifier +
@@ -1087,13 +1095,17 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     protected void populateHeaders(List<String> mapIds, String jobId,
-        String user, int reduce, HttpRequest request, HttpResponse response,
-        boolean keepAliveParam, Map<String, MapOutputInfo> mapOutputInfoMap)
+                                   String dagId, String user,
+                                   int reduce, HttpRequest request,
+                                   HttpResponse response,
+                                   boolean keepAliveParam,
+                                   Map<String, MapOutputInfo> mapOutputInfoMap)
         throws IOException {
 
       long contentLength = 0;
       for (String mapId : mapIds) {
-        MapOutputInfo outputInfo = getMapOutputInfo(mapId, reduce, jobId, user);
+        MapOutputInfo outputInfo =
+            getMapOutputInfo(dagId, mapId, reduce, jobId, user);
         if (mapOutputInfoMap.size() < mapOutputMetaInfoCacheSize) {
           mapOutputInfoMap.put(mapId, outputInfo);
         }
@@ -1292,11 +1304,14 @@ public class ShuffleHandler extends AuxiliaryService {
 
   static class AttemptPathIdentifier {
     private final String jobId;
+    private final String dagId;
     private final String user;
     private final String attemptId;
 
-    public AttemptPathIdentifier(String jobId, String user, String attemptId) {
+    public AttemptPathIdentifier(String jobId, String dagID, String user,
+                                 String attemptId) {
       this.jobId = jobId;
+      this.dagId = dagID;
       this.user = user;
       this.attemptId = attemptId;
     }
@@ -1315,6 +1330,10 @@ public class ShuffleHandler extends AuxiliaryService {
       if (!attemptId.equals(that.attemptId)) {
         return false;
       }
+      if (dagId != that.dagId) {
+        return false;
+      }
+
       if (!jobId.equals(that.jobId)) {
         return false;
       }
@@ -1325,6 +1344,7 @@ public class ShuffleHandler extends AuxiliaryService {
     @Override
     public int hashCode() {
       int result = jobId.hashCode();
+      result = 31 * result + dagId.hashCode();
       result = 31 * result + attemptId.hashCode();
       return result;
     }
@@ -1332,8 +1352,10 @@ public class ShuffleHandler extends AuxiliaryService {
     @Override
     public String toString() {
       return "AttemptPathIdentifier{" +
-          "attemptId='" + attemptId + '\'' +
-          ", jobId='" + jobId + '\'' +
+          "jobId='" + jobId + '\'' +
+          ", dagId=" + dagId +
+          ", user='" + user + '\'' +
+          ", attemptId='" + attemptId + '\'' +
           '}';
     }
   }
