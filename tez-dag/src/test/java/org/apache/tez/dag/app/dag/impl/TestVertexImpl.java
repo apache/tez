@@ -6583,14 +6583,14 @@ public class TestVertexImpl {
 
     // check requesting for more tasks than left, we should return only number left
     taskIterable = vB.getTaskSubset(task1, 10);
-    Assert.assertEquals("Incorrect number of tasks returned", 1, Iterables.size(taskIterable));
-    Task task2 = taskIterable.iterator().next();
+    Assert.assertEquals("Incorrect number of tasks returned", 2, Iterables.size(taskIterable));
+    Task task2 = Iterables.get(taskIterable, 1);
 
     Assert.assertNotEquals(task1.getTaskId(), task2.getTaskId());
 
-    //check that we don't get anything if we ask again from task2
+    //check that we get only 1 if we ask again from task2
     taskIterable = vB.getTaskSubset(task2, 1);
-    Assert.assertEquals("Incorrect number of tasks returned", 0, Iterables.size(taskIterable));
+    Assert.assertEquals("Incorrect number of tasks returned", 1, Iterables.size(taskIterable));
 
     // try requesting for tasks again from the start
     taskIterable = vB.getTaskSubset(10);

@@ -110,6 +110,7 @@ public class ATSConstants {
   public static final String RESOURCE_URI_BASE = "/ws/v1/timeline";
   public static final String TEZ_DAG_ID = "TEZ_DAG_ID";
   public static final String TEZ_VERTEX_ID = "TEZ_VERTEX_ID";
+  public static final String TEZ_TASK_ID = "TEZ_TASK_ID";
 
   /* In Yarn but not present in 2.2 */
   public static final String TIMELINE_SERVICE_WEBAPP_HTTP_ADDRESS_CONF_NAME =

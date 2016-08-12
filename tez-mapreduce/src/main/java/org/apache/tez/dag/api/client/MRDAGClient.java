@@ -23,6 +23,7 @@ package org.apache.tez.dag.api.client;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -90,5 +91,20 @@ public class MRDAGClient extends DAGClient {
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout) throws IOException, TezException {
     return getDAGStatus(statusOptions);
+  }
+
+  @Override
+  public DAGInformation getDAGInformation() throws IOException, TezException {
+    return realClient.getDAGInformation();
+  }
+
+  @Override
+  public TaskInformation getTaskInformation(String vertexID, String taskID) throws IOException, TezException {
+    return realClient.getTaskInformation(vertexID, taskID);
+  }
+
+  @Override
+  public List<TaskInformation> getTaskInformation(String vertexID, @Nullable String startTaskID, int limit) throws IOException, TezException {
+    return realClient.getTaskInformation(vertexID, startTaskID, limit);
   }
 }

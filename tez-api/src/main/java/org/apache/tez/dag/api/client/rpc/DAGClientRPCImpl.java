@@ -19,6 +19,8 @@
 package org.apache.tez.dag.api.client.rpc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -27,6 +29,9 @@ import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.tez.common.RPCUtil;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.client.DAGClientInternal;
+import org.apache.tez.dag.api.client.DAGInformation;
+import org.apache.tez.dag.api.client.TaskInformation;
+import org.apache.tez.dag.api.records.DAGProtos.TaskInformationProto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -41,12 +46,14 @@ import org.apache.tez.dag.api.DAGNotRunningException;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationListRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
 
@@ -95,8 +102,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       long timeout) throws IOException, TezException, ApplicationNotFoundException {
     if (createAMProxyIfNeeded()) {
       try {
-        DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
-        return dagStatus;
+        return getDAGStatusViaAM(statusOptions, timeout);
       } catch (TezException e) {
         resetProxy(e); // create proxy again
         throw e;
@@ -172,6 +178,61 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     proxy = null;
   }
 
+  @Override
+  public DAGInformation getDAGInformation() throws IOException, TezException, ApplicationNotFoundException {
+    if (createAMProxyIfNeeded()) {
+      try {
+        return getDAGInformationViaAM();
+      } catch (TezException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      } catch (IOException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      }
+    }
+
+    // either the dag is not running or there was an exception
+    return null;
+  }
+
+  @Override
+  public TaskInformation getTaskInformation(String vertexID, String taskID) throws IOException, TezException, ApplicationNotFoundException {
+    if (createAMProxyIfNeeded()) {
+      try {
+        return getTaskInformationViaAM(vertexID, taskID);
+      } catch (TezException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      } catch (IOException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      }
+    }
+
+    // either the dag is not running or there was an exception
+    return null;
+  }
+
+  @Override
+  public List<TaskInformation> getTaskInformation(String vertexID, @Nullable String startTaskID, int limit)
+    throws IOException, TezException, ApplicationNotFoundException {
+    if (createAMProxyIfNeeded()) {
+      try {
+        return getTaskInformationListViaAM(vertexID, startTaskID, limit);
+      } catch (TezException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      } catch (IOException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      }
+    }
+
+    // either the dag is not running or there was an exception
+    return null;
+  }
+
   DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions, long timeout)
       throws IOException, TezException {
     if(LOG.isDebugEnabled()) {
@@ -190,6 +251,24 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       return new DAGStatus(
         proxy.getDAGStatus(null,
           requestProtoBuilder.build()).getDagStatus(), DagStatusSource.AM);
+    } catch (ServiceException e) {
+      RPCUtil.unwrapAndThrowException(e);
+      // Should not reach here
+      throw new TezException(e);
+    }
+  }
+
+  DAGInformation getDAGInformationViaAM() throws IOException, TezException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("GetDAGInformation via AM for app: " + appId + " dag:" + dagId);
+    }
+    GetDAGInformationRequestProto.Builder requestProtoBuilder =
+      GetDAGInformationRequestProto.newBuilder()
+        .setDagId(dagId);
+
+    try {
+      return new DAGInformation(
+        proxy.getDAGInformation(null, requestProtoBuilder.build()).getDagInformation());
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       // Should not reach here
@@ -218,6 +297,62 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       return new VertexStatus(
         proxy.getVertexStatus(null,
           requestProtoBuilder.build()).getVertexStatus());
+    } catch (ServiceException e) {
+      RPCUtil.unwrapAndThrowException(e);
+      // Should not reach here
+      throw new TezException(e);
+    }
+  }
+
+  TaskInformation getTaskInformationViaAM(String vertexID, String taskID)
+    throws TezException, IOException {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("GetTaskInformation via AM for app: " + appId + " dag: " + dagId
+        + " vertexID: " + vertexID + " taskID: " + taskID);
+    }
+    GetTaskInformationRequestProto.Builder requestProtoBuilder =
+      GetTaskInformationRequestProto.newBuilder()
+        .setDagId(dagId)
+        .setVertexId(vertexID)
+        .setTaskId(taskID);
+
+    try {
+      return new TaskInformation(
+        proxy.getTaskInformation(null,
+          requestProtoBuilder.build()).getTaskInformation());
+    } catch (ServiceException e) {
+      RPCUtil.unwrapAndThrowException(e);
+      // Should not reach here
+      throw new TezException(e);
+    }
+  }
+
+  List<TaskInformation> getTaskInformationListViaAM(String vertexID, String startTaskID, int limit)
+    throws TezException, IOException {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("GetTaskInformationList via AM for app: " + appId + " dag: " + dagId
+        + " vertexID: " + vertexID + " startTaskID: " + (startTaskID == null ? "null" : startTaskID)
+        + " limit: " + limit);
+    }
+    GetTaskInformationListRequestProto.Builder requestProtoBuilder =
+      GetTaskInformationListRequestProto.newBuilder()
+        .setDagId(dagId)
+        .setVertexId(vertexID)
+        .setLimit(limit);
+
+    if (startTaskID != null) {
+      requestProtoBuilder.setStartTaskId(startTaskID);
+    }
+
+    try {
+      List<TaskInformationProto> protoList = proxy.getTaskInformationList(null,
+        requestProtoBuilder.build()).getTaskInformationList();
+      List<TaskInformation> taskInformationList = new ArrayList<>(protoList.size());
+      for (TaskInformationProto taskProto : protoList) {
+        taskInformationList.add(new TaskInformation(taskProto));
+      }
+      return taskInformationList;
+
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       // Should not reach here

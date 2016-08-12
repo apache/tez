@@ -1458,7 +1458,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public Iterable<Task> getTaskSubset(Task startTask, int limit) {
-    NavigableSet<Task> tailSet = navigableTaskSet.tailSet(startTask, false);
+    NavigableSet<Task> tailSet = navigableTaskSet.tailSet(startTask, true);
     return Iterables.limit(tailSet, limit);
   }
 

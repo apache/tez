@@ -29,7 +29,9 @@ import static org.mockito.Mockito.when;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -41,12 +43,20 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.client.DAGClientTimelineImpl;
+import org.apache.tez.dag.api.client.DAGInformation;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.TaskInformation;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGInformationResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationListRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetTaskInformationListResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
@@ -60,13 +70,18 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
+import org.apache.tez.dag.api.records.DAGProtos.TaskStateProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGInformationProto;
+import org.apache.tez.dag.api.records.DAGProtos.VertexInformationProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
+import org.apache.tez.dag.api.records.DAGProtos.TaskInformationProto;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.internal.util.collections.Sets;
 
+import com.google.common.collect.Lists;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import org.mockito.invocation.InvocationOnMock;
@@ -82,11 +97,16 @@ public class TestDAGClient {
   
   private VertexStatusProto vertexStatusProtoWithoutCounters;
   private VertexStatusProto vertexStatusProtoWithCounters;
-  
+
+  private DAGInformationProto dagInformationProto;
+
   private DAGStatusProto dagStatusProtoWithoutCounters;
   private DAGStatusProto dagStatusProtoWithCounters;
-  
-  
+
+  private TaskInformationProto taskInformationProtoWithCounters;
+
+  private List<TaskInformationProto> taskInformationProtoList;
+
   private void setUpData(){
     // DAG
     ProgressProto dagProgressProto = ProgressProto.newBuilder()
@@ -128,7 +148,51 @@ public class TestDAGClient {
     dagStatusProtoWithCounters = DAGStatusProto.newBuilder(dagStatusProtoWithoutCounters)
                       .setDagCounters(dagCountersProto)
                       .build();
-    
+
+    // dag information
+    VertexInformationProto vertex1 =
+      VertexInformationProto.newBuilder()
+      .setId("vertex_1468518877269_3815_1_01")
+      .setName("v1").build();
+    VertexInformationProto vertex2 =
+      VertexInformationProto.newBuilder()
+        .setId("vertex_1468518877269_3815_1_02")
+        .setName("v2").build();
+    List<VertexInformationProto> vertexInformationProtos = Lists.newArrayList(vertex1, vertex2);
+
+    dagInformationProto = DAGInformationProto.newBuilder()
+                      .setDagId("dag_1468518877269_3815_")
+                      .setName("My test DAG")
+                      .addAllVertices(vertexInformationProtos)
+                      .build();
+
+    // task information
+    TezCountersProto taskCountersProto=TezCountersProto.newBuilder()
+      .addCounterGroups(TezCounterGroupProto.newBuilder()
+        .addCounters(TezCounterProto.newBuilder()
+          .setDisplayName("task_counter_1")
+          .setValue(99)))
+      .build();
+
+    taskInformationProtoWithCounters = TaskInformationProto.newBuilder()
+                    .setId("task_1468518877269_3815_1_01_000001")
+                    .setDiagnostics("sample diagnostics")
+                    .setStartTime(123L)
+                    .setState(TaskStateProto.TASK_SUCCEEDED)
+                    .setScheduledTime(123L)
+                    .setEndTime(456L)
+                    .setSuccessfulAttemptId("attempt_1468518877269_3815_1_01_000001_0")
+                    .setTaskCounters(taskCountersProto)
+                    .build();
+
+    // task information list
+    TaskInformationProto taskInformationProto2 =
+      TaskInformationProto.newBuilder(taskInformationProtoWithCounters)
+                          .setId("task_1468518877269_3815_1_01_000002")
+                          .build();
+
+    taskInformationProtoList = Lists.newArrayList(taskInformationProto2, taskInformationProtoWithCounters);
+
     // Vertex
     ProgressProto vertexProgressProto = ProgressProto.newBuilder()
                     .setFailedTaskCount(1)
@@ -179,7 +243,25 @@ public class TestDAGClient {
       return false;
     }
   }
-  
+
+  private static class TaskInfoListRequestMatcher extends ArgumentMatcher<GetTaskInformationListRequestProto>{
+
+    private final String startTaskId;
+    public TaskInfoListRequestMatcher(String startTaskId) {
+      this.startTaskId = startTaskId;
+    }
+
+    @Override
+    public boolean matches(Object argument) {
+      if (argument instanceof GetTaskInformationListRequestProto) {
+        GetTaskInformationListRequestProto requestProto = (GetTaskInformationListRequestProto)argument;
+        return requestProto.hasStartTaskId()
+          && requestProto.getStartTaskId().equals(startTaskId);
+      }
+      return false;
+    }
+  }
+
   @Before
   public void setUp() throws YarnException, IOException, TezException, ServiceException{
 
@@ -195,7 +277,20 @@ public class TestDAGClient {
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build());
     when(mockProxy.getDAGStatus(isNull(RpcController.class), argThat(new DAGCounterRequestMatcher())))
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithCounters).build());
-    
+
+    when(mockProxy.getDAGInformation(isNull(RpcController.class), any(GetDAGInformationRequestProto.class)))
+      .thenReturn(GetDAGInformationResponseProto.newBuilder().setDagInformation(dagInformationProto).build());
+
+    when(mockProxy.getTaskInformation(isNull(RpcController.class), any(GetTaskInformationRequestProto.class)))
+      .thenReturn(GetTaskInformationResponseProto.newBuilder().setTaskInformation(taskInformationProtoWithCounters).build());
+
+    when(mockProxy.getTaskInformationList(isNull(RpcController.class), any(GetTaskInformationListRequestProto.class)))
+      .thenReturn(GetTaskInformationListResponseProto.newBuilder().addAllTaskInformation(taskInformationProtoList).build());
+
+    when(mockProxy.getTaskInformationList(isNull(RpcController.class),
+         argThat(new TaskInfoListRequestMatcher(taskInformationProtoWithCounters.getId()))))
+      .thenReturn(GetTaskInformationListResponseProto.newBuilder().addTaskInformation(taskInformationProtoWithCounters).build());
+
     when(mockProxy.getVertexStatus(isNull(RpcController.class), any(GetVertexStatusRequestProto.class)))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithoutCounters).build());
     when(mockProxy.getVertexStatus(isNull(RpcController.class), argThat(new VertexCounterRequestMatcher())))
@@ -244,7 +339,50 @@ public class TestDAGClient {
     assertEquals(new VertexStatus(vertexStatusProtoWithCounters), resultVertexStatus);
     System.out.println("VertexWithCounter:" + resultVertexStatus);
   }
-  
+
+  @Test(timeout = 5000)
+  public void testDAGInformation() throws Exception{
+    DAGInformation dagInformation = dagClient.getDAGInformation();
+    verify(mockProxy).getDAGInformation(null, GetDAGInformationRequestProto.newBuilder()
+      .setDagId(dagIdStr).build());
+    assertEquals(new DAGInformation(dagInformationProto), dagInformation);
+    System.out.println("DAGInformation:" + dagInformation);
+  }
+
+  @Test(timeout = 5000)
+  public void testTaskInformation() throws Exception{
+    TaskInformation taskInformation = dagClient.getTaskInformation("v1", "task_1468518877269_3815_1_01_000001");
+    verify(mockProxy).getTaskInformation(null, GetTaskInformationRequestProto.newBuilder()
+      .setDagId(dagIdStr).setTaskId("task_1468518877269_3815_1_01_000001").setVertexId("v1").build());
+    assertEquals(new TaskInformation(taskInformationProtoWithCounters), taskInformation);
+    System.out.println("TaskInformation:" + taskInformation);
+  }
+
+  @Test(timeout = 5000)
+  public void testTaskInformationList() throws Exception{
+    List<TaskInformation> taskInformationList = dagClient.getTaskInformation("v1", null, 2);
+    verify(mockProxy).getTaskInformationList(null, GetTaskInformationListRequestProto.newBuilder()
+      .setDagId(dagIdStr).setLimit(2).setVertexId("v1").build());
+
+    List<TaskInformation> expectedList = new ArrayList<>();
+    for (TaskInformationProto proto : taskInformationProtoList) {
+      expectedList.add(new TaskInformation(proto));
+    }
+
+    assertEquals(expectedList, taskInformationList);
+    System.out.println("TaskInformationList:" + taskInformationList);
+
+    // now test with startTaskId. As the startTaskId is that for the second task, we only get that returned
+    String startTaskId = taskInformationProtoWithCounters.getId();
+    taskInformationList = dagClient.getTaskInformation("v1", startTaskId, 2);
+    verify(mockProxy).getTaskInformationList(null, GetTaskInformationListRequestProto.newBuilder()
+      .setDagId(dagIdStr).setLimit(2).setStartTaskId(startTaskId).setVertexId("v1").build());
+    expectedList = Lists.newArrayList(new TaskInformation(taskInformationProtoWithCounters));
+    assertEquals(expectedList, taskInformationList);
+
+    System.out.println("TaskInformationList:" + taskInformationList);
+  }
+
   @Test(timeout = 5000)
   public void testTryKillDAG() throws Exception{
     dagClient.tryKillDAG();
@@ -334,7 +472,7 @@ public class TestDAGClient {
     long diff;
 
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800l);
+    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800L);
 
     DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null);
     DAGClientRPCImplForTest dagClientRpc =
@@ -352,10 +490,10 @@ public class TestDAGClient {
     dagClient.setRmDagStatus(rmDagStatus);
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 1500l && diff < 2500l);
+    assertTrue(diff > 1500L && diff < 2500L);
     // One at start. Second and Third within the sleep. Fourth at final refresh.
     assertEquals(0, dagClientRpc.numGetStatusViaAmInvocations); // No AM available, so no invocations to AM
     assertEquals(4, dagClient.numGetStatusViaRmInvocations);
@@ -370,10 +508,10 @@ public class TestDAGClient {
     dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 1500l && diff < 2500l);
+    assertTrue(diff > 1500L && diff < 2500L);
     // Directly from AM
     assertEquals(0, dagClient.numGetStatusViaRmInvocations);
     // Directly from AM - one refresh. One with timeout.
@@ -387,13 +525,13 @@ public class TestDAGClient {
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000l));
+    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
 
     startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
+    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
     endTime = System.currentTimeMillis();
     diff = endTime - startTime;
-    assertTrue(diff > 500l && diff < 1500l);
+    assertTrue(diff > 500L && diff < 1500L);
     // Directly from AM
     assertEquals(0, dagClient.numGetStatusViaRmInvocations);
     // Directly from AM - previous request cached, so single invocation only.
@@ -446,11 +584,7 @@ public class TestDAGClient {
 
     @Override
     boolean createAMProxyIfNeeded() throws IOException, TezException {
-      if (proxy == null) {
-        return false;
-      } else {
-        return true;
-      }
+      return proxy != null;
     }
 
     @Override
