@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3360. Tez Custom Shuffle Handler Documentation
   TEZ-3411. TestShuffleHandler#testSendMapCount should not used hard coded ShuffleHandler port
   TEZ-3412. Modify ShuffleHandler to use Constants.DAG_PREFIX and fix AttemptPathIdentifier#toString()
   TEZ-3410. ShuffleHandler should use Path.SEPARATOR instead "/"

@@ -107,6 +107,7 @@
       <item name="Install Guide" href="install.html"/>
       <item name="Local Mode" href="localmode.html"/>
       <item name="Tez UI" href="tez-ui.html"/>
+      <item name="Tez Shuffle Handler" href="shuffle-handler.html"/>
       <item name="User Guides" href="user_guides.html"/>
     </menu>
 
