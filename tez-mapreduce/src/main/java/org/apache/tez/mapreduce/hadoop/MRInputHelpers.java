@@ -709,10 +709,8 @@ public class MRInputHelpers {
 
   private static String getStringProperty(Configuration conf, String propertyName) {
     Preconditions.checkNotNull(conf, "Configuration must be provided");
-    String propertyString = conf.get(propertyName);
-    Preconditions.checkNotNull(propertyString,
-        "Property " + propertyName + " not found in provided configuration");
-    return propertyString;
+    Preconditions.checkNotNull(propertyName, "Property name must be provided");
+    return conf.get(propertyName);
   }
 
   private static int getIntProperty(Configuration conf, String propertyName) {
