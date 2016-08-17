@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3352. MRInputHelpers getStringProperty() should not fail if property value is null.
   TEZ-3409. Log dagId along with other information when submitting a dag.
   TEZ-3384. Fix TestATSV15HistoryLoggingService::testDAGGroupingGroupingEnabled unit test.
@@ -499,6 +500,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
