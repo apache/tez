@@ -446,7 +446,8 @@ public class DAGUtils {
   }
 
   public static Map<String, String> convertConfigurationToATSMap(Configuration conf) {
-    Iterator<Entry<String, String>> iter = conf.iterator();
+    // Copy configuration to avoid CME since iterator is not thread safe until HADOOP-13500
+    Iterator<Entry<String, String>> iter = new Configuration(conf).iterator();
     Map<String, String> atsConf = new TreeMap<String, String>();
     while (iter.hasNext()) {
       Entry<String, String> entry = iter.next();

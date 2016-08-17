@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -231,6 +232,39 @@ public class TestHistoryEventTimelineConversion {
       super("component", "1.1.0", "rev1", "20120101", "git.apache.org");
     }
 
+  }
+
+  @Test(timeout = 5000)
+  public void testConvertAppLaunchedEventConcurrentModificationException()
+      throws InterruptedException {
+    long launchTime = random.nextLong();
+    long submitTime = random.nextLong();
+    final Configuration conf = new Configuration(false);
+    conf.set("foo", "bar");
+    conf.set("applicationId", "1234");
+    final AtomicBoolean shutdown = new AtomicBoolean(false);
+
+    Thread confChanger = new Thread() {
+      @Override
+      public void run() {
+        int i = 1;
+        while (!shutdown.get()) {
+          // trigger an actual change to test concurrency with Configuration#iterator
+          conf.set("test" + i++, "test");
+        }
+      }
+    };
+
+    confChanger.start();
+    try {
+      MockVersionInfo mockVersionInfo = new MockVersionInfo();
+      AppLaunchedEvent event = new AppLaunchedEvent(applicationId, launchTime,
+          submitTime, user, conf, mockVersionInfo);
+      HistoryEventTimelineConversion.convertToTimelineEntity(event);
+    } finally {
+      shutdown.set(true);
+      confChanger.join();
+    }
   }
 
   @Test(timeout = 5000)
