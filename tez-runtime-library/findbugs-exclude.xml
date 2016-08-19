@@ -131,4 +131,14 @@
     </Or>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.ShuffleVertexManagerBase"/>
+    <Or>
+      <Field name="numBipartiteSourceTasksCompleted"/>
+      <Field name="totalNumBipartiteSourceTasks"/>
+      <Field name="totalTasksToSchedule"/>
+    </Or>
+    <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+  </Match>
+
 </FindBugsFilter>
