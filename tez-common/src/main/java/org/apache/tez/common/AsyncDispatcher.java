@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
@@ -215,7 +216,8 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
         "Multiple concurrent dispatchers cannot be registered for: " + eventType.getName());
   }
   
-  private void checkForExistingDispatchers(boolean checkHandler, Class<? extends Enum> eventType) {
+  @VisibleForTesting
+  protected void checkForExistingDispatchers(boolean checkHandler, Class<? extends Enum> eventType) {
     if (checkHandler) {
       checkForExistingHandler(eventType);
     }

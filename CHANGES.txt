@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
   TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3352. MRInputHelpers getStringProperty() should not fail if property value is null.
   TEZ-3409. Log dagId along with other information when submitting a dag.
