@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-2741. Hive on Tez does not work well with Sequence Files Schema changes.
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
   TEZ-3395. Refactor ShuffleVertexManager to make parts of it re-usable in other plugins.
   TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
