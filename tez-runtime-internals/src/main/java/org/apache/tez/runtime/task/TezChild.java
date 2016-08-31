@@ -209,6 +209,8 @@ public class TezChild {
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
+        LOG.error("Error fetching new work for container {}", containerIdString,
+            cause);
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
             cause, "Execution Exception while fetching new work: " + e.getMessage());
       } catch (InterruptedException e) {
