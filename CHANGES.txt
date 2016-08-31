@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
   TEZ-2741. Hive on Tez does not work well with Sequence Files Schema changes.
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
   TEZ-3395. Refactor ShuffleVertexManager to make parts of it re-usable in other plugins.
@@ -101,6 +102,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
   TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3352. MRInputHelpers getStringProperty() should not fail if property value is null.
@@ -585,6 +587,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
   TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
