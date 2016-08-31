@@ -151,10 +151,6 @@ public class TezGroupedSplitsInputFormat<K, V>
       while ((curReader == null) || !curReader.next(key, value)) {
         if (!initNextRecordReader()) {
           return false;
-        } else {
-          // reset keys & values
-         key = createKey();
-         value = createValue();
         }
       }
       return true;
