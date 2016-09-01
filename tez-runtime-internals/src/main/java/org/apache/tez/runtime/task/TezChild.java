@@ -55,6 +55,7 @@ import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezLocalResource;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -488,6 +489,15 @@ public class TezChild {
     TezUtilsInternal.addUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()), defaultConf);
     UserGroupInformation.setConfiguration(defaultConf);
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+
+    // log the system properties
+    if (LOG.isInfoEnabled()) {
+      String systemPropsToLog = TezUtils.getSystemPropertiesToLog(defaultConf);
+      if (systemPropsToLog != null) {
+        LOG.info(systemPropsToLog);
+      }
+    }
+
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),

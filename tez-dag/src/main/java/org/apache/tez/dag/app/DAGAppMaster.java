@@ -58,6 +58,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
@@ -2177,6 +2178,14 @@ public class DAGAppMaster extends AbstractService {
               clientVersion, maxAppAttempts, credentials, jobUserName);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
+
+      // log the system properties
+      if (LOG.isInfoEnabled()) {
+        String systemPropsToLog = TezUtils.getSystemPropertiesToLog(conf);
+        if (systemPropsToLog != null) {
+          LOG.info(systemPropsToLog);
+        }
+      }
 
       initAndStartAppMaster(appMaster, conf);
 
