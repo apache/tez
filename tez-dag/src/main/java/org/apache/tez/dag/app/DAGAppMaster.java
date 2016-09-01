@@ -2356,6 +2356,14 @@ public class DAGAppMaster extends AbstractService {
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
+      // log the system properties
+      if (LOG.isInfoEnabled()) {
+        String systemPropsToLog = TezUtils.getSystemPropertiesToLog(conf);
+        if (systemPropsToLog != null) {
+          LOG.info(systemPropsToLog);
+        }
+      }
+
       initAndStartAppMaster(appMaster, conf);
 
     } catch (Throwable t) {

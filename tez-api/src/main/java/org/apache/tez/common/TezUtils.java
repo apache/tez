@@ -20,6 +20,7 @@ package org.apache.tez.common;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -64,6 +66,22 @@ public class TezUtils {
   public static void addLog4jSystemProperties(String logLevel,
                                               List<String> vargs) {
     TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
+  }
+
+  public static String getSystemPropertiesToLog(Configuration conf) {
+    Collection <String> keys = conf.getTrimmedStringCollection(
+        TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG);
+    if (keys.isEmpty()) {
+      keys = TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n/************************************************************\n");
+    sb.append("[system properties]\n");
+    for (String key : keys) {
+      sb.append(key).append(": ").append(System.getProperty(key)).append('\n');
+    }
+    sb.append("************************************************************/");
+    return sb.toString();
   }
 
 
