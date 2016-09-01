@@ -19,7 +19,11 @@
 package org.apache.tez.dag.api;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -1647,4 +1651,19 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES =
       TEZ_PREFIX + "am.ats.v15.override.summary-types";
   public static final boolean TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES_DEFAULT = true;
+
+  /**
+   * String value. Determines what JVM properties will be logged for debugging purposes
+   * in the AM and Task runtime logs.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG  =
+      TEZ_PREFIX + "tez.jvm.system-properties-to-log";
+  public static final List<String> TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT =
+      Collections.unmodifiableList(Arrays.asList(
+          "os.name","os.version","java.home","java.runtime.version",
+          "java.vendor","java.version","java.vm.name","java.class.path",
+          "java.io.tmpdir","user.dir","user.name"));
+
 }

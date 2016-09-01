@@ -17,11 +17,16 @@
 
 package org.apache.tez.common;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -225,5 +230,26 @@ public class TestTezUtils {
 
   }
 
+  @Test
+  public void testLogSystemProperties() throws Exception {
+    Configuration conf = new Configuration();
+    // test default logging
+    conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, " ");
+    String value = TezUtils.getSystemPropertiesToLog(conf);
+    for(String key: TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT) {
+      assertTrue(value.contains(key));
+    }
+
+    // test logging of selected keys
+    String classpath = "java.class.path";
+    String os = "os.name";
+    String version = "java.version";
+    conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, classpath + ", " + os);
+    value = TezUtils.getSystemPropertiesToLog(conf);
+    assertNotNull(value);
+    assertTrue(value.contains(classpath));
+    assertTrue(value.contains(os));
+    assertFalse(value.contains(version));
+  }
 
 }
