@@ -1,0 +1,176 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.tez.runtime.library.cartesianproduct;
+
+import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
+import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.dag.api.TezReflectionException;
+import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Starts scheduling tasks when number of completed source tasks crosses
+ * min fraction and schedules all task when max fraction is reached
+ */
+class CartesianProductVertexManagerPartitioned extends CartesianProductVertexManagerReal {
+  private CartesianProductVertexManagerConfig config;
+  private List<String> sourceVertices;
+  private int parallelism = 0;
+  private boolean vertexStarted = false;
+  private boolean vertexReconfigured = false;
+  private int numSourceVertexConfigured = 0;
+  private CartesianProductFilter filter;
+  private Map<String, BitSet> sourceTaskCompleted = new HashMap<>();
+  private int numFinishedSrcTasks = 0;
+  private int totalNumSrcTasks = 0;
+  private int lastScheduledTaskId = -1;
+  private static final Logger LOG =
+    LoggerFactory.getLogger(CartesianProductVertexManagerPartitioned.class);
+
+  public CartesianProductVertexManagerPartitioned(VertexManagerPluginContext context) {
+    super(context);
+  }
+
+  @Override
+  public void initialize(CartesianProductVertexManagerConfig config) throws TezReflectionException {
+    this.config = config;
+    this.sourceVertices = config.getSourceVertices();
+    CartesianProductFilterDescriptor filterDescriptor = config.getFilterDescriptor();
+    if (filterDescriptor != null) {
+      try {
+        filter = ReflectionUtils.createClazzInstance(filterDescriptor.getClassName(),
+          new Class[]{UserPayload.class}, new UserPayload[]{filterDescriptor.getUserPayload()});
+      } catch (TezReflectionException e) {
+        LOG.error("Creating filter failed");
+        throw e;
+      }
+    }
+    for (String sourceVertex : sourceVertices) {
+      sourceTaskCompleted.put(sourceVertex, new BitSet());
+    }
+    for (String vertex : sourceVertices) {
+      getContext().registerForVertexStateUpdates(vertex, EnumSet.of(VertexState.CONFIGURED));
+    }
+    getContext().vertexReconfigurationPlanned();
+  }
+
+  private void reconfigureVertex() throws IOException {
+    // try all combinations, check against filter and get final parallelism
+    Map<String, Integer> vertexPartitionMap = new HashMap<>();
+
+    CartesianProductCombination combination =
+      new CartesianProductCombination(Ints.toArray(config.getNumPartitions()));
+    combination.firstTask();
+    do {
+      for (int i = 0; i < sourceVertices.size(); i++) {
+        vertexPartitionMap.put(sourceVertices.get(i), combination.getCombination().get(i));
+      }
+      if (filter == null || filter.isValidCombination(vertexPartitionMap)) {
+        parallelism++;
+      }
+    } while (combination.nextTask());
+    // no need to reconfigure EM because EM already has all necessary information via config object
+    getContext().reconfigureVertex(parallelism, null, null);
+    vertexReconfigured = true;
+    getContext().doneReconfiguringVertex();
+  }
+
+  @Override
+  public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions)
+    throws Exception {
+    vertexStarted = true;
+    if (completions != null) {
+      for (TaskAttemptIdentifier attempt : completions) {
+        onSourceTaskCompleted(attempt);
+      }
+    }
+    // try schedule because there may be no more vertex state update and source completions
+    tryScheduleTask();
+  }
+
+  @Override
+  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws IOException{
+    Preconditions.checkArgument(stateUpdate.getVertexState() == VertexState.CONFIGURED);
+    if (!vertexReconfigured) {
+      reconfigureVertex();
+    }
+    numSourceVertexConfigured++;
+    totalNumSrcTasks += getContext().getVertexNumTasks(stateUpdate.getVertexName());
+    // try schedule because there may be no more vertex start and source completions
+    tryScheduleTask();
+  }
+
+  @Override
+  public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) throws Exception {
+    int taskId = attempt.getTaskIdentifier().getIdentifier();
+    String vertex = attempt.getTaskIdentifier().getVertexIdentifier().getName();
+    BitSet bitSet = this.sourceTaskCompleted.get(vertex);
+    if (!bitSet.get(taskId)) {
+      bitSet.set(taskId);
+      numFinishedSrcTasks++;
+      tryScheduleTask();
+    }
+  }
+
+  /**
+   * schedule task as the ascending order of id. Slow start has same behavior as ShuffleVertexManager
+   */
+  private void tryScheduleTask() {
+    // only schedule task when vertex is already started and all source vertices are configured
+    if (!vertexStarted
+      || numSourceVertexConfigured != sourceVertices.size()) {
+      return;
+    }
+    // determine the destination task with largest id to schedule
+    float percentFinishedSrcTask = numFinishedSrcTasks*1f/totalNumSrcTasks;
+    int numTaskToSchedule;
+    if (percentFinishedSrcTask < config.getMinFraction()) {
+      numTaskToSchedule = 0;
+    } else if (config.getMinFraction() <= percentFinishedSrcTask &&
+        percentFinishedSrcTask <= config.getMaxFraction()) {
+      numTaskToSchedule = (int) ((percentFinishedSrcTask-config.getMinFraction())
+        /(config.getMaxFraction()-config.getMinFraction())*parallelism);
+    } else {
+      numTaskToSchedule = parallelism;
+    }
+    // schedule tasks if there are more we can schedule
+    if (numTaskToSchedule-1 > lastScheduledTaskId) {
+      List<ScheduleTaskRequest> scheduleTaskRequests = new ArrayList<>();
+      for (int i = lastScheduledTaskId + 1; i < numTaskToSchedule; i++) {
+        scheduleTaskRequests.add(ScheduleTaskRequest.create(i, null));
+      }
+      lastScheduledTaskId = numTaskToSchedule-1;
+      getContext().scheduleTasks(scheduleTaskRequests);
+    }
+  }
+}
