@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-3230. Implement vertex manager and edge manager of cartesian product edge.
   TEZ-3326. Display JVM system properties in AM and task logs.
   TEZ-3009. Errors that occur during container task acquisition are not logged.
@@ -103,6 +104,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-3326. Display JVM system properties in AM and task logs.
   TEZ-3009. Errors that occur during container task acquisition are not logged.
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
@@ -589,6 +591,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
   TEZ-3326. Display JVM system properties in AM and task logs.
   TEZ-3009. Errors that occur during container task acquisition are not logged.
