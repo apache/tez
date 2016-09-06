@@ -17,13 +17,20 @@ package org.apache.tez.dag.app;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -48,7 +55,9 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
+import org.apache.tez.dag.app.rm.TaskSchedulerEventHandler;
 import org.apache.tez.dag.records.TezDAGID;
 import org.junit.After;
 import org.junit.Before;
@@ -70,6 +79,32 @@ public class TestDAGAppMaster {
   @After
   public void teardown() {
     FileUtil.fullyDelete(TEST_DIR);
+  }
+
+  @Test(timeout = 20000)
+  public void testInvalidSession() throws Exception {
+    // AM should fail if not the first attempt and in session mode and
+    // DAG recovery is disabled, otherwise the app can succeed without
+    // finishing an in-progress DAG.
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true, 3);
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+    dam.init(conf);
+    dam.start();
+    verify(dam.mockScheduler).setShouldUnregisterFlag();
+    verify(dam.mockShutdown).shutdown();
+    List<String> diags = dam.getDiagnostics();
+    boolean found = false;
+    for (String diag : diags) {
+      if (diag.contains(DAGAppMaster.INVALID_SESSION_ERR_MSG)) {
+        found = true;
+        break;
+      }
+    }
+    assertTrue("Missing invalid session diagnostics", found);
+    dam.stop();
   }
 
   @Test
@@ -231,6 +266,53 @@ public class TestDAGAppMaster {
     @Override
     public TestTokenIdentifier createIdentifier() {
       return new TestTokenIdentifier();
+    }
+  }
+
+  private static class DAGAppMasterForTest extends DAGAppMaster {
+    private DAGAppMasterShutdownHandler mockShutdown;
+    private TaskSchedulerEventHandler mockScheduler = mock(TaskSchedulerEventHandler.class);
+
+    public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession, int maxAttempts) {
+      super(attemptId, ContainerId.newContainerId(attemptId, 1), "hostname", 12345, 12346,
+          new SystemClock(), 0, isSession, TEST_DIR.getAbsolutePath(),
+          new String[] { TEST_DIR.getAbsolutePath() }, new String[] { TEST_DIR.getAbsolutePath() },
+          new TezDagVersionInfo().getVersion(), maxAttempts, createCredentials(), "jobname");
+    }
+
+    private static Credentials createCredentials() {
+      Credentials creds = new Credentials();
+      JobTokenSecretManager jtsm = new JobTokenSecretManager();
+      JobTokenIdentifier jtid = new JobTokenIdentifier(new Text());
+      Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(jtid, jtsm);
+      TokenCache.setSessionToken(token, creds);
+      return creds;
+    }
+
+    private static void stubSessionResources() throws IOException {
+      FileOutputStream out = new FileOutputStream(
+          new File(TEST_DIR, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+      PlanLocalResourcesProto planProto = PlanLocalResourcesProto.getDefaultInstance();
+      planProto.writeDelimitedTo(out);
+      out.close();
+    }
+
+    @Override
+    public synchronized void serviceInit(Configuration conf) throws Exception {
+      stubSessionResources();
+      conf.setBoolean(TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE, false);
+      super.serviceInit(conf);
+    }
+
+    @Override
+    protected DAGAppMasterShutdownHandler createShutdownHandler() {
+      mockShutdown = mock(DAGAppMasterShutdownHandler.class);
+      return mockShutdown;
+    }
+
+    @Override
+    protected TaskSchedulerEventHandler createTaskSchedulerManager() {
+      return mockScheduler;
     }
   }
 }

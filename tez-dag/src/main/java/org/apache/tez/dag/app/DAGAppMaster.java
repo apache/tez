@@ -211,6 +211,10 @@ public class DAGAppMaster extends AbstractService {
 
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
+  @VisibleForTesting
+  static final String INVALID_SESSION_ERR_MSG = "Initial application attempt in session mode failed. "
+      + "Application cannot recover and continue properly as DAG recovery has been disabled";
+
   private Clock clock;
   private final boolean isSession;
   private long appsStartTime;
@@ -328,7 +332,7 @@ public class DAGAppMaster extends AbstractService {
     this.workingDirectory = workingDirectory;
     this.localDirs = localDirs;
     this.logDirs = logDirs;
-    this.shutdownHandler = new DAGAppMasterShutdownHandler();
+    this.shutdownHandler = createShutdownHandler();
     this.dagVersionInfo = new TezDagVersionInfo();
     this.clientVersion = clientVersion;
     this.maxAppAttempts = maxAppAttempts;
@@ -510,8 +514,7 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    this.taskSchedulerEventHandler = new TaskSchedulerEventHandler(context,
-        clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService);
+    this.taskSchedulerEventHandler = createTaskSchedulerManager();
     addIfService(taskSchedulerEventHandler, true);
 
     if (enableWebUIService()) {
@@ -593,6 +596,17 @@ public class DAGAppMaster extends AbstractService {
     } else {
       this.state = DAGAppMasterState.ERROR;
     }
+  }
+
+  @VisibleForTesting
+  protected DAGAppMasterShutdownHandler createShutdownHandler() {
+    return new DAGAppMasterShutdownHandler();
+  }
+
+  @VisibleForTesting
+  protected TaskSchedulerEventHandler createTaskSchedulerManager() {
+    return new TaskSchedulerEventHandler(context, clientRpcServer,
+        dispatcher.getEventHandler(), containerSignatureMatcher, webUIService);
   }
 
   @VisibleForTesting
@@ -1808,8 +1822,16 @@ public class DAGAppMaster extends AbstractService {
     startServices();
     super.serviceStart();
 
-    if (versionMismatch) {
-      // Short-circuit and return as no DAG should not be run
+    boolean invalidSession = false;
+    if (isSession && !recoveryEnabled && appAttemptID.getAttemptId() > 1) {
+      String err = INVALID_SESSION_ERR_MSG;
+      LOG.error(err);
+      addDiagnostic(err);
+      this.state = DAGAppMasterState.ERROR;
+      invalidSession = true;
+    }
+    if (versionMismatch || invalidSession) {
+      // Short-circuit and return as no DAG should be run
       this.taskSchedulerEventHandler.setShouldUnregisterFlag();
       shutdownHandler.shutdown();
       return;
