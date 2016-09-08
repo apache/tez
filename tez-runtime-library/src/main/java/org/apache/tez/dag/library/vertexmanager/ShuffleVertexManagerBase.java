@@ -29,6 +29,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -55,7 +56,6 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.BitSet;
@@ -337,7 +337,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
           ByteString compressedPartitionStats = proto.getPartitionStats();
           byte[] rawData = TezCommonUtils.decompressByteStringToByteArray(
               compressedPartitionStats);
-          ByteArrayInputStream bin = new ByteArrayInputStream(rawData);
+          NonSyncByteArrayInputStream bin = new NonSyncByteArrayInputStream(rawData);
           partitionStats.deserialize(new DataInputStream(bin));
 
           parsePartitionStats(partitionStats);

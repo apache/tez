@@ -17,12 +17,9 @@
  */
 package org.apache.tez.mapreduce.examples;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -34,6 +31,9 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.io.NonSyncByteArrayInputStream;
+import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.GroupInputEdge;
@@ -172,8 +172,8 @@ public class MultipleCommitsExample extends TezExampleBase {
       }
       
       public UserPayload toUserPayload() throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        this.write(new DataOutputStream(out));
+        NonSyncByteArrayOutputStream out = new NonSyncByteArrayOutputStream();
+        this.write(new NonSyncDataOutputStream(out));
         return UserPayload.create(ByteBuffer.wrap(out.toByteArray()));
       }
 
@@ -181,7 +181,7 @@ public class MultipleCommitsExample extends TezExampleBase {
           throws IOException {
         MultipleOutputProcessorConfig config = new MultipleOutputProcessorConfig();
         config.readFields(new DataInputStream(
-            new ByteArrayInputStream(payload.deepCopyAsArray())));
+            new NonSyncByteArrayInputStream(payload.deepCopyAsArray())));
         return config;
       }
     }

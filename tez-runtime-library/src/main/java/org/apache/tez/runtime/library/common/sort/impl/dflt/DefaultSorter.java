@@ -18,7 +18,6 @@
 
 package org.apache.tez.runtime.library.common.sort.impl.dflt;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -43,6 +42,7 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -474,7 +474,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   /**
    * Inner class managing the spill of serialized records to disk.
    */
-  protected class BlockingBuffer extends DataOutputStream {
+  protected class BlockingBuffer extends NonSyncDataOutputStream {
 
     public BlockingBuffer() {
       super(new Buffer());

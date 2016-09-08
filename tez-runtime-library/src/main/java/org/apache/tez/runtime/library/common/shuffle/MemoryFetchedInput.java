@@ -18,11 +18,11 @@
 
 package org.apache.tez.runtime.library.common.shuffle;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 import com.google.common.base.Preconditions;
@@ -45,7 +45,7 @@ public class MemoryFetchedInput extends FetchedInput {
 
   @Override
   public InputStream getInputStream() {
-    return new ByteArrayInputStream(byteStream.getBuffer());
+    return new NonSyncByteArrayInputStream(byteStream.getBuffer());
   }
 
   public byte[] getBytes() {

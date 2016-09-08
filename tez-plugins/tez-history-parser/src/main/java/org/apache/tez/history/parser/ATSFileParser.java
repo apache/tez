@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.history.parser.datamodel.BaseParser;
 import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.datamodel.DagInfo;
@@ -35,7 +36,6 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -176,7 +176,7 @@ public class ATSFileParser extends BaseParser implements ATSData {
 
   private JSONObject readJson(InputStream in) throws IOException, JSONException {
     //Read entire content to memory
-    final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
     IOUtils.copy(in, bout);
     return new JSONObject(new String(bout.toByteArray(), "UTF-8"));
   }

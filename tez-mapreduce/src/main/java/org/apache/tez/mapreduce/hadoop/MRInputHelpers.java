@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +61,7 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
@@ -247,7 +247,7 @@ public class MRInputHelpers {
 
     ByteString.Output os = ByteString
         .newOutput(SPLIT_SERIALIZED_LENGTH_ESTIMATE);
-    oldSplit.write(new DataOutputStream(os));
+    oldSplit.write(new NonSyncDataOutputStream(os));
     ByteString splitBs = os.toByteString();
     builder.setSplitBytes(splitBs);
 

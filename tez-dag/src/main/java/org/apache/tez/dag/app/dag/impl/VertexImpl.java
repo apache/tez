@@ -17,8 +17,6 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
@@ -65,6 +63,8 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.common.io.NonSyncByteArrayInputStream;
+import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
@@ -2583,7 +2583,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             + ", use NoOpVertexManager to replace it, vertexId=" + logIdentifier);
         LOG.debug("VertexReconfigureDoneEvent=" + reconfigureDoneEvent);
       }
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      NonSyncByteArrayOutputStream out = new NonSyncByteArrayOutputStream();
       try {
         reconfigureDoneEvent.toProtoStream(out);
       } catch (IOException e) {
@@ -4458,7 +4458,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         LOG.debug("initialize NoOpVertexManager");
       }
       configurationDoneEvent = new VertexConfigurationDoneEvent();
-      configurationDoneEvent.fromProtoStream(new ByteArrayInputStream(getContext().getUserPayload().deepCopyAsArray()));
+      configurationDoneEvent.fromProtoStream(new NonSyncByteArrayInputStream(getContext().getUserPayload().deepCopyAsArray()));
       String vertexName = getContext().getVertexName();
       if (getContext().getVertexNumTasks(vertexName) == -1) {
         Preconditions.checkArgument(configurationDoneEvent.isSetParallelismCalled(), "SetParallelism must be called "

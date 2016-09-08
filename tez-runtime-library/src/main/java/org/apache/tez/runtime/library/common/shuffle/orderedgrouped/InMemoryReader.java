@@ -18,7 +18,6 @@
 
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,6 +26,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
@@ -38,7 +38,7 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 @InterfaceStability.Unstable
 public class InMemoryReader extends Reader {
 
-  private static class ByteArrayDataInput extends ByteArrayInputStream implements DataInput {
+  private static class ByteArrayDataInput extends NonSyncByteArrayInputStream implements DataInput {
 
     public ByteArrayDataInput(byte buf[], int offset, int length) {
       super(buf, offset, length);
