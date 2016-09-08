@@ -26,7 +26,9 @@
     <tez.dag.state.classes>org.apache.tez.dag.app.dag.impl.DAGImpl,
     org.apache.tez.dag.app.dag.impl.VertexImpl,
     org.apache.tez.dag.app.dag.impl.TaskImpl,
-    org.apache.tez.dag.app.dag.impl.TaskAttemptImpl</tez.dag.state.classes>
+    org.apache.tez.dag.app.dag.impl.TaskAttemptImpl,
+    org.apache.tez.dag.app.rm.node.AMNodeImpl,
+    org.apache.tez.dag.app.rm.container.AMContainerImpl</tez.dag.state.classes>
     <tez.graphviz.title>Tez</tez.graphviz.title>
     <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
   </properties>
