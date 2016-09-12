@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3404. Move blocking call for YARN Timeline domain creation from client side to AM.
   TEZ-3272. Add AMContainerImpl and AMNodeImpl to StateMachine visualization list.
   TEZ-3284. Synchronization for every write in UnorderdKVWriter
   TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases

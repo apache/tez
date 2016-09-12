@@ -663,7 +663,8 @@ public class MRRSleepJob extends Configured implements Tool {
           " [-irt intermediateReduceSleepTime]" +
           " [-recordt recordSleepTime (msec)]" +
           " [-generateSplitsInAM (false)/true]" +
-          " [-writeSplitsToDfs (false)/true]");
+          " [-writeSplitsToDfs (false)/true]" +
+          " [-numDags numDagsToSubmit");
       ToolRunner.printGenericCommandUsage(System.err);
       return 2;
     }
@@ -676,6 +677,8 @@ public class MRRSleepJob extends Configured implements Tool {
     boolean writeSplitsToDfs = false;
     boolean generateSplitsInAM = false;
     boolean splitsOptionFound = false;
+    boolean isSession = false;
+    int numDags = 1;
 
     for(int i=0; i < args.length; i++ ) {
       if(args[i].equals("-m")) {
@@ -716,6 +719,12 @@ public class MRRSleepJob extends Configured implements Tool {
         }
         splitsOptionFound = true;
         writeSplitsToDfs = Boolean.parseBoolean(args[++i]);
+      } else if (args[i].equals("-numDags")) {
+        numDags = Integer.parseInt(args[++i]);
+        if (numDags < 1) {
+          throw new RuntimeException("numDags should be positive");
+        }
+        isSession = numDags > 1;
       }
     }
 
@@ -747,13 +756,20 @@ public class MRRSleepJob extends Configured implements Tool {
         mapSleepTime, mapSleepCount, reduceSleepTime, reduceSleepCount,
         iReduceSleepTime, iReduceSleepCount, writeSplitsToDfs, generateSplitsInAM);
 
-    TezClient tezSession = TezClient.create("MRRSleep", conf, false, null, credentials);
+    TezClient tezSession = TezClient.create("MRRSleep", conf, isSession, null, credentials);
     tezSession.start();
-    DAGClient dagClient = tezSession.submitDAG(dag);
-    dagClient.waitForCompletion();
-    tezSession.stop();
-
-    return dagClient.getDAGStatus(null).getState().equals(DAGStatus.State.SUCCEEDED) ? 0 : 1;
+    try {
+      for (; numDags > 0; --numDags) {
+        DAGClient dagClient = tezSession.submitDAG(dag);
+        dagClient.waitForCompletion();
+        if (!dagClient.getDAGStatus(null).getState().equals(DAGStatus.State.SUCCEEDED)) {
+          return 1;
+        }
+      }
+    } finally {
+      tezSession.stop();
+    }
+    return 0;
   }
 
 }

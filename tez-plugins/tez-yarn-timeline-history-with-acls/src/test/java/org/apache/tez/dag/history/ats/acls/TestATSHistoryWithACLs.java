@@ -42,7 +42,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
-import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.ReflectionUtils;
@@ -54,6 +53,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.app.AppContext;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
@@ -73,7 +73,6 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
-import org.mockito.Matchers;
 
 public class TestATSHistoryWithACLs {
 
@@ -307,170 +306,6 @@ public class TestATSHistoryWithACLs {
   }
 
   /**
-   * test failure of domain creation during dag submittion in session mode
-   * only affect logging for that dag not following submitted dag 
-   * @throws Exception
-   */
-  @Test (timeout=50000)
-  public void testMultipleDagSession() throws Exception {
-    TezClient tezSession = null;
-    String viewAcls = "nobody nobody_group";
-    SleepProcessorConfig spConf = new SleepProcessorConfig(1);
-
-    DAG dag = DAG.create("TezSleepProcessor");
-    Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-            SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-            Resource.newInstance(256, 1));
-    dag.addVertex(vertex);
-    DAGAccessControls accessControls = new DAGAccessControls();
-    accessControls.setUsersWithViewACLs(Collections.singleton("nobody2"));
-    accessControls.setGroupsWithViewACLs(Collections.singleton("nobody_group2"));
-    dag.setAccessControls(accessControls);
-
-    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-    tezConf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewAcls);
-    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
-        ATSHistoryLoggingService.class.getName());
-    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
-        .nextInt(100000))));
-    remoteFs.mkdirs(remoteStagingDir);
-    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-
-    tezSession = TezClient.create("TezSleepProcessor", tezConf, true);
-    tezSession.start();
-
-    //////submit first dag which fails in dag creation//////
-    ATSHistoryACLPolicyManager myAclPolicyManager = ReflectionUtils.createClazzInstance(
-              atsHistoryACLManagerClassName);
-    myAclPolicyManager.timelineClient = mock(TimelineClient.class);
-
-    doThrow(new IOException("Fail to Put Domain")).when(myAclPolicyManager.timelineClient).putDomain(Matchers.<TimelineDomain>anyVararg());
-    tezSession.setUpHistoryAclManager(myAclPolicyManager);
-
-    DAGClient dagClient = tezSession.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-          + dagStatus.getState());
-      Thread.sleep(500l);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    String dagLogging = dag.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    assertEquals(dagLogging, "false");
-    
-    myAclPolicyManager.timelineClient = null;
-    myAclPolicyManager.setConf(tezConf);
-    tezSession.setUpHistoryAclManager(myAclPolicyManager);
-
-    //////submit second dag which succeeds in dag creation//////
-    DAG dag2 = DAG.create("TezSleepProcessor2");
-    vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-          SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-       Resource.newInstance(256, 1));
-    dag2.addVertex(vertex);
-    accessControls = new DAGAccessControls();
-    accessControls.setUsersWithViewACLs(Collections.singleton("nobody3"));
-    accessControls.setGroupsWithViewACLs(Collections.singleton("nobody_group3"));
-    dag2.setAccessControls(accessControls);
-    dagClient = tezSession.submitDAG(dag2);
-    dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-                + dagStatus.getState());
-      Thread.sleep(500l);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-    dagLogging = dag2.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    Assert.assertNull(dagLogging);
-    myAclPolicyManager.timelineClient = spy(myAclPolicyManager.timelineClient);
-    tezSession.stop();
-    verify(myAclPolicyManager.timelineClient, times(1)).stop();
-  }
-  
-/**
- * test failure of domain creation during dag submittion in nonsession mode
- * only affect logging for that dag not following submitted dag 
- * @throws Exception
- */
-  @Test (timeout=50000)
-  public void testMultipleDagNonSession() throws Exception {
-    TezClient tezClient = null;
-    String viewAcls = "nobody nobody_group";
-    SleepProcessorConfig spConf = new SleepProcessorConfig(1);
-
-    DAG dag = DAG.create("TezSleepProcessor");
-    Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-            SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-            Resource.newInstance(256, 1));
-    dag.addVertex(vertex);
-    DAGAccessControls accessControls = new DAGAccessControls();
-    accessControls.setUsersWithViewACLs(Collections.singleton("nobody2"));
-    accessControls.setGroupsWithViewACLs(Collections.singleton("nobody_group2"));
-    dag.setAccessControls(accessControls);
-
-    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
-    tezConf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewAcls);
-    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
-        ATSHistoryLoggingService.class.getName());
-    Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String.valueOf(random
-        .nextInt(100000))));
-    remoteFs.mkdirs(remoteStagingDir);
-    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-
-    tezClient = TezClient.create("TezSleepProcessor", tezConf, false);
-    tezClient.start();
-
-    //////submit first dag which fails in dag creation//////
-    ATSHistoryACLPolicyManager myAclPolicyManager = ReflectionUtils.createClazzInstance(
-              atsHistoryACLManagerClassName);
-    myAclPolicyManager.timelineClient = mock(TimelineClient.class);
-
-    doThrow(new IOException("Fail to Put Domain")).when(myAclPolicyManager.timelineClient).putDomain(Matchers.<TimelineDomain>anyVararg());
-    tezClient.setUpHistoryAclManager(myAclPolicyManager);
-
-    DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-          + dagStatus.getState());
-      Thread.sleep(500l);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    String dagLogging = dag.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    assertEquals(dagLogging, "false");
-    
-    myAclPolicyManager.timelineClient = null;
-    myAclPolicyManager.setConf(tezConf);
-    tezClient.setUpHistoryAclManager(myAclPolicyManager);
-
-    //////submit second dag which succeeds in dag creation//////
-    DAG dag2 = DAG.create("TezSleepProcessor2");
-    vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-           SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-        Resource.newInstance(256, 1));
-    dag2.addVertex(vertex);
-    accessControls = new DAGAccessControls();
-    accessControls.setUsersWithViewACLs(Collections.singleton("nobody3"));
-    accessControls.setGroupsWithViewACLs(Collections.singleton("nobody_group3"));
-    dag2.setAccessControls(accessControls);
-    dagClient = tezClient.submitDAG(dag2);
-    dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-                   + dagStatus.getState());
-      Thread.sleep(500l);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-    dagLogging = dag2.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    Assert.assertNull(dagLogging);
-    myAclPolicyManager.timelineClient = spy(myAclPolicyManager.timelineClient);
-    tezClient.stop();
-    verify(myAclPolicyManager.timelineClient, times(1)).stop();
-
-  }
-  /**
    * Test Disable Logging for all dags in a session 
    * due to failure to create domain in session start
    * @throws Exception
@@ -501,19 +336,8 @@ public class TestATSHistoryWithACLs {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
 
     tezSession = TezClient.create("TezSleepProcessor", tezConf, true);
-    ATSHistoryACLPolicyManager myAclPolicyManager = ReflectionUtils.createClazzInstance(
-            atsHistoryACLManagerClassName);
-    myAclPolicyManager.timelineClient = mock(TimelineClient.class);
-
-    doThrow(new IOException("Fail to Put Domain")).
-        when(myAclPolicyManager.timelineClient).putDomain(Matchers.<TimelineDomain>anyVararg());
-    tezSession.setUpHistoryAclManager(myAclPolicyManager);
     tezSession.start();
 
-    ///substitute back mocked timelineClient with a normal one
-    myAclPolicyManager.timelineClient = null;
-    myAclPolicyManager.setConf(tezConf);
-    tezSession.setUpHistoryAclManager(myAclPolicyManager);
     //////submit first dag //////
     DAGClient dagClient = tezSession.submitDAG(dag);
     DAGStatus dagStatus = dagClient.getDAGStatus(null);
@@ -524,9 +348,7 @@ public class TestATSHistoryWithACLs {
       dagStatus = dagClient.getDAGStatus(null);
     }
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    String dagLogging = dag.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    assertEquals(dagLogging, "false");
- 
+
     //////submit second dag//////
     DAG dag2 = DAG.create("TezSleepProcessor2");
     vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
@@ -545,10 +367,9 @@ public class TestATSHistoryWithACLs {
       Thread.sleep(500l);
       dagStatus = dagClient.getDAGStatus(null);
     }
-    dagLogging = dag2.getDagConf().get(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED);
-    assertEquals(dagLogging, "false");
     tezSession.stop();
   }
+
   /**
    * use mini cluster to verify data do not push to ats when the daglogging flag
    * in dagsubmittedevent is set off
@@ -559,6 +380,9 @@ public class TestATSHistoryWithACLs {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
         ReflectionUtils.createClazzInstance(ATSHistoryLoggingService.class.getName());
+    AppContext appContext = mock(AppContext.class);
+    when(appContext.getApplicationID()).thenReturn(ApplicationId.newInstance(0, 1));
+    historyLoggingService.setAppContext(appContext);
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     String viewAcls = "nobody nobody_group";
     tezConf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewAcls);
@@ -568,8 +392,8 @@ public class TestATSHistoryWithACLs {
         .nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-    historyLoggingService.serviceInit(tezConf);
-    historyLoggingService.serviceStart();
+    historyLoggingService.init(tezConf);
+    historyLoggingService.start();
     ApplicationId appId = ApplicationId.newInstance(100l, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
                         appId, 100);
@@ -601,6 +425,9 @@ public class TestATSHistoryWithACLs {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
             ReflectionUtils.createClazzInstance(ATSHistoryLoggingService.class.getName());
+    AppContext appContext = mock(AppContext.class);
+    when(appContext.getApplicationID()).thenReturn(ApplicationId.newInstance(0, 1));
+    historyLoggingService.setAppContext(appContext);
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     String viewAcls = "nobody nobody_group";
     tezConf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, viewAcls);
@@ -610,8 +437,8 @@ public class TestATSHistoryWithACLs {
         .nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, remoteStagingDir.toString());
-    historyLoggingService.serviceInit(tezConf);
-    historyLoggingService.serviceStart();
+    historyLoggingService.init(tezConf);
+    historyLoggingService.start();
     ApplicationId appId = ApplicationId.newInstance(100l, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
                         appId, 11);
@@ -636,7 +463,7 @@ public class TestATSHistoryWithACLs {
     assertEquals(entity.getEntityType(), "TEZ_DAG_ID");
     assertEquals(entity.getEvents().get(0).getEventType(), HistoryEventType.DAG_SUBMITTED.toString());
   }
-  
+
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
   @Test (timeout=50000)
@@ -675,6 +502,5 @@ public class TestATSHistoryWithACLs {
       assertEquals(appEntity.getDomainId(), dagEntity.getDomainId());
     }
   }
-
 
 }

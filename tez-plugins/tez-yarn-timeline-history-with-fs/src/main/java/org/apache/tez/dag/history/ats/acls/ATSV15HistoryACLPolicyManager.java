@@ -31,7 +31,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
@@ -159,7 +158,6 @@ public class ATSV15HistoryACLPolicyManager implements HistoryACLPolicyManager {
     if (domainId != null) {
       // do nothing
       LOG.info("Using specified domainId with Timeline, domainId=" + domainId);
-      return null;
     } else {
       if (!autoCreateDomain) {
         // Error - Cannot fallback to default as that leaves ACLs open
@@ -169,18 +167,13 @@ public class ATSV15HistoryACLPolicyManager implements HistoryACLPolicyManager {
       domainId = DOMAIN_ID_PREFIX + applicationId.toString();
       createTimelineDomain(applicationId, domainId, tezConf, dagAccessControls);
       LOG.info("Created Timeline Domain for History ACLs, domainId=" + domainId);
-      return Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, domainId);
     }
+    return Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, domainId);
   }
 
   private Map<String, String> createDAGDomain(Configuration tezConf,
       ApplicationId applicationId, String dagName, DAGAccessControls dagAccessControls)
       throws IOException, HistoryACLPolicyException {
-    if (dagAccessControls == null) {
-      // No DAG specific ACLs
-      return null;
-    }
-
     String domainId =
         tezConf.get(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID);
     if (!tezConf.getBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED,
@@ -198,7 +191,6 @@ public class ATSV15HistoryACLPolicyManager implements HistoryACLPolicyManager {
     if (domainId != null) {
       // do nothing
       LOG.info("Using specified domainId with Timeline, domainId=" + domainId);
-      return null;
     } else {
       if (!autoCreateDomain) {
         // Error - Cannot fallback to default as that leaves ACLs open
@@ -206,13 +198,16 @@ public class ATSV15HistoryACLPolicyManager implements HistoryACLPolicyManager {
             + " Domains is disabled");
       }
 
+      // Create a domain only if dagAccessControls has been specified.
+      if (dagAccessControls == null) {
+        return null;
+      }
       domainId = DOMAIN_ID_PREFIX + applicationId.toString() + "_" + dagName;
       createTimelineDomain(applicationId, domainId, tezConf, dagAccessControls);
       LOG.info("Created Timeline Domain for DAG-specific History ACLs, domainId=" + domainId);
-      return Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, domainId);
     }
+    return Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, domainId);
   }
-
 
   @Override
   public void setConf(Configuration conf) {

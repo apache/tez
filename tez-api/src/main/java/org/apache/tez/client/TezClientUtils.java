@@ -86,8 +86,6 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.common.security.HistoryACLPolicyManager;
-import org.apache.tez.common.security.HistoryACLPolicyException;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -445,7 +443,6 @@ public class TezClientUtils {
    * @param amConfig AM Configuration
    * @param tezJarResources Resources to be used by the AM
    * @param sessionCreds the credential object which will be populated with session specific
-   * @param historyACLPolicyManager
    * @param servicePluginsDescriptor descriptor for services which may be running in the AM
    * @return an ApplicationSubmissionContext to launch a Tez AM
    * @throws IOException
@@ -457,7 +454,7 @@ public class TezClientUtils {
       ApplicationId appId, DAG dag, String amName,
       AMConfiguration amConfig, Map<String, LocalResource> tezJarResources,
       Credentials sessionCreds, boolean tezLrsAsArchive,
-      TezApiVersionInfo apiVersionInfo, HistoryACLPolicyManager historyACLPolicyManager,
+      TezApiVersionInfo apiVersionInfo,
       ServicePluginsDescriptor servicePluginsDescriptor, JavaOptsChecker javaOptsChecker)
       throws IOException, YarnException {
 
@@ -565,41 +562,19 @@ public class TezClientUtils {
     }
     amLocalResources.putAll(tezJarResources);
 
-    // Setup Session ACLs and update conf as needed
-    Map<String, String> aclConfigs = null;
-    if (historyACLPolicyManager != null) {
-      if (dag == null) {
-        try{
-          aclConfigs = historyACLPolicyManager.setupSessionACLs(amConfig.getTezConfiguration(),
-              appId);
-        } catch (HistoryACLPolicyException e) {
-          LOG.warn("Disabling history logging for session " + strAppId +
-                   " due to error in setting up history acls " + e);
-          amConfig.getTezConfiguration().setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
-              false);
-        }
-      } else {
-        try{
-          // Non-session mode
-          // As only a single DAG is support, we should combine AM and DAG ACLs under the same
-          // acl management layer
-          aclConfigs = historyACLPolicyManager.setupNonSessionACLs(amConfig.getTezConfiguration(),
-              appId, dag.getDagAccessControls());
-        } catch (HistoryACLPolicyException e) {
-          LOG.warn("Disabling history logging for dag " +
-              dag.getName() + " due to error in setting up history acls " + e);
-          dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
-          // This is non-session mode so disable logging for whole AM
-          amConfig.getTezConfiguration().setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
-              false);
-        }
-      }
+    TezConfiguration tezConf = amConfig.getTezConfiguration();
+    // Merge the dag access controls into tez am config.
+    if (dag != null && dag.getDagAccessControls() != null) {
+      // Merge updates the conf object passed. In non session mode, same client object can be used
+      // to submit multiple dags, copying this prevents ACL of one DAG from being used in another.
+      tezConf = new TezConfiguration(amConfig.getTezConfiguration());
+      dag.getDagAccessControls().mergeIntoAmAcls(tezConf);
     }
 
     // emit conf as PB file
-    ConfigurationProto finalConfProto = createFinalConfProtoForApp(amConfig.getTezConfiguration(),
-        aclConfigs, servicePluginsDescriptor);
-    
+    ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
+        servicePluginsDescriptor);
+
     FSDataOutputStream amConfPBOutBinaryStream = null;
     try {
       amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
@@ -737,20 +712,10 @@ public class TezClientUtils {
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor,
       JavaOptsChecker javaOptsChecker) throws IOException {
-    return prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive, credentials,
-        null, servicePluginsDescriptor, javaOptsChecker);
-  }
-
-  static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
-      Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
-      Credentials credentials, Map<String, String> additionalDAGConfigs,
-      ServicePluginsDescriptor servicePluginsDescriptor,
-      JavaOptsChecker javaOptsChecker) throws IOException {
     Credentials dagCredentials = setupDAGCredentials(dag, credentials,
         amConfig.getTezConfiguration());
     return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
-        amConfig.getBinaryConfLR(), tezLrsAsArchive, additionalDAGConfigs, servicePluginsDescriptor,
-        javaOptsChecker);
+        amConfig.getBinaryConfLR(), tezLrsAsArchive, servicePluginsDescriptor, javaOptsChecker);
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
@@ -829,7 +794,7 @@ public class TezClientUtils {
   }
 
   static ConfigurationProto createFinalConfProtoForApp(Configuration amConf,
-    Map<String, String> additionalConfigs, ServicePluginsDescriptor servicePluginsDescriptor) {
+    ServicePluginsDescriptor servicePluginsDescriptor) {
     assert amConf != null;
     ConfigurationProto.Builder builder = ConfigurationProto.newBuilder();
     for (Entry<String, String> entry : amConf) {
@@ -837,14 +802,6 @@ public class TezClientUtils {
       kvp.setKey(entry.getKey());
       kvp.setValue(amConf.get(entry.getKey()));
       builder.addConfKeyValues(kvp);
-    }
-    if (additionalConfigs != null && !additionalConfigs.isEmpty()) {
-      for (Entry<String, String> entry : additionalConfigs.entrySet()) {
-        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-        kvp.setKey(entry.getKey());
-        kvp.setValue(entry.getValue());
-        builder.addConfKeyValues(kvp);
-      }
     }
 
     AMPluginDescriptorProto pluginDescriptorProto =

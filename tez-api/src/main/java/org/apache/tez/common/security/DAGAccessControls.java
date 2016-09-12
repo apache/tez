@@ -27,7 +27,10 @@ import java.util.Set;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Access controls for the DAG
@@ -150,23 +153,37 @@ public class DAGAccessControls {
     return Collections.unmodifiableSet(groupsWithModifyACLs);
   }
 
+  /**
+   * Merge the dag acls with the AM acls in the configuration object. The config object will contain
+   * the updated acls.
+   * @param conf The AM config.
+   */
   @Private
-  public synchronized void serializeToConfiguration(Configuration conf) {
-    if (usersWithViewACLs.contains(ACLManager.WILDCARD_ACL_VALUE)) {
-      conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, ACLManager.WILDCARD_ACL_VALUE);
+  public synchronized void mergeIntoAmAcls(Configuration conf) {
+    ACLConfigurationParser parser = new ACLConfigurationParser(conf, false);
+    parser.addAllowedGroups(ImmutableMap.of(
+        ACLType.AM_VIEW_ACL, groupsWithViewACLs, ACLType.AM_MODIFY_ACL, groupsWithModifyACLs));
+    parser.addAllowedUsers(ImmutableMap.of(
+        ACLType.AM_VIEW_ACL, usersWithViewACLs, ACLType.AM_MODIFY_ACL, usersWithModifyACLs));
+
+    Set<String> viewUsers = parser.getAllowedUsers().get(ACLType.AM_VIEW_ACL);
+    Set<String> viewGroups = parser.getAllowedGroups().get(ACLType.AM_VIEW_ACL);
+    if (viewUsers.contains(ACLManager.WILDCARD_ACL_VALUE)) {
+      conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, ACLManager.WILDCARD_ACL_VALUE);
     } else {
-      String userList = ACLManager.toCommaSeparatedString(usersWithViewACLs);
-      String groupList = ACLManager.toCommaSeparatedString(groupsWithViewACLs);
-      conf.set(TezConstants.TEZ_DAG_VIEW_ACLS,
-          userList + " " + groupList);
+      String userList = ACLManager.toCommaSeparatedString(viewUsers);
+      String groupList = ACLManager.toCommaSeparatedString(viewGroups);
+      conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, userList + " " + groupList);
     }
-    if (usersWithModifyACLs.contains(ACLManager.WILDCARD_ACL_VALUE)) {
-      conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, ACLManager.WILDCARD_ACL_VALUE);
+
+    Set<String> modifyUsers = parser.getAllowedUsers().get(ACLType.AM_MODIFY_ACL);
+    Set<String> modifyGroups = parser.getAllowedGroups().get(ACLType.AM_MODIFY_ACL);
+    if (modifyUsers.contains(ACLManager.WILDCARD_ACL_VALUE)) {
+      conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, ACLManager.WILDCARD_ACL_VALUE);
     } else {
-      String userList = ACLManager.toCommaSeparatedString(usersWithModifyACLs);
-      String groupList = ACLManager.toCommaSeparatedString(groupsWithModifyACLs);
-      conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, userList + " " + groupList);
+      String userList = ACLManager.toCommaSeparatedString(modifyUsers);
+      String groupList = ACLManager.toCommaSeparatedString(modifyGroups);
+      conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, userList + " " + groupList);
     }
   }
-
 }

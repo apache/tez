@@ -32,7 +32,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
+import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
@@ -43,6 +45,8 @@ import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 public class TestDagTypeConverters {
 
@@ -206,6 +210,40 @@ public class TestDagTypeConverters {
     verifyPlugins(proto.getTaskSchedulersList(), 1, testScheduler, false);
     verifyPlugins(proto.getContainerLaunchersList(), 1, testLauncher, false);
     verifyPlugins(proto.getTaskCommunicatorsList(), 1, testComm, true);
+  }
+
+  @Test
+  public void testAclConversions() {
+    DAGAccessControls dagAccessControls = new DAGAccessControls("u1,u2 g1,g2", "u3,u4 g3,g4");
+    ACLInfo aclInfo = DagTypeConverters.convertDAGAccessControlsToProto(dagAccessControls);
+    assertSame(dagAccessControls, aclInfo);
+    assertSame(DagTypeConverters.convertDAGAccessControlsFromProto(aclInfo), aclInfo);
+
+    dagAccessControls = new DAGAccessControls("u1 ", "u2 ");
+    aclInfo = DagTypeConverters.convertDAGAccessControlsToProto(dagAccessControls);
+    assertSame(dagAccessControls, aclInfo);
+    assertSame(DagTypeConverters.convertDAGAccessControlsFromProto(aclInfo), aclInfo);
+
+    dagAccessControls = new DAGAccessControls(" g1", " g3,g4");
+    aclInfo = DagTypeConverters.convertDAGAccessControlsToProto(dagAccessControls);
+    assertSame(dagAccessControls, aclInfo);
+    assertSame(DagTypeConverters.convertDAGAccessControlsFromProto(aclInfo), aclInfo);
+
+    dagAccessControls = new DAGAccessControls("*", "*");
+    aclInfo = DagTypeConverters.convertDAGAccessControlsToProto(dagAccessControls);
+    assertSame(dagAccessControls, aclInfo);
+    assertSame(DagTypeConverters.convertDAGAccessControlsFromProto(aclInfo), aclInfo);
+  }
+
+  private void assertSame(DAGAccessControls dagAccessControls, ACLInfo aclInfo) {
+    assertEquals(dagAccessControls.getUsersWithViewACLs(),
+        Sets.newHashSet(aclInfo.getUsersWithViewAccessList()));
+    assertEquals(dagAccessControls.getUsersWithModifyACLs(),
+        Sets.newHashSet(aclInfo.getUsersWithModifyAccessList()));
+    assertEquals(dagAccessControls.getGroupsWithViewACLs(),
+        Sets.newHashSet(aclInfo.getGroupsWithViewAccessList()));
+    assertEquals(dagAccessControls.getGroupsWithModifyACLs(),
+        Sets.newHashSet(aclInfo.getGroupsWithModifyAccessList()));
   }
 
   private void verifyPlugins(List<TezNamedEntityDescriptorProto> entities, int expectedCount,

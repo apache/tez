@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,9 +35,8 @@ import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
-import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
+import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.junit.Assert;
@@ -1044,21 +1044,11 @@ public class TestDAGVerify {
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
     Assert.assertNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
 
-    ConfigurationProto confProto = dagPlan.getDagConf();
-    boolean foundViewAcls = false;
-    boolean foundModifyAcls = false;
-
-    for (PlanKeyValuePair pair : confProto.getConfKeyValuesList()) {
-      if (pair.getKey().equals(TezConstants.TEZ_DAG_VIEW_ACLS)) {
-        foundViewAcls = true;
-        Assert.assertEquals("u1 g1", pair.getValue());
-      } else if (pair.getKey().equals(TezConstants.TEZ_DAG_MODIFY_ACLS)) {
-        foundModifyAcls = true;
-        Assert.assertEquals("*", pair.getValue());
-      }
-    }
-    Assert.assertTrue(foundViewAcls);
-    Assert.assertTrue(foundModifyAcls);
+    ACLInfo aclInfo = dagPlan.getAclInfo();
+    Assert.assertEquals(Collections.singletonList("u1"), aclInfo.getUsersWithViewAccessList());
+    Assert.assertEquals(Collections.singletonList("g1"), aclInfo.getGroupsWithViewAccessList());
+    Assert.assertEquals(Collections.singletonList("*"), aclInfo.getUsersWithModifyAccessList());
+    Assert.assertEquals(Collections.singletonList("g2"), aclInfo.getGroupsWithModifyAccessList());
   }
 
   // v1 has input initializer

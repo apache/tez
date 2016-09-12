@@ -50,6 +50,7 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
@@ -300,6 +301,7 @@ public class TestATSHistoryV15 {
       ATSV15HistoryLoggingService service = new ATSV15HistoryLoggingService();
       AppContext appContext = mock(AppContext.class);
       when(appContext.getApplicationID()).thenReturn(appId);
+      when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {});
       service.setAppContext(appContext);
 
       TimelineEntityGroupId grpId = service.getGroupId(event);
