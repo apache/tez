@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +46,7 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -58,6 +61,35 @@ public class MapProcessor extends MRTask{
 
   private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
 
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  Timer progressTimer = new Timer();
+  TimerTask progressTask = new TimerTask() {
+
+    @Override
+    public void run() {
+      try {
+        float progSum = 0.0f;
+        if (inputs != null && inputs.size() != 0) {
+          for(LogicalInput input : inputs.values()) {
+            if (input instanceof AbstractLogicalInput) {
+              progSum += ((AbstractLogicalInput) input).getProgress();
+            }
+          }
+          float progress = (1.0f) * progSum / inputs.size();
+          getContext().setProgress(progress);
+          mrReporter.setProgress(progress);
+        }
+      } catch (IOException e) {
+        LOG.warn("Encountered IOException during Processor progress update"
+            + e.getMessage());
+      } catch (InterruptedException e) {
+        LOG.warn("Encountered InterruptedException during Processor progress"
+            + "update" + e.getMessage());
+      }
+    }
+  };
+
   public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);
   }
@@ -69,33 +101,34 @@ public class MapProcessor extends MRTask{
   }
 
   public void close() throws IOException {
-    // TODO Auto-generated method stub
+    progressTimer.cancel();
 
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
-
+  public void run(Map<String, LogicalInput> _inputs,
+      Map<String, LogicalOutput> _outputs) throws Exception {
+    this.inputs = _inputs;
+    this.outputs = _outputs;
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
-    for (LogicalInput input : inputs.values()) {
+    for (LogicalInput input : _inputs.values()) {
       input.start();
     }
-    for (LogicalOutput output : outputs.values()) {
+    for (LogicalOutput output : _outputs.values()) {
       output.start();
     }
 
-    if (inputs.size() != 1
-        || outputs.size() != 1) {
-      throw new IOException("Cannot handle multiple inputs or outputs"
-          + ", inputCount=" + inputs.size()
-          + ", outputCount=" + outputs.size());
+    if (_inputs.size() != 1
+        || _outputs.size() != 1) {
+      throw new IOException("Cannot handle multiple _inputs or _outputs"
+          + ", inputCount=" + _inputs.size()
+          + ", outputCount=" + _outputs.size());
     }
-    LogicalInput in = inputs.values().iterator().next();
-    LogicalOutput out = outputs.values().iterator().next();
+    LogicalInput in = _inputs.values().iterator().next();
+    LogicalOutput out = _outputs.values().iterator().next();
 
     initTask(out);
-
+    progressTimer.schedule(progressTask, 0, 100);
     // Sanity check
     if (!(in instanceof MRInputLegacy)) {
       throw new IOException(new TezException(

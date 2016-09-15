@@ -17,17 +17,23 @@
  */
 package org.apache.tez.runtime.library.processor;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements an {@link AbstractLogicalIOProcessor} and provides empty
@@ -38,8 +44,36 @@ import org.apache.tez.runtime.api.ProcessorContext;
 @Public
 @Evolving
 public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AbstractLogicalIOProcessor.class);
   protected Map<String, LogicalInput> inputs;
   protected Map<String, LogicalOutput> outputs;
+
+  Timer progressTimer = new Timer();
+  TimerTask progressTask = new TimerTask() {
+
+    @Override
+    public void run() {
+      try {
+        float progSum = 0.0f;
+        if (getInputs() != null) {
+          for(LogicalInput input : getInputs().values()) {
+            if (input instanceof AbstractLogicalInput) {
+              progSum += ((AbstractLogicalInput) input).getProgress();
+            }
+          }
+          float progress = (1.0f) * progSum / inputs.size();
+          getContext().setProgress(progress);
+        }
+      } catch (IOException e) {
+        LOG.warn("Encountered IOException during Processor progress update"
+            + e.getMessage());
+      } catch (InterruptedException e) {
+        LOG.warn("Encountered InterruptedException during Processor progress"
+            + "update" + e.getMessage());
+      }
+    }
+  };
 
   public SimpleProcessor(ProcessorContext context) {
     super(context);
@@ -72,6 +106,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
       for (LogicalInput input : getInputs().values()) {
         input.start();
       }
+      progressTimer.schedule(progressTask, 0, 100);
     }
     if (getOutputs() != null) {
       for (LogicalOutput output : getOutputs().values()) {
@@ -101,7 +136,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-
+    progressTimer.cancel();
   }
 
   public Map<String, LogicalInput> getInputs() {
@@ -112,4 +147,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
     return outputs;
   }
 
+  public Timer getProgressTimer() {
+    return progressTimer;
+  }
 }

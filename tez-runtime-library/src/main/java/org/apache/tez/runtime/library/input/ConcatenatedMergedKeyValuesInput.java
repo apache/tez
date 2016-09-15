@@ -39,6 +39,8 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 @Public
 public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
 
+  private ConcatenatedMergedKeyValuesReader concatenatedMergedKeyValuesReader;
+
   public ConcatenatedMergedKeyValuesInput(MergedInputContext context,
                                           List<Input> inputs) {
     super(context, inputs);
@@ -88,7 +90,10 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
     public Iterable<Object> getCurrentValues() throws IOException {
       return currentReader.getCurrentValues();
     }
-    
+
+    public float getProgress() {
+      return (1.0f)*(currentReaderIndex + 1)/getInputs().size();
+    }
   }
    
   /**
@@ -97,11 +102,17 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
    */
   @Override
   public KeyValuesReader getReader() throws Exception {
-    return new ConcatenatedMergedKeyValuesReader();
+    concatenatedMergedKeyValuesReader = new ConcatenatedMergedKeyValuesReader();
+    return concatenatedMergedKeyValuesReader;
   }
 
   @Override
   public void setConstituentInputIsReady(Input input) {
     informInputReady();
+  }
+
+  @Override
+  public float getProgress()  throws IOException, InterruptedException {
+    return concatenatedMergedKeyValuesReader.getProgress();
   }
 }

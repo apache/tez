@@ -92,8 +92,10 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public void setProgress(float progress) {
-    runtimeTask.setProgress(progress);
-    notifyProgress();
+    if (runtimeTask.getProgress() != progress) {
+      runtimeTask.setProgress(progress);
+      notifyProgress();
+    }
   }
 
   @SuppressWarnings("deprecation")
