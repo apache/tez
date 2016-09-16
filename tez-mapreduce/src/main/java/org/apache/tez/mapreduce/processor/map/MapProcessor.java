@@ -111,6 +111,14 @@ public class MapProcessor extends MRTask{
     this.inputs = _inputs;
     this.outputs = _outputs;
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
+
+    if (_inputs.size() != 1
+            || _outputs.size() != 1) {
+      throw new IOException("Cannot handle multiple _inputs or _outputs"
+              + ", inputCount=" + _inputs.size()
+              + ", outputCount=" + _outputs.size());
+    }
+    
     for (LogicalInput input : _inputs.values()) {
       input.start();
     }
@@ -118,12 +126,6 @@ public class MapProcessor extends MRTask{
       output.start();
     }
 
-    if (_inputs.size() != 1
-        || _outputs.size() != 1) {
-      throw new IOException("Cannot handle multiple _inputs or _outputs"
-          + ", inputCount=" + _inputs.size()
-          + ", outputCount=" + _outputs.size());
-    }
     LogicalInput in = _inputs.values().iterator().next();
     LogicalOutput out = _outputs.values().iterator().next();
 
