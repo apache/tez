@@ -224,6 +224,13 @@
     <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
   </Match>
 
+  <!-- TEZ-3000 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.rm.YarnTaskSchedulerService$DelayedContainerManager"/>
+    <Method name="addDelayedContainer"/><Field name="drainedDelayedContainersForTest"/>
+    <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
+  </Match>
+
   <!-- TEZ-1981 -->
   <Match>
     <Class name="org.apache.tez.dag.app.dag.TaskAttempt$TaskAttemptStatus"/>

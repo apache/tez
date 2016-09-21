@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3000. Fix TestContainerReuse.
   TEZ-3436. Check input and output count before start in MapProcessor.
   TEZ-3163. Reuse and tune Inflaters and Deflaters to speed DME processing
   TEZ-3434. Add unit tests for flushing of recovery events.
@@ -111,6 +112,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3000. Fix TestContainerReuse.
   TEZ-3436. Check input and output count before start in MapProcessor.
   TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-3326. Display JVM system properties in AM and task logs.
