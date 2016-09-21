@@ -134,9 +134,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   AtomicBoolean isStopStarted = new AtomicBoolean(false);
 
-  private ContainerAssigner NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
-  private ContainerAssigner RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
-  private ContainerAssigner NON_LOCAL_ASSIGNER = new NonLocalContainerAssigner();
+  private ContainerAssigner NODE_LOCAL_ASSIGNER;
+  private ContainerAssigner RACK_LOCAL_ASSIGNER;
+  private ContainerAssigner NON_LOCAL_ASSIGNER;
 
   DelayedContainerManager delayedContainerManager;
   long localitySchedulingDelay;
@@ -339,6 +339,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     Preconditions.checkArgument(preemptionMaxWaitTime >=0, "Preemption max wait time must be >=0");
 
     delayedContainerManager = new DelayedContainerManager();
+    NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
+    RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
+    NON_LOCAL_ASSIGNER = new NonLocalContainerAssigner();
     LOG.info("YarnTaskScheduler initialized with configuration: " +
             "maxRMHeartbeatInterval: " + heartbeatIntervalMax +
             ", containerReuseEnabled: " + shouldReuseContainers +
@@ -674,7 +677,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         heldContainer.resetLocalityMatchLevel();
         delayedContainerManager.addDelayedContainer(
             heldContainer.getContainer(), currentTime
-                + localitySchedulingDelay);        
+                + localitySchedulingDelay);
       }
     } else if (state.equals(AMState.RUNNING_APP)) {
       // clear min held containers since we need to allocate to tasks
@@ -2130,6 +2133,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
       boolean added =  false;
       synchronized(this) {
         added = delayedContainers.offer(delayedContainer);
+        if (drainedDelayedContainersForTest != null) {
+          synchronized (drainedDelayedContainersForTest) {
+            drainedDelayedContainersForTest.set(false);
+          }
+        }
         this.notify();
       }
       if (!added) {

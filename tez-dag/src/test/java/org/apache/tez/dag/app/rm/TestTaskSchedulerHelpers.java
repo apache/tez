@@ -29,11 +29,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -47,7 +48,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -163,7 +163,7 @@ class TestTaskSchedulerHelpers {
       TaskSchedulerContextDrainable drainable = new TaskSchedulerContextDrainable(wrapper);
 
       taskSchedulers[0] = new TaskSchedulerWrapper(
-          new TaskSchedulerWithDrainableContext(drainable, amrmClientAsync));
+          spy(new TaskSchedulerWithDrainableContext(drainable, amrmClientAsync)));
       taskSchedulerServiceWrappers[0] =
           new ServicePluginLifecycleAbstractService(taskSchedulers[0].getTaskScheduler());
     }
@@ -176,11 +176,8 @@ class TestTaskSchedulerHelpers {
     public void serviceStart() {
       instantiateSchedulers("host", 0, "", appContext);
       // Init the service so that reuse configuration is picked up.
-      ((AbstractService)taskSchedulerServiceWrappers[0]).init(getConfig());
-      ((AbstractService)taskSchedulerServiceWrappers[0]).start();
-      // For some reason, the spy needs to be setup after sertvice startup.
-      taskSchedulers[0] = new TaskSchedulerWrapper(spy(taskSchedulers[0].getTaskScheduler()));
-
+      taskSchedulerServiceWrappers[0].init(getConfig());
+      taskSchedulerServiceWrappers[0].start();
     }
 
     @Override
@@ -191,8 +188,7 @@ class TestTaskSchedulerHelpers {
   @SuppressWarnings("rawtypes")
   static class CapturingEventHandler implements EventHandler {
 
-    private List<Event> events = new LinkedList<Event>();
-
+    private Queue<Event> events = new ConcurrentLinkedQueue<Event>();
 
     public void handle(Event event) {
       events.add(event);

@@ -191,17 +191,12 @@ public class TestContainerReuse {
       createLaunchRequestEvent(taID31, ta31, resource, host1,
         defaultRack, priority);
 
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrTa11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrTa21);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container containerHost1 = createContainer(1, host1[0], resource, priority);
     Container containerHost2 = createContainer(2, host2[0], resource, priority);
 
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(
       Lists.newArrayList(containerHost1, containerHost2));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
@@ -320,17 +315,12 @@ public class TestContainerReuse {
     AMSchedulerEventTALaunchRequest lrTa31 = createLaunchRequestEvent(
       taID31, ta31, resource, host1, defaultRack, priority);
 
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrTa11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrTa21);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container containerHost1 = createContainer(1, host1[0], resource, priority);
     Container containerHost2 = createContainer(2, host2[0], resource, priority);
 
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Lists.newArrayList(containerHost1, containerHost2));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -432,7 +422,6 @@ public class TestContainerReuse {
     Container container1 = createContainer(1, "host1", resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -478,7 +467,6 @@ public class TestContainerReuse {
     Container container2 = createContainer(2, "host2", resource1, priority1);
 
     // Second container allocated. Should be allocated to the last task.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -573,17 +561,12 @@ public class TestContainerReuse {
     AMSchedulerEventTALaunchRequest lrEvent2 =
         createLaunchRequestEvent(taID12, ta12, resource1, host1, racks, priority1);
 
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent1);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent2);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container container1 = createContainer(1, "host1", resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -622,16 +605,11 @@ public class TestContainerReuse {
         createLaunchRequestEvent(taID14, ta14, resource1, host2, racks,
             priority1, localResources, tsLaunchCmdOpts);
 
-    Container container2 = createContainer(2, "host2", resource1, priority1);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent3);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent4);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     // Container started
-    drainNotifier.set(false);
+    Container container2 = createContainer(2, "host2", resource1, priority1);
     taskScheduler.onContainersAllocated(Collections.singletonList(container2));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -675,11 +653,10 @@ public class TestContainerReuse {
           priority1, localResources, taskSpecificLaunchCmdOption.getTaskSpecificOption("", "v1", 6));
 
     // Container started
-    Container container3 = createContainer(2, "host3", resource1, priority1);
+    Container container3 = createContainer(3, "host3", resource1, priority1);
     taskSchedulerManager.handleEvent(lrEvent5);
     taskSchedulerManager.handleEvent(lrEvent6);
 
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container3));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -772,14 +749,11 @@ public class TestContainerReuse {
       taID12, ta12, resource1, emptyHosts, racks, priority);
 
     // Send launch request for task 1 only, deterministic assignment to this task.
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container container1 = createContainer(1, "randomHost", resource1, priority);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -803,8 +777,8 @@ public class TestContainerReuse {
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
     eventHandler.reset();
 
-    LOG.info("Sleeping to ensure that the scheduling loop runs");
-    Thread.sleep(3000l);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(
         eq(0), eq(ta12), any(Object.class), eq(container1));
 
@@ -812,9 +786,10 @@ public class TestContainerReuse {
     taskSchedulerManager.handleEvent(
       new AMSchedulerEventTAEnded(ta12, container1.getId(),
         TaskAttemptState.SUCCEEDED, null, null, 0));
+
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
-    LOG.info("Sleeping to ensure that the scheduling loop runs");
-    Thread.sleep(3000l);
+
     verify(rmClient).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
 
@@ -831,7 +806,9 @@ public class TestContainerReuse {
     tezConf.setLong(
         TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 1l);
     tezConf.setLong(
-        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 2000l);
+        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 20l);
+    tezConf.setLong(
+            TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 30l);
     tezConf.setInt(
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 1);
 
@@ -900,14 +877,11 @@ public class TestContainerReuse {
       taID21, ta21, resource1, host1, racks, priority2);
 
     // Send launch request for task 1 onle, deterministic assignment to this task.
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container container1 = createContainer(1, host1[0], resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -934,8 +908,9 @@ public class TestContainerReuse {
             TaskAttemptState.SUCCEEDED, null, null, 0));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
 
-    LOG.info("Sleeping to ensure that the scheduling loop runs");
-    Thread.sleep(3000l);
+    LOG.info("Sleeping to ensure that the container has been idled longer " +
+        "than TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS ");
+    Thread.sleep(50l);
     // container should not get released due to min held containers
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
 
@@ -1014,17 +989,12 @@ public class TestContainerReuse {
     TaskAttempt ta112 = mock(TaskAttempt.class);
     AMSchedulerEventTALaunchRequest lrEvent12 = createLaunchRequestEvent(taID112, ta112, resource1, host1, racks, priority1, dag1LRs);
 
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent12);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container container1 = createContainer(1, "host1", resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -1078,11 +1048,9 @@ public class TestContainerReuse {
 
     taskSchedulerManager.handleEvent(lrEvent21);
     taskSchedulerManager.handleEvent(lrEvent22);
-    drainableAppCallback.drain();
 
-    // TODO This is terrible, need a better way to ensure the scheduling loop has run
-    LOG.info("Sleeping to ensure that the scheduling loop runs");
-    Thread.sleep(6000l);
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta211), any(Object.class),
         eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
@@ -1204,18 +1172,13 @@ public class TestContainerReuse {
         taID114, ta114, resource1, host1, racks, priority1, new HashMap<String, LocalResource>());
 
 
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent11);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent12);
-    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
 
     Container container1 = createContainer(1, "host1", resource1, priority1);
     Container container2 = createContainer(2, "host1", resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
@@ -1247,10 +1210,9 @@ public class TestContainerReuse {
     eventHandler.reset();
 
     // Task 3
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent13);
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-
+    drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta113), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -1265,10 +1227,9 @@ public class TestContainerReuse {
     eventHandler.reset();
 
     // Task 4
-    drainNotifier.set(false);
     taskSchedulerManager.handleEvent(lrEvent14);
     TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
-
+    drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta114), any(Object.class), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
@@ -1302,16 +1263,15 @@ public class TestContainerReuse {
         host1, racks, priority1, v21LR);
 
     taskSchedulerManager.handleEvent(lrEvent21);
+
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
     drainableAppCallback.drain();
 
-    // TODO This is terrible, need a better way to ensure the scheduling loop has run
-    LOG.info("Sleeping to ensure that the scheduling loop runs");
-    Thread.sleep(6000l);
-    drainNotifier.set(false);
-    taskScheduler.onContainersAllocated(Collections.singletonList(container2));
-
-    Thread.sleep(6000l);
     verify(rmClient, times(1)).releaseAssignedContainer(eq(container1.getId()));
+
+    taskScheduler.onContainersAllocated(Collections.singletonList(container2));
+    TestTaskSchedulerHelpers.waitForDelayedDrainNotify(drainNotifier);
+    drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta211), any(Object.class), eq(container2));
     eventHandler.reset();
 
@@ -1364,7 +1324,6 @@ public class TestContainerReuse {
 
     Resource resource1 = Resource.newInstance(1024, 1);
     String[] host1 = {"host1"};
-    String[] host2 = {"host2"};
 
     String []racks = {"/default-rack"};
     Priority priority1 = Priority.newInstance(1);
@@ -1381,7 +1340,6 @@ public class TestContainerReuse {
     Container container1 = createContainer(1, "host1", resource1, priority1);
 
     // One container allocated.
-    drainNotifier.set(false);
     taskScheduler.onContainersAllocated(Collections.singletonList(container1));
     drainableAppCallback.drain();
     verify(taskSchedulerManager, times(0)).taskAllocated(eq(0), eq(ta11),
