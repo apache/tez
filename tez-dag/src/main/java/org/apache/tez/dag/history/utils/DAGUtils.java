@@ -28,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.zip.Inflater;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.VersionInfo;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
@@ -186,7 +188,7 @@ public class DAGUtils {
   }
 
   public static Map<String,Object> convertDAGPlanToATSMap(DAGPlan dagPlan) throws IOException {
-
+    final Inflater inflater = TezCommonUtils.newInflater();
     final String VERSION_KEY = "version";
     final int version = 2;
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
@@ -208,7 +210,7 @@ public class DAGUtils {
         if (vertexPlan.getProcessorDescriptor().hasHistoryText()) {
           vertexMap.put(USER_PAYLOAD_AS_TEXT,
               DagTypeConverters.getHistoryTextFromProto(
-                  vertexPlan.getProcessorDescriptor()));
+                  vertexPlan.getProcessorDescriptor(), inflater));
         }
       }
 
@@ -232,7 +234,7 @@ public class DAGUtils {
         if (input.getIODescriptor().hasHistoryText()) {
           inputMap.put(USER_PAYLOAD_AS_TEXT,
               DagTypeConverters.getHistoryTextFromProto(
-                  input.getIODescriptor()));
+                  input.getIODescriptor(), inflater));
         }
         inputsList.add(inputMap);
       }
@@ -250,7 +252,7 @@ public class DAGUtils {
         if (output.getIODescriptor().hasHistoryText()) {
           outputMap.put(USER_PAYLOAD_AS_TEXT,
               DagTypeConverters.getHistoryTextFromProto(
-                  output.getIODescriptor()));
+                  output.getIODescriptor(), inflater));
         }
         outputsList.add(outputMap);
       }
@@ -282,12 +284,12 @@ public class DAGUtils {
       if (edgePlan.getEdgeSource().hasHistoryText()) {
         edgeMap.put(OUTPUT_USER_PAYLOAD_AS_TEXT,
             DagTypeConverters.getHistoryTextFromProto(
-                edgePlan.getEdgeSource()));
+                edgePlan.getEdgeSource(), inflater));
       }
       if (edgePlan.getEdgeDestination().hasHistoryText()) {
         edgeMap.put(INPUT_USER_PAYLOAD_AS_TEXT,
             DagTypeConverters.getHistoryTextFromProto(
-                edgePlan.getEdgeDestination()));
+                edgePlan.getEdgeDestination(), inflater));
       } // TEZ-2286 this is missing edgemanager descriptor for custom edge
       edgesList.add(edgeMap);
     }
@@ -319,7 +321,7 @@ public class DAGUtils {
             if (edgeMergedInputInfo.getMergedInput().hasHistoryText()) {
               edgeMergedInput.put(USER_PAYLOAD_AS_TEXT,
                   DagTypeConverters.getHistoryTextFromProto(
-                      edgeMergedInputInfo.getMergedInput()));
+                      edgeMergedInputInfo.getMergedInput(), inflater));
             }
           }
           edgeMergedInputs.add(edgeMergedInput);

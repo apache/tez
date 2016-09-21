@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Deflater;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -69,6 +71,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
   private long startTime;
   private long endTime;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
+  private final Deflater deflater;
 
   @VisibleForTesting
   boolean pipelinedShuffle;
@@ -78,6 +81,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   public OrderedPartitionedKVOutput(OutputContext outputContext, int numPhysicalOutputs) {
     super(outputContext, numPhysicalOutputs);
+    deflater = TezCommonUtils.newBestCompressionDeflater();
   }
 
   @Override
@@ -200,14 +204,14 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       ShuffleUtils.generateEventOnSpill(eventList, finalMergeEnabled, isLastEvent,
           getContext(), 0, new TezSpillRecord(sorter.getFinalIndexFile(), conf),
           getNumPhysicalOutputs(), sendEmptyPartitionDetails, getContext().getUniqueIdentifier(),
-          sorter.getPartitionStats(), sorter.reportDetailedPartitionStats());
+          sorter.getPartitionStats(), sorter.reportDetailedPartitionStats(), deflater);
     }
     return eventList;
   }
 
   private List<Event> generateEmptyEvents() throws IOException {
     List<Event> eventList = Lists.newLinkedList();
-    ShuffleUtils.generateEventsForNonStartedOutput(eventList, getNumPhysicalOutputs(), getContext(), true, true);
+    ShuffleUtils.generateEventsForNonStartedOutput(eventList, getNumPhysicalOutputs(), getContext(), true, true, deflater);
     return eventList;
   }
 

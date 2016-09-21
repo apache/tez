@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.Inflater;
 
 import com.google.protobuf.ByteString;
 
@@ -59,6 +60,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private final int ifileReadAheadLength;
   private final boolean useSharedInputs;
   private final InputContext inputContext;
+  private final Inflater inflater;
 
   private final AtomicInteger nextToLogEventCount = new AtomicInteger(0);
   private final AtomicInteger numDmeEvents = new AtomicInteger(0);
@@ -78,6 +80,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     // this currently relies on a user to enable the flag
     // expand on idea based on vertex parallelism and num inputs
     this.useSharedInputs = (inputContext.getTaskAttemptNumber() == 0);
+    this.inflater = TezCommonUtils.newInflater();
   }
 
   @Override
@@ -131,7 +134,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
     if (shufflePayload.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload
-          .getEmptyPartitions());
+          .getEmptyPartitions(), inflater);
       BitSet emptyPartionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
       if (emptyPartionsBitSet.get(srcIndex)) {
         InputAttemptIdentifier srcAttemptIdentifier =

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.zip.Inflater;
 import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
@@ -369,12 +370,12 @@ public class DagTypeConverters {
     return builder.build();
   }
 
-  public static String getHistoryTextFromProto(TezEntityDescriptorProto proto) {
+  public static String getHistoryTextFromProto(TezEntityDescriptorProto proto, Inflater inflater) {
     if (!proto.hasHistoryText()) {
       return null;
     }
     try {
-      return new String(TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText()),
+      return new String(TezCommonUtils.decompressByteStringToByteArray(proto.getHistoryText(), inflater),
           "UTF-8");
     } catch (IOException e) {
       throw new TezUncheckedException(e);

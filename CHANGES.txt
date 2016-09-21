@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3163. Reuse and tune Inflaters and Deflaters to speed DME processing
   TEZ-3434. Add unit tests for flushing of recovery events.
   TEZ-3317. Speculative execution starts too early due to 0 progress.
   TEZ-3404. Move blocking call for YARN Timeline domain creation from client side to AM.

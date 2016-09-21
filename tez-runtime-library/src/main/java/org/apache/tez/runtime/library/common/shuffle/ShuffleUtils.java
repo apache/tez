@@ -29,6 +29,7 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
@@ -278,12 +279,13 @@ public class ShuffleUtils {
    * @param finalMergeEnabled
    * @param isLastEvent
    * @param pathComponent
+   * @param deflater
    * @return ByteBuffer
    * @throws IOException
    */
   static ByteBuffer generateDMEPayload(boolean sendEmptyPartitionDetails,
       int numPhysicalOutputs, TezSpillRecord spillRecord, OutputContext context,
-      int spillId, boolean finalMergeEnabled, boolean isLastEvent, String pathComponent)
+      int spillId, boolean finalMergeEnabled, boolean isLastEvent, String pathComponent, Deflater deflater)
       throws IOException {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
@@ -302,7 +304,7 @@ public class ShuffleUtils {
       if (emptyPartitions > 0) {
         ByteString emptyPartitionsBytesString =
             TezCommonUtils.compressByteArrayToByteString(
-                TezUtilsInternal.toByteArray(emptyPartitionDetails));
+                TezUtilsInternal.toByteArray(emptyPartitionDetails), deflater);
         payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
         LOG.info("EmptyPartition bitsetSize=" + emptyPartitionDetails.cardinality() + ", numOutputs="
             + numPhysicalOutputs + ", emptyPartitions=" + emptyPartitions
@@ -339,13 +341,14 @@ public class ShuffleUtils {
    * @param context
    * @param generateVmEvent whether to generate a vm event or not
    * @param isCompositeEvent whether to generate a CompositeDataMovementEvent or a DataMovementEvent
+   * @param deflater
    * @throws IOException
    */
   public static void generateEventsForNonStartedOutput(List<Event> eventList,
                                                        int numPhysicalOutputs,
                                                        OutputContext context,
                                                        boolean generateVmEvent,
-                                                       boolean isCompositeEvent) throws
+                                                       boolean isCompositeEvent, Deflater deflater) throws
       IOException {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
@@ -369,7 +372,7 @@ public class ShuffleUtils {
     emptyPartitionDetails.set(0, numPhysicalOutputs, true);
     ByteString emptyPartitionsBytesString =
         TezCommonUtils.compressByteArrayToByteString(
-            TezUtilsInternal.toByteArray(emptyPartitionDetails));
+            TezUtilsInternal.toByteArray(emptyPartitionDetails), deflater);
     payloadBuilder.setEmptyPartitions(emptyPartitionsBytesString);
     payloadBuilder.setRunDuration(0);
     DataMovementEventPayloadProto payloadProto = payloadBuilder.build();
@@ -403,7 +406,7 @@ public class ShuffleUtils {
   public static void generateEventOnSpill(List<Event> eventList, boolean finalMergeEnabled,
       boolean isLastEvent, OutputContext context, int spillId, TezSpillRecord spillRecord,
       int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
-      @Nullable long[] partitionStats, boolean reportDetailedPartitionStats)
+      @Nullable long[] partitionStats, boolean reportDetailedPartitionStats, Deflater deflater)
       throws IOException {
     Preconditions.checkArgument(eventList != null, "EventList can't be null");
 
@@ -421,11 +424,11 @@ public class ShuffleUtils {
 
     ByteBuffer payload = generateDMEPayload(sendEmptyPartitionDetails, numPhysicalOutputs,
         spillRecord, context, spillId,
-        finalMergeEnabled, isLastEvent, pathComponent);
+        finalMergeEnabled, isLastEvent, pathComponent, deflater);
 
     if (finalMergeEnabled || isLastEvent) {
       VertexManagerEvent vmEvent = generateVMEvent(context, partitionStats,
-          reportDetailedPartitionStats);
+          reportDetailedPartitionStats, deflater);
       eventList.add(vmEvent);
     }
 
@@ -435,7 +438,7 @@ public class ShuffleUtils {
   }
 
   public static VertexManagerEvent generateVMEvent(OutputContext context,
-      long[] sizePerPartition, boolean reportDetailedPartitionStats)
+      long[] sizePerPartition, boolean reportDetailedPartitionStats, Deflater deflater)
           throws IOException {
     ShuffleUserPayloads.VertexManagerEventPayloadProto.Builder vmBuilder =
         ShuffleUserPayloads.VertexManagerEventPayloadProto.newBuilder();
@@ -459,7 +462,7 @@ public class ShuffleUtils {
         DataOutputBuffer dout = new DataOutputBuffer();
         stats.serialize(dout);
         ByteString partitionStatsBytes =
-            TezCommonUtils.compressByteArrayToByteString(dout.getData());
+            TezCommonUtils.compressByteArrayToByteString(dout.getData(), deflater);
         vmBuilder.setPartitionStats(partitionStatsBytes);
       }
     }

@@ -72,7 +72,7 @@ public class TestDagTypeConverters {
     Assert.assertNull(inputDescriptor.getHistoryText());
 
     // Check history text value
-    String actualHistoryText = DagTypeConverters.getHistoryTextFromProto(proto);
+    String actualHistoryText = DagTypeConverters.getHistoryTextFromProto(proto, TezCommonUtils.newInflater());
     Assert.assertEquals(historytext, actualHistoryText);
   }
 

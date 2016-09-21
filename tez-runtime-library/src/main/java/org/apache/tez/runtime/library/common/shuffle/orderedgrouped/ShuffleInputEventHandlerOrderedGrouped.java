@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.Inflater;
 
 import com.google.protobuf.ByteString;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
@@ -47,7 +48,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
 
   private final ShuffleScheduler scheduler;
   private final InputContext inputContext;
-
+  private final Inflater inflater;
 
   private final AtomicInteger nextToLogEventCount = new AtomicInteger(0);
   private final AtomicInteger numDmeEvents = new AtomicInteger(0);
@@ -58,6 +59,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
                                                 ShuffleScheduler scheduler) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;
+    this.inflater = TezCommonUtils.newInflater();
   }
 
   @Override
@@ -110,7 +112,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
 
     if (shufflePayload.hasEmptyPartitions()) {
       try {
-        byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
+        byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions(), inflater);
         BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
           if (LOG.isDebugEnabled()) {

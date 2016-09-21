@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Inflater;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses
@@ -104,6 +105,8 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   long[] stats; //approximate amount of data to be fetched
   Configuration conf;
   ShuffleVertexManagerBaseConfig config;
+  // requires synchronized access
+  final Inflater inflater;
 
   /**
    * Used when automatic parallelism is enabled
@@ -198,6 +201,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   public ShuffleVertexManagerBase(VertexManagerPluginContext context) {
     super(context);
+    inflater = TezCommonUtils.newInflater();
   }
 
   @Override
@@ -336,7 +340,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
           RoaringBitmap partitionStats = new RoaringBitmap();
           ByteString compressedPartitionStats = proto.getPartitionStats();
           byte[] rawData = TezCommonUtils.decompressByteStringToByteArray(
-              compressedPartitionStats);
+              compressedPartitionStats, inflater);
           NonSyncByteArrayInputStream bin = new NonSyncByteArrayInputStream(rawData);
           partitionStats.deserialize(new DataInputStream(bin));
 

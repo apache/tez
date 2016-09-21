@@ -34,6 +34,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -110,7 +111,7 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
       returnEvents = new LinkedList<Event>();
       ShuffleUtils
           .generateEventsForNonStartedOutput(returnEvents, getNumPhysicalOutputs(), getContext(),
-              false, true);
+              false, true, TezCommonUtils.newBestCompressionDeflater());
     }
 
     // This works for non-started outputs since new counters will be created with an initial value of 0

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.IOUtils;
@@ -345,13 +346,35 @@ public class TezCommonUtils {
     }
   }
 
+  private static final boolean NO_WRAP = true;
+
+  @Private
+  public static Deflater newBestCompressionDeflater() {
+    return new Deflater(Deflater.BEST_COMPRESSION, NO_WRAP);
+  }
+
+  @Private
+  public static Deflater newBestSpeedDeflater() {
+    return new Deflater(Deflater.BEST_SPEED, NO_WRAP);
+  }
+
+  @Private
+  public static Inflater newInflater() {
+    return new Inflater(NO_WRAP);
+  }
+
   @Private
   public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
+    return compressByteArrayToByteString(inBytes, newBestCompressionDeflater());
+  }
+
+  @Private
+  public static ByteString compressByteArrayToByteString(byte[] inBytes, Deflater deflater) throws IOException {
+    deflater.reset();
     ByteString.Output os = ByteString.newOutput();
     DeflaterOutputStream compressOs = null;
     try {
-      compressOs = new DeflaterOutputStream(os, new Deflater(
-          Deflater.BEST_COMPRESSION));
+      compressOs = new DeflaterOutputStream(os, deflater);
       compressOs.write(inBytes);
       compressOs.finish();
       ByteString byteString = os.toByteString();
@@ -365,9 +388,14 @@ public class TezCommonUtils {
 
   @Private
   public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
-    InflaterInputStream in = new InflaterInputStream(byteString.newInput());
-    byte[] bytes = IOUtils.toByteArray(in);
-    return bytes;
+    return decompressByteStringToByteArray(byteString, newInflater());
+  }
+
+  @Private
+  public static byte[] decompressByteStringToByteArray(ByteString byteString, Inflater inflater) throws IOException {
+    inflater.reset();
+    return IOUtils.toByteArray(new InflaterInputStream(byteString.newInput(), inflater));
+
   }
 
   public static String getCredentialsInfo(Credentials credentials, String identifier) {
