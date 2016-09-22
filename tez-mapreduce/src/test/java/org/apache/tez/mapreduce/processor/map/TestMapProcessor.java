@@ -203,7 +203,7 @@ public class TestMapProcessor {
     reader.close();
   }
 
-  @Test(timeout = 10000)
+  @Test(timeout = 30000)
   public void testMapProcessorProgress() throws Exception {
     String dagName = "mrdag0";
     String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
