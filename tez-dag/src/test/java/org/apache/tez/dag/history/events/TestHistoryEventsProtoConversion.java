@@ -335,11 +335,16 @@ public class TestHistoryEventsProtoConversion {
         DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
         OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
 
+    final long reconfigureDoneTime = 100;
+    final int numTasks = 2;
     VertexConfigurationDoneEvent event =
         new VertexConfigurationDoneEvent(
             TezVertexID.getInstance(
                 TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111),
-            100, 2, vertexLocationHint, sourceEdgeManagers, rootInputSpecUpdates, true);
+            reconfigureDoneTime, numTasks, vertexLocationHint, sourceEdgeManagers,
+            rootInputSpecUpdates, true);
+    Assert.assertEquals(numTasks, event.getNumTasks());
+    Assert.assertEquals(reconfigureDoneTime, event.getReconfigureDoneTime());
     VertexConfigurationDoneEvent deserializedEvent = (VertexConfigurationDoneEvent)
           testProtoConversion(event);
     Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());

@@ -58,6 +58,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
       boolean setParallelismCalledFlag) {
     super();
     this.vertexID = vertexID;
+    this.reconfigureDoneTime = reconfigureDoneTime;
     this.numTasks = numTasks;
     this.vertexLocationHint = vertexLocationHint;
     this.sourceEdgeProperties = sourceEdgeProperties;

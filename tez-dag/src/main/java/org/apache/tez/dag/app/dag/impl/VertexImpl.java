@@ -2578,10 +2578,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         && recoveryData.shouldSkipInit()) {
       // Replace the original VertexManager with NoOpVertexManager if the reconfiguration is done in the last AM attempt
       VertexConfigurationDoneEvent reconfigureDoneEvent = recoveryData.getVertexConfigurationDoneEvent();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("VertexManager reconfiguration is done in the last AM Attempt"
+      if (LOG.isInfoEnabled()) {
+        LOG.info("VertexManager reconfiguration is done in the last AM Attempt"
             + ", use NoOpVertexManager to replace it, vertexId=" + logIdentifier);
-        LOG.debug("VertexReconfigureDoneEvent=" + reconfigureDoneEvent);
+        LOG.info("VertexReconfigureDoneEvent=" + reconfigureDoneEvent);
       }
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       try {
