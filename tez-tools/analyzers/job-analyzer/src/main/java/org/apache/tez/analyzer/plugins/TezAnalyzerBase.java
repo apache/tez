@@ -160,7 +160,6 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       //Parse ATS data and verify results
       //Parse downloaded contents
       file = new File(outputDir
-          + Path.SEPARATOR + dagId
           + Path.SEPARATOR + dagId + ".zip");
     }
     
