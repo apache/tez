@@ -88,16 +88,37 @@ test('load test', function(assert) {
                 }));
               }
             };
+          },
+          queryRecord: function (type, dagID, options) {
+            assert.equal(type, "dag");
+            assert.equal(options.reload, true);
+            if (dagID === querySuccess.dagID) {
+              return Ember.RSVP.resolve(Ember.Object.create());
+            } else {
+              return Ember.RSVP.reject(new Error("Failed in Reject"));
+            }
           }
         }
       }),
       query = {
         limit: 5
+      },
+      querySuccess = {
+        dagID :'dag_123'
+      },
+      queryFailure = {
+        dagID :'dag_456'
       };
 
-  assert.expect(3 + 1);
+  assert.expect(8 + 2);
 
   route.load(null, query);
+  route.load(null, querySuccess).then(function () {
+    assert.ok(true);
+  });
+  route.load(null, queryFailure).then(function (data) {
+    assert.equal(data.length,0);
+  });
 });
 
 test('loadNewPage test', function(assert) {
