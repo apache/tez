@@ -627,6 +627,15 @@ public class IFile {
       }
       try {
         IOUtils.readFully(in, buffer, 0, buffer.length - IFile.HEADER.length);
+        /*
+         * We've gotten the amount of data we were expecting. Verify the
+         * decompressor has nothing more to offer. This action also forces the
+         * decompressor to read any trailing bytes that weren't critical for
+         * decompression, which is necessary to keep the stream in sync.
+         */
+        if (in.read() >= 0) {
+          throw new IOException("Unexpected extra bytes from input stream");
+        }
       } catch (IOException ioe) {
         if(in != null) {
           try {
