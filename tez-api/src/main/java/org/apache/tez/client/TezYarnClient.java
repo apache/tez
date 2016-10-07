@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
@@ -86,6 +87,15 @@ public class TezYarnClient extends FrameworkClient {
 
   @Override
   public ApplicationReport getApplicationReport(ApplicationId appId) throws YarnException, IOException {
-    return yarnClient.getApplicationReport(appId);
+    ApplicationReport report = yarnClient.getApplicationReport(appId);
+    if (report.getYarnApplicationState() == null) {
+      // The state can be null when the ResourceManager does not know about the app but the YARN
+      // application history server has an incomplete entry for it. Treat this scenario as if the
+      // application does not exist, since the final app status cannot be determined. This also
+      // matches the behavior for this scenario if the history server was not configured.
+      throw new ApplicationNotFoundException("YARN reports no state for application "
+          + appId);
+    }
+    return report;
   }
 }
