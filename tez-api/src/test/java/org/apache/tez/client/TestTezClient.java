@@ -37,9 +37,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.ServiceException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -48,6 +50,8 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.Limits;
@@ -131,6 +135,8 @@ public class TestTezClient {
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
     YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    when(yarnClient.getApplicationReport(appId1).getYarnApplicationState()).thenReturn(YarnApplicationState.NEW);
+    when(yarnClient.submitApplication(any(ApplicationSubmissionContext.class))).thenReturn(appId1);
 
     DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
     when(sessionAmProxy.getAMStatus(any(RpcController.class), any(GetAMStatusRequestProto.class)))
@@ -537,5 +543,24 @@ public class TestTezClient {
       }
     }
     client.stop();
+  }
+
+  @Test(timeout = 10000)
+  public void testMissingYarnAppStatus() throws Exception {
+    // verify an app not found exception is thrown when YARN reports a null app status
+    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
+    ApplicationReport mockReport = mock(ApplicationReport.class);
+    when(mockReport.getApplicationId()).thenReturn(appId1);
+    when(mockReport.getYarnApplicationState()).thenReturn(null);
+    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
+    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    when(yarnClient.getApplicationReport(appId1)).thenReturn(mockReport);
+    TezYarnClient tezClient = new TezYarnClient(yarnClient);
+    tezClient.init(new TezConfiguration(false), new YarnConfiguration());
+    try {
+      tezClient.getApplicationReport(appId1);
+      fail("getApplicationReport should have thrown");
+    } catch (ApplicationNotFoundException e) {
+    }
   }
 }
