@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.protobuf.ByteString;
 
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -612,8 +613,12 @@ public class MRInput extends MRInputBase {
   }
 
   @Override
-  public float getProgress() throws IOException,InterruptedException {
-    return (mrReader != null) ? mrReader.getProgress() : 0.0f;
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    try {
+      return (mrReader != null) ? mrReader.getProgress() : 0.0f;
+    } catch (IOException e) {
+      throw new ProgressFailedException("getProgress encountered IOException ", e);
+    }
   }
 
   void processSplitEvent(InputDataInformationEvent event)

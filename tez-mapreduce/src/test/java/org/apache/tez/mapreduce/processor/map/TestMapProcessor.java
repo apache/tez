@@ -34,6 +34,7 @@ import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.db.FloatSplitter;
 import org.apache.hadoop.mapreduce.split.JobSplit;
 import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.junit.Assert;
@@ -149,7 +150,7 @@ public class TestMapProcessor {
     Path mapInput = new Path(workDir, "map0");
     
     
-    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         InputDescriptor.create(MRInputLegacy.class.getName())
@@ -221,7 +222,7 @@ public class TestMapProcessor {
     Path mapInput = new Path(workDir, "map0");
 
 
-    generateInputSplit(localFs, workDir, jobConf, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 100000);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         InputDescriptor.create(MRInputLegacy.class.getName())
@@ -246,84 +247,17 @@ public class TestMapProcessor {
       @Override
       public void run() {
         float prog = task.getProgress();
-        if(prog > 0.0 && prog < 1.0)
+        if(prog > 0.0f && prog < 1.0f)
           progressUpdate = prog;
       }
     });
 
     task.initialize();
-    scheduler.scheduleAtFixedRate(monitorProgress, 0, 10,
+    scheduler.scheduleAtFixedRate(monitorProgress, 0, 1,
         TimeUnit.MILLISECONDS);
     task.run();
     Assert.assertTrue("Progress Updates should be captured!",
-        progressUpdate != 0.0f);
+        progressUpdate > 0.0f && progressUpdate < 1.0f);
     task.close();
-  }
-
-  public static void generateInputSplit(FileSystem fs, Path workDir,
-                                        JobConf jobConf, Path mapInput)
-      throws IOException {
-    jobConf.setInputFormat(SequenceFileInputFormat.class);
-    FileInputFormat.setInputPaths(jobConf, workDir);
-
-    LOG.info("Generating data at path: " + mapInput);
-    // create a file with length entries
-    SequenceFile.Writer writer =
-        SequenceFile.createWriter(fs, jobConf, mapInput,
-            LongWritable.class, Text.class);
-    try {
-      Random r = new Random(System.currentTimeMillis());
-      LongWritable key = new LongWritable();
-      Text value = new Text();
-      for (int i = 100000; i > 0; i--) {
-        key.set(r.nextInt(1000));
-        value.set(Integer.toString(i));
-        writer.append(key, value);
-        LOG.info("<k, v> : <" + key.get() + ", " + value + ">");
-      }
-    } finally {
-      writer.close();
-    }
-
-    SequenceFileInputFormat<LongWritable, Text> format =
-        new SequenceFileInputFormat<LongWritable, Text>();
-    InputSplit[] splits = format.getSplits(jobConf, 1);
-    System.err.println("#split = " + splits.length + " ; " +
-        "#locs = " + splits[0].getLocations().length + "; " +
-        "loc = " + splits[0].getLocations()[0] + "; " +
-        "off = " + splits[0].getLength() + "; " +
-        "file = " + ((FileSplit)splits[0]).getPath());
-    writeSplitFiles(fs, jobConf, splits[0]);
-  }
-
-  private static void writeSplitFiles(FileSystem fs, JobConf conf,
-                                      InputSplit split) throws IOException {
-    Path jobSplitFile = new Path(conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR,
-        MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR_DEFAULT), MRJobConfig.JOB_SPLIT);
-    LOG.info("Writing split to: " + jobSplitFile);
-    FSDataOutputStream out = FileSystem.create(fs, jobSplitFile,
-        new FsPermission(JOB_FILE_PERMISSION));
-
-    long offset = out.getPos();
-    Text.writeString(out, split.getClass().getName());
-    split.write(out);
-    out.close();
-
-    String[] locations = split.getLocations();
-
-    JobSplit.SplitMetaInfo info = null;
-    info = new JobSplit.SplitMetaInfo(locations, offset, split.getLength());
-
-    Path jobSplitMetaInfoFile = new Path(
-        conf.get(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR),
-        MRJobConfig.JOB_SPLIT_METAINFO);
-
-    FSDataOutputStream outMeta = FileSystem.create(fs, jobSplitMetaInfoFile,
-        new FsPermission(JOB_FILE_PERMISSION));
-    outMeta.write(SplitMetaInfoReaderTez.META_SPLIT_FILE_HEADER);
-    WritableUtils.writeVInt(outMeta, SplitMetaInfoReaderTez.META_SPLIT_VERSION);
-    WritableUtils.writeVInt(outMeta, 1); // Only 1 split meta info being written
-    info.write(outMeta);
-    outMeta.close();
   }
 }
