@@ -824,6 +824,7 @@
               <!-- .png files constitute images required for documentation. .pptx contain the sources for images -->
               <exclude>**/*.png</exclude>
               <exclude>**/*.pptx</exclude>
+              <exclude>**/*TestIFile_concatenated_compressed.bin</exclude>
             </excludes>
           </configuration>
         </plugin>

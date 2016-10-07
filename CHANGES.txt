@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3460. Fix precommit release audit warning
   TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
   TEZ-3429. Set reconfigureDoneTime on VertexConfigurationDoneEvent properly.
   TEZ-3000. Fix TestContainerReuse.
@@ -509,6 +510,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3460. Fix precommit release audit warning
   TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
   TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-3009. Errors that occur during container task acquisition are not logged.
