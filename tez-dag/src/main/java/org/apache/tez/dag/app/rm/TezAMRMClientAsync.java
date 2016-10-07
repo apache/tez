@@ -20,8 +20,8 @@ package org.apache.tez.dag.app.rm;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -74,12 +74,10 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
   }
   
   public synchronized Priority getTopPriority() {
-    Iterator<Priority> iter =
-        knownRequestsByPriority.descendingKeySet().iterator();
-    if (!iter.hasNext()) {
+    if (knownRequestsByPriority.isEmpty()) {
       return null;
     }
-    return iter.next();
+    return knownRequestsByPriority.lastKey();
   }
   
   // Remove after YARN-1723 is fixed
@@ -132,13 +130,12 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
         String resourceName, Resource capability) {
     // Sort based on reverse order. By default, Priority ordering is based on
     // highest numeric value being considered to be lowest priority.
-    Iterator<Priority> iter =
-      knownRequestsByPriority.descendingKeySet().iterator();
-    if (!iter.hasNext()) {
+    Map.Entry<Priority,LocalityRequestCounter> entry = knownRequestsByPriority.lastEntry();
+    if (entry == null || entry.getValue() == null) {
       return Collections.emptyList();
     }
-    Priority p = iter.next();
-    LocalityRequestCounter lrc = knownRequestsByPriority.get(p);
+    Priority p = entry.getKey();
+    LocalityRequestCounter lrc = entry.getValue();
     if (lrc.localityRequests.get() == 0) {
       // Fallback to ANY if there are no pending requests that require
       // locality matching

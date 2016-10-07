@@ -8,6 +8,7 @@ INCOMPATIBLE CHANGES
 ALL CHANGES:
 
   TEZ-3460. Fix precommit release audit warning.
+  TEZ-3368. NPE in DelayedContainerManager
   TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
   TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
   TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
