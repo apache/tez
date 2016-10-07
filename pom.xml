@@ -761,6 +761,7 @@
             <excludes>
               <exclude>CHANGES.txt</exclude>
               <exclude>**/LICENSE*</exclude>
+              <exclude>**/*TestIFile_concatenated_compressed.bin</exclude>
             </excludes>
           </configuration>
         </plugin>
