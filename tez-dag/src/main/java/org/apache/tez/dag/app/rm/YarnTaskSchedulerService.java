@@ -47,6 +47,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -1958,6 +1959,14 @@ public class YarnTaskSchedulerService extends TaskScheduler
     
     @Override
     public void run() {
+      try {
+        mainLoop();
+      } catch (Throwable e) {
+        ExitUtil.terminate(1, e);
+      }
+    }
+
+    private void mainLoop() {
       while(running) {
         // Try assigning all containers if there's a request to do so.
         if (tryAssigningAll) {
