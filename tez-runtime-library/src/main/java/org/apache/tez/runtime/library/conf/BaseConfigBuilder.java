@@ -59,4 +59,6 @@ interface BaseConfigBuilder<T> {
    */
   @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public T setFromConfiguration(Configuration conf);
+
+  public T setFromConfigurationUnfiltered(Configuration conf);
 }

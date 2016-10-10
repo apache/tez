@@ -219,6 +219,13 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
       return this;
     }
 
+    @Override
+    public Builder setFromConfigurationUnfiltered(Configuration conf) {
+      outputBuilder.setFromConfigurationUnfiltered(conf);
+      inputBuilder.setFromConfigurationUnfiltered(conf);
+      return this;
+    }
+
     /**
      * Set serialization class responsible for providing serializer/deserializer for key/value and
      * the corresponding comparator class to be used as key comparator.
