@@ -205,7 +205,7 @@
   <!-- TEZ-1959 -->
   <Match>
     <Class name="org.apache.tez.dag.app.rm.YarnTaskSchedulerService$DelayedContainerManager"/>
-    <Method name="run"/><Field name="drainedDelayedContainersForTest"/>
+    <Method name="mainLoop"/><Field name="drainedDelayedContainersForTest"/>
     <Bug pattern="JLM_JSR166_UTILCONCURRENT_MONITORENTER"/>
   </Match>
 
