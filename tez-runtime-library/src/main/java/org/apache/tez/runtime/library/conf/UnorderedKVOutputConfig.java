@@ -86,6 +86,13 @@ public class UnorderedKVOutputConfig {
       return this;
     }
 
+    @Override
+    public SpecificBuilder setFromConfigurationUnfiltered(
+        Configuration conf) {
+      builder.setFromConfigurationUnfiltered(conf);
+      return this;
+    }
+
     public E done() {
       return edgeBuilder;
     }
@@ -219,6 +226,15 @@ public class UnorderedKVOutputConfig {
           Lists.newArrayList(UnorderedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
+      return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Builder setFromConfigurationUnfiltered(Configuration conf) {
+      // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
+      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      ConfigUtils.mergeConfs(this.conf, conf);
       return this;
     }
 

@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
   TEZ-3335. DAG client thinks app is still running when app status is null
   TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
   TEZ-3460. Fix precommit release audit warning.
@@ -119,6 +120,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
   TEZ-3335. DAG client thinks app is still running when app status is null
   TEZ-3460. Fix precommit release audit warning.
   TEZ-3368. NPE in DelayedContainerManager

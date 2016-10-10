@@ -136,6 +136,8 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     additionalConfs
         .put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConfs.put("file.shouldExist", "file");
+    Configuration fromConfUnfiltered = new Configuration(false);
+    fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
 
     UnorderedPartitionedKVEdgeConfig.Builder builder = UnorderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER")
@@ -144,7 +146,8 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IO_FILE_BUFFER_SIZE, "3333")
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, "0.33f")
         .setAdditionalConfiguration(additionalConfs)
-        .setFromConfiguration(fromConf);
+        .setFromConfiguration(fromConf)
+        .setFromConfigurationUnfiltered(fromConfUnfiltered);
 
     UnorderedPartitionedKVEdgeConfig configuration = builder.build();
 
@@ -172,6 +175,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     assertEquals("file", outputConf.get("file.shouldExist"));
     assertEquals("fs", outputConf.get("fs.shouldExist"));
 
+    assertEquals("unfiltered1", outputConf.get("test.conf.unfiltered.1"));
 
     assertEquals(false, inputConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD, true));
     assertEquals(1111, inputConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 0));
@@ -188,6 +192,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     assertEquals("file", inputConf.get("file.shouldExist"));
     assertEquals("fs", inputConf.get("fs.shouldExist"));
 
+    assertEquals("unfiltered1", inputConf.get("test.conf.unfiltered.1"));
   }
 
   private void checkHistoryText(String historyText) {

@@ -224,6 +224,14 @@ public class UnorderedPartitionedKVEdgeConfig
       return this;
     }
 
+    @Override
+    public Builder setFromConfigurationUnfiltered(
+        Configuration conf) {
+      outputBuilder.setFromConfigurationUnfiltered(conf);
+      inputBuilder.setFromConfigurationUnfiltered(conf);
+      return this;
+    }
+
     /**
      * Set serialization class responsible for providing serializer/deserializer for keys.
      *
