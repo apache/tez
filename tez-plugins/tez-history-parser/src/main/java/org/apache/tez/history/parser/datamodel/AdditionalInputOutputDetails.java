@@ -22,7 +22,7 @@ import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 /**
- * Additional input/ouput information present in DAG.
+ * Additional input/output information present in DAG.
  */
 
 @Public

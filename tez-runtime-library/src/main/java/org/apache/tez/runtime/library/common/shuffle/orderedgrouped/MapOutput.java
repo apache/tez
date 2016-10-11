@@ -97,16 +97,16 @@ class MapOutput {
                                               TezTaskOutputFiles mapOutputFile) throws
       IOException {
     FileSystem fs = FileSystem.getLocal(conf).getRaw();
-    Path outputpath = mapOutputFile.getInputFileForWrite(
+    Path outputPath = mapOutputFile.getInputFileForWrite(
         attemptIdentifier.getInputIdentifier(), attemptIdentifier.getSpillEventId(), size);
     // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,
     // otherwise fetches for the same task but from different attempts would clobber each other.
-    Path tmpOuputPath = outputpath.suffix(String.valueOf(fetcher));
+    Path tmpOutputPath = outputPath.suffix(String.valueOf(fetcher));
     long offset = 0;
 
-    MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, callback, size, outputpath, offset,
-        primaryMapOutput, fs, tmpOuputPath);
-    mapOutput.disk = fs.create(tmpOuputPath);
+    MapOutput mapOutput = new MapOutput(Type.DISK, attemptIdentifier, callback, size, outputPath, offset,
+        primaryMapOutput, fs, tmpOutputPath);
+    mapOutput.disk = fs.create(tmpOutputPath);
 
     return mapOutput;
   }
