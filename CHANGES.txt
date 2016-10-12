@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3453. Correct the downloaded ATS dag data location for analyzer.
   TEZ-3449. Fix Spelling typos.
   TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
   TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
