@@ -17,13 +17,11 @@
 }}
 
 <ul class="page-list">
-  <li class="{{unless atFirst 'clickable'}}" {{action 'changePage' 1}}>
-    {{#if dataProcessor.processedRows.length}}
+  {{#if showFirst}}
+    <li title="Go to first page" class="clickable" {{action 'changePage' 1}}>
       First
-    {{else}}
-      No Records!
-    {{/if}}
-  </li>
+    </li>
+  {{/if}}
   {{#each _possiblePages as |page|}}
     <li class="{{if page.isCurrent 'is-current' 'clickable'}}" {{action 'changePage' page.pageNum}}>
       {{#if page.isLoadPage}}

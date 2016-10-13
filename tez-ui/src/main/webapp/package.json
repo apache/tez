@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "em-helpers": "0.5.13",
-    "em-table": "0.3.16",
+    "em-table": "0.3.17",
     "em-tgraph": "0.0.5"
   }
 }
