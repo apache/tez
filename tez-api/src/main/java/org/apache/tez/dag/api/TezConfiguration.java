@@ -1094,11 +1094,22 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
 
   /**
+   * Boolean value.
+   * Specify whether the user classpath takes precedence over the Tez framework
+   * classpath.
+   */
+  @ConfigurationScope(Scope.CLIENT)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_USER_CLASSPATH_FIRST = TEZ_PREFIX + "user.classpath.first";
+  public static final boolean TEZ_USER_CLASSPATH_FIRST_DEFAULT = true;
+
+  /**
    * String value.
    *
    * Specify additional classpath information to be used for Tez AM and all containers.
-   * This will be prepended to the classpath before all framework specific components have been
-   * specified.
+   * If {@link #TEZ_USER_CLASSPATH_FIRST} is true then this will be added to the classpath
+   * before all framework specific components have been specified, otherwise this will
+   * be added after the framework specific components.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
