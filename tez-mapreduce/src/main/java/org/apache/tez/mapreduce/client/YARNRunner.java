@@ -818,9 +818,10 @@ public class YARNRunner implements ClientProtocol {
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-                                                 MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
-        IOException {
-      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
+        MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+            IOException {
+      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto, false,
+          true);
     }
   }
 

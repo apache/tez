@@ -111,7 +111,7 @@ public class MRInputHelpers {
 
       InputDescriptor inputDescriptor = InputDescriptor.create(useLegacyInput ? MRInputLegacy.class
           .getName() : MRInput.class.getName())
-          .setUserPayload(createMRInputPayload(conf, null));
+          .setUserPayload(createMRInputPayload(conf, null, false, true));
       Map<String, LocalResource> additionalLocalResources = new HashMap<String, LocalResource>();
       updateLocalResourcesForInputSplits(conf, inputSplitInfo,
           additionalLocalResources);
@@ -278,8 +278,8 @@ public class MRInputHelpers {
    * @throws InterruptedException
    */
   @InterfaceStability.Unstable
-  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf, boolean groupSplits,
-                                                           int targetTasks)
+  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf,
+      boolean groupSplits, boolean sortSplits, int targetTasks)
       throws IOException, ClassNotFoundException, InterruptedException {
 
     InputSplitInfoMem splitInfoMem = null;
@@ -290,7 +290,7 @@ public class MRInputHelpers {
       }
       Job job = Job.getInstance(conf);
       org.apache.hadoop.mapreduce.InputSplit[] splits =
-          generateNewSplits(job, groupSplits, targetTasks);
+          generateNewSplits(job, groupSplits, sortSplits, targetTasks);
       splitInfoMem = new InputSplitInfoMem(splits, createTaskLocationHintsFromSplits(splits),
           splits.length, job.getCredentials(), job.getConfiguration());
     } else {
@@ -298,7 +298,7 @@ public class MRInputHelpers {
         LOG.debug("Generating mapred api input splits");
       }
       org.apache.hadoop.mapred.InputSplit[] splits =
-          generateOldSplits(jobConf, groupSplits, targetTasks);
+          generateOldSplits(jobConf, groupSplits, sortSplits, targetTasks);
       splitInfoMem = new InputSplitInfoMem(splits, createTaskLocationHintsFromSplits(splits),
           splits.length, jobConf.getCredentials(), jobConf);
     }
@@ -379,8 +379,8 @@ public class MRInputHelpers {
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
-      JobContext jobContext, boolean groupSplits, int numTasks)
-      throws ClassNotFoundException, IOException,
+      JobContext jobContext, boolean groupSplits, boolean sortSplits,
+      int numTasks) throws ClassNotFoundException, IOException,
       InterruptedException {
     Configuration conf = jobContext.getConfiguration();
 
@@ -413,15 +413,18 @@ public class MRInputHelpers {
     org.apache.hadoop.mapreduce.InputSplit[] splits = (org.apache.hadoop.mapreduce.InputSplit[]) array
         .toArray(new org.apache.hadoop.mapreduce.InputSplit[array.size()]);
 
-    // sort the splits into order based on size, so that the biggest
-    // go first
-    Arrays.sort(splits, new InputSplitComparator());
+    if (sortSplits) {
+      // sort the splits into order based on size, so that the biggest
+      // go first
+      Arrays.sort(splits, new InputSplitComparator());
+    }
     return splits;
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
-      JobConf jobConf, boolean groupSplits, int numTasks) throws IOException {
+      JobConf jobConf, boolean groupSplits, boolean sortSplits, int numTasks)
+      throws IOException {
 
     // This is the real InputFormat
     org.apache.hadoop.mapred.InputFormat inputFormat;
@@ -445,9 +448,11 @@ public class MRInputHelpers {
     }
     org.apache.hadoop.mapred.InputSplit[] splits = finalInputFormat
         .getSplits(jobConf, jobConf.getNumMapTasks());
-    // sort the splits into order based on size, so that the biggest
-    // go first
-    Arrays.sort(splits, new OldInputSplitComparator());
+    if (sortSplits) {
+      // sort the splits into order based on size, so that the biggest
+      // go first
+      Arrays.sort(splits, new OldInputSplitComparator());
+    }
     return splits;
   }
 
@@ -519,7 +524,7 @@ public class MRInputHelpers {
       ClassNotFoundException {
 
     org.apache.hadoop.mapreduce.InputSplit[] splits =
-        generateNewSplits(jobContext, false, 0);
+        generateNewSplits(jobContext, false, true, 0);
 
     Configuration conf = jobContext.getConfiguration();
 
@@ -556,7 +561,7 @@ public class MRInputHelpers {
                                                    Path inputSplitDir) throws IOException {
 
     org.apache.hadoop.mapred.InputSplit[] splits =
-        generateOldSplits(jobConf, false, 0);
+        generateOldSplits(jobConf, false, true, 0);
 
     JobSplitWriter.createSplitFiles(inputSplitDir, jobConf,
         inputSplitDir.getFileSystem(jobConf), splits);
@@ -664,8 +669,8 @@ public class MRInputHelpers {
   }
 
   /**
-   * Called to specify that grouping of input splits be performed by Tez
-   * The conf should have the input format class configuration
+   * When isGrouped is true, it specifies that grouping of input splits be
+   * performed by Tez The conf should have the input format class configuration
    * set to the TezGroupedSplitsInputFormat. The real input format class name
    * should be passed as an argument to this method.
    * <p/>
@@ -674,27 +679,20 @@ public class MRInputHelpers {
    * or {@link org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat}
    */
   @InterfaceAudience.Private
-  protected static UserPayload createMRInputPayloadWithGrouping(Configuration conf) throws IOException {
-    Preconditions
-        .checkArgument(conf != null, "Configuration must be specified");
-    return createMRInputPayload(TezUtils.createByteStringFromConf(conf),
-        null, true);
-  }
-
-  @InterfaceAudience.Private
   protected static UserPayload createMRInputPayload(Configuration conf,
-                                               MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
-      IOException {
+      MRRuntimeProtos.MRSplitsProto mrSplitsProto, boolean isGrouped,
+      boolean isSorted) throws
+          IOException {
     Preconditions
         .checkArgument(conf != null, "Configuration must be specified");
 
     return createMRInputPayload(TezUtils.createByteStringFromConf(conf),
-        mrSplitsProto, false);
+        mrSplitsProto, isGrouped, isSorted);
   }
 
   private static UserPayload createMRInputPayload(ByteString bytes,
-                                             MRRuntimeProtos.MRSplitsProto mrSplitsProto,
-                                             boolean isGrouped) throws IOException {
+    MRRuntimeProtos.MRSplitsProto mrSplitsProto,
+    boolean isGrouped, boolean isSorted) throws IOException {
     MRRuntimeProtos.MRInputUserPayloadProto.Builder userPayloadBuilder =
         MRRuntimeProtos.MRInputUserPayloadProto
             .newBuilder();
@@ -703,7 +701,9 @@ public class MRInputHelpers {
       userPayloadBuilder.setSplits(mrSplitsProto);
     }
     userPayloadBuilder.setGroupingEnabled(isGrouped);
-    return UserPayload.create(userPayloadBuilder.build().toByteString().asReadOnlyByteBuffer());
+    userPayloadBuilder.setSortSplitsEnabled(isSorted);
+    return UserPayload.create(userPayloadBuilder.build().
+        toByteString().asReadOnlyByteBuffer());
   }
 
 

@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3430. Make split sorting optional.
   TEZ-3466. Tez classpath building to mimic mapreduce classpath building.
   TEZ-3453. Correct the downloaded ATS dag data location for analyzer.
   TEZ-3449. Fix Spelling typos.
