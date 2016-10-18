@@ -29,7 +29,7 @@
     "broccoli-funnel": "1.0.1",
     "broccoli-merge-trees": "1.1.1",
     "ember-bootstrap": "0.5.1",
-    "ember-cli": "1.13.13",
+    "ember-cli": "^1.13.13",
     "ember-cli-app-version": "1.0.0",
     "ember-cli-auto-register": "1.1.0",
     "ember-cli-babel": "5.1.6",
@@ -52,13 +52,13 @@
     "ember-data": "2.1.0",
     "ember-disable-proxy-controllers": "1.0.1",
     "ember-export-application-global": "1.0.5",
-    "ember-resolver": "2.0.3",
+    "ember-resolver": "^2.0.3",
     "ember-truth-helpers": "1.2.0",
-    "phantomjs": "1.9.19"
+    "phantomjs-prebuilt": "2.1.13"
   },
   "dependencies": {
-    "em-helpers": "0.5.13",
-    "em-table": "0.3.17",
-    "em-tgraph": "0.0.5"
+    "em-helpers": "0.5.14",
+    "em-table": "0.3.18",
+    "em-tgraph": "0.0.7"
   }
 }
