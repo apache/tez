@@ -24,6 +24,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,6 +32,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.common.ProgressHelper;
+import org.apache.tez.runtime.api.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -119,6 +122,10 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
 
   protected MRTaskReporter mrReporter;
   protected boolean useNewApi;
+
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  protected ProgressHelper progressHelper;
 
   public MRTask(ProcessorContext processorContext, boolean isMap) {
     super(processorContext);
@@ -588,4 +595,14 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     return taskAttemptId;
   }
 
+  @Override
+  public void handleEvents(List<Event> processorEvents) {
+    // TODO Auto-generated method stub
+  }
+
+  public void close() throws IOException {
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
+  }
 }
