@@ -235,6 +235,7 @@ public class JoinValidate extends TezExampleBase {
       Preconditions.checkState(rhsReaderRaw instanceof KeyValuesReader);
       KeyValuesReader lhsReader = (KeyValuesReader) lhsReaderRaw;
       KeyValuesReader rhsReader = (KeyValuesReader) rhsReaderRaw;
+      boolean rhsReaderEnd = false;
 
       TezCounter lhsMissingKeyCounter = getContext().getCounters().findCounter(COUNTER_GROUP_NAME,
           MISSING_KEY_COUNTER_NAME);
@@ -248,12 +249,13 @@ public class JoinValidate extends TezExampleBase {
         } else {
           lhsMissingKeyCounter.increment(1);
           LOG.info("ExtraKey in lhs: " + lhsReader.getClass());
+          rhsReaderEnd = true;
           break;
         }
       }
-      if (rhsReader.next()) {
+      if (!rhsReaderEnd && rhsReader.next()) {
         lhsMissingKeyCounter.increment(1);
-        LOG.info("ExtraKey in rhs: " + lhsReader.getClass());
+        LOG.info("ExtraKey in rhs: " + rhsReader.getClass());
       }
     }
   }
