@@ -45,6 +45,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.ShuffleEd
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -446,13 +447,17 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     // Change this to use per partition stats for more accuracy TEZ-2962.
     // Instead of aggregating overall size and then dividing equally - coalesce partitions until
     // desired per partition size is achieved.
-    long expectedTotalSourceTasksOutputSize = 0;
+    BigInteger expectedTotalSourceTasksOutputSize = BigInteger.ZERO;
     for (Map.Entry<String, SourceVertexInfo> vInfo : getBipartiteInfo()) {
       SourceVertexInfo srcInfo = vInfo.getValue();
       if (srcInfo.numTasks > 0 && srcInfo.numVMEventsReceived > 0) {
         // this assumes that 1 vmEvent is received per completed task - TEZ-2961
-        expectedTotalSourceTasksOutputSize +=
-            (srcInfo.numTasks * srcInfo.outputSize) / srcInfo.numVMEventsReceived;
+        // Estimate total size by projecting based on the current average size per event
+        BigInteger srcOutputSize = BigInteger.valueOf(srcInfo.outputSize);
+        BigInteger srcNumTasks = BigInteger.valueOf(srcInfo.numTasks);
+        BigInteger srcNumVMEventsReceived = BigInteger.valueOf(srcInfo.numVMEventsReceived);
+        BigInteger expectedSrcOutputSize = srcOutputSize.multiply(srcNumTasks).divide(srcNumVMEventsReceived);
+        expectedTotalSourceTasksOutputSize = expectedTotalSourceTasksOutputSize.add(expectedSrcOutputSize);
       }
     }
 
@@ -464,10 +469,20 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         (totalNumBipartiteSourceTasks * config.getMaxFraction()),
         numBipartiteSourceTasksCompleted);
 
-    int desiredTaskParallelism =
-        (int)((expectedTotalSourceTasksOutputSize +
-            config.getDesiredTaskInputDataSize() - 1) /
-                config.getDesiredTaskInputDataSize());
+    // Calculate number of desired tasks by dividing with rounding up
+    BigInteger desiredTaskInputDataSize = BigInteger.valueOf(config.getDesiredTaskInputDataSize());
+    BigInteger desiredTaskInputDataSizeMinusOne = BigInteger.valueOf(config.getDesiredTaskInputDataSize() - 1);
+    BigInteger bigDesiredTaskParallelism =
+        expectedTotalSourceTasksOutputSize.add(desiredTaskInputDataSizeMinusOne).divide(desiredTaskInputDataSize);
+
+    if(bigDesiredTaskParallelism.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+      LOG.info("Not reducing auto parallelism for vertex: {}"
+              + " since the desired parallelism of {} is greater than or equal"
+              + " to the max parallelism of {}", getContext().getVertexName(),
+          bigDesiredTaskParallelism, Integer.MAX_VALUE);
+      return null;
+    }
+    int desiredTaskParallelism = bigDesiredTaskParallelism.intValue();
     if(desiredTaskParallelism < mgrConfig.getMinTaskParallelism()) {
       desiredTaskParallelism = mgrConfig.getMinTaskParallelism();
     }
