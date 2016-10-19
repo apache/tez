@@ -65,6 +65,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -696,28 +697,44 @@ public class ShuffleVertexManager extends VertexManagerPlugin {
     // Change this to use per partition stats for more accuracy TEZ-2962.
     // Instead of aggregating overall size and then dividing equally - coalesce partitions until 
     // desired per partition size is achieved.
-    long expectedTotalSourceTasksOutputSize = 0;
+    BigInteger expectedTotalSourceTasksOutputSize = BigInteger.ZERO;
     for (Map.Entry<String, SourceVertexInfo> vInfo : getBipartiteInfo()) {
       SourceVertexInfo srcInfo = vInfo.getValue();
       if (srcInfo.numTasks > 0 && srcInfo.numVMEventsReceived > 0) {
         // this assumes that 1 vmEvent is received per completed task - TEZ-2961
-        expectedTotalSourceTasksOutputSize += 
-            (srcInfo.numTasks * srcInfo.outputSize) / srcInfo.numVMEventsReceived;
+        // Estimate total size by projecting based on the current average size per event
+        BigInteger srcOutputSize = BigInteger.valueOf(srcInfo.outputSize);
+        BigInteger srcNumTasks = BigInteger.valueOf(srcInfo.numTasks);
+        BigInteger srcNumVMEventsReceived = BigInteger.valueOf(srcInfo.numVMEventsReceived);
+        BigInteger expectedSrcOutputSize = srcOutputSize.multiply(srcNumTasks).divide(srcNumVMEventsReceived);
+        expectedTotalSourceTasksOutputSize = expectedTotalSourceTasksOutputSize.add(expectedSrcOutputSize);
       }
     }
 
-    LOG.info("Expected output: " + expectedTotalSourceTasksOutputSize + " based on actual output: "
-        + completedSourceTasksOutputSize + " from " + numVertexManagerEventsReceived + " vertex manager events. "
-        + " desiredTaskInputSize: " + desiredTaskInputDataSize + " max slow start tasks:"
-        + (totalNumBipartiteSourceTasks * slowStartMaxSrcCompletionFraction) + " num sources completed:"
-        + numBipartiteSourceTasksCompleted);
+    LOG.info("Expected output: {} based on actual output: {} from {} vertex " +
+        "manager events. desiredTaskInputSize: {} max slow start tasks: {} " +
+        " num sources completed: {}", expectedTotalSourceTasksOutputSize,
+        completedSourceTasksOutputSize, numVertexManagerEventsReceived,
+        this.desiredTaskInputDataSize,
+        (totalNumBipartiteSourceTasks * this.slowStartMaxSrcCompletionFraction),
+        numBipartiteSourceTasksCompleted);
 
-    int desiredTaskParallelism = 
-        (int)(
-            (expectedTotalSourceTasksOutputSize+desiredTaskInputDataSize-1)/
-            desiredTaskInputDataSize);
-    if(desiredTaskParallelism < minTaskParallelism) {
-      desiredTaskParallelism = minTaskParallelism;
+    // Calculate number of desired tasks by dividing with rounding up
+    BigInteger desiredTaskInputDataSize = BigInteger.valueOf(this.desiredTaskInputDataSize);
+    BigInteger desiredTaskInputDataSizeMinusOne = BigInteger.valueOf(this.desiredTaskInputDataSize - 1);
+    BigInteger bigDesiredTaskParallelism =
+        expectedTotalSourceTasksOutputSize.add(desiredTaskInputDataSizeMinusOne).divide(desiredTaskInputDataSize);
+
+    if(bigDesiredTaskParallelism.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+      LOG.info("Not reducing auto parallelism for vertex: {}"
+              + " since the desired parallelism of {} is greater than or equal"
+              + " to the max parallelism of {}", getContext().getVertexName(),
+          bigDesiredTaskParallelism, Integer.MAX_VALUE);
+      return true;
+    }
+    int desiredTaskParallelism = bigDesiredTaskParallelism.intValue();
+    if(desiredTaskParallelism < this.minTaskParallelism) {
+      desiredTaskParallelism = this.minTaskParallelism;
     }
 
     if(desiredTaskParallelism >= currentParallelism) {

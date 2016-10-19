@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
   TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.
   TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
   TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
@@ -516,6 +517,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
   TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.
   TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
   TEZ-3335. DAG client thinks app is still running when app status is null
