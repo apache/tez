@@ -19,6 +19,8 @@
 import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
+import DS from 'ember-data';
+
 export default SingleAmPollsterRoute.extend({
   title: "Application Details",
 
@@ -34,6 +36,29 @@ export default SingleAmPollsterRoute.extend({
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('app', this.modelFor("app").get("id"), options);
+    var appModel = this.modelFor("app"),
+        loader = this.get("loader"),
+        appID = appModel.get("entityID");
+
+    // If it's a dummy object then reset, we have already taken appID from it
+    if(!(appModel instanceof DS.Model)) {
+      appModel = null;
+    }
+
+    return loader.queryRecord('app', "tez_" + appID, options).catch(function (appErr) {
+      return loader.query('dag', {
+        appID: appID,
+        limit: 1
+      }, options).then(function (dags) {
+        // If DAG details or application history is available for the app, then don't throw error
+        if(dags.get("length") || appModel) {
+          return Ember.Object.create({
+            app: appModel,
+            appID: appID
+          });
+        }
+        throw(appErr);
+      });
+    });
   },
 });

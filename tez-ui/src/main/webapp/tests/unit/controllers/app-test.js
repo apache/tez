@@ -45,10 +45,8 @@ test('breadcrumbs test', function(assert) {
     send: Ember.K,
     initVisibleColumns: Ember.K,
     model: {
-      app: {
-        name: appName
-      },
-      appID: appID
+      entityID: appID,
+      name: appName
     }
   });
 
