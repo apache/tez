@@ -460,6 +460,70 @@ public class TestShuffleVertexManager {
     // parallelism changed due to small data size
     scheduledTasks.clear();
 
+    // Ensure long overflow doesn't reduce mistakenly
+    // Overflow can occur previously when output size * num tasks for a single vertex would over flow max long
+    //
+    manager = createManager(conf, mockContext, 1.0f, 1.0f, (long)(Long.MAX_VALUE / 1.5));
+    manager.onVertexStarted(emptyCompletions);
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
+    manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(4, manager.totalNumBipartiteSourceTasks);
+    // task completion from non-bipartite stage does nothing
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId3, 0));
+    Assert.assertEquals(4, manager.pendingTasks.size()); // no tasks scheduled
+    Assert.assertEquals(4, manager.totalNumBipartiteSourceTasks);
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    // First source 1 task completes
+    vmEvent = getVertexManagerEvent(null, 0L, mockSrcVertexId1);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, 0));
+    Assert.assertEquals(4, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    Assert.assertEquals(1, manager.numBipartiteSourceTasksCompleted);
+    Assert.assertEquals(1, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(0L, manager.completedSourceTasksOutputSize);
+    // Second source 1 task completes
+    vmEvent = getVertexManagerEvent(null, 0L, mockSrcVertexId1);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, 1));
+    Assert.assertEquals(4, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    Assert.assertEquals(2, manager.numBipartiteSourceTasksCompleted);
+    Assert.assertEquals(0L, manager.completedSourceTasksOutputSize);
+    // First source 2 task completes
+    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
+    Assert.assertEquals(4, manager.pendingTasks.size());
+    Assert.assertEquals(0, scheduledTasks.size()); // no tasks scheduled
+    Assert.assertEquals(3, manager.numBipartiteSourceTasksCompleted);
+    Assert.assertEquals(Long.MAX_VALUE >> 1, manager.completedSourceTasksOutputSize);
+    // Second source 2 task completes
+    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
+    manager.onVertexManagerEventReceived(vmEvent);
+    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 1));
+    // Auto-reduce is triggered
+    verify(mockContext, times(5)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(3)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    Assert.assertEquals(2, newEdgeManagers.size());
+    Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
+    Assert.assertEquals(2, scheduledTasks.size());
+    Assert.assertTrue(scheduledTasks.contains(new Integer(0)));
+    Assert.assertTrue(scheduledTasks.contains(new Integer(1)));
+    Assert.assertEquals(4, manager.numBipartiteSourceTasksCompleted);
+    Assert.assertEquals(4, manager.numVertexManagerEventsReceived);
+    Assert.assertEquals(Long.MAX_VALUE >> 1 << 1, manager.completedSourceTasksOutputSize);
+
+    //reset context for next test
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
+    when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
+
+    // parallelism changed due to small data size
+    scheduledTasks.clear();
+
     manager = createManager(conf, mockContext, 0.5f, 0.5f);
     manager.onVertexStarted(emptyCompletions);
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
@@ -493,8 +557,8 @@ public class TestShuffleVertexManager {
 
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 1));
     // managedVertex tasks reduced
-    verify(mockContext, times(5)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
-    verify(mockContext, times(3)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(6)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(4)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
@@ -507,7 +571,7 @@ public class TestShuffleVertexManager {
     
     // more completions dont cause recalculation of parallelism
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
-    verify(mockContext, times(5)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(6)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     
     EdgeManagerPlugin edgeManager = newEdgeManagers.values().iterator().next();
@@ -1347,7 +1411,17 @@ public class TestShuffleVertexManager {
   }
 
   private ShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context, Float min, Float max) {
+                                             VertexManagerPluginContext context, Float min, Float max, Long size) {
+    return createShuffleVertexManager(conf, context, min, max, size);
+  }
+
+  private ShuffleVertexManager createManager(Configuration conf,
+                                             VertexManagerPluginContext context, Float min, Float max) {
+    return createShuffleVertexManager(conf, context, min, max, null);
+  }
+
+  private ShuffleVertexManager createShuffleVertexManager(Configuration conf,
+      VertexManagerPluginContext context, Float min, Float max, Long size) {
     if (min != null) {
       conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, min);
     } else {
@@ -1357,6 +1431,18 @@ public class TestShuffleVertexManager {
       conf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, max);
     } else {
       conf.unset(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION);
+    }
+    conf.setBoolean(
+        ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL,
+            true);
+    if (size != null) {
+      conf.setLong(
+          ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+          size);
+    } else {
+      conf.setLong(
+          ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_DESIRED_TASK_INPUT_SIZE,
+          1000L);
     }
     UserPayload payload;
     try {
