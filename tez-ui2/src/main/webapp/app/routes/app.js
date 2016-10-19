@@ -17,6 +17,7 @@
  */
 
 import AbstractRoute from './abstract';
+import Ember from 'ember';
 
 export default AbstractRoute.extend({
   title: "Application",
@@ -26,8 +27,18 @@ export default AbstractRoute.extend({
   },
 
   model: function (params) {
-    return this.get("loader").queryRecord('app', "tez_" + this.queryFromParams(params).id).
-      catch(this.onLoadFailure.bind(this));
+    var loader = this.get("loader"),
+        appID = this.queryFromParams(params).id;
+    return loader.queryRecord('AhsApp', appID).catch(function () {
+      return loader.queryRecord('appRm', appID).catch(function () {
+        // Sending back a dummy object presuming app details might be behind ACL.
+        // Not throwing error bar at this level as we need to display DAG tab if
+        // DAG details are available.
+        return Ember.Object.create({
+          entityID: appID
+        });
+      });
+    });
   },
 
   actions: {

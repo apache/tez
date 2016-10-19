@@ -32,6 +32,9 @@ export default SingleAmPollsterRoute.extend({
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('app', this.modelFor("app").get("id"), options);
+    var ID = "tez_" + this.modelFor("app").get("entityID");
+    return this.get("loader").queryRecord('app', ID, options).catch(function () {
+      return [];
+    });
   },
 });

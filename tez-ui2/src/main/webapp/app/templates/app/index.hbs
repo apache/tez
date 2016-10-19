@@ -17,7 +17,7 @@
 }}
 
 {{#if loaded}}
-  {{#if model.app}}
+  {{#if model.app.entityID}}
     <table class='detail-list'>
       <thead>
       <tr>
@@ -79,13 +79,14 @@
     </table>
   {{/if}}
 
-  <table class='detail-list'>
-    <thead>
+  {{#if model.entityID}}
+    <table class='detail-list'>
+      <thead>
       <tr>
         <th colspan=2>Tez Details</th>
       </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
       <tr>
         <td>Entity ID</td>
         <td>{{model.entityID}}</td>
@@ -98,16 +99,16 @@
         <td>User</td>
         <td>{{model.user}}</td>
       </tr>
-    </tbody>
-  </table>
+      </tbody>
+    </table>
 
-  <table class='detail-list'>
-    <thead>
+    <table class='detail-list'>
+      <thead>
       <tr>
         <th colspan=2>Version Details</th>
       </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
       <tr>
         <td>Build Version</td>
         <td>{{model.tezVersion}}</td>
@@ -120,8 +121,28 @@
         <td>Build Time</td>
         <td>{{model.buildTime}}</td>
       </tr>
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  {{/if}}
+
+  {{#unless (and model.entityID model.app.entityID)}}
+    <h2>Some data is not available!</h2>
+    <h5>No data returned from URL:
+      <i>
+        {{#unless model.entityID}}
+          {{hosts.timeline}}/{{env.app.namespaces.webService.timeline}}/{{env.app.paths.timeline.app}}/tez_{{model.appID}}
+        {{/unless}}
+        {{#unless model.app.entityID}}
+          {{#unless model.entityID}}
+            &
+          {{/unless}}
+          {{hosts.timeline}}/{{env.app.namespaces.webService.appHistory}}/apps/{{model.appID}}
+        {{/unless}}
+      </i>.
+      The data may not be available in YARN Timeline or you may not have the necessary permissions to view this data.
+    </h5>
+  {{/unless}}
+
 {{else}}
   {{partial "loading"}}
 {{/if}}

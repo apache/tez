@@ -21,13 +21,13 @@ import Ember from 'ember';
 import ParentController from './parent';
 
 export default ParentController.extend({
-  breadcrumbs: Ember.computed("model.appID", "model.app.name", function () {
-    var name = this.get("model.app.name") || this.get("model.appID");
+  breadcrumbs: Ember.computed("model.name", "model.entityID", function () {
+    var name = this.get("model.name") || this.get("model.entityID");
 
     return [{
       text: `Application [ ${name} ]`,
       routeName: "app.index",
-      model: this.get("model.appID")
+      model: this.get("model.entityID")
     }];
   }),
 

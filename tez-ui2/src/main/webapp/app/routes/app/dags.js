@@ -31,7 +31,7 @@ export default MultiAmPollsterRoute.extend({
 
   load: function (value, query, options) {
     return this.get("loader").query('dag', {
-      appID: this.modelFor("app").get("appID")
+      appID: this.modelFor("app").get("entityID")
     }, options);
   }
 });
