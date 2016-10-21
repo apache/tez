@@ -121,4 +121,14 @@
     <Bug pattern="EI_EXPOSE_REP" />
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.client.TezClient"/>
+    <Or>
+      <Field name="clientTimeout"/>
+      <Field name="frameworkClient"/>
+      <Field name="sessionAppId"/>
+    </Or>
+    <Bug pattern="IS2_INCONSISTENT_SYNC" />
+  </Match>
+
 </FindBugsFilter>

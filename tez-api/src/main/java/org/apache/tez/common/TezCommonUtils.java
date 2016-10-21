@@ -487,4 +487,62 @@ public class TezCommonUtils {
     jobToken.write(jobToken_dob);
     return ByteBuffer.wrap(jobToken_dob.getData(), 0, jobToken_dob.getLength());
   }
+
+  public static String getSystemPropertiesToLog(Configuration conf) {
+    Collection <String> keys = conf.getTrimmedStringCollection(
+        TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG);
+    if (keys.isEmpty()) {
+      keys = TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n/************************************************************\n");
+    sb.append("[system properties]\n");
+    for (String key : keys) {
+      sb.append(key).append(": ").append(System.getProperty(key)).append('\n');
+    }
+    sb.append("************************************************************/");
+    return sb.toString();
+  }
+
+  /**
+   * Helper function to get the heartbeat interval for client-AM heartbeats
+   * See {@link TezConfiguration#TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS} for more details.
+   * @param conf Configuration object
+   * @return heartbeat interval in milliseconds. -1 implies disabled.
+   */
+  public static long getAMClientHeartBeatTimeoutMillis(Configuration conf) {
+    int val = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_DEFAULT);
+    if (val < 0) {
+      return -1;
+    }
+    if (val > 0 && val < TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM) {
+      return TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000;
+    }
+    return val * 1000;
+  }
+
+  /**
+   * Helper function to get the poll interval for client-AM heartbeats.
+   * @param conf Configuration object
+   * @param heartbeatIntervalMillis Heartbeat interval in milliseconds
+   * @param buckets How many times to poll within the provided heartbeat interval
+   * @return poll interval in milliseconds
+   */
+  public static long getAMClientHeartBeatPollIntervalMillis(Configuration conf,
+                                                            long heartbeatIntervalMillis,
+                                                            int buckets) {
+    if (heartbeatIntervalMillis <= 0) {
+      return -1;
+    }
+    int pollInterval = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS,
+        TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_DEFAULT);
+    if (pollInterval > 0) {
+      return Math.max(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_MINIMUM,
+          pollInterval);
+    }
+    return Math.max(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_MINIMUM,
+        heartbeatIntervalMillis/buckets);
+  }
+
 }

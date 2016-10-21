@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,11 @@ public class DAGClientHandler {
   private Logger LOG = LoggerFactory.getLogger(DAGClientHandler.class);
 
   private DAGAppMaster dagAppMaster;
+  private final AtomicLong lastHeartbeatTime;
   
   public DAGClientHandler(DAGAppMaster dagAppMaster) {
     this.dagAppMaster = dagAppMaster;
+    this.lastHeartbeatTime = new AtomicLong(dagAppMaster.getContext().getClock().getTime());
   }
 
   private DAG getCurrentDAG() {
@@ -175,6 +178,14 @@ public class DAGClientHandler {
   public ACLManager getACLManager(String dagIdStr) throws TezException {
     DAG dag = getDAG(dagIdStr);
     return dag.getACLManager();
+  }
+
+  public void updateLastHeartbeatTime() {
+    lastHeartbeatTime.set(dagAppMaster.getContext().getClock().getTime());
+  }
+
+  public long getLastHeartbeatTime() {
+    return lastHeartbeatTime.get();
   }
 
 }

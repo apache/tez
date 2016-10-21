@@ -150,6 +150,8 @@
     <Class name="org.apache.tez.dag.app.DAGAppMaster"/>
     <Or>
       <Field name="context"/>
+      <Field name="clientAMHeartbeatTimeoutIntervalMillis"/>
+      <Field name="clientHandler"/>
       <Field name="currentDAG"/>
       <Field name="state"/>
       <Field name="taskSchedulerManager"/>

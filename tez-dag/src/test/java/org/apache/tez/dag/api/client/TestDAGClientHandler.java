@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -62,6 +63,7 @@ public class TestDAGClientHandler {
     AppContext mockAppContext = mock(AppContext.class);
     when(mockDagAM.getContext()).thenReturn(mockAppContext);
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(mockDAG);
+    when(mockAppContext.getClock()).thenReturn(new SystemClock());
 
     DAGClientHandler dagClientHandler = new DAGClientHandler(mockDagAM);
 

@@ -49,6 +49,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -272,6 +274,11 @@ public class DAGAppMaster extends AbstractService {
 
   private boolean isLocal = false; //Local mode flag
 
+  // Timeout interval which if set will cause a running
+  // DAG to be killed and AM shutdown if the client has not
+  // pinged/heartbeated to the AM in the given time period.
+  private long clientAMHeartbeatTimeoutIntervalMillis = -1;
+
   @VisibleForTesting
   protected DAGAppMasterShutdownHandler shutdownHandler;
   private final AtomicBoolean shutdownHandlerRunning = new AtomicBoolean(false);
@@ -290,6 +297,7 @@ public class DAGAppMaster extends AbstractService {
   private long sessionTimeoutInterval;
   private long lastDAGCompletionTime;
   private Timer dagSubmissionTimer;
+  private ScheduledExecutorService clientAMHeartBeatTimeoutService;
   private boolean recoveryEnabled;
   private Path recoveryDataDir;
   private Path currentRecoveryDataDir;
@@ -599,6 +607,8 @@ public class DAGAppMaster extends AbstractService {
     this.sessionTimeoutInterval = 1000 * amConf.getInt(
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
             TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+    this.clientAMHeartbeatTimeoutIntervalMillis =
+        TezCommonUtils.getAMClientHeartBeatTimeoutMillis(amConf);
 
     if (!versionMismatch) {
       if (isSession) {
@@ -2109,18 +2119,44 @@ public class DAGAppMaster extends AbstractService {
     }
 
     if (isSession) {
-      this.dagSubmissionTimer = new Timer(true);
+      this.dagSubmissionTimer = new Timer("DAGSubmissionTimer", true);
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
         public void run() {
           try {
             checkAndHandleSessionTimeout();
           } catch (TezException e) {
-            LOG.error("Error when check AM session timeout", e);
+            LOG.error("Error when checking AM session timeout", e);
           }
         }
       }, sessionTimeoutInterval, sessionTimeoutInterval / 10);
     }
+
+    // Ignore client heartbeat timeout in local mode or non-session mode
+    if (!isLocal && isSession && clientAMHeartbeatTimeoutIntervalMillis > 0) {
+      // reset heartbeat time
+      clientHandler.updateLastHeartbeatTime();
+      this.clientAMHeartBeatTimeoutService = Executors.newSingleThreadScheduledExecutor(
+          new ThreadFactoryBuilder()
+              .setDaemon(true).setNameFormat("ClientAMHeartBeatKeepAliveCheck #%d").build()
+      );
+      this.clientAMHeartBeatTimeoutService.schedule(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            long nextExpiry = checkAndHandleDAGClientTimeout();
+            if (nextExpiry > 0) {
+              clientAMHeartBeatTimeoutService.schedule(this, nextExpiry, TimeUnit.MILLISECONDS);
+            }
+          } catch (TezException e) {
+            // Cannot be thrown unless the AM is being tried to shutdown so no need to
+            // reschedule the timer task
+            LOG.error("Error when checking Client AM heartbeat timeout", e);
+          }
+        }
+      }, clientAMHeartbeatTimeoutIntervalMillis, TimeUnit.MILLISECONDS);
+    }
+
   }
 
 
@@ -2136,6 +2172,9 @@ public class DAGAppMaster extends AbstractService {
     synchronized (this) {
       if (this.dagSubmissionTimer != null) {
         this.dagSubmissionTimer.cancel();
+      }
+      if (this.clientAMHeartBeatTimeoutService != null) {
+        this.clientAMHeartBeatTimeoutService.shutdownNow();
       }
       // release all the held containers before stop services TEZ-2687
       initiateStop();
@@ -2273,6 +2312,33 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
+  private long checkAndHandleDAGClientTimeout() throws TezException {
+    if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.RECOVERING).contains(this.state)
+        || sessionStopped.get()) {
+      // AM new or recovering so do not kill session at this time
+      // if session already completed or shutting down, this should be a a no-op
+      return -1;
+    }
+
+    long currentTime = clock.getTime();
+    long nextExpiry = clientHandler.getLastHeartbeatTime()
+        + clientAMHeartbeatTimeoutIntervalMillis;
+    if (currentTime < nextExpiry) {
+      // reschedule timer to 1 sec after the next expiry window
+      // to ensure that we time out as intended if there are no heartbeats
+      return ((nextExpiry+1000) - currentTime);
+    }
+
+    String message = "Client-to-AM Heartbeat timeout interval expired, shutting down AM as client"
+        + " stopped heartbeating to it"
+        + ", lastClientAMHeartbeatTime=" + clientHandler.getLastHeartbeatTime()
+        + ", clientAMHeartbeatTimeoutIntervalMillis="
+        + clientAMHeartbeatTimeoutIntervalMillis + " ms";
+    addDiagnostic(message);
+    shutdownTezAM(message);
+    return -1;
+  }
+
   private synchronized void checkAndHandleSessionTimeout() throws TezException {
     if (EnumSet.of(DAGAppMasterState.RUNNING,
         DAGAppMasterState.RECOVERING).contains(this.state)
@@ -2287,6 +2353,7 @@ public class DAGAppMaster extends AbstractService {
     String message = "Session timed out"
         + ", lastDAGCompletionTime=" + lastDAGCompletionTime + " ms"
         + ", sessionTimeoutInterval=" + sessionTimeoutInterval + " ms";
+    addDiagnostic(message);
     shutdownTezAM(message);
   }
 
@@ -2379,7 +2446,7 @@ public class DAGAppMaster extends AbstractService {
 
       // log the system properties
       if (LOG.isInfoEnabled()) {
-        String systemPropsToLog = TezUtils.getSystemPropertiesToLog(conf);
+        String systemPropsToLog = TezCommonUtils.getSystemPropertiesToLog(conf);
         if (systemPropsToLog != null) {
           LOG.info(systemPropsToLog);
         }

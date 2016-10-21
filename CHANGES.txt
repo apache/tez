@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3405. Support ability for AM to kill itself if there is no client heartbeating to it.
   TEZ-3483. Create basic travis yml file for Tez.
   TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
   TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.

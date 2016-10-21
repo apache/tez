@@ -43,6 +43,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -1167,5 +1169,117 @@ public class TestTezJobs {
     inStream.close();
     assertEquals(0, expectedResult.size());
   }
+
+  @Test(timeout = 60000)
+  public void testAMClientHeartbeatTimeout() throws Exception {
+    Path stagingDirPath = new Path("/tmp/timeout-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+
+    YarnClient yarnClient = YarnClient.createYarnClient();
+
+    try {
+
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+
+      List<ApplicationReport> apps = yarnClient.getApplications();
+      int appsBeforeCount = apps != null ? apps.size() : 0;
+
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+      tezConf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 5);
+      TezClient tezClient = TezClient.create("testAMClientHeartbeatTimeout", tezConf, true);
+      tezClient.start();
+      tezClient.cancelAMKeepAlive();
+
+      ApplicationId appId = tezClient.getAppMasterApplicationId();
+
+      apps = yarnClient.getApplications();
+      int appsAfterCount = apps != null ? apps.size() : 0;
+
+      // Running in session mode. So should only create 1 more app.
+      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+
+      ApplicationReport report;
+      while (true) {
+        report = yarnClient.getApplicationReport(appId);
+        if (report.getYarnApplicationState() == YarnApplicationState.FINISHED
+            || report.getYarnApplicationState() == YarnApplicationState.FAILED
+            || report.getYarnApplicationState() == YarnApplicationState.KILLED) {
+          break;
+        }
+        Thread.sleep(1000);
+      }
+      // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
+      Thread.sleep(2000);
+      report = yarnClient.getApplicationReport(appId);
+      LOG.info("App Report for appId=" + appId
+          + ", report=" + report);
+      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
+          report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"));
+
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (yarnClient != null) {
+        yarnClient.stop();
+      }
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testSessionTimeout() throws Exception {
+    Path stagingDirPath = new Path("/tmp/sessiontimeout-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+
+    YarnClient yarnClient = YarnClient.createYarnClient();
+
+    try {
+
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+
+      List<ApplicationReport> apps = yarnClient.getApplications();
+      int appsBeforeCount = apps != null ? apps.size() : 0;
+
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+      tezConf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 5);
+      TezClient tezClient = TezClient.create("testSessionTimeout", tezConf, true);
+      tezClient.start();
+
+      ApplicationId appId = tezClient.getAppMasterApplicationId();
+
+      apps = yarnClient.getApplications();
+      int appsAfterCount = apps != null ? apps.size() : 0;
+
+      // Running in session mode. So should only create 1 more app.
+      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+
+      ApplicationReport report;
+      while (true) {
+        report = yarnClient.getApplicationReport(appId);
+        if (report.getYarnApplicationState() == YarnApplicationState.FINISHED
+            || report.getYarnApplicationState() == YarnApplicationState.FAILED
+            || report.getYarnApplicationState() == YarnApplicationState.KILLED) {
+          break;
+        }
+        Thread.sleep(1000);
+      }
+      // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
+      Thread.sleep(2000);
+      report = yarnClient.getApplicationReport(appId);
+      LOG.info("App Report for appId=" + appId
+          + ", report=" + report);
+      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
+          report.getDiagnostics().contains("Session timed out"));
+
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (yarnClient != null) {
+        yarnClient.stop();
+      }
+    }
+  }
+
 
 }

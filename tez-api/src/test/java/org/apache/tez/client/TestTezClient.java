@@ -794,4 +794,40 @@ public class TestTezClient {
     } catch (ApplicationNotFoundException e) {
     }
   }
+
+  @Test(timeout = 30000)
+  public void testAMClientHeartbeat() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 10);
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+    long start = System.currentTimeMillis();
+    while (true) {
+      if (System.currentTimeMillis() > (start + 5000)) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+    client.stop();
+    verify(client.sessionAmProxy, atLeast(3)).getAMStatus(any(RpcController.class),
+        any(GetAMStatusRequestProto.class));
+
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, -1);
+    final TezClientForTest client2 = configureAndCreateTezClient(conf);
+    client2.start();
+    start = System.currentTimeMillis();
+    while (true) {
+      if (System.currentTimeMillis() > (start + 5000)) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+    client2.stop();
+    verify(client2.sessionAmProxy, times(0)).getAMStatus(any(RpcController.class),
+        any(GetAMStatusRequestProto.class));
+
+
+  }
+
+
 }
