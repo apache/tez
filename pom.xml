@@ -821,6 +821,7 @@
               <!-- To make developer life easy. Source wont have these files -->
               <exclude>**/*.diff</exclude>
               <exclude>*.patch</exclude>
+              <exclude>*.travis.yml</exclude>
               <!-- .png files constitute images required for documentation. .pptx contain the sources for images -->
               <exclude>**/*.png</exclude>
               <exclude>**/*.pptx</exclude>
