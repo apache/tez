@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -14,19 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-language: java
-
-sudo: required
-
-env: MAVEN_OPTS="-Xmx2G -XX:MaxPermSize=512M"
-
-jdk:
-  - oraclejdk8
-  - openjdk8
-
-before_install:
-  - ./build-tools/install-protobuf.sh
-
-install:
-  - mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true
-
+set -ex
+wget https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz
+tar -xzvf protobuf-2.5.0.tar.gz
+cd protobuf-2.5.0 && ./configure --prefix=/usr && make && sudo make install
