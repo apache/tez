@@ -26,6 +26,6 @@ jdk:
 before_install:
   - ./build-tools/install-protobuf.sh
 
-install:
-  - mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true
+script:
+  - mvn -B clean install package -DskipTests=true -Dmaven.javadoc.skip=true
 
