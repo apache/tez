@@ -22,7 +22,6 @@ env: MAVEN_OPTS="-Xmx2G -XX:MaxPermSize=512M"
 
 jdk:
   - oraclejdk8
-  - openjdk8
 
 before_install:
   - ./build-tools/install-protobuf.sh
