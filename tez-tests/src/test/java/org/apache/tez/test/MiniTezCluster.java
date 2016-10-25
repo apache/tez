@@ -173,15 +173,15 @@ public class MiniTezCluster extends MiniYARNCluster {
     conf.set(MRConfig.MASTER_ADDRESS, "test");
 
     //configure the shuffle service in NM
-    conf.setStrings(YarnConfiguration.NM_AUX_SERVICES,
-        new String[] { ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID });
-    conf.setClass(String.format(YarnConfiguration.NM_AUX_SERVICE_FMT,
-        ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID), ShuffleHandler.class,
-        Service.class);
-
-    // Non-standard shuffle port
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
-
+    if (conf.get(YarnConfiguration.NM_AUX_SERVICES) == null) {
+      conf.setStrings(YarnConfiguration.NM_AUX_SERVICES,
+          new String[]{ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID});
+      conf.setClass(String.format(YarnConfiguration.NM_AUX_SERVICE_FMT,
+          ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID), ShuffleHandler.class,
+          Service.class);
+      // Non-standard shuffle port
+      conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    }
     conf.setClass(YarnConfiguration.NM_CONTAINER_EXECUTOR,
         DefaultContainerExecutor.class, ContainerExecutor.class);
 

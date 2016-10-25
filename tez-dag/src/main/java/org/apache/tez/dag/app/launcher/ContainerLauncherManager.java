@@ -26,6 +26,7 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.Utils;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -193,8 +194,11 @@ public class ContainerLauncherManager extends AbstractService
     }
   }
 
-  public void dagComplete(DAG dag) {
-    // Nothing required at the moment. Containers are shared across DAGs
+  public void dagComplete(DAG dag, JobTokenSecretManager secretManager) {
+
+    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+      containerLaunchers[i].dagComplete(dag, secretManager);
+    }
   }
 
   public void dagSubmitted() {

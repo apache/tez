@@ -56,7 +56,9 @@ import java.util.regex.Pattern;
 import javax.crypto.SecretKey;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -899,6 +901,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Map<String,List<String>> q =
         new QueryStringDecoder(request.getUri()).getParameters();
       final List<String> keepAliveList = q.get("keepAlive");
+      final List<String> dagCompletedQ = q.get("dagCompleted");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
@@ -919,7 +922,10 @@ public class ShuffleHandler extends AuxiliaryService {
             "\n  dagId: " + dagIdQ +
             "\n  keepAlive: " + keepAliveParam);
       }
-
+      // If the request is for Dag Deletion, process the request and send OK.
+      if (deleteDagDirectories(evt, dagCompletedQ, jobQ, dagIdQ))  {
+        return;
+      }
       if (mapIds == null || reduceQ == null || jobQ == null || dagIdQ == null) {
         sendError(ctx, "Required param job, dag, map and reduce", BAD_REQUEST);
         return;
@@ -993,6 +999,26 @@ public class ShuffleHandler extends AuxiliaryService {
       }
     }
 
+    private boolean deleteDagDirectories(MessageEvent evt,
+                                         List<String> dagCompletedQ, List<String> jobQ,
+                                         List<String> dagIdQ) {
+      if (dagCompletedQ != null && !dagCompletedQ.isEmpty()) {
+        String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
+        try {
+          LocalFileSystem lfs = FileSystem.getLocal(conf);
+          for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
+            lfs.delete(dagPath, true);
+          }
+        } catch (IOException e) {
+          LOG.warn("Encountered exception during dag delete "+ e);
+        }
+        evt.getChannel().write(new DefaultHttpResponse(HTTP_1_1, OK));
+        evt.getChannel().close();
+        return true;
+      }
+      return false;
+    }
+
     /**
      * Calls sendMapOutput for the mapId pointed by ReduceContext.mapsToSend
      * and increments it. This method is first called by messageReceived()
@@ -1050,16 +1076,22 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     private String getBaseLocation(String jobId, String dagId, String user) {
+      final String baseStr =
+          getDagLocation(jobId, dagId, user) + "output" + Path.SEPARATOR;
+      return baseStr;
+    }
+
+    private String getDagLocation(String jobId, String dagId, String user) {
       final JobID jobID = JobID.forName(jobId);
       final ApplicationId appID =
           ApplicationId.newInstance(Long.parseLong(jobID.getJtIdentifier()),
-            jobID.getId());
-      final String baseStr =
+              jobID.getId());
+      final String dagStr =
           USERCACHE + Path.SEPARATOR + user + Path.SEPARATOR
               + APPCACHE + Path.SEPARATOR
-              + appID.toString() + Path.SEPARATOR + Constants.DAG_PREFIX +
-              dagId + Path.SEPARATOR + "output" + Path.SEPARATOR;
-      return baseStr;
+              + appID.toString() + Path.SEPARATOR + Constants.DAG_PREFIX + dagId
+              + Path.SEPARATOR;
+      return dagStr;
     }
 
     protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,

@@ -76,6 +76,7 @@ public class ShuffleUtils {
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
   private static final long MB = 1024l * 1024l;
 
+  public static final int UNDEFINED_PORT = -1;
   //Shared by multiple threads
   private static volatile SSLFactory sslFactory;
 
@@ -220,6 +221,23 @@ public class ShuffleUtils {
     sb.append(String.valueOf(partition));
     sb.append("&map=");
     return sb;
+  }
+
+  public static URL constructBaseURIForShuffleHandlerDagComplete(
+      String host, int port, String appId, int dagIdentifier, boolean sslShuffle)
+      throws MalformedURLException{
+    final String http_protocol = (sslShuffle) ? "https://" : "http://";
+    StringBuilder sb = new StringBuilder(http_protocol);
+    sb.append(host);
+    sb.append(":");
+    sb.append(port);
+    sb.append("/");
+    sb.append("mapOutput?job=");
+    sb.append(appId.replace("application", "job"));
+    sb.append("&dag=");
+    sb.append(String.valueOf(dagIdentifier));
+    sb.append("&dagCompleted=true");
+    return new URL(sb.toString());
   }
 
   public static URL constructInputURL(String baseURI,

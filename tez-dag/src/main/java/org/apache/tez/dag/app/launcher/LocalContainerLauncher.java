@@ -44,8 +44,12 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -89,6 +93,10 @@ public class LocalContainerLauncher extends ContainerLauncher {
   private final ExecutionContext executionContext;
   private final int numExecutors;
   private final boolean isLocalMode;
+  int shufflePort = ShuffleUtils.UNDEFINED_PORT;
+  private final Map<NodeId, Integer> nodeIdShufflePortMap = new HashMap<NodeId, Integer>();
+  private ExecutorService dagDeleteService;
+  boolean shouldDelete;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
@@ -137,6 +145,12 @@ public class LocalContainerLauncher extends ContainerLauncher {
       localEnv = Maps.newHashMap();
       AuxiliaryServiceHelper.setServiceDataIntoEnv(
           auxiliaryService, ByteBuffer.allocate(4).putInt(0), localEnv);
+      try {
+        shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(
+            AuxiliaryServiceHelper.getServiceDataFromEnv(auxiliaryService, localEnv));
+      } catch (IOException e) {
+        LOG.warn("Could not extract shuffle aux-service port!");
+      }
     } else {
       localEnv = System.getenv();
     }
@@ -147,6 +161,12 @@ public class LocalContainerLauncher extends ContainerLauncher {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
+    dagDeleteService = Executors.newFixedThreadPool(
+        conf.getInt(TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT,
+            TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT_DEFAULT), new ThreadFactoryBuilder()
+            .setDaemon(true).setNameFormat("ShuffleDeleteService #%d").build());
+    shouldDelete = conf.getBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED,
+        TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED_DEFAULT);
   }
 
   @Override
@@ -170,6 +190,10 @@ public class LocalContainerLauncher extends ContainerLauncher {
       taskExecutorService.shutdownNow();
     }
     callbackExecutor.shutdownNow();
+    if (dagDeleteService != null) {
+      dagDeleteService.shutdown();
+      dagDeleteService = null;
+    }
   }
 
 
@@ -247,6 +271,12 @@ public class LocalContainerLauncher extends ContainerLauncher {
       RunningTaskCallback callback = new RunningTaskCallback(event.getContainerId());
       runningContainers.put(event.getContainerId(), callback);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
+
+      if (isLocalMode && shufflePort != ShuffleUtils.UNDEFINED_PORT) {
+        if(nodeIdShufflePortMap.get(event.getNodeId()) == null) {
+          nodeIdShufflePortMap.put(event.getNodeId(), shufflePort);
+        }
+      }
     } catch (RejectedExecutionException e) {
       handleLaunchFailed(e, event.getContainerId());
     }
@@ -381,6 +411,26 @@ public class LocalContainerLauncher extends ContainerLauncher {
     } catch (InterruptedException e) {
       throw new TezUncheckedException(e);
     }
+  }
+
+  public void dagComplete(DAG dag, JobTokenSecretManager jobTokenSecretManager) {
+    if (!shouldDelete) {
+      return;
+    }
+    String tezDefaultComponentName =
+        isLocalMode ? TezConstants.getTezUberServicePluginName() :
+        TezConstants.getTezYarnServicePluginName();
+    for (Map.Entry<NodeId, Integer> entry : nodeIdShufflePortMap.entrySet()) {
+      NodeId nodeId = entry.getKey();
+      int shufflePort = entry.getValue();
+      //TODO: add check for healthy node
+      if (shufflePort != ShuffleUtils.UNDEFINED_PORT) {
+        DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
+            shufflePort, dag, jobTokenSecretManager, tezDefaultComponentName);
+        dagDeleteService.submit(dagDeleteRunnable);
+      }
+    }
+    nodeIdShufflePortMap.clear();
   }
 
 }
