@@ -38,7 +38,7 @@
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <clover.license>${user.home}/clover.license</clover.license>
     <hadoop.version>2.6.0</hadoop.version>
-    <jetty.version>6.1.26</jetty.version>
+    <jetty.version>9.3.13.v20161014</jetty.version>
     <pig.version>0.13.0</pig.version>
     <javac.version>1.7</javac.version>
     <slf4j.version>1.7.10</slf4j.version>
