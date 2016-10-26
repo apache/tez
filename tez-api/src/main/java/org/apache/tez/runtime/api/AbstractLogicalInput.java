@@ -82,7 +82,7 @@ public abstract class AbstractLogicalInput implements LogicalInput, LogicalInput
     return inputContext;
   }
 
-  public float getProgress() throws IOException, InterruptedException {
+  public float getProgress() throws ProgressFailedException, InterruptedException {
     return 0.0f;
   }
 }

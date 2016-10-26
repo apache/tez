@@ -42,6 +42,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -258,7 +259,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
   }
 
   @Override
-  public float getProgress()  throws IOException, InterruptedException {
+  public float getProgress() throws ProgressFailedException, InterruptedException {
     int totalInputs = getNumPhysicalInputs();
     if (totalInputs != 0) {
       synchronized (this) {

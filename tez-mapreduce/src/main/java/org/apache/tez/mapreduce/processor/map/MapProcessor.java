@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Timer;
-import java.util.TimerTask;
 
+import org.apache.tez.common.ProgressHelper;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -46,7 +46,6 @@ import org.apache.tez.mapreduce.input.MRInputLegacy;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -63,32 +62,7 @@ public class MapProcessor extends MRTask{
 
   protected Map<String, LogicalInput> inputs;
   protected Map<String, LogicalOutput> outputs;
-  Timer progressTimer = new Timer();
-  TimerTask progressTask = new TimerTask() {
-
-    @Override
-    public void run() {
-      try {
-        float progSum = 0.0f;
-        if (inputs != null && inputs.size() != 0) {
-          for(LogicalInput input : inputs.values()) {
-            if (input instanceof AbstractLogicalInput) {
-              progSum += ((AbstractLogicalInput) input).getProgress();
-            }
-          }
-          float progress = (1.0f) * progSum / inputs.size();
-          getContext().setProgress(progress);
-          mrReporter.setProgress(progress);
-        }
-      } catch (IOException e) {
-        LOG.warn("Encountered IOException during Processor progress update"
-            + e.getMessage());
-      } catch (InterruptedException e) {
-        LOG.warn("Encountered InterruptedException during Processor progress"
-            + "update" + e.getMessage());
-      }
-    }
-  };
+  private ProgressHelper progressHelper;
 
   public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);
@@ -101,8 +75,9 @@ public class MapProcessor extends MRTask{
   }
 
   public void close() throws IOException {
-    progressTimer.cancel();
-
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   @Override
@@ -111,6 +86,7 @@ public class MapProcessor extends MRTask{
 
     this.inputs = _inputs;
     this.outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, getContext(), this.getClass().getSimpleName());
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
     for (LogicalInput input : _inputs.values()) {
       input.start();
@@ -129,7 +105,7 @@ public class MapProcessor extends MRTask{
     LogicalOutput out = _outputs.values().iterator().next();
 
     initTask(out);
-    progressTimer.schedule(progressTask, 0, 100);
+    progressHelper.scheduleProgressTaskService(0, 100);
 
     // Sanity check
     if (!(in instanceof MRInputLegacy)) {
@@ -315,7 +291,17 @@ public class MapProcessor extends MRTask{
 
     @Override
     public float getProgress() throws IOException, InterruptedException {
-      return in.getProgress();
+      try {
+        return in.getProgress();
+      } catch (ProgressFailedException e) {
+        if (e.getCause() instanceof IOException) {
+          throw (IOException)e.getCause();
+        }
+        if (e.getCause() instanceof InterruptedException) {
+          throw (InterruptedException)e.getCause();
+        }
+      }
+      throw new RuntimeException("Could not get Processor progress");
     }
 
     @Override
@@ -366,6 +352,8 @@ public class MapProcessor extends MRTask{
     public float getProgress() throws IOException {
       try {
         return mrInput.getProgress();
+      } catch (ProgressFailedException pe) {
+        throw new IOException(pe);
       } catch (InterruptedException ie) {
         throw new IOException(ie);
       }

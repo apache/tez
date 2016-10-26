@@ -18,21 +18,18 @@
 
 package org.apache.tez.runtime.library.processor;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import com.google.common.base.Charsets;
+import org.apache.tez.common.ProgressHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -53,32 +50,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
   private int timeToSleepMS;
   protected Map<String, LogicalInput> inputs;
   protected Map<String, LogicalOutput> outputs;
-
-  Timer progressTimer = new Timer();
-  TimerTask progressTask = new TimerTask() {
-
-    @Override
-    public void run() {
-      try {
-        float progSum = 0.0f;
-        if (inputs != null) {
-          for(LogicalInput input : inputs.values()) {
-            if (input instanceof AbstractLogicalInput) {
-              progSum += ((AbstractLogicalInput) input).getProgress();
-            }
-          }
-          float progress = (1.0f) * progSum / inputs.size();
-          getContext().setProgress(progress);
-        }
-      } catch (IOException e) {
-        LOG.warn("Encountered IOException during Processor progress update" +
-            e.getMessage());
-      } catch (InterruptedException e) {
-        LOG.warn("Encountered InterruptedException during Processor progress" +
-            "update" + e.getMessage());
-      }
-    }
-  };
+  private ProgressHelper progressHelper;
 
   public SleepProcessor(ProcessorContext context) {
     super(context);
@@ -105,12 +77,13 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
                   Map<String, LogicalOutput> _outputs) throws Exception {
     inputs = _inputs;
     outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
     LOG.info("Running the Sleep Processor, sleeping for "
       + timeToSleepMS + " ms");
     for (LogicalInput input : _inputs.values()) {
       input.start();
     }
-    progressTimer.schedule(progressTask, 0, 100);
+    progressHelper.scheduleProgressTaskService(0, 100);
     for (LogicalOutput output : _outputs.values()) {
       output.start();
     }
@@ -128,7 +101,9 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-    progressTimer.cancel();
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   /**

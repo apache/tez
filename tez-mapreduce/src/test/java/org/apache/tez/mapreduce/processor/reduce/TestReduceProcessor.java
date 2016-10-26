@@ -138,7 +138,7 @@ public class TestReduceProcessor {
     jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
     
     Path mapInput = new Path(workDir, "map0");
-    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         InputDescriptor.create(MRInputLegacy.class.getName())

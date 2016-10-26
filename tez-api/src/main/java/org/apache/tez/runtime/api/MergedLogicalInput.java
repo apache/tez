@@ -94,7 +94,7 @@ public abstract class MergedLogicalInput implements LogicalInput {
    */
   public abstract void setConstituentInputIsReady(Input input);
 
-  public float getProgress() throws IOException, InterruptedException {
+  public float getProgress() throws ProgressFailedException, InterruptedException {
     return 0.0f;
   }
 }

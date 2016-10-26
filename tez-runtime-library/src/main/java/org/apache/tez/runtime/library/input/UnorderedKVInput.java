@@ -41,6 +41,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
@@ -288,7 +289,11 @@ public class UnorderedKVInput extends AbstractLogicalInput {
   }
 
   @Override
-  public float getProgress() {
-    return kvReader.getProgress();
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    try {
+      return kvReader.getProgress();
+    } catch (IOException e) {
+      throw new ProgressFailedException("getProgress encountered IOException ", e);
+    }
   }
 }

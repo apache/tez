@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -250,7 +251,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       }
     }
   }
-  public float getProgress() throws IOException, InterruptedException {
+  public float getProgress() throws ProgressFailedException, InterruptedException {
     float totalProgress = 0.0f;
     for(Input input : getInputs()) {
       totalProgress += ((OrderedGroupedKVInput)input).getProgress();

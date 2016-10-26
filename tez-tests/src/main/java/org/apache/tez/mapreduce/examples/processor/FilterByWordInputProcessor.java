@@ -18,11 +18,8 @@
 
 package org.apache.tez.mapreduce.examples.processor;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +27,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.mapreduce.examples.FilterLinesByWord;
 import org.apache.tez.mapreduce.examples.FilterLinesByWord.TextLongPair;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.input.MRInputLegacy;
-import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -52,31 +49,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
   private String filterWord;
   protected Map<String, LogicalInput> inputs;
   protected Map<String, LogicalOutput> outputs;
-  Timer progressTimer = new Timer();
-  TimerTask progressTask = new TimerTask() {
-
-    @Override
-    public void run() {
-      try {
-        float progSum = 0.0f;
-        if (inputs != null) {
-          for(LogicalInput input : inputs.values()) {
-            if (input instanceof AbstractLogicalInput) {
-              progSum += ((AbstractLogicalInput) input).getProgress();
-            }
-          }
-          float progress = (1.0f) * progSum / inputs.size();
-          getContext().setProgress(progress);
-        }
-      } catch (IOException e) {
-        LOG.warn("Encountered IOException during Processor progress update" +
-            e.getMessage());
-      } catch (InterruptedException e) {
-        LOG.warn("Encountered InterruptedException during Processor progress" +
-            "update" + e.getMessage());
-      }
-    }
-  };
+  private ProgressHelper progressHelper;
 
   public FilterByWordInputProcessor(ProcessorContext context) {
     super(context);
@@ -100,7 +73,9 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-    progressTimer.cancel();
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   @Override
@@ -108,7 +83,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
       Map<String, LogicalOutput> _outputs) throws Exception {
     this.inputs = _inputs;
     this.outputs = _outputs;
-    
+    this.progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
     if (_inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single input");
     }
@@ -133,7 +108,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
     if (! (lo instanceof UnorderedKVOutput)) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with OnFileUnorderedKVOutput");
     }
-    progressTimer.schedule(progressTask, 0, 100);
+    progressHelper.scheduleProgressTaskService(0, 100);
     MRInputLegacy mrInput = (MRInputLegacy) li;
     mrInput.init();
     UnorderedKVOutput kvOutput = (UnorderedKVOutput) lo;
