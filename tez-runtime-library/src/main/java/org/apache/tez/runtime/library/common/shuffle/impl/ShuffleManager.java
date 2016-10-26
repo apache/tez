@@ -855,6 +855,15 @@ public class ShuffleManager implements FetcherCallback {
     } while (input instanceof NullFetchedInput);
     return input;
   }
+
+  public int getNumInputs() {
+    return numInputs;
+  }
+
+  public AtomicInteger getNumCompletedInputs() {
+    return numCompletedInputs;
+  }
+
   /////////////////// End of methods for walking the available inputs
 
 

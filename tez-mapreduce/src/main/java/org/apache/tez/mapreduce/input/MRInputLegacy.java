@@ -87,6 +87,10 @@ public class MRInputLegacy extends MRInput {
     return (org.apache.hadoop.mapreduce.RecordReader) mrReader.getRecordReader();
   }
 
+  public float getProgress() throws IOException, InterruptedException {
+      return super.getProgress();
+  }
+
   @Private
   public InputSplit getOldInputSplit() {
     return (InputSplit) mrReader.getSplit();

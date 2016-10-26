@@ -581,8 +581,9 @@ public class MRInput extends MRInputBase {
     }
   }
 
-  public float getProgress() throws IOException, InterruptedException {
-    return mrReader.getProgress();
+  @Override
+  public float getProgress() throws IOException,InterruptedException {
+    return (mrReader != null) ? mrReader.getProgress() : 0.0f;
   }
 
   void processSplitEvent(InputDataInformationEvent event)

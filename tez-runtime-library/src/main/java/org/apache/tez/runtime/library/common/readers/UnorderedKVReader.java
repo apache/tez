@@ -72,6 +72,8 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   // TODO Remove this once per I/O counters are separated properly. Relying on
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
+  private long totalBytesRead = 0;
+  private long totalFileBytes = 0;
 
 
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
@@ -145,6 +147,17 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     return value;
   }
 
+  public float getProgress() {
+    int numInputs = shuffleManager.getNumInputs();
+    if (totalFileBytes > 0 && numInputs > 0) {
+      return ((1.0f) * (totalBytesRead + ((currentReader != null) ? currentReader.bytesRead :
+      0l)) /
+          totalFileBytes) * (
+          shuffleManager.getNumCompletedInputs().floatValue() /
+              (1.0f * numInputs));
+    }
+    return 0l;
+  }
   /**
    * Tries reading the next key and value from the current reader.
    * @return true if the current reader has more records
@@ -176,6 +189,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
    */
   private boolean moveToNextInput() throws IOException {
     if (currentReader != null) { // Close the current reader.
+      totalBytesRead += currentReader.bytesRead;
       currentReader.close();
       /**
        * clear reader explicitly. Otherwise this could point to stale reference when next() is
@@ -195,6 +209,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       return false; // No more inputs
     } else {
       currentReader = openIFileReader(currentFetchedInput);
+      totalFileBytes += currentReader.getLength();
       return true;
     }
   }

@@ -287,4 +287,8 @@ public class UnorderedKVInput extends AbstractLogicalInput {
     return Collections.unmodifiableSet(confKeys);
   }
 
+  @Override
+  public float getProgress() {
+    return kvReader.getProgress();
+  }
 }

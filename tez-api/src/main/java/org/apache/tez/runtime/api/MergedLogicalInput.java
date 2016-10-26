@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.api;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -92,4 +93,8 @@ public abstract class MergedLogicalInput implements LogicalInput {
    * Used by the framework to inform the MergedInput that one of it's constituent Inputs is ready.
    */
   public abstract void setConstituentInputIsReady(Input input);
+
+  public float getProgress() throws IOException, InterruptedException {
+    return 0.0f;
+  }
 }
