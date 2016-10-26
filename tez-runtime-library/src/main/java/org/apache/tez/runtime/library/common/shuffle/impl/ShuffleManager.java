@@ -867,8 +867,8 @@ public class ShuffleManager implements FetcherCallback {
     return numInputs;
   }
 
-  public AtomicInteger getNumCompletedInputs() {
-    return numCompletedInputs;
+  public float getNumCompletedInputsFloat() {
+    return numCompletedInputs.floatValue();
   }
 
   /////////////////// End of methods for walking the available inputs

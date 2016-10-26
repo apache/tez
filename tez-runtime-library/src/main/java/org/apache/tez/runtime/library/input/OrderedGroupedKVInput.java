@@ -28,6 +28,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.common.Constants;
 import org.slf4j.Logger;
@@ -267,7 +268,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
   }
 
   @Override
-  public float getProgress()  throws IOException, InterruptedException {
+  public float getProgress() throws ProgressFailedException, InterruptedException {
     int totalInputs = getNumPhysicalInputs();
     if (totalInputs != 0) {
       synchronized (this) {

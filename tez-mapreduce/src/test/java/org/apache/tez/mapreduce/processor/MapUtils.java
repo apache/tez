@@ -118,7 +118,7 @@ public class MapUtils {
   }
   
   private static InputSplit 
-  createInputSplit(FileSystem fs, Path workDir, JobConf job, Path file) 
+  createInputSplit(FileSystem fs, Path workDir, JobConf job, Path file, int numKVs)
       throws IOException {
     FileInputFormat.setInputPaths(job, workDir);
 
@@ -132,7 +132,7 @@ public class MapUtils {
       Random r = new Random(System.currentTimeMillis());
       LongWritable key = new LongWritable();
       Text value = new Text();
-      for (int i = 10; i > 0; i--) {
+      for (int i = numKVs; i > 0; i--) {
         key.set(r.nextInt(1000));
         value.set(Integer.toString(i));
         writer.append(key, value);
@@ -189,9 +189,10 @@ public class MapUtils {
     outMeta.close();
   }
 
-  public static void generateInputSplit(FileSystem fs, Path workDir, JobConf jobConf, Path mapInput) throws IOException {
+  public static void generateInputSplit(FileSystem fs, Path workDir, JobConf jobConf, Path mapInput,
+                                        int numKVs) throws IOException {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
-    InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput);
+    InputSplit split = createInputSplit(fs, workDir, jobConf, mapInput, numKVs);
     writeSplitFiles(fs, jobConf, split);
   }
   
