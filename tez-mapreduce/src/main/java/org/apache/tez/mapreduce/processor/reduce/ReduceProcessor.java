@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
+import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
@@ -63,6 +66,35 @@ public class ReduceProcessor extends MRTask {
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  Timer progressTimer = new Timer();
+  TimerTask progressTask = new TimerTask() {
+
+    @Override
+    public void run() {
+      try {
+        float progSum = 0.0f;
+        if (inputs != null && inputs.size() != 0) {
+          for(LogicalInput input : inputs.values()) {
+            if (input instanceof AbstractLogicalInput) {
+              progSum += ((AbstractLogicalInput) input).getProgress();
+            }
+          }
+          float progress = (1.0f) * progSum / inputs.size();
+          getContext().setProgress(progress);
+          mrReporter.setProgress(progress);
+        }
+      } catch (IOException e) {
+        LOG.warn("Encountered IOException during Processor progress update"
+            + e.getMessage());
+      } catch (InterruptedException e) {
+        LOG.warn("Encountered InterruptedException during Processor progress"
+            + "update" + e.getMessage());
+      }
+    }
+  };
+
   public ReduceProcessor(ProcessorContext processorContext) {
     super(processorContext, false);
   }
@@ -74,27 +106,28 @@ public class ReduceProcessor extends MRTask {
   }
 
   public void close() throws IOException {
-    // TODO Auto-generated method stub
+    progressTimer.cancel();
 
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
-
+  public void run(Map<String, LogicalInput> _inputs,
+      Map<String, LogicalOutput> _outputs) throws Exception {
+    this.inputs = _inputs;
+    this.outputs = _outputs;
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
 
-    if (outputs.size() <= 0 || outputs.size() > 1) {
-      throw new IOException("Invalid number of outputs"
-          + ", outputCount=" + outputs.size());
+    if (_outputs.size() <= 0 || _outputs.size() > 1) {
+      throw new IOException("Invalid number of _outputs"
+          + ", outputCount=" + _outputs.size());
     }
 
-    if (inputs.size() <= 0 || inputs.size() > 1) {
-      throw new IOException("Invalid number of inputs"
-          + ", inputCount=" + inputs.size());
+    if (_inputs.size() <= 0 || _inputs.size() > 1) {
+      throw new IOException("Invalid number of _inputs"
+          + ", inputCount=" + _inputs.size());
     }
 
-    LogicalInput in = inputs.values().iterator().next();
+    LogicalInput in = _inputs.values().iterator().next();
     in.start();
 
     List<Input> pendingInputs = new LinkedList<Input>();
@@ -102,11 +135,11 @@ public class ReduceProcessor extends MRTask {
     processorContext.waitForAllInputsReady(pendingInputs);
     LOG.info("Input is ready for consumption. Starting Output");
 
-    LogicalOutput out = outputs.values().iterator().next();
+    LogicalOutput out = _outputs.values().iterator().next();
     out.start();
 
     initTask(out);
-
+    progressTimer.schedule(progressTask, 0, 100);
     this.statusUpdate();
 
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);

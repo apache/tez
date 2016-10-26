@@ -250,5 +250,11 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       }
     }
   }
-
+  public float getProgress() throws IOException, InterruptedException {
+    float totalProgress = 0.0f;
+    for(Input input : getInputs()) {
+      totalProgress += ((OrderedGroupedKVInput)input).getProgress();
+    }
+    return (1.0f) * totalProgress/getInputs().size();
+  }
 }
