@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3097. Flaky test: TestCommit.testDAGCommitStartedEventFail_OnDAGSuccess.
   TEZ-3487. Improvements in travis yml file to get builds to work.
   TEZ-3483. Create basic travis yml file for Tez.
   TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
