@@ -89,7 +89,6 @@
             <exclude>src/main/webapp/.jshintrc</exclude>
             <exclude>src/main/webapp/tests/.jshintrc</exclude>
             <exclude>src/main/webapp/blueprints/.jshintrc</exclude>
-            <exclude>src/main/webapp/.travis.yml</exclude>
             <exclude>src/main/webapp/.watchmanconfig</exclude>
             <exclude>src/main/webapp/bower.json</exclude>
             <exclude>src/main/webapp/ember-cli-build.js</exclude>

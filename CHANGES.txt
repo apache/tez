@@ -126,6 +126,7 @@ ALL CHANGES:
   TEZ-3428. Tez UI: First Tab not needed for few entries in DAG listings
   TEZ-3469. Tez UI: Bump Phantom JS version to 2.1.1
   TEZ-3419. Tez UI: Applications page shows error, for users with only DAG level ACL permission
+  TEZ-3484. Tez UI: Remove .travis.yml from webapp folder
 
 Release 0.8.5: Unreleased
 
