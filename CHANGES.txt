@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3097. Flaky test: TestCommit.testDAGCommitStartedEventFail_OnDAGSuccess.
   TEZ-3487. Improvements in travis yml file to get builds to work.
   TEZ-3405. Support ability for AM to kill itself if there is no client heartbeating to it.
   TEZ-3483. Create basic travis yml file for Tez.
@@ -134,6 +135,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3097. Flaky test: TestCommit.testDAGCommitStartedEventFail_OnDAGSuccess.
   TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
   TEZ-3317. Speculative execution starts too early due to 0 progress.
   TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
