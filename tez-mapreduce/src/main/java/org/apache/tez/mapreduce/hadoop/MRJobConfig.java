@@ -132,6 +132,12 @@ public interface MRJobConfig {
 
   public static final String MAPREDUCE_JOB_USER_CLASSPATH_FIRST = "mapreduce.job.user.classpath.first";
 
+  public static String LAZY_OUTPUTFORMAT_OUTPUTFORMAT =
+      "mapreduce.output.lazyoutputformat.outputformat";
+
+  public static String FILEOUTPUTFORMAT_BASE_OUTPUT_NAME =
+      "mapreduce.output.basename";
+
   public static final String IO_SORT_FACTOR = "mapreduce.task.io.sort.factor";
 
   public static final String IO_SORT_MB = "mapreduce.task.io.sort.mb";
