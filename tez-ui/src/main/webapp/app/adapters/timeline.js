@@ -44,6 +44,7 @@ export default AbstractAdapter.extend({
     var filterStrs = [];
 
     MoreObject.forEach(filters, function (key, value) {
+      value = JSON.stringify(String(value));
       filterStrs.push(`${key}:${value}`);
     });
 
