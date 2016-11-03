@@ -189,7 +189,9 @@ public class ValuesIterator<KEY,VALUE> {
         if (key == null || false == hasMoreValues) {
           // invariant: more=true & there are no more values in an existing key group
           // so this indicates start of new key group
-          inputKeyCounter.increment(1);
+          if(inputKeyCounter != null) {
+            inputKeyCounter.increment(1);
+          }
           ++keyCtr;
         }
       } else {

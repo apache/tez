@@ -29,6 +29,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.TaskCounter;
 import org.apache.hadoop.util.Progress;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezUtils;
@@ -44,6 +45,8 @@ import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
+
 public class TestMRCombiner {
 
   @Test
@@ -55,6 +58,10 @@ public class TestMRCombiner {
     MRCombiner combiner = new MRCombiner(taskContext);
     Writer writer = Mockito.mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
+    long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
+    long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
+    assertEquals(6, inputRecords);
+    assertEquals(3, outputRecords);
     // verify combiner output keys and values
     verifyKeyAndValues(writer);
   }
@@ -70,8 +77,44 @@ public class TestMRCombiner {
     MRCombiner combiner = new MRCombiner(taskContext);
     Writer writer = Mockito.mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
+    long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
+    long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
+    assertEquals(6, inputRecords);
+    assertEquals(3, outputRecords);
     // verify combiner output keys and values
     verifyKeyAndValues(writer);
+  }
+
+  @Test
+  public void testTop2RunOldCombiner() throws IOException, InterruptedException {
+    TezConfiguration conf = new TezConfiguration();
+    setKeyAndValueClassTypes(conf);
+    conf.setClass("mapred.combiner.class", Top2OldReducer.class, Object.class);
+    TaskContext taskContext = getTaskContext(conf);
+    MRCombiner combiner = new MRCombiner(taskContext);
+    Writer writer = Mockito.mock(Writer.class);
+    combiner.combine(new TezRawKeyValueIteratorTest(), writer);
+    long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
+    long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
+    assertEquals(6, inputRecords);
+    assertEquals(5, outputRecords);
+  }
+
+  @Test
+  public void testTop2RunNewCombiner() throws IOException, InterruptedException {
+    TezConfiguration conf = new TezConfiguration();
+    setKeyAndValueClassTypes(conf);
+    conf.setBoolean("mapred.mapper.new-api", true);
+    conf.setClass(MRJobConfig.COMBINE_CLASS_ATTR, Top2NewReducer.class,
+        Object.class);
+    TaskContext taskContext = getTaskContext(conf);
+    MRCombiner combiner = new MRCombiner(taskContext);
+    Writer writer = Mockito.mock(Writer.class);
+    combiner.combine(new TezRawKeyValueIteratorTest(), writer);
+    long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
+    long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
+    assertEquals(6, inputRecords);
+    assertEquals(5, outputRecords);
   }
 
   private void setKeyAndValueClassTypes(TezConfiguration conf) {
@@ -183,6 +226,36 @@ public class TestMRCombiner {
         count += value.get();
       }
       context.write(new Text(key.toString()), new IntWritable(count));
+    }
+  }
+
+  private static class Top2OldReducer extends OldReducer {
+    @Override
+    public void reduce(Text key, Iterator<IntWritable> value,
+        OutputCollector<Text, IntWritable> collector, Reporter reporter)
+        throws IOException {
+      int i = 0;
+      while (value.hasNext()) {
+        int val = value.next().get();
+        if (i++ < 2) {
+          collector.collect(new Text(key.toString()), new IntWritable(val));
+        }
+      }
+    }
+  }
+
+  private static class Top2NewReducer extends NewReducer {
+    @Override
+    protected void reduce(Text key, Iterable<IntWritable> values,
+        Context context) throws IOException, InterruptedException {
+      int i = 0;
+      for (IntWritable value : values) {
+        if (i++ < 2) {
+          context.write(new Text(key.toString()), value);
+        } else {
+          break;
+        }
+      }
     }
   }
 }
