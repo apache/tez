@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3505. Move license to the file header for TezBytesWritableSerialization
   TEZ-3486. COMBINE_OUTPUT_RECORDS/COMBINE_INPUT_RECORDS are not correct
   TEZ-3487. Improvements in travis yml file to get builds to work.
   TEZ-3483. Create basic travis yml file for Tez.

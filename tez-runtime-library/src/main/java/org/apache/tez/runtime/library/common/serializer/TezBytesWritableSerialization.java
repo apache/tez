@@ -1,5 +1,3 @@
-package org.apache.tez.runtime.library.common.serializer;
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,6 +15,8 @@ package org.apache.tez.runtime.library.common.serializer;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package org.apache.tez.runtime.library.common.serializer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
