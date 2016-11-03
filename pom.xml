@@ -55,7 +55,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
-    <frontend-maven-plugin.version>0.0.23</frontend-maven-plugin.version>
+    <frontend-maven-plugin.version>1.1</frontend-maven-plugin.version>
     <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
     <javadoc-maven-plugin.version>2.9.1</javadoc-maven-plugin.version>
   </properties>
@@ -1253,32 +1253,6 @@
           <version>${hadoop.version}</version>
         </dependency>
       </dependencies>
-    </profile>
-
-    <!-- fix for the frontend-maven-plugin - see TEZ-2560 -->
-    <profile>
-      <id>maven304</id>
-      <activation>
-        <property>
-          <name>maven.version</name>
-          <value>3.0.4</value>
-        </property>
-      </activation>
-      <properties>
-        <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
-      </properties>
-    </profile>
-    <profile>
-      <id>maven305</id>
-      <activation>
-        <property>
-          <name>maven.version</name>
-          <value>3.0.5</value>
-        </property>
-      </activation>
-      <properties>
-        <frontend-maven-plugin.version>0.0.22</frontend-maven-plugin.version>
-      </properties>
     </profile>
   </profiles>
 

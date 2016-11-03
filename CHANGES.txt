@@ -130,6 +130,7 @@ ALL CHANGES:
   TEZ-3469. Tez UI: Bump Phantom JS version to 2.1.1
   TEZ-3419. Tez UI: Applications page shows error, for users with only DAG level ACL permission
   TEZ-3484. Tez UI: Remove .travis.yml from webapp folder
+  TEZ-3470. Tez UI: Make the build work in IBM PPC
 
 Release 0.8.5: Unreleased
 
