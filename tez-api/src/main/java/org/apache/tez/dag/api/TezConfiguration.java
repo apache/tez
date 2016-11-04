@@ -1128,7 +1128,8 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Int value. Time (in seconds) for which the Tez AM should wait for a DAG to be submitted before
-   * shutting down. Only relevant in session mode.
+   * shutting down. Only relevant in session mode. Any negative value will disable this check and
+   * allow the AM to hang around forever in idle mode.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")

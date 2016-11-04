@@ -459,4 +459,19 @@ public class TezCommonUtils {
     jobToken.write(jobToken_dob);
     return ByteBuffer.wrap(jobToken_dob.getData(), 0, jobToken_dob.getLength());
   }
+
+  public static long getDAGSessionTimeout(Configuration conf) {
+    int timeoutSecs = conf.getInt(
+        TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+    if (timeoutSecs < 0) {
+      return -1;
+    }
+    // Handle badly configured value to minimize impact of a spinning thread
+    if (timeoutSecs == 0) {
+      timeoutSecs = 1;
+    }
+    return 1000l * timeoutSecs;
+  }
+
 }
