@@ -314,4 +314,28 @@ public class TestTezCommonUtils {
 
   }
 
+  @Test(timeout=5000)
+  public void testGetDAGSessionTimeout() {
+    Configuration conf = new Configuration(false);
+    Assert.assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT*1000,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    // set to 1 month - * 1000 guaranteed to cross positive integer boundary
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        24 * 60 * 60 * 30);
+    Assert.assertEquals(86400l*1000*30,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    // set to negative val
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        -24 * 60 * 60 * 30);
+    Assert.assertEquals(-1,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 0);
+    Assert.assertEquals(1000,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+  }
+
 }
