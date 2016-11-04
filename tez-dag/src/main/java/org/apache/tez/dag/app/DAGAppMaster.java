@@ -604,9 +604,7 @@ public class DAGAppMaster extends AbstractService {
     historyEventHandler = createHistoryEventHandler(context);
     addIfService(historyEventHandler, true);
 
-    this.sessionTimeoutInterval = 1000 * amConf.getInt(
-            TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
-            TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+    this.sessionTimeoutInterval = TezCommonUtils.getDAGSessionTimeout(amConf);
     this.clientAMHeartbeatTimeoutIntervalMillis =
         TezCommonUtils.getAMClientHeartBeatTimeoutMillis(amConf);
 
@@ -2118,7 +2116,7 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    if (isSession) {
+    if (isSession && sessionTimeoutInterval >= 0) {
       this.dagSubmissionTimer = new Timer("DAGSubmissionTimer", true);
       this.dagSubmissionTimer.scheduleAtFixedRate(new TimerTask() {
         @Override
