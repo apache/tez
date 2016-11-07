@@ -135,7 +135,7 @@ public class TestCartesianProductEdgeManagerPartitioned {
    * Vertex v0 has 2 tasks which generate 3 partitions
    * Vertex v1 has 3 tasks which generate 4 partitions
    */
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testTwoWayWithFilter() throws Exception {
     ByteBuffer buffer = ByteBuffer.allocate(2);
     buffer.putChar('>');

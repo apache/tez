@@ -98,7 +98,7 @@ public class TestCartesianProductCombination {
     assertFalse(combination.nextTask());
   }
 
-  @Test//(timeout = 5000)
+  @Test(timeout = 5000)
   public void testFromTaskId() {
     for (int i = 0; i < 6; i++) {
       List<Integer> list = CartesianProductCombination.fromTaskId(new int[]{2,3}, i)

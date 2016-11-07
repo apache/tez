@@ -17,6 +17,7 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -38,11 +39,14 @@ import org.mockito.Matchers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -69,8 +73,17 @@ public class TestCartesianProductVertexManagerUnpartitioned {
     MockitoAnnotations.initMocks(this);
     context = mock(VertexManagerPluginContext.class);
     vertexManager = new CartesianProductVertexManagerUnpartitioned(context);
+
+    Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
+    edgePropertyMap.put("v0", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
+        CartesianProductEdgeManager.class.getName()), null, null, null, null));
+    edgePropertyMap.put("v1", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
+      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+    edgePropertyMap.put("v2", EdgeProperty.create(BROADCAST, null, null, null, null));
+    when(context.getInputVertexEdgeProperties()).thenReturn(edgePropertyMap);
     when(context.getVertexNumTasks(eq("v0"))).thenReturn(2);
     when(context.getVertexNumTasks(eq("v1"))).thenReturn(3);
+    when(context.getVertexNumTasks(eq("v2"))).thenReturn(5);
 
     CartesianProductVertexManagerConfig config =
       new CartesianProductVertexManagerConfig(false, new String[]{"v0","v1"}, null, 0, 0, null);
@@ -81,16 +94,19 @@ public class TestCartesianProductVertexManagerUnpartitioned {
         TezDAGID.getInstance("0", 0, 0), 0), 0), 0)));
     allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v0",
       TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 0), 0), 1)));
+        TezDAGID.getInstance("0", 0, 0), 0), 1), 0)));
     allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v1",
       TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
         TezDAGID.getInstance("0", 0, 0), 1), 0), 0)));
     allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v1",
       TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 1), 0), 1)));
+        TezDAGID.getInstance("0", 0, 0), 1), 1), 0)));
     allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v1",
       TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 1), 0), 2)));
+        TezDAGID.getInstance("0", 0, 0), 1), 2), 0)));
+    allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v2",
+      TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+        TezDAGID.getInstance("0", 0, 0), 3), 0), 0)));
   }
 
   @Test(timeout = 5000)
@@ -104,6 +120,7 @@ public class TestCartesianProductVertexManagerUnpartitioned {
       isNull(VertexLocationHint.class), edgePropertiesCaptor.capture());
     assertEquals(6, (int)parallelismCaptor.getValue());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
+    assertFalse(edgeProperties.containsKey("v2"));
     for (EdgeProperty edgeProperty : edgeProperties.values()) {
       UserPayload payload = edgeProperty.getEdgeManagerDescriptor().getUserPayload();
       CartesianProductEdgeManagerConfig newConfig =
@@ -113,47 +130,54 @@ public class TestCartesianProductVertexManagerUnpartitioned {
   }
 
   @Test(timeout = 5000)
-  public void testCompletionAfterReconfigured() throws Exception {
-    vertexManager.onVertexStarted(new ArrayList<TaskAttemptIdentifier>());
+  public void testOnSourceTaskComplete() throws Exception {
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
+    vertexManager.onVertexStarted(null);
     verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
     vertexManager.onSourceTaskCompleted(allCompletions.get(0));
     verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
     vertexManager.onSourceTaskCompleted(allCompletions.get(2));
+    // cannot start schedule because broadcast vertex isn't in RUNNING state
+    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+
+    vertexManager.onVertexStateUpdated(new VertexStateUpdate("v2", VertexState.RUNNING));
     verify(context, times(1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
     List<ScheduleTaskRequest> requests = scheduleTaskRequestCaptor.getValue();
     assertNotNull(requests);
     assertEquals(1, requests.size());
     assertEquals(0, requests.get(0).getTaskIndex());
-  }
 
-  @Test(timeout = 5000)
-  public void testCompletionBeforeReconfigured() throws Exception {
-    vertexManager.onVertexStarted(new ArrayList<TaskAttemptIdentifier>());
-    vertexManager.onSourceTaskCompleted(allCompletions.get(0));
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
-    vertexManager.onSourceTaskCompleted(allCompletions.get(2));
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
-    vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
-    vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
+    // v2 completion shouldn't matter
+    vertexManager.onSourceTaskCompleted(allCompletions.get(5));
     verify(context, times(1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
-    List<ScheduleTaskRequest> requests = scheduleTaskRequestCaptor.getValue();
+
+    vertexManager.onSourceTaskCompleted(allCompletions.get(3));
+    verify(context, times(2)).scheduleTasks(scheduleTaskRequestCaptor.capture());
+    requests = scheduleTaskRequestCaptor.getValue();
     assertNotNull(requests);
     assertEquals(1, requests.size());
-    assertEquals(0, requests.get(0).getTaskIndex());
+    assertEquals(1, requests.get(0).getTaskIndex());
   }
 
-  @Test(timeout = 5000)
-  public void testStartAfterReconfigured() throws Exception {
+  private void testOnVertexStartHelper(boolean broadcastRunning) throws Exception {
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
+    if (broadcastRunning) {
+      vertexManager.onVertexStateUpdated(new VertexStateUpdate("v2", VertexState.RUNNING));
+    }
 
-    List<TaskAttemptIdentifier> completion = new ArrayList<>();
-    completion.add(allCompletions.get(0));
-    completion.add(allCompletions.get(2));
-    vertexManager.onVertexStarted(completion);
+    List<TaskAttemptIdentifier> completions = new ArrayList<>();
+    completions.add(allCompletions.get(0));
+    completions.add(allCompletions.get(2));
+    completions.add(allCompletions.get(5));
+    vertexManager.onVertexStarted(completions);
+
+    if (!broadcastRunning) {
+      verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+      vertexManager.onVertexStateUpdated(new VertexStateUpdate("v2", VertexState.RUNNING));
+    }
+
     verify(context, times(1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
     List<ScheduleTaskRequest> requests = scheduleTaskRequestCaptor.getValue();
     assertNotNull(requests);
@@ -162,9 +186,14 @@ public class TestCartesianProductVertexManagerUnpartitioned {
   }
 
   @Test(timeout = 5000)
-  public void testStartBeforeReconfigured() throws Exception {
-    vertexManager.onVertexStarted(allCompletions);
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+  public void testOnVertexStartWithBroadcastRunning() throws Exception {
+    testOnVertexStartHelper(true);
+  }
+
+  @Test(timeout = 5000)
+  public void testOnVertexStartWithoutBroadcastRunning() throws Exception {
+    testOnVertexStartHelper(false);
+
   }
 
   @Test(timeout = 5000)
@@ -176,18 +205,17 @@ public class TestCartesianProductVertexManagerUnpartitioned {
 
     CartesianProductVertexManagerConfig config =
       new CartesianProductVertexManagerConfig(false, new String[]{"v0","v1"}, null, 0, 0, null);
-    vertexManager.initialize(config);
-    allCompletions = new ArrayList<>();
-    allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v0",
-      TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 0), 0), 0)));
-    allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v0",
-      TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 0), 0), 1)));
+    Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
+    edgePropertyMap.put("v0", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
+      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+    edgePropertyMap.put("v1", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
+      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+    when(context.getInputVertexEdgeProperties()).thenReturn(edgePropertyMap);
 
-    vertexManager.onVertexStarted(new ArrayList<TaskAttemptIdentifier>());
+    vertexManager.initialize(config);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
+    vertexManager.onVertexStarted(null);
     vertexManager.onSourceTaskCompleted(allCompletions.get(0));
     vertexManager.onSourceTaskCompleted(allCompletions.get(1));
   }

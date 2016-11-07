@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.cartesianproduct;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezException;
@@ -29,29 +30,36 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
+
 /**
  * This VM wrap a real vertex manager implementation object. It choose whether it's partitioned or
  * unpartitioned implementation according to the config. All method invocations are actually
  * redirected to real implementation.
+ *
+ * Predefined parallelism isn't allowed for cartesian product vertex. Parallellism has to be
+ * determined by vertex manager.
  */
 public class CartesianProductVertexManager extends VertexManagerPlugin {
-  public static final String TEZ_CAERESIAN_PRODUCT_SLOW_START_MIN_FRACTION =
+  public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION =
     "tez.cartesian-product.min-src-fraction";
-  public static final float TEZ_CAERESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT = 0.25f;
-  public static final String TEZ_CAERESIAN_PRODUCT_SLOW_START_MAX_FRACTION =
+  public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT = 0.25f;
+  public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION =
     "tez.cartesian-product.min-src-fraction";
-  public static final float TEZ_CAERESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
+  public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
 
   private CartesianProductVertexManagerReal vertexManagerReal = null;
 
   public CartesianProductVertexManager(VertexManagerPluginContext context) {
     super(context);
+    Preconditions.checkArgument(context.getVertexNumTasks(context.getVertexName()) == -1,
+      "Vertex with CartesianProductVertexManager cannot use pre-defined parallelism");
   }
 
   @Override
@@ -65,15 +73,26 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
     sourceVerticesConfig.addAll(config.getSourceVertices());
 
     for (Map.Entry<String, EdgeProperty> entry : edgePropertyMap.entrySet()) {
-      if (entry.getValue().getEdgeManagerDescriptor().getClassName()
-        .equals(CartesianProductEdgeManager.class.getName())) {
-        Preconditions.checkArgument(sourceVerticesDAG.contains(entry.getKey()),
-          entry.getKey() + " has CartesianProductEdgeManager but isn't in " +
+      String vertex = entry.getKey();
+      EdgeProperty edgeProperty = entry.getValue();
+      EdgeManagerPluginDescriptor empDescriptor = edgeProperty.getEdgeManagerDescriptor();
+      if (empDescriptor != null
+        && empDescriptor.getClassName().equals(CartesianProductEdgeManager.class.getName())) {
+        Preconditions.checkArgument(sourceVerticesConfig.contains(vertex),
+          vertex + " has CartesianProductEdgeManager but isn't in " +
             "CartesianProductVertexManagerConfig");
       } else {
-        Preconditions.checkArgument(!sourceVerticesDAG.contains(entry.getKey()),
-          entry.getKey() + " has no CartesianProductEdgeManager but is in " +
+        Preconditions.checkArgument(!sourceVerticesConfig.contains(vertex),
+          vertex + " has no CartesianProductEdgeManager but is in " +
             "CartesianProductVertexManagerConfig");
+      }
+
+      if (edgeProperty.getDataMovementType() == CUSTOM) {
+        Preconditions.checkArgument(sourceVerticesConfig.contains(vertex),
+          "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
+      } else {
+        Preconditions.checkArgument(edgeProperty.getDataMovementType() == BROADCAST,
+          "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
       }
     }
 
