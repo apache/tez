@@ -102,6 +102,7 @@ public class MRInputHelpers {
    * as a data source to a {@link org.apache.tez.dag.api.Vertex}
    */
   @InterfaceStability.Unstable
+  @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public static DataSourceDescriptor configureMRInputWithLegacySplitGeneration(Configuration conf,
                                                                                Path splitsDir,
                                                                                boolean useLegacyInput) {
@@ -140,6 +141,7 @@ public class MRInputHelpers {
    * @throws IOException
    */
   @InterfaceStability.Evolving
+  @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public static MRRuntimeProtos.MRInputUserPayloadProto parseMRInputPayload(UserPayload payload)
       throws IOException {
     return MRRuntimeProtos.MRInputUserPayloadProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
@@ -157,6 +159,7 @@ public class MRInputHelpers {
    */
   @SuppressWarnings("unchecked")
   @InterfaceStability.Evolving
+  @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public static InputSplit createOldFormatSplitFromUserPayload(
       MRRuntimeProtos.MRSplitProto splitProto, SerializationFactory serializationFactory)
       throws IOException {
@@ -239,6 +242,7 @@ public class MRInputHelpers {
   }
 
   @InterfaceStability.Evolving
+  @InterfaceAudience.LimitedPrivate({"hive, pig"})
   public static MRRuntimeProtos.MRSplitProto createSplitProto(
       org.apache.hadoop.mapred.InputSplit oldSplit) throws IOException {
     MRRuntimeProtos.MRSplitProto.Builder builder = MRRuntimeProtos.MRSplitProto.newBuilder();
@@ -270,6 +274,38 @@ public class MRInputHelpers {
    *          generate splits - like the InputFormat being used and related
    *          configuration.
    * @param groupSplits whether to group the splits or not
+   * @param targetTasks the number of target tasks if grouping is enabled. Specify as 0 otherwise.
+   * @return an instance of {@link InputSplitInfoMem} which supports a subset of
+   *         the APIs defined on {@link InputSplitInfo}
+   * @throws IOException
+   * @throws ClassNotFoundException
+   * @throws InterruptedException
+   */
+  @InterfaceStability.Unstable
+  @InterfaceAudience.LimitedPrivate({"hive, pig"})
+  public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf,
+                                                           boolean groupSplits, int targetTasks)
+      throws IOException, ClassNotFoundException, InterruptedException {
+    return generateInputSplitsToMem(conf, groupSplits, true, targetTasks);
+  }
+
+  /**
+   * Generates Input splits and stores them in a {@link org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto} instance.
+   *
+   * Returns an instance of {@link InputSplitInfoMem}
+   *
+   * With grouping enabled, the eventual configuration used by the tasks, will have
+   * the user-specified InputFormat replaced by either {@link org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat}
+   * or {@link org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat}
+   *
+   * @param conf
+   *          an instance of Configuration which is used to determine whether
+   *          the mapred of mapreduce API is being used. This Configuration
+   *          instance should also contain adequate information to be able to
+   *          generate splits - like the InputFormat being used and related
+   *          configuration.
+   * @param groupSplits whether to group the splits or not
+   * @param sortSplits whether to sort the splits or not
    * @param targetTasks the number of target tasks if grouping is enabled. Specify as 0 otherwise.
    * @return an instance of {@link InputSplitInfoMem} which supports a subset of
    *         the APIs defined on {@link InputSplitInfo}
@@ -666,6 +702,31 @@ public class MRInputHelpers {
             LocalResourceVisibility.APPLICATION,
             metaInfoFileStatus.getLen(),
             metaInfoFileStatus.getModificationTime()));
+  }
+
+  /**
+   * Called to specify that grouping of input splits be performed by Tez
+   * The conf should have the input format class configuration
+   * set to the TezGroupedSplitsInputFormat. The real input format class name
+   * should be passed as an argument to this method.
+   * <p/>
+   * With grouping enabled, the eventual configuration used by the tasks, will have
+   * the user-specified InputFormat replaced by either {@link org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat}
+   * or {@link org.apache.hadoop.mapreduce.split.TezGroupedSplitsInputFormat}
+   */
+  @InterfaceAudience.Private
+  protected static UserPayload createMRInputPayloadWithGrouping(Configuration conf) throws IOException {
+    Preconditions
+        .checkArgument(conf != null, "Configuration must be specified");
+    return createMRInputPayload(TezUtils.createByteStringFromConf(conf),
+        null, true, true);
+  }
+
+  @InterfaceAudience.Private
+  protected static UserPayload createMRInputPayload(Configuration conf,
+                                                    MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+      IOException {
+    return createMRInputPayload(conf, mrSplitsProto, false, true);
   }
 
   /**
