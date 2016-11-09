@@ -291,6 +291,8 @@ public class Shuffle implements ExceptionReporter {
           scheduler.start();
         } catch (Throwable e) {
           throw new ShuffleError("Error during shuffle", e);
+        } finally {
+          cleanupShuffleScheduler();
         }
       }
       // The ShuffleScheduler may have exited cleanly as a result of a shutdown invocation

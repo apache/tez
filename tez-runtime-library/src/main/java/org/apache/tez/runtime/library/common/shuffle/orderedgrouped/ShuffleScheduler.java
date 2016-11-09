@@ -430,32 +430,49 @@ class ShuffleScheduler {
   }
 
   public void close() throws InterruptedException {
-    if (!isShutdown.getAndSet(true)) {
+    try {
+      if (!isShutdown.getAndSet(true)) {
+        logProgress();
 
-      logProgress();
+        // Notify and interrupt the waiting scheduler thread
+        synchronized (this) {
+          notifyAll();
+        }
+        // Interrupt the ShuffleScheduler thread only if the close is invoked by another thread.
+        // If this is invoked on the same thread, then the shuffleRunner has already complete, and there's
+        // no point interrupting it.
+        // The interrupt is needed to unblock any merges or waits which may be happening, so that the thread can
+        // exit.
+        if (shuffleSchedulerThread != null && !Thread.currentThread()
+            .equals(shuffleSchedulerThread)) {
+          shuffleSchedulerThread.interrupt();
+        }
 
-      // Notify and interrupt the waiting scheduler thread
-      synchronized (this) {
-        notifyAll();
+        // Interrupt the fetchers.
+        for (FetcherOrderedGrouped fetcher : runningFetchers) {
+          fetcher.shutDown();
+        }
+
+        // Kill the Referee thread.
+        referee.interrupt();
+        referee.join();
       }
-      // Interrupt the ShuffleScheduler thread only if the close is invoked by another thread.
-      // If this is invoked on the same thread, then the shuffleRunner has already complete, and there's
-      // no point interrupting it.
-      // The interrupt is needed to unblock any merges or waits which may be happening, so that the thread can
-      // exit.
-      if (shuffleSchedulerThread != null && !Thread.currentThread().equals(shuffleSchedulerThread)) {
-        shuffleSchedulerThread.interrupt();
+    } finally {
+      long startTime = System.currentTimeMillis();
+      if (!fetcherExecutor.isShutdown()) {
+        // Ensure that fetchers respond to cancel request.
+        fetcherExecutor.shutdownNow();
       }
-
-      // Interrupt the fetchers.
-      for (FetcherOrderedGrouped fetcher : runningFetchers) {
-        fetcher.shutDown();
-      }
-
-      // Kill the Referee thread.
-      referee.interrupt();
-      referee.join();
+      long endTime = System.currentTimeMillis();
+      LOG.info("Shutting down fetchers for input: {}, shutdown timetaken: {} ms, "
+              + "hasFetcherExecutorStopped: {}", srcNameTrimmed,
+          (endTime - startTime), hasFetcherExecutorStopped());
     }
+  }
+
+  @VisibleForTesting
+  boolean hasFetcherExecutorStopped() {
+    return fetcherExecutor.isShutdown();
   }
 
   @VisibleForTesting

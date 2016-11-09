@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3533. ShuffleScheduler should shutdown threadpool on exit.
   TEZ-3493. DAG submit timeout cannot be set to a month
   TEZ-3505. Move license to the file header for TezBytesWritableSerialization
   TEZ-3486. COMBINE_OUTPUT_RECORDS/COMBINE_INPUT_RECORDS are not correct
