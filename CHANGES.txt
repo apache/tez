@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3533. ShuffleScheduler should shutdown threadpool on exit.
   TEZ-3477. MRInputHelpers generateInputSplitsToMem public API modified
   TEZ-3465. Support broadcast edge into cartesian product vertex and forbid other edges.
   TEZ-3493. DAG submit timeout cannot be set to a month

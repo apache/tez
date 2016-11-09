@@ -830,6 +830,73 @@ public class TestShuffleScheduler {
     }
   }
 
+  @Test(timeout = 30000)
+  public void testShutdownWithInterrupt() throws Exception {
+    InputContext inputContext = createTezInputContext();
+    Configuration conf = new TezConfiguration();
+    int numInputs = 10;
+    Shuffle shuffle = mock(Shuffle.class);
+    MergeManager mergeManager = mock(MergeManager.class);
+
+    final ShuffleSchedulerForTest scheduler =
+        new ShuffleSchedulerForTest(inputContext, conf, numInputs, shuffle, mergeManager,
+            mergeManager,
+            System.currentTimeMillis(), null, false, 0, "srcName");
+
+    ExecutorService executor = Executors.newFixedThreadPool(1);
+
+    Future<Void> executorFuture = executor.submit(new Callable<Void>() {
+      @Override
+      public Void call() throws Exception {
+        scheduler.start();
+        return null;
+      }
+    });
+
+    InputAttemptIdentifier[] identifiers = new InputAttemptIdentifier[numInputs];
+
+    for (int i = 0; i < numInputs; i++) {
+      InputAttemptIdentifier inputAttemptIdentifier =
+          new InputAttemptIdentifier(i, 0, "attempt_");
+      scheduler.addKnownMapOutput("host" + i, 10000, 1, inputAttemptIdentifier);
+      identifiers[i] = inputAttemptIdentifier;
+    }
+
+    MapHost[] mapHosts = new MapHost[numInputs];
+    int count = 0;
+    for (MapHost mh : scheduler.mapLocations.values()) {
+      mapHosts[count++] = mh;
+    }
+
+    // Copy succeeded for 1 less host
+    for (int i = 0; i < numInputs - 1; i++) {
+      MapOutput mapOutput = MapOutput
+          .createMemoryMapOutput(identifiers[i], mock(FetchedInputAllocatorOrderedGrouped.class),
+              100, false);
+      scheduler.copySucceeded(identifiers[i], mapHosts[i], 20, 25, 100, mapOutput, false);
+      scheduler.freeHost(mapHosts[i]);
+    }
+
+    try {
+      // Close the scheduler on different thread to trigger interrupt
+      Thread thread = new Thread(new Runnable() {
+        @Override public void run() {
+          try {
+            scheduler.close();
+          } catch (InterruptedException e) {
+            //ignore
+          }
+        }
+      });
+      thread.start();
+      thread.join();
+    } finally {
+      assertTrue("Fetcher executor should be shutdown, but still running",
+          scheduler.hasFetcherExecutorStopped());
+      executor.shutdownNow();
+    }
+  }
+
 
   private InputContext createTezInputContext() throws IOException {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);
