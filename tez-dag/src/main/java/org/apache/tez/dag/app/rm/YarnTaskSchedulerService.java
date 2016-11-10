@@ -474,7 +474,12 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
 
         // container neither allocated nor released
-        LOG.info("Ignoring unknown container: " + containerStatus.getContainerId());
+        if (delayedContainer != null) {
+          LOG.info("Delayed container {} completed", containerStatus.getContainerId());
+          maybeRescheduleContainerAtPriority(delayedContainer.getContainer().getPriority());
+        } else {
+          LOG.info("Ignoring unknown container: " + containerStatus.getContainerId());
+        }
       }
     }
 
@@ -1314,23 +1319,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
           // to us anymore. So we need to ask for this again. If there is no
           // outstanding request at that priority then its fine to not ask again.
           // See TEZ-915 for more details
-          for (Map.Entry<Object, CookieContainerRequest> entry : taskRequests.entrySet()) {
-            Object task = entry.getKey();
-            CookieContainerRequest request = entry.getValue();
-            if (request.getPriority().equals(lowestPriNewContainer.getPriority())) {
-              LOG.info("Resending request for task again: " + task);
-              deallocateTask(task, true, null, null);
-              allocateTask(task, request.getCapability(), 
-                  (request.getNodes() == null ? null : 
-                    request.getNodes().toArray(new String[request.getNodes().size()])), 
-                    (request.getRacks() == null ? null : 
-                      request.getRacks().toArray(new String[request.getRacks().size()])), 
-                    request.getPriority(), 
-                    request.getCookie().getContainerSignature(),
-                    request.getCookie().getAppCookie());
-              break;
-            }
-          }
+          maybeRescheduleContainerAtPriority(lowestPriNewContainer.getPriority());
+
           // come back and free more new containers if needed
           continue;
         }
@@ -1425,6 +1415,26 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
     }
     return true;
+  }
+
+  private void maybeRescheduleContainerAtPriority(Priority priority) {
+    for (Map.Entry<Object, CookieContainerRequest> entry : taskRequests.entrySet()) {
+      Object task = entry.getKey();
+      CookieContainerRequest request = entry.getValue();
+      if (request.getPriority().equals(priority)) {
+        LOG.info("Resending request for task again: " + task);
+        deallocateTask(task, true, null, null);
+        allocateTask(task, request.getCapability(),
+            (request.getNodes() == null ? null :
+              request.getNodes().toArray(new String[request.getNodes().size()])),
+              (request.getRacks() == null ? null :
+                request.getRacks().toArray(new String[request.getRacks().size()])),
+                request.getPriority(),
+                request.getCookie().getContainerSignature(),
+                request.getCookie().getAppCookie());
+        break;
+      }
+    }
   }
 
   private boolean fitsIn(Resource toFit, Resource resource) {
