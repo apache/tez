@@ -376,7 +376,7 @@ class ShuffleScheduler {
 
     ExecutorService fetcherRawExecutor = Executors.newFixedThreadPool(numFetchers,
         new ThreadFactoryBuilder().setDaemon(true)
-            .setNameFormat("Fetcher {" + srcNameTrimmed + "} #%d").build());
+            .setNameFormat("Fetcher_O {" + srcNameTrimmed + "} #%d").build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
 
     this.maxFailedUniqueFetches = Math.min(numberOfInputs, 5);
@@ -429,10 +429,15 @@ class ShuffleScheduler {
     schedulerCallable.call();
   }
 
-  public void close() throws InterruptedException {
+  public void close() {
     try {
       if (!isShutdown.getAndSet(true)) {
-        logProgress();
+        try {
+          logProgress();
+        } catch (Exception e) {
+          LOG.warn("Failed log progress while closing, ignoring and continuing shutdown. Message={}",
+              e.getMessage());
+        }
 
         // Notify and interrupt the waiting scheduler thread
         synchronized (this) {
@@ -450,12 +455,28 @@ class ShuffleScheduler {
 
         // Interrupt the fetchers.
         for (FetcherOrderedGrouped fetcher : runningFetchers) {
-          fetcher.shutDown();
+          try {
+            fetcher.shutDown();
+          } catch (Exception e) {
+            LOG.warn(
+                "Error while shutting down fetcher. Ignoring and continuing shutdown. Message={}",
+                e.getMessage());
+          }
         }
 
         // Kill the Referee thread.
-        referee.interrupt();
-        referee.join();
+        try {
+          referee.interrupt();
+          referee.join();
+        } catch (InterruptedException e) {
+          LOG.warn(
+              "Interrupted while shutting down referee. Ignoring and continuing shutdown");
+          Thread.currentThread().interrupt();
+        } catch (Exception e) {
+          LOG.warn(
+              "Error while shutting down referee. Ignoring and continuing shutdown. Message={}",
+              e.getMessage());
+        }
       }
     } finally {
       long startTime = System.currentTimeMillis();

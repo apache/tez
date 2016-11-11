@@ -230,7 +230,7 @@ public class ShuffleManager implements FetcherCallback {
     ExecutorService fetcherRawExecutor = Executors.newFixedThreadPool(
         numFetchers,
         new ThreadFactoryBuilder().setDaemon(true)
-            .setNameFormat("Fetcher {" + srcNameTrimmed + "} #%d").build());
+            .setNameFormat("Fetcher_B {" + srcNameTrimmed + "} #%d").build());
     this.fetcherExecutor = MoreExecutors.listeningDecorator(fetcherRawExecutor);
     
     ExecutorService schedulerRawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
@@ -799,7 +799,13 @@ public class ShuffleManager implements FetcherCallback {
       try {
         wakeLoop.signal(); // signal the fetch-scheduler
         for (Fetcher fetcher : runningFetchers) {
-          fetcher.shutdown(); // This could be parallelized.
+          try {
+            fetcher.shutdown(); // This could be parallelized.
+          } catch (Exception e) {
+            LOG.warn(
+                "Error while stopping fetcher during shutdown. Ignoring and continuing. Message={}",
+                e.getMessage());
+          }
         }
       } finally {
         lock.unlock();
