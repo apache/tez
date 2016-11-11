@@ -378,7 +378,13 @@ public class Shuffle implements ExceptionReporter {
       if (eventHandler != null) {
         eventHandler.logProgress(true);
       }
-      cleanupShuffleSchedulerIgnoreErrors();
+      try {
+        cleanupShuffleSchedulerIgnoreErrors();
+      } catch (Exception e) {
+        LOG.warn(
+            "Error cleaning up shuffle scheduler. Ignoring and continuing with shutdown. Message={}",
+            e.getMessage());
+      }
       cleanupMerger(true);
     } catch (Throwable t) {
       LOG.info(srcNameTrimmed + ": " + "Error in cleaning up.., ", t);

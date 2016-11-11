@@ -881,11 +881,7 @@ public class TestShuffleScheduler {
       // Close the scheduler on different thread to trigger interrupt
       Thread thread = new Thread(new Runnable() {
         @Override public void run() {
-          try {
             scheduler.close();
-          } catch (InterruptedException e) {
-            //ignore
-          }
         }
       });
       thread.start();
