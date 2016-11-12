@@ -152,6 +152,7 @@
   <Match>
     <Class name="org.apache.tez.dag.library.vertexmanager.ShuffleVertexManagerBase"/>
     <Or>
+      <Field name="bipartiteSources"/>
       <Field name="numBipartiteSourceTasksCompleted"/>
       <Field name="totalNumBipartiteSourceTasks"/>
       <Field name="totalTasksToSchedule"/>
@@ -159,4 +160,45 @@
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>
 
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerConfigPayloadProto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerDestinationTaskPropProto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto"/>
+    <Field name="unknownFields"/>
+    <Bug pattern="SE_BAD_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerConfigPayloadProto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match> 
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$FairShuffleEdgeManagerDestinationTaskPropProto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>   
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto"/>
+    <Field name="PARSER"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.library.vertexmanager.FairShuffleUserPayloads$RangeProto$Builder"/>
+    <Method name="maybeForceBuilderInitialization"/>
+    <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
+  </Match>
 </FindBugsFilter>
