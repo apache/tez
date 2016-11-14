@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3536. NPE in WebUIService start when host resolution fails.
   TEZ-3534. Differentiate thread names on Fetchers, minor changes to shuffle shutdown code.
   TEZ-3491. Tez job can hang due to container priority inversion.
   TEZ-3533. ShuffleScheduler should shutdown threadpool on exit.

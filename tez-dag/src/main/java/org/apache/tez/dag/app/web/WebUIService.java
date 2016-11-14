@@ -94,8 +94,18 @@ public class WebUIService extends AbstractService {
             .start(this.tezAMWebApp);
         InetSocketAddress address = webApp.getListenerAddress();
         if (address != null) {
-          InetSocketAddress bindAddress = NetUtils.createSocketAddrForHost(context.getAppMaster().getAppNMHost(), address.getPort());
-          trackingUrl = "http://" + bindAddress.getAddress().getCanonicalHostName() + ":" + bindAddress.getPort() + "/ui/";
+          InetSocketAddress bindAddress = NetUtils.createSocketAddrForHost(
+              context.getAppMaster().getAppNMHost(), address.getPort());
+          String hostname = context.getAppMaster().getAppNMHost();
+          final int port = address.getPort();
+          if (bindAddress.getAddress() != null
+              && bindAddress.getAddress().getCanonicalHostName() != null) {
+            hostname = bindAddress.getAddress().getCanonicalHostName();
+          } else {
+            LOG.warn("Failed to resolve canonical hostname for "
+                + context.getAppMaster().getAppNMHost());
+          }
+          trackingUrl = "http://" + hostname + ":" + port + "/ui/";
           LOG.info("Instantiated WebUIService at " + trackingUrl);
         }
       } catch (Exception e) {
