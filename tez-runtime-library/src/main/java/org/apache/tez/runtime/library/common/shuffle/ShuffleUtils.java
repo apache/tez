@@ -41,11 +41,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.BaseHttpConnection;
-import org.apache.tez.http.HttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
-import org.apache.tez.http.SSLFactory;
-import org.apache.tez.http.async.netty.AsyncHttpConnection;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -62,7 +60,6 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
@@ -75,10 +72,6 @@ public class ShuffleUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
   private static final long MB = 1024l * 1024l;
-
-  public static final int UNDEFINED_PORT = -1;
-  //Shared by multiple threads
-  private static volatile SSLFactory sslFactory;
 
   static final ThreadLocal<DecimalFormat> MBPS_FORMAT =
       new ThreadLocal<DecimalFormat>() {
@@ -105,14 +98,7 @@ public class ShuffleUtils {
 
   public static int deserializeShuffleProviderMetaData(ByteBuffer meta)
       throws IOException {
-    DataInputByteBuffer in = new DataInputByteBuffer();
-    try {
-      in.reset(meta);
-      int port = in.readInt();
-      return port;
-    } finally {
-      in.close();
-    }
+    return TezRuntimeUtils.deserializeShuffleProviderMetaData(meta);
   }
 
   public static void shuffleToMemory(byte[] shuffleData,
@@ -223,23 +209,6 @@ public class ShuffleUtils {
     return sb;
   }
 
-  public static URL constructBaseURIForShuffleHandlerDagComplete(
-      String host, int port, String appId, int dagIdentifier, boolean sslShuffle)
-      throws MalformedURLException{
-    final String http_protocol = (sslShuffle) ? "https://" : "http://";
-    StringBuilder sb = new StringBuilder(http_protocol);
-    sb.append(host);
-    sb.append(":");
-    sb.append(port);
-    sb.append("/");
-    sb.append("mapOutput?job=");
-    sb.append(appId.replace("application", "job"));
-    sb.append("&dag=");
-    sb.append(String.valueOf(dagIdentifier));
-    sb.append("&dagCompleted=true");
-    return new URL(sb.toString());
-  }
-
   public static URL constructInputURL(String baseURI,
       Collection<InputAttemptIdentifier> inputs, boolean keepAlive) throws MalformedURLException {
     StringBuilder url = new StringBuilder(baseURI);
@@ -263,12 +232,7 @@ public class ShuffleUtils {
   public static BaseHttpConnection getHttpConnection(boolean asyncHttp, URL url,
       HttpConnectionParams params, String logIdentifier, JobTokenSecretManager jobTokenSecretManager)
       throws IOException {
-    if (asyncHttp) {
-      //TODO: support other async packages? httpclient-async?
-      return new AsyncHttpConnection(url, params, logIdentifier, jobTokenSecretManager);
-    } else {
-      return new HttpConnection(url, params, logIdentifier, jobTokenSecretManager);
-    }
+    return TezRuntimeUtils.getHttpConnection(asyncHttp, url, params, logIdentifier, jobTokenSecretManager);
   }
 
   public static String stringify(DataMovementEventPayloadProto dmProto) {
@@ -589,54 +553,7 @@ public class ShuffleUtils {
    * @return HttpConnectionParams
    */
   public static HttpConnectionParams getHttpConnectionParams(Configuration conf) {
-    int connectionTimeout =
-        conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_STALLED_COPY_TIMEOUT_DEFAULT);
-
-    int readTimeout = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT_DEFAULT);
-
-    int bufferSize = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE_DEFAULT);
-
-    boolean keepAlive = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED_DEFAULT);
-
-    int keepAliveMaxConnections = conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS,
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS_DEFAULT);
-
-    if (keepAlive) {
-      System.setProperty("sun.net.http.errorstream.enableBuffering", "true");
-      System.setProperty("http.maxConnections", String.valueOf(keepAliveMaxConnections));
-    }
-
-    boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
-        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
-
-    if (sslShuffle) {
-      if (sslFactory == null) {
-        synchronized (HttpConnectionParams.class) {
-          //Create sslFactory if it is null or if it was destroyed earlier
-          if (sslFactory == null || sslFactory.getKeystoresFactory().getTrustManagers() == null) {
-            sslFactory =
-                new SSLFactory(org.apache.hadoop.security.ssl.SSLFactory.Mode.CLIENT, conf);
-            try {
-              sslFactory.init();
-            } catch (Exception ex) {
-              sslFactory.destroy();
-              sslFactory = null;
-              throw new RuntimeException(ex);
-            }
-          }
-        }
-      }
-    }
-
-    HttpConnectionParams httpConnParams = new HttpConnectionParams(keepAlive,
-        keepAliveMaxConnections, connectionTimeout, readTimeout, bufferSize, sslShuffle,
-        sslFactory);
-    return httpConnParams;
+    return TezRuntimeUtils.getHttpConnectionParams(conf);
   }
 
   public static boolean isTezShuffleHandler(Configuration config) {

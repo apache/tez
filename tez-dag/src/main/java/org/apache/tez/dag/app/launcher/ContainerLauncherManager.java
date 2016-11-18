@@ -34,6 +34,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -42,7 +43,6 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerLauncherContextImpl;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
-import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.ContainerLauncherEvent;
 import org.apache.tez.dag.app.rm.ContainerLauncherLaunchRequestEvent;
 import org.apache.tez.serviceplugins.api.DagInfo;
@@ -146,7 +146,7 @@ public class ContainerLauncherManager extends AbstractService
                                                 AppContext context,
                                                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                                 String workingDirectory,
-                                                boolean isLocalMode) {
+                                                boolean isLocalMode) throws TezException {
     LOG.info("Creating LocalContainerLauncher");
     // TODO Post TEZ-2003. LocalContainerLauncher is special cased, since it makes use of
     // extensive internals which are only available at runtime. Will likely require
@@ -194,8 +194,7 @@ public class ContainerLauncherManager extends AbstractService
     }
   }
 
-  public void dagComplete(DAG dag, JobTokenSecretManager secretManager) {
-
+  public void dagComplete(TezDAGID dag, JobTokenSecretManager secretManager) {
     for (int i = 0 ; i < containerLaunchers.length ; i++) {
       containerLaunchers[i].dagComplete(dag, secretManager);
     }

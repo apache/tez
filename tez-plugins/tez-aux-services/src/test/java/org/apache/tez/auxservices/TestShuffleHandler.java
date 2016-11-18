@@ -1115,7 +1115,7 @@ public class TestShuffleHandler {
               "http://127.0.0.1:"
                   + shuffleHandler.getConfig().get(
                   ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
-                  + "/mapOutput?job=job_12345_0001&dag=1&dagCompleted=true");
+                  + "/mapOutput?dagAction=delete&job=job_12345_0001&dag=1");
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);

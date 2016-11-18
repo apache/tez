@@ -21,7 +21,17 @@ package org.apache.tez.runtime.library.common;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.ByteBuffer;
 
+import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.SSLFactory;
+import org.apache.tez.http.async.netty.AsyncHttpConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -40,7 +50,11 @@ public class TezRuntimeUtils {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(TezRuntimeUtils.class);
-  
+  //Shared by multiple threads
+  private static volatile SSLFactory sslFactory;
+  //ShufflePort by default for ContainerLaunchers
+  public static final int INVALID_PORT = -1;
+
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
     return String.format("%s_%06d", vertexName, taskIndex);
   }
@@ -157,6 +171,96 @@ public class TezRuntimeUtils {
           "Unable to instantiate configured TezOutputFileManager: "
               + conf.get(Constants.TEZ_RUNTIME_TASK_OUTPUT_MANAGER,
                   TezTaskOutputFiles.class.getName()), e);
+    }
+  }
+
+  public static URL constructBaseURIForShuffleHandlerDagComplete(
+      String host, int port, String appId, int dagIdentifier, boolean sslShuffle)
+      throws MalformedURLException {
+    final String http_protocol = (sslShuffle) ? "https://" : "http://";
+    StringBuilder sb = new StringBuilder(http_protocol);
+    sb.append(host);
+    sb.append(":");
+    sb.append(port);
+    sb.append("/");
+    sb.append("mapOutput?dagAction=delete");
+    sb.append("&job=");
+    sb.append(appId.replace("application", "job"));
+    sb.append("&dag=");
+    sb.append(String.valueOf(dagIdentifier));
+    return new URL(sb.toString());
+  }
+
+  public static HttpConnectionParams getHttpConnectionParams(Configuration conf) {
+    int connectionTimeout =
+        conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT,
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_STALLED_COPY_TIMEOUT_DEFAULT);
+
+    int readTimeout = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT_DEFAULT);
+
+    int bufferSize = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE_DEFAULT);
+
+    boolean keepAlive = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED_DEFAULT);
+
+    int keepAliveMaxConnections = conf.getInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS_DEFAULT);
+
+    if (keepAlive) {
+      System.setProperty("sun.net.http.errorstream.enableBuffering", "true");
+      System.setProperty("http.maxConnections", String.valueOf(keepAliveMaxConnections));
+    }
+
+    boolean sslShuffle = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_SSL_DEFAULT);
+    if (sslShuffle) {
+      if (sslFactory == null) {
+        synchronized (HttpConnectionParams.class) {
+          //Create sslFactory if it is null or if it was destroyed earlier
+          if (sslFactory == null || sslFactory.getKeystoresFactory().getTrustManagers() == null) {
+            sslFactory =
+                new SSLFactory(org.apache.hadoop.security.ssl.SSLFactory.Mode.CLIENT, conf);
+            try {
+              sslFactory.init();
+            } catch (Exception ex) {
+              sslFactory.destroy();
+              sslFactory = null;
+              throw new RuntimeException(ex);
+            }
+          }
+        }
+      }
+    }
+
+    HttpConnectionParams httpConnParams = new HttpConnectionParams(keepAlive,
+        keepAliveMaxConnections, connectionTimeout, readTimeout, bufferSize, sslShuffle,
+        sslFactory);
+    return httpConnParams;
+  }
+
+  public static BaseHttpConnection getHttpConnection(boolean asyncHttp, URL url,
+                                                     HttpConnectionParams params, String logIdentifier, JobTokenSecretManager jobTokenSecretManager)
+      throws IOException {
+    if (asyncHttp) {
+      //TODO: support other async packages? httpclient-async?
+      return new AsyncHttpConnection(url, params, logIdentifier, jobTokenSecretManager);
+    } else {
+      return new HttpConnection(url, params, logIdentifier, jobTokenSecretManager);
+    }
+  }
+
+  public static int deserializeShuffleProviderMetaData(ByteBuffer meta)
+      throws IOException {
+    DataInputByteBuffer in = new DataInputByteBuffer();
+    try {
+      in.reset(meta);
+      int port = in.readInt();
+      return port;
+    } finally {
+      in.close();
     }
   }
 }

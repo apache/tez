@@ -45,11 +45,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -72,7 +74,6 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TezTaskCommunicatorImpl;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.task.TezChild;
 
 
@@ -93,9 +94,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
   private final ExecutionContext executionContext;
   private final int numExecutors;
   private final boolean isLocalMode;
-  int shufflePort = ShuffleUtils.UNDEFINED_PORT;
-  private final Map<NodeId, Integer> nodeIdShufflePortMap = new HashMap<NodeId, Integer>();
-  private ExecutorService dagDeleteService;
+  int shufflePort = TezRuntimeUtils.INVALID_PORT;
+  private DeletionTracker deletionTracker;
   boolean shouldDelete;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
@@ -116,7 +116,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
                                 AppContext context,
                                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
                                 String workingDirectory,
-                                boolean isLocalMode) throws UnknownHostException {
+                                boolean isLocalMode) throws UnknownHostException, TezException {
     // TODO Post TEZ-2003. Most of this information is dynamic and only available after the AM
     // starts up. It's not possible to set these up via a static payload.
     // Will need some kind of mechanism to dynamically crate payloads / bind to parameters
@@ -146,7 +146,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
       AuxiliaryServiceHelper.setServiceDataIntoEnv(
           auxiliaryService, ByteBuffer.allocate(4).putInt(0), localEnv);
       try {
-        shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(
+        shufflePort = TezRuntimeUtils.deserializeShuffleProviderMetaData(
             AuxiliaryServiceHelper.getServiceDataFromEnv(auxiliaryService, localEnv));
       } catch (IOException e) {
         LOG.warn("Could not extract shuffle aux-service port!");
@@ -161,12 +161,17 @@ public class LocalContainerLauncher extends ContainerLauncher {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
-    dagDeleteService = Executors.newFixedThreadPool(
-        conf.getInt(TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT,
-            TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT_DEFAULT), new ThreadFactoryBuilder()
-            .setDaemon(true).setNameFormat("ShuffleDeleteService #%d").build());
     shouldDelete = conf.getBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED,
         TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED_DEFAULT);
+    String tezDefaultComponentName =
+        isLocalMode ? TezConstants.getTezUberServicePluginName() :
+        TezConstants.getTezYarnServicePluginName();
+    String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_DELETION_TRACKER_CLASS,
+        TezConfiguration.TEZ_DELETION_TRACKER_CLASS_DEFAULT);
+    deletionTracker = ReflectionUtils.createClazzInstance(
+        deletionTrackerClassName,new Class[] {
+            Map.class, Configuration.class, String.class},
+        new Object[] {new HashMap<NodeId, Integer>(), conf, tezDefaultComponentName});
   }
 
   @Override
@@ -190,9 +195,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
       taskExecutorService.shutdownNow();
     }
     callbackExecutor.shutdownNow();
-    if (dagDeleteService != null) {
-      dagDeleteService.shutdown();
-      dagDeleteService = null;
+    if (deletionTracker != null) {
+      deletionTracker.shutdown();
     }
   }
 
@@ -272,11 +276,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
       runningContainers.put(event.getContainerId(), callback);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
 
-      if (isLocalMode && shufflePort != ShuffleUtils.UNDEFINED_PORT) {
-        if(nodeIdShufflePortMap.get(event.getNodeId()) == null) {
-          nodeIdShufflePortMap.put(event.getNodeId(), shufflePort);
-        }
-      }
+      deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
     } catch (RejectedExecutionException e) {
       handleLaunchFailed(e, event.getContainerId());
     }
@@ -413,24 +413,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
     }
   }
 
-  public void dagComplete(DAG dag, JobTokenSecretManager jobTokenSecretManager) {
-    if (!shouldDelete) {
-      return;
-    }
-    String tezDefaultComponentName =
-        isLocalMode ? TezConstants.getTezUberServicePluginName() :
-        TezConstants.getTezYarnServicePluginName();
-    for (Map.Entry<NodeId, Integer> entry : nodeIdShufflePortMap.entrySet()) {
-      NodeId nodeId = entry.getKey();
-      int shufflePort = entry.getValue();
-      //TODO: add check for healthy node
-      if (shufflePort != ShuffleUtils.UNDEFINED_PORT) {
-        DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
-            shufflePort, dag, jobTokenSecretManager, tezDefaultComponentName);
-        dagDeleteService.submit(dagDeleteRunnable);
-      }
-    }
-    nodeIdShufflePortMap.clear();
+  public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
+    deletionTracker.dagComplete(dag, jobTokenSecretManager);
   }
 
 }

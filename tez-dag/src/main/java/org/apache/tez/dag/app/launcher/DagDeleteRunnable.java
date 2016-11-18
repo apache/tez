@@ -18,26 +18,30 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.http.BaseHttpConnection;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 
 import java.net.URL;
 
 class DagDeleteRunnable implements Runnable {
   final NodeId nodeId;
-  final DAG dag;
+  final TezDAGID dag;
   final JobTokenSecretManager jobTokenSecretManager;
   final String tezDefaultComponentName;
   final int shufflePort;
+  final Configuration conf;
 
-  public DagDeleteRunnable(NodeId nodeId, int shufflePort, DAG currentDag,
+  public DagDeleteRunnable(NodeId nodeId, int shufflePort, TezDAGID currentDag,
+                           Configuration conf,
                            JobTokenSecretManager jobTokenSecretMgr, String tezDefaultComponent) {
     this.nodeId = nodeId;
     this.shufflePort = shufflePort;
     this.dag = currentDag;
+    this.conf = conf;
     this.jobTokenSecretManager = jobTokenSecretMgr;
     this.tezDefaultComponentName = tezDefaultComponent;
   }
@@ -45,11 +49,11 @@ class DagDeleteRunnable implements Runnable {
   @Override
   public void run() {
     try {
-      URL baseURL = ShuffleUtils.constructBaseURIForShuffleHandlerDagComplete(
+      URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerDagComplete(
           nodeId.getHost(), shufflePort,
-          dag.getID().getApplicationId().toString(), dag.getID().getId(), false);
-      BaseHttpConnection httpConnection = ShuffleUtils.getHttpConnection(true, baseURL,
-          ShuffleUtils.getHttpConnectionParams(dag.getConf()), "DAGDelete", jobTokenSecretManager);
+          dag.getApplicationId().toString(), dag.getId(), false);
+      BaseHttpConnection httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL,
+          TezRuntimeUtils.getHttpConnectionParams(conf), "DAGDelete", jobTokenSecretManager);
       httpConnection.connect();
       httpConnection.getInputStream();
     } catch (Exception e) {

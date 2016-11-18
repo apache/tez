@@ -1655,6 +1655,18 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_RECOVERY_SERVICE_CLASS_DEFAULT = "org.apache.tez.dag.history.recovery.RecoveryService";
 
   /**
+   * String value that is a class name.
+   * Specify the class to use for Deletion tracking.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_DELETION_TRACKER_CLASS =
+      TEZ_PREFIX + "history.logging.service.class";
+
+  public static final String TEZ_DELETION_TRACKER_CLASS_DEFAULT =
+      "org.apache.tez.dag.app.launcher.DeletionTrackerImpl";
+
+  /**
    * Boolean value. Default false.
    * By default, configured values for the Summary Entity Types for Timeline will
    * not be respected and be overridden by the Timeline History Service.

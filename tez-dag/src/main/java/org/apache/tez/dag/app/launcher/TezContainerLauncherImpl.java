@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
@@ -37,11 +35,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -89,8 +89,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
   protected BlockingQueue<ContainerOp> eventQueue = new LinkedBlockingQueue<>();
   private ContainerManagementProtocolProxy cmProxy;
   private AtomicBoolean serviceStopped = new AtomicBoolean(false);
-  private final Map<NodeId, Integer> nodeIdShufflePortMap = new HashMap<NodeId, Integer>();
-  private ExecutorService dagDeleteService;
+  private DeletionTracker deletionTracker;
 
   private Container getContainer(ContainerOp event) {
     ContainerId id = event.getBaseOperation().getContainerId();
@@ -177,7 +176,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
         getContext().containerLaunched(containerID);
         this.state = ContainerState.RUNNING;
 
-        int shufflePort  = ShuffleUtils.UNDEFINED_PORT;
+        int shufflePort = TezRuntimeUtils.INVALID_PORT;
         ByteBuffer portInfo =
             response.getAllServicesMetaData().get(
                 conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
@@ -188,11 +187,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
           shufflePort = in.readInt();
         }
 
-        if (shufflePort != ShuffleUtils.UNDEFINED_PORT) {
-          if(nodeIdShufflePortMap.get(event.getNodeId()) == null) {
-            nodeIdShufflePortMap.put(event.getNodeId(), shufflePort);
-          }
-        }
+        deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
             + ExceptionUtils.getStackTrace(t);
@@ -269,7 +264,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
   }
 
   @Override
-  public void start() {
+  public void start() throws TezException {
     // pass a copy of config to ContainerManagementProtocolProxy until YARN-3497 is fixed
     cmProxy =
         new ContainerManagementProtocolProxy(conf);
@@ -330,10 +325,12 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
     };
     eventHandlingThread.setName("ContainerLauncher Event Handler");
     eventHandlingThread.start();
-    dagDeleteService = Executors.newFixedThreadPool(
-        conf.getInt(TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT,
-            TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT_DEFAULT), new ThreadFactoryBuilder()
-            .setDaemon(true).setNameFormat("ShuffleDeleteService #%d").build());
+    String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_DELETION_TRACKER_CLASS,
+        TezConfiguration.TEZ_DELETION_TRACKER_CLASS_DEFAULT);
+    deletionTracker = ReflectionUtils.createClazzInstance(
+        deletionTrackerClassName,new Class[] {
+          Map.class, Configuration.class, String.class},
+        new Object[] {new HashMap<NodeId, Integer>(), conf, TezConstants.getTezYarnServicePluginName()});
   }
 
   @Override
@@ -348,9 +345,8 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
     if (launcherPool != null) {
       launcherPool.shutdownNow();
     }
-    if (dagDeleteService != null) {
-      dagDeleteService.shutdown();
-      dagDeleteService = null;
+    if (deletionTracker != null) {
+      deletionTracker.shutdown();
     }
   }
 
@@ -435,24 +431,8 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
     }
   }
 
-  public void dagComplete(DAG dag, JobTokenSecretManager jobTokenSecretManager) {
-    boolean shouldDelete = conf.getBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED,
-        TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED_DEFAULT);
-    if (!shouldDelete) {
-      return;
-    }
-    String tezDefaultComponentName = TezConstants.getTezYarnServicePluginName();
-      for (Map.Entry<NodeId, Integer> entry : nodeIdShufflePortMap.entrySet()) {
-        NodeId nodeId = entry.getKey();
-        int shufflePort = entry.getValue();
-        //TODO: add check for healthy node
-        if (shufflePort != ShuffleUtils.UNDEFINED_PORT) {
-          DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
-              shufflePort, dag, jobTokenSecretManager, tezDefaultComponentName);
-          dagDeleteService.submit(dagDeleteRunnable);
-        }
-      }
-      nodeIdShufflePortMap.clear();
+  public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
+    deletionTracker.dagComplete(dag, jobTokenSecretManager);
   }
 
 }

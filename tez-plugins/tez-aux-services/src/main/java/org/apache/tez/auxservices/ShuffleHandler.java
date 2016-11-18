@@ -905,7 +905,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Map<String,List<String>> q =
         new QueryStringDecoder(request.getUri()).getParameters();
       final List<String> keepAliveList = q.get("keepAlive");
-      final List<String> dagCompletedQ = q.get("dagCompleted");
+      final List<String> dagCompletedQ = q.get("dagAction");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
@@ -1006,7 +1006,11 @@ public class ShuffleHandler extends AuxiliaryService {
     private boolean deleteDagDirectories(MessageEvent evt,
                                          List<String> dagCompletedQ, List<String> jobQ,
                                          List<String> dagIdQ) {
-      if (dagCompletedQ != null && !dagCompletedQ.isEmpty()) {
+      if (jobQ == null || jobQ.isEmpty()) {
+        return false;
+      }
+      if (dagCompletedQ != null && !dagCompletedQ.isEmpty() && dagCompletedQ.get(0).contains("delete")
+          && dagIdQ != null && !dagIdQ.isEmpty()) {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           LocalFileSystem lfs = FileSystem.getLocal(conf);

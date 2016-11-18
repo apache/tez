@@ -15,7 +15,7 @@
 package org.apache.tez.dag.app.launcher;
 
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
@@ -40,7 +40,7 @@ public class ContainerLauncherWrapper {
     return real;
   }
 
-  public void dagComplete(DAG dag, JobTokenSecretManager jobTokenSecretManager) {
+  public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     if (real instanceof TezContainerLauncherImpl) {
       ((TezContainerLauncherImpl)real).dagComplete(dag, jobTokenSecretManager);
     }
