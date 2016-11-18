@@ -79,6 +79,11 @@ class TestTaskSchedulerHelpers {
 
   // Mocking AMRMClientImpl to make use of getMatchingRequest
   static class AMRMClientForTest extends AMRMClientImpl<CookieContainerRequest> {
+    AMRMClientForTest() {
+      super();
+      this.clusterAvailableResources = Resource.newInstance(4000, 4);
+      this.clusterNodeCount = 5;
+    }
 
     @Override
     protected void serviceStart() {
@@ -93,6 +98,7 @@ class TestTaskSchedulerHelpers {
   // Mocking AMRMClientAsyncImpl to make use of getMatchingRequest
   static class AMRMClientAsyncForTest extends
       TezAMRMClientAsync<CookieContainerRequest> {
+    private RegisterApplicationMasterResponse mockRegResponse;
 
     public AMRMClientAsyncForTest(
         AMRMClient<CookieContainerRequest> client,
@@ -105,7 +111,7 @@ class TestTaskSchedulerHelpers {
     @Override
     public RegisterApplicationMasterResponse registerApplicationMaster(
         String appHostName, int appHostPort, String appTrackingUrl) {
-      RegisterApplicationMasterResponse mockRegResponse = mock(RegisterApplicationMasterResponse.class);
+      mockRegResponse = mock(RegisterApplicationMasterResponse.class);
       Resource mockMaxResource = mock(Resource.class);
       Map<ApplicationAccessType, String> mockAcls = mock(Map.class);
       when(mockRegResponse.getMaximumResourceCapability()).thenReturn(
@@ -125,6 +131,10 @@ class TestTaskSchedulerHelpers {
 
     @Override
     protected void serviceStop() {
+    }
+
+    RegisterApplicationMasterResponse getRegistrationResponse() {
+      return mockRegResponse;
     }
   }
   

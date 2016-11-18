@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3508. TestTaskScheduler cleanup.
   TEZ-3536. NPE in WebUIService start when host resolution fails.
   TEZ-3269. Provide basic fair routing and scheduling functionality via custom VertexManager and EdgeManager.
   TEZ-3534. Differentiate thread names on Fetchers, minor changes to shuffle shutdown code.
