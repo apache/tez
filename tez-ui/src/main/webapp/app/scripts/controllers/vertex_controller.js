@@ -61,27 +61,6 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
 
     vertex.set('progress', undefined);
 
-    // Irrespective of am version this will get the progress first.
-    if (vertex.get('status') == 'RUNNING') {
-      var vertexIdx = vertex.get('id').split('_').splice(-1).pop();
-      App.Helpers.misc.removeRecord(this.store, 'vertexProgress', vertexIdx);
-      var progressLoader = this.store.find('vertexProgress', vertexIdx, {
-        appId: applicationId,
-        dagIdx: vertex.get('dagIdx')
-      }).then(function(vertexProgressInfo) {
-        if (vertexProgressInfo) {
-          vertex.set('progress', vertexProgressInfo.get('progress'));
-        }
-      }).catch(function(error) {
-        error.message = "Failed to fetch vertexProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
-        Em.Logger.error(error);
-        var err = App.Helpers.misc.formatError(error);
-        var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
-        App.Helpers.ErrorBar.getInstance().show(msg, err.details);
-      });
-      loaders.push(progressLoader);
-    }
-
     var appDetailFetcher = App.Helpers.misc.loadApp(that.store, applicationId).then(function(appDetail) {
       var status = appDetail.get('status');
       if (status) {
@@ -89,7 +68,27 @@ App.VertexController = App.PollingController.extend(App.Helpers.DisplayHelper, A
       }
       vertex.set('status', App.Helpers.misc.getRealStatus(vertex.get('status'), appDetail.get('status'),
         appDetail.get('finalStatus')));
-    }).catch(function(){});
+    }).catch(function(){}).then(function() {
+      // Irrespective of am version this will get the progress first.
+      if (vertex.get('status') == 'RUNNING') {
+        var vertexIdx = vertex.get('id').split('_').splice(-1).pop();
+        App.Helpers.misc.removeRecord(that.store, 'vertexProgress', vertexIdx);
+        return that.store.find('vertexProgress', vertexIdx, {
+          appId: applicationId,
+          dagIdx: vertex.get('dagIdx')
+        });
+      }
+    }).then(function(vertexProgressInfo) {
+      if (vertexProgressInfo) {
+        vertex.set('progress', vertexProgressInfo.get('progress'));
+      }
+    }).catch(function(error) {
+      error.message = "Failed to fetch vertexProgress. Application Master (AM) is out of reach. Either it's down, or CORS is not enabled for YARN ResourceManager.";
+      Em.Logger.error(error);
+      var err = App.Helpers.misc.formatError(error);
+      var msg = 'Error code: %@, message: %@'.fmt(err.errCode, err.msg);
+      App.Helpers.ErrorBar.getInstance().show(msg, err.details);
+    });
     loaders.push(appDetailFetcher);
 
     var tezAppLoader = this.store.find('tezApp', 'tez_' + applicationId)

@@ -53,6 +53,7 @@ ALL CHANGES:
   TEZ-3398. Tez UI: Bread crumb link to Application from Application details dag/configuration tab is broken
   TEZ-3433. Tez UI: Searching using wrong ID causes error in all DAGs page
   TEZ-3419. Tez UI: Applications page shows error, for users with only DAG level ACL permission
+  TEZ-3347. Tez UI: Vertex UI throws an error while getting vertexProgress for a killed Vertex
 
 Release 0.8.4: 2016-07-08
 
