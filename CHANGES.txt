@@ -144,6 +144,7 @@ ALL CHANGES:
   TEZ-3484. Tez UI: Remove .travis.yml from webapp folder
   TEZ-3470. Tez UI: Make the build work in IBM PPC
   TEZ-3502. Tez UI: Search in All DAGs page doesn't work with numeric values
+  TEZ-3546. Tez UI: On sorting asc - Not Available must be at the top
 
 Release 0.8.5: Unreleased
 
