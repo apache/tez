@@ -56,11 +56,14 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTALaunched;
 import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.VertexStatistics;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.test.GraceShuffleVertexManagerForTest;
@@ -1823,7 +1826,7 @@ public class TestVertexImpl {
                 EdgePlan.newBuilder()
                     .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
                     .setInputVertexName("vertex4")
-                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("org.apache.tez.o4"))
                     .setOutputVertexName("vertex6")
                     .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
                     .setId("e5")
@@ -1835,7 +1838,7 @@ public class TestVertexImpl {
                 EdgePlan.newBuilder()
                     .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
                     .setInputVertexName("vertex5")
-                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
+                    .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("org.apache.tez.o5"))
                     .setOutputVertexName("vertex6")
                     .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
                     .setId("e6")
@@ -3740,10 +3743,119 @@ public class TestVertexImpl {
 
     Assert.assertEquals(VertexState.SUCCEEDED, v4.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v5.getState());
-
     Assert.assertEquals(VertexState.RUNNING, v6.getState());
     Assert.assertEquals(4, v6.numSuccessSourceAttemptCompletions);
 
+  }
+
+  @Test(timeout = 5000)
+  public void testFailuresMaxPercentSourceTaskAttemptCompletionEvents() throws TezException {
+    LOG.info("Testing testFailuresMaxPercentSourceTaskAttemptCompletionEvents");
+
+    // Override the basic setup for this test to inject the specific config setting needed for this test
+    useCustomInitializer = false;
+    customInitializer = null;
+    setupPreDagCreation();
+    conf.setFloat(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, 50.0f);
+    conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
+    dagPlan = createTestDAGPlan();
+    setupPostDagCreation();
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v4 = vertices.get("vertex4");
+    VertexImpl v5 = vertices.get("vertex5");
+    VertexImpl v6 = vertices.get("vertex6");
+
+    startVertex(vertices.get("vertex1"));
+    startVertex(vertices.get("vertex2"));
+    dispatcher.await();
+    LOG.info("Verifying v6 state " + v6.getState());
+    Assert.assertEquals(VertexState.RUNNING, v6.getState());
+
+    TezTaskID t1_v4 = TezTaskID.getInstance(v4.getVertexId(), 0);
+    TezTaskID t2_v4 = TezTaskID.getInstance(v4.getVertexId(), 1);
+    TezTaskID t1_v5 = TezTaskID.getInstance(v5.getVertexId(), 0);
+    TezTaskID t2_v5 = TezTaskID.getInstance(v5.getVertexId(), 1);
+
+    TezTaskAttemptID ta1_t1_v4 = TezTaskAttemptID.getInstance(t1_v4, 0);
+    TezTaskAttemptID ta1_t2_v4 = TezTaskAttemptID.getInstance(t2_v4, 0);
+    TezTaskAttemptID ta1_t1_v5 = TezTaskAttemptID.getInstance(t1_v5, 0);
+    TezTaskAttemptID ta1_t2_v5 = TezTaskAttemptID.getInstance(t2_v5, 0);
+
+    TaskSpec taskSpec = new TaskSpec("dag", "vertex", 2, new ProcessorDescriptor(), new ArrayList<InputSpec>(),
+        new ArrayList<OutputSpec>(), null, conf);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(null, null);
+
+    // Tasks can only succeed from a scheduled or running state
+    dispatcher.getEventHandler().handle(new TaskEventScheduleTask(t1_v4, taskSpec, locationHint, false));
+    dispatcher.getEventHandler().handle(new TaskEventScheduleTask(t2_v4, taskSpec, locationHint, false));
+
+    // Completed tasks are less that the max percent failure
+    dispatcher.getEventHandler().handle(new TaskEventTAFailed(ta1_t1_v4, TaskFailureType.NON_FATAL, null));
+    dispatcher.getEventHandler().handle(new TaskEventTASucceeded(ta1_t2_v4));
+    dispatcher.getEventHandler().handle(new TaskEventTASucceeded(ta1_t1_v5));
+    dispatcher.getEventHandler().handle(new TaskEventTAFailed(ta1_t2_v5, TaskFailureType.NON_FATAL, null));
+    dispatcher.await();
+
+    Assert.assertEquals(VertexState.SUCCEEDED, v4.getState());
+    Assert.assertEquals(VertexState.SUCCEEDED, v5.getState());
+    Assert.assertEquals(VertexState.RUNNING, v6.getState());
+    Assert.assertEquals(4, v6.numSuccessSourceAttemptCompletions);
+  }
+
+  @Test(timeout = 5000)
+  public void testFailuresMaxPercentExceededSourceTaskAttemptCompletionEvents() throws TezException {
+    LOG.info("Testing testFailuresMaxPercentSourceTaskAttemptCompletionEvents");
+
+    // Override the basic setup for this test to inject the specific config setting needed for this test
+    useCustomInitializer = false;
+    customInitializer = null;
+    setupPreDagCreation();
+    conf.setFloat(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, 50.0f);
+    conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
+    dagPlan = createTestDAGPlan();
+    setupPostDagCreation();
+    initAllVertices(VertexState.INITED);
+
+    VertexImpl v4 = vertices.get("vertex4");
+    VertexImpl v5 = vertices.get("vertex5");
+    VertexImpl v6 = vertices.get("vertex6");
+
+    startVertex(vertices.get("vertex1"));
+    startVertex(vertices.get("vertex2"));
+    dispatcher.await();
+    LOG.info("Verifying v6 state " + v6.getState());
+    Assert.assertEquals(VertexState.RUNNING, v6.getState());
+
+    TezTaskID t1_v4 = TezTaskID.getInstance(v4.getVertexId(), 0);
+    TezTaskID t2_v4 = TezTaskID.getInstance(v4.getVertexId(), 1);
+    TezTaskID t1_v5 = TezTaskID.getInstance(v5.getVertexId(), 0);
+    TezTaskID t2_v5 = TezTaskID.getInstance(v5.getVertexId(), 1);
+
+    TezTaskAttemptID ta1_t1_v4 = TezTaskAttemptID.getInstance(t1_v4, 0);
+    TezTaskAttemptID ta1_t2_v4 = TezTaskAttemptID.getInstance(t2_v4, 0);
+    TezTaskAttemptID ta1_t1_v5 = TezTaskAttemptID.getInstance(t1_v5, 0);
+    TezTaskAttemptID ta1_t2_v5 = TezTaskAttemptID.getInstance(t2_v5, 0);
+
+    TaskSpec taskSpec = new TaskSpec("dag", "vertex", 2, new ProcessorDescriptor(), new ArrayList<InputSpec>(),
+        new ArrayList<OutputSpec>(), null, conf);
+    TaskLocationHint locationHint = TaskLocationHint.createTaskLocationHint(null, null);
+
+    // Tasks can only succeed from a scheduled or running state
+    dispatcher.getEventHandler().handle(new TaskEventScheduleTask(t1_v4, taskSpec, locationHint, false));
+    dispatcher.getEventHandler().handle(new TaskEventScheduleTask(t2_v4, taskSpec, locationHint, false));
+
+    // Completed tasks are more that the max percent failure
+    dispatcher.getEventHandler().handle(new TaskEventTAFailed(ta1_t1_v4, TaskFailureType.NON_FATAL, null));
+    dispatcher.getEventHandler().handle(new TaskEventTAFailed(ta1_t2_v4, TaskFailureType.NON_FATAL, null));
+    dispatcher.getEventHandler().handle(new TaskEventTASucceeded(ta1_t1_v5));
+    dispatcher.getEventHandler().handle(new TaskEventTAFailed(ta1_t2_v5, TaskFailureType.NON_FATAL, null));
+    dispatcher.await();
+
+    Assert.assertEquals(VertexState.FAILED, v4.getState());
+    Assert.assertEquals(VertexState.SUCCEEDED, v5.getState());
+    Assert.assertEquals(VertexState.RUNNING, v6.getState());
+    Assert.assertEquals(2, v6.numSuccessSourceAttemptCompletions);
   }
 
   @Test(timeout = 5000)

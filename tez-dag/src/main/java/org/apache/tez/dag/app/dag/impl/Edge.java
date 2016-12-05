@@ -23,9 +23,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.Deflater;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -67,6 +70,31 @@ import com.google.common.collect.Maps;
 public class Edge {
 
   private static final Logger LOG = LoggerFactory.getLogger(Edge.class);
+
+  public List<TezEvent> generateEmptyEventsForAttempt(TezTaskAttemptID attempt) throws Exception {
+
+    if (!edgeProperty.getEdgeSource().getClassName().startsWith("org.apache.tez")) {
+      throw new TezException("Only org.apache.tez outputs are allowed for max percent failure feature. Disallowed Output: "
+          + edgeProperty.getEdgeSource().getClassName());
+    }
+    List<Event> events = new ArrayList<>();
+    Deflater deflater = TezCommonUtils.newBestCompressionDeflater();
+    try {
+      ShuffleUtils.generateEventsForNonStartedOutput(events,
+          edgeManager.getNumDestinationConsumerTasks(attempt.getTaskID().getId()), null, false, true, deflater);
+    } catch (Exception e) {
+      throw new TezException(e);
+    }
+    EventMetaData sourceInfo = new EventMetaData(EventMetaData.EventProducerConsumerType.INPUT,
+        sourceVertex.getName(), getDestinationVertexName(), attempt);
+
+    List<TezEvent> tezEvents = new ArrayList<>(events.size());
+    for (Event e : events) {
+      TezEvent tezEvent = new TezEvent(e, sourceInfo);
+      tezEvents.add(tezEvent);
+    }
+    return tezEvents;
+  }
 
   class EdgeManagerPluginContextImpl implements EdgeManagerPluginContext {
 

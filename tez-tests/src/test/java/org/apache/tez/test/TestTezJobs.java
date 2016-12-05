@@ -43,14 +43,19 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1033,6 +1038,21 @@ public class TestTezJobs {
     }
   }
 
+  public static class FailingAttemptProcessor extends SimpleProcessor {
+
+    public FailingAttemptProcessor(ProcessorContext context) {
+      super(context);
+    }
+
+    @Override
+    public void run() throws Exception {
+      if (getContext().getTaskIndex() == 0) {
+        LOG.info("Failing task " + getContext().getTaskIndex() + ", attempt " + getContext().getTaskAttemptNumber());
+        throw new IOException("Failing task " + getContext().getTaskIndex() + ", attempt " + getContext().getTaskAttemptNumber());
+      }
+    }
+  }
+
   public static class InputInitializerForTest extends InputInitializer {
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -1281,5 +1301,35 @@ public class TestTezJobs {
     }
   }
 
+  @Test(timeout = 60000)
+  public void testVertexFailuresMaxPercent() throws TezException, InterruptedException, IOException {
 
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, "50.0f");
+    tezConf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
+    TezClient tezClient = TezClient.create("TestVertexFailuresMaxPercent", tezConf);
+    tezClient.start();
+
+    try {
+      DAG dag = DAG.create("TestVertexFailuresMaxPercent");
+      Vertex vertex1 = Vertex.create("Parent", ProcessorDescriptor.create(
+          FailingAttemptProcessor.class.getName()), 2);
+      Vertex vertex2 = Vertex.create("Child", ProcessorDescriptor.create(FailingAttemptProcessor.class.getName()), 2);
+
+      OrderedPartitionedKVEdgeConfig edgeConfig = OrderedPartitionedKVEdgeConfig
+          .newBuilder(Text.class.getName(), IntWritable.class.getName(),
+              HashPartitioner.class.getName())
+          .setFromConfiguration(tezConf)
+          .build();
+      dag.addVertex(vertex1)
+          .addVertex(vertex2)
+          .addEdge(Edge.create(vertex1, vertex2, edgeConfig.createDefaultEdgeProperty()));
+
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      dagClient.waitForCompletion();
+      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    } finally {
+      tezClient.stop();
+    }
+  }
 }

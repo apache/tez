@@ -994,7 +994,15 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PREEMPTION_PERCENTAGE =
       TEZ_AM_PREFIX + "preemption.percentage";
   public static final int TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT = 10;
-  
+
+  /**
+   * Float value. Specifies the allowable percentage in the range 0.0-100.0f of task
+   * failures per vertex that will allow the vertex to succeed with failures.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_VERTEX_FAILURES_MAXPERCENT =
+          "tez.vertex.failures.maxpercent";
+  public static final float TEZ_VERTEX_FAILURES_MAXPERCENT_DEFAULT = 0.0f;
   /**
    * Int value. The number of RM heartbeats to wait after preempting running tasks before preempting
    * more running tasks. After preempting a task, we need to wait at least 1 heartbeat so that the 
