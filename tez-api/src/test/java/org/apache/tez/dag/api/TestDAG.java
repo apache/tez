@@ -88,6 +88,32 @@ public class TestDAG {
   }
 
   @Test(timeout = 5000)
+  public void testAddDuplicatedNamedEdge() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+    Edge edge2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+
+    DAG dag = DAG.create("testDAG").addVertex(v1).addVertex(v2).addEdge(edge1);
+
+    try {
+      dag.addEdge(edge2);
+      Assert.fail("should fail it due to duplicate named edges");
+    } catch (Exception e) {
+      Assert.assertTrue(e.getMessage().contains(edge1 + " already defined"));
+    }
+  }
+
+  @Test(timeout = 5000)
   public void testDuplicatedVertexGroup() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);

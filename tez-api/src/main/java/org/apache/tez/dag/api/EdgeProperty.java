@@ -243,10 +243,10 @@ public class EdgeProperty {
   
   @Override
   public String toString() {
-    return "{ " + dataMovementType + " : " + inputDescriptor.getClassName()
+    return "(" + dataMovementType + " : " + inputDescriptor.getClassName()
         + " >> " + dataSourceType + " >> " + outputDescriptor.getClassName()
         + " >> " + (edgeManagerDescriptor == null ? "NullEdgeManager" : edgeManagerDescriptor.getClassName())
-        + " }";
+        + ")";
   }
   
 }

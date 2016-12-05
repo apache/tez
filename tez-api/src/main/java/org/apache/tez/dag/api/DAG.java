@@ -273,6 +273,13 @@ public class DAG {
 
   /**
    * Add an {@link Edge} connecting vertices in the DAG
+   *
+   * All edges within a DAG must be either named (created via
+   * {@link org.apache.tez.dag.api.Edge#create(Vertex, Vertex, EdgeProperty, String)}) or unnamed
+   * (created via {@link org.apache.tez.dag.api.Edge#create(Vertex, Vertex, EdgeProperty)}).
+   * If edges are named, all inbound edges to a vertex should have unique names. Likewise for outbound edges.
+   * A vertex can have an inbound edge that uses the same name as that used by an outbound edge.
+   *
    * @param edge The edge to be added
    * @return {@link DAG}
    */
@@ -571,8 +578,6 @@ public class DAG {
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
     Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
-    Map<Vertex, Set<String>> inboundVertexMap = new HashMap<Vertex, Set<String>>();
-    Map<Vertex, Set<String>> outboundVertexMap = new HashMap<Vertex, Set<String>>();
     for (Vertex v : vertices.values()) {
       if (vertexMap.containsKey(v.getName())) {
         throw new IllegalStateException("DAG contains multiple vertices"
@@ -581,33 +586,45 @@ public class DAG {
       vertexMap.put(v.getName(), new AnnotatedVertex(v));
     }
 
-    Map<Vertex, List<Edge>> edgeMap = new HashMap<Vertex, List<Edge>>();
+    // named edge cannot be mixed with unnamed edge or group edge
+    Edge namedEdge = null, unnamedEdge = null;
+    for (Edge e : edges) {
+      if (e.getName() == null) {
+        unnamedEdge = e;
+      } else {
+        namedEdge = e;
+      }
+
+      if (namedEdge != null && !groupInputEdges.isEmpty()) {
+        throw new IllegalStateException("DAG shouldn't contains both named edge " + namedEdge
+          + " and group edge " + groupInputEdges.iterator().next());
+      }
+      if (namedEdge != null && unnamedEdge != null) {
+        throw new IllegalStateException("DAG shouldn't contains both named edge " + namedEdge
+          + " and unnamed edge " + unnamedEdge);
+      }
+    }
+
+    Map<Vertex, List<Edge>> inEdgeMap = new HashMap<>();
+    Map<Vertex, List<Edge>> outEdgeMap = new HashMap<>();
     for (Edge e : edges) {
       // Construct structure for cycle detection
       Vertex inputVertex = e.getInputVertex();
       Vertex outputVertex = e.getOutputVertex();      
-      List<Edge> edgeList = edgeMap.get(inputVertex);
-      if (edgeList == null) {
-        edgeList = new ArrayList<Edge>();
-        edgeMap.put(inputVertex, edgeList);
+
+      List<Edge> outEdgeList = outEdgeMap.get(inputVertex);
+      if (outEdgeList == null) {
+        outEdgeList = new ArrayList<Edge>();
+        outEdgeMap.put(inputVertex, outEdgeList);
       }
-      edgeList.add(e);
-      
-      // Construct map for Input name verification
-      Set<String> inboundSet = inboundVertexMap.get(outputVertex);
-      if (inboundSet == null) {
-        inboundSet = new HashSet<String>();
-        inboundVertexMap.put(outputVertex, inboundSet);
+      outEdgeList.add(e);
+
+      List<Edge> inEdgeList = inEdgeMap.get(outputVertex);
+      if (inEdgeList == null) {
+        inEdgeList = new ArrayList<Edge>();
+        inEdgeMap.put(outputVertex, inEdgeList);
       }
-      inboundSet.add(inputVertex.getName());
-      
-      // Construct map for Output name verification
-      Set<String> outboundSet = outboundVertexMap.get(inputVertex);
-      if (outboundSet == null) {
-        outboundSet = new HashSet<String>();
-        outboundVertexMap.put(inputVertex, outboundSet);
-      }
-      outboundSet.add(outputVertex.getName());
+      inEdgeList.add(e);
     }
 
     // check input and output names don't collide with vertex names
@@ -633,29 +650,54 @@ public class DAG {
     }
 
     // Check for valid InputNames
-    for (Entry<Vertex, Set<String>> entry : inboundVertexMap.entrySet()) {
+    for (Entry<Vertex, List<Edge>> entry : inEdgeMap.entrySet()) {
       Vertex vertex = entry.getKey();
+      Set<String> inputs = new HashSet<>();
+
+      for (Edge edge : entry.getValue()) {
+        String name = edge.getName();
+        if (name == null) {
+          name = edge.getInputVertex().getName();
+        }
+        if (inputs.contains(name)) {
+          throw new IllegalStateException("Vertex: " + vertex.getName() + " contains multiple " +
+            "incoming edges with name " + name);
+        }
+        inputs.add(name);
+      }
       for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> 
            input : vertex.getInputs()) {
-        if (entry.getValue().contains(input.getName())) {
+        if (inputs.contains(input.getName())) {
           throw new IllegalStateException("Vertex: "
               + vertex.getName()
-              + " contains an incoming vertex and Input with the same name: "
-              + input.getName());
+              + " contains an incoming " + (namedEdge != null ? "edge" : "vertex")
+              + " and Input with the same name: " + input.getName());
         }
       }
     }
 
-    // Check for valid OutputNames
-    for (Entry<Vertex, Set<String>> entry : outboundVertexMap.entrySet()) {
+    for (Entry<Vertex, List<Edge>> entry : outEdgeMap.entrySet()) {
       Vertex vertex = entry.getKey();
-      for (RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> 
-            output : vertex.getOutputs()) {
-        if (entry.getValue().contains(output.getName())) {
+      Set<String> outputs = new HashSet<>();
+
+      for (Edge edge : entry.getValue()) {
+        String name = edge.getName();
+        if (name == null) {
+          name = edge.getOutputVertex().getName();
+        }
+        if (outputs.contains(name)) {
+          throw new IllegalStateException("Vertex: " + vertex.getName() + " contains multiple " +
+            "outgoing edges with name " + name);
+        }
+        outputs.add(name);
+      }
+      for (RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>
+        output : vertex.getOutputs()) {
+        if (outputs.contains(output.getName())) {
           throw new IllegalStateException("Vertex: "
-              + vertex.getName()
-              + " contains an outgoing vertex and Output with the same name: "
-              + output.getName());
+            + vertex.getName()
+            + " contains an outgoing " + (namedEdge != null ? "edge" : "vertex")
+            + " and Output with the same name: " + output.getName());
         }
       }
     }
@@ -666,7 +708,7 @@ public class DAG {
     // When additional inputs are supported, this can be chceked easily (and early)
     // within the addInput / addOutput call itself.
 
-    Deque<String> topologicalVertexStack = detectCycles(edgeMap, vertexMap);
+    Deque<String> topologicalVertexStack = detectCycles(outEdgeMap, vertexMap);
 
     checkAndInferOneToOneParallelism();
 

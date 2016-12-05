@@ -1191,4 +1191,253 @@ public class TestDAGVerify {
       Assert.assertTrue(e.getMessage().contains("There is conflicting local resource"));
     }
   }
+
+  @Test(timeout = 5000)
+  public void testNamedEdge() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+
+    DAG dag = DAG.create("testDAG").addVertex(v1).addVertex(v2).addEdge(edge1);
+    dag.verify();
+
+    Edge edge2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge2");
+
+    dag.addEdge(edge2).verify();
+  }
+
+  @Test(timeout = 5000)
+  public void testNamedEdgeMixedWithUnnamedEdge() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+    Edge edge2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")));
+
+    DAG dag = DAG.create("testDAG").addVertex(v1).addVertex(v2).addEdge(edge1).addEdge(edge2);
+
+    try {
+      dag.verify();
+      Assert.fail("should fail it because DAG has both named and unnamed edge");
+    } catch (Exception e) {
+      Assert.assertTrue(
+        e.getMessage().contains(
+          "DAG shouldn't contains both named edge " + edge1 + " and unnamed edge " + edge2));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testNamedEdgeWithGroupEdge() {
+    Vertex v1 = Vertex.create("v1",
+      ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2",
+      ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v3 = Vertex.create("v3",
+      ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    DAG dag = DAG.create("testDag");
+    dag.addVertex(v1);
+    dag.addVertex(v2);
+    dag.addVertex(v3);
+    String groupName1 = "uv12";
+    VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
+
+    GroupInputEdge e1 = GroupInputEdge.create(uv12, v3,
+      EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("dummy output class"),
+        InputDescriptor.create("dummy input class")),
+      InputDescriptor.create("dummy input class"));
+
+    Edge e2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.CONCURRENT, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "e2");
+
+    dag.addEdge(e1).addEdge(e2);
+    try {
+      dag.verify();
+      Assert.fail("should fail it because DAG has both named edge and group edge");
+    } catch (Exception e) {
+      Assert.assertTrue(
+        e.getMessage().contains("DAG shouldn't contains both named edge " + e2 + " and group edge "
+          + e1));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInNamedEdgeCollide() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    Edge edge1 = Edge.create(v1, v3, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+    Edge edge2 = Edge.create(v2, v3, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+
+    DAG dag =
+      DAG.create("testDAG").addVertex(v1).addVertex(v2).addVertex(v3).addEdge(edge1).addEdge(edge2);
+
+    try {
+      dag.verify();
+      Assert.fail("should fail it because v3 gets multiple incoming edges with same name");
+    } catch (Exception e) {
+      Assert.assertTrue(
+        e.getMessage().contains("v3 contains multiple incoming edges with name Edge1"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testOutNamedEdgeCollide() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    Edge edge1 = Edge.create(v1, v3, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+    Edge edge2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+
+    DAG dag =
+      DAG.create("testDAG").addVertex(v1).addVertex(v2).addVertex(v3).addEdge(edge1).addEdge(edge2);
+
+    try {
+      dag.verify();
+      Assert.fail("should fail it because v3 gets multiple outgoing edges with same name");
+    } catch (Exception e) {
+      Assert.assertTrue(
+        e.getMessage().contains("v1 contains multiple outgoing edges with name Edge1"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testInEdgeOutEdgeWithSameName() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+    Edge edge2 = Edge.create(v2, v3, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "Edge1");
+
+    DAG.create("testDAG")
+      .addVertex(v1).addVertex(v2).addVertex(v3)
+      .addEdge(edge1).addEdge(edge2)
+      .verify();
+  }
+
+  @Test(timeout = 5000)
+  public void testNamedEdgeCollideWithRootInput() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    v2.addDataSource("input",
+      DataSourceDescriptor.create(InputDescriptor.create("input"), null, null));
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "input");
+
+    DAG dag = DAG.create("testDag").addVertex(v1).addVertex(v2).addEdge(edge1);
+
+    try {
+      dag.verify();
+      Assert.fail("should fail it because v2 get incoming edge and input with same name");
+    } catch (Exception e) {
+      Assert.assertTrue(
+        e.getMessage().contains("v2 contains an incoming edge and Input with the same name: input"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testNamedEdgeCollideWithLeafOutput() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    v1.addDataSink("output",
+      DataSinkDescriptor.create(OutputDescriptor.create("output"), null, null));
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "output");
+
+    DAG dag = DAG.create("testDag").addVertex(v1).addVertex(v2).addEdge(edge1);
+
+    try {
+      dag.verify();
+      Assert.fail("should fail it because v2 get outgoing edge and output with same name");
+    } catch (Exception e) {
+      Assert.assertTrue(e.getMessage().contains(
+        "v1 contains an outgoing edge and Output with the same name: output"));
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testNamedEdgeUsingVertexName() {
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Processor"),
+      dummyTaskCount, dummyTaskResource);
+
+    Edge edge1 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "v1");
+    Edge edge2 = Edge.create(v1, v2, EdgeProperty.create(
+      DataMovementType.SCATTER_GATHER, DataSourceType.PERSISTED,
+      SchedulingType.SEQUENTIAL, OutputDescriptor.create("output"),
+      InputDescriptor.create("input")), "v2");
+
+    DAG dag = DAG.create("testDag").addVertex(v1).addVertex(v2).addEdge(edge1).addEdge(edge2);
+    dag.verify();
+  }
 }
