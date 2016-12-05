@@ -76,11 +76,11 @@
           <td>Logs</td>
           <td>
             {{#if logsLink.viewUrl}}
-              <a target="_blank" href='//{{unbound logsLink.viewUrl}}'>View</a>
+              <a target="_blank" {{bind-attr href="logsLink.viewUrl"}}>View</a>
               &nbsp;
             {{/if}}
             {{#if logsLink.downloadUrl}}
-              <a target="_blank" href='{{unbound logsLink.downloadUrl}}' download type="application/octet-stream">Download</a>
+              <a target="_blank" {{bind-attr href="logsLink.downloadUrl"}} download type="application/octet-stream">Download</a>
             {{/if}}
             {{#unless logsLink.viewUrl}}
               {{#unless logsLink.downloadUrl}}

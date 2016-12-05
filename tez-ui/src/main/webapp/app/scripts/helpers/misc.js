@@ -694,7 +694,7 @@ App.Helpers.misc = {
         if(!link.match("/syslog_")) {
           path = "/syslog_" + attempt.get('id');
         }
-        logLinks.viewUrl = App.Helpers.misc.modifyUrl(link, path, params, protocol);
+        logLinks.viewUrl = '//' + App.Helpers.misc.modifyUrl(link, path, params, protocol);
       }
 
       link = attempt.get('completedLog');
