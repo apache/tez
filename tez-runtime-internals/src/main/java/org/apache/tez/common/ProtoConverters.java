@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
@@ -46,6 +47,27 @@ public class ProtoConverters {
       EventProtos.DataMovementEventProto proto) {
     return DataMovementEvent.create(proto.getSourceIndex(),
         proto.getTargetIndex(),
+        proto.getVersion(),
+        proto.getUserPayload() != null ?
+            proto.getUserPayload().asReadOnlyByteBuffer() : null);
+  }
+  public static EventProtos.CompositeRoutedDataMovementEventProto convertCompositeRoutedDataMovementEventToProto(
+      CompositeRoutedDataMovementEvent event) {
+    EventProtos.CompositeRoutedDataMovementEventProto.Builder builder =
+        EventProtos.CompositeRoutedDataMovementEventProto.newBuilder();
+    builder.setSourceIndex(event.getSourceIndex()).
+        setTargetIndex(event.getTargetIndex()).setVersion(event.getVersion()).setCount(event.getCount());
+    if (event.getUserPayload() != null) {
+      builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
+    }
+    return builder.build();
+  }
+
+  public static CompositeRoutedDataMovementEvent convertCompositeRoutedDataMovementEventFromProto(
+      EventProtos.CompositeRoutedDataMovementEventProto proto) {
+    return CompositeRoutedDataMovementEvent.create(proto.getSourceIndex(),
+        proto.getTargetIndex(),
+        proto.getCount(),
         proto.getVersion(),
         proto.getUserPayload() != null ?
             proto.getUserPayload().asReadOnlyByteBuffer() : null);

@@ -299,7 +299,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     }
     
     @Override
-    public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+    public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
         int sourceTaskIndex, int destinationTaskIndex)
         throws Exception {
       int[] targetIndicesToSend;
@@ -316,8 +316,8 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         partitionRange = basePartitionRange;
       }
 
-      return EventRouteMetadata.create(partitionRange, targetIndicesToSend, 
-          sourceIndices[destinationTaskIndex]);
+      return CompositeEventRouteMetadata.create(partitionRange, targetIndicesToSend[0], 
+          sourceIndices[destinationTaskIndex][0]);
     }
 
     @Override

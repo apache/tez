@@ -63,12 +63,12 @@ class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManag
 
   @Nullable
   @Override
-  public EventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
+  public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
                                                                          int destTaskId)
     throws Exception {
     int index = CartesianProductCombination.fromTaskId(numTasks, destTaskId)
         .getCombination().get(positionId);
-    return index == srcTaskId ? EventRouteMetadata.create(1, new int[]{0}, new int[]{0}) : null;
+    return index == srcTaskId ? CompositeEventRouteMetadata.create(1, 0, 0) : null;
   }
 
   @Nullable

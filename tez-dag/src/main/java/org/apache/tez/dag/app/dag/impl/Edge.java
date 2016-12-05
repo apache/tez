@@ -38,6 +38,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
@@ -49,6 +50,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
@@ -549,36 +551,15 @@ public class Edge {
         switch (tezEvent.getEventType()) {
         case COMPOSITE_DATA_MOVEMENT_EVENT:
           {
-            CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent();        
-            EventRouteMetadata routeMeta;
-            int numEventsDone;
-            if (pendingRoutes != null) {
-              routeMeta = pendingRoutes.getRouteMeta();
-              numEventsDone = pendingRoutes.getNumEventsRouted();
-            } else {
-              routeMeta = edgeManagerOnDemand
+            CompositeDataMovementEvent compEvent = (CompositeDataMovementEvent) tezEvent.getEvent(); 
+            CompositeEventRouteMetadata routeMeta = edgeManagerOnDemand
                   .routeCompositeDataMovementEventToDestination(srcTaskIndex, taskIndex);
-              numEventsDone = 0;
-            }
+
             if (routeMeta != null) {
-              int listSize = listToAdd.size();
-              int numEvents = routeMeta.getNumEvents();
-              int[] sourceIndices = routeMeta.getSourceIndices();
-              int[] targetIndices = routeMeta.getTargetIndices();
-              while (numEventsDone < numEvents && listSize++ < listMaxSize) {
-                DataMovementEvent e = compEvent.expand(sourceIndices[numEventsDone],
-                    targetIndices[numEventsDone]);
-                numEventsDone++;
-                TezEvent tezEventToSend = new TezEvent(e, tezEvent.getSourceInfo(),
-                    tezEvent.getEventReceivedTime());
-                tezEventToSend.setDestinationInfo(destinationMetaInfo);
-                listToAdd.add(tezEventToSend);
-              }
-              if (numEventsDone < numEvents) {
-                pendingEvents.put(attemptID, new PendingEventRouteMetadata(routeMeta, tezEvent,
-                    numEventsDone));
-                return false;
-              }
+              CompositeRoutedDataMovementEvent edme = compEvent.expandRouted(routeMeta);
+              TezEvent tezEventToSend = new TezEvent(edme, tezEvent.getSourceInfo(), tezEvent.getEventReceivedTime());
+              tezEventToSend.setDestinationInfo(destinationMetaInfo);
+              listToAdd.add(tezEventToSend);
             }
           }
           break;

@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
-import org.apache.tez.dag.api.TezException;
 
 import javax.annotation.Nullable;
 
@@ -75,8 +74,8 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Nullable
   @Override
-  public EventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
-                                                                         int destTaskId)
+  public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
+                                                                                  int destTaskId)
     throws Exception {
     return edgeManagerReal.routeCompositeDataMovementEventToDestination(srcTaskId, destTaskId);
   }

@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.runtime.api.Event;
 
 /**
@@ -137,6 +138,11 @@ public class CompositeDataMovementEvent extends Event {
         };
       }
     };
+  }
+
+  @Private
+  public CompositeRoutedDataMovementEvent expandRouted(CompositeEventRouteMetadata routeMeta) {
+    return CompositeRoutedDataMovementEvent.create(routeMeta.getSource(), routeMeta.getTarget(), routeMeta.getCount(), version, userPayload);
   }
 
 }

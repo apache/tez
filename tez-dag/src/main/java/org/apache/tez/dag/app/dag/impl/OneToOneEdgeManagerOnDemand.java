@@ -41,6 +41,9 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
   final EventRouteMetadata commonRouteMeta = 
       EventRouteMetadata.create(1, new int[]{0}, new int[]{0});
 
+  final CompositeEventRouteMetadata compositeCommonRouteMeta =
+      CompositeEventRouteMetadata.create(1, 0, 0);
+
   public OneToOneEdgeManagerOnDemand(EdgeManagerPluginContext context) {
     super(context);
   }
@@ -84,11 +87,11 @@ public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
   }
   
   @Override
-  public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+  public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
     if (sourceTaskIndex == destinationTaskIndex) {
-      return commonRouteMeta;
+      return compositeCommonRouteMeta;
     }
     return null;
   }

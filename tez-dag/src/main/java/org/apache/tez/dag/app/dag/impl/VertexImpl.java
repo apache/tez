@@ -3769,6 +3769,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         EventType lastEventType = lastEvent.getEventType();
         // if the following changes then critical path logic/recording may need revision
         if (lastEventType == EventType.COMPOSITE_DATA_MOVEMENT_EVENT ||
+            lastEventType == EventType.COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT ||
             lastEventType == EventType.DATA_MOVEMENT_EVENT ||
             lastEventType == EventType.ROOT_INPUT_DATA_INFORMATION_EVENT) {
           task.getAttempt(attemptID).setLastEventSent(lastEvent);

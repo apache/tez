@@ -18,7 +18,9 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 
 /**
  * base class of cartesian product edge manager implementation
@@ -46,8 +48,8 @@ abstract class CartesianProductEdgeManagerReal {
                                                                          int destTaskId)
     throws Exception;
 
-  public abstract EventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
-                                                                                  int destTaskId)
+  public abstract CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
+                                                                                           int destTaskId)
     throws Exception;
 
   public abstract EventRouteMetadata routeInputSourceTaskFailedEventToDestination(int srcTaskId,

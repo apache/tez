@@ -845,7 +845,7 @@ public class TestExceptionPropagation {
     }
 
     @Override
-    public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+    public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
         int sourceTaskIndex, int destinationTaskIndex)
         throws Exception {
       if (exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {

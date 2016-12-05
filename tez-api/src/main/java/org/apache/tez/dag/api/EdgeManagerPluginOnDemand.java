@@ -40,6 +40,34 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 @Unstable
 public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
 
+  public static class CompositeEventRouteMetadata {
+    private final int count;
+    private final int target;
+    private final int source;
+
+    public static CompositeEventRouteMetadata create(int count, int target, int source) {
+      return new CompositeEventRouteMetadata(count, target, source);
+    }
+
+    private CompositeEventRouteMetadata(int count, int target, int source) {
+      this.count = count;
+      this.target = target;
+      this.source = source;
+    }
+
+    public int getCount() {
+      return count;
+    }
+
+    public int getTarget() {
+      return target;
+    }
+
+    public int getSource() {
+      return source;
+    }
+  }
+
   /**
    * Class to provide routing metadata for {@link Event}s to be routed between
    * producer and consumer tasks. The routing data enabled the system to send 
@@ -237,7 +265,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    *         source task.
    * @throws Exception
    */
-  public abstract @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+  public abstract @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex) throws Exception;
 
   /**

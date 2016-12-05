@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.cartesianproduct;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,23 +57,23 @@ public class TestCartesianProductEdgeManagerUnpartitioned {
     when(mockContext.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize(config);
 
-    EventRouteMetadata routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    assertNull(compositeRoutingData);
+
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 3);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
+
+    EventRouteMetadata routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
     assertNull(routingData);
 
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 3);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
-
-    routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
-    assertNull(routingData);
-
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 3);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 3);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
 
     assertEquals(0, edgeManager.routeInputErrorEventToSource(1, 0));
 
@@ -86,23 +87,23 @@ public class TestCartesianProductEdgeManagerUnpartitioned {
     when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
     edgeManager.initialize(config);
 
-    EventRouteMetadata routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 2);
+    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 2);
+    assertNull(compositeRoutingData);
+
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
+
+    EventRouteMetadata routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 2);
     assertNull(routingData);
 
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
-
-    routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 2);
-    assertNull(routingData);
-
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
 
     assertEquals(1, edgeManager.routeInputErrorEventToSource(1, 0));
 
@@ -130,23 +131,23 @@ public class TestCartesianProductEdgeManagerUnpartitioned {
     when(mockContext.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize(config);
 
-    EventRouteMetadata routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    assertNull(compositeRoutingData);
+
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 12);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
+
+    EventRouteMetadata routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
     assertNull(routingData);
 
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 12);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
-
-    routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
-    assertNull(routingData);
-
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 12);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 12);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
 
     assertEquals(0, edgeManager.routeInputErrorEventToSource(1, 0));
 
@@ -160,23 +161,23 @@ public class TestCartesianProductEdgeManagerUnpartitioned {
     when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
     edgeManager.initialize(config);
 
-    EventRouteMetadata routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    assertNull(compositeRoutingData);
+
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 16);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
+
+    EventRouteMetadata routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
     assertNull(routingData);
 
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 16);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
-
-    routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 1);
-    assertNull(routingData);
-
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 16);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 16);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
 
     assertEquals(0, edgeManager.routeInputErrorEventToSource(1, 0));
 
@@ -190,23 +191,23 @@ public class TestCartesianProductEdgeManagerUnpartitioned {
     when(mockContext.getSourceVertexNumTasks()).thenReturn(4);
     edgeManager.initialize(config);
 
-    EventRouteMetadata routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 0);
+    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 0);
+    assertNull(compositeRoutingData);
+
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 13);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
+
+    EventRouteMetadata routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 0);
     assertNull(routingData);
 
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 13);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
-
-    routingData = edgeManager.routeInputSourceTaskFailedEventToDestination(1, 0);
-    assertNull(routingData);
-
-    routingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 13);
-    assertNotNull(routingData);
-    assertEquals(1, routingData.getNumEvents());
-    assertArrayEquals(new int[]{0}, routingData.getTargetIndices());
-    assertArrayEquals(new int[]{0}, routingData.getSourceIndices());
+    compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 13);
+    assertNotNull(compositeRoutingData);
+    assertEquals(1, compositeRoutingData.getCount());
+    assertEquals(0, compositeRoutingData.getTarget());
+    assertEquals(0, compositeRoutingData.getSource());
 
     assertEquals(1, edgeManager.routeInputErrorEventToSource(1, 0));
 

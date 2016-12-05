@@ -122,22 +122,22 @@ public class TestFairShuffleVertexManager
     // The first destination task fetches two partitions from all source tasks.
     // 6 == 3 source tasks * 2 merged partitions
     Assert.assertEquals(6, edgeManager.getNumDestinationTaskPhysicalInputs(0));
-    EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata;
     for (int sourceTaskIndex = 0; sourceTaskIndex < 3; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
-        routeMetadata = (j == 0) ?
-            edgeManager.routeCompositeDataMovementEventToDestination(
-                sourceTaskIndex, 0) :
-            edgeManager.routeInputSourceTaskFailedEventToDestination(
-                sourceTaskIndex, 0);
-        Assert.assertEquals(2, routeMetadata.getNumEvents());
         if (j == 0) {
-          Assert.assertArrayEquals(new int[]{0, 1},
-              routeMetadata.getSourceIndices());
+          EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
+              edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
+          Assert.assertEquals(2, routeMetadata.getCount());
+          Assert.assertEquals(0, routeMetadata.getSource());
+          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+        } else {
+          EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
+              edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
+          Assert.assertEquals(2, routeMetadata.getNumEvents());
+          Assert.assertArrayEquals(
+              new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
+              routeMetadata.getTargetIndices());
         }
-        Assert.assertArrayEquals(
-            new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
-            routeMetadata.getTargetIndices());
       }
     }
   }
@@ -156,22 +156,22 @@ public class TestFairShuffleVertexManager
     // The first destination task fetches two partitions from all source tasks.
     // 6 == 3 source tasks * 2 merged partitions
     Assert.assertEquals(6, edgeManager.getNumDestinationTaskPhysicalInputs(0));
-    EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata;
     for (int sourceTaskIndex = 0; sourceTaskIndex < 3; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
-        routeMetadata = (j == 0) ?
-            edgeManager.routeCompositeDataMovementEventToDestination(
-                sourceTaskIndex, 0) :
-            edgeManager.routeInputSourceTaskFailedEventToDestination(
-                sourceTaskIndex, 0);
-        Assert.assertEquals(2, routeMetadata.getNumEvents());
         if (j == 0) {
-          Assert.assertArrayEquals(new int[]{0, 1},
-              routeMetadata.getSourceIndices());
+          EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
+              edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
+          Assert.assertEquals(2, routeMetadata.getCount());
+          Assert.assertEquals(0, routeMetadata.getSource());
+          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+        } else {
+          EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
+              edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
+          Assert.assertEquals(2, routeMetadata.getNumEvents());
+          Assert.assertArrayEquals(
+              new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
+              routeMetadata.getTargetIndices());
         }
-        Assert.assertArrayEquals(
-            new int[]{0 + sourceTaskIndex * 2, 1 + sourceTaskIndex * 2},
-            routeMetadata.getTargetIndices());
       }
     }
 
@@ -179,16 +179,18 @@ public class TestFairShuffleVertexManager
     // task.
     Assert.assertEquals(1, edgeManager.getNumDestinationTaskPhysicalInputs(1));
     for (int j = 0; j < 2; j++) {
-      routeMetadata = (j == 0) ?
-          edgeManager.routeCompositeDataMovementEventToDestination(
-              0, 1) :
-          edgeManager.routeInputSourceTaskFailedEventToDestination(
-              0, 1);
-      Assert.assertEquals(1, routeMetadata.getNumEvents());
       if (j == 0) {
-        Assert.assertEquals(2, routeMetadata.getSourceIndices()[0]);
+        EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
+            edgeManager.routeCompositeDataMovementEventToDestination(0, 1);
+        Assert.assertEquals(1, routeMetadata.getCount());
+        Assert.assertEquals(2, routeMetadata.getSource());
+        Assert.assertEquals(0, routeMetadata.getTarget());
+      } else {
+        EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
+            edgeManager.routeInputSourceTaskFailedEventToDestination(0, 1);
+        Assert.assertEquals(1, routeMetadata.getNumEvents());
+        Assert.assertEquals(0, routeMetadata.getTargetIndices()[0]);
       }
-      Assert.assertEquals(0, routeMetadata.getTargetIndices()[0]);
     }
 
     // The 3rd destination task fetches one partition from the 2nd and 3rd
@@ -196,17 +198,18 @@ public class TestFairShuffleVertexManager
     Assert.assertEquals(2, edgeManager.getNumDestinationTaskPhysicalInputs(2));
     for (int sourceTaskIndex = 1; sourceTaskIndex < 3; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
-        routeMetadata = (j == 0) ?
-            edgeManager.routeCompositeDataMovementEventToDestination(
-                sourceTaskIndex, 2) :
-            edgeManager.routeInputSourceTaskFailedEventToDestination(
-                sourceTaskIndex, 2);
-        Assert.assertEquals(1, routeMetadata.getNumEvents());
         if (j == 0) {
-          Assert.assertEquals(2, routeMetadata.getSourceIndices()[0]);
+          EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
+              edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 2);
+          Assert.assertEquals(1, routeMetadata.getCount());
+          Assert.assertEquals(2, routeMetadata.getSource());
+          Assert.assertEquals(sourceTaskIndex - 1, routeMetadata.getTarget());
+        } else {
+          EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
+              edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 2);
+          Assert.assertEquals(1, routeMetadata.getNumEvents());
+          Assert.assertEquals(sourceTaskIndex - 1, routeMetadata.getTargetIndices()[0]);
         }
-        Assert.assertEquals(sourceTaskIndex - 1,
-            routeMetadata.getTargetIndices()[0]);
       }
     }
   }

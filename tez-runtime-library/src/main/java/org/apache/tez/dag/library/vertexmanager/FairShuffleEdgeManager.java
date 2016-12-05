@@ -121,17 +121,16 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
   }
 
   @Override
-  public @Nullable EventRouteMetadata
+  public @Nullable CompositeEventRouteMetadata
       routeCompositeDataMovementEventToDestination(int sourceTaskIndex,
       int destinationTaskIndex) {
     DestinationTaskInputsProperty property = mapping.get(destinationTaskIndex);
     int firstPhysicalInputIndex =
         property.getFirstPhysicalInputIndex(sourceTaskIndex);
     if (firstPhysicalInputIndex >= 0) {
-      return EventRouteMetadata.create(property.getNumOfPartitions(),
-          getRange(firstPhysicalInputIndex, property.getNumOfPartitions()),
-          getRange(property.getFirstPartitionId(),
-          property.getNumOfPartitions()));
+      return CompositeEventRouteMetadata.create(property.getNumOfPartitions(),
+          firstPhysicalInputIndex,
+          property.getFirstPartitionId());
     } else {
       return null;
     }

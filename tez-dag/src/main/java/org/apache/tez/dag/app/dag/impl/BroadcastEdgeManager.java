@@ -78,10 +78,10 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
   }
   
   @Override
-  public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+  public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
-    return commonRouteMeta[sourceTaskIndex];
+    return CompositeEventRouteMetadata.create(1, sourceTaskIndex, 0);
   }
 
   @Override

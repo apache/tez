@@ -86,7 +86,7 @@ public class EdgeManagerForTest extends EdgeManagerPluginOnDemand {
   }
 
   @Override
-  public EventRouteMetadata routeCompositeDataMovementEventToDestination(
+  public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
     return null;
