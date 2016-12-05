@@ -686,7 +686,7 @@ App.Helpers.misc = {
             path += "/" + amUser;
           }
         }
-        logLinks.viewUrl = App.Helpers.misc.modifyUrl(link, path, params);
+        logLinks.viewUrl = '//' + App.Helpers.misc.modifyUrl(link, path, params);
       }
 
       link = attempt.get('completedLog');
