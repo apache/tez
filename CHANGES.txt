@@ -532,6 +532,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3507. Task logs link when editing url from one task to another.
   TEZ-3536. NPE in WebUIService start when host resolution fails.
   TEZ-3493. DAG submit timeout cannot be set to a month
   TEZ-3505. Move license to the file header for TezBytesWritableSerialization
