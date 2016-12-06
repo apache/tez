@@ -17,7 +17,6 @@
  */
 package org.apache.tez.runtime.library.common.writers;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -35,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.Deflater;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -53,6 +53,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.OutputContext;
@@ -103,7 +104,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   @VisibleForTesting
   final BlockingQueue<WrappedBuffer> availableBuffers;
   private final ByteArrayOutputStream baos;
-  private final DataOutputStream dos;
+  private final NonSyncDataOutputStream dos;
   @VisibleForTesting
   WrappedBuffer currentBuffer;
   private final FileSystem rfs;
@@ -117,6 +118,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   // uncompressed size for each partition
   private final long[] sizePerPartition;
   private volatile long spilledSize = 0;
+  private final Deflater deflater;
 
   /**
    * Represents final number of records written (spills are not counted)
@@ -159,6 +161,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     super(outputContext, conf, numOutputs);
     Preconditions.checkArgument(availableMemoryBytes >= 0, "availableMemory should be >= 0 bytes");
 
+    this.deflater = TezCommonUtils.newBestCompressionDeflater();
     this.destNameTrimmed = TezUtilsInternal.cleanVertexName(outputContext.getDestinationVertexName());
     //Not checking for TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT as it might not add much value in
     // this case.  Add it later if needed.
@@ -193,7 +196,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
     currentBuffer = buffers[0];
     baos = new ByteArrayOutputStream();
-    dos = new DataOutputStream(baos);
+    dos = new NonSyncDataOutputStream(baos);
     keySerializer.open(dos);
     valSerializer.open(dos);
     rfs = ((LocalFileSystem) FileSystem.getLocal(this.conf)).getRaw();
@@ -595,7 +598,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   private Event generateVMEvent() throws IOException {
     return ShuffleUtils.generateVMEvent(outputContext, this.sizePerPartition,
-        this.reportDetailedPartitionStats());
+        this.reportDetailedPartitionStats(), deflater);
   }
 
   private Event generateDMEvent() throws IOException {
@@ -615,7 +618,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     if (emptyPartitions.cardinality() != 0) {
       // Empty partitions exist
       ByteString emptyPartitionsByteString =
-          TezCommonUtils.compressByteArrayToByteString(TezUtilsInternal.toByteArray(emptyPartitions));
+          TezCommonUtils.compressByteArrayToByteString(TezUtilsInternal.toByteArray(emptyPartitions), deflater);
       payloadBuilder.setEmptyPartitions(emptyPartitionsByteString);
     }
 
@@ -659,7 +662,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         List<Event> eventList = Lists.newLinkedList();
         eventList.add(ShuffleUtils.generateVMEvent(outputContext,
             reportPartitionStats() ? new long[numPartitions] : null,
-                reportDetailedPartitionStats()));
+                reportDetailedPartitionStats(), deflater));
         //Send final event with all empty partitions and null path component.
         BitSet emptyPartitions = new BitSet(numPartitions);
         emptyPartitions.flip(0, numPartitions);
@@ -980,7 +983,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       String pathComponent = (outputContext.getUniqueIdentifier() + "_" + spillNumber);
       if (isFinalUpdate) {
         eventList.add(ShuffleUtils.generateVMEvent(outputContext,
-            sizePerPartition, reportDetailedPartitionStats()));
+            sizePerPartition, reportDetailedPartitionStats(), deflater));
       }
       Event compEvent = generateDMEvent(true, spillNumber, isFinalUpdate,
           pathComponent, emptyPartitions);

@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.history.parser.datamodel.BaseParser;
 import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.datamodel.DagInfo;
@@ -35,7 +36,6 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -95,12 +95,12 @@ public class ATSFileParser extends BaseParser implements ATSData {
     //Process vertex information
     Preconditions.checkState(verticesJson != null, "Vertex json can not be null");
     if (verticesJson != null) {
-      LOG.info("Started parsing vertex");
+      LOG.debug("Started parsing vertex");
       for (int i = 0; i < verticesJson.length(); i++) {
         VertexInfo vertexInfo = VertexInfo.create(verticesJson.getJSONObject(i));
         vertexList.add(vertexInfo);
       }
-      LOG.info("Finished parsing vertex");
+      LOG.debug("Finished parsing vertex");
     }
   }
 
@@ -176,7 +176,7 @@ public class ATSFileParser extends BaseParser implements ATSData {
 
   private JSONObject readJson(InputStream in) throws IOException, JSONException {
     //Read entire content to memory
-    final ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    final NonSyncByteArrayOutputStream bout = new NonSyncByteArrayOutputStream();
     IOUtils.copy(in, bout);
     return new JSONObject(new String(bout.toByteArray(), "UTF-8"));
   }
@@ -195,7 +195,7 @@ public class ATSFileParser extends BaseParser implements ATSData {
       Enumeration<? extends ZipEntry> zipEntries = atsZipFile.entries();
       while (zipEntries.hasMoreElements()) {
         ZipEntry zipEntry = zipEntries.nextElement();
-        LOG.info("Processing " + zipEntry.getName());
+        LOG.debug("Processing " + zipEntry.getName());
         InputStream inputStream = atsZipFile.getInputStream(zipEntry);
         JSONObject jsonObject = readJson(inputStream);
 

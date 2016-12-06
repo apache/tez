@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tez.common.ProgressHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -63,6 +64,10 @@ public class ReduceProcessor extends MRTask {
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  private ProgressHelper progressHelper;
+
   public ReduceProcessor(ProcessorContext processorContext) {
     super(processorContext, false);
   }
@@ -74,27 +79,31 @@ public class ReduceProcessor extends MRTask {
   }
 
   public void close() throws IOException {
-    // TODO Auto-generated method stub
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
 
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
-
+  public void run(Map<String, LogicalInput> _inputs,
+      Map<String, LogicalOutput> _outputs) throws Exception {
+    this.inputs = _inputs;
+    this.outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, processorContext, this.getClass().getSimpleName());
     LOG.info("Running reduce: " + processorContext.getUniqueIdentifier());
 
-    if (outputs.size() <= 0 || outputs.size() > 1) {
-      throw new IOException("Invalid number of outputs"
-          + ", outputCount=" + outputs.size());
+    if (_outputs.size() <= 0 || _outputs.size() > 1) {
+      throw new IOException("Invalid number of _outputs"
+          + ", outputCount=" + _outputs.size());
     }
 
-    if (inputs.size() <= 0 || inputs.size() > 1) {
-      throw new IOException("Invalid number of inputs"
-          + ", inputCount=" + inputs.size());
+    if (_inputs.size() <= 0 || _inputs.size() > 1) {
+      throw new IOException("Invalid number of _inputs"
+          + ", inputCount=" + _inputs.size());
     }
 
-    LogicalInput in = inputs.values().iterator().next();
+    LogicalInput in = _inputs.values().iterator().next();
     in.start();
 
     List<Input> pendingInputs = new LinkedList<Input>();
@@ -102,11 +111,11 @@ public class ReduceProcessor extends MRTask {
     processorContext.waitForAllInputsReady(pendingInputs);
     LOG.info("Input is ready for consumption. Starting Output");
 
-    LogicalOutput out = outputs.values().iterator().next();
+    LogicalOutput out = _outputs.values().iterator().next();
     out.start();
 
     initTask(out);
-
+    progressHelper.scheduleProgressTaskService(0, 100);
     this.statusUpdate();
 
     Class keyClass = ConfigUtils.getIntermediateInputKeyClass(jobConf);

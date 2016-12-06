@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.library.common.readers;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
@@ -73,6 +74,8 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   // TODO Remove this once per I/O counters are separated properly. Relying on
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
+  private final AtomicLong totalBytesRead = new AtomicLong(0);
+  private final AtomicLong totalFileBytes = new AtomicLong(0);
 
 
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
@@ -146,6 +149,16 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     return value;
   }
 
+  public float getProgress() throws IOException, InterruptedException {
+    final int numInputs = shuffleManager.getNumInputs();
+    if (totalFileBytes.get() > 0 && numInputs > 0) {
+      return ((1.0f) * (totalBytesRead.get() + ((currentReader != null) ? currentReader.bytesRead :
+      0.0f)) /
+          totalFileBytes.get()) * (shuffleManager.getNumCompletedInputsFloat() /
+          (1.0f * numInputs));
+    }
+    return 0.0f;
+  }
   /**
    * Tries reading the next key and value from the current reader.
    * @return true if the current reader has more records
@@ -176,6 +189,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
    */
   private boolean moveToNextInput() throws IOException {
     if (currentReader != null) { // Close the current reader.
+      totalBytesRead.getAndAdd(currentReader.bytesRead);
       currentReader.close();
       /**
        * clear reader explicitly. Otherwise this could point to stale reference when next() is
@@ -196,6 +210,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       return false; // No more inputs
     } else {
       currentReader = openIFileReader(currentFetchedInput);
+      totalFileBytes.getAndAdd(currentReader.getLength());
       return true;
     }
   }

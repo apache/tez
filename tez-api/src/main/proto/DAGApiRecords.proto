@@ -197,6 +197,13 @@ message CallerContextProto {
   optional string blob = 4;
 }
 
+message ACLInfo {
+  repeated string usersWithViewAccess = 1;
+  repeated string usersWithModifyAccess = 2;
+  repeated string groupsWithViewAccess = 3;
+  repeated string groupsWithModifyAccess = 4;
+}
+
 message DAGPlan {
   required string name = 1;
   repeated VertexPlan vertex = 2;
@@ -208,6 +215,7 @@ message DAGPlan {
   optional string dag_info = 8;
   optional VertexExecutionContextProto default_execution_context = 9;
   optional CallerContextProto caller_context = 10;
+  optional ACLInfo aclInfo = 11;
 }
 
 // DAG monitoring messages

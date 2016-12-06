@@ -21,6 +21,8 @@ package org.apache.tez.runtime.library.common.sort.impl;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -241,6 +243,58 @@ public class TestIFile {
     List<KVPair> sortedData = KVDataGen.generateTestData(true, 0);
     testWriterAndReader(sortedData);
     testWithDataBuffer(sortedData);
+  }
+
+  //test concatenated zlib input - as in multiple map outputs during shuffle
+  //This specific input is valid but the decompressor can leave lingering
+  // bytes between segments. If the lingering bytes aren't handled correctly,
+  // the stream will get out-of-sync.
+  @Test(timeout = 5000)
+  public void testConcatenatedZlibPadding()
+      throws IOException, URISyntaxException {
+    byte[] bytes;
+    long compTotal = 0;
+    // Known raw and compressed lengths of input
+    long raws[] = { 2392, 102314, 42576, 31432, 25090 };
+    long compressed[] = { 723, 25396, 10926, 8203, 6665 };
+
+    CompressionCodecFactory codecFactory = new CompressionCodecFactory(new
+        Configuration());
+    codec = codecFactory.getCodecByClassName("org.apache.hadoop.io.compress.DefaultCodec");
+
+    URL url = getClass().getClassLoader()
+        .getResource("TestIFile_concatenated_compressed.bin");
+    assertNotEquals("IFileinput file must exist", null, url);
+    Path p = new Path(url.toURI());
+    FSDataInputStream inStream = localFs.open(p);
+
+    for (int i = 0; i < 5; i++) {
+      bytes = new byte[(int) raws[i]];
+      assertEquals("Compressed stream out-of-sync", inStream.getPos(), compTotal);
+      IFile.Reader.readToMemory(bytes, inStream, (int) compressed[i], codec,
+          false, -1);
+      compTotal += compressed[i];
+
+      // Now read the data
+      InMemoryReader inMemReader = new InMemoryReader(null,
+          new InputAttemptIdentifier(0, 0), bytes, 0, bytes.length);
+
+      DataInputBuffer keyIn = new DataInputBuffer();
+      DataInputBuffer valIn = new DataInputBuffer();
+      Deserializer<Text> keyDeserializer;
+      Deserializer<IntWritable> valDeserializer;
+      SerializationFactory serializationFactory =
+          new SerializationFactory(defaultConf);
+      keyDeserializer = serializationFactory.getDeserializer(Text.class);
+      valDeserializer = serializationFactory.getDeserializer(IntWritable.class);
+      keyDeserializer.open(keyIn);
+      valDeserializer.open(valIn);
+
+      while (inMemReader.nextRawKey(keyIn)) {
+        inMemReader.nextRawValue(valIn);
+      }
+    }
+    inStream.close();
   }
 
   @Test(timeout = 5000)

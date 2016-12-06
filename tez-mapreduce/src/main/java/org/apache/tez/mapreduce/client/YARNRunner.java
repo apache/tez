@@ -515,8 +515,9 @@ public class YARNRunner implements ClientProtocol {
                     TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
                 stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
                 MRPartitioner.class.getName(), partitionerConf)
+                .setFromConfigurationUnfiltered(stageConfs[i-1])
                 .configureInput().useLegacyInput().done()
-                .setFromConfiguration(stageConfs[i - 1]).build();
+                .build();
         Edge edge = Edge.create(vertices[i - 1], vertices[i], edgeConf.createDefaultEdgeProperty());
         dag.addEdge(edge);
       }
@@ -817,9 +818,10 @@ public class YARNRunner implements ClientProtocol {
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-                                                 MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
-        IOException {
-      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
+        MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+            IOException {
+      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto, false,
+          true);
     }
   }
 

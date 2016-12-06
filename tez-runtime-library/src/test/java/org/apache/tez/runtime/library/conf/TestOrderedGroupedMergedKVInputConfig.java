@@ -75,6 +75,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
         .TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION, 0.6f);
     fromConf.setBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, false);
+    Configuration fromConfUnfiltered = new Configuration(false);
+    fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
@@ -92,7 +94,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
-            .setFromConfiguration(fromConf);
+            .setFromConfiguration(fromConf)
+            .setFromConfigurationUnfiltered(fromConfUnfiltered);
 
     OrderedGroupedKVInputConfig configuration = builder.build();
 
@@ -139,6 +142,8 @@ public class TestOrderedGroupedMergedKVInputConfig {
     assertNull(conf.get("test.conf.key.1"));
     assertNull(conf.get("test.key.1"));
     assertNull(conf.get("test.key.2"));
+
+    assertEquals("unfiltered1", conf.get("test.conf.unfiltered.1"));
   }
 
   @Test(timeout = 5000)

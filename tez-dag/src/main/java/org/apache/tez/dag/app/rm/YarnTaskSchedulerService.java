@@ -47,6 +47,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -134,9 +135,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   AtomicBoolean isStopStarted = new AtomicBoolean(false);
 
-  private ContainerAssigner NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
-  private ContainerAssigner RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
-  private ContainerAssigner NON_LOCAL_ASSIGNER = new NonLocalContainerAssigner();
+  private ContainerAssigner NODE_LOCAL_ASSIGNER;
+  private ContainerAssigner RACK_LOCAL_ASSIGNER;
+  private ContainerAssigner NON_LOCAL_ASSIGNER;
 
   DelayedContainerManager delayedContainerManager;
   long localitySchedulingDelay;
@@ -339,6 +340,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     Preconditions.checkArgument(preemptionMaxWaitTime >=0, "Preemption max wait time must be >=0");
 
     delayedContainerManager = new DelayedContainerManager();
+    NODE_LOCAL_ASSIGNER = new NodeLocalContainerAssigner();
+    RACK_LOCAL_ASSIGNER = new RackLocalContainerAssigner();
+    NON_LOCAL_ASSIGNER = new NonLocalContainerAssigner();
     LOG.info("YarnTaskScheduler initialized with configuration: " +
             "maxRMHeartbeatInterval: " + heartbeatIntervalMax +
             ", containerReuseEnabled: " + shouldReuseContainers +
@@ -470,7 +474,12 @@ public class YarnTaskSchedulerService extends TaskScheduler
         }
 
         // container neither allocated nor released
-        LOG.info("Ignoring unknown container: " + containerStatus.getContainerId());
+        if (delayedContainer != null) {
+          LOG.info("Delayed container {} completed", containerStatus.getContainerId());
+          maybeRescheduleContainerAtPriority(delayedContainer.getContainer().getPriority());
+        } else {
+          LOG.info("Ignoring unknown container: " + containerStatus.getContainerId());
+        }
       }
     }
 
@@ -674,7 +683,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         heldContainer.resetLocalityMatchLevel();
         delayedContainerManager.addDelayedContainer(
             heldContainer.getContainer(), currentTime
-                + localitySchedulingDelay);        
+                + localitySchedulingDelay);
       }
     } else if (state.equals(AMState.RUNNING_APP)) {
       // clear min held containers since we need to allocate to tasks
@@ -1310,23 +1319,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
           // to us anymore. So we need to ask for this again. If there is no
           // outstanding request at that priority then its fine to not ask again.
           // See TEZ-915 for more details
-          for (Map.Entry<Object, CookieContainerRequest> entry : taskRequests.entrySet()) {
-            Object task = entry.getKey();
-            CookieContainerRequest request = entry.getValue();
-            if (request.getPriority().equals(lowestPriNewContainer.getPriority())) {
-              LOG.info("Resending request for task again: " + task);
-              deallocateTask(task, true, null, null);
-              allocateTask(task, request.getCapability(), 
-                  (request.getNodes() == null ? null : 
-                    request.getNodes().toArray(new String[request.getNodes().size()])), 
-                    (request.getRacks() == null ? null : 
-                      request.getRacks().toArray(new String[request.getRacks().size()])), 
-                    request.getPriority(), 
-                    request.getCookie().getContainerSignature(),
-                    request.getCookie().getAppCookie());
-              break;
-            }
-          }
+          maybeRescheduleContainerAtPriority(lowestPriNewContainer.getPriority());
+
           // come back and free more new containers if needed
           continue;
         }
@@ -1421,6 +1415,26 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
     }
     return true;
+  }
+
+  private void maybeRescheduleContainerAtPriority(Priority priority) {
+    for (Map.Entry<Object, CookieContainerRequest> entry : taskRequests.entrySet()) {
+      Object task = entry.getKey();
+      CookieContainerRequest request = entry.getValue();
+      if (request.getPriority().equals(priority)) {
+        LOG.info("Resending request for task again: " + task);
+        deallocateTask(task, true, null, null);
+        allocateTask(task, request.getCapability(),
+            (request.getNodes() == null ? null :
+              request.getNodes().toArray(new String[request.getNodes().size()])),
+              (request.getRacks() == null ? null :
+                request.getRacks().toArray(new String[request.getRacks().size()])),
+                request.getPriority(),
+                request.getCookie().getContainerSignature(),
+                request.getCookie().getAppCookie());
+        break;
+      }
+    }
   }
 
   private boolean fitsIn(Resource toFit, Resource resource) {
@@ -1955,6 +1969,14 @@ public class YarnTaskSchedulerService extends TaskScheduler
     
     @Override
     public void run() {
+      try {
+        mainLoop();
+      } catch (Throwable e) {
+        ExitUtil.terminate(1, e);
+      }
+    }
+
+    private void mainLoop() {
       while(running) {
         // Try assigning all containers if there's a request to do so.
         if (tryAssigningAll) {
@@ -2130,6 +2152,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
       boolean added =  false;
       synchronized(this) {
         added = delayedContainers.offer(delayedContainer);
+        if (drainedDelayedContainersForTest != null) {
+          synchronized (drainedDelayedContainersForTest) {
+            drainedDelayedContainersForTest.set(false);
+          }
+        }
         this.notify();
       }
       if (!added) {

@@ -63,6 +63,8 @@ public class TestUnorderedKVOutputConfig {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, "2222");
     additionalConf.put("file.shouldExist", "file");
+    Configuration fromConfUnfiltered = new Configuration(false);
+    fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
     UnorderedKVOutputConfig.Builder builder =
         UnorderedKVOutputConfig.newBuilder("KEY", "VALUE")
             .setCompression(true, "CustomCodec", null)
@@ -71,7 +73,8 @@ public class TestUnorderedKVOutputConfig {
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
-            .setFromConfiguration(fromConf);
+            .setFromConfiguration(fromConf)
+            .setFromConfigurationUnfiltered(fromConfUnfiltered);
 
     UnorderedKVOutputConfig configuration = builder.build();
 
@@ -100,6 +103,8 @@ public class TestUnorderedKVOutputConfig {
     assertNull(conf.get("test.conf.key.1"));
     assertNull(conf.get("test.key.1"));
     assertNull(conf.get("test.key.2"));
+
+    assertEquals("unfiltered1", conf.get("test.conf.unfiltered.1"));
   }
 
   @Test(timeout = 5000)

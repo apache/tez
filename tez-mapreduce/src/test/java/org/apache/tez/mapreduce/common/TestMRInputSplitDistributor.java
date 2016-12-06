@@ -29,17 +29,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.dag.api.event.VertexState;
-import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.mapreduce.lib.MRInputUtils;
@@ -75,7 +70,7 @@ public class TestMRInputSplitDistributor {
     UserPayload userPayload =
         UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
-    InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();
@@ -124,7 +119,7 @@ public class TestMRInputSplitDistributor {
     UserPayload userPayload =
         UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
-    InputInitializerContext context = new TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload);
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();
@@ -148,79 +143,6 @@ public class TestMRInputSplitDistributor {
 
     assertTrue(diEvent2.getDeserializedUserPayload() instanceof InputSplitForTest);
     assertEquals(2, ((InputSplitForTest) diEvent2.getDeserializedUserPayload()).identifier);
-  }
-
-  private static class TezRootInputInitializerContextForTest implements
-      InputInitializerContext {
-
-    private final ApplicationId appId;
-    private final UserPayload payload;
-
-    TezRootInputInitializerContextForTest(UserPayload payload) throws IOException {
-      appId = ApplicationId.newInstance(1000, 200);
-      this.payload = payload == null ? UserPayload.create(null) : payload;
-    }
-
-    @Override
-    public ApplicationId getApplicationId() {
-      return appId;
-    }
-
-    @Override
-    public String getDAGName() {
-      return "FakeDAG";
-    }
-
-    @Override
-    public String getInputName() {
-      return "MRInput";
-    }
-
-    @Override
-    public UserPayload getInputUserPayload() {
-      return payload;
-    }
-
-    @Override
-    public int getNumTasks() {
-      return 100;
-    }
-
-    @Override
-    public Resource getVertexTaskResource() {
-      return Resource.newInstance(1024, 1);
-    }
-
-    @Override
-    public Resource getTotalAvailableResource() {
-      return Resource.newInstance(10240, 10);
-    }
-
-    @Override
-    public int getNumClusterNodes() {
-      return 10;
-    }
-
-    @Override
-    public int getDAGAttemptNumber() {
-      return 1;
-    }
-
-    @Override
-    public int getVertexNumTasks(String vertexName) {
-      throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
-    }
-
-    @Override
-    public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
-      throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
-    }
-
-    @Override
-    public UserPayload getUserPayload() {
-      throw new UnsupportedOperationException("getUserPayload not implemented in this mock");
-    }
-
   }
 
   @Private

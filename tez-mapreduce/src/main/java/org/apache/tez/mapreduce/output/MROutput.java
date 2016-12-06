@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -73,14 +75,14 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
  * {@link MROutput} is an {@link Output} which allows key/values pairs
  * to be written by a processor.
  *
- * It is compatible with all standard Apache Hadoop MapReduce 
+ * It is compatible with all standard Apache Hadoop MapReduce
  * OutputFormat implementations.
- * 
+ *
  * This class is not meant to be extended by external projects.
  */
 @Public
 public class MROutput extends AbstractLogicalOutput {
-  
+
   /**
    * Helper class to configure {@link MROutput}
    *
@@ -94,18 +96,36 @@ public class MROutput extends AbstractLogicalOutput {
     String outputClassName = MROutput.class.getName();
     String outputPath;
     boolean doCommit = true;
-    
-    private MROutputConfigBuilder(Configuration conf, Class<?> outputFormatParam) {
+
+    private MROutputConfigBuilder(Configuration conf,
+        Class<?> outputFormatParam, boolean useLazyOutputFormat) {
       this.conf = conf;
       if (outputFormatParam != null) {
         outputFormatProvided = true;
-        this.outputFormat = outputFormatParam;
-        if (org.apache.hadoop.mapred.OutputFormat.class.isAssignableFrom(outputFormatParam)) {
+        if (org.apache.hadoop.mapred.OutputFormat.class.isAssignableFrom(
+            outputFormatParam)) {
           useNewApi = false;
-        } else if (org.apache.hadoop.mapreduce.OutputFormat.class.isAssignableFrom(outputFormatParam)) {
+          if (!useLazyOutputFormat) {
+            this.outputFormat = outputFormatParam;
+          } else {
+            conf.setClass(MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT,
+                outputFormatParam,
+                org.apache.hadoop.mapred.OutputFormat.class);
+            this.outputFormat =
+                org.apache.hadoop.mapred.lib.LazyOutputFormat.class;
+          }
+        } else if (OutputFormat.class.isAssignableFrom(outputFormatParam)) {
           useNewApi = true;
+          if (!useLazyOutputFormat) {
+            this.outputFormat = outputFormatParam;
+          } else {
+            conf.setClass(MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT,
+                outputFormatParam, OutputFormat.class);
+            this.outputFormat = LazyOutputFormat.class;
+          }
         } else {
-          throw new TezUncheckedException("outputFormat must be assignable from either " +
+          throw new TezUncheckedException(
+              "outputFormat must be assignable from either " +
               "org.apache.hadoop.mapred.OutputFormat or " +
               "org.apache.hadoop.mapreduce.OutputFormat" +
               " Given: " + outputFormatParam.getName());
@@ -145,8 +165,21 @@ public class MROutput extends AbstractLogicalOutput {
     }
 
     private MROutputConfigBuilder setOutputPath(String outputPath) {
-      if (!(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.isAssignableFrom(outputFormat) || 
-          FileOutputFormat.class.isAssignableFrom(outputFormat))) {
+      boolean passNewLazyOutputFormatCheck =
+          (LazyOutputFormat.class.isAssignableFrom(outputFormat)) &&
+          org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.
+              isAssignableFrom(conf.getClass(
+                  MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
+      boolean passOldLazyOutputFormatCheck =
+          (org.apache.hadoop.mapred.lib.LazyOutputFormat.class.
+              isAssignableFrom(outputFormat)) &&
+          FileOutputFormat.class.isAssignableFrom(conf.getClass(
+              MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
+
+      if (!(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.
+          isAssignableFrom(outputFormat) ||
+          FileOutputFormat.class.isAssignableFrom(outputFormat) ||
+          passNewLazyOutputFormatCheck || passOldLazyOutputFormatCheck)) {
         throw new TezUncheckedException("When setting outputPath the outputFormat must " +
             "be assignable from either org.apache.hadoop.mapred.FileOutputFormat or " +
             "org.apache.hadoop.mapreduce.lib.output.FileOutputFormat. " +
@@ -277,7 +310,12 @@ public class MROutput extends AbstractLogicalOutput {
    */
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
                                                           @Nullable Class<?> outputFormat) {
-    return new MROutputConfigBuilder(conf, outputFormat);
+    return createConfigBuilder(conf, outputFormat, false);
+  }
+
+  public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
+      @Nullable Class<?> outputFormat, boolean useLazyOutputFormat) {
+    return new MROutputConfigBuilder(conf, outputFormat, useLazyOutputFormat);
   }
 
   /**
@@ -298,9 +336,14 @@ public class MROutput extends AbstractLogicalOutput {
    * @return {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    */
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
-                                                          @Nullable Class<?> outputFormat,
-                                                          @Nullable String outputPath) {
-    MROutputConfigBuilder configurer = new MROutputConfigBuilder(conf, outputFormat);
+      @Nullable Class<?> outputFormat, @Nullable String outputPath) {
+    return createConfigBuilder(conf, outputFormat, outputPath, false);
+  }
+
+  public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
+      @Nullable Class<?> outputFormat, @Nullable String outputPath,
+      boolean useLazyOutputFormat) {
+    MROutputConfigBuilder configurer = createConfigBuilder(conf, outputFormat, useLazyOutputFormat);
     if (outputPath != null) {
       configurer.setOutputPath(outputPath);
     }
@@ -312,9 +355,9 @@ public class MROutput extends AbstractLogicalOutput {
   private final NumberFormat taskNumberFormat = NumberFormat.getInstance();
   private final NumberFormat nonTaskNumberFormat = NumberFormat.getInstance();
   
-  private JobConf jobConf;
+  protected JobConf jobConf;
   boolean useNewApi;
-  private AtomicBoolean flushed = new AtomicBoolean(false);
+  protected AtomicBoolean flushed = new AtomicBoolean(false);
 
   @SuppressWarnings("rawtypes")
   org.apache.hadoop.mapreduce.OutputFormat newOutputFormat;
@@ -326,7 +369,7 @@ public class MROutput extends AbstractLogicalOutput {
   @SuppressWarnings("rawtypes")
   org.apache.hadoop.mapred.RecordWriter oldRecordWriter;
 
-  private TezCounter outputRecordCounter;
+  protected TezCounter outputRecordCounter;
 
   @VisibleForTesting
   TaskAttemptContext newApiTaskAttemptContext;
@@ -344,6 +387,12 @@ public class MROutput extends AbstractLogicalOutput {
 
   @Override
   public List<Event> initialize() throws IOException, InterruptedException {
+    List<Event> events = initializeBase();
+    initWriter();
+    return events;
+  }
+
+  protected List<Event> initializeBase() throws IOException, InterruptedException {
     getContext().requestInitialMemory(0l, null); //mandatory call
     taskNumberFormat.setMinimumIntegerDigits(5);
     taskNumberFormat.setGroupingUsed(false);
@@ -373,18 +422,18 @@ public class MROutput extends AbstractLogicalOutput {
       taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
     
-    if (useNewApi) {
-      // set the output part name to have a unique prefix
-      if (jobConf.get("mapreduce.output.basename") == null) {
-        jobConf.set("mapreduce.output.basename", getOutputFileNamePrefix());
-      }
-    }
-
     String outputFormatClassName;
 
-    outputRecordCounter = getContext().getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);    
+    outputRecordCounter = getContext().getCounters().findCounter(
+        TaskCounter.OUTPUT_RECORDS);
 
     if (useNewApi) {
+      // set the output part name to have a unique prefix
+      if (jobConf.get(MRJobConfig.FILEOUTPUTFORMAT_BASE_OUTPUT_NAME) == null) {
+        jobConf.set(MRJobConfig.FILEOUTPUTFORMAT_BASE_OUTPUT_NAME,
+            getOutputFileNamePrefix());
+      }
+
       newApiTaskAttemptContext = createTaskAttemptContext(taskAttemptId);
       try {
         newOutputFormat =
@@ -396,13 +445,6 @@ public class MROutput extends AbstractLogicalOutput {
       }
 
       initCommitter(jobConf, useNewApi);
-
-      try {
-        newRecordWriter =
-            newOutputFormat.getRecordWriter(newApiTaskAttemptContext);
-      } catch (InterruptedException e) {
-        throw new IOException("Interrupted while creating record writer", e);
-      }
     } else {
       oldApiTaskAttemptContext =
           new org.apache.tez.mapreduce.hadoop.mapred.TaskAttemptContextImpl(
@@ -412,19 +454,28 @@ public class MROutput extends AbstractLogicalOutput {
       outputFormatClassName = oldOutputFormat.getClass().getName();
 
       initCommitter(jobConf, useNewApi);
-
-      FileSystem fs = FileSystem.get(jobConf);
-      String finalName = getOutputName();
-
-      oldRecordWriter =
-          oldOutputFormat.getRecordWriter(
-              fs, jobConf, finalName, new MRReporter(getContext().getCounters()));
     }
 
     LOG.info(getContext().getDestinationVertexName() + ": "
         + "outputFormat=" + outputFormatClassName
         + ", using newmapreduce API=" + useNewApi);
     return null;
+  }
+
+  private void initWriter() throws IOException {
+    if (useNewApi) {
+      try {
+        newRecordWriter =
+            newOutputFormat.getRecordWriter(newApiTaskAttemptContext);
+      } catch (InterruptedException e) {
+        throw new IOException("Interrupted while creating record writer", e);
+      }
+    } else {
+      FileSystem fs = FileSystem.get(jobConf);
+      String finalName = getOutputName(getOutputFileNamePrefix());
+      oldRecordWriter = oldOutputFormat.getRecordWriter(
+          fs, jobConf, finalName, new MRReporter(getContext().getCounters()));
+    }
   }
 
   @Override
@@ -475,7 +526,7 @@ public class MROutput extends AbstractLogicalOutput {
         isMapperOutput, null);
   }
 
-  private String getOutputFileNamePrefix() {
+  protected String getOutputFileNamePrefix() {
     String prefix = jobConf.get(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX);
     if (prefix == null) {
       prefix = "part-v" + 
@@ -485,10 +536,9 @@ public class MROutput extends AbstractLogicalOutput {
     return prefix;
   }
 
-  private String getOutputName() {
+  protected String getOutputName(String prefix) {
     // give a unique prefix to the output name
-    return getOutputFileNamePrefix() + 
-        "-" + taskNumberFormat.format(getContext().getTaskIndex());
+    return prefix + "-" + taskNumberFormat.format(getContext().getTaskIndex());
   }
 
   /**

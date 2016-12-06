@@ -93,6 +93,7 @@ import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.IOStatistics;
@@ -275,11 +276,11 @@ public class TestMockDAGAppMaster {
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
+    Assert.assertEquals(1, ((CompositeRoutedDataMovementEvent)tEvents.get(0).getEvent()).getSourceIndex());
     Assert.assertEquals(vA.getName(), tEvents.get(1).getDestinationInfo().getEdgeVertexName());
-    Assert.assertEquals(1, ((DataMovementEvent)tEvents.get(1).getEvent()).getSourceIndex());
-    targetIndex1 = ((DataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex();
-    targetIndex2 = ((DataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex();
+    Assert.assertEquals(1, ((CompositeRoutedDataMovementEvent)tEvents.get(1).getEvent()).getSourceIndex());
+    targetIndex1 = ((CompositeRoutedDataMovementEvent)tEvents.get(0).getEvent()).getTargetIndex();
+    targetIndex2 = ((CompositeRoutedDataMovementEvent)tEvents.get(1).getEvent()).getTargetIndex();
     // order of vA task completion can change order of events
     Assert.assertTrue("t1: " + targetIndex1 + " t2: " + targetIndex2,
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));

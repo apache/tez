@@ -37,3 +37,21 @@ test('Basic creation test', function(assert) {
 
   assert.equal(controller.tabs.length, 3);
 });
+
+test('breadcrumbs test', function(assert) {
+  let appID = 123,
+  appName = "app123",
+  controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K,
+    model: {
+      entityID: appID,
+      name: appName
+    }
+  });
+
+  assert.equal(controller.get("breadcrumbs.length"), 1);
+  assert.equal(controller.get("breadcrumbs.0.text"), `Application [ ${appName} ]`);
+  assert.equal(controller.get("breadcrumbs.0.routeName"), 'app.index');
+  assert.equal(controller.get("breadcrumbs.0.model"), appID);
+});

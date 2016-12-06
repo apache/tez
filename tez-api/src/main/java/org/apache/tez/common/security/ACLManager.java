@@ -26,15 +26,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 
 /**
  * Class to manage ACLs for the Tez AM and DAGs and provides functionality to check whether
@@ -42,8 +42,6 @@ import com.google.common.annotations.VisibleForTesting;
  */
 @Private
 public class ACLManager {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ACLManager.class);
   public static final String WILDCARD_ACL_VALUE = "*";
 
   private final String dagUser;
@@ -75,7 +73,7 @@ public class ACLManager {
     }
   }
 
-  public ACLManager(ACLManager amACLManager, String dagUser, Configuration dagConf) {
+  public ACLManager(ACLManager amACLManager, String dagUser, ACLInfo aclInfo) {
     this.amUser = amACLManager.amUser;
     this.dagUser = dagUser;
     this.users = amACLManager.users;
@@ -84,12 +82,21 @@ public class ACLManager {
     if (!aclsEnabled) {
       return;
     }
-    ACLConfigurationParser parser = new ACLConfigurationParser(dagConf, true);
-    if (parser.getAllowedUsers() != null) {
-      this.users.putAll(parser.getAllowedUsers());
+    if (aclInfo.getUsersWithViewAccessCount() > 0) {
+      this.users.put(ACLType.DAG_VIEW_ACL,
+          Sets.newLinkedHashSet(aclInfo.getUsersWithViewAccessList()));
     }
-    if (parser.getAllowedGroups() != null) {
-      this.groups.putAll(parser.getAllowedGroups());
+    if (aclInfo.getUsersWithModifyAccessCount() > 0) {
+      this.users.put(ACLType.DAG_MODIFY_ACL,
+          Sets.newLinkedHashSet(aclInfo.getUsersWithModifyAccessList()));
+    }
+    if (aclInfo.getGroupsWithViewAccessCount() > 0) {
+      this.groups.put(ACLType.DAG_VIEW_ACL,
+          Sets.newLinkedHashSet(aclInfo.getGroupsWithViewAccessList()));
+    }
+    if (aclInfo.getGroupsWithModifyAccessCount() > 0) {
+      this.groups.put(ACLType.DAG_MODIFY_ACL,
+          Sets.newLinkedHashSet(aclInfo.getGroupsWithModifyAccessList()));
     }
   }
 

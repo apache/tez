@@ -28,6 +28,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.common.Constants;
 import org.slf4j.Logger;
@@ -86,6 +87,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
   private TezCounter inputKeyCounter;
   private TezCounter inputValueCounter;
+  private TezCounter shuffledInputs;
 
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
@@ -114,6 +116,8 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     this.inputKeyCounter = getContext().getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
     this.inputValueCounter = getContext().getCounters().findCounter(
         TaskCounter.REDUCE_INPUT_RECORDS);
+     this.shuffledInputs = getContext().getCounters().findCounter(
+        TaskCounter.NUM_SHUFFLED_INPUTS);
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
 
     return Collections.emptyList();
@@ -261,6 +265,20 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       valuesIter = vIter;
     }
     return new OrderedGroupedKeyValuesReader(valuesIter, getContext());
+  }
+
+  @Override
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    int totalInputs = getNumPhysicalInputs();
+    if (totalInputs != 0) {
+      synchronized (this) {
+        return ((0.5f) * this.shuffledInputs.getValue() / totalInputs) +
+            ((rawIter != null) ?
+             ((0.5f) * rawIter.getProgress().getProgress()) : 0.0f);
+      }
+    } else {
+      return 0.0f;
+    }
   }
 
   @Override

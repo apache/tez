@@ -129,6 +129,8 @@
                 <directory>${basedir}/src/main/proto</directory>
                 <includes>
                   <include>ShufflePayloads.proto</include>
+                  <include>CartesianProductPayload.proto</include>
+                  <include>FairShufflePayloads.proto</include>
                 </includes>
               </source>
               <output>${project.build.directory}/generated-sources/java</output>

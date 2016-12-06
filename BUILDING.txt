@@ -7,7 +7,7 @@ https://cwiki.apache.org/confluence/display/TEZ
 Requirements:
 
 * JDK 1.7+
-* Maven 3.0 or later
+* Maven 3.1 or later
 * Findbugs 2.0.2 or later (if running findbugs)
 * ProtocolBuffer 2.5.0
 * Internet connection for first build (to fetch all dependencies)
@@ -96,6 +96,12 @@ UI build issues:
 In case of issue with UI build, please clean the UI cache.
 
  $ mvn clean -PcleanUICache
+
+Issue with PhantomJS on building in PowerPC.
+
+ Official PhantomJS binaries are not yet available for Power platform. Hence you would have to
+ manually install it. Please refer to https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md
+ and install it globally for the build to work.
 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:

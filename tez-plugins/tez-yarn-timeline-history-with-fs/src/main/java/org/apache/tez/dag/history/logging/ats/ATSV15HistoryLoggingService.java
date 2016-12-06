@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.logging.ats;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,11 +37,16 @@ import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.security.DAGAccessControls;
+import org.apache.tez.common.security.HistoryACLPolicyException;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
+import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezReflectionException;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.history.DAGHistoryEvent;
+import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
@@ -80,7 +86,9 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       ATSV15HistoryLoggingService.class.getName();
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSV15HistoryACLPolicyManager";
-  private HistoryACLPolicyManager historyACLPolicyManager;
+
+  @VisibleForTesting
+  HistoryACLPolicyManager historyACLPolicyManager;
 
   private int numDagsPerGroup;
 
@@ -133,7 +141,6 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
     if (maxTimeToWaitOnShutdown < 0) {
       waitForeverOnShutdown = true;
     }
-    sessionDomainId = conf.get(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID);
 
     LOG.info("Initializing " + ATSV15HistoryLoggingService.class.getSimpleName() + " with "
         + ", maxPollingTime(ms)=" + maxPollingTimeMillis
@@ -164,6 +171,15 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       return;
     }
     timelineClient.start();
+
+    // create a session domain id, if it fails then disable history logging.
+    try {
+      sessionDomainId = createSessionDomain();
+    } catch (HistoryACLPolicyException | IOException e) {
+      LOG.warn("Could not setup history acls, disabling history logging.", e);
+      historyLoggingEnabled = false;
+      return;
+    }
 
     eventHandlingThread = new Thread(new Runnable() {
       @Override
@@ -216,9 +232,6 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
 
   @Override
   public void serviceStop() {
-    if (!historyLoggingEnabled || timelineClient == null) {
-      return;
-    }
     LOG.info("Stopping ATSService"
         + ", eventQueueBacklog=" + eventQueue.size());
     stopped.set(true);
@@ -265,11 +278,12 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       LOG.warn("Did not finish flushing eventQueue before stopping ATSService"
           + ", eventQueueBacklog=" + eventQueue.size());
     }
-    timelineClient.stop();
+    if (timelineClient != null) {
+      timelineClient.stop();
+    }
     if (historyACLPolicyManager != null) {
       historyACLPolicyManager.close();
     }
-
   }
 
   @VisibleForTesting
@@ -331,13 +345,6 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
         skippedDAGs.add(dagId);
         return false;
       }
-      if (historyACLPolicyManager != null) {
-        String dagDomainId = dagSubmittedEvent.getConf().get(
-            TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID);
-        if (dagDomainId != null) {
-          dagDomainIdMap.put(dagId, dagDomainId);
-        }
-      }
     }
     if (eventType.equals(HistoryEventType.DAG_RECOVERED)) {
       DAGRecoveredEvent dagRecoveredEvent = (DAGRecoveredEvent) event.getHistoryEvent();
@@ -363,28 +370,17 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
   }
 
   private void handleEvents(DAGHistoryEvent event) {
-    String domainId = sessionDomainId;
-    TezDAGID dagId = event.getDagID();
-
-    if (historyACLPolicyManager != null && dagId != null) {
-      if (dagDomainIdMap.containsKey(dagId)) {
-        domainId = dagDomainIdMap.get(dagId);
-      }
+    String domainId = getDomainForEvent(event);
+    // skippedDags is updated in the above call so check again.
+    if (event.getDagID() != null && skippedDAGs.contains(event.getDagID())) {
+      return;
     }
 
-    TimelineEntity entity =
-        HistoryEventTimelineConversion.convertToTimelineEntity(event.getHistoryEvent());
+    TimelineEntity entity = HistoryEventTimelineConversion.convertToTimelineEntity(
+        event.getHistoryEvent());
 
-    if (historyACLPolicyManager != null) {
-      if (HistoryEventType.isDAGSpecificEvent(event.getHistoryEvent().getEventType())) {
-        if (domainId != null && !domainId.isEmpty()) {
-          historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
-        }
-      } else {
-        if (sessionDomainId != null && !sessionDomainId.isEmpty()) {
-          historyACLPolicyManager.updateTimelineEntityDomain(entity, sessionDomainId);
-        }
-      }
+    if (historyACLPolicyManager != null && domainId != null && !domainId.isEmpty()) {
+      historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
     }
 
     try {
@@ -408,7 +404,99 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
     } catch (Exception e) {
       LOG.warn("Could not handle history events", e);
     }
-
   }
 
+  private String getDomainForEvent(DAGHistoryEvent event) {
+    String domainId = sessionDomainId;
+    if (historyACLPolicyManager == null) {
+      return domainId;
+    }
+
+    TezDAGID dagId = event.getDagID();
+    HistoryEvent historyEvent = event.getHistoryEvent();
+    if (dagId == null || !HistoryEventType.isDAGSpecificEvent(historyEvent.getEventType())) {
+      return domainId;
+    }
+
+    if (dagDomainIdMap.containsKey(dagId)) {
+      // If we already have the domain for the dag id return it
+      domainId = dagDomainIdMap.get(dagId);
+      // Cleanup if this is the last event.
+      if (historyEvent.getEventType() == HistoryEventType.DAG_FINISHED) {
+        dagDomainIdMap.remove(dagId);
+      }
+    } else if (HistoryEventType.DAG_SUBMITTED == historyEvent.getEventType()
+        || HistoryEventType.DAG_RECOVERED == historyEvent.getEventType()) {
+      // In case this is the first event for the dag, create and populate dag domain.
+      Configuration conf;
+      DAGPlan dagPlan;
+      if (HistoryEventType.DAG_SUBMITTED == historyEvent.getEventType()) {
+          conf = ((DAGSubmittedEvent)historyEvent).getConf();
+          dagPlan = ((DAGSubmittedEvent)historyEvent).getDAGPlan();
+      } else {
+         conf = appContext.getCurrentDAG().getConf();
+         dagPlan = appContext.getCurrentDAG().getJobPlan();
+      }
+      domainId = createDagDomain(conf, dagPlan, dagId);
+
+      // createDagDomain updates skippedDAGs so another check here.
+      if (skippedDAGs.contains(dagId)) {
+        return null;
+      }
+
+      dagDomainIdMap.put(dagId, domainId);
+    }
+    return domainId;
+  }
+
+  /**
+   * Creates a domain for the session.
+   * @return domainId to be used. null if acls are disabled.
+   * @throws HistoryACLPolicyException, IOException Forward if historyACLPolicyManger exception.
+   */
+  private String createSessionDomain() throws IOException, HistoryACLPolicyException {
+    if (historyACLPolicyManager == null) {
+      return null;
+    }
+    Map<String, String> domainInfo = historyACLPolicyManager.setupSessionACLs(getConfig(),
+        appContext.getApplicationID());
+    if (domainInfo != null) {
+      return domainInfo.get(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID);
+    }
+    return null;
+  }
+
+  /**
+   * When running in session mode, create a domain for the dag and return it.
+   * @param dagConf The configuration the dag for which domain has to be created.
+   * @param dagPlan The dag plan which contains the ACLs.
+   * @param dagId The dagId for which domain has to be created.
+   * @return The created domain id on success.
+   *     sessionDomainId: If there is a failure also disable history logging for this dag.
+   *     sessionDomainId: If historyACLPolicyManager returns null.
+   */
+  private String createDagDomain(Configuration dagConf, DAGPlan dagPlan, TezDAGID dagId) {
+    // In non session mode dag domain is same as session domain id.
+    if (!appContext.isSession()) {
+      return sessionDomainId;
+    }
+    DAGAccessControls dagAccessControls = dagPlan.hasAclInfo()
+        ? DagTypeConverters.convertDAGAccessControlsFromProto(dagPlan.getAclInfo())
+        : null;
+    try {
+      Map<String, String> domainInfo = historyACLPolicyManager.setupSessionDAGACLs(
+          dagConf, appContext.getApplicationID(), Integer.toString(dagId.getId()),
+          dagAccessControls);
+      if (domainInfo != null) {
+        return domainInfo.get(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID);
+      }
+      // Fallback to session domain, if domainInfo was null
+      return sessionDomainId;
+    } catch (IOException | HistoryACLPolicyException e) {
+      LOG.warn("Could not setup ACLs for DAG, disabling history logging for dag.", e);
+      skippedDAGs.add(dagId);
+      // Return value is not used, check for skippedDAG is important.
+      return null;
+    }
+  }
 }

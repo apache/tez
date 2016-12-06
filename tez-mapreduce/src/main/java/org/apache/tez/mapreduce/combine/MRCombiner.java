@@ -71,8 +71,8 @@ public class MRCombiner implements Combiner {
   private final RawComparator<?> comparator;
   private final boolean useNewApi;
   
-  private final TezCounter combineInputKeyCounter;
-  private final TezCounter combineInputValueCounter;
+  private final TezCounter combineInputRecordsCounter;
+  private final TezCounter combineOutputRecordsCounter;
   
   private final MRTaskReporter reporter;
   private final TaskAttemptID mrTaskAttemptID;
@@ -95,8 +95,8 @@ public class MRCombiner implements Combiner {
 
     this.useNewApi = ConfigUtils.useNewApi(conf);
     
-    combineInputKeyCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
-    combineInputValueCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS);
+    combineInputRecordsCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
+    combineOutputRecordsCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS);
     
     boolean isMap = conf.getBoolean(MRConfig.IS_MAP_PROCESSOR,false);
     this.mrTaskAttemptID = new TaskAttemptID(
@@ -130,6 +130,7 @@ public class MRCombiner implements Combiner {
       @Override
       public void collect(Object key, Object value) throws IOException {
         writer.append(key, value);
+        combineOutputRecordsCounter.increment(1);
       }
     };
     
@@ -145,7 +146,7 @@ public class MRCombiner implements Combiner {
         Class<KEY> keyClass, Class<VALUE> valClass,
         RawComparator<KEY> comparator) throws IOException {
       super(rawIter, comparator, keyClass, valClass, conf,
-          combineInputKeyCounter, combineInputValueCounter);
+          null, combineInputRecordsCounter);
     }
   }
   
@@ -161,6 +162,7 @@ public class MRCombiner implements Combiner {
       public void write(Object key, Object value) throws IOException,
           InterruptedException {
         writer.append(key, value);
+        combineOutputRecordsCounter.increment(1);
       }
 
       @Override
@@ -180,8 +182,8 @@ public class MRCombiner implements Combiner {
             conf,
             mrTaskAttemptID,
             rawIter,
-            new MRCounters.MRCounter(combineInputKeyCounter),
-            new MRCounters.MRCounter(combineInputValueCounter),
+            new MRCounters.MRCounter(combineInputRecordsCounter),
+            new MRCounters.MRCounter(combineOutputRecordsCounter),
             recordWriter,
             reporter,
             (RawComparator)comparator,
@@ -196,8 +198,8 @@ public class MRCombiner implements Combiner {
       Configuration conf,
       TaskAttemptID mrTaskAttemptID,
       final TezRawKeyValueIterator rawIter,
-      Counter combineInputKeyCounter,
-      Counter combineInputValueCounter,
+      Counter combineInputRecordsCounter,
+      Counter combineOutputRecordsCounter,
       RecordWriter<KEYOUT, VALUEOUT> recordWriter,
       MRTaskReporter reporter,
       RawComparator<KEYIN> comparator,
@@ -233,8 +235,8 @@ public class MRCombiner implements Combiner {
     };
 
     ReduceContext<KEYIN, VALUEIN, KEYOUT, VALUEOUT> rContext = new ReduceContextImpl<KEYIN, VALUEIN, KEYOUT, VALUEOUT>(
-        conf, mrTaskAttemptID, r, combineInputKeyCounter,
-        combineInputValueCounter, recordWriter, null, reporter, comparator,
+        conf, mrTaskAttemptID, r, null,
+        combineInputRecordsCounter, recordWriter, null, reporter, comparator,
         keyClass, valClass);
 
     org.apache.hadoop.mapreduce.Reducer<KEYIN, VALUEIN, KEYOUT, VALUEOUT>.Context reducerContext = new WrappedReducer<KEYIN, VALUEIN, KEYOUT, VALUEOUT>()

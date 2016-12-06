@@ -266,6 +266,15 @@
         </roles>
       </developer>
       <developer>
+        <id>mingma</id>
+        <name>Ming Ma</name>
+        <email>mingma@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+      </developer>
+      <developer>
         <id>namit</id>
         <name>Namit Jain</name>
         <email>namit@apache.org</email>

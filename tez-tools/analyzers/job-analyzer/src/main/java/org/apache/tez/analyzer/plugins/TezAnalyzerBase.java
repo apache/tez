@@ -40,9 +40,12 @@ import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
 import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class TezAnalyzerBase extends Configured implements Tool, Analyzer {
 
+  private static final Logger LOG = LoggerFactory.getLogger(TezAnalyzerBase.class);
   
   private static final String EVENT_FILE_NAME = "eventFileName";
   private static final String OUTPUT_DIR = "outputDir";
@@ -157,7 +160,6 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       //Parse ATS data and verify results
       //Parse downloaded contents
       file = new File(outputDir
-          + Path.SEPARATOR + dagId
           + Path.SEPARATOR + dagId + ".zip");
     }
     
@@ -176,7 +178,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       String fileName = outputDir + File.separator
           + this.getClass().getName() + "_" + dagInfo.getDagId() + ".csv";
       ((CSVResult) result).dumpToFile(fileName);
-      System.out.println("Saved results in " + fileName);
+      LOG.info("Saved results in " + fileName);
     }
     return 0;
   }
@@ -193,21 +195,22 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       }
       String format = formatBuilder.toString();
 
-      StringBuilder separator = new StringBuilder();
+      StringBuilder sep = new StringBuilder();
       for (int i = 0; i < SEPARATOR_WIDTH; i++) {
-        separator.append("-");
+        sep.append("-");
       }
 
-      System.out.println(separator);
-      System.out.println(String.format(format.toString(), (String[]) headers));
-      System.out.println(separator);
+      String separator = sep.toString();
+      LOG.debug(separator);
+      LOG.debug(String.format(format.toString(), (String[]) headers));
+      LOG.debug(separator);
 
       Iterator<String[]> recordsIterator = ((CSVResult) result).getRecordsIterator();
       while (recordsIterator.hasNext()) {
         String line = String.format(format, (String[]) recordsIterator.next());
-        System.out.println(line);
+        LOG.debug(line);
       }
-      System.out.println(separator);
+      LOG.debug(separator);
     }
   }
 }

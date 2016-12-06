@@ -43,6 +43,19 @@ public class TestTezYARNUtils {
         classpath.indexOf(Environment.PWD.$()));
   }
 
+  @Test(timeout = 20000)
+  public void testUserClasspathFirstFalse() {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST, false);
+    conf.set(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX, "foobar");
+    String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
+    Assert.assertTrue(classpath.contains("foobar"));
+    Assert.assertTrue(classpath.indexOf("foobar") >
+        classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
+    Assert.assertTrue(classpath.indexOf("foobar") >
+        classpath.indexOf(Environment.PWD.$()));
+  }
+
   @Test(timeout = 5000)
   public void testBasicArchiveClasspath() {
     Configuration conf = new Configuration(false);

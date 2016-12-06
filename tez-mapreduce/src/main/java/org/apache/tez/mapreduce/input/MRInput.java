@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.protobuf.ByteString;
 
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -112,6 +113,7 @@ public class MRInput extends MRInputBase {
     final boolean inputFormatProvided;
     boolean useNewApi;
     boolean groupSplitsInAM = true;
+    boolean sortSplitsInAM = true;
     boolean generateSplitsInAM = true;
     String inputClassName = MRInput.class.getName();
     boolean getCredentialsForSourceFilesystem = true;
@@ -190,7 +192,17 @@ public class MRInput extends MRInputBase {
       groupSplitsInAM = value;
       return this;
     }
-    
+
+    /**
+     * Set whether splits should be sorted (default true)
+     * @param value whether to sort splits in the AM or not
+     * @return {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder}
+     */
+    public MRInputConfigBuilder sortSplits(boolean value) {
+      sortSplitsInAM = value;
+      return this;
+    }
+
     /**
      * Set whether splits should be generated in the Tez App Master (default true)
      * @param value whether to generate splits in the AM or not
@@ -265,7 +277,7 @@ public class MRInput extends MRInputBase {
       InputSplitInfo inputSplitInfo;
       setupBasicConf(conf);
       try {
-        inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(conf, false, 0);
+        inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(conf, false, true, 0);
       } catch (Exception e) {
         throw new TezUncheckedException(e);
       }
@@ -297,12 +309,8 @@ public class MRInput extends MRInputBase {
 
       Collection<URI> uris = maybeGetURIsForCredentials();
 
-      UserPayload payload = null;
-      if (groupSplitsInAM) {
-        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(conf);
-      } else {
-        payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
-      }
+      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(
+          conf, groupSplitsInAM, sortSplitsInAM);
 
       DataSourceDescriptor ds = DataSourceDescriptor
           .create(InputDescriptor.create(inputClassName).setUserPayload(payload),
@@ -325,12 +333,8 @@ public class MRInput extends MRInputBase {
       
       Collection<URI> uris = maybeGetURIsForCredentials();
 
-      UserPayload payload = null;
-      if (groupSplitsInAM) {
-        payload = MRInputHelpersInternal.createMRInputPayloadWithGrouping(conf);
-      } else {
-        payload = MRInputHelpersInternal.createMRInputPayload(conf, null);
-      }
+      UserPayload payload = MRInputHelpersInternal.createMRInputPayload(
+          conf, groupSplitsInAM, sortSplitsInAM);
 
       DataSourceDescriptor ds = DataSourceDescriptor.create(
           InputDescriptor.create(inputClassName).setUserPayload(payload),
@@ -611,8 +615,13 @@ public class MRInput extends MRInputBase {
     }
   }
 
-  public float getProgress() throws IOException, InterruptedException {
-    return mrReader.getProgress();
+  @Override
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    try {
+      return (mrReader != null) ? mrReader.getProgress() : 0.0f;
+    } catch (IOException e) {
+      throw new ProgressFailedException("getProgress encountered IOException ", e);
+    }
   }
 
   void processSplitEvent(InputDataInformationEvent event)
@@ -697,15 +706,17 @@ public class MRInput extends MRInputBase {
 
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
-    protected static UserPayload createMRInputPayloadWithGrouping(Configuration conf) throws
-        IOException {
-      return MRInputHelpers.createMRInputPayloadWithGrouping(conf);
+    protected static UserPayload createMRInputPayload(Configuration conf,
+        boolean isGrouped, boolean isSorted) throws IOException {
+      return MRInputHelpers.createMRInputPayload(conf, null, isGrouped,
+          isSorted);
     }
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-                                                 MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+        MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
         IOException {
-      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto);
+      return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto, false,
+          true);
     }
   }
 

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.IOUtils;
@@ -345,13 +346,35 @@ public class TezCommonUtils {
     }
   }
 
+  private static final boolean NO_WRAP = true;
+
+  @Private
+  public static Deflater newBestCompressionDeflater() {
+    return new Deflater(Deflater.BEST_COMPRESSION, NO_WRAP);
+  }
+
+  @Private
+  public static Deflater newBestSpeedDeflater() {
+    return new Deflater(Deflater.BEST_SPEED, NO_WRAP);
+  }
+
+  @Private
+  public static Inflater newInflater() {
+    return new Inflater(NO_WRAP);
+  }
+
   @Private
   public static ByteString compressByteArrayToByteString(byte[] inBytes) throws IOException {
+    return compressByteArrayToByteString(inBytes, newBestCompressionDeflater());
+  }
+
+  @Private
+  public static ByteString compressByteArrayToByteString(byte[] inBytes, Deflater deflater) throws IOException {
+    deflater.reset();
     ByteString.Output os = ByteString.newOutput();
     DeflaterOutputStream compressOs = null;
     try {
-      compressOs = new DeflaterOutputStream(os, new Deflater(
-          Deflater.BEST_COMPRESSION));
+      compressOs = new DeflaterOutputStream(os, deflater);
       compressOs.write(inBytes);
       compressOs.finish();
       ByteString byteString = os.toByteString();
@@ -365,9 +388,14 @@ public class TezCommonUtils {
 
   @Private
   public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
-    InflaterInputStream in = new InflaterInputStream(byteString.newInput());
-    byte[] bytes = IOUtils.toByteArray(in);
-    return bytes;
+    return decompressByteStringToByteArray(byteString, newInflater());
+  }
+
+  @Private
+  public static byte[] decompressByteStringToByteArray(ByteString byteString, Inflater inflater) throws IOException {
+    inflater.reset();
+    return IOUtils.toByteArray(new InflaterInputStream(byteString.newInput(), inflater));
+
   }
 
   public static String getCredentialsInfo(Credentials credentials, String identifier) {
@@ -459,4 +487,76 @@ public class TezCommonUtils {
     jobToken.write(jobToken_dob);
     return ByteBuffer.wrap(jobToken_dob.getData(), 0, jobToken_dob.getLength());
   }
+
+  public static String getSystemPropertiesToLog(Configuration conf) {
+    Collection <String> keys = conf.getTrimmedStringCollection(
+        TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG);
+    if (keys.isEmpty()) {
+      keys = TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT;
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n/************************************************************\n");
+    sb.append("[system properties]\n");
+    for (String key : keys) {
+      sb.append(key).append(": ").append(System.getProperty(key)).append('\n');
+    }
+    sb.append("************************************************************/");
+    return sb.toString();
+  }
+
+  /**
+   * Helper function to get the heartbeat interval for client-AM heartbeats
+   * See {@link TezConfiguration#TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS} for more details.
+   * @param conf Configuration object
+   * @return heartbeat interval in milliseconds. -1 implies disabled.
+   */
+  public static long getAMClientHeartBeatTimeoutMillis(Configuration conf) {
+    int val = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_DEFAULT);
+    if (val < 0) {
+      return -1;
+    }
+    if (val > 0 && val < TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM) {
+      return TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000;
+    }
+    return val * 1000;
+  }
+
+  /**
+   * Helper function to get the poll interval for client-AM heartbeats.
+   * @param conf Configuration object
+   * @param heartbeatIntervalMillis Heartbeat interval in milliseconds
+   * @param buckets How many times to poll within the provided heartbeat interval
+   * @return poll interval in milliseconds
+   */
+  public static long getAMClientHeartBeatPollIntervalMillis(Configuration conf,
+                                                            long heartbeatIntervalMillis,
+                                                            int buckets) {
+    if (heartbeatIntervalMillis <= 0) {
+      return -1;
+    }
+    int pollInterval = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS,
+        TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_DEFAULT);
+    if (pollInterval > 0) {
+      return Math.max(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_MINIMUM,
+          pollInterval);
+    }
+    return Math.max(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_MINIMUM,
+        heartbeatIntervalMillis/buckets);
+  }
+
+  public static long getDAGSessionTimeout(Configuration conf) {
+    int timeoutSecs = conf.getInt(
+        TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT);
+    if (timeoutSecs < 0) {
+      return -1;
+    }
+    // Handle badly configured value to minimize impact of a spinning thread
+    if (timeoutSecs == 0) {
+      timeoutSecs = 1;
+    }
+    return 1000l * timeoutSecs;
+  }
+
 }

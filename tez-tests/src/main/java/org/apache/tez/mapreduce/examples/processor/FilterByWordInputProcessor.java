@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.examples.processor;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,9 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(FilterByWordInputProcessor.class);
 
   private String filterWord;
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  private ProgressHelper progressHelper;
 
   public FilterByWordInputProcessor(ProcessorContext context) {
     super(context);
@@ -70,38 +74,42 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-    LOG.info("Broadcast Processor closing. Nothing to do");
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
-    
-    if (inputs.size() != 1) {
+  public void run(Map<String, LogicalInput> _inputs,
+      Map<String, LogicalOutput> _outputs) throws Exception {
+    this.inputs = _inputs;
+    this.outputs = _outputs;
+    this.progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
+    if (_inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single input");
     }
 
-    if (outputs.size() != 1) {
+    if (_outputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single output");
     }
     
-    for (LogicalInput input : inputs.values()) {
+    for (LogicalInput input : _inputs.values()) {
       input.start();
     }
-    for (LogicalOutput output : outputs.values()) {
+    for (LogicalOutput output : _outputs.values()) {
       output.start();
     }
 
-    LogicalInput li = inputs.values().iterator().next();
+    LogicalInput li = _inputs.values().iterator().next();
     if (! (li instanceof MRInput)) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with MRInput");
     }
 
-    LogicalOutput lo = outputs.values().iterator().next();
+    LogicalOutput lo = _outputs.values().iterator().next();
     if (! (lo instanceof UnorderedKVOutput)) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with OnFileUnorderedKVOutput");
     }
-
+    progressHelper.scheduleProgressTaskService(0, 100);
     MRInputLegacy mrInput = (MRInputLegacy) li;
     mrInput.init();
     UnorderedKVOutput kvOutput = (UnorderedKVOutput) lo;

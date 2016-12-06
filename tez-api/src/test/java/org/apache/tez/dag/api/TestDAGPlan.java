@@ -370,14 +370,14 @@ public class TestDAGPlan {
     dag.addVertex(v1);
 
     // Should succeed. Default context is containers.
-    dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+    dag.createDag(new TezConfiguration(false), null, null, null, true,
         servicePluginsDescriptor, null);
 
 
     // Set execute in AM should fail
     v1.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+      dag.createDag(new TezConfiguration(false), null, null, null, true,
           servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
@@ -386,13 +386,13 @@ public class TestDAGPlan {
 
     // Valid context
     v1.setExecutionContext(validExecContext);
-    dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+    dag.createDag(new TezConfiguration(false), null, null, null, true,
         servicePluginsDescriptor, null);
 
     // Invalid task scheduler
     v1.setExecutionContext(invalidExecContext1);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+      dag.createDag(new TezConfiguration(false), null, null, null, true,
           servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
@@ -404,7 +404,7 @@ public class TestDAGPlan {
     // Invalid ContainerLauncher
     v1.setExecutionContext(invalidExecContext2);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+      dag.createDag(new TezConfiguration(false), null, null, null, true,
           servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
@@ -416,7 +416,7 @@ public class TestDAGPlan {
     // Invalid task comm
     v1.setExecutionContext(invalidExecContext3);
     try {
-      dag.createDag(new TezConfiguration(false), null, null, null, true, null,
+      dag.createDag(new TezConfiguration(false), null, null, null, true,
           servicePluginsDescriptor, null);
       fail("Expecting dag create to fail due to invalid ServicePluginDescriptor");
     } catch (IllegalStateException e) {
@@ -444,7 +444,8 @@ public class TestDAGPlan {
             new ContainerLauncherDescriptor[]{ContainerLauncherDescriptor.create("plugin", null)},
             new TaskCommunicatorDescriptor[]{TaskCommunicatorDescriptor.create("plugin", null)});
 
-    Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1)).setExecutionContext(v1Context);
+    Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1))
+        .setExecutionContext(v1Context);
     Vertex v2 = Vertex.create("v2", pd2, 1, Resource.newInstance(1024, 1));
     v1.setTaskLaunchCmdOpts("").setTaskEnvironment(new HashMap<String, String>())
         .addTaskLocalFiles(new HashMap<String, LocalResource>());
@@ -462,7 +463,7 @@ public class TestDAGPlan {
     dag.addVertex(v1).addVertex(v2).addEdge(edge);
     dag.setExecutionContext(defaultExecutionContext);
 
-    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true, null,
+    DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true,
         servicePluginsDescriptor, null);
 
     assertEquals(2, dagProto.getVertexCount());
@@ -502,8 +503,7 @@ public class TestDAGPlan {
     TezConfiguration conf = new TezConfiguration(false);
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
     try {
-      DAGPlan dagProto = dag.createDag(conf, null, null, null, true, null, null,
-          new JavaOptsChecker());
+      dag.createDag(conf, null, null, null, true, null, new JavaOptsChecker());
       fail("Expected dag creation to fail for invalid java opts");
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("Invalid/conflicting GC options"));
@@ -511,12 +511,11 @@ public class TestDAGPlan {
 
     // Should not fail as java opts valid
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:-UseParallelGC ");
-    DAGPlan dagProto1 = dag.createDag(conf, null, null, null, true, null, null,
-        new JavaOptsChecker());
+    dag.createDag(conf, null, null, null, true, null, new JavaOptsChecker());
 
     // Should not fail as no checker enabled
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
-    DAGPlan dagProto2 = dag.createDag(conf, null, null, null, true, null, null, null);
+    dag.createDag(conf, null, null, null, true, null, null);
 
   }
 

@@ -31,9 +31,11 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.EventProtos.CompositeEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.CompositeRoutedDataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
@@ -82,6 +84,8 @@ public class TezEvent implements Writable {
       eventType = EventType.DATA_MOVEMENT_EVENT;
     } else if (event instanceof CompositeDataMovementEvent) {
       eventType = EventType.COMPOSITE_DATA_MOVEMENT_EVENT;
+    } else if (event instanceof CompositeRoutedDataMovementEvent) {
+      eventType = EventType.COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT;
     } else if (event instanceof VertexManagerEvent) {
       eventType = EventType.VERTEX_MANAGER_EVENT;
     } else if (event instanceof InputReadErrorEvent) {
@@ -158,6 +162,11 @@ public class TezEvent implements Writable {
             ProtoConverters.convertDataMovementEventToProto(
                 (DataMovementEvent) event);
         break;
+      case COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT:
+          message =
+            ProtoConverters.convertCompositeRoutedDataMovementEventToProto(
+                (CompositeRoutedDataMovementEvent) event);
+      break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
         message =
             ProtoConverters.convertCompositeDataMovementEventToProto(
@@ -256,6 +265,11 @@ public class TezEvent implements Writable {
             DataMovementEventProto.parseFrom(input);
         event = ProtoConverters.convertDataMovementEventFromProto(dmProto);
         break;
+      case COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT:
+        CompositeRoutedDataMovementEventProto edmProto =
+            CompositeRoutedDataMovementEventProto.parseFrom(eventBytes);
+      event = ProtoConverters.convertCompositeRoutedDataMovementEventFromProto(edmProto);
+      break;
       case COMPOSITE_DATA_MOVEMENT_EVENT:
         CompositeEventProto cProto = CompositeEventProto.parseFrom(input);
         event = ProtoConverters.convertCompositeDataMovementEventFromProto(cProto);

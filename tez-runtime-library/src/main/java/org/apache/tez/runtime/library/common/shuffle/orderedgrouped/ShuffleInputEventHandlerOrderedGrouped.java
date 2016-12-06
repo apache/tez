@@ -22,8 +22,10 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.Inflater;
 
 import com.google.protobuf.ByteString;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +49,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
 
   private final ShuffleScheduler scheduler;
   private final InputContext inputContext;
-
+  private final Inflater inflater;
 
   private final AtomicInteger nextToLogEventCount = new AtomicInteger(0);
   private final AtomicInteger numDmeEvents = new AtomicInteger(0);
@@ -58,6 +60,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
                                                 ShuffleScheduler scheduler) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;
+    this.inflater = TezCommonUtils.newInflater();
   }
 
   @Override
@@ -79,7 +82,45 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
       numDmeEvents.incrementAndGet();
-      processDataMovementEvent((DataMovementEvent) event);
+      DataMovementEvent dmEvent = (DataMovementEvent)event;
+      DataMovementEventPayloadProto shufflePayload;
+      try {
+        shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
+      } catch (InvalidProtocolBufferException e) {
+        throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
+      }
+      BitSet emptyPartitionsBitSet = null;
+      if (shufflePayload.hasEmptyPartitions()) {
+        try {
+          byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions(), inflater);
+          emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
+        } catch (IOException e) {
+          throw new TezUncheckedException("Unable to set the empty partition to succeeded", e);
+        }
+      }
+      processDataMovementEvent(dmEvent, shufflePayload, emptyPartitionsBitSet);
+      scheduler.updateEventReceivedTime();
+    } else if (event instanceof CompositeRoutedDataMovementEvent) {
+      CompositeRoutedDataMovementEvent edme = (CompositeRoutedDataMovementEvent)event;
+      DataMovementEventPayloadProto shufflePayload;
+      try {
+        shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(edme.getUserPayload()));
+      } catch (InvalidProtocolBufferException e) {
+        throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
+      }
+      BitSet emptyPartitionsBitSet = null;
+      if (shufflePayload.hasEmptyPartitions()) {
+        try {
+          byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions(), inflater);
+          emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
+        } catch (IOException e) {
+          throw new TezUncheckedException("Unable to set the empty partition to succeeded", e);
+        }
+      }
+      for (int offset = 0; offset < edme.getCount(); offset++) {
+        numDmeEvents.incrementAndGet();
+        processDataMovementEvent(edme.expand(offset), shufflePayload, emptyPartitionsBitSet);
+      }
       scheduler.updateEventReceivedTime();
     } else if (event instanceof InputFailedEvent) {
       numObsoletionEvents.incrementAndGet();
@@ -92,13 +133,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
     }
   }
 
-  private void processDataMovementEvent(DataMovementEvent dmEvent) throws IOException {
-    DataMovementEventPayloadProto shufflePayload;
-    try {
-      shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
-    } catch (InvalidProtocolBufferException e) {
-      throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
-    } 
+  private void processDataMovementEvent(DataMovementEvent dmEvent, DataMovementEventPayloadProto shufflePayload, BitSet emptyPartitionsBitSet) throws IOException {
     int partitionId = dmEvent.getSourceIndex();
     InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dmEvent, shufflePayload);
 
@@ -110,8 +145,6 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
 
     if (shufflePayload.hasEmptyPartitions()) {
       try {
-        byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(shufflePayload.getEmptyPartitions());
-        BitSet emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
         if (emptyPartitionsBitSet.get(partitionId)) {
           if (LOG.isDebugEnabled()) {
             LOG.debug(
@@ -123,8 +156,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
           return;
         }
       } catch (IOException e) {
-        throw new TezUncheckedException("Unable to set " +
-                "the empty partition to succeeded", e);
+        throw new TezUncheckedException("Unable to set the empty partition to succeeded", e);
       }
     }
 

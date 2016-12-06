@@ -7,6 +7,63 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3271. Provide mapreduce failures.maxpercent equivalent.
+  TEZ-3222. Reduce messaging overhead for auto-reduce parallelism case.
+  TEZ-3547. Add TaskAssignment Analyzer.
+  TEZ-3508. TestTaskScheduler cleanup.
+  TEZ-3536. NPE in WebUIService start when host resolution fails.
+  TEZ-3269. Provide basic fair routing and scheduling functionality via custom VertexManager and EdgeManager.
+  TEZ-3534. Differentiate thread names on Fetchers, minor changes to shuffle shutdown code.
+  TEZ-3491. Tez job can hang due to container priority inversion.
+  TEZ-3533. ShuffleScheduler should shutdown threadpool on exit.
+  TEZ-3477. MRInputHelpers generateInputSplitsToMem public API modified
+  TEZ-3465. Support broadcast edge into cartesian product vertex and forbid other edges.
+  TEZ-3493. DAG submit timeout cannot be set to a month
+  TEZ-3505. Move license to the file header for TezBytesWritableSerialization
+  TEZ-3486. COMBINE_OUTPUT_RECORDS/COMBINE_INPUT_RECORDS are not correct
+  TEZ-3247. Add more unit test coverage for container reuse.
+  TEZ-3215. Support for MultipleOutputs.
+  TEZ-3097. Flaky test: TestCommit.testDAGCommitStartedEventFail_OnDAGSuccess.
+  TEZ-3487. Improvements in travis yml file to get builds to work.
+  TEZ-3405. Support ability for AM to kill itself if there is no client heartbeating to it.
+  TEZ-3483. Create basic travis yml file for Tez.
+  TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
+  TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.
+  TEZ-3430. Make split sorting optional.
+  TEZ-3466. Tez classpath building to mimic mapreduce classpath building.
+  TEZ-3453. Correct the downloaded ATS dag data location for analyzer.
+  TEZ-3449. Fix Spelling typos.
+  TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
+  TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
+  TEZ-3335. DAG client thinks app is still running when app status is null
+  TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
+  TEZ-3460. Fix precommit release audit warning.
+  TEZ-3368. NPE in DelayedContainerManager
+  TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
+  TEZ-3429. Set reconfigureDoneTime on VertexConfigurationDoneEvent properly.
+  TEZ-3000. Fix TestContainerReuse.
+  TEZ-3436. Check input and output count before start in MapProcessor.
+  TEZ-3163. Reuse and tune Inflaters and Deflaters to speed DME processing
+  TEZ-3434. Add unit tests for flushing of recovery events.
+  TEZ-3317. Speculative execution starts too early due to 0 progress.
+  TEZ-3404. Move blocking call for YARN Timeline domain creation from client side to AM.
+  TEZ-3272. Add AMContainerImpl and AMNodeImpl to StateMachine visualization list.
+  TEZ-3284. Synchronization for every write in UnOrderedKVWriter
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
+  TEZ-3230. Implement vertex manager and edge manager of cartesian product edge.
+  TEZ-3326. Display JVM system properties in AM and task logs.
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
+  TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
+  TEZ-3395. Refactor ShuffleVertexManager to make parts of it re-usable in other plugins.
+  TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
+  TEZ-3352. MRInputHelpers getStringProperty() should not fail if property value is null.
+  TEZ-3409. Log dagId along with other information when submitting a dag.
+  TEZ-3384. Fix TestATSV15HistoryLoggingService::testDAGGroupingGroupingEnabled unit test.
+  TEZ-3382. Tez analyzer: Should be resilient to new counters.
+  TEZ-3379. Tez analyzer: Move sysout to log4j.
+  TEZ-3376. Fix groupId generation to account for dagId starting with 1.
+  TEZ-3359. Add granular log levels for HistoryLoggingService.
+  TEZ-3374. Change TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP conf key name.
   TEZ-3358. Support using the same TimelineGroupId for multiple DAGs.
   TEZ-3357. Change TimelineCachePlugin to handle DAG grouping.
   TEZ-3348. NullPointerException in Tez MROutput while trying to write using Parquet's DeprecatedParquetOutputFormat.
@@ -17,7 +74,7 @@ ALL CHANGES:
   TEZ-1248. Reduce slow-start should special case 1 reducer runs.
   TEZ-3327. ATS Parser: Populate config details available in dag.
   TEZ-3325. Flaky test in TestDAGImpl.testCounterLimits.
-  TEZ-3323. Update licese and notice for xml-apis jar. Also update year in notice to 2016.
+  TEZ-3323. Update license and notice for xml-apis jar. Also update year in notice to 2016.
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3313. ATSFileParser : Wrong args passed in VersionInfo.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
@@ -50,7 +107,7 @@ ALL CHANGES:
   TEZ-2342. Reduce bytearray copy with TezEvent Serialization and deserialization
   TEZ-3251. Allow ability to add custom counters to TaskRunner2Callable.
   TEZ-3250. TezTaskRunner2 should accept ExecutorService.
-  TEZ-3245. Data race between addKnowInput and clearAndGetOnepartition of InputHost.
+  TEZ-3245. Data race between addKnowInput and clearAndGetOnePartition of InputHost.
   TEZ-3193. Deadlock in AM during task commit request.
   TEZ-3203. DAG hangs when one of the upstream vertices has zero tasks
   TEZ-3207. Add support for fetching multiple partitions from the same source task to UnorderedKVInput.
@@ -81,6 +138,15 @@ ALL CHANGES:
   TEZ-3329. Tez ATS data is incomplete for a vertex which fails or gets killed before initialization
   TEZ-3333. Tez UI: Handle cases where Vertex/Task/Task Attempt data is missing
   TEZ-3370. Tez UI: Display the log link as N/A if the app does not provide a log link
+  TEZ-3398. Tez UI: Bread crumb link to Application from Application details dag/configuration tab is broken
+  TEZ-3433. Tez UI: Searching using wrong ID causes error in all DAGs page
+  TEZ-3428. Tez UI: First Tab not needed for few entries in DAG listings
+  TEZ-3469. Tez UI: Bump Phantom JS version to 2.1.1
+  TEZ-3419. Tez UI: Applications page shows error, for users with only DAG level ACL permission
+  TEZ-3484. Tez UI: Remove .travis.yml from webapp folder
+  TEZ-3470. Tez UI: Make the build work in IBM PPC
+  TEZ-3502. Tez UI: Search in All DAGs page doesn't work with numeric values
+  TEZ-3546. Tez UI: On sorting asc - Not Available must be at the top
 
 Release 0.8.5: Unreleased
 
@@ -88,6 +154,38 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3536. NPE in WebUIService start when host resolution fails.
+  TEZ-3534. Differentiate thread names on Fetchers, minor changes to shuffle shutdown code.
+  TEZ-3491. Tez job can hang due to container priority inversion.
+  TEZ-3533. ShuffleScheduler should shutdown threadpool on exit.
+  TEZ-3493. DAG submit timeout cannot be set to a month
+  TEZ-3505. Move license to the file header for TezBytesWritableSerialization
+  TEZ-3486. COMBINE_OUTPUT_RECORDS/COMBINE_INPUT_RECORDS are not correct
+  TEZ-3097. Flaky test: TestCommit.testDAGCommitStartedEventFail_OnDAGSuccess.
+  TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
+  TEZ-3317. Speculative execution starts too early due to 0 progress.
+  TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
+  TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.
+  TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
+  TEZ-3330. Propagate additional config parameters when running MR jobs via Tez.
+  TEZ-3335. DAG client thinks app is still running when app status is null
+  TEZ-3460. Fix precommit release audit warning.
+  TEZ-3368. NPE in DelayedContainerManager
+  TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
+  TEZ-3429. Set reconfigureDoneTime on VertexConfigurationDoneEvent properly.
+  TEZ-3000. Fix TestContainerReuse.
+  TEZ-3436. Check input and output count before start in MapProcessor.
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
+  TEZ-3326. Display JVM system properties in AM and task logs.
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
+  TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
+  TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
+  TEZ-3352. MRInputHelpers getStringProperty() should not fail if property value is null.
+  TEZ-3409. Log dagId along with other information when submitting a dag.
+  TEZ-3384. Fix TestATSV15HistoryLoggingService::testDAGGroupingGroupingEnabled unit test.
+  TEZ-3376. Fix groupId generation to account for dagId starting with 1.
+  TEZ-3359. Add granular log levels for HistoryLoggingService.
+  TEZ-3374. Change TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP conf key name.
   TEZ-3358. Support using the same TimelineGroupId for multiple DAGs.
   TEZ-3357. Change TimelineCachePlugin to handle DAG grouping.
   TEZ-3348. NullPointerException in Tez MROutput while trying to write using Parquet's DeprecatedParquetOutputFormat.
@@ -103,7 +201,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
-  TEZ-3323. Update licese and notice for xml-apis jar. Also update year in notice to 2016.
+  TEZ-3323. Update license and notice for xml-apis jar. Also update year in notice to 2016.
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
@@ -140,7 +238,7 @@ ALL CHANGES:
   TEZ-3087. Tez UI 2: Add log links in task & attempt details page
   TEZ-3146. Tez UI 2: CSS & JS assets in the UI must be minified
 
-Release 0.8.3: 2016-04-14 
+Release 0.8.3: 2016-04-14
 
 INCOMPATIBLE CHANGES
   TEZ-3180. Update master docs to declare hadoop-2.6.x as a minimum requirement.
@@ -382,7 +480,7 @@ ALL CHANGES:
   TEZ-2857. Fix flakey tests in TestDAGImpl.
   TEZ-2836. Avoid setting framework/system counters for tasks running in threads.
   TEZ-2398. Flaky test: TestFaultTolerance
-  TEZ-2833. Dont create extra directory during ATS file download
+  TEZ-2833. Don't create extra directory during ATS file download
   TEZ-2834. Make Tez preemption resilient to incorrect free resource reported
   by YARN
   TEZ-2775. Improve and consolidate logging in Runtime components.
@@ -432,7 +530,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
   TEZ-2749. TaskInfo in history parser should not depend on the apache directory project. Fix master build against hadoop-2.4
-  TEZ-2748. Fix master build against hadoop-2.2. 
+  TEZ-2748. Fix master build against hadoop-2.2.
   TEZ-2743. Fix TezContainerLauncher logging tokens.
   TEZ-2708. Rename classes and variables post TEZ-2003 changes.
   TEZ-2740. Create a reconfigureVertex alias for deprecated
@@ -468,7 +566,7 @@ ALL CHANGES:
   TEZ-2616. Fix build warning by undefined version of maven-findbugs-plugin.
   TEZ-2588. Improper argument name
   TEZ-2575. Handle KeyValue pairs size which do not fit in a single block.
-  TEZ-2599. Dont send obsoleted data movement events to tasks
+  TEZ-2599. Don't send obsoleted data movement events to tasks
   TEZ-2542. TezDAGID fromString array length check.
   TEZ-2565. Consider scanning unfinished tasks in VertexImpl::constructStatistics to reduce merge overhead.
   TEZ-2296. Add option to print counters for tez-examples.
@@ -483,7 +581,7 @@ ALL CHANGES:
   TEZ-2489. Disable warn log for Timeline ACL error when tez.allow.disabled.timeline-domains set to true.
   TEZ-2376. Remove TaskAttemptEventType.TA_DIAGNOSTICS_UPDATE
   TEZ-2509. YarnTaskSchedulerService should not try to allocate containers if AM is shutting down.
-  TEZ-2506. TestAysncHttpConnection failing.
+  TEZ-2506. TestAsyncHttpConnection failing.
   TEZ-2503. findbugs version isn't reported properly in test-patch report.
   TEZ-2198. Fix sorter spill counts.
   TEZ-1883. Change findbugs version to 3.x.
@@ -496,7 +594,7 @@ ALL CHANGES:
   TEZ-2461. tez-history-parser compile fails with hadoop-2.4.
   TEZ-2076. Tez framework to extract/analyze data stored in ATS for specific dag.
   TEZ-2436. Tez UI: Add cancel button in column selector.
-  TEZ-2351. Remove GroupByOrderbyMRRTest example from tez-tests.
+  TEZ-2351. Remove GroupByOrderByMRRTest example from tez-tests.
   TEZ-2419. Inputs/Outputs should inform the Processor about Interrupts when interrupted during a blocking Op.
   TEZ-1752. Inputs / Outputs in the Runtime library should be interruptable.
   TEZ-1970. Fix javadoc warnings in SortMergeJoinExample.
@@ -529,7 +627,7 @@ TEZ-2003: Support for External services CHANGES
   TEZ-2438. tez-tools version in the branch is incorrect.
   TEZ-2434. Allow tasks to be killed in the Runtime.
   TEZ-2443. TaskRunner2 should call abort, NPEs while cleaning up tasks.
-  TEZ-2465. Retrun the status of a kill request in TaskRunner2.
+  TEZ-2465. Return the status of a kill request in TaskRunner2.
   TEZ-2471. NPE in LogicalIOProcessorRuntimeTask while printing thread info.
   TEZ-2495. Inform TaskCommunicaor about Task and Container termination reasons.
   TEZ-2502. Fix for TezTaskRunner2 not killing tasks properly in all situations.
@@ -564,6 +662,24 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3536. NPE in WebUIService start when host resolution fails.
+  TEZ-3493. DAG submit timeout cannot be set to a month
+  TEZ-3505. Move license to the file header for TezBytesWritableSerialization
+  TEZ-3486. COMBINE_OUTPUT_RECORDS/COMBINE_INPUT_RECORDS are not correct
+  TEZ-3437. Improve synchronization and the progress report behavior for Inputs from TEZ-3317.
+  TEZ-3317. Speculative execution starts too early due to 0 progress.
+  TEZ-3452. Auto-reduce parallelism calculation can overflow with large inputs
+  TEZ-3439. Tez joinvalidate fails when first input argument size is bigger than the second.
+  TEZ-3464. Fix findbugs warnings in tez-dag mainLoop
+  TEZ-3335. DAG client thinks app is still running when app status is null
+  TEZ-3460. Fix precommit release audit warning.
+  TEZ-3368. NPE in DelayedContainerManager
+  TEZ-3440. Shuffling to memory can get out-of-sync when fetching multiple compressed map outputs
+  TEZ-3426. Second AM attempt launched for session mode and recovery disabled for certain cases
+  TEZ-2852. TestVertexImpl fails due to race in AsyncDispatcher.
+  TEZ-3326. Display JVM system properties in AM and task logs.
+  TEZ-3009. Errors that occur during container task acquisition are not logged.
+  TEZ-3413. ConcurrentModificationException in HistoryEventTimelineConversion for AppLaunchedEvent.
   TEZ-3286. Allow clients to set processor reserved memory per vertex (instead of per container).
   TEZ-3223. Support a NullHistoryLogger to disable history logging if needed.
   TEZ-3293. Fetch failures can cause a shuffle hang waiting for memory merge that never starts.
@@ -636,7 +752,7 @@ ALL CHANGES:
   TEZ-2952. NPE in TestOnFileUnorderedKVOutput
   TEZ-808. Handle task attempts that are not making progress
   TEZ-2987. TestVertexImpl.testTez2684 fails
-  TEZ-2599. Dont send obsoleted data movement events to tasks
+  TEZ-2599. Don't send obsoleted data movement events to tasks
   TEZ-2943. Change shuffle vertex manager to use per vertex data for auto
   TEZ-2633. Allow VertexManagerPlugins to receive and report based on attempts
   TEZ-3011. Link Vertex Name in Dag Tasks/Task Attempts to Vertex
@@ -892,7 +1008,7 @@ ALL CHANGES:
   TEZ-2009. Change license/copyright headers to 2015.
   TEZ-2085. PipelinedSorter should bail out (on BufferOverflowException) instead of retrying continuously.
   TEZ-167. Create tests for MR Combiner.
-  TEZ-2080. Localclient should be using tezconf in init instead of yarnconf.
+  TEZ-2080. LocalClient should be using tezconf in init instead of yarnconf.
   TEZ-2072. Add missing Private annotation to createDAG in the DAG API class.
   TEZ-2095. master branch fails to compile against hadoop-2.4.
   TEZ-2093. Add events to MockDAGAppMaster and add e2e test for event routing
@@ -1047,13 +1163,13 @@ ALL CHANGES:
   TEZ-2092. Tez UI history url handler injects spurious trailing slash.
   TEZ-2098. Tez UI: Dag details should be the default page for dag, fix invalid time entries for failed Vertices.
   TEZ-2024. TaskFinishedEvent may not be logged in recovery.
-  TEZ-2031. Tez UI: horizontal scrollbars do not appear in tables, causing them to look truncated. 
+  TEZ-2031. Tez UI: horizontal scrollbars do not appear in tables, causing them to look truncated.
   TEZ-2073. SimpleHistoryLoggingService cannot be read by log aggregation (umask)
   TEZ-2078. Tez UI: Task logs url use in-progress url causing various errors.
-  TEZ-2077. Tez UI: No diagnostics on Task Attempt Details page if task attempt failed. 
-  TEZ-2065. Setting up tez.tez-ui.history-url.base with a trailing slash can result in failures to redirect correctly. 
+  TEZ-2077. Tez UI: No diagnostics on Task Attempt Details page if task attempt failed.
+  TEZ-2065. Setting up tez.tez-ui.history-url.base with a trailing slash can result in failures to redirect correctly.
   TEZ-2068. Tez UI: Dag view should use full window height, disable webuiservice in localmode.
-  TEZ-2079. Tez UI: trailing slash in timelineBaseUrl in ui should be handled. 
+  TEZ-2079. Tez UI: trailing slash in timelineBaseUrl in ui should be handled.
   TEZ-2069. Tez UI: appId should link to application in dag details view.
   TEZ-2063. Tez UI: Flaky log url in tasks table.
   TEZ-2062. Tez UI: Showing 50 elements not working properly.
@@ -1160,7 +1276,7 @@ TEZ-UI CHANGES (TEZ-8):
   TEZ-1791. breadcrumbs for moving between pages.
   TEZ-1781. Configurations view ~ New design
   TEZ-1605. Landing page for Tez UI
-  TEZ-1600. Swimlanes View for Tez UI 
+  TEZ-1600. Swimlanes View for Tez UI
   TEZ-1799. Enable Cross Origin Support in Tez UI
   TEZ-1634. Fix compressed IFile shuffle errors
   TEZ-1615. Skeleton framework for Tez UI
@@ -1219,7 +1335,7 @@ ALL CHANGES:
   TEZ-2537. mapreduce.map.env and mapreduce.reduce.env need to fall back to mapred.child.env for compatibility
   TEZ-2304. InvalidStateTransitonException TA_SCHEDULE at START_WAIT during recovery
   TEZ-2488. Tez AM crashes if a submitted DAG is configured to use invalid resource sizes.
-  TEZ-2080. Localclient should be using tezconf in init instead of yarnconf.
+  TEZ-2080. LocalClient should be using tezconf in init instead of yarnconf.
   TEZ-2369. Add a few unit tests for RootInputInitializerManager.
   TEZ-2379. org.apache.hadoop.yarn.state.InvalidStateTransitonException:
     Invalid event: T_ATTEMPT_KILLED at KILLED.
@@ -1261,7 +1377,7 @@ ALL CHANGES:
   TEZ-2020. For 1-1 edge vertex configured event may be sent incorrectly
   TEZ-2015. VertexImpl.doneReconfiguringVertex() should check other criteria
   before sending notification
-  TEZ-2011. InputReadyVertexManager not resilient to updates in parallelism 
+  TEZ-2011. InputReadyVertexManager not resilient to updates in parallelism
   TEZ-1934. TestAMRecovery may fail due to the execution order is not determined.
   TEZ-1642. TestAMRecovery sometimes fail.
   TEZ-1931. Publish tez version info to Timeline.
@@ -1415,7 +1531,7 @@ ALL CHANGES
   TEZ-1580. Change TestOrderedWordCount to optionally use MR configs.
   TEZ-1524. Resolve user group information only if ACLs are enabled.
   TEZ-1581. GroupByOrderByMRRTest no longer functional.
-  TEZ-1157. Optimize broadcast shuffle to download data only once per host. 
+  TEZ-1157. Optimize broadcast shuffle to download data only once per host.
   TEZ-1594. Initial TezUI into TEZ-8 branch
   TEZ-1595. Document timeline server setup for use with the Tez UI
   TEZ-1157. Optimize broadcast shuffle to download data only once per host.
@@ -1480,7 +1596,7 @@ INCOMPATIBLE CHANGES
     =14039381&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpa
     nel#comment-14039381
   TEZ-1080, TEZ-1272, TEZ-1279, TEZ-1266. Change YARNRunner to use EdgeConfigs.
-    - Removes separation of runtime configs into input/ouput configs. Also
+    - Removes separation of runtime configs into input/output configs. Also
     refactors public methods used for this conversion.
   TEZ-696. Remove implicit copying of processor payload to input and output
   TEZ-1269. TaskScheduler prematurely releases containers
@@ -1505,7 +1621,7 @@ INCOMPATIBLE CHANGES
   Processor/Input/Output classes
   TEZ-1351. MROutput needs a flush method to ensure data is materialized for
   FileOutputCommitter
-  TEZ-1317. Simplify MRinput/MROutput configuration
+  TEZ-1317. Simplify MRInput/MROutput configuration
   TEZ-1379. Allow EdgeConfigurers to accept Configuration for Comparators. Change the way partitioner, comparator, combiner confs are set (from Hadoop Configuration to Map). Rename specific Input/Output classes from *Configuration to *Configurer.
   TEZ-1382. Change ObjectRegistry API to allow for future extensions
   TEZ-1386. TezGroupedSplitsInputFormat should not need to be setup to enable grouping.
@@ -1642,7 +1758,7 @@ ALL CHANGES
   TEZ-1330. Create a default dist target which contains jars. (sseth)
   TEZ-1414. Disable TestTezClientUtils.testLocalResourceVisibility to make builds pass(bikas)
   TEZ-1347. Consolidate MRHelpers. (sseth)
-  TEZ-1402. MRoutput configurer should allow disabling the committer (bikas)
+  TEZ-1402. MROutput configurer should allow disabling the committer (bikas)
   TEZ-817. TEZ_LIB_URI are always uploaded as public Local Resource (Prakash Ramachandran via bikas)
   TEZ-1404. groupCommitInProgress in RecoveryTransition of DAGImpl is not set correctly. (Jeff Zhang via hitesh)
   TEZ-1024. Fix determination of failed attempts in recovery. (Jeff Zhang via hitesh)

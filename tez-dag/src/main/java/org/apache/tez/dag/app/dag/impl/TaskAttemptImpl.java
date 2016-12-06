@@ -1705,8 +1705,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       }
       
       int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
-      boolean crossTimeDeadline = readErrorTimespanSec >=
-      MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC ? true : false;
+      boolean crossTimeDeadline = readErrorTimespanSec >= MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
 
       float failureFraction = ((float) attempt.uniquefailedOutputReports.size())
           / outputFailedEvent.getConsumerTaskNumber();

@@ -48,6 +48,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.protobuf.ServiceException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,6 +56,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -63,11 +65,12 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -148,6 +151,8 @@ public class TestTezClient {
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
     YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    when(yarnClient.getApplicationReport(appId1).getYarnApplicationState()).thenReturn(YarnApplicationState.NEW);
+    when(yarnClient.submitApplication(any(ApplicationSubmissionContext.class))).thenReturn(appId1);
 
     DAGClientAMProtocolBlockingPB sessionAmProxy = mock(DAGClientAMProtocolBlockingPB.class, RETURNS_DEEP_STUBS);
     when(sessionAmProxy.getAMStatus(any(RpcController.class), any(GetAMStatusRequestProto.class)))
@@ -241,12 +246,10 @@ public class TestTezClient {
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
     
     TezClientForTest client = configureAndCreateTezClient(lrs, isSession, null);
-    HistoryACLPolicyManager mockAcl = mock(HistoryACLPolicyManager.class);
 
     ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
-    client.setUpHistoryAclManager(mockAcl);
     client.start();
     verify(client.mockYarnClient, times(1)).init((Configuration)any());
     verify(client.mockYarnClient, times(1)).start();
@@ -344,9 +347,8 @@ public class TestTezClient {
           (ShutdownSessionRequestProto) any());
     }
     verify(client.mockYarnClient, times(1)).stop();
-    verify(mockAcl, times(1)).close();
   }
-  
+
   @Test (timeout=5000)
   public void testPreWarm() throws Exception {
     TezClientForTest client = configureAndCreateTezClient();
@@ -773,4 +775,59 @@ public class TestTezClient {
     }
     client.stop();
   }
+
+  @Test(timeout = 10000)
+  public void testMissingYarnAppStatus() throws Exception {
+    // verify an app not found exception is thrown when YARN reports a null app status
+    ApplicationId appId1 = ApplicationId.newInstance(0, 1);
+    ApplicationReport mockReport = mock(ApplicationReport.class);
+    when(mockReport.getApplicationId()).thenReturn(appId1);
+    when(mockReport.getYarnApplicationState()).thenReturn(null);
+    YarnClient yarnClient = mock(YarnClient.class, RETURNS_DEEP_STUBS);
+    when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
+    when(yarnClient.getApplicationReport(appId1)).thenReturn(mockReport);
+    TezYarnClient tezClient = new TezYarnClient(yarnClient);
+    tezClient.init(new TezConfiguration(false), new YarnConfiguration());
+    try {
+      tezClient.getApplicationReport(appId1);
+      fail("getApplicationReport should have thrown");
+    } catch (ApplicationNotFoundException e) {
+    }
+  }
+
+  @Test(timeout = 30000)
+  public void testAMClientHeartbeat() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 10);
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+    long start = System.currentTimeMillis();
+    while (true) {
+      if (System.currentTimeMillis() > (start + 5000)) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+    client.stop();
+    verify(client.sessionAmProxy, atLeast(3)).getAMStatus(any(RpcController.class),
+        any(GetAMStatusRequestProto.class));
+
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, -1);
+    final TezClientForTest client2 = configureAndCreateTezClient(conf);
+    client2.start();
+    start = System.currentTimeMillis();
+    while (true) {
+      if (System.currentTimeMillis() > (start + 5000)) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+    client2.stop();
+    verify(client2.sessionAmProxy, times(0)).getAMStatus(any(RpcController.class),
+        any(GetAMStatusRequestProto.class));
+
+
+  }
+
+
 }

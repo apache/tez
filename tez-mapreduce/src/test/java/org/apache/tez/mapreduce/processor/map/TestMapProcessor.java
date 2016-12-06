@@ -21,7 +21,23 @@ package org.apache.tez.mapreduce.processor.map;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.db.FloatSplitter;
+import org.apache.hadoop.mapreduce.split.JobSplit;
+import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -69,6 +85,9 @@ public class TestMapProcessor {
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null; 
   private static Path workDir = null;
+  static float progressUpdate = 0.0f;
+  final private static FsPermission JOB_FILE_PERMISSION = FsPermission
+      .createImmutable((short) 0644);
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
@@ -131,7 +150,7 @@ public class TestMapProcessor {
     Path mapInput = new Path(workDir, "map0");
     
     
-    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput);
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
         InputDescriptor.create(MRInputLegacy.class.getName())
@@ -185,5 +204,62 @@ public class TestMapProcessor {
       LOG.info("key = " + key.get() + "; value = " + value);
     }
     reader.close();
+  }
+
+  @Test(timeout = 30000)
+  public void testMapProcessorProgress() throws Exception {
+    String dagName = "mrdag0";
+    String vertexName = MultiStageMRConfigUtil.getInitialMapVertexName();
+    JobConf jobConf = new JobConf(defaultConf);
+    setUpJobConf(jobConf);
+
+    MRHelpers.translateMRConfToTez(jobConf);
+    jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
+
+    jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
+
+    jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
+        "localized-resources").toUri().toString());
+
+    Path mapInput = new Path(workDir, "map0");
+
+
+    MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 100000);
+
+    InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
+        InputDescriptor.create(MRInputLegacy.class.getName())
+            .setUserPayload(UserPayload.create(ByteBuffer.wrap(
+                MRRuntimeProtos.MRInputUserPayloadProto.newBuilder()
+                    .setConfigurationBytes(TezUtils.createByteStringFromConf
+                        (jobConf)).build()
+                    .toByteArray()))),
+        1);
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex",
+        OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
+            .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
+
+    final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask
+        (localFs, workDir, jobConf, 0,
+            new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
+            Collections.singletonList(mapInputSpec),
+            Collections.singletonList(mapOutputSpec));
+
+    ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    Thread monitorProgress = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        float prog = task.getProgress();
+        if(prog > 0.0f && prog < 1.0f)
+          progressUpdate = prog;
+      }
+    });
+
+    task.initialize();
+    scheduler.scheduleAtFixedRate(monitorProgress, 0, 1,
+        TimeUnit.MILLISECONDS);
+    task.run();
+    Assert.assertTrue("Progress Updates should be captured!",
+        progressUpdate > 0.0f && progressUpdate < 1.0f);
+    task.close();
   }
 }

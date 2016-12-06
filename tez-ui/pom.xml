@@ -29,8 +29,8 @@
   <properties>
     <webappDir>src/main/webapp</webappDir>
     <node.executable>${basedir}/src/main/webapp/node/node</node.executable>
-    <nodeVersion>v0.12.2</nodeVersion>
-    <npmVersion>2.15.3</npmVersion>
+    <nodeVersion>v5.7.1</nodeVersion>
+    <npmVersion>3.6.0</npmVersion>
     <skipTests>false</skipTests>
   </properties>
 
@@ -89,7 +89,6 @@
             <exclude>src/main/webapp/.jshintrc</exclude>
             <exclude>src/main/webapp/tests/.jshintrc</exclude>
             <exclude>src/main/webapp/blueprints/.jshintrc</exclude>
-            <exclude>src/main/webapp/.travis.yml</exclude>
             <exclude>src/main/webapp/.watchmanconfig</exclude>
             <exclude>src/main/webapp/bower.json</exclude>
             <exclude>src/main/webapp/ember-cli-build.js</exclude>
@@ -152,7 +151,7 @@
               <workingDirectory>${webappDir}</workingDirectory>
               <executable>${node.executable}</executable>
               <arguments>
-                <argument>node/npm/bin/npm-cli</argument>
+                <argument>node/node_modules/npm/bin/npm-cli</argument>
                 <argument>run</argument>
                 <argument>build:mvn</argument>
               </arguments>
@@ -169,7 +168,7 @@
               <workingDirectory>${webappDir}</workingDirectory>
               <executable>${node.executable}</executable>
               <arguments>
-                <argument>node/npm/bin/npm-cli</argument>
+                <argument>node/node_modules/npm/bin/npm-cli</argument>
                 <argument>run</argument>
                 <argument>test:mvn</argument>
               </arguments>

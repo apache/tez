@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce.examples.processor;
 
 import java.util.List;
 
+import org.apache.tez.common.ProgressHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -51,6 +52,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
   @Override
   public void close() throws Exception {
     LOG.info("Broadcast Output Processor closing. Nothing to do");
+    super.close();
   }
 
   @Override

@@ -107,9 +107,11 @@ public class MRInputAMSplitGenerator extends InputInitializer {
 
 
     boolean groupSplits = userPayloadProto.getGroupingEnabled();
+    boolean sortSplits = userPayloadProto.getSortSplitsEnabled();
     LOG.info("Input " + getContext().getInputName() + " asking for " + numTasks
-        + " tasks. Headroom: " + totalResource + " Task Resource: "
-        + taskResource + " waves: " + waves + ", groupingEnabled: " + groupSplits);
+        + " tasks. Headroom: " + totalResource + ". Task Resource: "
+        + taskResource + ". waves: " + waves + ". groupingEnabled: "
+        + groupSplits + ". SortSplitsEnabled: " + sortSplits);
 
     // Read all credentials into the credentials instance stored in JobConf.
     JobConf jobConf = new JobConf(conf);
@@ -117,11 +119,8 @@ public class MRInputAMSplitGenerator extends InputInitializer {
 
     InputSplitInfoMem inputSplitInfo = null;
 
-    if (groupSplits) {
-      inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(jobConf, true, numTasks);
-    } else {
-      inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(jobConf, false, 0);
-    }
+    inputSplitInfo = MRInputHelpers.generateInputSplitsToMem(jobConf,
+        groupSplits, sortSplits, groupSplits ? numTasks : 0);
     sw.stop();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time to create splits to mem: " + sw.now(TimeUnit.MILLISECONDS));

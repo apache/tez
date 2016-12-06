@@ -65,11 +65,9 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
-import org.apache.tez.hadoop.shim.HadoopShimProvider;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
-import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.slf4j.Logger;
@@ -221,6 +219,8 @@ public class TezChild {
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
+        LOG.error("Error fetching new work for container {}", containerIdString,
+            cause);
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.EXECUTION_FAILURE,
             cause, "Execution Exception while fetching new work: " + e.getMessage());
       } catch (InterruptedException e) {
@@ -501,6 +501,14 @@ public class TezChild {
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 
     HadoopShim hadoopShim = new HadoopShimsLoader(defaultConf).getHadoopShim();
+
+    // log the system properties
+    if (LOG.isInfoEnabled()) {
+      String systemPropsToLog = TezCommonUtils.getSystemPropertiesToLog(defaultConf);
+      if (systemPropsToLog != null) {
+        LOG.info(systemPropsToLog);
+      }
+    }
 
     TezChild tezChild = newTezChild(defaultConf, host, port, containerIdentifier,
         tokenIdentifier, attemptNumber, localDirs, System.getenv(Environment.PWD.name()),

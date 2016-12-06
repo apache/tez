@@ -291,6 +291,8 @@ public class Shuffle implements ExceptionReporter {
           scheduler.start();
         } catch (Throwable e) {
           throw new ShuffleError("Error during shuffle", e);
+        } finally {
+          cleanupShuffleScheduler();
         }
       }
       // The ShuffleScheduler may have exited cleanly as a result of a shutdown invocation
@@ -376,7 +378,13 @@ public class Shuffle implements ExceptionReporter {
       if (eventHandler != null) {
         eventHandler.logProgress(true);
       }
-      cleanupShuffleSchedulerIgnoreErrors();
+      try {
+        cleanupShuffleSchedulerIgnoreErrors();
+      } catch (Exception e) {
+        LOG.warn(
+            "Error cleaning up shuffle scheduler. Ignoring and continuing with shutdown. Message={}",
+            e.getMessage());
+      }
       cleanupMerger(true);
     } catch (Throwable t) {
       LOG.info(srcNameTrimmed + ": " + "Error in cleaning up.., ", t);

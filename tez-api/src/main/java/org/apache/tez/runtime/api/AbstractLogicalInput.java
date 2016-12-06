@@ -17,6 +17,7 @@
  */
 package org.apache.tez.runtime.api;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -79,5 +80,9 @@ public abstract class AbstractLogicalInput implements LogicalInput, LogicalInput
    */
   public final InputContext getContext() {
     return inputContext;
+  }
+
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    return 0.0f;
   }
 }

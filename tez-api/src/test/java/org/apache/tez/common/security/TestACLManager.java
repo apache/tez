@@ -20,18 +20,16 @@ package org.apache.tez.common.security;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Sets;
 
 public class TestACLManager {
 
@@ -64,7 +62,8 @@ public class TestACLManager {
     Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
     Assert.assertTrue(aclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
 
-    ACLManager dagAclManager = new ACLManager(aclManager, dagUser.getShortUserName(), new Configuration(false));
+    ACLManager dagAclManager = new ACLManager(aclManager, dagUser.getShortUserName(),
+        ACLInfo.getDefaultInstance());
     user = dagUser;
     Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.AM_VIEW_ACL));
     Assert.assertFalse(dagAclManager.checkAccess(user, ACLType.AM_MODIFY_ACL));
@@ -256,17 +255,20 @@ public class TestACLManager {
     conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, modifyACLs);
     conf.set(YarnConfiguration.YARN_ADMIN_ACL, yarnAdminACLs);
 
-    // DAG View ACLs: user1, user4, grp3, grp4.
-    String dagViewACLs = "user6,   grp5  ";
-    // DAG Modify ACLs: user3, grp6, grp7
-    String dagModifyACLs = "user6,user5 ";
-    conf.set(TezConstants.TEZ_DAG_VIEW_ACLS, dagViewACLs);
-    conf.set(TezConstants.TEZ_DAG_MODIFY_ACLS, dagModifyACLs);
+    ACLInfo.Builder builder = ACLInfo.newBuilder();
+    // DAG View ACLs: user6, grp5
+    builder.addUsersWithViewAccess("user6");
+    builder.addGroupsWithViewAccess("grp5");
+
+    // DAG Modify ACLs: user6,user5
+    builder.addUsersWithModifyAccess("user6");
+    builder.addUsersWithModifyAccess("user7");
 
     UserGroupInformation dagUser = UserGroupInformation.createUserForTesting("dagUser", noGroups);
 
     ACLManager amAclManager = new ACLManager(currentUser.getShortUserName(), conf);
-    ACLManager aclManager = new ACLManager(amAclManager, dagUser.getShortUserName(), conf);
+    ACLManager aclManager = new ACLManager(amAclManager, dagUser.getShortUserName(),
+        builder.build());
 
     Assert.assertTrue(aclManager.checkAMViewAccess(currentUser));
     Assert.assertFalse(aclManager.checkAMViewAccess(dagUser));

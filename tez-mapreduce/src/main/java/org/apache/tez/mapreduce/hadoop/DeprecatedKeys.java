@@ -86,6 +86,8 @@ public class DeprecatedKeys {
         TezConfiguration.TASK_HEARTBEAT_TIMEOUT_MS);
     mrParamToDAGParamMap.put(MRJobConfig.JOB_TAGS,
         TezConfiguration.TEZ_APPLICATION_TAGS);
+    mrParamToDAGParamMap.put(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST,
+        TezConfiguration.TEZ_USER_CLASSPATH_FIRST);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Instead of the current initialization in MRAppMaster, TezChild.
@@ -157,6 +159,8 @@ public class DeprecatedKeys {
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS, TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS);
 
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST, TezConfiguration.TEZ_USER_CLASSPATH_FIRST);
   }
   
   private static void addDeprecatedKeys() {

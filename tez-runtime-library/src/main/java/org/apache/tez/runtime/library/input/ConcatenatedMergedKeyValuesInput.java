@@ -26,6 +26,7 @@ import org.apache.tez.dag.api.GroupInputEdge;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
@@ -38,6 +39,8 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 @Public
 public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
+
+  private ConcatenatedMergedKeyValuesReader concatenatedMergedKeyValuesReader;
 
   public ConcatenatedMergedKeyValuesInput(MergedInputContext context,
                                           List<Input> inputs) {
@@ -88,7 +91,10 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
     public Iterable<Object> getCurrentValues() throws IOException {
       return currentReader.getCurrentValues();
     }
-    
+
+    public float getProgress() throws IOException, InterruptedException {
+      return (1.0f)*(currentReaderIndex + 1)/getInputs().size();
+    }
   }
    
   /**
@@ -97,11 +103,21 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
    */
   @Override
   public KeyValuesReader getReader() throws Exception {
-    return new ConcatenatedMergedKeyValuesReader();
+    concatenatedMergedKeyValuesReader = new ConcatenatedMergedKeyValuesReader();
+    return concatenatedMergedKeyValuesReader;
   }
 
   @Override
   public void setConstituentInputIsReady(Input input) {
     informInputReady();
+  }
+
+  @Override
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    try {
+      return concatenatedMergedKeyValuesReader.getProgress();
+    } catch (IOException e) {
+      throw new ProgressFailedException("getProgress encountered IOException ", e);
+    }
   }
 }

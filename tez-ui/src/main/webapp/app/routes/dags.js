@@ -86,6 +86,8 @@ export default AbstractRoute.extend({
       that.set("loadedRecords", []);
       loader = this.get("loader").queryRecord('dag', query.dagID, {reload: true}).then(function (record) {
         return [record];
+      },function () {
+        return [];
       });
     }
     else {

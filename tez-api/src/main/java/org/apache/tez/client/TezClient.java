@@ -22,6 +22,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.NumberFormat;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
@@ -57,18 +61,17 @@ import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.util.Time;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.PreWarmVertex;
 import org.apache.tez.dag.api.SessionNotReady;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
@@ -78,11 +81,11 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequest
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
-import org.apache.tez.common.security.HistoryACLPolicyException;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ServiceException;
 
 /**
@@ -120,8 +123,8 @@ public class TezClient {
   private String diagnostics;
   @VisibleForTesting
   final boolean isSession;
-  private boolean sessionStarted = false;
-  private boolean sessionStopped = false;
+  private final AtomicBoolean sessionStarted = new AtomicBoolean(false);
+  private final AtomicBoolean sessionStopped = new AtomicBoolean(false);
   /** Tokens which will be required for all DAGs submitted to this session. */
   private Credentials sessionCredentials = new Credentials();
   private long clientTimeout;
@@ -135,11 +138,9 @@ public class TezClient {
   final TezApiVersionInfo apiVersionInfo;
   @VisibleForTesting
   final ServicePluginsDescriptor servicePluginsDescriptor;
-  private HistoryACLPolicyManager historyACLPolicyManager;
   private JavaOptsChecker javaOptsChecker = null;
 
   private int preWarmDAGCounter = 0;
-  private int dagCounter = 0;
 
   /* max submitDAG request size through IPC; beyond this we transfer them in the same way we transfer local resource */
   private int maxSubmitDAGRequestSizeThroughIPC;
@@ -147,14 +148,7 @@ public class TezClient {
   private AtomicInteger serializedSubmitDAGPlanRequestCounter = new AtomicInteger(0);
   private FileSystem stagingFs = null;
 
-  private static final String atsHistoryLoggingServiceClassName =
-      "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
-  private static final String atsHistoryACLManagerClassName =
-      "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
-  private static final String atsv15HistoryLoggingServiceClassName =
-      "org.apache.tez.dag.history.logging.ats.ATSV15HistoryLoggingService";
-  private static final String atsV15HistoryACLManagerClassName =
-      "org.apache.tez.dag.history.ats.acls.ATSV15HistoryACLPolicyManager";
+  private ScheduledExecutorService amKeepAliveService;
 
   private TezClient(String name, TezConfiguration tezConf) {
     this(name, tezConf, tezConf.getBoolean(
@@ -328,7 +322,7 @@ public class TezClient {
    */
   public synchronized void addAppMasterLocalFiles(Map<String, LocalResource> localFiles) {
     Preconditions.checkNotNull(localFiles);
-    if (isSession && sessionStarted) {
+    if (isSession && sessionStarted.get()) {
       additionalLocalResources.putAll(localFiles);
     }
     amConfig.addAMLocalResources(localFiles);
@@ -358,15 +352,20 @@ public class TezClient {
    */
   public synchronized void setAppMasterCredentials(Credentials credentials) {
     Preconditions
-        .checkState(!sessionStarted,
+        .checkState(!sessionStarted.get(),
             "Credentials cannot be set after the session App Master has been started");
     amConfig.setCredentials(credentials);
   }
-  
-  @Private
-  @VisibleForTesting
-  public synchronized void setUpHistoryAclManager(HistoryACLPolicyManager myAclPolicyManager) {
-    historyACLPolicyManager =  myAclPolicyManager;
+
+  /**
+   * Sets the history log level for this session. It will be in effect for DAGs submitted after this
+   * call.
+   *
+   * @param historyLogLevel The log level to be used.
+   */
+  public synchronized void setHistoryLogLevel(HistoryLogLevel historyLogLevel) {
+    amConfig.getTezConfiguration().setEnum(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL,
+        historyLogLevel);
   }
 
   /**
@@ -382,40 +381,6 @@ public class TezClient {
     frameworkClient = createFrameworkClient();
     frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
     frameworkClient.start();
-
-    ///need additional check for historyACLPolicyManager because tests could stub historyACLPolicyManager
-    ///before tezclient start. If there is already a stubbed historyACLPolicyManager, we don't overwrite it
-    if (historyACLPolicyManager == null) {
-      //TODO: FIXME: The ACL manager should be retrieved either from the
-      //logging service directly or via a pluggable factory that can
-      //instantiate ACL managers and logging services
-      String logSvcClassName = amConfig.getTezConfiguration().get(
-          TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "");
-      String aclMgrClassName = null;
-      if (logSvcClassName.equals(atsHistoryLoggingServiceClassName)) {
-        aclMgrClassName = atsHistoryACLManagerClassName;
-      } else if (logSvcClassName.equals(
-        atsv15HistoryLoggingServiceClassName)) {
-        aclMgrClassName = atsV15HistoryACLManagerClassName;
-      }
-      if (aclMgrClassName != null) {
-        LOG.info("Using " + aclMgrClassName + " to manage Timeline ACLs");
-        try {
-          historyACLPolicyManager = ReflectionUtils.createClazzInstance(
-              aclMgrClassName);
-          historyACLPolicyManager.setConf(this.amConfig.getYarnConfiguration());
-        } catch (TezReflectionException e) {
-          if (!amConfig.getTezConfiguration().getBoolean(
-              TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS,
-              TezConfiguration.TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT)) {
-            LOG.warn("Could not instantiate object for " + aclMgrClassName
-                + ". ACLs cannot be enforced correctly for history data in Timeline", e);
-            throw e;
-          }
-          historyACLPolicyManager = null;
-        }
-      }
-    }
 
     if (this.amConfig.getTezConfiguration().getBoolean(
         TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED,
@@ -464,7 +429,7 @@ public class TezClient {
                 sessionAppId,
                 null, clientName, amConfig,
                 tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo,
-                historyACLPolicyManager, servicePluginsDescriptor, javaOptsChecker);
+                servicePluginsDescriptor, javaOptsChecker);
   
         // Set Tez Sessions to not retry on AM crashes if recovery is disabled
         if (!amConfig.getTezConfiguration().getBoolean(
@@ -475,15 +440,66 @@ public class TezClient {
         frameworkClient.submitApplication(appContext);
         ApplicationReport appReport = frameworkClient.getApplicationReport(sessionAppId);
         LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
-        sessionStarted = true;
+        sessionStarted.set(true);
       } catch (YarnException e) {
         throw new TezException(e);
+      }
+
+      long amClientKeepAliveTimeoutIntervalMillis =
+          TezCommonUtils.getAMClientHeartBeatTimeoutMillis(amConfig.getTezConfiguration());
+      // Poll at minimum of 1 second interval
+      long pollPeriod = TezCommonUtils.
+          getAMClientHeartBeatPollIntervalMillis(amConfig.getTezConfiguration(),
+              amClientKeepAliveTimeoutIntervalMillis, 10);
+
+      boolean isLocal = amConfig.getTezConfiguration().getBoolean(
+          TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+      if (!isLocal && amClientKeepAliveTimeoutIntervalMillis > 0) {
+        amKeepAliveService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryBuilder()
+                .setDaemon(true).setNameFormat("AMKeepAliveThread #%d").build());
+        amKeepAliveService.scheduleWithFixedDelay(new Runnable() {
+
+          private DAGClientAMProtocolBlockingPB proxy;
+
+          @Override
+          public void run() {
+            proxy = sendAMHeartbeat(proxy);
+          }
+        }, pollPeriod, pollPeriod, TimeUnit.MILLISECONDS);
       }
 
       this.stagingFs = FileSystem.get(amConfig.getTezConfiguration());
     }
   }
-  
+
+  public DAGClientAMProtocolBlockingPB sendAMHeartbeat(DAGClientAMProtocolBlockingPB proxy) {
+    if (sessionStopped.get()) {
+      // Ignore sending heartbeat as session being stopped
+      return null;
+    }
+    try {
+      if (proxy == null) {
+        try {
+          proxy = waitForProxy();
+        } catch (InterruptedException e) {
+          LOG.debug("Interrupted while trying to create a connection to the AM", e);
+        }
+      }
+      if (proxy != null) {
+        LOG.debug("Sending heartbeat to AM");
+        proxy.getAMStatus(null, GetAMStatusRequestProto.newBuilder().build());
+      }
+      return proxy;
+    } catch (Exception e) {
+      LOG.info("Exception when sending heartbeat to AM for app {}: {}", sessionAppId,
+          e.getMessage());
+      LOG.debug("Error when sending heartbeat ping to AM. Resetting AM proxy for app: {}"
+          + " due to exception :", sessionAppId, e);
+      return null;
+    }
+  }
+
   /**
    * Submit a DAG. <br>In non-session mode, it submits a new App Master to the
    * cluster.<br>In session mode, it submits the DAG to the session App Master. It
@@ -499,7 +515,6 @@ public class TezClient {
    *           if submission timed out
    */  
   public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException {
-    ++dagCounter;
     if (isSession) {
       return submitDAGSession(dag);
     } else {
@@ -533,32 +548,9 @@ public class TezClient {
     }
 
     TezConfiguration dagClientConf = new TezConfiguration(amConfig.getTezConfiguration());
-    Map<String, String> aclConfigs = null;
-    // TEZ_AM_HISTORY_LOGGING_ENABLED is a config setting enable/disable logging of all
-    // dags within a session
-    boolean sessionHistoryLoggingEnabled = amConfig.getTezConfiguration().getBoolean(
-        TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
-        TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
-    if (historyACLPolicyManager != null && sessionHistoryLoggingEnabled) {
-      try {
-        aclConfigs = historyACLPolicyManager.setupSessionDAGACLs(
-            amConfig.getTezConfiguration(), sessionAppId,
-            Integer.toString(dagCounter), dag.getDagAccessControls());
-      } catch (HistoryACLPolicyException e) {
-        LOG.warn("Disabling history logging for dag " +
-          dag.getName() + " due to error in setting up history acls " + e);
-        dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
-        dagClientConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, false);
-      }
-    } else if (!sessionHistoryLoggingEnabled) {
-      dag.setConf(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, "false");
-      dagClientConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, false);
-    }
-
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
-        usingTezArchiveDeploy, sessionCredentials, aclConfigs, servicePluginsDescriptor,
-        javaOptsChecker);
+        usingTezArchiveDeploy, sessionCredentials, servicePluginsDescriptor, javaOptsChecker);
 
     SubmitDAGRequestProto.Builder requestBuilder = SubmitDAGRequestProto.newBuilder();
     requestBuilder.setDAGPlan(dagPlan);
@@ -614,9 +606,11 @@ public class TezClient {
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
     }
+
     LOG.info("Submitted dag to TezSession"
         + ", sessionName=" + clientName
         + ", applicationId=" + sessionAppId
+        + ", dagId=" + dagId
         + ", dagName=" + dag.getName());
     return new DAGClientImpl(sessionAppId, dagId,
         dagClientConf, frameworkClient);
@@ -630,15 +624,14 @@ public class TezClient {
    */
   public synchronized void stop() throws TezException, IOException {
     try {
-      if (historyACLPolicyManager != null) {
-        historyACLPolicyManager.close();
+      if (amKeepAliveService != null) {
+        amKeepAliveService.shutdownNow();
       }
-
-      if (sessionStarted) {
+      if (sessionStarted.get()) {
         LOG.info("Shutting down Tez Session"
             + ", sessionName=" + clientName
             + ", applicationId=" + sessionAppId);
-        sessionStopped = true;
+        sessionStopped.set(true);
         boolean sessionShutdownSuccessful = false;
         try {
           DAGClientAMProtocolBlockingPB proxy = getAMProxy(sessionAppId);
@@ -982,9 +975,9 @@ public class TezClient {
 
   private void verifySessionStateForSubmission() throws SessionNotRunning {
     Preconditions.checkState(isSession, "Invalid without session mode");
-    if (!sessionStarted) {
+    if (!sessionStarted.get()) {
       throw new SessionNotRunning("Session not started");
-    } else if (sessionStopped) {
+    } else if (sessionStopped.get()) {
       throw new SessionNotRunning("Session stopped by user");
     }
   }
@@ -1018,8 +1011,7 @@ public class TezClient {
       ApplicationSubmissionContext appContext = TezClientUtils
           .createApplicationSubmissionContext(
               appId, dag, dag.getName(), amConfig, tezJarResources, credentials,
-              usingTezArchiveDeploy, apiVersionInfo, historyACLPolicyManager,
-              servicePluginsDescriptor, javaOptsChecker);
+              usingTezArchiveDeploy, apiVersionInfo, servicePluginsDescriptor, javaOptsChecker);
       String callerContextStr = "";
       if (dag.getCallerContext() != null) {
         callerContextStr = ", callerContext=" + dag.getCallerContext().contextAsSimpleString();
@@ -1098,6 +1090,14 @@ public class TezClient {
          append(tezAppIdFormat.get().format(applicationId.getId())).
          append(SEPARATOR).
          append(tezDagIdFormat.get().format(1)).toString();
+  }
+
+  @VisibleForTesting
+  @Private
+  public synchronized void cancelAMKeepAlive() {
+    if (amKeepAliveService != null) {
+      amKeepAliveService.shutdownNow();
+    }
   }
 
   /**

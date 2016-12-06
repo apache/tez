@@ -18,7 +18,6 @@
 
 package org.apache.tez.runtime.library.common.sort.impl.dflt;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.Deflater;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -42,7 +42,9 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.util.IndexedSortable;
 import org.apache.hadoop.util.Progress;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.common.io.NonSyncDataOutputStream;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -112,6 +114,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   final BlockingBuffer bb = new BlockingBuffer();
   volatile boolean spillThreadRunning = false;
   final SpillThread spillThread = new SpillThread();
+  private final Deflater deflater;
 
   final ArrayList<TezSpillRecord> indexCacheList =
     new ArrayList<TezSpillRecord>();
@@ -127,6 +130,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   public DefaultSorter(OutputContext outputContext, Configuration conf, int numOutputs,
       long initialMemoryAvailable) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
+    deflater = TezCommonUtils.newBestCompressionDeflater();
     // sanity checks
     final float spillper = this.conf.getFloat(
         TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT,
@@ -474,7 +478,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   /**
    * Inner class managing the spill of serialized records to disk.
    */
-  protected class BlockingBuffer extends DataOutputStream {
+  protected class BlockingBuffer extends NonSyncDataOutputStream {
 
     public BlockingBuffer() {
       super(new Buffer());
@@ -1133,7 +1137,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     String pathComponent = (outputContext.getUniqueIdentifier() + "_" + index);
     ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
         outputContext, index, spillRecord, partitions, sendEmptyPartitionDetails, pathComponent,
-        partitionStats, reportDetailedPartitionStats(), this.conf);
+        partitionStats, reportDetailedPartitionStats(), this.conf, deflater);
 
     LOG.info(outputContext.getDestinationVertexName() + ": " +
         "Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + index);

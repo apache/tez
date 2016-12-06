@@ -75,6 +75,9 @@ public class DAGClientServer extends AbstractService {
 
       int numHandlers = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT,
                           TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT);
+      if (numHandlers < 2) {
+        numHandlers = 2;
+      }
 
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
                             numHandlers, blockingService, TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);

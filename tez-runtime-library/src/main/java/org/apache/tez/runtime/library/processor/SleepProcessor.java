@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Charsets;
+import org.apache.tez.common.ProgressHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -47,6 +48,9 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(SleepProcessor.class);
 
   private int timeToSleepMS;
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  private ProgressHelper progressHelper;
 
   public SleepProcessor(ProcessorContext context) {
     super(context);
@@ -69,14 +73,18 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-                  Map<String, LogicalOutput> outputs) throws Exception {
+  public void run(Map<String, LogicalInput> _inputs,
+                  Map<String, LogicalOutput> _outputs) throws Exception {
+    inputs = _inputs;
+    outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
     LOG.info("Running the Sleep Processor, sleeping for "
       + timeToSleepMS + " ms");
-    for (LogicalInput input : inputs.values()) {
+    for (LogicalInput input : _inputs.values()) {
       input.start();
     }
-    for (LogicalOutput output : outputs.values()) {
+    progressHelper.scheduleProgressTaskService(0, 100);
+    for (LogicalOutput output : _outputs.values()) {
       output.start();
     }
     try {
@@ -93,7 +101,9 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-    // Nothing to cleanup
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   /**

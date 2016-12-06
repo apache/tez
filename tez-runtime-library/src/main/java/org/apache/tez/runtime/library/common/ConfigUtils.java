@@ -227,6 +227,16 @@ public class ConfigUtils {
     }
   }
 
+  public static void mergeConfs(Configuration destConf, Configuration srcConf) {
+    Preconditions.checkState(destConf != null, "Destination conf cannot be null");
+    Preconditions.checkState(srcConf != null, "Source conf cannot be null");
+    for (Map.Entry<String, String> entry : srcConf) {
+      // Explicit get to have parameter replacement work.
+      String val = srcConf.get(entry.getKey());
+      destConf.set(entry.getKey(), val);
+    }
+  }
+
   private static Map<String, String> extractConfigurationMapInternal(
       Iterable<Map.Entry<String, String>> iterable, List<Set<String>> validKeySets, List<String> allowedPrefixes) {
     Set<String> validKeys = new HashSet<String>();

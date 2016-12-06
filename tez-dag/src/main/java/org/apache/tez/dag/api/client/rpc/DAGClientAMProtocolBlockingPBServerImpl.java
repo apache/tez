@@ -80,6 +80,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     if (!real.getACLManager().checkAMViewAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
+    real.updateLastHeartbeatTime();
     try{
       List<String> dagIds = real.getAllDAGs();
       return GetAllDAGsResponseProto.newBuilder().addAllDagId(dagIds).build();
@@ -98,6 +99,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
+      real.updateLastHeartbeatTime();
       DAGStatus status;
       status = real.getDAGStatus(dagId,
         DagTypeConverters.convertStatusGetOptsFromProto(
@@ -120,6 +122,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       if (!real.getACLManager(dagId).checkDAGViewAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG view operation");
       }
+      real.updateLastHeartbeatTime();
       String vertexName = request.getVertexName();
       VertexStatus status = real.getVertexStatus(dagId, vertexName,
         DagTypeConverters.convertStatusGetOptsFromProto(
@@ -142,6 +145,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       if (!real.getACLManager(dagId).checkDAGModifyAccess(user)) {
         throw new AccessControlException("User " + user + " cannot perform DAG modify operation");
       }
+      real.updateLastHeartbeatTime();
       real.tryKillDAG(dagId);
       return TryKillDAGResponseProto.newBuilder().build();
     } catch (TezException e) {
@@ -156,6 +160,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     if (!real.getACLManager().checkAMModifyAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
+    real.updateLastHeartbeatTime();
     try{
       if (request.hasSerializedRequestPath()) {
         // need to deserialize large request from hdfs
@@ -190,6 +195,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     if (!real.getACLManager().checkAMModifyAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM modify operation");
     }
+    real.updateLastHeartbeatTime();
     try {
       real.shutdownAM();
       return ShutdownSessionResponseProto.newBuilder().build();
@@ -205,6 +211,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     if (!real.getACLManager().checkAMViewAccess(user)) {
       throw new AccessControlException("User " + user + " cannot perform AM view operation");
     }
+    real.updateLastHeartbeatTime();
     try {
       TezAppMasterStatus sessionStatus = real.getTezAppMasterStatus();
       return GetAMStatusResponseProto.newBuilder().setStatus(

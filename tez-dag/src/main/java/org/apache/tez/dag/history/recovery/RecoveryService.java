@@ -69,7 +69,8 @@ public class RecoveryService extends AbstractService {
   @VisibleForTesting
   public static final boolean TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED_DEFAULT = true;
 
-  private LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
+  @VisibleForTesting
+  LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
       new LinkedBlockingQueue<DAGHistoryEvent>();
   private Set<TezDAGID> completedDAGs = new HashSet<TezDAGID>();
   private Set<TezDAGID> skippedDAGs = new HashSet<TezDAGID>();

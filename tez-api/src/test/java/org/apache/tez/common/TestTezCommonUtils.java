@@ -314,4 +314,99 @@ public class TestTezCommonUtils {
 
   }
 
+  @Test (timeout = 5000)
+  public void testAMClientHeartBeatTimeout() {
+    TezConfiguration conf = new TezConfiguration(false);
+
+    // -1 for any negative value
+    Assert.assertEquals(-1,
+        TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, -2);
+    Assert.assertEquals(-1,
+        TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
+
+    // For any value > 0 but less than min, revert to min
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
+        TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM - 1);
+    Assert.assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000,
+        TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
+
+    // For val > min, should remain val as configured
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS,
+        TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 2);
+    Assert.assertEquals(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 2000,
+        TezCommonUtils.getAMClientHeartBeatTimeoutMillis(conf));
+
+    conf = new TezConfiguration(false);
+    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -1, 10));
+    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, -123, 10));
+    Assert.assertEquals(-1, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 0, 10));
+
+    // min poll interval is 1000
+    Assert.assertEquals(1000, TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 600, 10));
+
+    // Poll interval is heartbeat interval/10
+    Assert.assertEquals(2000,
+        TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 10));
+
+    // Configured poll interval ignored
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS, -1);
+    Assert.assertEquals(4000,
+        TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 5));
+
+    // Positive poll interval is allowed
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS, 2000);
+    Assert.assertEquals(2000,
+        TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 5));
+
+
+  }
+
+  @Test
+  public void testLogSystemProperties() throws Exception {
+    Configuration conf = new Configuration();
+    // test default logging
+    conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, " ");
+    String value = TezCommonUtils.getSystemPropertiesToLog(conf);
+    for(String key: TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT) {
+      Assert.assertTrue(value.contains(key));
+    }
+
+    // test logging of selected keys
+    String classpath = "java.class.path";
+    String os = "os.name";
+    String version = "java.version";
+    conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, classpath + ", " + os);
+    value = TezCommonUtils.getSystemPropertiesToLog(conf);
+    Assert.assertNotNull(value);
+    Assert.assertTrue(value.contains(classpath));
+    Assert.assertTrue(value.contains(os));
+    Assert.assertFalse(value.contains(version));
+  }
+
+  @Test(timeout=5000)
+  public void testGetDAGSessionTimeout() {
+    Configuration conf = new Configuration(false);
+    Assert.assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT*1000,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    // set to 1 month - * 1000 guaranteed to cross positive integer boundary
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        24 * 60 * 60 * 30);
+    Assert.assertEquals(86400l*1000*30,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    // set to negative val
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
+        -24 * 60 * 60 * 30);
+    Assert.assertEquals(-1,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 0);
+    Assert.assertEquals(1000,
+        TezCommonUtils.getDAGSessionTimeout(conf));
+
+  }
+
+
 }

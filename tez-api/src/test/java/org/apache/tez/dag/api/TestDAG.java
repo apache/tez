@@ -30,7 +30,9 @@ import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
+import org.apache.tez.dag.api.records.DAGProtos.DAGPlan.Builder;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -360,5 +362,79 @@ public class TestDAG {
         DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
         Assert.assertEquals(dagPlan, firstPlan);
     }
+  }
+
+  @Test
+  public void testCreateDAGForHistoryLogLevel() {
+    Map<String, LocalResource> lrDAG = Collections.singletonMap("LR1",
+        LocalResource.newInstance(
+            URL.newInstance("file", "localhost", 0, "/test1"),
+            LocalResourceType.FILE,
+            LocalResourceVisibility.PUBLIC, 1, 1));
+    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor1"), 1,
+        Resource.newInstance(1, 1));
+    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("dummyProcessor2"), 1,
+        Resource.newInstance(1, 1));
+    DAG dag = DAG.create("dag1").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
+
+    TezConfiguration tezConf = new TezConfiguration();
+
+    // Expect null when history log level is not set in both dag and tezConf
+    DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
+    Builder builder = DAGPlan.newBuilder(dagPlan);
+    Assert.assertNull(findKVP(builder.getDagConf(), TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
+
+    // Set tezConf but not dag, expect value in tezConf.
+    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "TASK");
+    dagPlan = dag.createDag(tezConf, null, null, null, false);
+    Assert.assertEquals("TASK", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+        TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
+
+    // Set invalid value in tezConf, expect exception.
+    tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "invalid");
+    try {
+      dagPlan = dag.createDag(tezConf, null, null, null, false);
+      Assert.fail("Expected illegal argument exception");
+    } catch (IllegalArgumentException e) {
+      Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
+            " is set to invalid value: invalid", e.getMessage());
+    }
+
+    // Set value in dag, should override tez conf value.
+    dag.setHistoryLogLevel(HistoryLogLevel.VERTEX);
+    dagPlan = dag.createDag(tezConf, null, null, null, false);
+    Assert.assertEquals("VERTEX", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+        TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
+
+    // Set value directly into dagConf.
+    dag.setConf(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, HistoryLogLevel.DAG.name());
+    dagPlan = dag.createDag(tezConf, null, null, null, false);
+    Assert.assertEquals("DAG", findKVP(DAGPlan.newBuilder(dagPlan).getDagConf(),
+        TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL));
+
+    // Set value invalid directly into dagConf and expect exception.
+    dag.setConf(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL, "invalid");
+    try {
+      dagPlan = dag.createDag(tezConf, null, null, null, false);
+      Assert.fail("Expected illegal argument exception");
+    } catch (IllegalArgumentException e) {
+      Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
+            " is set to invalid value: invalid", e.getMessage());
+    }
+  }
+
+  private String findKVP(ConfigurationProto conf, String key) {
+    String foundValue = null;
+    for (int i = 0; i < conf.getConfKeyValuesCount(); ++i) {
+      if (conf.getConfKeyValues(i).getKey().equals(key)) {
+        if (foundValue == null) {
+          foundValue = conf.getConfKeyValues(i).getValue();
+        } else {
+          Assert.fail("Multiple values found: " + foundValue + ", " +
+              conf.getConfKeyValues(i).getValue());
+        }
+      }
+    }
+    return foundValue;
   }
 }

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.tez.common.ProgressHelper;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -58,6 +60,10 @@ public class MapProcessor extends MRTask{
 
   private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
 
+  protected Map<String, LogicalInput> inputs;
+  protected Map<String, LogicalOutput> outputs;
+  private ProgressHelper progressHelper;
+
   public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);
   }
@@ -69,33 +75,38 @@ public class MapProcessor extends MRTask{
   }
 
   public void close() throws IOException {
-    // TODO Auto-generated method stub
-
+    if (progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   @Override
-  public void run(Map<String, LogicalInput> inputs,
-      Map<String, LogicalOutput> outputs) throws Exception {
-
+  public void run(Map<String, LogicalInput> _inputs,
+      Map<String, LogicalOutput> _outputs) throws Exception {
+    this.inputs = _inputs;
+    this.outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, getContext(), this.getClass().getSimpleName());
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
-    for (LogicalInput input : inputs.values()) {
+
+    if (_inputs.size() != 1
+            || _outputs.size() != 1) {
+      throw new IOException("Cannot handle multiple _inputs or _outputs"
+              + ", inputCount=" + _inputs.size()
+              + ", outputCount=" + _outputs.size());
+    }
+
+    for (LogicalInput input : _inputs.values()) {
       input.start();
     }
-    for (LogicalOutput output : outputs.values()) {
+    for (LogicalOutput output : _outputs.values()) {
       output.start();
     }
 
-    if (inputs.size() != 1
-        || outputs.size() != 1) {
-      throw new IOException("Cannot handle multiple inputs or outputs"
-          + ", inputCount=" + inputs.size()
-          + ", outputCount=" + outputs.size());
-    }
-    LogicalInput in = inputs.values().iterator().next();
-    LogicalOutput out = outputs.values().iterator().next();
+    LogicalInput in = _inputs.values().iterator().next();
+    LogicalOutput out = _outputs.values().iterator().next();
 
     initTask(out);
-
+    progressHelper.scheduleProgressTaskService(0, 100);
     // Sanity check
     if (!(in instanceof MRInputLegacy)) {
       throw new IOException(new TezException(
@@ -280,7 +291,17 @@ public class MapProcessor extends MRTask{
 
     @Override
     public float getProgress() throws IOException, InterruptedException {
-      return in.getProgress();
+      try {
+        return in.getProgress();
+      } catch (ProgressFailedException e) {
+        if (e.getCause() instanceof IOException) {
+          throw (IOException)e.getCause();
+        }
+        if (e.getCause() instanceof InterruptedException) {
+          throw (InterruptedException)e.getCause();
+        }
+      }
+      throw new RuntimeException("Could not get Processor progress");
     }
 
     @Override
@@ -331,6 +352,8 @@ public class MapProcessor extends MRTask{
     public float getProgress() throws IOException {
       try {
         return mrInput.getProgress();
+      } catch (ProgressFailedException pe) {
+        throw new IOException(pe);
       } catch (InterruptedException ie) {
         throw new IOException(ie);
       }

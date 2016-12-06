@@ -542,7 +542,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     this.aclManager = new ACLManager(appContext.getAMACLManager(), dagUGI.getShortUserName(),
-        this.dagConf);
+        this.jobPlan.getAclInfo());
     // this is only for recovery in case it does not call the init transition
     this.startDAGCpuTime = appContext.getCumulativeCPUTime();
     this.startDAGGCTime = appContext.getCumulativeGCTime();

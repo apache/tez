@@ -19,8 +19,17 @@
 package org.apache.tez.test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.ProcessorDescriptor;
+import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductConfig;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductEdgeManager;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -778,5 +787,68 @@ public class TestFaultTolerance {
     // dag will fail with 2 attempts failing from vertex v1
     runDAGAndVerify(dag, DAGStatus.State.FAILED, 2, "no progress");
   }
-  
+
+  /**
+   * In unpartitioned cartesian product, failure fraction should be #unique failure/#consumer that
+   * depends on the src task. Here we test a 2x2 cartesian product and let 4th destination task fail.
+   * The failure fraction limit is configured to be 0.25. So the failure fraction should be 1/2,
+   * not 1/4.
+   * @throws Exception
+   */
+  @Test
+  public void testCartesianProduct() throws Exception {
+    Configuration dagConf = new Configuration();
+    dagConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.25);
+    DAG dag = DAG.create("dag");
+
+    Configuration vertexConf = new Configuration();
+    vertexConf.setInt(TestProcessor.getVertexConfName(
+      TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "v3"), 3);
+    vertexConf.setInt(TestProcessor.getVertexConfName(
+      TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "v3"), 5);
+    UserPayload vertexPayload = TezUtils.createUserPayloadFromConf(vertexConf);
+    ProcessorDescriptor processorDescriptor =
+      ProcessorDescriptor.create(TestProcessor.class.getName()).setUserPayload(vertexPayload);
+    Vertex v1 = Vertex.create("v1", processorDescriptor, 2);
+    Vertex v2 = Vertex.create("v2", processorDescriptor, 2);
+    Vertex v3 = Vertex.create("v3", processorDescriptor);
+
+    String[] sourceVertices = {"v1", "v2"};
+    CartesianProductConfig cartesianProductConfig =
+      new CartesianProductConfig(Arrays.asList(sourceVertices));
+    UserPayload cartesianProductPayload =
+      cartesianProductConfig.toUserPayload(new TezConfiguration());
+
+    v3.setVertexManagerPlugin(
+      VertexManagerPluginDescriptor.create(CartesianProductVertexManager.class.getName())
+        .setUserPayload(cartesianProductPayload));
+
+    EdgeManagerPluginDescriptor edgeManagerPluginDescriptor =
+      EdgeManagerPluginDescriptor.create(CartesianProductEdgeManager.class.getName())
+        .setUserPayload(cartesianProductPayload);
+
+    Configuration inputConf = new Configuration();
+    inputConf.setBoolean(TestInput.getVertexConfName(
+      TestInput.TEZ_FAILING_INPUT_DO_FAIL, "v3"), true);
+    inputConf.setInt(TestInput.getVertexConfName(
+      TestInput.TEZ_FAILING_INPUT_FAILING_TASK_INDEX, "v3"), 3);
+    inputConf.setInt(TestInput.getVertexConfName(
+      TestInput.TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, "v3"), 0);
+    inputConf.setInt(TestInput.getVertexConfName(
+      TestInput.TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, "v3"), 0);
+    inputConf.setInt(TestInput.getVertexConfName(
+      TestInput.TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, "v3"), 0);
+    UserPayload inputPayload = TezUtils.createUserPayloadFromConf(inputConf);
+    EdgeProperty edgeProperty =
+      EdgeProperty.create(edgeManagerPluginDescriptor, DataMovementType.CUSTOM,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, TestOutput.getOutputDesc(null),
+        TestInput.getInputDesc(inputPayload));
+    Edge e1 = Edge.create(v1, v3, edgeProperty);
+    Edge e2 = Edge.create(v2, v3, edgeProperty);
+    dag.addVertex(v1).addVertex(v2).addVertex(v3);
+    dag.addEdge(e1).addEdge(e2);
+
+    // run dag
+    runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
+  }
 }

@@ -319,8 +319,8 @@ public class LocalClient extends FrameworkClient {
                   new SystemClock(), appSubmitTime, isSession, userDir.toUri().getPath(),
                   new String[] {localDir.toUri().getPath()}, new String[] {logDir.toUri().getPath()},
                   amCredentials, UserGroupInformation.getCurrentUser().getShortUserName());
-          clientHandler = new DAGClientHandler(dagAppMaster);
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, conf);
+          clientHandler = new DAGClientHandler(dagAppMaster);
 
         } catch (Throwable t) {
           LOG.error("Error starting DAGAppMaster", t);

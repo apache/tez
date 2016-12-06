@@ -19,14 +19,18 @@
 package org.apache.tez.dag.history;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
 import org.apache.tez.dag.history.recovery.RecoveryService;
 import org.apache.tez.dag.records.TezDAGID;
@@ -39,6 +43,10 @@ public class HistoryEventHandler extends CompositeService {
   private RecoveryService recoveryService;
   private boolean recoveryEnabled;
   private HistoryLoggingService historyLoggingService;
+
+  private HistoryLogLevel amHistoryLogLevel;
+  private Map<TezDAGID, HistoryLogLevel> dagIdToLogLevel =
+      new ConcurrentHashMap<TezDAGID, HistoryLogLevel>();
 
   public HistoryEventHandler(AppContext context) {
     super(HistoryEventHandler.class.getName());
@@ -70,8 +78,10 @@ public class HistoryEventHandler extends CompositeService {
           new Class[]{AppContext.class}, new Object[] {context});
       addService(recoveryService);
     }
-    super.serviceInit(conf);
 
+    amHistoryLogLevel = HistoryLogLevel.getLogLevel(context.getAMConf(), HistoryLogLevel.DEFAULT);
+
+    super.serviceInit(conf);
   }
 
   @Override
@@ -106,7 +116,7 @@ public class HistoryEventHandler extends CompositeService {
     if (recoveryEnabled && event.getHistoryEvent().isRecoveryEvent()) {
       recoveryService.handle(event);
     }
-    if (event.getHistoryEvent().isHistoryEvent()) {
+    if (event.getHistoryEvent().isHistoryEvent() && shouldLogEvent(event)) {
       historyLoggingService.handle(event);
     }
 
@@ -116,6 +126,37 @@ public class HistoryEventHandler extends CompositeService {
         + "[DAG:" + dagIdStr + "]"
         + "[Event:" + event.getHistoryEvent().getEventType().name() + "]"
         + ": " + event.getHistoryEvent().toString());
+  }
+
+  private boolean shouldLogEvent(DAGHistoryEvent event) {
+    TezDAGID dagId = event.getDagID();
+
+    HistoryLogLevel dagLogLevel = null;
+    if (dagId != null) {
+      dagLogLevel = dagIdToLogLevel.get(dagId);
+    }
+    if (dagLogLevel == null) {
+      dagLogLevel = amHistoryLogLevel;
+    }
+
+    HistoryEvent historyEvent = event.getHistoryEvent();
+    if (historyEvent.getEventType() == HistoryEventType.DAG_SUBMITTED) {
+      dagLogLevel = HistoryLogLevel.getLogLevel(((DAGSubmittedEvent)historyEvent).getConf(),
+          amHistoryLogLevel);
+      dagIdToLogLevel.put(dagId, dagLogLevel);
+    } else if (historyEvent.getEventType() == HistoryEventType.DAG_RECOVERED) {
+      if (context.getCurrentDAG() != null) {
+        dagLogLevel = HistoryLogLevel.getLogLevel(context.getCurrentDAG().getConf(),
+            amHistoryLogLevel);
+        dagIdToLogLevel.put(dagId, dagLogLevel);
+      }
+    } else if (historyEvent.getEventType() == HistoryEventType.DAG_FINISHED) {
+      if (dagIdToLogLevel.containsKey(dagId)) {
+        dagIdToLogLevel.remove(dagId);
+      }
+    }
+
+    return dagLogLevel.shouldLog(historyEvent.getEventType().getHistoryLogLevel());
   }
 
   public void handle(DAGHistoryEvent event) {

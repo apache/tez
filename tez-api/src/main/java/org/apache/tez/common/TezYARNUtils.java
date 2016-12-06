@@ -43,19 +43,12 @@ public class TezYARNUtils {
 
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
-
-    // Add any additional user-specified classpath
-    String additionalClasspath = conf.get(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX);
-    if (additionalClasspath != null && !additionalClasspath.trim().isEmpty()) {
-      classpathBuilder.append(additionalClasspath)
-          .append(File.pathSeparator);
+    boolean userClassesTakesPrecedence =
+      conf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST,
+          TezConfiguration.TEZ_USER_CLASSPATH_FIRST_DEFAULT);
+    if (userClassesTakesPrecedence) {
+      addUserSpecifiedClasspath(classpathBuilder, conf);
     }
-
-    // Add PWD:PWD/*
-    classpathBuilder.append(Environment.PWD.$())
-        .append(File.pathSeparator)
-        .append(Environment.PWD.$() + File.separator + "*")
-        .append(File.pathSeparator);
 
     String [] tezLibUrisClassPath = conf.getStrings(TezConfiguration.TEZ_LIB_URIS_CLASSPATH);
 
@@ -107,8 +100,27 @@ public class TezYARNUtils {
           .append(File.pathSeparator);
     }
 
+    if (!userClassesTakesPrecedence) {
+      addUserSpecifiedClasspath(classpathBuilder, conf);
+    }
     String classpath = classpathBuilder.toString();
     return StringInterner.weakIntern(classpath);
+  }
+
+  private static void addUserSpecifiedClasspath(StringBuilder classpathBuilder,
+      Configuration conf) {
+    // Add any additional user-specified classpath
+    String additionalClasspath = conf.get(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX);
+    if (additionalClasspath != null && !additionalClasspath.trim().isEmpty()) {
+      classpathBuilder.append(additionalClasspath)
+          .append(File.pathSeparator);
+    }
+
+    // Add PWD:PWD/*
+    classpathBuilder.append(Environment.PWD.$())
+        .append(File.pathSeparator)
+        .append(Environment.PWD.$() + File.separator + "*")
+        .append(File.pathSeparator);
   }
 
   public static void appendToEnvFromInputString(Map<String, String> env,

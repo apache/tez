@@ -25,6 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.tez.common.TezUtilsInternal;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -294,4 +295,12 @@ public class UnorderedKVInput extends AbstractLogicalInput {
     return Collections.unmodifiableSet(confKeys);
   }
 
+  @Override
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+    try {
+      return kvReader.getProgress();
+    } catch (IOException e) {
+      throw new ProgressFailedException("getProgress encountered IOException ", e);
+    }
+  }
 }

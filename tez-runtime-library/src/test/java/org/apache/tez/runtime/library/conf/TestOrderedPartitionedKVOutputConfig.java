@@ -73,6 +73,8 @@ public class TestOrderedPartitionedKVOutputConfig {
     additionalConf.put("test.key.2", "key2");
     additionalConf.put("io.shouldExist", "io");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_INTERNAL_SORTER_CLASS, "TestInternalSorter");
+    Configuration fromConfUnfiltered = new Configuration(false);
+    fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
     OrderedPartitionedKVOutputConfig.Builder builder =
         OrderedPartitionedKVOutputConfig.newBuilder("KEY", "VALUE", "PARTITIONER", null)
             .setKeyComparatorClass("KEY_COMPARATOR", null)
@@ -83,7 +85,8 @@ public class TestOrderedPartitionedKVOutputConfig {
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
-            .setFromConfiguration(fromConf);
+            .setFromConfiguration(fromConf)
+            .setFromConfigurationUnfiltered(fromConfUnfiltered);
 
     OrderedPartitionedKVOutputConfig configuration = builder.build();
 
@@ -116,6 +119,8 @@ public class TestOrderedPartitionedKVOutputConfig {
     assertNull(conf.get("test.conf.key.1"));
     assertNull(conf.get("test.key.1"));
     assertNull(conf.get("test.key.2"));
+
+    assertEquals("unfiltered1", conf.get("test.conf.unfiltered.1"));
   }
 
   @Test(timeout = 5000)

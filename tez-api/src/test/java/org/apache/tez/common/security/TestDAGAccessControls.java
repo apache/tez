@@ -18,76 +18,14 @@
 
 package org.apache.tez.common.security;
 
-import java.util.Arrays;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 public class TestDAGAccessControls {
-
-  @Test(timeout = 5000)
-  public void testBasicSerializeToConf()  {
-    DAGAccessControls dagAccessControls = new DAGAccessControls();
-    dagAccessControls.setUsersWithViewACLs(Arrays.asList("u1"))
-        .setUsersWithModifyACLs(Arrays.asList("u2"))
-        .setGroupsWithViewACLs(Arrays.asList("g1"))
-        .setGroupsWithModifyACLs(Arrays.asList("g2"));
-
-    Configuration conf = new Configuration(false);
-    dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-
-    Assert.assertEquals("u1 g1", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals("u2 g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-  }
-
-  @Test(timeout = 5000)
-  public void testWildCardSerializeToConf()  {
-    DAGAccessControls dagAccessControls = new DAGAccessControls();
-    dagAccessControls.setUsersWithViewACLs(Arrays.asList("*"))
-        .setUsersWithModifyACLs(Arrays.asList("*"))
-        .setGroupsWithViewACLs(Arrays.asList("g1"))
-        .setGroupsWithModifyACLs(Arrays.asList("g2"));
-
-    Configuration conf = new Configuration(false);
-    dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-
-    Assert.assertEquals("*", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals("*", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-  }
-
-  @Test(timeout = 5000)
-  public void testGroupsOnlySerializeToConf()  {
-    DAGAccessControls dagAccessControls = new DAGAccessControls();
-    dagAccessControls.setGroupsWithViewACLs(Arrays.asList("g1"))
-        .setGroupsWithModifyACLs(Arrays.asList("g2"));
-
-    Configuration conf = new Configuration(false);
-    dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-
-    Assert.assertEquals(" g1", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals(" g2", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-  }
-
-  @Test(timeout = 5000)
-  public void testEmptySerializeToConf()  {
-    DAGAccessControls dagAccessControls = new DAGAccessControls();
-
-    Configuration conf = new Configuration(false);
-    dagAccessControls.serializeToConfiguration(conf);
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertNotNull(conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-
-    Assert.assertEquals(" ", conf.get(TezConstants.TEZ_DAG_VIEW_ACLS));
-    Assert.assertEquals(" ", conf.get(TezConstants.TEZ_DAG_MODIFY_ACLS));
-  }
 
   @Test(timeout = 5000)
   public void testStringBasedConstructor() {
@@ -102,8 +40,107 @@ public class TestDAGAccessControls {
     Assert.assertTrue(dagAccessControls.getUsersWithModifyACLs().contains("u2"));
     Assert.assertTrue(dagAccessControls.getGroupsWithViewACLs().contains("g1"));
     Assert.assertTrue(dagAccessControls.getGroupsWithModifyACLs().contains("g2"));
-
   }
 
 
+  @Test(timeout=5000)
+  public void testMergeIntoAmAcls() {
+    DAGAccessControls dagAccessControls = new DAGAccessControls("u1 g1", "u2 g2");
+    Configuration conf = new Configuration(false);
+
+    // default conf should have ACLs copied over.
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("u1 g1", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("u2 g2", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // both have unique users merged should have all
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "u1 g1");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "u2 g2");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("u1 g1", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("u2 g2", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // both have unique users merged should have all
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("u3,u1 g3,g1", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("u4,u2 g4,g2", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // one of the user is *, merged is always *
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*,u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*,u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // only * in the config, merged is *
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // DAG access with *, all operation yeild *
+    dagAccessControls = new DAGAccessControls("*", "*");
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*,u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*,u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    // DAG access is empty, conf should be same.
+    dagAccessControls = new DAGAccessControls("", "");
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("u3 g3", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("u4 g4", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*,u3 g3");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*,u4 g4");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+
+    conf.set(TezConfiguration.TEZ_AM_VIEW_ACLS, "*");
+    conf.set(TezConfiguration.TEZ_AM_MODIFY_ACLS, "*");
+    dagAccessControls.mergeIntoAmAcls(conf);
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_VIEW_ACLS));
+    assertACLS("*", conf.get(TezConfiguration.TEZ_AM_MODIFY_ACLS));
+  }
+
+  public void assertACLS(String expected, String obtained) {
+    if (expected.equals(obtained)) {
+      return;
+    }
+
+    String [] parts1 = expected.split(" ");
+    String [] parts2 = obtained.split(" ");
+
+    Assert.assertEquals(parts1.length, parts2.length);
+
+    Assert.assertEquals(
+        Sets.newHashSet(parts1[0].split(",")), Sets.newHashSet(parts2[0].split(",")));
+
+    if (parts1.length < 2) {
+      return;
+    }
+    Assert.assertEquals(
+        Sets.newHashSet(parts1[1].split(",")), Sets.newHashSet(parts2[1].split(",")));
+  }
 }

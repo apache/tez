@@ -114,11 +114,11 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
   }
   
   @Override
-  public @Nullable EventRouteMetadata routeCompositeDataMovementEventToDestination(
+  public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
-    return EventRouteMetadata.create(1, targetIndices[sourceTaskIndex], 
-        sourceIndices[destinationTaskIndex]);
+    return CompositeEventRouteMetadata.create(1, targetIndices[sourceTaskIndex][0], 
+        sourceIndices[destinationTaskIndex][0]);
   }
 
   @Override

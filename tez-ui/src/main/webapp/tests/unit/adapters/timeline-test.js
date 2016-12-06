@@ -38,10 +38,14 @@ test('Basic creation test', function(assert) {
 test('stringifyFilters test', function(assert) {
   let adapter = this.subject();
 
-  assert.equal(adapter.stringifyFilters({a: 1, b: 2}), "a:1,b:2");
+  assert.equal(adapter.stringifyFilters({a: 1, b: 2}), 'a:"1",b:"2"');
   assert.throws(function () {
     adapter.stringifyFilters();
   });
+
+  assert.equal(adapter.stringifyFilters({a: "123", b: "abc"}), 'a:"123",b:"abc"');
+  assert.equal(adapter.stringifyFilters({a: '123', b: 'abc'}), 'a:"123",b:"abc"');
+  assert.equal(adapter.stringifyFilters({a: '123"abc'}), 'a:"123\\"abc"');
 });
 
 test('normalizeQuery test', function(assert) {
@@ -55,8 +59,8 @@ test('normalizeQuery test', function(assert) {
 
   normalQuery = adapter.normalizeQuery({a: 1, b: 2, c: 3, d: 4});
 
-  assert.deepEqual(normalQuery.primaryFilter, "A_ID:1");
-  assert.deepEqual(normalQuery.secondaryFilter, "B_ID:2");
+  assert.deepEqual(normalQuery.primaryFilter, 'A_ID:"1"');
+  assert.deepEqual(normalQuery.secondaryFilter, 'B_ID:"2"');
   assert.deepEqual(normalQuery.c, 3);
   assert.deepEqual(normalQuery.d, 4);
 });

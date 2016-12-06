@@ -27,6 +27,14 @@ message DataMovementEventProto {
   optional int32 version = 4;
 }
 
+message CompositeRoutedDataMovementEventProto {
+  optional int32 source_index = 1;
+  optional int32 target_index = 2;
+  optional int32 count = 3;
+  optional bytes user_payload = 4;
+  optional int32 version = 5;
+}
+
 message InputReadErrorEventProto {
   optional int32 index = 1;
   optional string diagnostics = 2;

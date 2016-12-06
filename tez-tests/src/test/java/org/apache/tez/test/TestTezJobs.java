@@ -43,12 +43,19 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1031,6 +1038,21 @@ public class TestTezJobs {
     }
   }
 
+  public static class FailingAttemptProcessor extends SimpleProcessor {
+
+    public FailingAttemptProcessor(ProcessorContext context) {
+      super(context);
+    }
+
+    @Override
+    public void run() throws Exception {
+      if (getContext().getTaskIndex() == 0) {
+        LOG.info("Failing task " + getContext().getTaskIndex() + ", attempt " + getContext().getTaskAttemptNumber());
+        throw new IOException("Failing task " + getContext().getTaskIndex() + ", attempt " + getContext().getTaskAttemptNumber());
+      }
+    }
+  }
+
   public static class InputInitializerForTest extends InputInitializer {
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -1168,4 +1190,146 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
+  @Test(timeout = 60000)
+  public void testAMClientHeartbeatTimeout() throws Exception {
+    Path stagingDirPath = new Path("/tmp/timeout-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+
+    YarnClient yarnClient = YarnClient.createYarnClient();
+
+    try {
+
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+
+      List<ApplicationReport> apps = yarnClient.getApplications();
+      int appsBeforeCount = apps != null ? apps.size() : 0;
+
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+      tezConf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 5);
+      TezClient tezClient = TezClient.create("testAMClientHeartbeatTimeout", tezConf, true);
+      tezClient.start();
+      tezClient.cancelAMKeepAlive();
+
+      ApplicationId appId = tezClient.getAppMasterApplicationId();
+
+      apps = yarnClient.getApplications();
+      int appsAfterCount = apps != null ? apps.size() : 0;
+
+      // Running in session mode. So should only create 1 more app.
+      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+
+      ApplicationReport report;
+      while (true) {
+        report = yarnClient.getApplicationReport(appId);
+        if (report.getYarnApplicationState() == YarnApplicationState.FINISHED
+            || report.getYarnApplicationState() == YarnApplicationState.FAILED
+            || report.getYarnApplicationState() == YarnApplicationState.KILLED) {
+          break;
+        }
+        Thread.sleep(1000);
+      }
+      // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
+      Thread.sleep(2000);
+      report = yarnClient.getApplicationReport(appId);
+      LOG.info("App Report for appId=" + appId
+          + ", report=" + report);
+      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
+          report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"));
+
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (yarnClient != null) {
+        yarnClient.stop();
+      }
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testSessionTimeout() throws Exception {
+    Path stagingDirPath = new Path("/tmp/sessiontimeout-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+
+    YarnClient yarnClient = YarnClient.createYarnClient();
+
+    try {
+
+      yarnClient.init(mrrTezCluster.getConfig());
+      yarnClient.start();
+
+      List<ApplicationReport> apps = yarnClient.getApplications();
+      int appsBeforeCount = apps != null ? apps.size() : 0;
+
+      TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+      tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+      tezConf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 5);
+      TezClient tezClient = TezClient.create("testSessionTimeout", tezConf, true);
+      tezClient.start();
+
+      ApplicationId appId = tezClient.getAppMasterApplicationId();
+
+      apps = yarnClient.getApplications();
+      int appsAfterCount = apps != null ? apps.size() : 0;
+
+      // Running in session mode. So should only create 1 more app.
+      Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
+
+      ApplicationReport report;
+      while (true) {
+        report = yarnClient.getApplicationReport(appId);
+        if (report.getYarnApplicationState() == YarnApplicationState.FINISHED
+            || report.getYarnApplicationState() == YarnApplicationState.FAILED
+            || report.getYarnApplicationState() == YarnApplicationState.KILLED) {
+          break;
+        }
+        Thread.sleep(1000);
+      }
+      // Add a sleep because YARN is not consistent in terms of reporting uptodate diagnostics
+      Thread.sleep(2000);
+      report = yarnClient.getApplicationReport(appId);
+      LOG.info("App Report for appId=" + appId
+          + ", report=" + report);
+      Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
+          report.getDiagnostics().contains("Session timed out"));
+
+    } finally {
+      remoteFs.delete(stagingDirPath, true);
+      if (yarnClient != null) {
+        yarnClient.stop();
+      }
+    }
+  }
+
+  @Test(timeout = 60000)
+  public void testVertexFailuresMaxPercent() throws TezException, InterruptedException, IOException {
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, "50.0f");
+    tezConf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
+    TezClient tezClient = TezClient.create("TestVertexFailuresMaxPercent", tezConf);
+    tezClient.start();
+
+    try {
+      DAG dag = DAG.create("TestVertexFailuresMaxPercent");
+      Vertex vertex1 = Vertex.create("Parent", ProcessorDescriptor.create(
+          FailingAttemptProcessor.class.getName()), 2);
+      Vertex vertex2 = Vertex.create("Child", ProcessorDescriptor.create(FailingAttemptProcessor.class.getName()), 2);
+
+      OrderedPartitionedKVEdgeConfig edgeConfig = OrderedPartitionedKVEdgeConfig
+          .newBuilder(Text.class.getName(), IntWritable.class.getName(),
+              HashPartitioner.class.getName())
+          .setFromConfiguration(tezConf)
+          .build();
+      dag.addVertex(vertex1)
+          .addVertex(vertex2)
+          .addEdge(Edge.create(vertex1, vertex2, edgeConfig.createDefaultEdgeProperty()));
+
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      dagClient.waitForCompletion();
+      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    } finally {
+      tezClient.stop();
+    }
+  }
 }

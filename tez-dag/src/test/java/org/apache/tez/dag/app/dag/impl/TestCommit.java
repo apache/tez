@@ -27,10 +27,10 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -46,10 +46,10 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.event.DrainDispatcher;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.DrainDispatcher;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
@@ -295,7 +295,6 @@ public class TestCommit {
     }
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
   public void setupDAG(DAGPlan dagPlan) {
     conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
     appAttemptId = ApplicationAttemptId.newInstance(
@@ -2023,11 +2022,11 @@ public class TestCommit {
 
     public boolean failVertexGroupCommitFinishedEvent = false;
     public boolean failDAGCommitStartedEvent = false;
-    public List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
+    public Queue<HistoryEvent> historyEvents = new ConcurrentLinkedQueue<HistoryEvent>();
     public MockHistoryEventHandler(AppContext context) {
       super(context);
     }
-    
+
     @Override
     public void handleCriticalEvent(DAGHistoryEvent event) throws IOException {
       if (event.getHistoryEvent().getEventType() == HistoryEventType.VERTEX_GROUP_COMMIT_FINISHED

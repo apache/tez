@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
@@ -85,6 +86,10 @@ public class MRInputLegacy extends MRInput {
   @Unstable
   public org.apache.hadoop.mapreduce.RecordReader getNewRecordReader() {
     return (org.apache.hadoop.mapreduce.RecordReader) mrReader.getRecordReader();
+  }
+
+  public float getProgress() throws ProgressFailedException, InterruptedException {
+      return super.getProgress();
   }
 
   @Private

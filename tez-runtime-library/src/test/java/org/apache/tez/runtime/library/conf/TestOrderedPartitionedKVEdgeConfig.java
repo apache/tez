@@ -128,6 +128,8 @@ public class TestOrderedPartitionedKVEdgeConfig {
         true);
     fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB,
         1000);
+    Configuration fromConfUnfiltered = new Configuration(false);
+    fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
     Map<String, String> additionalConfs = new HashMap<String, String>();
     additionalConfs.put("test.key.2", "key2");
     additionalConfs.put(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, "1111");
@@ -145,7 +147,8 @@ public class TestOrderedPartitionedKVEdgeConfig {
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, "0.33f")
         .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, "3333")
         .setAdditionalConfiguration(additionalConfs)
-        .setFromConfiguration(fromConf);
+        .setFromConfiguration(fromConf)
+        .setFromConfigurationUnfiltered(fromConfUnfiltered);
 
     OrderedPartitionedKVEdgeConfig configuration = builder.build();
 
@@ -175,6 +178,9 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals("io", outputConf.get("io.shouldExist"));
     assertEquals("file", outputConf.get("file.shouldExist"));
     assertEquals("fs", outputConf.get("fs.shouldExist"));
+
+    assertEquals("unfiltered1", outputConf.get("test.conf.unfiltered.1"));
+
     ReportPartitionStats partitionStats =
         ReportPartitionStats.fromString(outputConf.get(
         TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
@@ -198,6 +204,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals("file", inputConf.get("file.shouldExist"));
     assertEquals("fs", inputConf.get("fs.shouldExist"));
 
+    assertEquals("unfiltered1", inputConf.get("test.conf.unfiltered.1"));
   }
 
   @Test (timeout=2000)

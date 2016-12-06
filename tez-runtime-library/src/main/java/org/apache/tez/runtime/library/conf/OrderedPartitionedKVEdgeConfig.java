@@ -284,6 +284,13 @@ public class OrderedPartitionedKVEdgeConfig
       return this;
     }
 
+    @Override
+    public Builder setFromConfigurationUnfiltered(Configuration conf) {
+      outputBuilder.setFromConfigurationUnfiltered(conf);
+      inputBuilder.setFromConfigurationUnfiltered(conf);
+      return this;
+    }
+
     /**
      * Configure the specific output
      * @return a builder to configure the output

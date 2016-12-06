@@ -42,7 +42,6 @@ import org.apache.tez.dag.api.records.DAGProtos;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-
 /**
  * Utility methods for setting up a DAG. Has helpers for setting up log4j configuration, converting
  * {@link org.apache.hadoop.conf.Configuration} to {@link org.apache.tez.dag.api.UserPayload} etc.
@@ -65,7 +64,6 @@ public class TezUtils {
                                               List<String> vargs) {
     TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
   }
-
 
   /**
    * Convert a Configuration to compressed ByteString using Protocol buffer
@@ -182,6 +180,5 @@ public class TezUtils {
   public static String convertToHistoryText(Configuration conf) {
     return convertToHistoryText(null, conf);
   }
-
 
 }

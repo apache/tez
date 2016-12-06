@@ -25,8 +25,8 @@ export default Ember.Component.extend({
   classNames: ['pagination-ui'],
   isVisible: Ember.computed.alias('tableDefinition.enablePagination'),
 
-  atFirst: Ember.computed('tableDefinition.pageNum', function () {
-    return this.get('tableDefinition.pageNum') === 1;
+  showFirst: Ember.computed('_possiblePages', function () {
+    return this.get("dataProcessor.totalPages") && this.get('_possiblePages.0.pageNum') !== 1;
   }),
 
   rowCountOptions: Ember.computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {

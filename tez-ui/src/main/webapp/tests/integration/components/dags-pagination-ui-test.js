@@ -21,6 +21,8 @@ import hbs from 'htmlbars-inline-precompile';
 
 import wait from 'ember-test-helpers/wait';
 
+import Ember from 'ember';
+
 moduleForComponent('dags-pagination-ui', 'Integration | Component | dags pagination ui', {
   integration: true
 });
@@ -35,7 +37,7 @@ test('Basic creation test', function(assert) {
   assert.equal(this.$('select').length, 1);
 
   assert.equal(this.$('.page-list').length, 1);
-  assert.equal(this.$('li').length, 1);
+  assert.equal(this.$('li').length, 0);
 
   // Template block usage:" + EOL +
   this.render(hbs`
@@ -127,4 +129,30 @@ test('Page list - moreAvailable true test', function(assert) {
     assert.equal(this.$('li').eq(2).text().trim(), "5");
     assert.equal(this.$('li').eq(3).text().trim(), "6");
   });
+});
+
+test('No data test', function(assert) {
+  var customRowCount = 2,
+      definition = {
+        rowCount: customRowCount,
+        loadingMore: false,
+        moreAvailable: true,
+
+        rowCountOptions: []
+      },
+      processor;
+
+  Ember.run(function () {
+    processor = {
+      tableDefinition: definition,
+      rows: Ember.A()
+    };
+  });
+
+  this.set('definition', definition);
+  this.set('processor', processor);
+  this.render(hbs`{{dags-pagination-ui tableDefinition=definition dataProcessor=processor}}`);
+
+  var paginationItems = this.$('li');
+  assert.equal(paginationItems.length, 0);
 });

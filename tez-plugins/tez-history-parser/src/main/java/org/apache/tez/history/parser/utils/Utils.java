@@ -37,6 +37,7 @@ import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEve
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -44,6 +45,8 @@ import java.util.List;
 public class Utils {
 
   private static final String LOG4J_CONFIGURATION = "log4j.configuration";
+  private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Utils.class);
+
 
   /**
    * Parse tez counters from json
@@ -79,14 +82,21 @@ public class Utils {
           final String counterDisplayName =
               counterNode.optString(Constants.COUNTER_DISPLAY_NAME, counterName);
           final long counterValue = counterNode.getLong(Constants.COUNTER_VALUE);
-          TezCounter counter = group.findCounter(
-              counterName,
-              counterDisplayName);
-          counter.setValue(counterValue);
+          addCounter(group, counterName, counterDisplayName, counterValue);
         }
       }
     }
     return counters;
+  }
+
+  private static void addCounter(CounterGroup group, String counterName, String displayName,
+      long counterValue) {
+    try {
+      TezCounter counter = group.findCounter(counterName, displayName);
+      counter.setValue(counterValue);
+    } catch(IllegalArgumentException e) {
+      LOG.debug("Error finding {} in {} with displayName {}", counterName, group, displayName);
+    }
   }
   
   public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject) 

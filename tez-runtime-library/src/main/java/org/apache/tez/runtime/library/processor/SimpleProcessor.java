@@ -22,12 +22,15 @@ import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.Processor;
 import org.apache.tez.runtime.api.ProcessorContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements an {@link AbstractLogicalIOProcessor} and provides empty
@@ -38,8 +41,12 @@ import org.apache.tez.runtime.api.ProcessorContext;
 @Public
 @Evolving
 public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AbstractLogicalIOProcessor.class);
   protected Map<String, LogicalInput> inputs;
   protected Map<String, LogicalOutput> outputs;
+
+  protected ProgressHelper progressHelper;
 
   public SimpleProcessor(ProcessorContext context) {
     super(context);
@@ -49,6 +56,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
       throws Exception {
     this.inputs = _inputs;
     this.outputs = _outputs;
+    progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
     preOp();
     run();
     postOp();
@@ -72,6 +80,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
       for (LogicalInput input : getInputs().values()) {
         input.start();
       }
+      progressHelper.scheduleProgressTaskService(0, 100);
     }
     if (getOutputs() != null) {
       for (LogicalOutput output : getOutputs().values()) {
@@ -101,7 +110,9 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-
+    if( progressHelper != null) {
+      progressHelper.shutDownProgressTaskService();
+    }
   }
 
   public Map<String, LogicalInput> getInputs() {
@@ -111,5 +122,4 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
   public Map<String, LogicalOutput> getOutputs() {
     return outputs;
   }
-
 }

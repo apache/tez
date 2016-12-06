@@ -25,6 +25,8 @@ import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 
 import com.google.common.base.Joiner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -35,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SVGUtils {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SVGUtils.class);
   private static int MAX_DAG_RUNTIME = 0;
   private static final int SCREEN_WIDTH = 1800;
 
@@ -167,7 +170,7 @@ public class SVGUtils {
       int launchTimeInterval = attempt.getStartTime() > 0 ? 
           (int) (attempt.getStartTime() - dagStartTime) : 0;
       int finishTimeInterval = (int) (attempt.getFinishTime() - dagStartTime);
-      System.out.println(attempt.getTaskAttemptId() + " " + creationTimeInterval + " "
+      LOG.debug(attempt.getTaskAttemptId() + " " + creationTimeInterval + " "
           + allocationTimeInterval + " " + launchTimeInterval + " " + finishTimeInterval);
 
       StringBuilder title = new StringBuilder();
