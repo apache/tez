@@ -62,8 +62,6 @@ import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
-import org.apache.hadoop.metrics2.MetricsRecordBuilder;
-import org.apache.hadoop.metrics2.MetricsSource;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.impl.MetricsSystemImpl;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -110,7 +108,7 @@ public class TestShuffleHandler {
         }
         @Override
         protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                 int reduce, String jobId,
+                                                 String jobId,
                                                  String user)
             throws IOException {
           // Do nothing.
@@ -118,17 +116,16 @@ public class TestShuffleHandler {
         }
         @Override
         protected void populateHeaders(List<String> mapIds, String jobId,
-                                       String dagId, String user, int reduce,
-                                       HttpRequest request,
+                                       String dagId, String user, Range reduceRange,
                                        HttpResponse response,
                                        boolean keepAliveParam,
-            Map<String, MapOutputInfo> infoMap) throws IOException {
+                                       Map<String, MapOutputInfo> infoMap) throws IOException {
           // Do nothing.
         }
         @Override
         protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
-            Channel ch, String user, String mapId, int reduce,
-            MapOutputInfo info) throws IOException {
+                                              Channel ch, String user, String mapId, Range reduceRange,
+                                              MapOutputInfo info) throws IOException {
 
           ShuffleHeader header =
               new ShuffleHeader("attempt_12345_1_m_1_0", 5678, 5678, 1);
@@ -236,18 +233,17 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   int reduce, String jobId,
+                                                   String jobId,
                                                    String user)
               throws IOException {
             return null;
           }
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
-                                         String dagId, String user, int reduce,
-                                         HttpRequest request,
+                                         String dagId, String user, Range reduceRange,
                                          HttpResponse response,
                                          boolean keepAliveParam,
-              Map<String, MapOutputInfo> infoMap) throws IOException {
+                                         Map<String, MapOutputInfo> infoMap) throws IOException {
             // Only set response headers and skip everything else
             // send some dummy value for content-length
             super.setResponseHeaders(response, keepAliveParam, 100);
@@ -259,8 +255,8 @@ public class TestShuffleHandler {
           }
           @Override
           protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
-              Channel ch, String user, String mapId, int reduce,
-              MapOutputInfo info)
+                                                Channel ch, String user, String mapId, Range reduceRange,
+                                                MapOutputInfo info)
                   throws IOException {
             // send a shuffle header and a lot of data down the channel
             // to trigger a broken pipe
@@ -335,7 +331,6 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   int reduce,
                                                    String jobId, String user)
               throws IOException {
             return null;
@@ -349,7 +344,7 @@ public class TestShuffleHandler {
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
                                          String dagId, String user,
-                                         int reduce, HttpRequest request,
+                                         Range reduceRange,
                                          HttpResponse response,
                                          boolean keepAliveParam,
                                          Map<String, MapOutputInfo> infoMap)
@@ -376,8 +371,8 @@ public class TestShuffleHandler {
 
           @Override
           protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
-              Channel ch, String user, String mapId, int reduce,
-              MapOutputInfo info) throws IOException {
+                                                Channel ch, String user, String mapId, Range reduceRange,
+                                                MapOutputInfo info) throws IOException {
             HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
 
             // send a shuffle header and a lot of data down the channel
@@ -549,7 +544,7 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   int reduce, String jobId,
+                                                   String jobId,
                                                    String user)
               throws IOException {
             // Do nothing.
@@ -557,11 +552,10 @@ public class TestShuffleHandler {
           }
           @Override
           protected void populateHeaders(List<String> mapIds, String jobId,
-                                         String dagId, String user, int reduce,
-                                         HttpRequest request,
+                                         String dagId, String user, Range reduceRange,
                                          HttpResponse response,
                                          boolean keepAliveParam,
-              Map<String, MapOutputInfo> infoMap) throws IOException {
+                                         Map<String, MapOutputInfo> infoMap) throws IOException {
             // Do nothing.
           }
           @Override
@@ -572,8 +566,8 @@ public class TestShuffleHandler {
           }
           @Override
           protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
-              Channel ch, String user, String mapId, int reduce,
-              MapOutputInfo info)
+                                                Channel ch, String user, String mapId, Range reduceRange,
+                                                MapOutputInfo info)
                   throws IOException {
             // send a shuffle header and a lot of data down the channel
             // to trigger a broken pipe
@@ -985,9 +979,9 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected void populateHeaders(List<String> mapIds,
-              String outputBaseStr, String dagId, String user, int reduce,
-              HttpRequest request, HttpResponse response,
-              boolean keepAliveParam, Map<String, MapOutputInfo> infoMap)
+                                         String outputBaseStr, String dagId, String user, Range reduceRange,
+                                         HttpResponse response,
+                                         boolean keepAliveParam, Map<String, MapOutputInfo> infoMap)
               throws IOException {
             // Only set response headers and skip everything else
             // send some dummy value for content-length
@@ -1009,8 +1003,8 @@ public class TestShuffleHandler {
           }
           @Override
           protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
-              Channel ch, String user, String mapId, int reduce,
-              MapOutputInfo info) throws IOException {
+                                                Channel ch, String user, String mapId, Range reduceRange,
+                                                MapOutputInfo info) throws IOException {
             // send a shuffle header
             ShuffleHeader header =
                 new ShuffleHeader("attempt_12345_1_m_1_0", 5678, 5678, 1);

@@ -60,6 +60,7 @@ import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -237,6 +238,7 @@ class ShuffleScheduler {
   private final float maxAllowedFailedFetchFraction;
   private final boolean checkFailedFetchSinceLastCompletion;
   private final boolean verifyDiskChecksum;
+  private final boolean compositeFetch;
 
   private volatile Thread shuffleSchedulerThread = null;
 
@@ -407,6 +409,7 @@ class ShuffleScheduler {
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
+    this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
 
     pipelinedShuffleInfoEventsMap = new HashMap<Integer, ShuffleEventInfo>();
     LOG.info("ShuffleScheduler running for sourceVertex: "
@@ -1024,13 +1027,13 @@ class ShuffleScheduler {
   public synchronized void addKnownMapOutput(String inputHostName,
                                              int port,
                                              int partitionId,
-                                             InputAttemptIdentifier srcAttempt) {
+                                             CompositeInputAttemptIdentifier srcAttempt) {
     uniqueHosts.add(new HostPort(inputHostName, port));
     HostPortPartition identifier = new HostPortPartition(inputHostName, port, partitionId);
 
     MapHost host = mapLocations.get(identifier);
     if (host == null) {
-      host = new MapHost(inputHostName, port, partitionId);
+      host = new MapHost(inputHostName, port, partitionId, srcAttempt.getInputIdentifierCount());
       mapLocations.put(identifier, host);
     }
 
@@ -1040,9 +1043,10 @@ class ShuffleScheduler {
     }
 
     host.addKnownMap(srcAttempt);
-    pathToIdentifierMap.put(
-        getIdentifierFromPathAndReduceId(srcAttempt.getPathComponent(),
-            partitionId), srcAttempt);
+    for (int i = 0; i < srcAttempt.getInputIdentifierCount(); i++) {
+      PathPartition pathPartition = new PathPartition(srcAttempt.getPathComponent(), partitionId + i);
+      pathToIdentifierMap.put(pathPartition, srcAttempt.expand(i));
+    }
 
     // Mark the host as pending
     if (host.getState() == MapHost.State.PENDING) {
@@ -1102,7 +1106,7 @@ class ShuffleScheduler {
 
   public InputAttemptIdentifier getIdentifierForFetchedOutput(
       String path, int reduceId) {
-    return pathToIdentifierMap.get(getIdentifierFromPathAndReduceId(path, reduceId));
+    return pathToIdentifierMap.get(new PathPartition(path, reduceId));
   }
   
   private boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
@@ -1243,11 +1247,7 @@ class ShuffleScheduler {
     }
     
   }
-  
-  private PathPartition getIdentifierFromPathAndReduceId(String path, int reduceId) {
-    return new PathPartition(path, reduceId);
-  }
-  
+
   /**
    * A thread that takes hosts off of the penalty list when the timer expires.
    */
@@ -1394,7 +1394,7 @@ class ShuffleScheduler {
         codec, conf, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
         connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
-        verifyDiskChecksum);
+        verifyDiskChecksum, compositeFetch);
   }
 
   private class FetchFutureCallback implements FutureCallback<Void> {

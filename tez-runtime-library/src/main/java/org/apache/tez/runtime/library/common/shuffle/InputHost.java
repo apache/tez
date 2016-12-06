@@ -34,11 +34,48 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
  */
 public class InputHost extends HostPort {
 
+  private static class PartitionRange {
+
+    private final int partition;
+    private final int partitionCount;
+
+    PartitionRange(int partition, int partitionCount) {
+      this.partition = partition;
+      this.partitionCount = partitionCount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      PartitionRange that = (PartitionRange) o;
+
+      if (partition != that.partition) return false;
+      return partitionCount == that.partitionCount;
+    }
+
+    @Override
+    public int hashCode() {
+      int result = partition;
+      result = 31 * result + partitionCount;
+      return result;
+    }
+
+    public int getPartition() {
+      return partition;
+    }
+
+    public int getPartitionCount() {
+      return partitionCount;
+    }
+  }
+
   private String additionalInfo;
 
   // Each input host can support more than one partition.
   // Each partition has a list of inputs for pipelined shuffle.
-  private final Map<Integer, BlockingQueue<InputAttemptIdentifier>>
+  private final Map<PartitionRange, BlockingQueue<InputAttemptIdentifier>>
       partitionToInputs = new ConcurrentHashMap<>();
 
   public InputHost(HostPort hostPort) {
@@ -57,24 +94,25 @@ public class InputHost extends HostPort {
     return partitionToInputs.size();
   }
 
-  public synchronized void addKnownInput(Integer partition,
+  public synchronized void addKnownInput(int partition, int partitionCount,
       InputAttemptIdentifier srcAttempt) {
+    PartitionRange partitionRange = new PartitionRange(partition, partitionCount);
     BlockingQueue<InputAttemptIdentifier> inputs =
-        partitionToInputs.get(partition);
+        partitionToInputs.get(partitionRange);
     if (inputs == null) {
       inputs = new LinkedBlockingQueue<InputAttemptIdentifier>();
-      partitionToInputs.put(partition, inputs);
+      partitionToInputs.put(partitionRange, inputs);
     }
     inputs.add(srcAttempt);
   }
 
   public synchronized PartitionToInputs clearAndGetOnePartition() {
-    for (Map.Entry<Integer, BlockingQueue<InputAttemptIdentifier>> entry :
+    for (Map.Entry<PartitionRange, BlockingQueue<InputAttemptIdentifier>> entry :
         partitionToInputs.entrySet()) {
       List<InputAttemptIdentifier> inputs =
           new ArrayList<InputAttemptIdentifier>(entry.getValue().size());
       entry.getValue().drainTo(inputs);
-      PartitionToInputs ret = new PartitionToInputs(entry.getKey(), inputs);
+      PartitionToInputs ret = new PartitionToInputs(entry.getKey().getPartition(), entry.getKey().getPartitionCount(), inputs);
       partitionToInputs.remove(entry.getKey());
       return ret;
     }
@@ -103,17 +141,22 @@ public class InputHost extends HostPort {
   }
 
   public static class PartitionToInputs {
-    private int partition;
+    private final int partition;
+    private final int partitionCount;
     private List<InputAttemptIdentifier> inputs;
 
-    public PartitionToInputs(int partition,
-        List<InputAttemptIdentifier> input) {
+    public PartitionToInputs(int partition, int partitionCount, List<InputAttemptIdentifier> input) {
       this.partition = partition;
+      this.partitionCount = partitionCount;
       this.inputs = input;
     }
 
     public int getPartition() {
       return partition;
+    }
+
+    public int getPartitionCount() {
+      return partitionCount;
     }
 
     public List<InputAttemptIdentifier> getInputs() {
@@ -122,7 +165,7 @@ public class InputHost extends HostPort {
 
     @Override
     public String toString() {
-      return "partition=" + partition + ", inputs=" + inputs;
+      return "partition=" + partition + ", partitionCount=" + partitionCount + ", inputs=" + inputs;
     }
   }
 }

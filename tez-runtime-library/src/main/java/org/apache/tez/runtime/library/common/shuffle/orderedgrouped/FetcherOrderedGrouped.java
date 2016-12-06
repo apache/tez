@@ -21,6 +21,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
@@ -79,7 +81,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
  private final int dagId;
   private final MapHost mapHost;
 
-  private final int currentPartition;
+  private final int minPartition;
+  private final int maxPartition;
 
   // Decompression of map-outputs
   private final CompressionCodec codec;
@@ -99,6 +102,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   volatile BaseHttpConnection httpConnection;
   private final boolean asyncHttp;
+  private final boolean compositeFetch;
 
 
   // Initiative value is 0, which means it hasn't retried yet.
@@ -127,13 +131,15 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                int dagId,
                                boolean asyncHttp,
                                boolean sslShuffle,
-                               boolean verifyDiskChecksum) {
+                               boolean verifyDiskChecksum,
+                               boolean compositeFetch) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.metrics = metrics;
     this.exceptionReporter = exceptionReporter;
     this.mapHost = mapHost;
-    this.currentPartition = this.mapHost.getPartitionId();
+    this.minPartition = this.mapHost.getPartitionId();
+    this.maxPartition = this.minPartition + this.mapHost.getPartitionCount() - 1;
     this.id = nextId.incrementAndGet();
     this.jobTokenSecretManager = jobTokenSecretMgr;
 
@@ -162,6 +168,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.localDiskFetchEnabled = localDiskFetchEnabled;
     this.sslShuffle = sslShuffle;
     this.verifyDiskChecksum = verifyDiskChecksum;
+    this.compositeFetch = compositeFetch;
 
     this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
   }
@@ -252,7 +259,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
     if(LOG.isDebugEnabled()) {
       LOG.debug("Fetcher " + id + " going to fetch from " + host + " for: "
-        + srcAttempts + ", partitionId: " + currentPartition);
+        + srcAttempts + ", partition range: " + minPartition + "-" + maxPartition);
     }
     populateRemainingMap(srcAttempts);
     // Construct the url and connect
@@ -333,7 +340,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     boolean connectSucceeded = false;
     try {
       StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
-          host.getPort(), host.getPartitionId(), applicationId, dagId, sslShuffle);
+          host.getPort(), host.getPartitionId(), host.getPartitionCount(), applicationId, dagId, sslShuffle);
       URL url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts, httpConnectionParams.isKeepAlive());
       httpConnection = ShuffleUtils.getHttpConnection(asyncHttp, url, httpConnectionParams,
           logIdentifier, jobTokenSecretManager);
@@ -399,134 +406,172 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
 
+  private static class MapOutputStat {
+    final InputAttemptIdentifier srcAttemptId;
+    final long decompressedLength;
+    final long compressedLength;
+    final int forReduce;
+
+    MapOutputStat(InputAttemptIdentifier srcAttemptId, long decompressedLength, long compressedLength, int forReduce) {
+      this.srcAttemptId = srcAttemptId;
+      this.decompressedLength = decompressedLength;
+      this.compressedLength = compressedLength;
+      this.forReduce = forReduce;
+    }
+
+    @Override
+    public String toString() {
+      return new String("id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce);
+    }
+  }
+
   protected InputAttemptIdentifier[] copyMapOutput(MapHost host,
                                 DataInputStream input) throws FetcherReadTimeoutException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
-    long decompressedLength = -1;
-    long compressedLength = -1;
-
+    long decompressedLength = 0;
+    long compressedLength = 0;
     try {
       long startTime = System.currentTimeMillis();
-      int forReduce = -1;
-      //Read the shuffle header
-      try {
-        ShuffleHeader header = new ShuffleHeader();
-        // TODO Review: Multiple header reads in case of status WAIT ? 
-        header.readFields(input);
-        if (!header.mapId.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
+      int partitionCount = 1;
+
+      if (this.compositeFetch) {
+        // Multiple partitions are fetched
+        partitionCount = WritableUtils.readVInt(input);
+      }
+      ArrayList<MapOutputStat> mapOutputStats = new ArrayList<>(partitionCount);
+      for (int mapOutputIndex = 0; mapOutputIndex < partitionCount; mapOutputIndex++) {
+        MapOutputStat mapOutputStat = null;
+        try {
+          //Read the shuffle header
+          ShuffleHeader header = new ShuffleHeader();
+          // TODO Review: Multiple header reads in case of status WAIT ?
+          header.readFields(input);
+          if (!header.mapId.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
+            if (!stopped) {
+              badIdErrs.increment(1);
+              LOG.warn("Invalid map id: " + header.mapId + ", expected to start with " +
+                  InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
+              return new InputAttemptIdentifier[]{getNextRemainingAttempt()};
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Already shutdown. Ignoring invalid map id error");
+              }
+              return EMPTY_ATTEMPT_ID_ARRAY;
+            }
+          }
+
+          if (header.getCompressedLength() == 0) {
+            // Empty partitions are already accounted for
+            continue;
+          }
+
+          mapOutputStat = new MapOutputStat(scheduler.getIdentifierForFetchedOutput(header.mapId, header.forReduce),
+              header.uncompressedLength,
+              header.compressedLength,
+              header.forReduce);
+          mapOutputStats.add(mapOutputStat);
+        } catch (IllegalArgumentException e) {
           if (!stopped) {
             badIdErrs.increment(1);
-            LOG.warn("Invalid map id: " + header.mapId + ", expected to start with " +
-                InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
-            return new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+            LOG.warn("Invalid map id ", e);
+            // Don't know which one was bad, so consider this one bad and dont read
+            // the remaining because we dont know where to start reading from. YARN-1773
+            return new InputAttemptIdentifier[]{getNextRemainingAttempt()};
           } else {
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Already shutdown. Ignoring invalid map id error");
+              LOG.debug("Already shutdown. Ignoring invalid map id error. Exception: " +
+                  e.getClass().getName() + ", Message: " + e.getMessage());
             }
             return EMPTY_ATTEMPT_ID_ARRAY;
           }
         }
-        srcAttemptId = 
-            scheduler.getIdentifierForFetchedOutput(header.mapId, header.forReduce);
-        compressedLength = header.compressedLength;
-        decompressedLength = header.uncompressedLength;
-        forReduce = header.forReduce;
-      } catch (IllegalArgumentException e) {
-        if (!stopped) {
-          badIdErrs.increment(1);
-          LOG.warn("Invalid map id ", e);
-          // Don't know which one was bad, so consider this one bad and dont read
-          // the remaining because we dont know where to start reading from. YARN-1773
-          return new InputAttemptIdentifier[] {getNextRemainingAttempt()};
-        } else {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Already shutdown. Ignoring invalid map id error. Exception: " +
-                e.getClass().getName() + ", Message: " + e.getMessage());
+
+        // Do some basic sanity verification
+        if (!verifySanity(mapOutputStat.compressedLength, mapOutputStat.decompressedLength, mapOutputStat.forReduce,
+            remaining, mapOutputStat.srcAttemptId)) {
+          if (!stopped) {
+            srcAttemptId = mapOutputStat.srcAttemptId;
+            if (srcAttemptId == null) {
+              srcAttemptId = getNextRemainingAttempt();
+              LOG.warn("Was expecting " + srcAttemptId + " but got null");
+            }
+            assert (srcAttemptId != null);
+            return new InputAttemptIdentifier[]{srcAttemptId};
+          } else {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Already stopped. Ignoring verification failure.");
+            }
+            return EMPTY_ATTEMPT_ID_ARRAY;
+          }
+        }
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("header: " + mapOutputStat.srcAttemptId + ", len: " + mapOutputStat.compressedLength +
+              ", decomp len: " + mapOutputStat.decompressedLength);
+        }
+      }
+
+      for (MapOutputStat mapOutputStat : mapOutputStats) {
+        // Get the location for the map output - either in-memory or on-disk
+        srcAttemptId = mapOutputStat.srcAttemptId;
+        decompressedLength = mapOutputStat.decompressedLength;
+        compressedLength = mapOutputStat.compressedLength;
+        try {
+          mapOutput = allocator.reserve(srcAttemptId, decompressedLength, compressedLength, id);
+        } catch (IOException e) {
+          if (!stopped) {
+            // Kill the reduce attempt
+            ioErrs.increment(1);
+            scheduler.reportLocalError(e);
+          } else {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Already stopped. Ignoring error from merger.reserve");
+            }
           }
           return EMPTY_ATTEMPT_ID_ARRAY;
         }
-      }
 
-      // Do some basic sanity verification
-      if (!verifySanity(compressedLength, decompressedLength, forReduce,
-          remaining, srcAttemptId)) {
-        if (!stopped) {
-          if (srcAttemptId == null) {
-            LOG.warn("Was expecting " + getNextRemainingAttempt() + " but got null");
-            srcAttemptId = getNextRemainingAttempt();
-          }
-          assert (srcAttemptId != null);
-          return new InputAttemptIdentifier[]{srcAttemptId};
-        } else {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Already stopped. Ignoring verification failure.");
-          }
+        // Check if we can shuffle *now* ...
+        if (mapOutput.getType() == Type.WAIT) {
+          LOG.info("fetcher#" + id + " - MergerManager returned Status.WAIT ...");
+          //Not an error but wait to process data.
           return EMPTY_ATTEMPT_ID_ARRAY;
         }
-      }
-      
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("header: " + srcAttemptId + ", len: " + compressedLength + 
-            ", decomp len: " + decompressedLength);
-      }
 
-      // Get the location for the map output - either in-memory or on-disk
-      try {
-        mapOutput = allocator.reserve(srcAttemptId, decompressedLength, compressedLength, id);
-      } catch (IOException e) {
-        if (!stopped) {
-          // Kill the reduce attempt
-          ioErrs.increment(1);
-          scheduler.reportLocalError(e);
-        } else {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Already stopped. Ignoring error from merger.reserve");
-          }
+        // Go!
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("fetcher#" + id + " about to shuffle output of map " +
+              mapOutput.getAttemptIdentifier() + " decomp: " +
+              decompressedLength + " len: " + compressedLength + " to " + mapOutput.getType());
         }
-        return EMPTY_ATTEMPT_ID_ARRAY;
-      }
-      
-      // Check if we can shuffle *now* ...
-      if (mapOutput.getType() == Type.WAIT) {
-        LOG.info("fetcher#" + id + " - MergerManager returned Status.WAIT ...");
-        //Not an error but wait to process data.
-        return EMPTY_ATTEMPT_ID_ARRAY;
-      } 
-      
-      // Go!
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("fetcher#" + id + " about to shuffle output of map " +
-            mapOutput.getAttemptIdentifier() + " decomp: " +
-            decompressedLength + " len: " + compressedLength + " to " + mapOutput.getType());
-      }
 
-      if (mapOutput.getType() == Type.MEMORY) {
-        ShuffleUtils.shuffleToMemory(mapOutput.getMemory(), input,
-          (int) decompressedLength, (int) compressedLength, codec, ifileReadAhead,
-          ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
-      } else if (mapOutput.getType() == Type.DISK) {
-        ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
-          input, compressedLength, decompressedLength, LOG,
-          mapOutput.getAttemptIdentifier().toString(),
-          ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
-      } else {
-        throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
-            mapOutput.getType());
+        if (mapOutput.getType() == Type.MEMORY) {
+          ShuffleUtils.shuffleToMemory(mapOutput.getMemory(), input,
+              (int) decompressedLength, (int) compressedLength, codec, ifileReadAhead,
+              ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
+        } else if (mapOutput.getType() == Type.DISK) {
+          ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
+              input, compressedLength, decompressedLength, LOG,
+              mapOutput.getAttemptIdentifier().toString(),
+              ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
+        } else {
+          throw new IOException("Unknown mapOutput type while fetching shuffle data:" +
+              mapOutput.getType());
+        }
+
+        // Inform the shuffle scheduler
+        long endTime = System.currentTimeMillis();
+        // Reset retryStartTime as map task make progress if retried before.
+        retryStartTime = 0;
+
+        scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
+            endTime - startTime, mapOutput, false);
+        // Note successful shuffle
+        remaining.remove(srcAttemptId.toString());
+        metrics.successFetch();
       }
-
-      // Inform the shuffle scheduler
-      long endTime = System.currentTimeMillis();
-      // Reset retryStartTime as map task make progress if retried before.
-      retryStartTime = 0;
-
-      scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
-                              endTime - startTime, mapOutput, false);
-      // Note successful shuffle
-      remaining.remove(srcAttemptId.toString());
-      metrics.successFetch();
-      return null;
-    } catch (IOException ioe) {
+    } catch(IOException ioe) {
       if (stopped) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Not reporting fetch failure for exception during data copy: ["
@@ -548,23 +593,24 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       }
       ioErrs.increment(1);
       if (srcAttemptId == null || mapOutput == null) {
-        LOG.info("fetcher#" + id + " failed to read map header" + 
-                 srcAttemptId + " decomp: " + 
-                 decompressedLength + ", " + compressedLength, ioe);
-        if(srcAttemptId == null) {
+        LOG.info("fetcher#" + id + " failed to read map header" +
+            srcAttemptId + " decomp: " +
+            decompressedLength + ", " + compressedLength, ioe);
+        if (srcAttemptId == null) {
           return remaining.values().toArray(new InputAttemptIdentifier[remaining.values().size()]);
         } else {
-          return new InputAttemptIdentifier[] {srcAttemptId};
+          return new InputAttemptIdentifier[]{srcAttemptId};
         }
       }
-      LOG.warn("Failed to shuffle output of " + srcAttemptId + 
-               " from " + host.getHostIdentifier(), ioe); 
+      LOG.warn("Failed to shuffle output of " + srcAttemptId +
+          " from " + host.getHostIdentifier(), ioe);
 
       // Inform the shuffle-scheduler
       mapOutput.abort();
       metrics.failedFetch();
-      return new InputAttemptIdentifier[] {srcAttemptId};
+      return new InputAttemptIdentifier[]{srcAttemptId};
     }
+    return null;
   }
 
   /**
@@ -619,21 +665,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
     // partitionId verification. Isn't availalbe here because it is encoded into
     // URI
-    if (forReduce != currentPartition) {
+    if (forReduce < minPartition || forReduce > maxPartition) {
       wrongReduceErrs.increment(1);
       LOG.warn(logIdentifier + " data for the wrong partition map: " + srcAttemptId + " len: "
           + compressedLength + " decomp len: " + decompressedLength + " for partition " + forReduce
-          + ", expected partition: " + currentPartition);
+          + ", expected partition range: " + minPartition + "-" + maxPartition);
       return false;
     }
-
-    // Sanity check
-    if (remaining.get(srcAttemptId.toString()) == null) {
-      wrongMapErrs.increment(1);
-      LOG.warn("Invalid map-output! Received output for " + srcAttemptId);
-      return false;
-    }
-    
     return true;
   }
   
@@ -658,7 +696,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
     if(LOG.isDebugEnabled()) {
       LOG.debug("Fetcher " + id + " going to fetch (local disk) from " + host + " for: "
-          + srcAttempts + ", partitionId: " + currentPartition);
+          + srcAttempts + ", partition range: " + minPartition + "-" + maxPartition);
     }
 
     // List of maps to be fetched yet
@@ -678,7 +716,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
 
           TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(),
-              currentPartition);
+              minPartition);
 
           mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
           long endTime = System.currentTimeMillis();

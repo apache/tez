@@ -51,6 +51,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -73,7 +74,7 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, null);
@@ -82,8 +83,8 @@ public class TestShuffleInputEventHandlerImpl {
     eventList.add(dme);
     handler.handleEvents(eventList);
 
-    InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(taskIndex, 0,
-        PATH_COMPONENT);
+    CompositeInputAttemptIdentifier expectedIdentifier = new CompositeInputAttemptIdentifier(taskIndex, 0,
+        PATH_COMPONENT, 1);
 
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier), eq(0));
   }
@@ -95,7 +96,7 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, createEmptyPartitionByteString(0));
@@ -116,7 +117,7 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     int taskIndex = 1;
     Event dme = createDataMovementEvent(0, taskIndex, createEmptyPartitionByteString(1));
@@ -124,7 +125,7 @@ public class TestShuffleInputEventHandlerImpl {
     eventList.add(dme);
     handler.handleEvents(eventList);
 
-    InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(taskIndex, 0, PATH_COMPONENT);
+    CompositeInputAttemptIdentifier expectedIdentifier = new CompositeInputAttemptIdentifier(taskIndex, 0, PATH_COMPONENT, 1);
 
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier), eq(0));
   }
@@ -136,7 +137,7 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     int taskIndex1 = 1;
     Event dme1 = createDataMovementEvent(0, taskIndex1, createEmptyPartitionByteString(0));
@@ -149,7 +150,7 @@ public class TestShuffleInputEventHandlerImpl {
     handler.handleEvents(eventList);
 
     InputAttemptIdentifier expectedIdentifier1 = new InputAttemptIdentifier(taskIndex1, 0);
-    InputAttemptIdentifier expectedIdentifier2 = new InputAttemptIdentifier(taskIndex2, 0, PATH_COMPONENT);
+    CompositeInputAttemptIdentifier expectedIdentifier2 = new CompositeInputAttemptIdentifier(taskIndex2, 0, PATH_COMPONENT, 1);
 
     verify(shuffleManager).addCompletedInputWithNoData(eq(expectedIdentifier1));
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier2), eq(0));
@@ -209,22 +210,22 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     //0--> 1 with spill id 0 (attemptNum 0)
     Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expectedId1 = new InputAttemptIdentifier(1, 0,
-        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    CompositeInputAttemptIdentifier expectedId1 = new CompositeInputAttemptIdentifier(1, 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
     verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId1), eq(0));
 
     //0--> 1 with spill id 1 (attemptNum 0)
     dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expectedId2 = new InputAttemptIdentifier(1, 0,
-        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
+    CompositeInputAttemptIdentifier expectedId2 = new CompositeInputAttemptIdentifier(1, 0,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1, 1);
     verify(shuffleManager, times(2)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId2), eq(0));
 
     //0--> 1 with spill id 1 (attemptNum 1).  This should report exception
@@ -246,14 +247,14 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     //0--> 1 with spill id 0 (attemptNum 1).  attemptNum 0 is not sent.
     Event dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
 
-    InputAttemptIdentifier expected = new InputAttemptIdentifier(1, 1,
-        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
+    CompositeInputAttemptIdentifier expected = new CompositeInputAttemptIdentifier(1, 1,
+        PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1, 1);
     verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expected), eq(0));
 
     //Now send attemptNum 0.  This should throw exception, because attempt #1 is already added
@@ -275,7 +276,7 @@ public class TestShuffleInputEventHandlerImpl {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(inputContext,
-        shuffleManager, inputAllocator, null, false, 0);
+        shuffleManager, inputAllocator, null, false, 0, false);
 
     //0--> 1 with spill id 0 (attemptNum 0) with empty partitions
     BitSet bitSet = new BitSet(4);

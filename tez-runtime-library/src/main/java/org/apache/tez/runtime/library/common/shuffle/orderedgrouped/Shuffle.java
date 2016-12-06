@@ -187,7 +187,8 @@ public class Shuffle implements ExceptionReporter {
 
     eventHandler= new ShuffleInputEventHandlerOrderedGrouped(
         inputContext,
-        scheduler);
+        scheduler,
+        conf);
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleAndMergeRunner {" + srcNameTrimmed + "}").build());

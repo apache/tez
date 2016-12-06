@@ -16,6 +16,7 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.Before;
@@ -153,7 +154,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
         0,
         "src vertex");
     scheduler = spy(realScheduler);
-    handler = new ShuffleInputEventHandlerOrderedGrouped(inputContext, scheduler);
+    handler = new ShuffleInputEventHandlerOrderedGrouped(inputContext, scheduler, config);
     mergeManager = mock(MergeManager.class);
   }
 
@@ -163,9 +164,9 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     int attemptNum = 0;
     int inputIdx = 0;
     Event dme1 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0);
-    InputAttemptIdentifier id1 =
-        new InputAttemptIdentifier(inputIdx, attemptNum,
-            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    CompositeInputAttemptIdentifier id1 =
+        new CompositeInputAttemptIdentifier(inputIdx, attemptNum,
+            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
     handler.handleEvents(Collections.singletonList(dme1));
     int partitionId = attemptNum;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(id1));
@@ -173,9 +174,9 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
 
     //Send final_update event.
     Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, false, 1);
-    InputAttemptIdentifier id2 =
-        new InputAttemptIdentifier(inputIdx, attemptNum,
-            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1);
+    CompositeInputAttemptIdentifier id2 =
+        new CompositeInputAttemptIdentifier(inputIdx, attemptNum,
+            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 1, 1);
     handler.handleEvents(Collections.singletonList(dme2));
     partitionId = attemptNum;
     assertTrue(scheduler.pipelinedShuffleInfoEventsMap.containsKey(id2.getInputIdentifier()));
@@ -224,9 +225,9 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     Event dme1 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0, attemptNum);
     handler.handleEvents(Collections.singletonList(dme1));
 
-    InputAttemptIdentifier id1 =
-        new InputAttemptIdentifier(inputIdx, attemptNum,
-            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
+    CompositeInputAttemptIdentifier id1 =
+        new CompositeInputAttemptIdentifier(inputIdx, attemptNum,
+            PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0, 1);
 
     verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(id1));
     assertTrue("Shuffle info events should not be empty for pipelined shuffle",
@@ -252,8 +253,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     Event dme = createDataMovementEvent(srcIdx, targetIdx, null, false);
     events.add(dme);
     handler.handleEvents(events);
-    InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0,
-        PATH_COMPONENT);
+    CompositeInputAttemptIdentifier expectedIdentifier = new CompositeInputAttemptIdentifier(targetIdx, 0,
+        PATH_COMPONENT, 1);
     int partitionId = srcIdx;
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId),
         eq(expectedIdentifier));
@@ -310,8 +311,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     events.add(dme);
     handler.handleEvents(events);
     int partitionId = srcIdx;
-    InputAttemptIdentifier expectedIdentifier =
-        new InputAttemptIdentifier(taskIndex, 0, PATH_COMPONENT);
+    CompositeInputAttemptIdentifier expectedIdentifier =
+        new CompositeInputAttemptIdentifier(taskIndex, 0, PATH_COMPONENT, 1);
     verify(scheduler).addKnownMapOutput(eq(HOST), eq(PORT), eq(partitionId), eq(expectedIdentifier));
   }
 

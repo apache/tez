@@ -71,11 +71,11 @@ public class TestFetcher {
 
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
         ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
-        PORT, false, true);
-    builder.assignWork(HOST, PORT, 0, Arrays.asList(srcAttempts));
+        PORT, false, true, false);
+    builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
 
-    FetchResult fr = new FetchResult(HOST, PORT, 0, Arrays.asList(srcAttempts));
+    FetchResult fr = new FetchResult(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
     Fetcher.HostFetchResult hfr = new Fetcher.HostFetchResult(fr, srcAttempts, false);
     doReturn(hfr).when(fetcher).setupLocalDiskFetch();
     doReturn(null).when(fetcher).doHttpFetch();
@@ -89,8 +89,8 @@ public class TestFetcher {
     // when enabled and hostname does not match use http fetch.
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
         ApplicationId.newInstance(0, 1), -1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
-        PORT, false, true);
-    builder.assignWork(HOST + "_OTHER", PORT, 0, Arrays.asList(srcAttempts));
+        PORT, false, true, false);
+    builder.assignWork(HOST + "_OTHER", PORT, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
 
     doReturn(null).when(fetcher).setupLocalDiskFetch();
@@ -105,8 +105,8 @@ public class TestFetcher {
     // when enabled and port does not match use http fetch.
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
         ApplicationId.newInstance(0, 1), -1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
-        PORT, false, true);
-    builder.assignWork(HOST, PORT + 1, 0, Arrays.asList(srcAttempts));
+        PORT, false, true, false);
+    builder.assignWork(HOST, PORT + 1, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
 
     doReturn(null).when(fetcher).setupLocalDiskFetch();
@@ -122,8 +122,8 @@ public class TestFetcher {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
         ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, DISABLE_LOCAL_FETCH, HOST,
-        PORT, false, true);
-    builder.assignWork(HOST, PORT, 0, Arrays.asList(srcAttempts));
+        PORT, false, true, false);
+    builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
 
     doReturn(null).when(fetcher).setupLocalDiskFetch();
@@ -156,8 +156,8 @@ public class TestFetcher {
     FetcherCallback callback = mock(FetcherCallback.class);
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
         ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
-        false, true);
-    builder.assignWork(HOST, PORT, partition, Arrays.asList(srcAttempts));
+        false, true, false);
+    builder.assignWork(HOST, PORT, partition, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
 
     doAnswer(new Answer<Path>() {
@@ -275,8 +275,8 @@ public class TestFetcher {
     FetcherCallback callback = mock(FetcherCallback.class);
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
         ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
-        false, true);
-    builder.assignWork(HOST, PORT, partition, Arrays.asList(srcAttempts));
+        false, true, false);
+    builder.assignWork(HOST, PORT, partition, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
     fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
     Assert.assertTrue(expectedSrcAttempts.length == fetcher.srcAttemptsRemaining.size());

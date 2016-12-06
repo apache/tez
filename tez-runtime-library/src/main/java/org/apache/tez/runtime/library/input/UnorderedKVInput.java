@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.common.Constants;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -122,6 +123,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
         codec = null;
       }
 
+      boolean compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
       boolean ifileReadAhead = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
           TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT);
       int ifileReadAheadLength = 0;
@@ -145,7 +147,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
           ifileReadAhead, ifileReadAheadLength, codec, inputManager);
 
       this.inputEventHandler = new ShuffleInputEventHandlerImpl(getContext(), shuffleManager,
-          inputManager, codec, ifileReadAhead, ifileReadAheadLength);
+          inputManager, codec, ifileReadAhead, ifileReadAheadLength, compositeFetch);
 
       ////// End of Initial configuration
 

@@ -46,6 +46,45 @@ class IndexCache {
   }
 
   /**
+   * This method gets the spill record for the given mapId.
+   * It reads the index file into cache if it is not already present.
+   * @param mapId
+   * @param fileName The file to read the index information from if it is not
+   *                 already present in the cache
+   * @param expectedIndexOwner The expected owner of the index file
+   * @return The spill record for this map
+   * @throws IOException
+   */
+  public TezSpillRecord getSpillRecord(String mapId, Path fileName, String expectedIndexOwner)
+      throws IOException {
+
+    IndexInformation info = cache.get(mapId);
+
+    if (info == null) {
+      info = readIndexFileToCache(fileName, mapId, expectedIndexOwner);
+    } else {
+      synchronized(info) {
+        while (isUnderConstruction(info)) {
+          try {
+            info.wait();
+          } catch (InterruptedException e) {
+            throw new IOException("Interrupted waiting for construction", e);
+          }
+        }
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
+      }
+    }
+
+    if (info.mapSpillRecord.size() == 0) {
+      throw new IOException("Invalid request " +
+          " Map Id = " + mapId + " Index Info Length = " + info.mapSpillRecord.size());
+    }
+    return info.mapSpillRecord;
+  }
+
+  /**
    * This method gets the index information for the given mapId and reduce.
    * It reads the index file into cache if it is not already present.
    * @param mapId
@@ -74,7 +113,9 @@ class IndexCache {
           }
         }
       }
-      LOG.debug("IndexCache HIT: MapId " + mapId + " found");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
+      }
     }
 
     if (info.mapSpillRecord.size() == 0 ||
@@ -108,10 +149,14 @@ class IndexCache {
           }
         }
       }
-      LOG.debug("IndexCache HIT: MapId " + mapId + " found");
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
+      }
       return info;
     }
-    LOG.debug("IndexCache MISS: MapId " + mapId + " not found") ;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("IndexCache MISS: MapId " + mapId + " not found");
+    }
     TezSpillRecord tmp = null;
     try {
       tmp = new TezSpillRecord(indexFileName, conf, expectedIndexOwner);

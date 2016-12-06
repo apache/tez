@@ -65,6 +65,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.ReadaheadPool;
 import org.apache.hadoop.io.SecureIOUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapred.proto.ShuffleHandlerRecoveryProtos.JobShuffleInfoProto;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
@@ -94,6 +95,7 @@ import org.apache.hadoop.yarn.server.api.AuxiliaryService;
 import org.apache.hadoop.yarn.server.records.Version;
 import org.apache.hadoop.yarn.server.records.impl.pb.VersionPBImpl;
 import org.apache.hadoop.yarn.server.utils.LeveldbIterator;
+import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.fusesource.leveldbjni.JniDBFactory;
 import org.fusesource.leveldbjni.internal.NativeDB;
 import org.iq80.leveldb.DB;
@@ -306,20 +308,20 @@ public class ShuffleHandler extends AuxiliaryService {
     private List<String> mapIds;
     private AtomicInteger mapsToWait;
     private AtomicInteger mapsToSend;
-    private int reduceId;
+    private Range reduceRange;
     private ChannelHandlerContext ctx;
     private String user;
     private Map<String, Shuffle.MapOutputInfo> infoMap;
     private String jobId;
     private String dagId;
 
-    public ReduceContext(List<String> mapIds, int rId,
+    public ReduceContext(List<String> mapIds, Range reduceRange,
                          ChannelHandlerContext context, String usr,
                          Map<String, Shuffle.MapOutputInfo> mapOutputInfoMap,
                          String jobId, String dagId) {
 
       this.mapIds = mapIds;
-      this.reduceId = rId;
+      this.reduceRange = reduceRange;
       this.dagId = dagId;
       /**
       * Atomic count for tracking the no. of map outputs that are yet to
@@ -340,8 +342,8 @@ public class ShuffleHandler extends AuxiliaryService {
       this.jobId = jobId;
     }
 
-    public int getReduceId() {
-      return reduceId;
+    public Range getReduceRange() {
+      return reduceRange;
     }
 
     public ChannelHandlerContext getCtx() {
@@ -798,6 +800,29 @@ public class ShuffleHandler extends AuxiliaryService {
 
   }
 
+  protected static class Range {
+    final int first;
+    final int last;
+
+    Range(int first, int last) {
+      this.first = first;
+      this.last = last;
+    }
+
+    int getFirst() {
+      return first;
+    }
+
+    int getLast() {
+      return last;
+    }
+
+    @Override
+    public String toString() {
+      return new String("range: " + first + "-" + last);
+    }
+  }
+
   class Shuffle extends SimpleChannelUpstreamHandler {
 
     private static final int MAX_WEIGHT = 10 * 1024 * 1024;
@@ -865,11 +890,24 @@ public class ShuffleHandler extends AuxiliaryService {
       if (null == mapq) {
         return null;
       }
-      final List<String> ret = new ArrayList<String>();
+      final List<String> ret = new ArrayList<>();
       for (String s : mapq) {
         Collections.addAll(ret, s.split(","));
       }
       return ret;
+    }
+
+    private Range splitReduces(List<String> reduceq) {
+      if (null == reduceq || reduceq.size() != 1) {
+        return null;
+      }
+      String[] reduce = reduceq.get(0).split("-");
+      int first = Integer.parseInt(reduce[0]);
+      int last = first;
+      if (reduce.length > 1) {
+        last = Integer.parseInt(reduce[1]);
+      }
+      return new Range(first, last);
     }
 
     @Override
@@ -915,13 +953,13 @@ public class ShuffleHandler extends AuxiliaryService {
         }
       }
       final List<String> mapIds = splitMaps(q.get("map"));
-      final List<String> reduceQ = q.get("reduce");
+      final Range reduceRange = splitReduces(q.get("reduce"));
       final List<String> jobQ = q.get("job");
       final List<String> dagIdQ = q.get("dag");
       if (LOG.isDebugEnabled()) {
         LOG.debug("RECV: " + request.getUri() +
             "\n  mapId: " + mapIds +
-            "\n  reduceId: " + reduceQ +
+            "\n  reduceId: " + reduceRange +
             "\n  jobId: " + jobQ +
             "\n  dagId: " + dagIdQ +
             "\n  keepAlive: " + keepAliveParam);
@@ -930,11 +968,11 @@ public class ShuffleHandler extends AuxiliaryService {
       if (deleteDagDirectories(evt, dagCompletedQ, jobQ, dagIdQ))  {
         return;
       }
-      if (mapIds == null || reduceQ == null || jobQ == null || dagIdQ == null) {
+      if (mapIds == null || reduceRange == null || jobQ == null || dagIdQ == null) {
         sendError(ctx, "Required param job, dag, map and reduce", BAD_REQUEST);
         return;
       }
-      if (reduceQ.size() != 1 || jobQ.size() != 1) {
+      if (jobQ.size() != 1) {
         sendError(ctx, "Too many job/reduce parameters", BAD_REQUEST);
         return;
       }
@@ -944,13 +982,11 @@ public class ShuffleHandler extends AuxiliaryService {
       // on log4j.properties by uncommenting the setting
       if (AUDITLOG.isDebugEnabled()) {
         AUDITLOG.debug("shuffle for " + jobQ.get(0) +
-                         " reducer " + reduceQ.get(0));
+                         " reducer " + reduceRange);
       }
-      int reduceId;
       String jobId;
       String dagId;
       try {
-        reduceId = Integer.parseInt(reduceQ.get(0));
         jobId = jobQ.get(0);
         dagId = dagIdQ.get(0);
       } catch (NumberFormatException e) {
@@ -982,7 +1018,7 @@ public class ShuffleHandler extends AuxiliaryService {
       String user = userRsrc.get(jobId);
 
       try {
-        populateHeaders(mapIds, jobId, dagId, user, reduceId, request,
+        populateHeaders(mapIds, jobId, dagId, user, reduceRange,
           response, keepAliveParam, mapOutputInfoMap);
       } catch(IOException e) {
         ch.write(response);
@@ -993,7 +1029,7 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       ch.write(response);
       //Initialize one ReduceContext object per messageReceived call
-      ReduceContext reduceContext = new ReduceContext(mapIds, reduceId, ctx,
+      ReduceContext reduceContext = new ReduceContext(mapIds, reduceRange, ctx,
           user, mapOutputInfoMap, jobId, dagId);
       for (int i = 0; i < Math.min(maxSessionOpenFiles, mapIds.size()); i++) {
         ChannelFuture nextMap = sendMap(reduceContext);
@@ -1050,14 +1086,14 @@ public class ShuffleHandler extends AuxiliaryService {
           MapOutputInfo info = reduceContext.getInfoMap().get(mapId);
           if (info == null) {
             info = getMapOutputInfo(reduceContext.dagId, mapId,
-                reduceContext.getReduceId(), reduceContext.getJobId(),
+                reduceContext.getJobId(),
                 reduceContext.getUser());
           }
           nextMap = sendMapOutput(
               reduceContext.getCtx(),
               reduceContext.getCtx().getChannel(),
               reduceContext.getUser(), mapId,
-              reduceContext.getReduceId(), info);
+              reduceContext.getReduceRange(), info);
           if (null == nextMap) {
             sendError(reduceContext.getCtx(), NOT_FOUND);
             return null;
@@ -1103,7 +1139,7 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                             int reduce, String jobId,
+                                             String jobId,
                                              String user) throws IOException {
       AttemptPathInfo pathInfo;
       try {
@@ -1123,8 +1159,8 @@ public class ShuffleHandler extends AuxiliaryService {
         }
       }
 
-      TezIndexRecord info =
-        indexCache.getIndexInformation(mapId, reduce, pathInfo.indexPath, user);
+      TezSpillRecord spillRecord =
+          indexCache.getSpillRecord(mapId, pathInfo.indexPath, user);
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("getMapOutputInfo: jobId=" + jobId + ", mapId=" + mapId +
@@ -1132,13 +1168,14 @@ public class ShuffleHandler extends AuxiliaryService {
             pathInfo.indexPath);
       }
 
-      MapOutputInfo outputInfo = new MapOutputInfo(pathInfo.dataPath, info);
+
+      MapOutputInfo outputInfo = new MapOutputInfo(pathInfo.dataPath, spillRecord);
       return outputInfo;
     }
 
     protected void populateHeaders(List<String> mapIds, String jobId,
                                    String dagId, String user,
-                                   int reduce, HttpRequest request,
+                                   Range reduceRange,
                                    HttpResponse response,
                                    boolean keepAliveParam,
                                    Map<String, MapOutputInfo> mapOutputInfoMap)
@@ -1146,20 +1183,21 @@ public class ShuffleHandler extends AuxiliaryService {
 
       long contentLength = 0;
       for (String mapId : mapIds) {
-        MapOutputInfo outputInfo =
-            getMapOutputInfo(dagId, mapId, reduce, jobId, user);
+        MapOutputInfo outputInfo = getMapOutputInfo(dagId, mapId, jobId, user);
         if (mapOutputInfoMap.size() < mapOutputMetaInfoCacheSize) {
           mapOutputInfoMap.put(mapId, outputInfo);
         }
-
-        ShuffleHeader header =
-            new ShuffleHeader(mapId, outputInfo.indexRecord.getPartLength(),
-            outputInfo.indexRecord.getRawLength(), reduce);
         DataOutputBuffer dob = new DataOutputBuffer();
-        header.write(dob);
+        for (int reduce = reduceRange.getFirst(); reduce <= reduceRange.getLast(); reduce++) {
+          TezIndexRecord indexRecord = outputInfo.spillRecord.getIndex(reduce);
+          ShuffleHeader header =
+              new ShuffleHeader(mapId, indexRecord.getPartLength(), indexRecord.getRawLength(), reduce);
+          dob.reset();
+          header.write(dob);
 
-        contentLength += outputInfo.indexRecord.getPartLength();
-        contentLength += dob.getLength();
+          contentLength += dob.getLength();
+          contentLength += indexRecord.getPartLength();
+        }
       }
 
       // Now set the response headers.
@@ -1185,11 +1223,11 @@ public class ShuffleHandler extends AuxiliaryService {
 
     class MapOutputInfo {
       final Path mapOutputFileName;
-      final TezIndexRecord indexRecord;
+      final TezSpillRecord spillRecord;
 
-      MapOutputInfo(Path mapOutputFileName, TezIndexRecord indexRecord) {
+      MapOutputInfo(Path mapOutputFileName, TezSpillRecord spillRecord) {
         this.mapOutputFileName = mapOutputFileName;
-        this.indexRecord = indexRecord;
+        this.spillRecord = spillRecord;
       }
     }
 
@@ -1235,28 +1273,46 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx, Channel ch,
-        String user, String mapId, int reduce, MapOutputInfo mapOutputInfo)
+                                          String user, String mapId, Range reduceRange, MapOutputInfo outputInfo)
         throws IOException {
-      final TezIndexRecord info = mapOutputInfo.indexRecord;
-      final ShuffleHeader header =
-        new ShuffleHeader(mapId, info.getPartLength(), info.getRawLength(), reduce);
-      final DataOutputBuffer dob = new DataOutputBuffer();
-      header.write(dob);
-      ch.write(wrappedBuffer(dob.getData(), 0, dob.getLength()));
-      final File spillfile =
-          new File(mapOutputInfo.mapOutputFileName.toString());
+      TezIndexRecord firstIndex = null;
+      TezIndexRecord lastIndex = null;
+
+      DataOutputBuffer dobRange = new DataOutputBuffer();
+      // Indicate how many record to be written
+      WritableUtils.writeVInt(dobRange, reduceRange.getLast() - reduceRange.getFirst() + 1);
+      ch.write(wrappedBuffer(dobRange.getData(), 0, dobRange.getLength()));
+      for (int reduce = reduceRange.getFirst(); reduce <= reduceRange.getLast(); reduce++) {
+        TezIndexRecord index = outputInfo.spillRecord.getIndex(reduce);
+        // Records are only valid if they have a non-zero part length
+        if (index.getPartLength() != 0) {
+          if (firstIndex == null) {
+            firstIndex = index;
+          }
+          lastIndex = index;
+        }
+
+        ShuffleHeader header = new ShuffleHeader(mapId, index.getPartLength(), index.getRawLength(), reduce);
+        DataOutputBuffer dob = new DataOutputBuffer();
+        header.write(dob);
+        ch.write(wrappedBuffer(dob.getData(), 0, dob.getLength()));
+      }
+
+      final long rangeOffset = firstIndex.getStartOffset();
+      final long rangePartLength = lastIndex.getStartOffset() + lastIndex.getPartLength() - firstIndex.getStartOffset();
+      final File spillFile = new File(outputInfo.mapOutputFileName.toString());
       RandomAccessFile spill;
       try {
-        spill = SecureIOUtils.openForRandomRead(spillfile, "r", user, null);
+        spill = SecureIOUtils.openForRandomRead(spillFile, "r", user, null);
       } catch (FileNotFoundException e) {
-        LOG.info(spillfile + " not found");
+        LOG.info(spillFile + " not found");
         return null;
       }
       ChannelFuture writeFuture;
       if (ch.getPipeline().get(SslHandler.class) == null) {
         final FadvisedFileRegion partition = new FadvisedFileRegion(spill,
-            info.getStartOffset(), info.getPartLength(), manageOsCache, readaheadLength,
-            readaheadPool, spillfile.getAbsolutePath(),
+            rangeOffset, rangePartLength, manageOsCache, readaheadLength,
+            readaheadPool, spillFile.getAbsolutePath(),
             shuffleBufferSize, shuffleTransferToAllowed);
         writeFuture = ch.write(partition);
         writeFuture.addListener(new ChannelFutureListener() {
@@ -1273,13 +1329,13 @@ public class ShuffleHandler extends AuxiliaryService {
       } else {
         // HTTPS cannot be done with zero copy.
         final FadvisedChunkedFile chunk = new FadvisedChunkedFile(spill,
-            info.getStartOffset(), info.getPartLength(), sslFileBufferSize,
+            rangeOffset, rangePartLength, sslFileBufferSize,
             manageOsCache, readaheadLength, readaheadPool,
-            spillfile.getAbsolutePath());
+            spillFile.getAbsolutePath());
         writeFuture = ch.write(chunk);
       }
       metrics.shuffleConnections.incr();
-      metrics.shuffleOutputBytes.incr(info.getPartLength()); // optimistic
+      metrics.shuffleOutputBytes.incr(rangePartLength); // optimistic
       return writeFuture;
     }
 

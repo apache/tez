@@ -88,7 +88,7 @@ public class TestShuffleManager {
     FetchedInputAllocator inputAllocator = mock(FetchedInputAllocator.class);
 
     ShuffleInputEventHandlerImpl handler = new ShuffleInputEventHandlerImpl(
-        inputContext, shuffleManager, inputAllocator, null, false, 0);
+        inputContext, shuffleManager, inputAllocator, null, false, 0, false);
     shuffleManager.run();
 
     List<Event> eventList = new LinkedList<Event>();

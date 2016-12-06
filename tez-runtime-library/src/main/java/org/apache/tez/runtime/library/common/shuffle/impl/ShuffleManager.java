@@ -48,6 +48,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -142,6 +143,7 @@ public class ShuffleManager implements FetcherCallback {
   private final boolean localDiskFetchEnabled;
   private final boolean sharedFetchEnabled;
   private final boolean verifyDiskChecksum;
+  private final boolean compositeFetch;
   
   private final int ifileBufferSize;
   private final boolean ifileReadAhead;
@@ -211,6 +213,7 @@ public class ShuffleManager implements FetcherCallback {
     this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
+    this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
     
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
@@ -419,7 +422,7 @@ public class ShuffleManager implements FetcherCallback {
       httpConnectionParams, inputManager, inputContext.getApplicationId(), inputContext.getDagIdentifier(),
         jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
         lockDisk, localDiskFetchEnabled, sharedFetchEnabled,
-        localhostName, shufflePort, asyncHttp, verifyDiskChecksum);
+        localhostName, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch);
 
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
@@ -456,7 +459,7 @@ public class ShuffleManager implements FetcherCallback {
       if (includedMaps >= maxTaskOutputAtOnce) {
         inputIter.remove();
         //add to inputHost
-        inputHost.addKnownInput(pendingInputsOfOnePartition.getPartition(),
+        inputHost.addKnownInput(pendingInputsOfOnePartition.getPartition(), pendingInputsOfOnePartition.getPartitionCount(),
             input);
       } else {
         includedMaps++;
@@ -467,6 +470,7 @@ public class ShuffleManager implements FetcherCallback {
     }
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
         pendingInputsOfOnePartition.getPartition(),
+        pendingInputsOfOnePartition.getPartitionCount(),
             pendingInputsOfOnePartition.getInputs());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created Fetcher for host: " + inputHost.getHost()
@@ -479,7 +483,7 @@ public class ShuffleManager implements FetcherCallback {
   /////////////////// Methods for InputEventHandler
   
   public void addKnownInput(String hostName, int port,
-      InputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
+                            CompositeInputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
     HostPort identifier = new HostPort(hostName, port);
     InputHost host = knownSrcHosts.get(identifier);
     if (host == null) {
@@ -497,13 +501,14 @@ public class ShuffleManager implements FetcherCallback {
     if (!validateInputAttemptForPipelinedShuffle(srcAttemptIdentifier)) {
       return;
     }
-
     int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
-    if (shuffleInfoEventsMap.get(inputIdentifier) == null) {
-      shuffleInfoEventsMap.put(inputIdentifier, new ShuffleEventInfo(srcAttemptIdentifier));
+    for (int i = 0; i < srcAttemptIdentifier.getInputIdentifierCount(); i++) {
+      if (shuffleInfoEventsMap.get(inputIdentifier + i) == null) {
+        shuffleInfoEventsMap.put(inputIdentifier + i, new ShuffleEventInfo(srcAttemptIdentifier.expand(i)));
+      }
     }
 
-    host.addKnownInput(srcPhysicalIndex, srcAttemptIdentifier);
+    host.addKnownInput(srcPhysicalIndex, srcAttemptIdentifier.getInputIdentifierCount(), srcAttemptIdentifier);
     lock.lock();
     try {
       boolean added = pendingHosts.offer(host);
@@ -1007,7 +1012,7 @@ public class ShuffleManager implements FetcherCallback {
           InputHost inputHost = knownSrcHosts.get(identifier);
           assert inputHost != null;
           for (InputAttemptIdentifier input : pendingInputs) {
-            inputHost.addKnownInput(result.getPartition(), input);
+            inputHost.addKnownInput(result.getPartition(), result.getPartitionCount(), input);
           }
           inputHost.setAdditionalInfo(result.getAdditionalInfo());
           pendingHosts.add(inputHost);

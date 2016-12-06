@@ -86,17 +86,23 @@ class MapHost {
   private final String host;
   private final int port;
   private final int partition;
+  private final int partitionCount;
   // Tracks attempt IDs
   private List<InputAttemptIdentifier> maps = new ArrayList<InputAttemptIdentifier>();
   
-  public MapHost(String host, int port, int partition) {
+  public MapHost(String host, int port, int partition, int partitionCount) {
     this.host = host;
     this.port = port;
     this.partition = partition;
+    this.partitionCount = partitionCount;
   }
 
   public int getPartitionId() {
     return partition;
+  }
+
+  public int getPartitionCount() {
+    return partitionCount;
   }
 
   public State getState() {

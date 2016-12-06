@@ -28,6 +28,7 @@ import java.util.zip.Inflater;
 import com.google.protobuf.ByteString;
 
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -61,6 +62,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   private final int ifileReadAheadLength;
   private final boolean useSharedInputs;
   private final InputContext inputContext;
+  private final boolean compositeFetch;
   private final Inflater inflater;
 
   private final AtomicInteger nextToLogEventCount = new AtomicInteger(0);
@@ -71,7 +73,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   public ShuffleInputEventHandlerImpl(InputContext inputContext,
                                       ShuffleManager shuffleManager,
                                       FetchedInputAllocator inputAllocator, CompressionCodec codec,
-                                      boolean ifileReadAhead, int ifileReadAheadLength) {
+                                      boolean ifileReadAhead, int ifileReadAheadLength, boolean compositeFetch) {
     this.inputContext = inputContext;
     this.shuffleManager = shuffleManager;
     this.inputAllocator = inputAllocator;
@@ -81,6 +83,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     // this currently relies on a user to enable the flag
     // expand on idea based on vertex parallelism and num inputs
     this.useSharedInputs = (inputContext.getTaskAttemptNumber() == 0);
+    this.compositeFetch = compositeFetch;
     this.inflater = TezCommonUtils.newInflater();
   }
 
@@ -113,10 +116,10 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       processDataMovementEvent(dmEvent, shufflePayload, emptyPartitionsBitSet);
       shuffleManager.updateEventReceivedTime();
     } else if (event instanceof CompositeRoutedDataMovementEvent) {
-      CompositeRoutedDataMovementEvent edme = (CompositeRoutedDataMovementEvent)event;
+      CompositeRoutedDataMovementEvent crdme = (CompositeRoutedDataMovementEvent)event;
       DataMovementEventPayloadProto shufflePayload;
       try {
-        shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(edme.getUserPayload()));
+        shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(crdme.getUserPayload()));
       } catch (InvalidProtocolBufferException e) {
         throw new TezUncheckedException("Unable to parse DataMovementEvent payload", e);
       }
@@ -129,9 +132,14 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           throw new TezUncheckedException("Unable to set the empty partition to succeeded", e);
         }
       }
-      for (int offset = 0; offset < edme.getCount(); offset++) {
-        numDmeEvents.incrementAndGet();
-        processDataMovementEvent(edme.expand(offset), shufflePayload, emptyPartitionsBitSet);
+      if (compositeFetch) {
+        numDmeEvents.addAndGet(crdme.getCount());
+        processCompositeRoutedDataMovementEvent(crdme, shufflePayload, emptyPartitionsBitSet);
+      } else {
+        for (int offset = 0; offset < crdme.getCount(); offset++) {
+          numDmeEvents.incrementAndGet();
+          processDataMovementEvent(crdme.expand(offset), shufflePayload, emptyPartitionsBitSet);
+        }
       }
       shuffleManager.updateEventReceivedTime();
     } else if (event instanceof InputFailedEvent) {
@@ -166,23 +174,59 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
     if (shufflePayload.hasEmptyPartitions()) {
       if (emptyPartitionsBitSet.get(srcIndex)) {
-        InputAttemptIdentifier srcAttemptIdentifier =
-            constructInputAttemptIdentifier(dme, shufflePayload, false);
+        CompositeInputAttemptIdentifier srcAttemptIdentifier =
+            constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(), shufflePayload, false);
         if (LOG.isDebugEnabled()) {
           LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
               + srcAttemptIdentifier + "]. Not fetching.");
         }
         numDmeEventsNoData.incrementAndGet();
-        shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
+        shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
         return;
       }
     }
 
-    InputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme,
+    CompositeInputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(),
         shufflePayload, (useSharedInputs && srcIndex == 0));
 
-    shuffleManager.addKnownInput(shufflePayload.getHost(),
-        shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
+    shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
+  }
+
+  private void processCompositeRoutedDataMovementEvent(CompositeRoutedDataMovementEvent crdme, DataMovementEventPayloadProto shufflePayload, BitSet emptyPartitionsBitSet) throws IOException {
+    int partitionId = crdme.getSourceIndex();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("DME srcIdx: " + partitionId + ", targetIndex: " + crdme.getTargetIndex() + ", count:" + crdme.getCount()
+          + ", attemptNum: " + crdme.getVersion() + ", payload: " + ShuffleUtils
+          .stringify(shufflePayload));
+    }
+
+    if (shufflePayload.hasEmptyPartitions()) {
+      CompositeInputAttemptIdentifier srcAttemptIdentifier =
+          constructInputAttemptIdentifier(crdme.getTargetIndex(), crdme.getCount(), crdme.getVersion(), shufflePayload, false);
+
+      boolean allPartitionsEmpty = true;
+      for (int i = 0; i < crdme.getCount(); i++) {
+        int srcPartitionId = partitionId + i;
+        allPartitionsEmpty &= emptyPartitionsBitSet.get(srcPartitionId);
+        if (emptyPartitionsBitSet.get(srcPartitionId)) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
+                + srcAttemptIdentifier + "]. Not fetching.");
+          }
+          numDmeEventsNoData.getAndIncrement();
+          shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(i));
+        }
+      }
+
+      if (allPartitionsEmpty) {
+        return;
+      }
+    }
+
+    CompositeInputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(crdme.getTargetIndex(), crdme.getCount(), crdme.getVersion(),
+        shufflePayload, (useSharedInputs && partitionId == 0));
+
+    shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, partitionId);
   }
 
   private void processInputFailedEvent(InputFailedEvent ife) {
@@ -193,26 +237,27 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
   /**
    * Helper method to create InputAttemptIdentifier
    *
-   * @param dmEvent
+   * @param targetIndex
+   * @param targetIndexCount
+   * @param version
    * @param shufflePayload
-   * @return InputAttemptIdentifier
+   * @param isShared
+   * @return CompositeInputAttemptIdentifier
    */
-  private InputAttemptIdentifier constructInputAttemptIdentifier(DataMovementEvent dmEvent,
+  private CompositeInputAttemptIdentifier constructInputAttemptIdentifier(int targetIndex, int targetIndexCount, int version,
       DataMovementEventPayloadProto shufflePayload, boolean isShared) {
     String pathComponent = (shufflePayload.hasPathComponent()) ? shufflePayload.getPathComponent() : null;
-    InputAttemptIdentifier srcAttemptIdentifier = null;
+    CompositeInputAttemptIdentifier srcAttemptIdentifier = null;
     if (shufflePayload.hasSpillId()) {
       int spillEventId = shufflePayload.getSpillId();
       boolean lastEvent = shufflePayload.getLastEvent();
       InputAttemptIdentifier.SPILL_INFO spillInfo = (lastEvent) ? InputAttemptIdentifier.SPILL_INFO
           .FINAL_UPDATE : InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE;
       srcAttemptIdentifier =
-          new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent
-              .getVersion(), pathComponent, isShared, spillInfo, spillEventId);
+          new CompositeInputAttemptIdentifier(targetIndex, version, pathComponent, isShared, spillInfo, spillEventId, targetIndexCount);
     } else {
       srcAttemptIdentifier =
-          new InputAttemptIdentifier(dmEvent.getTargetIndex(), dmEvent.getVersion(),
-              pathComponent, isShared);
+          new CompositeInputAttemptIdentifier(targetIndex, version, pathComponent, isShared, targetIndexCount);
     }
     return srcAttemptIdentifier;
   }
