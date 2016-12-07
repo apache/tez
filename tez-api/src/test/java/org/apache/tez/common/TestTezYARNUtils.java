@@ -19,15 +19,20 @@
 package org.apache.tez.common;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.junit.Assert;
 import org.junit.Test;
+
+import static org.apache.tez.common.TezYARNUtils.appendToEnvFromInputString;
+import static org.junit.Assert.assertEquals;
 
 public class TestTezYARNUtils {
 
@@ -103,5 +108,37 @@ public class TestTezYARNUtils {
     Assert.assertTrue(classpath.contains(Environment.PWD.$()));
     Assert.assertTrue(classpath.indexOf("foobar") >
         classpath.indexOf(Environment.PWD.$()));
+  }
+
+  @Test
+  public void testSetEnvFromInputString() {
+    Map<String, String> environment = new HashMap<String, String>();
+    environment.put("JAVA_HOME", "/path/jdk");
+    String goodEnv = "a1=1,b_2=2,_c=3,d=4,e=,f_win=%JAVA_HOME%"
+      + ",g_nix=$JAVA_HOME";
+    appendToEnvFromInputString(environment, goodEnv, File.pathSeparator);
+    assertEquals("1", environment.get("a1"));
+    assertEquals("2", environment.get("b_2"));
+    assertEquals("3", environment.get("_c"));
+    assertEquals("4", environment.get("d"));
+    assertEquals("", environment.get("e"));
+    if (Shell.WINDOWS) {
+      assertEquals("$JAVA_HOME", environment.get("g_nix"));
+      assertEquals("/path/jdk", environment.get("f_win"));
+    } else {
+      assertEquals("/path/jdk", environment.get("g_nix"));
+      assertEquals("%JAVA_HOME%", environment.get("f_win"));
+    }
+    String badEnv = "0=,1,,2=a=b,3=a=,4==,5==a,==,c-3=3,=";
+    environment.clear();
+    appendToEnvFromInputString(environment, badEnv, File.pathSeparator);
+    assertEquals(environment.size(), 0);
+
+    // Test "=" in the value part
+    environment.clear();
+    appendToEnvFromInputString(environment, "b1,e1==,e2=a1=a2,b2",
+      File.pathSeparator);
+    assertEquals("=", environment.get("e1"));
+    assertEquals("a1=a2", environment.get("e2"));
   }
 }
