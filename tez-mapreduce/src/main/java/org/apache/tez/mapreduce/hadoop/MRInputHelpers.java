@@ -453,6 +453,8 @@ public class MRInputHelpers {
       // sort the splits into order based on size, so that the biggest
       // go first
       Arrays.sort(splits, new InputSplitComparator());
+    } else {
+      Collections.shuffle(Arrays.asList(splits));
     }
     return splits;
   }
