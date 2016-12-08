@@ -777,8 +777,9 @@ public class TestFaultTolerance {
   @Test (timeout=240000)
   public void testNoProgress() throws Exception {
     Configuration testConf = new Configuration(false);
-    testConf.setInt(TestProcessor.TEZ_FAILING_PROCESSOR_SLEEP_MS, 1000*100); // long sleep
     testConf.setInt(SimpleTestDAG.TEZ_SIMPLE_DAG_NUM_TASKS, 1);
+    testConf.setLong(TestProcessor.getVertexConfName(
+        TestProcessor.TEZ_FAILING_PROCESSOR_SLEEP_MS, "v1"), 1000*100); // long sleep
     DAG dag = SimpleTestDAG.createDAG(testConf);
     Vertex hung = dag.getVertex("v1");
     hung.setConf(TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, Long.toString(1000));
