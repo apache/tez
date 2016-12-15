@@ -269,7 +269,7 @@ public class TezClientUtils {
         }
 
         LocalResourceVisibility lrVisibility;
-        if (checkAncestorPermissionsForAllUsers(conf, url.getFile(),
+        if (checkAncestorPermissionsForAllUsers(conf, p,
             FsAction.EXECUTE) &&
             fStatus.getPermission().getOtherAction().implies(FsAction.READ)) {
           lrVisibility = LocalResourceVisibility.PUBLIC;
@@ -1004,9 +1004,8 @@ public class TezClientUtils {
         + ( javaOpts != null ? javaOpts : "");
   }
 
-  private static boolean checkAncestorPermissionsForAllUsers(Configuration conf, String uri,
+  private static boolean checkAncestorPermissionsForAllUsers(Configuration conf, Path pathComponent,
                                                              FsAction permission) throws IOException {
-    Path pathComponent = new Path(uri);
     FileSystem fs = pathComponent.getFileSystem(conf);
 
     if (Shell.WINDOWS && fs instanceof LocalFileSystem) {
