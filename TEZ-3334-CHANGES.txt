@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3557. TEZ-3362 causes TestContainerLauncherWrapper#testDelegation to fail
   TEZ-3361. Fetch Multiple Partitions from the Shuffle Handler
   TEZ-3360. Tez Custom Shuffle Handler Documentation
   TEZ-3411. TestShuffleHandler#testSendMapCount should not used hard coded ShuffleHandler port
