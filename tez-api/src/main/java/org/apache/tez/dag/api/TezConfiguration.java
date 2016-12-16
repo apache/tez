@@ -1694,10 +1694,10 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_DELETION_TRACKER_CLASS =
-      TEZ_PREFIX + "history.logging.service.class";
+  public static final String TEZ_AM_DELETION_TRACKER_CLASS =
+      TEZ_AM_PREFIX + "deletion.tracker.class";
 
-  public static final String TEZ_DELETION_TRACKER_CLASS_DEFAULT =
+  public static final String TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT =
       "org.apache.tez.dag.app.launcher.DeletionTrackerImpl";
 
   /**

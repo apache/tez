@@ -325,8 +325,8 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
     };
     eventHandlingThread.setName("ContainerLauncher Event Handler");
     eventHandlingThread.start();
-    String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_DELETION_TRACKER_CLASS,
-        TezConfiguration.TEZ_DELETION_TRACKER_CLASS_DEFAULT);
+    String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
+        TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
     deletionTracker = ReflectionUtils.createClazzInstance(
         deletionTrackerClassName,new Class[] {
           Map.class, Configuration.class, String.class},
