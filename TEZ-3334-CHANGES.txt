@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3532. Backport MAPREDUCE-6808. Log map attempts as part of shuffle handler audit log
   TEZ-3563. Tez Shuffle Handler logging fails to initialize
   TEZ-3564. TezConfiguration#TEZ_DELETION_TRACKER_CLASS has the wrong config key-name
   TEZ-3557. TEZ-3362 causes TestContainerLauncherWrapper#testDelegation to fail
