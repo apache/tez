@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3565. amConfig should check queuename isEmpty.
   TEZ-3559. TEZ_LIB_URIS doesn't work with schemes different than the defaultFS
   TEZ-3558. CartesianProduct is missing from the ExampleDriver class
   TEZ-3549. TaskAttemptImpl does not initialize TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS correctly

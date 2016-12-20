@@ -689,7 +689,8 @@ public class TezClientUtils {
     }
     appContext.setApplicationId(appId);
     appContext.setResource(capability);
-    if (amConfig.getQueueName() != null) {
+    String queueName = amConfig.getQueueName();
+    if (queueName != null && !queueName.isEmpty()) {
       appContext.setQueue(amConfig.getQueueName());
     }
     // set the application priority
