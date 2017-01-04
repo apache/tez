@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +52,10 @@ import org.apache.tez.common.ATSConstants;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
+import org.apache.tez.dag.api.records.DAGProtos.DAGInformationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
+import org.apache.tez.dag.api.records.DAGProtos.VertexInformationProto;
+import org.apache.tez.dag.api.records.DAGProtos.TaskInformationProto;
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProto;
 import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCounterGroupProto;
@@ -59,10 +63,10 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
+import org.apache.tez.dag.api.records.DAGProtos.TaskStateProto;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-
 
 @Private
 public class DAGClientTimelineImpl extends DAGClientInternal {
@@ -198,7 +202,72 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     return getDAGStatus(statusGetOpts);
   }
 
- @Override
+  @Override
+  public DAGInformation getDAGInformation() throws IOException, TezException, ApplicationNotFoundException {
+    final String url = String.format("%s/%s/%s?fields=%s", baseUri, ATSConstants.TEZ_DAG_ID, dagId, FILTER_BY_FIELDS);
+    try {
+      final JSONObject jsonRoot = getJsonRootEntity(url);
+
+      DAGInformationProto.Builder informationBuilder = parseDagInformation(jsonRoot);
+      if (informationBuilder == null) {
+        throw new TezException("Failed to get DagInformation from ATS");
+      }
+
+      return new DAGInformation(informationBuilder);
+    } catch (JSONException je) {
+      throw new TezException("Failed to parse DagInformation json from YARN Timeline", je);
+    }
+  }
+
+  @Override
+  public TaskInformation getTaskInformation(String vertexID, String taskID) throws IOException, TezException, ApplicationNotFoundException {
+    String url = String.format("%s/%s/%s?fields=%s", baseUri, ATSConstants.TEZ_TASK_ID, taskID, FILTER_BY_FIELDS );
+    try {
+      final JSONObject jsonRoot = getJsonRootEntity(url);
+
+      TaskInformationProto.Builder informationBuilder = parseTaskInformation(jsonRoot);
+      if (informationBuilder == null) {
+        throw new TezException("Failed to get TaskInformation from ATS");
+      }
+
+      return new TaskInformation(informationBuilder);
+    } catch (JSONException je) {
+      throw new TezException("Failed to parse TaskInformation json from YARN Timeline", je);
+    }
+  }
+
+  @Override
+  public List<TaskInformation> getTaskInformation(String vertexID, @Nullable String startTaskID, int limit) throws IOException, TezException, ApplicationNotFoundException {
+    String url =
+      String.format("%s/%s?primaryFilter=%s:%s&fields=%s&limit=%s",
+        baseUri,
+        ATSConstants.TEZ_TASK_ID,
+        ATSConstants.TEZ_VERTEX_ID,
+        vertexID,
+        FILTER_BY_FIELDS,
+        limit );
+
+    if(startTaskID != null) {
+      url = String.format("%s&fromId=%s", url, startTaskID);
+    }
+
+    try {
+      JSONObject jsonRoot = getJsonRootEntity(url);
+      final JSONArray entitiesNode = jsonRoot.optJSONArray(ATSConstants.ENTITIES);
+
+      List<TaskInformation> taskInformationList = new ArrayList<>(entitiesNode.length());
+      for (int i =0; i < entitiesNode.length(); i++) {
+        TaskInformationProto.Builder informationBuilder = parseTaskInformation(entitiesNode.getJSONObject(i));
+        taskInformationList.add(new TaskInformation(informationBuilder));
+      }
+
+      return taskInformationList;
+    } catch (JSONException je) {
+      throw new TezException("Failed to parse TaskInformationList json from YARN Timeline", je);
+    }
+  }
+
+  @Override
   public void close() throws IOException {
     if (httpClient != null) {
       httpClient.destroy();
@@ -224,7 +293,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     if (statusOptions != null && statusOptions.contains(StatusGetOpts.GET_COUNTERS)) {
       final TezCountersProto.Builder tezCounterBuilder;
       final JSONObject countersNode = otherInfoNode.optJSONObject(ATSConstants.COUNTERS);
-      tezCounterBuilder = parseDagCounters(countersNode);
+      tezCounterBuilder = parseCounters(countersNode);
       if (tezCounterBuilder != null) {
         dagStatusBuilder.setDagCounters(tezCounterBuilder);
       }
@@ -249,6 +318,65 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     }
 
     return dagStatusBuilder;
+  }
+
+  @SuppressWarnings("unchecked")
+  private DAGInformationProto.Builder parseDagInformation(JSONObject jsonRoot)
+    throws JSONException, TezException {
+    DAGInformationProto.Builder dagInformationBuilder = DAGInformationProto.newBuilder();
+    final JSONObject primaryFiltersNode = jsonRoot.getJSONObject(ATSConstants.PRIMARY_FILTERS);
+    final JSONObject otherInfoNode = jsonRoot.getJSONObject(ATSConstants.OTHER_INFO);
+
+    final String dagId = jsonRoot.optString(ATSConstants.ENTITY);
+    final JSONObject dagPlanNode = otherInfoNode.getJSONObject(ATSConstants.DAG_PLAN);
+    final String dagName = dagPlanNode.optString(ATSConstants.DAG_NAME);
+
+    dagInformationBuilder.setDagId(dagId);
+    dagInformationBuilder.setName(dagName);
+
+    JSONObject vertexNameIDObject = otherInfoNode.getJSONObject(ATSConstants.VERTEX_NAME_ID_MAPPING);
+    List<VertexInformationProto> vertexInfoList = new ArrayList<>(vertexNameIDObject.length());
+
+    Iterator<String> keyIterator = vertexNameIDObject.keys();
+    while(keyIterator.hasNext()) {
+      VertexInformationProto.Builder vertexInfo = VertexInformationProto.newBuilder();
+      String vertexName = keyIterator.next();
+
+      vertexInfo.setName(vertexName);
+      vertexInfo.setId( (String)vertexNameIDObject.get(vertexName));
+      vertexInfoList.add(vertexInfo.build());
+    }
+
+    dagInformationBuilder.addAllVertices(vertexInfoList);
+    return dagInformationBuilder;
+  }
+
+  private TaskInformationProto.Builder parseTaskInformation(JSONObject jsonRoot)
+    throws JSONException, TezException {
+    TaskInformationProto.Builder taskInformationBuilder = TaskInformationProto.newBuilder();
+    final JSONObject otherInfoNode = jsonRoot.getJSONObject(ATSConstants.OTHER_INFO);
+
+    final String taskId = jsonRoot.optString(ATSConstants.ENTITY);
+    final Long startTime = otherInfoNode.optLong(ATSConstants.START_TIME);
+    final String diagnostics = otherInfoNode.optString(ATSConstants.DIAGNOSTICS);
+    final String successfulAttemptId = otherInfoNode.optString(ATSConstants.SUCCESSFUL_ATTEMPT_ID);
+    final Long scheduledTime = otherInfoNode.optLong(ATSConstants.SCHEDULED_TIME);
+    final Long endTime = otherInfoNode.optLong(ATSConstants.FINISH_TIME);
+    final String stateStr = otherInfoNode.optString(ATSConstants.STATUS);
+
+    JSONObject countersNode = otherInfoNode.optJSONObject( ATSConstants.COUNTERS );
+    TezCountersProto.Builder countersBuilder = parseCounters(countersNode);
+
+    taskInformationBuilder.setId(taskId);
+    taskInformationBuilder.setDiagnostics(diagnostics);
+    taskInformationBuilder.setStartTime(startTime);
+    taskInformationBuilder.setScheduledTime(scheduledTime);
+    taskInformationBuilder.setEndTime(endTime);
+    taskInformationBuilder.setState(taskStateProtoMap.get(stateStr));
+    taskInformationBuilder.setSuccessfulAttemptId(successfulAttemptId);
+    taskInformationBuilder.setTaskCounters(countersBuilder);
+
+    return taskInformationBuilder;
   }
 
   private ProgressProto.Builder getProgressBuilder(Map<String, VertexTaskStats> vertexTaskStatsMap,
@@ -307,7 +435,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     if (statusOptions != null && statusOptions.contains(StatusGetOpts.GET_COUNTERS)) {
       final TezCountersProto.Builder tezCounterBuilder;
       final JSONObject countersNode = otherInfoNode.optJSONObject(ATSConstants.COUNTERS);
-      tezCounterBuilder = parseDagCounters(countersNode);
+      tezCounterBuilder = parseCounters(countersNode);
       if (tezCounterBuilder != null) {
         vertexStatusBuilder.setVertexCounters(tezCounterBuilder);
       }
@@ -316,7 +444,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     return vertexStatusBuilder;
   }
 
-  private TezCountersProto.Builder parseDagCounters(JSONObject countersNode)
+  private TezCountersProto.Builder parseCounters(JSONObject countersNode)
       throws JSONException {
     if (countersNode == null) {
       return null;
@@ -354,7 +482,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     final JSONArray counterNodes = counterGroupNode.optJSONArray(ATSConstants.COUNTERS);
     final int numCounters = counterNodes.length();
 
-    List<TezCounterProto> counters = new ArrayList<TezCounterProto>(numCounters);
+    List<TezCounterProto> counters = new ArrayList<>(numCounters);
 
     for (int i = 0; i < numCounters; i++) {
       final JSONObject counterNode = counterNodes.getJSONObject(i);
@@ -390,7 +518,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
       if (vertexNodes != null) {
         final int numVertexNodes = vertexNodes.length();
         Map<String, VertexTaskStats> vertexTaskStatsMap =
-            new HashMap<String, VertexTaskStats>(numVertexNodes);
+            new HashMap<>(numVertexNodes);
         for (int i = 0; i < numVertexNodes; i++) {
           final JSONObject vertexNode = vertexNodes.getJSONObject(i);
           final JSONObject otherInfoNode = vertexNode.getJSONObject(ATSConstants.OTHER_INFO);
@@ -504,6 +632,15 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
         put("COMMITTING", VertexStatusStateProto.VERTEX_COMMITTING);
       }});
 
+  private static final Map<String, TaskStateProto> taskStateProtoMap =
+    Collections.unmodifiableMap(new HashMap<String, TaskStateProto>() {{
+      put("NEW", TaskStateProto.TASK_NEW);
+      put("SCHEDULED", TaskStateProto.TASK_SCHEDULED);
+      put("RUNNING", TaskStateProto.TASK_RUNNING);
+      put("SUCCEEDED", TaskStateProto.TASK_SUCCEEDED);
+      put("FAILED", TaskStateProto.TASK_FAILED);
+      put("KILLED", TaskStateProto.TASK_KILLED);
+    }});
 
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,

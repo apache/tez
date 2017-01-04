@@ -19,12 +19,21 @@
 package org.apache.tez.dag.api.client;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.tez.dag.api.oldrecords.TaskReport;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.TaskImpl;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.ipc.Server;
@@ -71,6 +80,125 @@ public class DAGClientHandler {
   public DAGStatus getDAGStatus(String dagIdStr,
       Set<StatusGetOpts> statusOptions, long timeout) throws TezException {
     return getDAG(dagIdStr).getDAGStatus(statusOptions, timeout);
+  }
+
+  public DAGInformation getDAGInformation(String dagIdStr) throws TezException {
+    DAG dag = getDAG(dagIdStr);
+
+    DAGInformationBuilder dagInformationBuilder = new DAGInformationBuilder();
+    dagInformationBuilder.setDagId(dagIdStr);
+    dagInformationBuilder.setName(dag.getName());
+
+    Map<TezVertexID, Vertex> vertexMap = dag.getVertices();
+    List<VertexInformation> vertexInfoList = new ArrayList<>(vertexMap.size());
+    for (Map.Entry<TezVertexID, Vertex> entry : vertexMap.entrySet()) {
+      VertexInformationBuilder vertexBuilder = new VertexInformationBuilder();
+      vertexBuilder.setName(entry.getValue().getName());
+      vertexBuilder.setId(entry.getValue().getVertexId().toString());
+      vertexInfoList.add(vertexBuilder);
+    }
+
+    dagInformationBuilder.setVertexInformationList(vertexInfoList);
+    return dagInformationBuilder;
+  }
+
+  public TaskInformation getTaskInformation(String dagId, String vertexId, String taskId) throws TezException {
+    DAG dag = getDAG(dagId);
+    Vertex vertex = dag.getVertex(getVertexId(vertexId));
+    if (vertex == null) {
+      throw new TezException("Vertex not found: " + vertexId);
+    }
+
+    Task task = vertex.getTask(getTaskId(taskId));
+    if (task == null) {
+      throw new TezException("Task not found: " + taskId);
+    }
+
+    return getTaskInfoFromTask(task);
+  }
+
+  public List<TaskInformation> getTaskInformationList(String dagId, String vertexId, String startTaskId, int limit) throws TezException {
+    DAG dag = getDAG(dagId);
+    Vertex vertex = dag.getVertex(getVertexId(vertexId));
+    if (vertex == null) {
+      throw new TezException("Vertex not found: " + vertexId);
+    }
+
+    Iterable<Task> taskList;
+    if (startTaskId != null) {
+      Task startTask = vertex.getTask(getTaskId(startTaskId));
+      if (startTask == null) {
+        throw new TezException("Start task not found: " + startTaskId);
+      }
+      taskList = vertex.getTaskSubset(startTask, limit);
+    } else {
+      // need to start from the beginning
+      taskList = vertex.getTaskSubset(limit);
+    }
+
+    List<TaskInformation> taskInformationList = new ArrayList<>(limit);
+    for( Task task : taskList) {
+      taskInformationList.add(getTaskInfoFromTask(task));
+    }
+
+    return taskInformationList;
+  }
+
+  private TaskInformation getTaskInfoFromTask(Task task) throws TezException {
+    TaskInformationBuilder builder = new TaskInformationBuilder();
+    TaskReport report = task.getReport();
+
+    builder.setId(task.getTaskId().toString());
+    builder.setDiagnostics(StringUtils.join(task.getDiagnostics(), TaskImpl.LINE_SEPARATOR));
+    builder.setStartTime(report.getStartTime());
+    builder.setScheduledTime(task.getScheduledTime());
+    builder.setEndTime(task.getFinishTime());
+    builder.setState(convertState(task.getState()));
+    TaskAttempt successfulAttempt = task.getSuccessfulAttempt();
+    if (successfulAttempt != null) {
+      builder.setSuccessfulAttemptId(successfulAttempt.getID().toString());
+    }
+    if (task.getCounters() != null) {
+      builder.setTaskCounters(task.getCounters());
+    }
+
+    return builder;
+  }
+
+  // we should switch the TaskState objects in Task to be consistent
+  private TaskState convertState(org.apache.tez.dag.api.oldrecords.TaskState state) throws TezException {
+    switch (state) {
+      case NEW:
+        return TaskState.NEW;
+      case SCHEDULED:
+        return TaskState.SCHEDULED;
+      case RUNNING:
+        return TaskState.RUNNING;
+      case SUCCEEDED:
+        return TaskState.SUCCEEDED;
+      case FAILED:
+        return TaskState.FAILED;
+      case KILLED:
+        return TaskState.KILLED;
+      default:
+        throw new TezException("Invalid enum value for TaskState: " + state);
+    }
+  }
+
+  private TezVertexID getVertexId(String vertexId) throws TezException {
+    try {
+      return TezVertexID.fromString(vertexId);
+    } catch (IllegalArgumentException e) {
+      throw new TezException("Bad vertexId: " + vertexId);
+    }
+  }
+
+  private TezTaskID getTaskId(String taskId) throws TezException {
+    try {
+      return TezTaskID.fromString(taskId);
+    } catch (IllegalArgumentException e) {
+      throw new TezException("Bad taskId: " + taskId);
+    }
   }
 
   public VertexStatus getVertexStatus(String dagIdStr, String vertexName,

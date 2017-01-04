@@ -20,6 +20,7 @@ package org.apache.tez.dag.api.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -73,6 +74,37 @@ public abstract class DAGClient implements Closeable {
   public abstract DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout)
       throws IOException, TezException;
+
+  /**
+   * Get basic DAG information details such as name / id / vertex ID -> name mapping
+   * @return DAG information
+   * @throws IOException
+   * @throws TezException
+   */
+  public abstract DAGInformation getDAGInformation() throws IOException, TezException;
+
+  /**
+   * Retrieve some details for a given task such as state / task counters etc.
+   * @param vertexID ID of the vertex to which the task belongs
+   * @param taskID ID of the task whose details need to be retrieved
+   * @return Task information
+   * @throws IOException
+   * @throws TezException
+   */
+  public abstract TaskInformation getTaskInformation(String vertexID, String taskID) throws IOException, TezException;
+
+  /**
+   * Retrieve a list of task information objects. This API can be called multiple times to paginate
+   * over task information for a set of tasks at a time.
+   * @param vertexID ID of the vertex to which the tasks belong
+   * @param startTaskID if null, we retrieve Task information details from the first task (ordered by TaskID).
+   * If not null, we retrieve task information for tasks starting with this task.
+   * @param limit Number of task information objects to retrieve
+   * @return List of Task information objects.
+   * @throws IOException
+   * @throws TezException
+   */
+  public abstract List<TaskInformation> getTaskInformation(String vertexID, @Nullable String startTaskID, int limit) throws IOException, TezException;
 
   /**
    * Get the status of a Vertex of a DAG

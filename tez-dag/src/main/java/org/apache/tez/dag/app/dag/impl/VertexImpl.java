@@ -32,7 +32,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -189,6 +191,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
@@ -230,6 +233,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private boolean lazyTasksCopyNeeded = false;
   // must be a linked map for ordering
   volatile LinkedHashMap<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
+  // this is used to implement pagination support - iterating tasks from a given task
+  volatile NavigableSet<Task> navigableTaskSet = new TreeSet<Task>(new TaskIdComparator());
+
   private Object fullCountersLock = new Object();
   private TezCounters fullCounters = null;
   private TezCounters cachedCounters = null;
@@ -1451,6 +1457,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
 
   @Override
+  public Iterable<Task> getTaskSubset(int limit) {
+    return Iterables.limit(navigableTaskSet, limit);
+  }
+
+  @Override
+  public Iterable<Task> getTaskSubset(Task startTask, int limit) {
+    NavigableSet<Task> tailSet = navigableTaskSet.tailSet(startTask, true);
+    return Iterables.limit(tailSet, limit);
+  }
+
+  @Override
   public VertexState getState() {
     readLock.lock();
     try {
@@ -1944,6 +1961,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         lazyTasksCopyNeeded = false;
       }
     }
+    navigableTaskSet.add(task);
     tasks.put(task.getTaskId(), task);
     // TODO Metrics
     //metrics.waitingTask(task);
@@ -2506,6 +2524,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         continue;
       }
       LOG.info("Removing task: " + entry.getKey());
+      navigableTaskSet.remove(entry.getValue());
       iter.remove();
       this.numTasks--;
     }

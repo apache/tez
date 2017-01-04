@@ -24,12 +24,14 @@ import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.slf4j.Logger;
@@ -206,6 +208,102 @@ public class DAGClientImpl extends DAGClient {
     } else { // Already running, or complete. Fallback to regular dagStatus with a timeout.
       return getDAGStatusInternal(statusOptions, timeout);
     }
+  }
+
+  //todo: cache dag info replies
+  @Override
+  public DAGInformation getDAGInformation() throws IOException, TezException {
+    if (!dagCompleted) {
+      DAGInformation dagInformation = getDAGInformationViaAM();
+
+      if (!dagCompleted && dagInformation != null) {
+          return dagInformation;
+      }
+
+      if (isATSEnabled && dagCompleted) {
+        switchToTimelineClient();
+      }
+    }
+
+    if (isATSEnabled && dagCompleted) {
+      try {
+        return realClient.getDAGInformation();
+      } catch (ApplicationNotFoundException e) {
+        LOG.info("Failed to fetch DAGInformation data for completed DAG from YARN Timeline"
+          + " - Application not found by YARN", e);
+        return null;
+      } catch (TezException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("ERROR fetching DAGInformation data from Yarn Timeline. " + e.getMessage());
+        }
+      }
+    }
+
+    return null;
+  }
+
+  //todo: cache replies
+  @Override
+  public TaskInformation getTaskInformation(String vertexID, String taskID) throws IOException, TezException {
+    if (!dagCompleted) {
+      TaskInformation taskInformation = getTaskInformationViaAM(vertexID, taskID);
+
+      if (!dagCompleted && taskInformation != null) {
+        return taskInformation;
+      }
+
+      if (isATSEnabled && dagCompleted) {
+        switchToTimelineClient();
+      }
+    }
+
+    if (isATSEnabled && dagCompleted) {
+      try {
+        return realClient.getTaskInformation(vertexID, taskID);
+      } catch (ApplicationNotFoundException e) {
+        LOG.info("Failed to fetch TaskInformation data for completed DAG from YARN Timeline"
+          + " - Application not found by YARN", e);
+        return null;
+      } catch (TezException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("ERROR fetching TaskInformation data from Yarn Timeline. " + e.getMessage());
+        }
+      }
+    }
+
+    return null;
+  }
+
+  //todo: cache replies
+  @Override
+  public List<TaskInformation> getTaskInformation(String vertexID, @Nullable String startTaskID, int limit) throws IOException, TezException {
+    if (!dagCompleted) {
+      List<TaskInformation> taskInformationList = getTaskInformationViaAM(vertexID, startTaskID, limit);
+
+      if (!dagCompleted && taskInformationList != null) {
+        return taskInformationList;
+      }
+
+      if (isATSEnabled && dagCompleted) {
+        switchToTimelineClient();
+      }
+    }
+
+    if (isATSEnabled && dagCompleted) {
+      try {
+        return realClient.getTaskInformation(vertexID, startTaskID, limit);
+      } catch (ApplicationNotFoundException e) {
+        LOG.info("Failed to fetch TaskInformation data for completed DAG from YARN Timeline"
+          + " - Application not found by YARN", e);
+        return null;
+      } catch (TezException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("ERROR fetching TaskInformation data from Yarn Timeline. " + e.getMessage());
+        }
+      }
+    }
+
+    return Lists.newArrayList();
   }
 
   private DAGStatus getDAGStatusInternal(@Nullable Set<StatusGetOpts> statusOptions,
@@ -399,6 +497,75 @@ public class DAGClientImpl extends DAGClient {
     }
 
     return vertexStatus;
+  }
+
+  private DAGInformation getDAGInformationViaAM() {
+    DAGInformation dagInformation = null;
+    try {
+      dagInformation = realClient.getDAGInformation();
+    } catch (DAGNotRunningException e) {
+      LOG.info("DAG is no longer running", e);
+      dagCompleted = true;
+    } catch (ApplicationNotFoundException e) {
+      LOG.info("DAG is no longer running - application not found by YARN", e);
+      dagCompleted = true;
+    } catch (TezException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    } catch (IOException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    }
+
+    if (dagInformation == null && !dagCompleted) {
+      checkAndSetDagCompletionStatus();
+    }
+
+    return dagInformation;
+  }
+
+  private TaskInformation getTaskInformationViaAM(String vertexID, String taskID) {
+    TaskInformation taskInformation = null;
+    try {
+      taskInformation = realClient.getTaskInformation(vertexID, taskID);
+    } catch (DAGNotRunningException e) {
+      LOG.info("DAG is no longer running", e);
+      dagCompleted = true;
+    } catch (ApplicationNotFoundException e) {
+      LOG.info("DAG is no longer running - application not found by YARN", e);
+      dagCompleted = true;
+    } catch (TezException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    } catch (IOException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    }
+
+    if (taskInformation == null && !dagCompleted) {
+      checkAndSetDagCompletionStatus();
+    }
+
+    return taskInformation;
+  }
+
+  private List<TaskInformation> getTaskInformationViaAM(String vertexID, String startTaskID, int limit) {
+    List<TaskInformation> taskInformationList = null;
+    try {
+      taskInformationList = realClient.getTaskInformation(vertexID, startTaskID, limit);
+    } catch (DAGNotRunningException e) {
+      LOG.info("DAG is no longer running", e);
+      dagCompleted = true;
+    } catch (ApplicationNotFoundException e) {
+      LOG.info("DAG is no longer running - application not found by YARN", e);
+      dagCompleted = true;
+    } catch (TezException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    } catch (IOException e) {
+      // can be either due to a n/w issue of due to AM completed.
+    }
+
+    if (taskInformationList == null && !dagCompleted) {
+      checkAndSetDagCompletionStatus();
+    }
+
+    return taskInformationList;
   }
 
   /**
