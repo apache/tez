@@ -103,6 +103,11 @@ Issue with PhantomJS on building in PowerPC.
  manually install it. Please refer to https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md
  and install it globally for the build to work.
 
+Issue with PhantomJS on building in RHEL 6 - Latest versions of Node JS doesn't work well with RHEL 6.
+Please use the following profile to build with an older version of Node.
+
+ $ mvn package -PuseNode012
+
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
 
