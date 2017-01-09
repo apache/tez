@@ -16,12 +16,10 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 import DS from 'ember-data';
-import AbstractModel from './abstract';
+import TimedModel from './timed';
 
-export default AbstractModel.extend({
+export default TimedModel.extend({
   attemptID: DS.attr('string'),
 
   name: DS.attr('string'),
@@ -31,13 +29,6 @@ export default AbstractModel.extend({
 
   status: DS.attr('string'),
   finalStatus: DS.attr('string'),
-
-  startTime: DS.attr('number'),
-  endTime: DS.attr('number'),
-  duration: Ember.computed("startTime", "endTime", function () {
-    var duration = this.get("endTime") - this.get("startTime");
-    return duration > 0 ? duration : null;
-  }),
 
   diagnostics: DS.attr('string'),
 });

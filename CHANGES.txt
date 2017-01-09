@@ -156,6 +156,7 @@ ALL CHANGES:
   TEZ-3546. Tez UI: On sorting asc - Not Available must be at the top
   TEZ-3555. Tez UI: Build is failing in RHEL6
   TEZ-3570. Tez UI: Wait for sometime before tooltips are displayed
+  TEZ-3504. Tez UI: Duration is displaying invalid values when start or end time is invalid
 
 Release 0.8.5: Unreleased
 

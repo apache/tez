@@ -39,10 +39,6 @@ test('Basic creation test', function(assert) {
   assert.ok(model.status);
   assert.ok(model.progress);
 
-  assert.ok(model.startTime);
-  assert.ok(model.endTime);
-  assert.ok(model.duration);
-
   assert.ok(model._counterGroups);
   assert.ok(model.counterGroupsHash);
 });
@@ -79,16 +75,6 @@ test('progress test', function(assert) {
 
     model.set("status", "SUCCEEDED");
     assert.equal(model.get("progress"), 1);
-  });
-});
-
-test('duration test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("startTime", 100);
-    model.set("endTime", 200);
-    assert.equal(model.get("duration"), 100);
   });
 });
 
