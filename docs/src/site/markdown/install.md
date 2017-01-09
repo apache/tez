@@ -56,7 +56,7 @@ versions 0.8.3 and higher, Tez needs Apache Hadoop to be of version 2.6.0 or hig
 
     ```
     hadoop dfs -mkdir /apps/tez-x.y.z-SNAPSHOT
-    hadoop dfs -copyFromLocal tez-dist/target/tez-x.y.z-SNAPSHOT-archive.tar.gz /apps/tez-x.y.z-SNAPSHOT/
+    hadoop dfs -copyFromLocal tez-dist/target/tez-x.y.z-SNAPSHOT.tar.gz /apps/tez-x.y.z-SNAPSHOT/
     ```
 
     -   tez-site.xml configuration.
