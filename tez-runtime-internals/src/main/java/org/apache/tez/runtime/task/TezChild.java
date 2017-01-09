@@ -462,6 +462,8 @@ public class TezChild {
     // for each and every task, and reading it back from disk. Also needs to be per vertex.
     Limits.setConfiguration(conf);
 
+    TezUtilsInternal.setSecurityUtilConfigration(LOG, conf);
+
     // singleton of ObjectRegistry for this JVM
     ObjectRegistryImpl objectRegistry = new ObjectRegistryImpl();
 
