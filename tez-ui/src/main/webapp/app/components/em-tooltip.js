@@ -64,10 +64,10 @@ export default Ember.Component.extend({
       }
       this.set("_contents", contents);
 
+      this.set("show", true);
       Ember.run.later(this, function () {
         this.set("bubbles", this.$(".bubble"));
-        this.set("show", true);
-        this.renderTip();
+        Ember.run.debounce(this, "renderTip", 500);
       });
     }
     else if(tip){
@@ -95,7 +95,7 @@ export default Ember.Component.extend({
       y: event.clientY
     });
 
-    if(Ember.get(event, "data.tip")) {
+    if(Ember.get(event, "data.tip") && event.data.get("tip").is(":visible")) {
       event.data.renderTip();
     }
   },
@@ -115,7 +115,7 @@ export default Ember.Component.extend({
   },
 
   renderTip: function () {
-    if(this.get("show")) {
+    if(this.get("show") && !this.get("isDestroyed")) {
       let x = this.get("x"),
           y = this.get("y"),
 

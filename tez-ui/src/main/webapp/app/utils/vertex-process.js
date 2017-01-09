@@ -195,6 +195,8 @@ export default Process.extend({
         vertexDescription = `Contribution ${options.contribution}%`;
         /* falls through */
       case "process-name":
+      case "event-bar":
+      case "process-line":
         let properties = this.getVisibleProps().map(function (definition) {
           return {
             name: definition.get("headerTitle"),
@@ -208,12 +210,6 @@ export default Process.extend({
           title: this.get("name"),
           properties: properties,
           description: vertexDescription
-        }];
-      break;
-      case "event-bar":
-      case "process-line":
-        contents = [{
-          title: this.get("name"),
         }];
       break;
       case "event":

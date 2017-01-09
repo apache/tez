@@ -155,6 +155,7 @@ ALL CHANGES:
   TEZ-3502. Tez UI: Search in All DAGs page doesn't work with numeric values
   TEZ-3546. Tez UI: On sorting asc - Not Available must be at the top
   TEZ-3555. Tez UI: Build is failing in RHEL6
+  TEZ-3570. Tez UI: Wait for sometime before tooltips are displayed
 
 Release 0.8.5: Unreleased
 

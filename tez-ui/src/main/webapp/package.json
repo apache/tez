@@ -59,6 +59,6 @@
   "dependencies": {
     "em-helpers": "0.5.14",
     "em-table": "0.4.0",
-    "em-tgraph": "0.0.7"
+    "em-tgraph": "0.0.9"
   }
 }
