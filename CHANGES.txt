@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3551. FrameworkClient created twice causing minor delay.
   TEZ-3566. Avoid caching fs isntances in TokenCache after a point.
   TEZ-3568. Update SecurityUtils configuration to pick user provided configuration.
   TEZ-3561. Fix wrong tez tarball name in install.md.

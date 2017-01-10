@@ -547,7 +547,6 @@ public class TezClient {
       }
     }
 
-    TezConfiguration dagClientConf = new TezConfiguration(amConfig.getTezConfiguration());
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
         usingTezArchiveDeploy, sessionCredentials, servicePluginsDescriptor, javaOptsChecker);
@@ -613,7 +612,9 @@ public class TezClient {
         + ", dagId=" + dagId
         + ", dagName=" + dag.getName());
     return new DAGClientImpl(sessionAppId, dagId,
-        dagClientConf, frameworkClient);
+        amConfig.getTezConfiguration(),
+        amConfig.getYarnConfiguration(),
+        frameworkClient);
   }
 
   /**
@@ -1030,7 +1031,8 @@ public class TezClient {
     }
     // wait for dag in non-session mode to start running, so that we can start to getDAGStatus
     waitNonSessionTillReady();
-    return getDAGClient(appId, amConfig.getTezConfiguration(), frameworkClient);
+    return getDAGClient(appId, amConfig.getTezConfiguration(), amConfig.getYarnConfiguration(),
+        frameworkClient);
   }
 
   private ApplicationId createApplication() throws TezException, IOException {
@@ -1052,11 +1054,19 @@ public class TezClient {
     return cachedTezJarResources;
   }
 
+  @Private
+  static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf, YarnConfiguration
+      yarnConf, FrameworkClient frameworkClient)
+      throws IOException, TezException {
+    return new DAGClientImpl(appId, getDefaultTezDAGID(appId), tezConf,
+        yarnConf, frameworkClient);
+  }
+
   @Private // Used only for MapReduce compatibility code
   static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
                                 FrameworkClient frameworkClient)
       throws IOException, TezException {
-    return new DAGClientImpl(appId, getDefaultTezDAGID(appId), tezConf, frameworkClient);
+    return getDAGClient(appId, tezConf, new YarnConfiguration(tezConf), frameworkClient);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java

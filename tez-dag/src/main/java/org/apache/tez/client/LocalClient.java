@@ -147,6 +147,11 @@ public class LocalClient extends FrameworkClient {
   }
 
   @Override
+  public boolean isRunning() {
+    return true;
+  }
+
+  @Override
   public ApplicationReport getApplicationReport(ApplicationId appId) {
     ApplicationReport report = Records.newRecord(ApplicationReport.class);
     report.setApplicationId(appId);

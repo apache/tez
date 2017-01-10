@@ -78,4 +78,6 @@ public abstract class FrameworkClient {
 
   public abstract ApplicationReport getApplicationReport(ApplicationId appId) throws YarnException, IOException;
 
+  public abstract boolean isRunning() throws IOException;
+
 }

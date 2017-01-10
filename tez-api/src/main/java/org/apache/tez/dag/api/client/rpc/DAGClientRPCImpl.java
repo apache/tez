@@ -227,8 +227,15 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   ApplicationReport getAppReport() throws IOException, TezException,
       ApplicationNotFoundException {
+    FrameworkClient client = null;
     try {
-      ApplicationReport appReport = frameworkClient.getApplicationReport(appId);
+      ApplicationReport appReport = null;
+      if (!frameworkClient.isRunning()) {
+        client = FrameworkClient.createFrameworkClient(conf);
+        appReport = client.getApplicationReport(appId);
+      } else {
+        appReport = frameworkClient.getApplicationReport(appId);
+      }
       if (LOG.isDebugEnabled()) {
         LOG.debug("App: " + appId + " in state: "
             + appReport.getYarnApplicationState());
@@ -238,6 +245,10 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       throw e;
     } catch (YarnException e) {
       throw new TezException(e);
+    } finally {
+      if (client != null) {
+        client.stop();
+      }
     }
   }
 
