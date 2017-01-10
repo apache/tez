@@ -19,13 +19,19 @@
 package org.apache.tez.common.security;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileSystemTestHelper.MockFileSystem;
+import org.apache.hadoop.fs.FilterFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
@@ -62,7 +68,6 @@ public class TestTokenCache {
 
       MockFileSystem fs1 = createFileSystemForServiceName("service1");
       MockFileSystem fs2 = createFileSystemForServiceName("service2");
-      MockFileSystem fs3 = createFileSystemForServiceName("service3");
 
       // get the tokens for fs1 & fs2 and write out to binary creds file
       Credentials creds = new Credentials();
@@ -86,6 +91,53 @@ public class TestTokenCache {
           // Ignore
         }
       }
+    }
+  }
+
+  @Test(timeout=5000)
+  public void testObtainTokensForFileSystems() throws Exception {
+    Path[] paths = makePaths(100, "test://dir/file");
+    Credentials creds = new Credentials();
+    Configuration conf = new Configuration(TestTokenCache.conf);
+    conf.set("fs.test.impl", TestFileSystem.class.getName());
+
+    // Cache enabled should be invoked only once
+    conf.setBoolean("fs.test.impl.disable.cache", false);
+    TokenCache.obtainTokensForFileSystemsInternal(creds, paths, conf);
+    verify(TestFileSystem.fs, times(1)).addDelegationTokens(renewer, creds);
+
+    // Cache disabled should be invoked for every path.
+    conf.setBoolean("fs.test.impl.disable.cache", true);
+    TokenCache.obtainTokensForFileSystemsInternal(creds, paths, conf);
+    verify(TestFileSystem.fs, times(paths.length + 1)).addDelegationTokens(renewer, creds);
+  }
+
+  private Path[] makePaths(int count, String prefix) throws Exception {
+    Path[] ps = new Path[count];
+    for (int i = 0; i < count; ++i) {
+      ps[i] = new Path(prefix + i);
+    }
+    return ps;
+  }
+
+  public static class TestFileSystem extends FilterFileSystem {
+    static final FileSystem fs = mock(FileSystem.class);
+    static {
+      try {
+        when(fs.getUri()).thenReturn(new URI("test:///"));
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public TestFileSystem() {
+      super(fs);
+    }
+
+    @Override
+    public Token<?>[] addDelegationTokens(String renewer, Credentials credentials)
+        throws IOException {
+      return fs.addDelegationTokens(renewer, credentials);
     }
   }
 

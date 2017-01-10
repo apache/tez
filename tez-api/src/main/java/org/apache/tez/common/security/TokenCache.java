@@ -76,11 +76,23 @@ public class TokenCache {
     obtainTokensForFileSystemsInternal(credentials, ps, conf);
   }
 
+  private static final int MAX_FS_OBJECTS = 10;
   static void obtainTokensForFileSystemsInternal(Credentials credentials,
       Path[] ps, Configuration conf) throws IOException {
     Set<FileSystem> fsSet = new HashSet<FileSystem>();
     for(Path p: ps) {
-      fsSet.add(p.getFileSystem(conf));
+      FileSystem fs = p.getFileSystem(conf);
+      if (fsSet.size() == MAX_FS_OBJECTS) {
+        LOG.warn("No of FileSystem objects exceeds {}, updating tokens for all paths. This can" +
+            " happen when fs.<scheme>.impl.disable.cache is set to true.");
+      }
+      if (fsSet.size() >= MAX_FS_OBJECTS) {
+        // Too many fs objects are being created, most likely the cache is disabled. Prevent an
+        // OOM and just directly invoke instead of adding to the set.
+        obtainTokensForFileSystemsInternal(fs, credentials, conf);
+      } else {
+        fsSet.add(fs);
+      }
     }
     for (FileSystem fs : fsSet) {
       obtainTokensForFileSystemsInternal(fs, credentials, conf);
