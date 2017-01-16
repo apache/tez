@@ -685,6 +685,21 @@ public class DAG {
       }
     }
 
+    // check for conflicts between dag level local resource and vertex level local resource
+    for (Vertex v : vertices.values()) {
+      for (Map.Entry<String, LocalResource> localResource : v.getTaskLocalFiles().entrySet()) {
+        String resourceName = localResource.getKey();
+        LocalResource resource = localResource.getValue();
+        if (commonTaskLocalFiles.containsKey(resourceName)
+          && !commonTaskLocalFiles.get(resourceName).equals(resource)) {
+          throw new IllegalStateException("There is conflicting local resource (" + resourceName
+            + ") between dag local resource and vertex " + v.getName() + " local resource. "
+            + "\nResource of dag : " + commonTaskLocalFiles.get(resourceName)
+            + "\nResource of vertex: " + resource);
+        }
+      }
+    }
+
     return topologicalVertexStack;
   }
 
