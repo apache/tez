@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3574. Container reuse won't pickup extra dag level local resource.
   TEZ-3566. Avoid caching fs isntances in TokenCache after a point.
   TEZ-3568. Update SecurityUtils configuration to pick user provided configuration.
   TEZ-3559. TEZ_LIB_URIS doesn't work with schemes different than the defaultFS
