@@ -19,7 +19,7 @@
 import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:query', 'Unit | Controller | query', {
+moduleFor('controller:query/timeline', 'Unit | Controller | query/timeline', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
@@ -31,21 +31,33 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
-  assert.equal(controller.get("tabs.length"), 3);
+
+  assert.ok(controller.columns);
+  assert.equal(controller.columns.length, 2);
+
+  assert.ok(controller.rows);
 });
 
-test('breadcrumbs test', function(assert) {
-  let testID = "test_1",
-      controller = this.subject({
-        send: Ember.K,
-        initVisibleColumns: Ember.K,
-        model: Ember.Object.create({
-          entityID: testID
-        })
-      }),
-      breadcrumbs = controller.get("breadcrumbs");
+test('rows test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K,
+    model: {
+      perf: {
+        x: 1,
+        y: 2,
+        z: 3
+      }
+    }
+  }),
+  rows = controller.get("rows");
 
-  assert.ok(breadcrumbs);
-  assert.ok(breadcrumbs.length, 1);
-  assert.ok(breadcrumbs[0].text, `Query [ ${testID} ]`);
+  assert.equal(rows[0].perfLogName, "x");
+  assert.equal(rows[0].perfLogValue, 1);
+
+  assert.equal(rows[1].perfLogName, "y");
+  assert.equal(rows[1].perfLogValue, 2);
+
+  assert.equal(rows[2].perfLogName, "z");
+  assert.equal(rows[2].perfLogValue, 3);
 });

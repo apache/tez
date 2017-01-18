@@ -168,6 +168,7 @@ ALL CHANGES:
   TEZ-3531. Tez UI: All Queries table: Improve searchability
   TEZ-3556. Tez UI: Display query configurations
   TEZ-3496. Tez UI: Optimize display of all tasks table
+  TEZ-3571. Tez UI: Display a Total Timeline View for Hive Queries
 
 Release 0.8.5: Unreleased
 

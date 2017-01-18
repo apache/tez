@@ -79,11 +79,14 @@ export default TimelineSerializer.extend({
 
     startTime: 'starttime',
     endTime: getEndTime,
+
+    perf: "otherinfo.PERF"
   },
 
   extractAttributes: function (modelClass, resourceHash) {
     var data = resourceHash.data,
-        query = Ember.get(resourceHash, "data.otherinfo.QUERY");
+        query = Ember.get(resourceHash, "data.otherinfo.QUERY"),
+        perf = Ember.get(resourceHash, "data.otherinfo.PERF");
 
     if(query) {
       try{
@@ -93,6 +96,14 @@ export default TimelineSerializer.extend({
 
     if(!data.otherinfo.CLIENT_IP_ADDRESS) {
       data.otherinfo.CLIENT_IP_ADDRESS = data.otherinfo.HIVE_ADDRESS;
+    }
+
+    if(perf) {
+      try{
+        let PERF = JSON.parse(perf);
+        PERF["PostATSHook"] = PERF["PostHook.org.apache.hadoop.hive.ql.hooks.ATSHook"];
+        data.otherinfo.PERF = PERF;
+      }catch(e){}
     }
 
     return this._super(modelClass, resourceHash);

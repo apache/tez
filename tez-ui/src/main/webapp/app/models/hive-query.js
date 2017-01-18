@@ -72,4 +72,6 @@ export default AbstractModel.extend({
     return duration > 0 ? duration : null;
   }),
 
+  perf: DS.attr("Object"),
+
 });

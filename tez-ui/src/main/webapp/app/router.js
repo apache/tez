@@ -51,6 +51,7 @@ Router.map(function() {
   });
   this.route('query', {path: '/query/:query_id'}, function() {
     this.route('configs');
+    this.route('timeline');
   });
 
   // Alias for backward compatibility with Tez UI V1

@@ -46,6 +46,8 @@ test('Basic creation test', function(assert) {
   assert.ok(model.startTime);
   assert.ok(model.endTime);
   assert.ok(model.duration);
+
+  assert.ok(model.perf);
 });
 
 test('duration test', function(assert) {

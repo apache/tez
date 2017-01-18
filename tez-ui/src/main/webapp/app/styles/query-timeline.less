@@ -1,0 +1,113 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.query-timeline {
+  font-size: 0;
+  margin: 20px 0 20px 0;
+
+  .no-select;
+
+  .bar {
+    display: inline-block;
+
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    vertical-align: top;
+  }
+
+  .groups {
+    height: 30px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    .bar {
+      width: 25%;
+      height: 30px;
+      font-weight: bold;
+
+      padding-top: 5px;
+
+      border: solid @border-color;
+      border-width: 1px 1px 0px 1px;
+      border-radius: 10px 10px 0 0;
+
+      background-color: #F7F7F7;
+    }
+  }
+
+  .sub-groups {
+    height: 40px;
+    border: 1px solid @border-color;
+
+    white-space: nowrap;
+
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+
+    .bar {
+      width: 10%;
+      height: 40px;
+
+      padding-top: 10px;
+
+      border-left: 1px solid @border-color;
+
+      &:first-child {
+        border: none;
+      }
+
+      &:nth-child(1) {
+        background-color: lighten(#FF355E, 20%);
+      }
+      &:nth-child(2) {
+        background-color: lighten(#FD5B78, 20%);
+      }
+      &:nth-child(3) {
+        background-color: lighten(#FF6037, 20%);
+      }
+      &:nth-child(4) {
+        background-color: lighten(#FF9966, 20%);
+      }
+      &:nth-child(5) {
+        background-color: lighten(#FF9933, 20%);
+      }
+      &:nth-child(6) {
+        background-color: lighten(#FFCC33, 20%);
+      }
+      &:nth-child(7) {
+        background-color: lighten(#FFFF66, 20%);
+      }
+      &:nth-child(8) {
+        background-color: lighten(#CCFF00, 20%);
+      }
+      &:nth-child(9) {
+        background-color: lighten(#AAF0D1, 10%);
+      }
+      &:nth-child(10) {
+        background-color: lighten(#FF6EFF, 20%);
+      }
+   }
+  }
+}

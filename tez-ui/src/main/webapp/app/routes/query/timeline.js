@@ -17,28 +17,19 @@
  */
 
 import Ember from 'ember';
+import SingleAmPollsterRoute from '../single-am-pollster';
 
-import ParentController from './parent';
+export default SingleAmPollsterRoute.extend({
+  title: "Query Timeline",
 
-export default ParentController.extend({
-  breadcrumbs: Ember.computed("model", function () {
-    var ID = this.get("model.entityID");
+  loaderNamespace: "query",
 
-    return [{
-      text: `Query [ ${ID} ]`,
-      routeName: "query.index",
-      model: ID
-    }];
-  }),
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
-  tabs: [{
-    text: "Query Details",
-    routeName: "query.index"
-  }, {
-    text: "Timeline",
-    routeName: "query.timeline"
-  }, {
-    text: "Configurations",
-    routeName: "query.configs"
-  }]
+  load: function (value, query, options) {
+    return this.get("loader").queryRecord('hive-query', this.modelFor("query").get("id"), options);
+  },
 });
