@@ -59,7 +59,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * Schedule all tasks when the fraction of finished cartesian product source tasks reach this value
    */
   public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION =
-    "tez.cartesian-product.min-src-fraction";
+    "tez.cartesian-product.max-src-fraction";
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
 
   /**
