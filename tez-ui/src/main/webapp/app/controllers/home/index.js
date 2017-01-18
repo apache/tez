@@ -18,7 +18,7 @@
 
 import Ember from 'ember';
 
-import TableController from './table';
+import TableController from '../table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 import TableDefinition from 'em-table/utils/table-definition';
 
@@ -36,12 +36,15 @@ export default TableController.extend({
   // we don't want page to be a query param as only the first page will be loaded first.
   pageNum: 1,
 
-  breadcrumbs: [],
+  breadcrumbs: [{
+    text: "All DAGs",
+    routeName: "home.index",
+  }],
 
   moreAvailable: false,
   loadingMore: false,
 
-  headerComponentNames: ['dags-page-search', 'table-controls', 'dags-pagination-ui'],
+  headerComponentNames: ['dags-page-search', 'table-controls', 'pagination-ui'],
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used

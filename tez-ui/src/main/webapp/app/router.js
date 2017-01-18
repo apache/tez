@@ -24,7 +24,9 @@ const Router = Ember.Router.extend({
 });
 
 Router.map(function() {
-  this.route('dags', { path: '/' });
+  this.route('home', {path: '/'}, function() {
+    this.route('queries');
+  });
   this.route('dag', {path: '/dag/:dag_id'}, function() {
     this.route('vertices');
     this.route('tasks');
@@ -53,8 +55,6 @@ Router.map(function() {
     this.route('dags');
     this.route('configs');
   });
-  this.route('multi-am-pollster');
-  this.route('single-am-pollster');
 });
 
 export default Router;

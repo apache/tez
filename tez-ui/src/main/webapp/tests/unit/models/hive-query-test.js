@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleForModel, test } from 'ember-qunit';
 
 moduleForModel('hive-query', 'Unit | Model | hive query', {
@@ -25,5 +26,32 @@ moduleForModel('hive-query', 'Unit | Model | hive query', {
 
 test('Basic creation test', function(assert) {
   let model = this.subject();
+
   assert.ok(model);
+
+  assert.ok(model.domain);
+
+  assert.ok(model.user);
+  assert.ok(model.requestUser);
+
+  assert.ok(model.version);
+
+  assert.ok(model.sessionID);
+  assert.ok(model.threadName);
+
+  assert.ok(model.queryText);
+
+  assert.ok(model.startTime);
+  assert.ok(model.endTime);
+  assert.ok(model.duration);
+});
+
+test('duration test', function(assert) {
+  let model = this.subject();
+
+  Ember.run(function () {
+    model.set("startTime", 100);
+    model.set("endTime", 200);
+    assert.equal(model.get("duration"), 100);
+  });
 });

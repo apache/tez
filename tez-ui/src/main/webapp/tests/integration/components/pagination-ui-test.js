@@ -23,7 +23,7 @@ import wait from 'ember-test-helpers/wait';
 
 import Ember from 'ember';
 
-moduleForComponent('dags-pagination-ui', 'Integration | Component | dags pagination ui', {
+moduleForComponent('pagination-ui', 'Integration | Component | pagination ui', {
   integration: true
 });
 
@@ -32,7 +32,7 @@ test('Basic creation test', function(assert) {
     rowCountOptions: [1, 2]
   });
 
-  this.render(hbs`{{dags-pagination-ui rowCountOptions=rowCountOptions}}`);
+  this.render(hbs`{{pagination-ui rowCountOptions=rowCountOptions}}`);
 
   assert.equal(this.$('select').length, 1);
 
@@ -41,9 +41,9 @@ test('Basic creation test', function(assert) {
 
   // Template block usage:" + EOL +
   this.render(hbs`
-    {{#dags-pagination-ui rowCountOptions=rowCountOptions}}
+    {{#pagination-ui rowCountOptions=rowCountOptions}}
       template block text
-    {{/dags-pagination-ui}}
+    {{/pagination-ui}}
   `);
 
   assert.equal(this.$('select').length, 1);
@@ -66,7 +66,7 @@ test('Page list test', function(assert) {
     }
   });
 
-  this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
   return wait().then(() => {
     assert.equal(this.$('li').length, 4);
@@ -94,7 +94,7 @@ test('Page list - moreAvailable false test', function(assert) {
     }
   });
 
-  this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
   return wait().then(() => {
     assert.equal(this.$('li').length, 4);
@@ -121,7 +121,7 @@ test('Page list - moreAvailable true test', function(assert) {
     }
   });
 
-  this.render(hbs`{{dags-pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
   return wait().then(() => {
     assert.equal(this.$('li').length, 4);
@@ -151,7 +151,7 @@ test('No data test', function(assert) {
 
   this.set('definition', definition);
   this.set('processor', processor);
-  this.render(hbs`{{dags-pagination-ui tableDefinition=definition dataProcessor=processor}}`);
+  this.render(hbs`{{pagination-ui tableDefinition=definition dataProcessor=processor}}`);
 
   var paginationItems = this.$('li');
   assert.equal(paginationItems.length, 0);

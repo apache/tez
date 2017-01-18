@@ -16,14 +16,82 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+import Ember from 'ember';
+import { moduleFor, test } from 'ember-qunit';
 
-moduleForModel('hive-query', 'Unit | Serializer | hive query', {
+moduleFor('serializer:hive-query', 'Unit | Serializer | hive query', {
   // Specify the other units that are required for this test.
-  needs: ['serializer:hive-query']
+  needs: ['model:hive-query']
 });
 
 test('Basic creation test', function(assert) {
   let serializer = this.subject();
-  assert.ok(serializer);
+  assert.equal(Object.keys(serializer.get("maps")).length, 6 + 19);
+  assert.ok(serializer.get("extractAttributes"));
+});
+
+test('getStatus test', function(assert) {
+  let serializer = this.subject(),
+      getStatus = serializer.get("maps.status");
+
+  assert.equal(getStatus({}), "RUNNING");
+  assert.equal(getStatus({
+    otherinfo: {
+      STATUS: true
+    }
+  }), "SUCCEEDED");
+  assert.equal(getStatus({
+    otherinfo: {
+      STATUS: false
+    }
+  }), "FAILED");
+});
+
+test('getEndTime test', function(assert) {
+  let serializer = this.subject(),
+      getEndTime = serializer.get("maps.endTime"),
+      endTime = 23;
+
+  assert.equal(getEndTime({}), undefined);
+
+  assert.equal(getEndTime({
+    otherinfo: {
+      endTime: endTime
+    }
+  }), endTime);
+
+  assert.equal(getEndTime({
+    events: [{
+      eventtype: 'X',
+    }, {
+      eventtype: 'QUERY_COMPLETED',
+      timestamp: endTime
+    }, {
+      eventtype: 'Y',
+    }]
+  }), endTime);
+});
+
+test('extractAttributes test', function(assert) {
+  let serializer = this.subject(),
+      testQuery = {
+        abc: 1,
+        xyz: 2
+      },
+      testHiveAddress = "1.2.3.4",
+      testData = {
+        otherinfo: {
+          QUERY: JSON.stringify(testQuery),
+          HIVE_ADDRESS: testHiveAddress
+        }
+      };
+
+  serializer.extractAttributes(Ember.Object.create({
+    eachAttribute: Ember.K
+  }), {
+    data: testData
+  });
+  assert.deepEqual(testData.otherinfo.QUERY, testQuery);
+
+  assert.equal(testHiveAddress, testData.otherinfo.CLIENT_IP_ADDRESS);
 });

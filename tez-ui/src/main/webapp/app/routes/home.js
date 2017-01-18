@@ -16,25 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import AbstractRoute from './abstract';
 
-const BREADCRUMB_PREFIX = [{
-  text: "Home",
-  routeName: "application"
-}];
+export default AbstractRoute.extend({
+  title: "Home",
 
-export default Ember.Controller.extend({
-  breadcrumbs: null,
-  appError: null,
-
-  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
-    var prefix = BREADCRUMB_PREFIX,
-    breadcrumbs = this.get('breadcrumbs');
-
-    if(Array.isArray(breadcrumbs)) {
-      prefix = prefix.concat(breadcrumbs);
+  actions: {
+    setLoadTime: function (time) {
+      this.set("controller.loadTime", time);
     }
-
-    return prefix;
-  })
+  }
 });

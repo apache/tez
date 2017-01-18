@@ -16,25 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import AbstractController from './abstract';
 
-const BREADCRUMB_PREFIX = [{
-  text: "Home",
-  routeName: "application"
-}];
-
-export default Ember.Controller.extend({
+export default AbstractController.extend({
   breadcrumbs: null,
-  appError: null,
 
-  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
-    var prefix = BREADCRUMB_PREFIX,
-    breadcrumbs = this.get('breadcrumbs');
-
-    if(Array.isArray(breadcrumbs)) {
-      prefix = prefix.concat(breadcrumbs);
-    }
-
-    return prefix;
-  })
+  tabs: [{
+    text: "All DAGs",
+    routeName: "home.index"
+  }, {
+    text: "Hive Queries",
+    routeName: "home.queries"
+  }]
 });

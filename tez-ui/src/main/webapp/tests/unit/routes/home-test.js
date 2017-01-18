@@ -18,32 +18,15 @@
 
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:application', 'Unit | Controller | application', {
+moduleFor('route:home', 'Unit | Route | home', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject();
+  let route = this.subject();
 
-  assert.ok(controller.prefixedBreadcrumbs);
-});
-
-test('prefixedBreadcrumbs test', function(assert) {
-  let controller = this.subject(),
-      prefixedBreadcrumbs,
-      testText = "foo",
-      testRouteName = "RouteName";
-
-  controller.breadcrumbs = [{
-    text: testText,
-    routeName: testRouteName
-  }];
-  prefixedBreadcrumbs = controller.get("prefixedBreadcrumbs");
-
-  assert.equal(prefixedBreadcrumbs.length, 2);
-  assert.equal(prefixedBreadcrumbs[0].text, "Home");
-  assert.equal(prefixedBreadcrumbs[0].routeName, "application");
-  assert.equal(prefixedBreadcrumbs[1].text, testText);
-  assert.equal(prefixedBreadcrumbs[1].routeName, testRouteName);
+  assert.ok(route);
+  assert.equal(route.get("title"), "Home");
+  assert.ok(route.get("actions.setLoadTime"));
 });

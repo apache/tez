@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,27 +14,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
-
-const BREADCRUMB_PREFIX = [{
-  text: "Home",
-  routeName: "application"
-}];
-
-export default Ember.Controller.extend({
-  breadcrumbs: null,
-  appError: null,
-
-  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
-    var prefix = BREADCRUMB_PREFIX,
-    breadcrumbs = this.get('breadcrumbs');
-
-    if(Array.isArray(breadcrumbs)) {
-      prefix = prefix.concat(breadcrumbs);
-    }
-
-    return prefix;
-  })
-});
+{{tab-n-refresh tabs=tabs autoRefreshVisible=false loadTime=loadTime}}
+{{outlet}}

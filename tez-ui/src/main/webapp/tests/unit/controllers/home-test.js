@@ -16,34 +16,31 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('controller:application', 'Unit | Controller | application', {
+moduleFor('controller:home', 'Unit | Controller | home', {
   // Specify the other units that are required for this test.
   // needs: ['controller:foo']
 });
 
 test('Basic creation test', function(assert) {
-  let controller = this.subject();
+  let controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K
+  });
 
-  assert.ok(controller.prefixedBreadcrumbs);
+  assert.ok(controller);
+  assert.equal(controller.get("breadcrumbs"), null);
 });
 
-test('prefixedBreadcrumbs test', function(assert) {
-  let controller = this.subject(),
-      prefixedBreadcrumbs,
-      testText = "foo",
-      testRouteName = "RouteName";
+test('tabs test', function(assert) {
+  let tabs = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K
+  }).get("tabs");
 
-  controller.breadcrumbs = [{
-    text: testText,
-    routeName: testRouteName
-  }];
-  prefixedBreadcrumbs = controller.get("prefixedBreadcrumbs");
-
-  assert.equal(prefixedBreadcrumbs.length, 2);
-  assert.equal(prefixedBreadcrumbs[0].text, "Home");
-  assert.equal(prefixedBreadcrumbs[0].routeName, "application");
-  assert.equal(prefixedBreadcrumbs[1].text, testText);
-  assert.equal(prefixedBreadcrumbs[1].routeName, testRouteName);
+  assert.equal(tabs.length, 2);
+  assert.equal(tabs[0].text, "All DAGs");
+  assert.equal(tabs[1].text, "Hive Queries");
 });

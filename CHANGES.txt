@@ -163,6 +163,7 @@ ALL CHANGES:
   TEZ-3555. Tez UI: Build is failing in RHEL6
   TEZ-3570. Tez UI: Wait for sometime before tooltips are displayed
   TEZ-3504. Tez UI: Duration is displaying invalid values when start or end time is invalid
+  TEZ-3529. Tez UI: Add 'All Queries' table in the landing page along 'All DAGs' page
 
 Release 0.8.5: Unreleased
 

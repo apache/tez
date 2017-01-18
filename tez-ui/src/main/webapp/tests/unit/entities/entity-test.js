@@ -43,34 +43,73 @@ test('Basic creation test', function(assert) {
 
 test('normalizeNeed test', function(assert) {
   let entity = this.subject(),
-      expectedProperties = ["name", "type", "idKey", "silent"];
+      expectedProperties = ["id", "name", "type", "idKey", "silent", "queryParams", "urlParams"],
+      testParentModel = Ember.Object.create({
+        appKey: "id_1"
+      }),
+      testQueryParams = { x: 1 },
+      testUrlParams = { y: 2 };
 
-  assert.deepEqual(entity.normalizeNeed("app", "appKey").getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed("app", "appKey", testParentModel, testQueryParams, testUrlParams).
+  getProperties(expectedProperties), {
+    id: "id_1",
     name: "app",
     type: "app",
     idKey: "appKey",
-    silent: false
+    silent: false,
+    queryParams: testQueryParams,
+    urlParams: testUrlParams
   }, "Test 1");
 
-  assert.deepEqual(entity.normalizeNeed( "app", { idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", {
+    idKey: "appKey",
+    queryParams: { x: 3 },
+    urlParams: { y: 4 }
+  }, testParentModel).
+  getProperties(expectedProperties), {
+    id: "id_1",
     name: "app",
     type: "app",
     idKey: "appKey",
-    silent: false
+    silent: false,
+    queryParams: { x: 3 },
+    urlParams: { y: 4 }
   }, "Test 2");
 
-  assert.deepEqual(entity.normalizeNeed( "app", { type: "application", idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", {
+    type: "application",
+    idKey: "appKey",
+    queryParams: { x: 3 },
+    urlParams: { y: 4 }
+  }, testParentModel, testQueryParams, testUrlParams).
+  getProperties(expectedProperties), {
+    id: "id_1",
     name: "app",
     type: "application",
     idKey: "appKey",
-    silent: false
+    silent: false,
+    queryParams: testQueryParams,
+    urlParams: testUrlParams
   }, "Test 3");
 
-  assert.deepEqual(entity.normalizeNeed( "app", { silent: true, idKey: "appKey" }).getProperties(expectedProperties), {
+  assert.deepEqual(entity.normalizeNeed( "app", {
+    silent: true,
+    idKey: "appKey",
+    queryParams: function () {
+      return { x: 5 };
+    },
+    urlParams: function () {
+      return { y: 6 };
+    },
+  }, testParentModel).
+  getProperties(expectedProperties), {
+    id: "id_1",
     name: "app",
     type: "app",
     idKey: "appKey",
-    silent: true
+    silent: true,
+    queryParams: { x: 5 },
+    urlParams: { y: 6}
   }, "Test 4");
 });
 

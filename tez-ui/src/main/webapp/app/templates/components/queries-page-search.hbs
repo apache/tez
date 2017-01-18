@@ -16,27 +16,33 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs autoRefreshVisible=false loadTime=loadTime}}
-
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
-
-    classNames="all-dags-table"
-
-    headerComponentNames=headerComponentNames
-
-    definition=definition
-    enableSort=false
-
-    rowAction="rowCountChanged"
-
-    search="search"
-    loadPage="loadPage"
-    reload="reload"
-  }}
-{{else}}
-  {{partial "loading"}}
-{{/if}}
+<div class="form-group">
+  <div class="search-element">
+    <label for="pwd">Query ID:</label>
+    {{input value=queryID
+    type="text"
+    class="form-control input-sm"
+    placeholder="Search..."
+    enter="search"
+    }}
+  </div><div class="search-element">
+    <label for="pwd">User:</label>
+    {{input value=user
+    type="text"
+    class="form-control input-sm"
+    placeholder="Search..."
+    enter="search"
+    }}
+  </div><div class="search-element">
+    <label for="pwd">Request User:</label>
+    {{input value=requestUser
+    type="text"
+    class="form-control input-sm"
+    placeholder="Search..."
+    enter="search"
+    }}
+  </div>
+</div>
+<button type="button" class="btn btn-success" {{action 'search'}}>
+  <i class="fa fa-search" aria-hidden="true"></i>
+</button>

@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,27 +14,27 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-import Ember from 'ember';
+{{#if loaded}}
+  {{em-table
+    columns=visibleColumns
+    rows=model
+    rowCount=rowCount
 
-const BREADCRUMB_PREFIX = [{
-  text: "Home",
-  routeName: "application"
-}];
+    classNames="all-dags-table"
 
-export default Ember.Controller.extend({
-  breadcrumbs: null,
-  appError: null,
+    headerComponentNames=headerComponentNames
 
-  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
-    var prefix = BREADCRUMB_PREFIX,
-    breadcrumbs = this.get('breadcrumbs');
+    definition=definition
+    enableSort=false
 
-    if(Array.isArray(breadcrumbs)) {
-      prefix = prefix.concat(breadcrumbs);
-    }
+    rowAction="rowCountChanged"
 
-    return prefix;
-  })
-});
+    search="search"
+    loadPage="loadPage"
+    reload="reload"
+  }}
+{{else}}
+  {{partial "loading"}}
+{{/if}}

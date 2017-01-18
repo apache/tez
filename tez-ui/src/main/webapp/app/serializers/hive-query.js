@@ -20,9 +20,63 @@ import Ember from 'ember';
 
 import TimelineSerializer from './timeline';
 
+function getEndTime(source) {
+  var time = Ember.get(source, 'otherinfo.endTime'),
+      event = source.events;
+
+  if(!time && event) {
+    event = event.findBy('eventtype', 'QUERY_COMPLETED');
+    if(event) {
+      time = event.timestamp;
+    }
+  }
+
+  return time;
+}
+
+function getStatus(source) {
+  var status = Ember.get(source, 'otherinfo.STATUS');
+
+  switch(status) {
+    case true:
+      return "SUCCEEDED";
+    case false:
+      return "FAILED";
+    default:
+      return "RUNNING";
+  }
+}
+
 export default TimelineSerializer.extend({
   maps: {
-    queryText: 'queryText',
+    queryName: 'primaryfilters.queryname.0',
+
+    queryText: 'otherinfo.QUERY.queryText',
+
+    sessionID: 'otherinfo.INVOKER_INFO',
+    operationID: 'primaryfilters.operationid.0',
+
+    instanceType: 'otherinfo.HIVE_INSTANCE_TYPE',
+    executionMode: 'primaryfilters.executionmode.0',
+
+    domain: 'domain',
+    threadName: 'otherinfo.THREAD_NAME',
+    queue: 'primaryfilters.queue.0',
+    version: 'otherinfo.VERSION',
+
+    hiveAddress: 'otherinfo.HIVE_ADDRESS',
+    clientAddress: 'otherinfo.CLIENT_IP_ADDRESS',
+
+    user: 'primaryfilters.user.0',
+    requestUser: 'primaryfilters.requestuser.0',
+
+    tablesRead: 'primaryfilters.tablesread',
+    tablesWritten: 'primaryfilters.tableswritten',
+
+    status: getStatus,
+
+    startTime: 'starttime',
+    endTime: getEndTime,
   },
 
   extractAttributes: function (modelClass, resourceHash) {
@@ -30,12 +84,13 @@ export default TimelineSerializer.extend({
         query = Ember.get(resourceHash, "data.otherinfo.QUERY");
 
     if(query) {
-      let queryObj = {};
       try{
-        queryObj = JSON.parse(query);
+        data.otherinfo.QUERY = JSON.parse(query);
       }catch(e){}
+    }
 
-      data.queryText = Ember.get(queryObj, "queryText");
+    if(!data.otherinfo.CLIENT_IP_ADDRESS) {
+      data.otherinfo.CLIENT_IP_ADDRESS = data.otherinfo.HIVE_ADDRESS;
     }
 
     return this._super(modelClass, resourceHash);

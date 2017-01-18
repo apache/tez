@@ -35,6 +35,11 @@ test('Basic creation test', function(assert) {
   assert.equal(adapter.serverName, "timeline");
 });
 
+test('filters test', function(assert) {
+  let filters = this.subject().filters;
+  assert.equal(Object.keys(filters).length, 13);
+});
+
 test('stringifyFilters test', function(assert) {
   let adapter = this.subject();
 

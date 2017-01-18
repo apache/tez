@@ -55,7 +55,7 @@ var Entity = Ember.Object.extend(NameMixin, {
     var need = {
       name: name,
       type: name,
-      idKey: needOptions,
+      idKey: "",
 
       loadType: "", // Possible values lazy, demand
       silent: false,
@@ -66,8 +66,6 @@ var Entity = Ember.Object.extend(NameMixin, {
     overrides = {};
 
     if(typeof needOptions === 'object') {
-      Ember.assert(`idKey not defined for need '${name}'!`, needOptions.idKey);
-
       if(MoreObject.isFunction(needOptions.urlParams)) {
         overrides.urlParams = needOptions.urlParams.call(needOptions, parentModel);
       }
@@ -75,7 +73,17 @@ var Entity = Ember.Object.extend(NameMixin, {
         overrides.queryParams = needOptions.queryParams.call(needOptions, parentModel);
       }
 
+      overrides.idKey = needOptions.idKey;
+
       overrides = Ember.Object.create({}, needOptions, overrides);
+    }
+    else if(typeof needOptions === 'string') {
+      overrides.idKey = needOptions;
+    }
+
+    if(typeof overrides.idKey === 'string') {
+      overrides.withID = true;
+      overrides.id = parentModel.get(overrides.idKey);
     }
 
     if(queryParams) {
@@ -101,13 +109,23 @@ var Entity = Ember.Object.extend(NameMixin, {
     index = index || 0;
     type = types[index];
 
-    needLoader = loader.queryRecord(
-      type,
-      parentModel.get(needOptions.idKey),
-      options,
-      needOptions.queryParams,
-      needOptions.urlParams
-    );
+    if(needOptions.withID) {
+      needLoader = loader.queryRecord(
+        type,
+        needOptions.id,
+        options,
+        needOptions.queryParams,
+        needOptions.urlParams
+      );
+    }
+    else {
+      needLoader = loader.query(
+        type,
+        needOptions.queryParams,
+        options,
+        needOptions.urlParams
+      );
+    }
 
     needLoader = needLoader.then(function (model) {
       parentModel.set(needOptions.name, model);

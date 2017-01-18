@@ -18,35 +18,30 @@
 
 import Ember from 'ember';
 
-import { moduleFor, test } from 'ember-qunit';
+export default Ember.Component.extend({
+  classNames: ['queries-page-search'],
 
-moduleFor('controller:dags', 'Unit | Controller | dags', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  queryID: Ember.computed.oneWay("tableDefinition.queryID"),
+  user: Ember.computed.oneWay("tableDefinition.user"),
+  requestUser: Ember.computed.oneWay("tableDefinition.requestUser"),
 
-test('Basic creation test', function(assert) {
-  assert.expect(2 + 3 + 1 + 3 + 1 + 1);
+  sendSearch: function () {
+    this.get('parentView').sendAction('search', {
+      queryID: this.get("queryID"),
+      user: this.get("user"),
+      requestUser: this.get("requestUser"),
+    });
+  },
 
-  let controller = this.subject({
-    initVisibleColumns: Ember.K,
-    beforeSort: {bind: Ember.K},
-    send: function (name, query) {
-      assert.equal(name, "setBreadcrumbs");
-      assert.ok(query);
+  actions: {
+    statusChanged: function (value) {
+      this.set("status", value);
+    },
+    statusKeyPress: function () {
+      this.sendSearch();
+    },
+    search: function () {
+      this.sendSearch();
     }
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.columns);
-  assert.ok(controller.getCounterColumns);
-
-  assert.ok(controller.pageNum);
-
-  assert.ok(controller.queryParams);
-  assert.ok(controller.headerComponentNames);
-  assert.ok(controller.definition);
-
-  assert.ok(controller.actions.search);
-  assert.ok(controller.actions.pageChanged);
+  }
 });
