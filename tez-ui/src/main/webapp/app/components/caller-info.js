@@ -26,6 +26,8 @@ export default Ember.Component.extend({
   type: null,
   info: null,
 
+  title: null,
+
   codeMirror: null,
 
   classNames: ['caller-info'],

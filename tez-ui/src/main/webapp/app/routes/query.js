@@ -1,4 +1,4 @@
-{{!
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,15 +14,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-}}
+ */
 
-<div class="panel panel-info">
-  <div class="panel-heading">
-    {{#if title}}
-      {{title}}
-    {{else}}
-      Additional Info from {{type}}
-    {{/if}}
-  </div>
-  <textarea></textarea>
-</div>
+import AbstractRoute from './abstract';
+
+export default AbstractRoute.extend({
+  title: "Query",
+
+  loaderQueryParams: {
+    id: "query_id"
+  },
+
+  model: function (params) {
+    return this.get("loader").queryRecord('hive-query', this.queryFromParams(params).id).
+      catch(this.onLoadFailure.bind(this));
+  },
+
+  actions: {
+    setLoadTime: function (time) {
+      this.set("controller.loadTime", time);
+    }
+  }
+});

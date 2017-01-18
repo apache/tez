@@ -49,6 +49,9 @@ Router.map(function() {
   this.route('attempt', {path: '/attempt/:attempt_id'}, function () {
     this.route('counters');
   });
+  this.route('query', {path: '/query/:query_id'}, function() {
+  });
+
   // Alias for backward compatibility with Tez UI V1
   this.route('app', {path: '/tez-app/:app_id'}, function () {});
   this.route('app', {path: '/app/:app_id'}, function () {

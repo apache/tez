@@ -128,8 +128,10 @@ var Entity = Ember.Object.extend(NameMixin, {
     }
 
     needLoader = needLoader.then(function (model) {
-      parentModel.set(needOptions.name, model);
-      parentModel.refreshLoadTime();
+      if(!parentModel.get("isDeleted")) {
+        parentModel.set(needOptions.name, model);
+        parentModel.refreshLoadTime();
+      }
       return model;
     });
 
@@ -139,8 +141,10 @@ var Entity = Ember.Object.extend(NameMixin, {
       }
 
       if(needOptions.silent) {
-        parentModel.set(needOptions.name, null);
-        parentModel.refreshLoadTime();
+        if(!parentModel.get("isDeleted")) {
+          parentModel.set(needOptions.name, null);
+          parentModel.refreshLoadTime();
+        }
       }
       else {
         throw(err);

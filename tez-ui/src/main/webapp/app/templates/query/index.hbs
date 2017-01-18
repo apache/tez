@@ -1,0 +1,126 @@
+{{!
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+}}
+
+{{#if loaded}}
+  <table class='detail-list'>
+    <thead>
+      <tr>
+        <th colspan=2>Details</th>
+      </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+      <td>Query ID</td>
+      <td>{{txt model.entityID}}</td>
+    </tr>
+    <tr>
+      <td>User</td>
+      <td>{{txt model.requestUser}}</td>
+    </tr>
+    <tr>
+      <td>Status</td>
+      <td>{{em-table-status-cell content=model.status}}</td>
+    </tr>
+    <tr>
+      <td>Start Time</td>
+      <td>{{date-formatter content=model.startTime}}</td>
+    </tr>
+    <tr>
+      <td>End Time</td>
+      <td>{{date-formatter content=model.endTime}}</td>
+    </tr>
+    <tr>
+      <td>Duration</td>
+      <td>{{txt model.duration type="duration"}}</td>
+    </tr>
+    <tr>
+      <td>Application ID</td>
+      <td>
+        {{#link-to 'app' model.dag.firstObject.appID class='ember-table-content'}}
+          {{model.dag.firstObject.appID}}
+        {{/link-to}}
+      </td>
+    </tr>
+    <tr>
+      <td>DAG ID</td>
+      <td>
+        {{#link-to 'dag' model.dag.firstObject.entityID class='ember-table-content'}}
+          {{model.dag.firstObject.entityID}}
+        {{/link-to}}
+      </td>
+    </tr>
+    <tr>
+      <td>Session ID</td>
+      <td>{{txt model.sessionID}}</td>
+    </tr>
+    <tr>
+      <td>Query Name</td>
+      <td>{{txt model.queryName}}</td>
+    </tr>
+    <tr>
+      <td>Thread Name</td>
+      <td>{{txt model.threadName}}</td>
+    </tr>
+    <tr>
+      <td>Queue</td>
+      <td>{{txt model.queue}}</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <table class='detail-list'>
+    <thead>
+    <tr>
+      <th colspan=2>Hive Details</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+      <td>Tables Read</td>
+      <td>{{txt model.tablesRead}}</td>
+    </tr>
+    <tr>
+      <td>Tables Written</td>
+      <td>{{txt model.tablesWritten}}</td>
+    </tr>
+    <tr>
+      <td>Client Address</td>
+      <td>{{txt model.clientAddress}}</td>
+    </tr>
+    <tr>
+      <td>Execution Mode</td>
+      <td>{{txt model.executionMode}}</td>
+    </tr>
+    <tr>
+      <td>Hive Address</td>
+      <td>{{txt model.hiveAddress}}</td>
+    </tr>
+    <tr>
+      <td>Client Type</td>
+      <td>{{txt model.instanceType}}</td>
+    </tr>
+    </tbody>
+  </table>
+
+  {{caller-info title="Query Text" type="Hive" info=model.queryText}}
+
+{{else}}
+  {{partial "loading"}}
+{{/if}}

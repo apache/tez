@@ -16,13 +16,5 @@
  * limitations under the License.
 }}
 
-<div class="panel panel-info">
-  <div class="panel-heading">
-    {{#if title}}
-      {{title}}
-    {{else}}
-      Additional Info from {{type}}
-    {{/if}}
-  </div>
-  <textarea></textarea>
-</div>
+{{tab-n-refresh tabs=tabs loadTime=loadTime autoRefreshVisible=false autoRefreshEnabled=polling.active}}
+{{outlet}}

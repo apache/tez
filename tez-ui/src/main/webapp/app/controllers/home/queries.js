@@ -71,6 +71,7 @@ export default TableController.extend({
     cellComponentName: 'em-table-linked-cell',
     getCellContent: function (row) {
       return {
+        routeName: "query",
         model: row.get("entityID"),
         text: row.get("entityID")
       };
