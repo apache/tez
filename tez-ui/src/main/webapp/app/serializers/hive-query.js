@@ -75,6 +75,8 @@ export default TimelineSerializer.extend({
 
     status: getStatus,
 
+    configsJSON: "otherinfo.CONF",
+
     startTime: 'starttime',
     endTime: getEndTime,
   },

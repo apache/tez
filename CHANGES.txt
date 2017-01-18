@@ -166,6 +166,7 @@ ALL CHANGES:
   TEZ-3529. Tez UI: Add 'All Queries' table in the landing page along 'All DAGs' page
   TEZ-3530. Tez UI: Add query details page, and link the page from All Queries table
   TEZ-3531. Tez UI: All Queries table: Improve searchability
+  TEZ-3556. Tez UI: Display query configurations
 
 Release 0.8.5: Unreleased
 

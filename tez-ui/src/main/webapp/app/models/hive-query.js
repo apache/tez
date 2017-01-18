@@ -63,6 +63,8 @@ export default AbstractModel.extend({
 
   status: DS.attr('string'),
 
+  configsJSON: DS.attr("string"),
+
   startTime: DS.attr("number"),
   endTime: DS.attr("number"),
   duration: Ember.computed("startTime", "endTime", function () {

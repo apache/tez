@@ -17,43 +17,39 @@
  */
 
 import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import { moduleFor, test } from 'ember-qunit';
 
-moduleForModel('hive-query', 'Unit | Model | hive query', {
+moduleFor('controller:query/configs', 'Unit | Controller | query/configs', {
   // Specify the other units that are required for this test.
-  needs: []
+  // needs: ['controller:foo']
 });
 
 test('Basic creation test', function(assert) {
-  let model = this.subject();
+  let controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K
+  });
 
-  assert.ok(model);
-
-  assert.ok(model.domain);
-
-  assert.ok(model.user);
-  assert.ok(model.requestUser);
-
-  assert.ok(model.version);
-
-  assert.ok(model.sessionID);
-  assert.ok(model.threadName);
-
-  assert.ok(model.queryText);
-
-  assert.ok(model.configsJSON);
-
-  assert.ok(model.startTime);
-  assert.ok(model.endTime);
-  assert.ok(model.duration);
+  assert.ok(controller);
+  assert.equal(controller.get("searchText"), "tez");
+  assert.equal(controller.get("breadcrumbs.length"), 1);
+  assert.equal(controller.get("columns.length"), 2);
 });
 
-test('duration test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("startTime", 100);
-    model.set("endTime", 200);
-    assert.equal(model.get("duration"), 100);
+test('Basic creation test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    initVisibleColumns: Ember.K,
+    model: {
+      configsJSON: JSON.stringify({
+        x: 1
+      })
+    }
   });
+
+  let configs = controller.get("configs");
+
+  assert.equal(configs.length, 1);
+  assert.equal(configs[0].configName, "x");
+  assert.equal(configs[0].configValue, 1);
 });

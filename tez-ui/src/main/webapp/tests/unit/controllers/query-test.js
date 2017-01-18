@@ -31,7 +31,7 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
-  assert.ok(controller.tabs.length, 1);
+  assert.equal(controller.get("tabs.length"), 2);
 });
 
 test('breadcrumbs test', function(assert) {

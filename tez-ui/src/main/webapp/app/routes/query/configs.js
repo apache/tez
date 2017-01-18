@@ -17,43 +17,22 @@
  */
 
 import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import SingleAmPollsterRoute from '../single-am-pollster';
 
-moduleForModel('hive-query', 'Unit | Model | hive query', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+export default SingleAmPollsterRoute.extend({
+  title: "Query Configurations",
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  loaderNamespace: "query",
 
-  assert.ok(model);
+  canPoll: false,
 
-  assert.ok(model.domain);
+  setupController: function (controller, model) {
+    this._super(controller, model);
+    Ember.run.later(this, "startCrumbBubble");
+  },
 
-  assert.ok(model.user);
-  assert.ok(model.requestUser);
-
-  assert.ok(model.version);
-
-  assert.ok(model.sessionID);
-  assert.ok(model.threadName);
-
-  assert.ok(model.queryText);
-
-  assert.ok(model.configsJSON);
-
-  assert.ok(model.startTime);
-  assert.ok(model.endTime);
-  assert.ok(model.duration);
-});
-
-test('duration test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("startTime", 100);
-    model.set("endTime", 200);
-    assert.equal(model.get("duration"), 100);
-  });
+  load: function (value, query, options) {
+    var ID = this.modelFor("query").get("entityID");
+    return this.get("loader").queryRecord('hive-query', ID, options);
+  },
 });

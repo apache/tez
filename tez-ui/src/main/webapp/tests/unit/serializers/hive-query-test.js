@@ -26,7 +26,7 @@ moduleFor('serializer:hive-query', 'Unit | Serializer | hive query', {
 
 test('Basic creation test', function(assert) {
   let serializer = this.subject();
-  assert.equal(Object.keys(serializer.get("maps")).length, 6 + 19);
+  assert.equal(Object.keys(serializer.get("maps")).length, 6 + 20);
   assert.ok(serializer.get("extractAttributes"));
 });
 

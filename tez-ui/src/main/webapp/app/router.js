@@ -50,6 +50,7 @@ Router.map(function() {
     this.route('counters');
   });
   this.route('query', {path: '/query/:query_id'}, function() {
+    this.route('configs');
   });
 
   // Alias for backward compatibility with Tez UI V1
