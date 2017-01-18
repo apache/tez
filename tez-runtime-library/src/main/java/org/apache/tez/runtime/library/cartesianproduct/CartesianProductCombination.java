@@ -18,6 +18,7 @@
 package org.apache.tez.runtime.library.cartesianproduct;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.Ints;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +55,8 @@ class CartesianProductCombination {
   private final Integer[] factor;
 
   public CartesianProductCombination(int[] numPartitionOrTask) {
+    Preconditions.checkArgument(!Ints.contains(numPartitionOrTask, 0),
+      "CartesianProductCombination doesn't allow zero partition or task");
     this.numPartitionOrTask = Arrays.copyOf(numPartitionOrTask, numPartitionOrTask.length);
     combination = new Integer[numPartitionOrTask.length];
     factor = new Integer[numPartitionOrTask.length];

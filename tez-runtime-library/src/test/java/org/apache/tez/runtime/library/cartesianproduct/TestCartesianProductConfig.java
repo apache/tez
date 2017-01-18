@@ -20,6 +20,8 @@ package org.apache.tez.runtime.library.cartesianproduct;
 import com.google.common.primitives.Ints;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -32,11 +34,17 @@ import java.util.Random;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestCartesianProductConfig {
-  private TezConfiguration conf = new TezConfiguration();
+  private TezConfiguration conf;
+
+  @Before
+  public void setup() {
+    conf = new TezConfiguration();
+  }
 
   @Test(timeout = 5000)
   public void testSerializationPartitioned() throws IOException {
@@ -102,5 +110,27 @@ public class TestCartesianProductConfig {
       assertNull(descriptor1);
       assertNull(descriptor2);
     }
+  }
+
+  @Test(timeout = 5000)
+  public void testAutoGroupingConfig() {
+    List<String> sourceVertices = new ArrayList<>();
+    sourceVertices.add("v0");
+    sourceVertices.add("v1");
+    CartesianProductConfig config = new CartesianProductConfig(sourceVertices);
+
+    // auto grouping conf not set
+    CartesianProductConfigProto proto = config.toProto(conf);
+    assertFalse(proto.hasEnableAutoGrouping());
+    assertFalse(proto.hasDesiredBytesPerGroup());
+
+    // auto groupinig conf not set
+    conf.setBoolean(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING, true);
+    conf.setLong(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP, 1000);
+    proto = config.toProto(conf);
+    assertTrue(proto.hasEnableAutoGrouping());
+    assertTrue(proto.hasDesiredBytesPerGroup());
+    assertEquals(true, proto.getEnableAutoGrouping());
+    assertEquals(1000, proto.getDesiredBytesPerGroup());
   }
 }

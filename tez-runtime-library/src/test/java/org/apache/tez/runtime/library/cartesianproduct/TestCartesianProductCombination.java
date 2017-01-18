@@ -107,4 +107,13 @@ public class TestCartesianProductCombination {
       assertTrue(list.get(1) == i%3);
     }
   }
+
+  @Test(timeout = 5000)
+  public void testRejectZero() {
+    int[] numTasks = new int[] {0 ,1};
+    try {
+      new CartesianProductCombination(numTasks);
+      assertTrue(false);
+    } catch (Exception ignored) {}
+  }
 }

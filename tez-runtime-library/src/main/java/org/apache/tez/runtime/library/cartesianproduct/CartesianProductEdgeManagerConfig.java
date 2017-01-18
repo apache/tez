@@ -28,16 +28,22 @@ import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUs
 
 class CartesianProductEdgeManagerConfig extends CartesianProductConfig {
   private final int[] numTasks;
+  private final int[] numGroups;
 
   protected CartesianProductEdgeManagerConfig(boolean isPartitioned, String[] sourceVertices,
-                                            int[] numPartitions, int[] numTasks,
+                                            int[] numPartitions, int[] numTasks, int[] numGroups,
                                             CartesianProductFilterDescriptor filterDescriptor) {
     super(isPartitioned, numPartitions, sourceVertices, filterDescriptor);
     this.numTasks = numTasks;
+    this.numGroups = numGroups;
   }
 
   public int[] getNumTasks() {
     return this.numTasks;
+  }
+
+  public int[] getNumGroups() {
+    return this.numGroups;
   }
 
   public static CartesianProductEdgeManagerConfig fromUserPayload(UserPayload payload)
@@ -58,7 +64,9 @@ class CartesianProductEdgeManagerConfig extends CartesianProductConfig {
     }
     int[] numTasks =
       proto.getNumTasksCount() == 0 ? null : Ints.toArray(proto.getNumTasksList());
+    int[] numGroups =
+      proto.getNumGroupsCount() == 0 ? null : Ints.toArray(proto.getNumGroupsList());
     return new CartesianProductEdgeManagerConfig(isPartitioned, sourceVertices, numPartitions,
-      numTasks, filterDescriptor);
+      numTasks, numGroups, filterDescriptor);
   }
 }

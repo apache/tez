@@ -47,12 +47,38 @@ import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
  * determined by vertex manager.
  */
 public class CartesianProductVertexManager extends VertexManagerPlugin {
+  /**
+   * Begin scheduling task when the fraction of finished cartesian product source tasks reaches
+   * this value
+   */
   public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION =
     "tez.cartesian-product.min-src-fraction";
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT = 0.25f;
+
+  /**
+   * Schedule all tasks when the fraction of finished cartesian product source tasks reach this value
+   */
   public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION =
     "tez.cartesian-product.min-src-fraction";
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
+
+  /**
+   * Enables automatic grouping. It groups source tasks of each cartesian product source vertex
+   * so that every group generates similar output size. And parallelism can be reduced because
+   * destination tasks handle combinations of per group output instead of per task output. This is
+   * only available for unpartitioned case for now, and it's useful for scenarios where there are
+   * many source tasks generate small outputs.
+   */
+  public static final String TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING =
+    "tez.cartesian-product.enable-auto-grouping";
+  public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT = true;
+
+  /**
+   * The number of output bytes we want from each group.
+   */
+  public static final String TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP =
+    "tez.cartesian-product.desired-input-per-src";
+  public static final long TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP_DEFAULT = 32 * 1024 * 1024;
 
   private CartesianProductVertexManagerReal vertexManagerReal = null;
 
