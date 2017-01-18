@@ -39,6 +39,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.zoom);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.equal(controller.columns.length, 13);
   assert.ok(controller.processes);
 
   assert.ok(controller.dataAvailable);

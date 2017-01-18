@@ -40,6 +40,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.columnSelectorTitle);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.equal(controller.columns.length, 14);
 
   assert.ok(controller.redirect);
   assert.ok(controller.actions.entityClicked);

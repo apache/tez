@@ -44,6 +44,11 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.finalStatus);
 
+  assert.ok(model.dagID);
+  assert.ok(model.dag);
+
+  assert.ok(model.description);
+
   assert.ok(model.servicePlugin);
 });
 
@@ -67,5 +72,27 @@ test('pendingTasks test', function(assert) {
     model.set("_succeededTasks", 1);
     model.set("status", "SUCCEEDED");
     assert.equal(model.get("pendingTasks"), 1);
+  });
+});
+
+test('description test', function(assert) {
+  let testVertexName = "TestVertexName",
+      testDesc = "VertexDecsription",
+      model = this.subject({
+        name: testVertexName
+      });
+
+  assert.equal(model.get("description"), undefined);
+
+  Ember.run(function () {
+    model.set("dag", Ember.Object.create({
+      vertices: [{}, {
+        vertexName: testVertexName,
+        userPayloadAsText: JSON.stringify({
+          desc: testDesc
+        })
+      }, {}]
+    }));
+    assert.equal(model.get("description"), testDesc);
   });
 });

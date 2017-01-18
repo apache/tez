@@ -76,6 +76,10 @@ export default MultiTableController.extend({
       type: 'duration'
     }
   },{
+    id: 'description',
+    headerTitle: 'Description',
+    contentPath: 'description',
+  },{
     id: 'firstTaskStartTime',
     headerTitle: 'First Task Start Time',
     contentPath: 'firstTaskStartTime',
