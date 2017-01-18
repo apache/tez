@@ -38,4 +38,29 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
+  assert.equal(controller.columns.length, 8);
+});
+
+test('Log column test', function(assert) {
+  let controller = this.subject({
+        send: Ember.K,
+        beforeSort: {bind: Ember.K},
+        initVisibleColumns: Ember.K,
+        getCounterColumns: function () {
+          return [];
+        }
+      }),
+      testAttemptID = "attempt_1";
+
+  var getLogCellContent = controller.get("columns").findBy("id", "log").getCellContent;
+
+  assert.equal(getLogCellContent(Ember.Object.create()), undefined);
+
+  assert.equal(getLogCellContent(Ember.Object.create({
+    successfulAttemptID: testAttemptID
+  })), testAttemptID);
+
+  assert.equal(getLogCellContent(Ember.Object.create({
+    attemptIDs: ["1", "2", testAttemptID]
+  })), testAttemptID);
 });

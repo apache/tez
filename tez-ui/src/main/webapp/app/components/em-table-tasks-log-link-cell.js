@@ -16,18 +16,18 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import Ember from 'ember';
 
-moduleFor('serializer:task', 'Unit | Serializer | task', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:task']
-});
+export default Ember.Component.extend({
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  content: null,
 
-  assert.ok(serializer);
-  assert.ok(serializer.maps);
+  actions: {
+    click: function (download) {
+      // Directly goes to the route
+      this.get("targetObject.targetObject.targetObject.targetObject").
+          send("logCellClicked", this.get("content"), download);
+    },
+  }
 
-  assert.equal(Object.keys(serializer.maps).length, 5 + 7); // 5 own and 7 inherited
 });

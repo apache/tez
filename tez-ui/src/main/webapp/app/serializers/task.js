@@ -23,6 +23,9 @@ export default TimelineSerializer.extend({
     vertexID: 'primaryfilters.TEZ_VERTEX_ID.0',
     dagID: 'primaryfilters.TEZ_DAG_ID.0',
 
-    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts'
+    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
+
+    successfulAttemptID: 'otherinfo.successfulAttemptId',
+    attemptIDs: 'otherinfo.relatedentities.TEZ_TASK_ATTEMPT_ID',
   }
 });

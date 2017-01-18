@@ -167,6 +167,7 @@ ALL CHANGES:
   TEZ-3530. Tez UI: Add query details page, and link the page from All Queries table
   TEZ-3531. Tez UI: All Queries table: Improve searchability
   TEZ-3556. Tez UI: Display query configurations
+  TEZ-3496. Tez UI: Optimize display of all tasks table
 
 Release 0.8.5: Unreleased
 

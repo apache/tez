@@ -16,18 +16,25 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import virtualAnchor from '../../../utils/virtual-anchor';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:task', 'Unit | Serializer | task', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:task']
-});
+module('Unit | Utility | virtual anchor');
 
 test('Basic creation test', function(assert) {
-  let serializer = this.subject();
-
-  assert.ok(serializer);
-  assert.ok(serializer.maps);
-
-  assert.equal(Object.keys(serializer.maps).length, 5 + 7); // 5 own and 7 inherited
+  let anchor = virtualAnchor();
+  assert.ok(anchor);
 });
+
+test('Param set test', function(assert) {
+  let testURL = "http://xyz.com/abc",
+      downloadFileName = "abc.txt",
+
+      anchor = virtualAnchor(testURL, downloadFileName);
+
+  assert.ok(anchor);
+  assert.equal(anchor.href, testURL);
+  assert.equal(anchor.download, downloadFileName);
+  assert.equal(anchor.target, "_blank");
+});
+
