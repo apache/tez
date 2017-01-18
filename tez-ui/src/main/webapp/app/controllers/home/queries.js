@@ -24,10 +24,19 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["queryID", "user", "requestUser"],
+  queryParams: ["queryName", "queryID", "dagID", "appID", "user", "requestUser",
+      "tablesRead", "tablesWritten", "operationID", "queue"],
+  queryName: "",
   queryID: "",
+  dagID: "",
+  appID: "",
+  executionMode: "",
   user: "",
   requestUser: "",
+  tablesRead: "",
+  tablesWritten: "",
+  operationID: "",
+  queue: "",
 
   // Because pageNo is a query param added by table controller, and in the current design
   // we don't want page to be a query param as only the first page will be loaded first.
@@ -45,15 +54,24 @@ export default TableController.extend({
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("queryID", "user", "requestUser",
+  definition: Ember.computed("queryID", "queryName", "dagID", "appID", "user", "requestUser",
+      "executionMode", "tablesRead", "tablesWritten", "operationID", "queue",
       "pageNum", "moreAvailable", "loadingMore", function () {
 
     var definition = this.get("_definition");
 
     definition.setProperties({
+      queryName: this.get("queryName"),
       queryID: this.get("queryID"),
+      dagID: this.get("dagID"),
+      appID: this.get("appID"),
+      executionMode: this.get("executionMode"),
       user: this.get("user"),
       requestUser: this.get("requestUser"),
+      tablesRead: this.get("tablesRead"),
+      tablesWritten: this.get("tablesWritten"),
+      operationID: this.get("operationID"),
+      queue: this.get("queue"),
 
       pageNum: this.get("pageNum"),
 
@@ -77,14 +95,30 @@ export default TableController.extend({
       };
     }
   },{
+    id: 'requestUser',
+    headerTitle: 'User',
+    contentPath: 'requestUser',
+  },{
     id: 'status',
     headerTitle: 'Status',
     contentPath: 'status',
     cellComponentName: 'em-table-status-cell',
   },{
-    id: 'requestUser',
-    headerTitle: 'User',
-    contentPath: 'requestUser',
+    id: 'queryText',
+    headerTitle: 'Query',
+    contentPath: 'queryText',
+  },{
+    id: 'dagID',
+    headerTitle: 'DAG ID',
+    contentPath: 'dag.firstObject.entityID',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "dag",
+        model: row.get("dag.firstObject.entityID"),
+        text: row.get("dag.firstObject.entityID")
+      };
+    }
   },{
     id: 'tablesRead',
     headerTitle: 'Tables Read',
@@ -106,57 +140,9 @@ export default TableController.extend({
       }
     }
   },{
-    id: 'queue',
-    headerTitle: 'Queue',
-    contentPath: 'queue',
-  },{
-    id: 'hiveAddress',
-    headerTitle: 'Hive Server 2 Address',
-    contentPath: 'hiveAddress'
-  },{
-    id: 'appID',
-    headerTitle: 'Application Id',
-    contentPath: 'dag.firstObject.appID',
-    cellComponentName: 'em-table-linked-cell',
-    getCellContent: function (row) {
-      return {
-        routeName: "app",
-        model: row.get("dag.firstObject.appID"),
-        text: row.get("dag.firstObject.appID")
-      };
-    }
-  },{
-    id: 'queryName',
-    headerTitle: 'Query Name',
-    contentPath: 'queryName'
-  },{
-    id: 'dagName',
-    headerTitle: 'DAG',
-    contentPath: 'dag.firstObject.name',
-    cellComponentName: 'em-table-linked-cell',
-    getCellContent: function (row) {
-      return {
-        routeName: "dag",
-        model: row.get("dag.firstObject.entityID"),
-        text: row.get("dag.firstObject.name")
-      };
-    }
-  },{
-    id: 'instanceType',
-    headerTitle: 'Client Type',
-    contentPath: 'instanceType'
-  },{
-    id: 'sessionID',
-    headerTitle: 'Session ID',
-    contentPath: 'sessionID',
-  },{
     id: 'clientAddress',
     headerTitle: 'Client Address',
     contentPath: 'clientAddress',
-  },{
-    id: 'threadName',
-    headerTitle: 'Thread Name',
-    contentPath: 'threadName',
   },{
     id: 'startTime',
     headerTitle: 'Start Time',
@@ -174,6 +160,46 @@ export default TableController.extend({
     cellDefinition: {
       type: 'duration'
     }
+  },{
+    id: 'appID',
+    headerTitle: 'Application Id',
+    contentPath: 'dag.firstObject.appID',
+    cellComponentName: 'em-table-linked-cell',
+    getCellContent: function (row) {
+      return {
+        routeName: "app",
+        model: row.get("dag.firstObject.appID"),
+        text: row.get("dag.firstObject.appID")
+      };
+    }
+  },{
+    id: 'queue',
+    headerTitle: 'Queue',
+    contentPath: 'queue',
+  },{
+    id: 'executionMode',
+    headerTitle: 'Execution Mode',
+    contentPath: 'executionMode',
+  },{
+    id: 'hiveAddress',
+    headerTitle: 'Hive Server 2 Address',
+    contentPath: 'hiveAddress'
+  },{
+    id: 'queryName',
+    headerTitle: 'Query Name',
+    contentPath: 'queryName'
+  },{
+    id: 'instanceType',
+    headerTitle: 'Client Type',
+    contentPath: 'instanceType'
+  },{
+    id: 'sessionID',
+    headerTitle: 'Session ID',
+    contentPath: 'sessionID',
+  },{
+    id: 'threadName',
+    headerTitle: 'Thread Name',
+    contentPath: 'threadName',
   }]),
 
   getCounterColumns: function () {

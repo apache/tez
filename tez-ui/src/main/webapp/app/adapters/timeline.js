@@ -40,7 +40,13 @@ export default AbstractAdapter.extend({
     callerID: "callerId",
     requestuser: "requestuser",
     executionMode: "executionmode",
-    callerId: "callerId"
+    callerId: "callerId",
+
+    queryName: "queryname",
+    tablesRead: "tablesread",
+    tablesWritten: "tableswritten",
+    operationID: "operationid",
+    queue: "queue",
   },
 
   stringifyFilters: function (filters) {

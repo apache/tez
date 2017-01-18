@@ -28,7 +28,7 @@ moduleForComponent('queries-page-search', 'Integration | Component | queries pag
 
 test('Basic creation test', function(assert) {
   this.render(hbs`{{queries-page-search}}`);
-  assert.equal(this.$("input").length, 3);
+  assert.equal(this.$("input").length, 8);
 
   // Template block usage:" + EOL +
   this.render(hbs`
@@ -36,26 +36,41 @@ test('Basic creation test', function(assert) {
       template block text
     {{/queries-page-search}}
   `);
-  assert.equal(this.$("input").length, 3);
+  assert.equal(this.$("input").length, 8);
 });
 
 test('tableDefinition test', function(assert) {
   var testQueryID = "query_1",
       testUser = "user",
-      testRequestUser = "RequestUser";
+      testTablesRead = "TablesRead",
+      testTablesWritten = "TablesWritten",
+      testAppID = "AppID",
+      testDagID = "DAGID",
+      testQueue = "queue",
+      testExecutionMode = "ExecutionMode";
 
   this.set("tableDefinition", Ember.Object.create({
     queryID: testQueryID,
     user: testUser,
-    requestUser: testRequestUser
+    tablesRead: testTablesRead,
+    tablesWritten: testTablesWritten,
+    appID: testAppID,
+    dagID: testDagID,
+    queue: testQueue,
+    executionMode: testExecutionMode,
   }));
 
   this.render(hbs`{{queries-page-search tableDefinition=tableDefinition}}`);
 
   return wait().then(() => {
-    assert.equal(this.$('input').length, 3);
+    assert.equal(this.$('input').length, 8);
     assert.equal(this.$('input').eq(0).val(), testQueryID);
     assert.equal(this.$('input').eq(1).val(), testUser);
-    assert.equal(this.$('input').eq(2).val(), testRequestUser);
+    assert.equal(this.$('input').eq(2).val(), testDagID);
+    assert.equal(this.$('input').eq(3).val(), testTablesRead);
+    assert.equal(this.$('input').eq(4).val(), testTablesWritten);
+    assert.equal(this.$('input').eq(5).val(), testAppID);
+    assert.equal(this.$('input').eq(6).val(), testQueue);
+    assert.equal(this.$('input').eq(7).val(), testExecutionMode);
   });
 });

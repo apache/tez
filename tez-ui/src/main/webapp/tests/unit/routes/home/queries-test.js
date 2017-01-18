@@ -43,15 +43,24 @@ test('it exists', function(assert) {
 test('refresh test', function(assert) {
   let route = this.subject();
 
+  assert.equal(route.get("queryParams.queryName.refreshModel"), true);
   assert.equal(route.get("queryParams.queryID.refreshModel"), true);
+  assert.equal(route.get("queryParams.dagID.refreshModel"), true);
+  assert.equal(route.get("queryParams.appID.refreshModel"), true);
+  assert.equal(route.get("queryParams.executionMode.refreshModel"), true);
   assert.equal(route.get("queryParams.user.refreshModel"), true);
   assert.equal(route.get("queryParams.requestUser.refreshModel"), true);
+  assert.equal(route.get("queryParams.tablesRead.refreshModel"), true);
+  assert.equal(route.get("queryParams.tablesWritten.refreshModel"), true);
+  assert.equal(route.get("queryParams.operationID.refreshModel"), true);
+  assert.equal(route.get("queryParams.queue.refreshModel"), true);
+
   assert.equal(route.get("queryParams.rowCount.refreshModel"), true);
 });
 
 test('loaderQueryParams test', function(assert) {
   let route = this.subject();
-  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 4);
+  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 11 + 1);
 });
 
 test('actions.willTransition test', function(assert) {

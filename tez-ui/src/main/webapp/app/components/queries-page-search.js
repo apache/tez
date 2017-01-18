@@ -21,15 +21,31 @@ import Ember from 'ember';
 export default Ember.Component.extend({
   classNames: ['queries-page-search'],
 
+  queryName: Ember.computed.oneWay("tableDefinition.queryName"),
   queryID: Ember.computed.oneWay("tableDefinition.queryID"),
+  dagID: Ember.computed.oneWay("tableDefinition.dagID"),
+  appID: Ember.computed.oneWay("tableDefinition.appID"),
+  executionMode: Ember.computed.oneWay("tableDefinition.executionMode"),
   user: Ember.computed.oneWay("tableDefinition.user"),
   requestUser: Ember.computed.oneWay("tableDefinition.requestUser"),
+  tablesRead: Ember.computed.oneWay("tableDefinition.tablesRead"),
+  tablesWritten: Ember.computed.oneWay("tableDefinition.tablesWritten"),
+  operationID: Ember.computed.oneWay("tableDefinition.operationID"),
+  queue: Ember.computed.oneWay("tableDefinition.queue"),
 
   sendSearch: function () {
     this.get('parentView').sendAction('search', {
+      queryName: this.get("queryName"),
       queryID: this.get("queryID"),
+      dagID: this.get("dagID"),
+      appID: this.get("appID"),
+      executionMode: this.get("executionMode"),
       user: this.get("user"),
       requestUser: this.get("requestUser"),
+      tablesRead: this.get("tablesRead"),
+      tablesWritten: this.get("tablesWritten"),
+      operationID: this.get("operationID"),
+      queue: this.get("queue"),
     });
   },
 

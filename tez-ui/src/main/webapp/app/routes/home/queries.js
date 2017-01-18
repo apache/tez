@@ -26,17 +26,33 @@ export default ServerSideOpsRoute.extend({
   title: "Hive Queries",
 
   queryParams: {
+    queryName: REFRESH,
     queryID: REFRESH,
+    dagID: REFRESH,
+    appID: REFRESH,
+    executionMode: REFRESH,
     user: REFRESH,
     requestUser: REFRESH,
+    tablesRead: REFRESH,
+    tablesWritten: REFRESH,
+    operationID: REFRESH,
+    queue: REFRESH,
 
     rowCount: REFRESH
   },
 
   loaderQueryParams: {
+    queryName: "queryName",
     id: "queryID",
-    requestuser: "requestUser",
+    dagID: "dagID",
+    appID: "appID",
+    executionMode: "executionMode",
     user: "user",
+    requestuser: "requestUser",
+    tablesRead: "tablesRead",
+    tablesWritten: "tablesWritten",
+    operationID: "operationID",
+    queue: "queue",
 
     limit: "rowCount",
   },
@@ -47,7 +63,30 @@ export default ServerSideOpsRoute.extend({
   fromId: null,
 
   load: function (value, query, options) {
-    query.executionMode = "TEZ";
+    var that = this;
+
+    if(query.dagID) {
+      return that.get("loader").queryRecord("dag", query.dagID).then(function (dag) {
+        return that.load(value, {
+          id: dag.get("callerID")
+        }, options);
+      }, function () {
+        return [];
+      });
+    }
+    else if(query.appID) {
+      return that.get("loader").query("dag", {
+        appID: query.appID,
+        limit: query.limit
+      }).then(function (dags) {
+        return Ember.RSVP.all(dags.map(function (dag) {
+          return that.get("loader").queryRecord("hive-query", dag.get("callerID"), options);
+        }));
+      }, function () {
+        return [];
+      });
+    }
+
     return this._super(value, query, options);
   },
 

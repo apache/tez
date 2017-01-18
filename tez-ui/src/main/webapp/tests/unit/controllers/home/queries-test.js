@@ -33,6 +33,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
 
   assert.ok(controller.queryParams);
+  assert.equal(controller.queryParams.length, 10 + 5);
 
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.headerComponentNames);
@@ -58,16 +59,31 @@ test('definition test', function(assert) {
       }),
       definition = controller.get("definition"),
 
+      testQueryName = "QueryName",
       testQueryID = "QueryID",
+      testDagID = "DagID",
+      testAppID = "AppID",
+      testExecutionMode = "ExecutionMode",
       testUser = "User",
       testRequestUser = "RequestUser",
+      testTablesRead = "TablesRead",
+      testTablesWritten = "TablesWritten",
+      testQueue = "queue",
+
       testPageNum = 10,
       testMoreAvailable = true,
       testLoadingMore = true;
 
+  assert.equal(definition.get("queryName"), "");
   assert.equal(definition.get("queryID"), "");
+  assert.equal(definition.get("dagID"), "");
+  assert.equal(definition.get("appID"), "");
+  assert.equal(definition.get("executionMode"), "");
   assert.equal(definition.get("user"), "");
   assert.equal(definition.get("requestUser"), "");
+  assert.equal(definition.get("tablesRead"), "");
+  assert.equal(definition.get("tablesWritten"), "");
+  assert.equal(definition.get("queue"), "");
 
   assert.equal(definition.get("pageNum"), 1);
 
@@ -75,14 +91,35 @@ test('definition test', function(assert) {
   assert.equal(definition.get("loadingMore"), false);
 
   Ember.run(function () {
+    controller.set("queryName", testQueryName);
+    assert.equal(controller.get("definition.queryName"), testQueryName);
+
     controller.set("queryID", testQueryID);
     assert.equal(controller.get("definition.queryID"), testQueryID);
+
+    controller.set("dagID", testDagID);
+    assert.equal(controller.get("definition.dagID"), testDagID);
+
+    controller.set("appID", testAppID);
+    assert.equal(controller.get("definition.appID"), testAppID);
+
+    controller.set("executionMode", testExecutionMode);
+    assert.equal(controller.get("definition.executionMode"), testExecutionMode);
 
     controller.set("user", testUser);
     assert.equal(controller.get("definition.user"), testUser);
 
     controller.set("requestUser", testRequestUser);
     assert.equal(controller.get("definition.requestUser"), testRequestUser);
+
+    controller.set("tablesRead", testTablesRead);
+    assert.equal(controller.get("definition.tablesRead"), testTablesRead);
+
+    controller.set("tablesWritten", testTablesWritten);
+    assert.equal(controller.get("definition.tablesWritten"), testTablesWritten);
+
+    controller.set("queue", testQueue);
+    assert.equal(controller.get("definition.queue"), testQueue);
 
     controller.set("pageNum", testPageNum);
     assert.equal(controller.get("definition.pageNum"), testPageNum);
