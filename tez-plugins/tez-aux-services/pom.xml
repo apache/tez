@@ -85,6 +85,7 @@
     <dependency>
       <groupId>org.fusesource.leveldbjni</groupId>
       <artifactId>leveldbjni-all</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
@@ -191,18 +192,6 @@
                 </relocation>
                 <relocation>
                   <pattern>org.apache.commons</pattern>
-                  <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.fusesource.hawtjni</pattern>
-                  <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.fusesource.leveldbjni</pattern>
-                  <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.iq80.leveldb</pattern>
                   <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
                 </relocation>
                 <relocation>
