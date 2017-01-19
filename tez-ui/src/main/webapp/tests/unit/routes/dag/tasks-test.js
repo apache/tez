@@ -74,7 +74,7 @@ test('logCellClicked test', function(assert) {
   // Download false
   route.actions.logCellClicked.call(route, testID, false).then(function (virtualAnchorInstance) {
     assert.equal(virtualAnchorInstance.href, testLogURL);
-    assert.notOk(virtualAnchorInstance.hasOwnProperty("download"));
+    assert.notOk(virtualAnchorInstance.download);
   });
 
   // Download true
