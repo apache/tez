@@ -258,7 +258,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (in instanceof CompositeInputAttemptIdentifier) {
         CompositeInputAttemptIdentifier cin = (CompositeInputAttemptIdentifier)in;
         for (int i = 0; i < cin.getInputIdentifierCount(); i++) {
-          pathToAttemptMap.put(new PathPartition(cin.getPathComponent(), i), cin.expand(i));
+          pathToAttemptMap.put(new PathPartition(cin.getPathComponent(), partition + i), cin.expand(i));
         }
       } else {
         pathToAttemptMap.put(new PathPartition(in.getPathComponent(), 0), in);
