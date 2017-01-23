@@ -484,6 +484,9 @@ public class TezClient {
           proxy = waitForProxy();
         } catch (InterruptedException e) {
           LOG.debug("Interrupted while trying to create a connection to the AM", e);
+        } catch (SessionNotRunning e) {
+          LOG.error("Cannot create a connection to the AM, stopping heartbeat to AM", e);
+          cancelAMKeepAlive(false);
         }
       }
       if (proxy != null) {
@@ -1104,10 +1107,19 @@ public class TezClient {
 
   @VisibleForTesting
   @Private
-  public synchronized void cancelAMKeepAlive() {
+  public synchronized void cancelAMKeepAlive(boolean shutdownNow) {
     if (amKeepAliveService != null) {
-      amKeepAliveService.shutdownNow();
+      if (shutdownNow) {
+        amKeepAliveService.shutdownNow();
+      } else {
+        amKeepAliveService.shutdown();
+      }
     }
+  }
+
+  @VisibleForTesting
+  protected synchronized ScheduledExecutorService getAMKeepAliveService() {
+    return amKeepAliveService;
   }
 
   /**

@@ -830,4 +830,37 @@ public class TestTezClient {
   }
 
 
+  @Test(timeout = 10000)
+  public void testAMHeartbeatFailOnGetAMProxy() throws Exception {
+    int amHeartBeatTimeoutSecs = 3;
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, amHeartBeatTimeoutSecs);
+
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.callRealGetSessionAMProxy = true;
+    client.start();
+
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+      .thenReturn(YarnApplicationState.FAILED);
+    Thread.sleep(2 * amHeartBeatTimeoutSecs * 1000);
+    assertTrue(client.getAMKeepAliveService().isTerminated());
+  }
+
+  @Test(timeout = 12000)
+  public void testAMHeartbeatFailOnGetAMStatus() throws Exception {
+    int amHeartBeatTimeoutSecs = 3;
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, amHeartBeatTimeoutSecs);
+
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.start();
+
+    when(client.sessionAmProxy.getAMStatus(any(RpcController.class),
+      any(GetAMStatusRequestProto.class))).thenThrow(new ServiceException("error"));
+    client.callRealGetSessionAMProxy = true;
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+      .thenReturn(YarnApplicationState.FAILED);
+    Thread.sleep(3 * amHeartBeatTimeoutSecs * 1000);
+    assertTrue(client.getAMKeepAliveService().isTerminated());
+  }
 }

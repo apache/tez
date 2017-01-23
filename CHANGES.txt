@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3584. amKeepAliveService in TezClient should shutdown in case of AM failure.
   TEZ-3462. Task attempt failure during container shutdown loses useful container diagnostics
   TEZ-3579. Wrong configuration key for max slow start fraction in CartesianProductVertexManager.
   TEZ-3458. Auto grouping for cartesian product edge(unpartitioned case).

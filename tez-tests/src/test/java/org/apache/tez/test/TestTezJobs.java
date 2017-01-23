@@ -1210,7 +1210,7 @@ public class TestTezJobs {
       tezConf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 5);
       TezClient tezClient = TezClient.create("testAMClientHeartbeatTimeout", tezConf, true);
       tezClient.start();
-      tezClient.cancelAMKeepAlive();
+      tezClient.cancelAMKeepAlive(true);
 
       ApplicationId appId = tezClient.getAppMasterApplicationId();
 
