@@ -63,6 +63,43 @@ test('loaderQueryParams test', function(assert) {
   assert.equal(Object.keys(route.get("loaderQueryParams")).length, 11 + 1);
 });
 
+test('load - query test', function(assert) {
+  let route = this.subject({
+        controller: Ember.Object.create()
+      }),
+      testEntityID1 = "entity_1",
+      testSubmitter = "sub",
+      query = {
+        limit: 5,
+        submitter: testSubmitter
+      },
+      resultRecords = Ember.A([
+        Ember.Object.create({
+          submitter: testSubmitter,
+          entityID: testEntityID1
+        })
+      ]);
+
+  route.loader = Ember.Object.create({
+    query: function (type, query, options) {
+      assert.equal(type, "hive-query");
+      assert.equal(query.limit, 6);
+      assert.equal(options.reload, true);
+      return Ember.RSVP.resolve(resultRecords);
+    },
+  });
+
+  assert.expect(3 + 1 + 2);
+
+  return route.load(null, query).then(function (records) {
+    assert.ok(Array.isArray(records));
+
+    assert.equal(records.get("length"), 1);
+    assert.equal(records.get("0.entityID"), testEntityID1);
+  });
+
+});
+
 test('actions.willTransition test', function(assert) {
   let route = this.subject({
     controller: Ember.Object.create()

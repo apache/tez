@@ -87,7 +87,9 @@ export default ServerSideOpsRoute.extend({
       });
     }
 
-    return this._super(value, query, options);
+    return this._super(value, query, options).then(function (records) {
+      return records.toArray();
+    });
   },
 
   setupController: function (controller, model) {

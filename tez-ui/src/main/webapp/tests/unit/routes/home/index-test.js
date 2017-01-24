@@ -126,12 +126,14 @@ test('load - query + filter test', function(assert) {
     }
   });
 
-  assert.expect(3 + 3 + 2 + 3 + 2);
+  assert.expect(3 + 3 + 2 + 1 + 3 + 2);
 
   assert.notOk(route.get("controller.moreAvailable"), "moreAvailable shouldn't be set!");
   assert.equal(route.get("fromId"), null, "fromId shouldn't be set");
 
   return route.load(null, query).then(function (records) {
+    assert.ok(Array.isArray(records));
+
     assert.equal(records.get("length"), 2, "Length should be 2!");
     assert.equal(records.get("0.entityID"), testEntityID1);
     assert.equal(records.get("1.entityID"), testEntityID2);
