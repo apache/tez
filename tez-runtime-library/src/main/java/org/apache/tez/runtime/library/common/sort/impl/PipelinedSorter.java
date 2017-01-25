@@ -335,6 +335,7 @@ public class PipelinedSorter extends ExternalSorter {
     } else {
       // queue up the sort
       SortTask task = new SortTask(span, sorter);
+      LOG.debug("Submitting span={} for sort", span.toString());
       Future<SpanIterator> future = sortmaster.submit(task);
       merger.add(future);
       span = newSpan;
@@ -969,8 +970,15 @@ public class PipelinedSorter extends ExternalSorter {
           items = 1024*1024;
           perItem = 16;
         }
-        newSpan = new SortSpan(remaining, items, perItem,
-            ConfigUtils.getIntermediateOutputKeyComparator(conf));
+        final RawComparator newComparator = ConfigUtils.getIntermediateOutputKeyComparator(conf);
+        if (this.comparator == newComparator) {
+          LOG.warn("Same comparator used. comparator={}, newComparator={},"
+                  + " hashCode: comparator={}, newComparator={}",
+              this.comparator, newComparator,
+              System.identityHashCode(this.comparator),
+              System.identityHashCode(newComparator));
+        }
+        newSpan = new SortSpan(remaining, items, perItem, newComparator);
         newSpan.index = index+1;
         LOG.info(String.format(outputContext.getDestinationVertexName() + ": " + "New Span%d.length = %d, perItem = %d", newSpan.index, newSpan
             .length(), perItem) + ", counter:" + mapOutputRecordCounter.getValue());
@@ -1278,6 +1286,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     public final boolean ready() throws IOException, InterruptedException {
+      int numSpanItr = futures.size();
       try {
         SpanIterator iter = null;
         while(this.futures.size() > 0) {
@@ -1299,8 +1308,11 @@ public class PipelinedSorter extends ExternalSorter {
         LOG.info(outputContext.getDestinationVertexName() + ": " + "Heap = " + sb.toString());
         return true;
       } catch(ExecutionException e) {
-        LOG.info(outputContext.getDestinationVertexName() + ": " + e.toString());
-        return false;
+        LOG.error("Heap size={}, total={}, eq={}, partition={}, gallop={}, totalItr={},"
+                + " futures.size={}, destVertexName={}",
+            heap.size(), total, eq, partition, gallop, numSpanItr, futures.size(),
+            outputContext.getDestinationVertexName(), e);
+        throw new IOException(e);
       }
     }
 
