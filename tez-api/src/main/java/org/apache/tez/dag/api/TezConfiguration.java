@@ -1335,6 +1335,18 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "yarn.ats.max.events.per.batch";
   public static final int YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT = 5;
 
+  /**
+   * Boolean value. Default true.
+   * Whether to fix the history url if it has not been configured correctly i.e. it does not have a
+   * scheme in the value. By default, the url will be prepended with a scheme (http) if there is
+   * none present.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_UI_HISTORY_URL_SCHEME_CHECK_ENABLED =
+      TEZ_PREFIX + "am.ui.history.url.scheme.check.enabled";
+  public static final boolean TEZ_AM_UI_HISTORY_URL_SCHEME_CHECK_ENABLED_DEFAULT = true;
+
 
   /**
    * Int value. Time, in milliseconds, to wait for an event before sending a batch to ATS.
