@@ -176,6 +176,7 @@ ALL CHANGES:
   TEZ-2712. Tez UI: Display the vertex description in the tooltip of vertex in DAG view UI
   TEZ-3583. Tez UI: UTs are flaky because of a dependency issue
   TEZ-3580. Tez UI: Pagination broken on queries page
+  TEZ-3575. RM have started forwarding origin. Use that in AMWebController for CORS support
 
 Release 0.8.5: Unreleased
 

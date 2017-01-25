@@ -41,6 +41,7 @@ import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.TezCounter;
@@ -66,6 +67,9 @@ import org.apache.tez.dag.records.TezVertexID;
 public class AMWebController extends Controller {
 
   private final static Logger LOG = LoggerFactory.getLogger(AMWebController.class);
+
+  // HTTP CORS Request Headers
+  static final String ORIGIN = "Origin";
 
   // HTTP CORS Response Headers
   static final String ACCESS_CONTROL_ALLOW_ORIGIN = "Access-Control-Allow-Origin";
@@ -114,6 +118,17 @@ public class AMWebController extends Controller {
     renderJSON("Tez AM UI WebServices");
   }
 
+  static String encodeHeader(final String header) {
+    if (header == null) {
+      return null;
+    }
+    // Protect against HTTP response splitting vulnerability
+    // since value is written as part of the response header
+    // Ensure this header only has one header by removing
+    // CRs and LFs
+    return header.split("\n|\r")[0].trim();
+  }
+
   @VisibleForTesting
   public void setCorsHeaders() {
     final HttpServletResponse res = response();
@@ -123,17 +138,20 @@ public class AMWebController extends Controller {
      * if it matches the allowed origins. however rm does not forward these headers.
      */
     String historyUrlBase = appContext.getAMConf().get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
-    String origin = null;
-    try {
-      URL url = new URL(historyUrlBase);
-      origin = url.getProtocol() + "://" + url.getAuthority();
-    } catch (MalformedURLException e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Invalid url set for tez history url base: " + historyUrlBase, e);
+    String origin = request().getHeader(ORIGIN);
+    if(origin == null) {
+      try {
+        URL url = new URL(historyUrlBase);
+        origin = url.getProtocol() + "://" + url.getAuthority();
+      } catch (MalformedURLException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Invalid url set for tez history url base: " + historyUrlBase, e);
+        }
       }
     }
 
     if (origin != null) {
+      origin = encodeHeader(origin);
       res.setHeader(ACCESS_CONTROL_ALLOW_ORIGIN, origin);
     }
     res.setHeader(ACCESS_CONTROL_ALLOW_METHODS, ALLOWED_METHODS);

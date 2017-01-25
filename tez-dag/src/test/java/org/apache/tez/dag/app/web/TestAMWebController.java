@@ -92,11 +92,49 @@ public class TestAMWebController {
     mockRequest = mock(HttpServletRequest.class);
   }
 
+  @Test
+  public void testEncodeHeaders() {
+    String validOrigin = "http://localhost:12345";
+    String encodedValidOrigin = AMWebController.encodeHeader(validOrigin);
+    Assert.assertEquals("Valid origin encoding should match exactly",
+        validOrigin, encodedValidOrigin);
+
+    String httpResponseSplitOrigin = validOrigin + " \nSecondHeader: value";
+    String encodedResponseSplitOrigin =
+        AMWebController.encodeHeader(httpResponseSplitOrigin);
+    Assert.assertEquals("Http response split origin should be protected against",
+        validOrigin, encodedResponseSplitOrigin);
+
+    // Test Origin List
+    String validOriginList = "http://foo.example.com:12345 http://bar.example.com:12345";
+    String encodedValidOriginList = AMWebController
+        .encodeHeader(validOriginList);
+    Assert.assertEquals("Valid origin list encoding should match exactly",
+        validOriginList, encodedValidOriginList);
+  }
+
+  @Test(timeout = 5000)
+  public void testCorsHeadersWithOrigin() {
+    AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
+        "TEST_HISTORY_URL");
+    AMWebController spy = spy(amWebController);
+    String originURL = "http://origin.com:8080";
+
+    doReturn(mockResponse).when(spy).response();
+
+    doReturn(mockRequest).when(spy).request();
+    doReturn(originURL).when(mockRequest).getHeader(AMWebController.ORIGIN);
+
+    spy.setCorsHeaders();
+    verify(mockResponse).setHeader("Access-Control-Allow-Origin", originURL);
+  }
+
   @Test(timeout = 5000)
   public void testCorsHeadersAreSet() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
     AMWebController spy = spy(amWebController);
+    doReturn(mockRequest).when(spy).request();
     doReturn(mockResponse).when(spy).response();
     spy.setCorsHeaders();
 
