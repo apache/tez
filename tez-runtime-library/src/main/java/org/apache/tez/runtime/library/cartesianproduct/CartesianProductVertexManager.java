@@ -71,7 +71,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    */
   public static final String TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING =
     "tez.cartesian-product.enable-auto-grouping";
-  public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT = true;
+  public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT = false;
 
   /**
    * The number of output bytes we want from each group.
