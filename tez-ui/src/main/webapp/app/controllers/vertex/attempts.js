@@ -108,5 +108,25 @@ export default MultiTableController.extend(AutoCounterColumn, {
         }];
       }
     }
+    }, {
+    id: 'container log',
+    headerTitle: 'Container Logs',
+    contentPath: 'containerLogURL',
+    cellComponentName: 'em-table-linked-cell',
+    cellDefinition: {
+      target: "_blank"
+    },
+    getCellContent: function (row) {
+      if(row.get("containerLogURL")) {
+        return [{
+          href: row.get("containerLogURL"),
+          text: "View"
+        }, {
+          href: row.get("containerLogURL"),
+          text: "Download",
+          download: true
+        }];
+      }
+    }
   }])
 });

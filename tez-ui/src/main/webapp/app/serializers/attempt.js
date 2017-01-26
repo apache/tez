@@ -30,6 +30,15 @@ function createLogURL(source) {
   }
 }
 
+function createContainerLogURL(source) {
+  var logURL = Ember.get(source, 'otherinfo.inProgressLogsURL'),
+      yarnProtocol = this.get('env.app.yarnProtocol');
+
+  if(logURL) {
+    return `${yarnProtocol}://${logURL}`;
+  }
+}
+
 export default TimelineSerializer.extend({
   maps: {
     taskID: 'primaryfilters.TEZ_TASK_ID.0',
@@ -39,6 +48,8 @@ export default TimelineSerializer.extend({
     containerID: 'otherinfo.containerId',
     nodeID: 'otherinfo.nodeId',
 
-    logURL: createLogURL
+    logURL: createLogURL,
+
+    containerLogURL: createContainerLogURL
   }
 });

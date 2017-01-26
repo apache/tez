@@ -39,7 +39,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.columns);
 
-  assert.equal(controller.get("columns.length"), 9);
+  assert.equal(controller.get("columns.length"), 10);
 });
 
 test('Log column test', function(assert) {
