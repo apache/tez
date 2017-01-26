@@ -1684,6 +1684,17 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "am.ats.v15.override.summary-types";
   public static final boolean TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES_DEFAULT = true;
 
+   /**
+    * Integer value in milliseconds. Default value is 5000 milliseconds.
+    * The time for which the AM waits after the final DAG completes or when shutdown is invoked
+    * before completing shutdown. This allows a client to retrieve any required info directly from
+    * the AM on completion of a DAG.
+    */
+   @Private
+   @ConfigurationScope(Scope.AM)
+   public static final String TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS =
+       TEZ_AM_PREFIX + "sleep.time.before.exit.millis";
+
   /**
    * String value. Determines what JVM properties will be logged for debugging purposes
    * in the AM and Task runtime logs.

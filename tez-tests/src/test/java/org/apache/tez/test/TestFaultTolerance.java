@@ -59,6 +59,7 @@ import org.apache.tez.test.dag.TwoLevelsFailingDAG;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Ignore;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -105,6 +106,7 @@ public class TestFaultTolerance {
       tezConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.4);
       tezConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, 3);
       tezConf.setInt(TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS, 100);
+      tezConf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
 
       tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
       tezSession.start();
@@ -125,6 +127,11 @@ public class TestFaultTolerance {
       dfsCluster.shutdown();
       dfsCluster = null;
     }
+  }
+
+  @Before
+  public void checkSessionStatus() {
+    // TODO restart session if it crashed due to some test error
   }
 
   void runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {

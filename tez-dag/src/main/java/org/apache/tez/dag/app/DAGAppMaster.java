@@ -432,6 +432,12 @@ public class DAGAppMaster extends AbstractService {
     initResourceCalculatorPlugins();
     this.hadoopShim = new HadoopShimsLoader(this.amConf).getHadoopShim();
 
+    long sleepTimeBeforeSecs = this.amConf.getLong(
+        TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS,
+        TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT);
+    if (sleepTimeBeforeSecs >= 0) {
+      this.shutdownHandler.setSleepTimeBeforeExit(sleepTimeBeforeSecs);
+    }
 
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
@@ -924,6 +930,11 @@ public class DAGAppMaster extends AbstractService {
 
   protected class DAGAppMasterShutdownHandler {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
+    private long sleepTimeBeforeExit = TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT;
+
+    void setSleepTimeBeforeExit(long sleepTimeBeforeExit) {
+      this.sleepTimeBeforeExit = sleepTimeBeforeExit;
+    }
 
     public void shutdown() {
       shutdown(false);
@@ -941,16 +952,19 @@ public class DAGAppMaster extends AbstractService {
       }
       LOG.info("Handling DAGAppMaster shutdown");
 
-      AMShutdownRunnable r = new AMShutdownRunnable(now);
+      AMShutdownRunnable r = new AMShutdownRunnable(now, sleepTimeBeforeExit);
       Thread t = new Thread(r, "AMShutdownThread");
       t.start();
     }
 
     private class AMShutdownRunnable implements Runnable {
       private final boolean immediateShutdown;
+      private final long sleepTimeBeforeExit;
 
-      public AMShutdownRunnable(boolean immediateShutdown) {
+      public AMShutdownRunnable(boolean immediateShutdown,
+                                long sleepTimeBeforeExit) {
         this.immediateShutdown = immediateShutdown;
+        this.sleepTimeBeforeExit = sleepTimeBeforeExit;
       }
 
       @Override
@@ -959,8 +973,8 @@ public class DAGAppMaster extends AbstractService {
         // final states. Will be removed once RM come on. TEZ-160.
         if (!immediateShutdown) {
           try {
-            LOG.info("Sleeping for 5 seconds before shutting down");
-            Thread.sleep(TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT);
+            LOG.info("Sleeping for {} ms before shutting down", sleepTimeBeforeExit);
+            Thread.sleep(sleepTimeBeforeExit);
           } catch (InterruptedException e) {
             e.printStackTrace();
           }

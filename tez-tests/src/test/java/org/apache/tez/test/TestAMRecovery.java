@@ -116,6 +116,7 @@ public class TestAMRecovery {
       Configuration miniTezconf = new Configuration(conf);
       miniTezconf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, MAX_AM_ATTEMPT);
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
+      conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       miniTezCluster.init(miniTezconf);
       miniTezCluster.start();
     }
