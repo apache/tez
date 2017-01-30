@@ -711,36 +711,46 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         }
         InputAttemptIdentifier srcAttemptId = iter.next();
         MapOutput mapOutput = null;
-        try {
-          long startTime = System.currentTimeMillis();
-          Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
+        boolean hasFailures = false;
+        // Fetch partition count number of map outputs (handles auto-reduce case)
+        for (int curPartition = minPartition; curPartition <= maxPartition; curPartition++) {
+          try {
+            long startTime = System.currentTimeMillis();
 
-          TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(),
-              minPartition);
+            // Partition id is the base partition id plus the relative offset
+            int reduceId = host.getPartitionId() + curPartition - minPartition;
+            srcAttemptId = scheduler.getIdentifierForFetchedOutput(srcAttemptId.getPathComponent(), reduceId);
+            Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
+            TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(), reduceId);
 
-          mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
-          long endTime = System.currentTimeMillis();
-          scheduler.copySucceeded(srcAttemptId, host, indexRecord.getPartLength(),
-              indexRecord.getRawLength(), (endTime - startTime), mapOutput, true);
-          iter.remove();
-          metrics.successFetch();
-        } catch (IOException e) {
-          if (mapOutput != null) {
-            mapOutput.abort();
-          }
-          if (!stopped) {
-            metrics.failedFetch();
-            ioErrs.increment(1);
-            scheduler.copyFailed(srcAttemptId, host, true, false, true);
-            LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
-                host.getHostIdentifier(), e);
-          } else {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(
-                  "Ignoring fetch error during local disk copy since fetcher has already been stopped");
+            mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
+            long endTime = System.currentTimeMillis();
+            scheduler.copySucceeded(srcAttemptId, host, indexRecord.getPartLength(),
+                indexRecord.getRawLength(), (endTime - startTime), mapOutput, true);
+            metrics.successFetch();
+          } catch (IOException e) {
+            if (mapOutput != null) {
+              mapOutput.abort();
             }
-            return;
+            if (!stopped) {
+              hasFailures = true;
+              metrics.failedFetch();
+              ioErrs.increment(1);
+              scheduler.copyFailed(srcAttemptId, host, true, false, true);
+              LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
+                  host.getHostIdentifier(), e);
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug(
+                    "Ignoring fetch error during local disk copy since fetcher has already been stopped");
+              }
+              return;
+            }
+
           }
+        }
+        if (!hasFailures) {
+          iter.remove();
         }
       }
     } finally {

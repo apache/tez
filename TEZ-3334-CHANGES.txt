@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3595. Composite Fetch account error for disk direct
   TEZ-3590. Remove google.protobuf from the tez-auxservices shaded jar
   TEZ-3587. Fetcher fetchInputs() can NPE on srcAttempt due to missing entry in pathToAttemptMap
   TEZ-3586. Remove fusesource.leveldbjni from the tez-auxservices shaded jar

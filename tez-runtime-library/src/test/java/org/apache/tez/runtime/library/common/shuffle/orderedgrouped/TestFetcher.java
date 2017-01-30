@@ -47,12 +47,15 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.collect.Lists;
 
 import org.apache.tez.http.HttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -235,18 +238,36 @@ public class TestFetcher {
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
 
-    List<InputAttemptIdentifier> srcAttempts = Arrays.asList(
-        new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0"),
-        new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1"),
-        new InputAttemptIdentifier(2, 3, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2"),
-        new InputAttemptIdentifier(3, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3"),
-        new InputAttemptIdentifier(4, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_4")
+    final List<CompositeInputAttemptIdentifier> srcAttempts = Arrays.asList(
+        new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", 1),
+        new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", 1),
+        new CompositeInputAttemptIdentifier(2, 3, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2", 1),
+        new CompositeInputAttemptIdentifier(3, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3", 1),
+        new CompositeInputAttemptIdentifier(4, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_4", 1)
     );
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
     final int[] sucessfulAttemptsIndexes = { 0, 1, 3 };
 
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
+
+    final ConcurrentMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier> pathToIdentifierMap = new ConcurrentHashMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier>();
+    for (CompositeInputAttemptIdentifier srcAttempt : srcAttempts) {
+      for (int i = 0; i < srcAttempt.getInputIdentifierCount(); i++) {
+        ShuffleScheduler.PathPartition pathPartition = new ShuffleScheduler.PathPartition(srcAttempt.getPathComponent(), host.getPartitionId() + i);
+        pathToIdentifierMap.put(pathPartition, srcAttempt.expand(i));
+        }
+      }
+    doAnswer(new Answer<InputAttemptIdentifier>() {
+      @Override
+      public InputAttemptIdentifier answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        String path = (String) args[0];
+        int reduceId = (int) args[1];
+        return pathToIdentifierMap.get(new ShuffleScheduler.PathPartition(path, reduceId));
+      }
+    }).when(scheduler)
+        .getIdentifierForFetchedOutput(any(String.class), any(int.class));
 
     doAnswer(new Answer<MapOutput>() {
       @Override
@@ -269,20 +290,22 @@ public class TestFetcher {
       }
     }).when(spyFetcher).getShuffleInputFileName(anyString(), anyString());
 
-    doAnswer(new Answer<TezIndexRecord>() {
-      @Override
-      public TezIndexRecord answer(InvocationOnMock invocation) throws Throwable {
-        Object[] args = invocation.getArguments();
-        String pathComponent = (String) args[0];
-        int len = pathComponent.length();
-        long p = Long.valueOf(pathComponent.substring(len - 1, len));
-        if (p == FIRST_FAILED_ATTEMPT_IDX || p == SECOND_FAILED_ATTEMPT_IDX) {
-          throw new IOException("failing to simulate failure case");
+    for (int i = 0; i < host.getPartitionCount(); i++) {
+      doAnswer(new Answer<TezIndexRecord>() {
+        @Override
+        public TezIndexRecord answer(InvocationOnMock invocation) throws Throwable {
+          Object[] args = invocation.getArguments();
+          String pathComponent = (String) args[0];
+          int len = pathComponent.length();
+          long p = Long.valueOf(pathComponent.substring(len - 1, len));
+          if (p == FIRST_FAILED_ATTEMPT_IDX || p == SECOND_FAILED_ATTEMPT_IDX) {
+            throw new IOException("failing to simulate failure case");
+          }
+          // match with params for copySucceeded below.
+          return new TezIndexRecord(p * 10, p * 1000, p * 100);
         }
-        // match with params for copySucceeded below.
-        return new TezIndexRecord(p * 10, p * 1000, p * 100);
-      }
-    }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId()));
+      }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId() + i));
+    }
 
     doNothing().when(scheduler).copySucceeded(any(InputAttemptIdentifier.class), any(MapHost.class),
         anyLong(), anyLong(), anyLong(), any(MapOutput.class), anyBoolean());
@@ -295,10 +318,12 @@ public class TestFetcher {
 
     // should have exactly 3 success and 1 failure.
     for (int i : sucessfulAttemptsIndexes) {
-      verifyCopySucceeded(scheduler, host, srcAttempts, i);
+      for (int j = 0; j < host.getPartitionCount(); j++) {
+        verifyCopySucceeded(scheduler, host, srcAttempts, i, j);
+      }
     }
-    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX), host, true, false, true);
-    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
 
     verify(metrics, times(3)).successFetch();
     verify(metrics, times(2)).failedFetch();
@@ -308,11 +333,136 @@ public class TestFetcher {
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
   }
 
+  @Test(timeout = 5000000)
+  public void testSetupLocalDiskFetchAutoReduce() throws Exception {
+    Configuration conf = new TezConfiguration();
+    ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
+    MergeManager merger = mock(MergeManager.class);
+    ShuffleClientMetrics metrics = mock(ShuffleClientMetrics.class);
+    Shuffle shuffle = mock(Shuffle.class);
+    InputContext inputContext = mock(InputContext.class);
+    when(inputContext.getCounters()).thenReturn(new TezCounters());
+    when(inputContext.getSourceVertexName()).thenReturn("");
+
+    MapHost host = new MapHost(HOST, PORT, 1, 2);
+    FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, metrics, shuffle, null, false, 0,
+        null, conf, true, HOST, PORT, "src vertex", host, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter,
+        wrongMapErrsCounter, connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID,
+        false, false, true, false);
+    FetcherOrderedGrouped spyFetcher = spy(fetcher);
+
+
+    final List<CompositeInputAttemptIdentifier> srcAttempts = Arrays.asList(
+        new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", host.getPartitionCount()),
+        new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", host.getPartitionCount()),
+        new CompositeInputAttemptIdentifier(2, 3, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2", host.getPartitionCount()),
+        new CompositeInputAttemptIdentifier(3, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3", host.getPartitionCount()),
+        new CompositeInputAttemptIdentifier(4, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_4", host.getPartitionCount())
+    );
+    final int FIRST_FAILED_ATTEMPT_IDX = 2;
+    final int SECOND_FAILED_ATTEMPT_IDX = 4;
+    final int[] sucessfulAttemptsIndexes = { 0, 1, 3 };
+
+    doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
+    final ConcurrentMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier> pathToIdentifierMap
+        = new ConcurrentHashMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier>();
+    for (CompositeInputAttemptIdentifier srcAttempt : srcAttempts) {
+      for (int i = 0; i < srcAttempt.getInputIdentifierCount(); i++) {
+        ShuffleScheduler.PathPartition pathPartition = new ShuffleScheduler.PathPartition(srcAttempt.getPathComponent(), host.getPartitionId() + i);
+        pathToIdentifierMap.put(pathPartition, srcAttempt.expand(i));
+      }
+    }
+
+    doAnswer(new Answer<InputAttemptIdentifier>() {
+        @Override
+        public InputAttemptIdentifier answer(InvocationOnMock invocation) throws Throwable {
+          Object[] args = invocation.getArguments();
+          String path = (String) args[0];
+          int reduceId = (int) args[1];
+          return pathToIdentifierMap.get(new ShuffleScheduler.PathPartition(path, reduceId));
+        }
+      }).when(scheduler)
+          .getIdentifierForFetchedOutput(any(String.class), any(int.class));
+
+    doAnswer(new Answer<MapOutput>() {
+      @Override
+      public MapOutput answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        MapOutput mapOutput = mock(MapOutput.class);
+        doReturn(MapOutput.Type.DISK_DIRECT).when(mapOutput).getType();
+        doReturn(args[0]).when(mapOutput).getAttemptIdentifier();
+        return mapOutput;
+      }
+    }).when(spyFetcher)
+        .getMapOutputForDirectDiskFetch(any(InputAttemptIdentifier.class), any(Path.class),
+            any(TezIndexRecord.class));
+
+    doAnswer(new Answer<Path>() {
+      @Override
+      public Path answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        return new Path(SHUFFLE_INPUT_FILE_PREFIX + args[0]);
+      }
+    }).when(spyFetcher).getShuffleInputFileName(anyString(), anyString());
+
+    for (int i = 0; i < host.getPartitionCount(); i++) {
+      doAnswer(new Answer<TezIndexRecord>() {
+        @Override
+        public TezIndexRecord answer(InvocationOnMock invocation) throws Throwable {
+          Object[] args = invocation.getArguments();
+          String pathComponent = (String) args[0];
+          int len = pathComponent.length();
+          long p = Long.valueOf(pathComponent.substring(len - 1, len));
+
+          if (pathComponent.equals(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).getPathComponent()) ||
+              pathComponent.equals(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).getPathComponent())) {
+            throw new IOException("Thowing exception to simulate failure case");
+          }
+          // match with params for copySucceeded below.
+          return new TezIndexRecord(p * 10, p * 1000, p * 100);
+        }
+      }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId() + i));
+    }
+
+    doNothing().when(scheduler).copySucceeded(any(InputAttemptIdentifier.class), any(MapHost.class),
+        anyLong(), anyLong(), anyLong(), any(MapOutput.class), anyBoolean());
+    doNothing().when(scheduler).putBackKnownMapOutput(host,
+        srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0));
+    doNothing().when(scheduler).putBackKnownMapOutput(host,
+        srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1));
+    doNothing().when(scheduler).putBackKnownMapOutput(host,
+        srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0));
+    doNothing().when(scheduler).putBackKnownMapOutput(host,
+        srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1));
+
+    spyFetcher.setupLocalDiskFetch(host);
+
+    // should have exactly 3 success and 1 failure.
+    for (int i : sucessfulAttemptsIndexes) {
+      for (int j = 0; j < host.getPartitionCount(); j++) {
+        verifyCopySucceeded(scheduler, host, srcAttempts, i, j);
+      }
+    }
+    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(1), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
+    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1), host, true, false, true);
+
+    verify(metrics, times(6)).successFetch();
+    verify(metrics, times(4)).failedFetch();
+
+    verify(spyFetcher).putBackRemainingMapOutputs(host);
+    verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX));
+    verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
+    verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX));
+    verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
+  }
+
   private void verifyCopySucceeded(ShuffleScheduler scheduler, MapHost host,
-      List<InputAttemptIdentifier> srcAttempts, long p) throws
+      List<CompositeInputAttemptIdentifier> srcAttempts, long p, int j) throws
       IOException {
     // need to verify filename, offsets, sizes wherever they are used.
-    InputAttemptIdentifier srcAttemptToMatch = srcAttempts.get((int) p);
+    InputAttemptIdentifier srcAttemptToMatch = srcAttempts.get((int) p).expand(j);
     String filenameToMatch = SHUFFLE_INPUT_FILE_PREFIX + srcAttemptToMatch.getPathComponent();
     ArgumentCaptor<MapOutput> captureMapOutput = ArgumentCaptor.forClass(MapOutput.class);
     verify(scheduler).copySucceeded(eq(srcAttemptToMatch), eq(host), eq(p * 100),
