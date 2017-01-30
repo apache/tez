@@ -829,9 +829,24 @@ public class TestTezClient {
 
   }
 
+  @Test(timeout = 20000)
+  public void testAMHeartbeatFailOnGetAMProxy_AppNotStarted() throws Exception {
+    int amHeartBeatTimeoutSecs = 3;
+    TezConfiguration conf = new TezConfiguration();
+    conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, amHeartBeatTimeoutSecs);
 
-  @Test(timeout = 10000)
-  public void testAMHeartbeatFailOnGetAMProxy() throws Exception {
+    final TezClientForTest client = configureAndCreateTezClient(conf);
+    client.callRealGetSessionAMProxy = true;
+    client.start();
+
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.ACCEPTED);
+    Thread.sleep(2 * amHeartBeatTimeoutSecs * 1000);
+    assertFalse(client.getAMKeepAliveService().isTerminated());
+  }
+
+  @Test(timeout = 20000)
+  public void testAMHeartbeatFailOnGetAMProxy_AppFailed() throws Exception {
     int amHeartBeatTimeoutSecs = 3;
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, amHeartBeatTimeoutSecs);
@@ -846,7 +861,7 @@ public class TestTezClient {
     assertTrue(client.getAMKeepAliveService().isTerminated());
   }
 
-  @Test(timeout = 12000)
+  @Test(timeout = 20000)
   public void testAMHeartbeatFailOnGetAMStatus() throws Exception {
     int amHeartBeatTimeoutSecs = 3;
     TezConfiguration conf = new TezConfiguration();
