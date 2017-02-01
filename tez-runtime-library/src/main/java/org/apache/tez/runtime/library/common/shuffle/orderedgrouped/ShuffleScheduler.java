@@ -1110,8 +1110,14 @@ class ShuffleScheduler {
   }
   
   private boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
-    return (!obsoleteInputs.contains(id) && 
-             !isInputFinished(id.getInputIdentifier()));
+    boolean isInputFinished = false;
+    if (id instanceof CompositeInputAttemptIdentifier) {
+      CompositeInputAttemptIdentifier cid = (CompositeInputAttemptIdentifier)id;
+      isInputFinished = isInputFinished(cid.getInputIdentifier(), cid.getInputIdentifier() + cid.getInputIdentifierCount());
+    } else {
+      isInputFinished = isInputFinished(id.getInputIdentifier());
+    }
+    return !obsoleteInputs.contains(id) && !isInputFinished;
   }
 
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {
@@ -1286,10 +1292,16 @@ class ShuffleScheduler {
       finishedMaps.set(inputIndex, true);
     }
   }
-  
+
   boolean isInputFinished(int inputIndex) {
     synchronized (finishedMaps) {
       return finishedMaps.get(inputIndex);
+    }
+  }
+
+  boolean isInputFinished(int inputIndex, int inputEnd) {
+    synchronized (finishedMaps) {
+      return finishedMaps.nextClearBit(inputIndex) >= inputEnd;
     }
   }
 
