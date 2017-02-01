@@ -161,7 +161,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
                 "Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
                     + srcAttemptIdentifier + "]. Not fetching.");
           }
-          numDmeEventsNoData.incrementAndGet();
+          numDmeEventsNoData.getAndIncrement();
           scheduler.copySucceeded(srcAttemptIdentifier.expand(0), null, 0, 0, 0, null, true);
           return;
         }
@@ -194,7 +194,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
             LOG.debug("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
                 + compositeInputAttemptIdentifier + "]. Not fetching.");
           }
-          numDmeEventsNoData.addAndGet(crdmEvent.getCount());
+          numDmeEventsNoData.getAndIncrement();
           scheduler.copySucceeded(compositeInputAttemptIdentifier.expand(i), null, 0, 0, 0, null, true);
         }
       }

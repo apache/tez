@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3596. Number of Empty DME logged for Composite fetch is too high
   TEZ-3597. Composite Fetch hangs on certain DME empty events.
   TEZ-3595. Composite Fetch account error for disk direct
   TEZ-3590. Remove google.protobuf from the tez-auxservices shaded jar

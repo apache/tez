@@ -180,7 +180,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
           LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
               + srcAttemptIdentifier + "]. Not fetching.");
         }
-        numDmeEventsNoData.incrementAndGet();
+        numDmeEventsNoData.getAndIncrement();
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
         return;
       }
