@@ -584,6 +584,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     // yet_to_be_fetched list and marking the failed tasks.
     InputAttemptIdentifier[] failedInputs = null;
     while (!srcAttemptsRemaining.isEmpty() && failedInputs == null) {
+      InputAttemptIdentifier inputAttemptIdentifier =
+          srcAttemptsRemaining.entrySet().iterator().next().getValue();
       if (isShutDown.get()) {
         shutdownInternal(true);
         if (isDebugEnabled) {
@@ -595,6 +597,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       }
       try {
         failedInputs = fetchInputs(input, callback);
+        if(failedInputs == null || failedInputs.length == 0) {
+         srcAttemptsRemaining.remove(inputAttemptIdentifier.toString());
+        }
       } catch (FetcherReadTimeoutException e) {
         //clean up connection
         shutdownInternal(true);
@@ -635,6 +640,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = srcAttemptsRemaining.entrySet().iterator();
     while (iterator.hasNext()) {
+      boolean hasFailures = false;
       if (isShutDown.get()) {
         if (isDebugEnabled) {
           LOG.debug(
@@ -643,53 +649,66 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         break;
       }
       InputAttemptIdentifier srcAttemptId = iterator.next().getValue();
-      long startTime = System.currentTimeMillis();
+      for (int curPartition = 0; curPartition < partitionCount; curPartition++) {
+        int reduceId = curPartition + partition;
+        srcAttemptId = pathToAttemptMap.get(new PathPartition(srcAttemptId.getPathComponent(), reduceId));
+        long startTime = System.currentTimeMillis();
 
-      FetchedInput fetchedInput = null;
-      try {
-        TezIndexRecord idxRecord;
-        // for missing files, this will throw an exception
-        idxRecord = getTezIndexRecord(srcAttemptId);
+        FetchedInput fetchedInput = null;
+        try {
+          TezIndexRecord idxRecord;
+          // for missing files, this will throw an exception
+          idxRecord = getTezIndexRecord(srcAttemptId, reduceId);
 
-        fetchedInput = new LocalDiskFetchedInput(idxRecord.getStartOffset(),
-            idxRecord.getRawLength(), idxRecord.getPartLength(), srcAttemptId,
-            getShuffleInputFileName(srcAttemptId.getPathComponent(), null), conf,
-            new FetchedInputCallback() {
-              @Override
-              public void fetchComplete(FetchedInput fetchedInput) {}
+          fetchedInput = new LocalDiskFetchedInput(idxRecord.getStartOffset(),
+              idxRecord.getRawLength(), idxRecord.getPartLength(), srcAttemptId,
+              getShuffleInputFileName(srcAttemptId.getPathComponent(), null),
+              conf,
+              new FetchedInputCallback() {
+                @Override
+                public void fetchComplete(FetchedInput fetchedInput) {
+                }
 
-              @Override
-              public void fetchFailed(FetchedInput fetchedInput) {}
+                @Override
+                public void fetchFailed(FetchedInput fetchedInput) {
+                }
 
-              @Override
-              public void freeResources(FetchedInput fetchedInput) {}
-            });
-        if (isDebugEnabled) {
-          LOG.debug("fetcher" + " about to shuffle output of srcAttempt (direct disk)" + srcAttemptId
-              + " decomp: " + idxRecord.getRawLength() + " len: " + idxRecord.getPartLength()
-              + " to " + fetchedInput.getType());
-        }
-
-        long endTime = System.currentTimeMillis();
-        fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput, idxRecord.getPartLength(),
-            idxRecord.getRawLength(), (endTime - startTime));
-        iterator.remove();
-      } catch (IOException e) {
-        cleanupFetchedInput(fetchedInput);
-        if (isShutDown.get()) {
+                @Override
+                public void freeResources(FetchedInput fetchedInput) {
+                }
+              });
           if (isDebugEnabled) {
-            LOG.debug(
-                "Already shutdown. Ignoring Local Fetch Failure for " + srcAttemptId +
-                    " from host " +
-                    host + " : " + e.getClass().getName() + ", message=" + e.getMessage());
+            LOG.debug("fetcher" + " about to shuffle output of srcAttempt (direct disk)" + srcAttemptId
+                + " decomp: " + idxRecord.getRawLength() + " len: " + idxRecord.getPartLength()
+                + " to " + fetchedInput.getType());
           }
-          break;
+
+          long endTime = System.currentTimeMillis();
+          fetcherCallback.fetchSucceeded(host, srcAttemptId, fetchedInput, idxRecord.getPartLength(),
+              idxRecord.getRawLength(), (endTime - startTime));
+        } catch (IOException e) {
+          hasFailures = true;
+          cleanupFetchedInput(fetchedInput);
+          if (isShutDown.get()) {
+            if (isDebugEnabled) {
+              LOG.debug(
+                  "Already shutdown. Ignoring Local Fetch Failure for " +
+                      srcAttemptId +
+                      " from host " +
+                      host + " : " + e.getClass().getName() + ", message=" + e.getMessage());
+            }
+            break;
+          }
+          if (failMissing) {
+            LOG.warn(
+                "Failed to shuffle output of " + srcAttemptId + " from " +
+                    host + "(local fetch)",
+                e);
+          }
         }
-        if (failMissing) {
-          LOG.warn(
-              "Failed to shuffle output of " + srcAttemptId + " from " + host + "(local fetch)",
-              e);
-        }
+      }
+      if(!hasFailures) {
+        iterator.remove();
       }
     }
 
@@ -713,7 +732,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   }
 
   @VisibleForTesting
-  protected TezIndexRecord getTezIndexRecord(InputAttemptIdentifier srcAttemptId) throws
+  protected TezIndexRecord getTezIndexRecord(InputAttemptIdentifier srcAttemptId, int partition) throws
       IOException {
     TezIndexRecord idxRecord;
     Path indexFile = getShuffleInputFileName(srcAttemptId.getPathComponent(),
@@ -743,6 +762,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     String pathFromLocalDir = getMapOutputFile(pathComponent) + suffix;
     return localDirAllocator.getLocalPathToRead(pathFromLocalDir, conf);
+  }
+
+  @VisibleForTesting
+  public Map<PathPartition, InputAttemptIdentifier> getPathToAttemptMap() {
+    return pathToAttemptMap;
   }
 
   static class HostFetchResult {
@@ -946,8 +970,6 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             compressedLength, decompressedLength, (endTime - startTime));
 
         // Note successful shuffle
-        srcAttemptsRemaining.remove(srcAttemptId.toString());
-
         // metrics.successFetch();
       }
     } catch (IOException ioe) {

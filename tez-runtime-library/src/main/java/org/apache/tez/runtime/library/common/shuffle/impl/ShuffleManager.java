@@ -117,7 +117,7 @@ public class ShuffleManager implements FetcherCallback {
   private final BlockingQueue<FetchedInput> completedInputs;
   private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
   @VisibleForTesting
-  final Set<Integer> completedInputSet;
+  final BitSet completedInputSet;
   private final ConcurrentMap<HostPort, InputHost> knownSrcHosts;
   private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
@@ -217,7 +217,7 @@ public class ShuffleManager implements FetcherCallback {
     
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
-    completedInputSet = Collections.newSetFromMap(new ConcurrentHashMap<Integer, Boolean>(numInputs));
+    completedInputSet = new BitSet(numInputs);
     /**
      * In case of pipelined shuffle, it is possible to get multiple FetchedInput per attempt.
      * We do not know upfront the number of spills from source.
@@ -445,9 +445,17 @@ public class ShuffleManager implements FetcherCallback {
       }
 
       // Avoid adding attempts which have already completed.
-      if (completedInputSet.contains(input.getInputIdentifier())) {
-        inputIter.remove();
-        continue;
+      if(input instanceof CompositeInputAttemptIdentifier) {
+        if (completedInputSet.nextClearBit(input.getInputIdentifier()) >=
+            input.getInputIdentifier() + ((CompositeInputAttemptIdentifier) input).getInputIdentifierCount()) {
+          inputIter.remove();
+          continue;
+        }
+      } else {
+        if (completedInputSet.get(input.getInputIdentifier())) {
+          inputIter.remove();
+          continue;
+        }
       }
       // Avoid adding attempts which have been marked as OBSOLETE 
       if (obsoletedInputs.contains(input)) {
@@ -531,9 +539,9 @@ public class ShuffleManager implements FetcherCallback {
       LOG.debug("No input data exists for SrcTask: " + inputIdentifier + ". Marking as complete.");
     }
     
-    if (!completedInputSet.contains(inputIdentifier)) {
+    if (!completedInputSet.get(inputIdentifier)) {
       synchronized (completedInputSet) {
-        if (!completedInputSet.contains(inputIdentifier)) {
+        if (!completedInputSet.get(inputIdentifier)) {
           NullFetchedInput fetchedInput = new NullFetchedInput(srcAttemptIdentifier);
           if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
             registerCompletedInput(fetchedInput);
@@ -631,9 +639,9 @@ public class ShuffleManager implements FetcherCallback {
     
     inputContext.notifyProgress();
     boolean committed = false;
-    if (!completedInputSet.contains(inputIdentifier)) {
+    if (!completedInputSet.get(inputIdentifier)) {
       synchronized (completedInputSet) {
-        if (!completedInputSet.contains(inputIdentifier)) {
+        if (!completedInputSet.get(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
           ShuffleUtils.logIndividualFetchComplete(LOG, copyDuration,
@@ -710,7 +718,7 @@ public class ShuffleManager implements FetcherCallback {
   private void adjustCompletedInputs(FetchedInput fetchedInput) {
     lock.lock();
     try {
-      completedInputSet.add(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
+      completedInputSet.set(fetchedInput.getInputAttemptIdentifier().getInputIdentifier());
 
       int numComplete = numCompletedInputs.incrementAndGet();
       if (numComplete == numInputs) {

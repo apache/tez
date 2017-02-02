@@ -220,7 +220,7 @@ public class TestShuffleManager {
     }
 
     public int getNumOfCompletedInputs() {
-      return completedInputSet.size();
+      return completedInputSet.cardinality();
     }
 
     boolean isFetcherExecutorShutdown() {

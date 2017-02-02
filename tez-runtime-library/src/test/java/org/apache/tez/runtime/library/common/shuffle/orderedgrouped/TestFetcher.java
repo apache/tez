@@ -107,7 +107,7 @@ public class TestFetcher {
 
   static final Logger LOG = LoggerFactory.getLogger(TestFetcher.class);
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testInputsReturnedOnConnectionException() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -333,7 +333,7 @@ public class TestFetcher {
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
   }
 
-  @Test(timeout = 5000000)
+  @Test(timeout = 5000)
   public void testSetupLocalDiskFetchAutoReduce() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
