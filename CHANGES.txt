@@ -181,6 +181,7 @@ ALL CHANGES:
   TEZ-3575. RM have started forwarding origin. Use that in AMWebController for CORS support
   TEZ-3494. Support relative url for tez-ui.history-url.base config
   TEZ-3554. Add a link to get to all logs from Tez UI while job is running
+  TEZ-3591. Tez UI: Logs url in all DAGs doesn't open in a new window
 
 Release 0.8.5: Unreleased
 

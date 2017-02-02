@@ -19,4 +19,9 @@
 import PageController from '../page';
 
 export default PageController.extend({
+
+  logLinkDefinition: {
+    target: "_blank"
+  }
+
 });
