@@ -106,6 +106,14 @@ export default TimelineSerializer.extend({
       }catch(e){}
     }
 
+    data.primaryfilters = data.primaryfilters || {};
+    if(!Ember.get(data, "primaryfilters.tablesread.length")) {
+      data.primaryfilters.tablesread = new Error("None");
+    }
+    if(!Ember.get(data, "primaryfilters.tableswritten.length")) {
+      data.primaryfilters.tableswritten = new Error("None");
+    }
+
     return this._super(modelClass, resourceHash);
   },
 

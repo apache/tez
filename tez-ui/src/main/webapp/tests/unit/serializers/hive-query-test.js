@@ -93,5 +93,13 @@ test('extractAttributes test', function(assert) {
   });
   assert.deepEqual(testData.otherinfo.QUERY, testQuery);
 
+  //CLIENT_IP_ADDRESS set
   assert.equal(testHiveAddress, testData.otherinfo.CLIENT_IP_ADDRESS);
+
+  // Tables read & tables written
+  assert.ok(testData.primaryfilters);
+  assert.ok(testData.primaryfilters.tablesread instanceof Error);
+  assert.ok(testData.primaryfilters.tableswritten instanceof Error);
+  assert.equal(testData.primaryfilters.tablesread.message, "None");
+  assert.equal(testData.primaryfilters.tableswritten.message, "None");
 });

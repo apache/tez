@@ -123,22 +123,10 @@ export default TableController.extend({
     id: 'tablesRead',
     headerTitle: 'Tables Read',
     contentPath: 'tablesRead',
-    getCellContent: function (row) {
-      var tablesRead = row.get("tablesRead");
-      if(tablesRead && tablesRead.length) {
-        return tablesRead.join(",");
-      }
-    }
   },{
     id: 'tablesWritten',
     headerTitle: 'Tables Written',
     contentPath: 'tablesWritten',
-    getCellContent: function (row) {
-      var tablesWritten = row.get("tablesWritten");
-      if(tablesWritten && tablesWritten.length) {
-        return tablesWritten.join(",");
-      }
-    }
   },{
     id: 'clientAddress',
     headerTitle: 'Client Address',
