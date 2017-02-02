@@ -82,6 +82,7 @@ export default MultiTableController.extend({
     id: 'log',
     headerTitle: 'Successful/Last Attempt Log',
     cellComponentName: 'em-table-tasks-log-link-cell',
+    enableSearch: false,
     getCellContent: function (row) {
       var attemptID = row.get("successfulAttemptID");
       if(!attemptID) {

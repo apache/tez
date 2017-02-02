@@ -51,7 +51,7 @@ test('tableDefinition test', function(assert) {
 
   this.set("tableDefinition", Ember.Object.create({
     queryID: testQueryID,
-    user: testUser,
+    requestUser: testUser,
     tablesRead: testTablesRead,
     tablesWritten: testTablesWritten,
     appID: testAppID,

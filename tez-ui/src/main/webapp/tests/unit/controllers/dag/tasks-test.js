@@ -52,7 +52,8 @@ test('Log column test', function(assert) {
       }),
       testAttemptID = "attempt_1";
 
-  var getLogCellContent = controller.get("columns").findBy("id", "log").getCellContent;
+  var columnDef = controller.get("columns").findBy("id", "log"),
+      getLogCellContent = columnDef.getCellContent;
 
   assert.equal(getLogCellContent(Ember.Object.create()), undefined);
 
@@ -63,4 +64,6 @@ test('Log column test', function(assert) {
   assert.equal(getLogCellContent(Ember.Object.create({
     attemptIDs: ["1", "2", testAttemptID]
   })), testAttemptID);
+
+  assert.equal(columnDef.get("enableSearch"), false);
 });
