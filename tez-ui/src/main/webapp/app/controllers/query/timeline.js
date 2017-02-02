@@ -38,18 +38,6 @@ export default TableController.extend({
     }
   }]),
 
-  phaseTimes: Ember.computed("model", function () {
-    var perf = this.get("model.perf");
-    return {
-      pre: perf.compile + perf.parse + perf.semanticAnalyze + perf.TezBuildDag,
-      submission: perf.TezSubmitDag + perf.TezSubmitToRunningDag,
-      run: perf.TezRunDag,
-      post: perf.RemoveTempOrDuplicateFiles +
-          perf.RemoveTempOrDuplicateFiles +
-          perf.RenameOrMoveFiles
-    };
-  }),
-
   rows: Ember.computed("model.perf", function () {
     var perf = this.get("model.perf"),
         rows = [];

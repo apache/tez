@@ -16,9 +16,21 @@
  * limitations under the License.
  */
 
-.query-timeline {
+// Mixins
+.hue-bkg(@hue) {
+  background-color: hsl(@hue, .9, .75);
+}
+
+.nth-hue-bkg(@index, @hue) {
+  &:nth-child(@{index}) {
+    .hue-bkg(@hue);
+  }
+}
+
+.timeline-bars {
   font-size: 0;
   margin: 20px 0 20px 0;
+  overflow: hidden;
 
   .no-select;
 
@@ -78,36 +90,70 @@
         border: none;
       }
 
-      &:nth-child(1) {
-        background-color: lighten(#FF355E, 20%);
+      .nth-hue-bkg(1, 0);
+      .nth-hue-bkg(2, 40);
+      .nth-hue-bkg(3, 80);
+      .nth-hue-bkg(4, 200);
+      .nth-hue-bkg(5, 160);
+      .nth-hue-bkg(6, 120);
+      .nth-hue-bkg(7, 240);
+      .nth-hue-bkg(8, 280);
+      .nth-hue-bkg(9, 320);
+    }
+  }
+}
+
+.query-timeline {
+  table.detail-list {
+    i {
+      display: inline-block;
+
+      width: .85em;
+      height: .85em;
+      border: 1px solid @border-color;
+      border-radius: .5em;
+
+      margin-right: 5px;
+      margin-top: 1px;
+    }
+
+    &:nth-of-type(1) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(0);
       }
-      &:nth-child(2) {
-        background-color: lighten(#FD5B78, 20%);
+      &:nth-of-type(2) i {
+        .hue-bkg(40);
       }
-      &:nth-child(3) {
-        background-color: lighten(#FF6037, 20%);
+      &:nth-of-type(3) i {
+        .hue-bkg(80);
       }
-      &:nth-child(4) {
-        background-color: lighten(#FF9966, 20%);
+    }
+
+    &:nth-of-type(2) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(200);
       }
-      &:nth-child(5) {
-        background-color: lighten(#FF9933, 20%);
+      &:nth-of-type(2) i {
+        .hue-bkg(160);
       }
-      &:nth-child(6) {
-        background-color: lighten(#FFCC33, 20%);
+    }
+
+    &:nth-of-type(3) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(120);
       }
-      &:nth-child(7) {
-        background-color: lighten(#FFFF66, 20%);
+    }
+
+    &:nth-of-type(4) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(240);
       }
-      &:nth-child(8) {
-        background-color: lighten(#CCFF00, 20%);
+      &:nth-of-type(2) i {
+        .hue-bkg(280);
       }
-      &:nth-child(9) {
-        background-color: lighten(#AAF0D1, 10%);
+      &:nth-of-type(3) i {
+        .hue-bkg(320);
       }
-      &:nth-child(10) {
-        background-color: lighten(#FF6EFF, 20%);
-      }
-   }
+    }
   }
 }

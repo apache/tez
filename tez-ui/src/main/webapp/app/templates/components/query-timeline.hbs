@@ -16,25 +16,109 @@
  * limitations under the License.
 }}
 
-<div class="groups">
-  <div class="bar" title="Pre-Execution + DAG construction">Pre-Execution + DAG construction</div>
-  <div class="bar" title="DAG Submission">DAG Submission</div>
-  <div class="bar" title="DAG Runtime">DAG Runtime</div>
-  <div class="bar" title="Post Execution">Post Execution</div>
+<div class="timeline-bars">
+  <div class="groups">
+    <div class="bar" data="groupTotal.pre" title="Pre-Execution + DAG construction">Pre-Execution + DAG construction</div>
+    <div class="bar" data="groupTotal.submit" title="DAG Submission">DAG Submission</div>
+    <div class="bar" data="groupTotal.running" title="DAG Runtime">DAG Runtime</div>
+    <div class="bar" data="groupTotal.post" title="Post Execution">Post Execution</div>
+  </div>
+
+  <div class="sub-groups">
+    <div class="bar" data="compile" title="Compile">Compile</div>
+    <div class="bar" data="parse" title="Parse">Parse</div>
+    <div class="bar" data="TezBuildDag" title="Build Dag">Build Dag</div>
+
+    <div class="bar" data="TezSubmitDag" title="Submit Dag">Submit Dag</div>
+    <div class="bar" data="TezSubmitToRunningDag" title="Submit To Running">Submit To Running</div>
+
+    <div class="bar" data="TezRunDag" title="Run Dag">Run Dag</div>
+
+    <div class="bar" data="PostATSHook" title="Post ATS Hook">Post ATS Hook</div>
+    <div class="bar" data="RemoveTempOrDuplicateFiles" title="Remove Files">Remove Files</div>
+    <div class="bar" data="RenameOrMoveFiles" title="Rename Or Move Files">Rename Or Move Files</div>
+  </div>
 </div>
 
-<div class="sub-groups">
-  <div class="bar" title="Compile">Compile</div>
-  <div class="bar" title="Parse">Parse</div>
-  <div class="bar" title="Semantic Analyze">Semantic Analyze</div>
-  <div class="bar" title="Build Dag">Build Dag</div>
+<table class='detail-list'>
+  <thead>
+  <tr>
+    <th colspan=2>Pre-Execution + DAG construction : {{txt normalizedPerf.groupTotal.pre type="duration"}}</th>
+  </tr>
+  </thead>
 
-  <div class="bar" title="Submit Dag">Submit Dag</div>
-  <div class="bar" title="Submit To Running">Submit To Running</div>
+  <tbody>
+  <tr>
+    <td><i></i>Compile</td>
+    <td>{{txt normalizedPerf.compile type="duration"}}</td>
+  </tr>
+  <tr>
+    <td><i></i>Parse</td>
+    <td>{{txt normalizedPerf.parse type="duration"}}</td>
+  </tr>
+  <tr>
+    <td><i></i>Build Dag</td>
+    <td>{{txt normalizedPerf.TezBuildDag type="duration"}}</td>
+  </tr>
+  </tbody>
+</table>
 
-  <div class="bar" title="Run Dag">Run Dag</div>
+<table class='detail-list'>
+  <thead>
+  <tr>
+    <th colspan=2>DAG Submission : {{txt normalizedPerf.groupTotal.submit type="duration"}}</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><i></i>Submit Dag</td>
+    <td>{{txt normalizedPerf.TezSubmitDag type="duration"}}</td>
+  </tr>
+  <tr>
+    <td><i></i>Submit To Running</td>
+    <td>{{txt normalizedPerf.TezSubmitToRunningDag type="duration"}}</td>
+  </tr>
+  </tbody>
+</table>
 
-  <div class="bar" title="Post ATS Hook">Post ATS Hook</div>
-  <div class="bar" title="Remove Files">Remove Files</div>
-  <div class="bar" title="Rename Or Move Files">Rename Or Move Files</div>
-</div>
+<table class='detail-list'>
+  <thead>
+  <tr>
+    <th colspan=2>DAG Runtime : {{txt normalizedPerf.groupTotal.running type="duration"}}</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><i></i>Run Dag</td>
+    <td>{{txt normalizedPerf.TezRunDag type="duration"}}</td>
+  </tr>
+  </tbody>
+</table>
+
+<table class='detail-list'>
+  <thead>
+  <tr>
+    <th colspan=2>Post Execution : {{txt normalizedPerf.groupTotal.post type="duration"}}</th>
+  </tr>
+  </thead>
+  <tbody>
+  {{#if normalizedPerf.RemoveTempOrDuplicateFiles}}
+    <tr>
+      <td><i></i>Post ATS Hook</td>
+      <td>{{txt normalizedPerf.PostATSHook type="duration"}}</td>
+    </tr>
+  {{/if}}
+  {{#if normalizedPerf.RemoveTempOrDuplicateFiles}}
+    <tr>
+      <td><i></i>Remove Files</td>
+      <td>{{txt normalizedPerf.RemoveTempOrDuplicateFiles type="duration"}}</td>
+    </tr>
+  {{/if}}
+  {{#if normalizedPerf.RenameOrMoveFiles}}
+    <tr>
+      <td><i></i>Rename Or Move Files</td>
+      <td>{{txt normalizedPerf.RenameOrMoveFiles type="duration"}}</td>
+    </tr>
+  {{/if}}
+  </tbody>
+</table>

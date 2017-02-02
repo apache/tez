@@ -18,108 +18,25 @@
 
 {{#if loaded}}
 
-  {{query-timeline perf=model.perf}}
+  {{#if model.perf}}
+    {{query-timeline perf=model.perf}}
 
-  <table class='detail-list'>
-    <thead>
-    <tr>
-      <th colspan=2>Pre-Execution + DAG construction : {{txt phaseTimes.pre type="duration"}}</th>
-    </tr>
-    </thead>
+    {{em-table
+    columns=columns
+    rows=rows
 
-    <tbody>
-    <tr>
-      <td>Compile</td>
-      <td>{{txt model.perf.compile type="duration"}}</td>
-    </tr>
-    <tr>
-      <td>Parse</td>
-      <td>{{txt model.perf.parse type="duration"}}</td>
-    </tr>
-    <tr>
-      <td>Semantic Analyze</td>
-      <td>{{txt model.perf.semanticAnalyze type="duration"}}</td>
-    </tr>
-    <tr>
-      <td>Build Dag</td>
-      <td>{{txt model.perf.TezBuildDag type="duration"}}</td>
-    </tr>
-    </tbody>
-  </table>
+    rowCount=rows.length
+    definition=definition
 
-  <table class='detail-list'>
-    <thead>
-    <tr>
-      <th colspan=2>DAG Submission : {{txt phaseTimes.submission type="duration"}}</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td>Submit Dag</td>
-      <td>{{txt model.perf.TezSubmitDag type="duration"}}</td>
-    </tr>
-    <tr>
-      <td>Submit To Running</td>
-      <td>{{txt model.perf.TezSubmitToRunningDag type="duration"}}</td>
-    </tr>
-    </tbody>
-  </table>
+    enablePagination=false
 
-  <table class='detail-list'>
-    <thead>
-    <tr>
-      <th colspan=2>DAG Runtime : {{txt phaseTimes.run type="duration"}}</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td>Run Dag</td>
-      <td>{{txt model.perf.TezRunDag type="duration"}}</td>
-    </tr>
-    </tbody>
-  </table>
-
-  <table class='detail-list'>
-    <thead>
-    <tr>
-      <th colspan=2>Post Execution : {{txt phaseTimes.post type="duration"}}</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td>Post ATS Hook</td>
-      <td>{{txt model.perf.PostATSHook type="duration"}}</td>
-    </tr>
-    {{#if model.perf.RemoveTempOrDuplicateFiles}}
-      <tr>
-        <td>Remove Files</td>
-        <td>{{txt model.perf.RemoveTempOrDuplicateFiles type="duration"}}</td>
-      </tr>
-    {{/if}}
-    {{#if model.perf.RenameOrMoveFiles}}
-      <tr>
-        <td>Rename Or Move Files</td>
-        <td>{{txt model.perf.RenameOrMoveFiles type="duration"}}</td>
-      </tr>
-    {{/if}}
-    </tbody>
-  </table>
-
-  <br/>
-
-  {{em-table
-  columns=columns
-  rows=rows
-
-  rowCount=configs.length
-  definition=definition
-
-  enablePagination=false
-
-  searchAction="searchChanged"
-  sortAction="sortChanged"
-  }}
-
+    searchAction="searchChanged"
+    sortAction="sortChanged"
+    }}
+  {{else}}
+    <h2>Data not available to display Timeline!</h2>
+    <h4>You may be using an older version of Hive.</h4>
+  {{/if}}
 
 {{else}}
   {{partial "loading"}}

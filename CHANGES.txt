@@ -183,6 +183,7 @@ ALL CHANGES:
   TEZ-3554. Add a link to get to all logs from Tez UI while job is running
   TEZ-3591. Tez UI: Logs url in all DAGs doesn't open in a new window
   TEZ-3592. Tez UI: Search issues
+  TEZ-3593. Tez UI: Issues in timeline page
 
 Release 0.8.5: Unreleased
 

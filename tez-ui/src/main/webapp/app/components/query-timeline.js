@@ -23,42 +23,57 @@ export default Ember.Component.extend({
 
   perf: null,
 
-  getDisplayedPerfValues: function (perfHash) {
-    return [[
-      perfHash["compile"] || 0,
-      perfHash["parse"] || 0,
-      perfHash["semanticAnalyze"] || 0,
-      perfHash["TezBuildDag"] || 0,
-    ], [
-      perfHash["TezSubmitDag"] || 0,
-      perfHash["TezSubmitToRunningDag"] || 0,
-    ], [
-      perfHash["TezRunDag"] || 0,
-    ], [
-      perfHash["PostATSHook"] || 0,
-      perfHash["RemoveTempOrDuplicateFiles"] || 0,
-      perfHash["RenameOrMoveFiles"] || 0,
-    ]];
-  },
+  normalizedPerf: Ember.computed("perf", function () {
+    var perf = this.get("perf") || {};
 
-  alignBars: function (bars, widthFactors) {
-    var totalValue = widthFactors.reduce((a, b) => a + b, 0);
+    // Create a copy of perf with default values
+    perf = Ember.$.extend({
+      compile: 0,
+      parse: 0,
+      TezBuildDag: 0,
+
+      TezSubmitDag: 0,
+      TezSubmitToRunningDag: 0,
+
+      TezRunDag: 0,
+
+      PostATSHook: 0,
+      RemoveTempOrDuplicateFiles: 0,
+      RenameOrMoveFiles: 0
+    }, perf);
+
+    perf.groupTotal = {
+      pre: perf.compile + perf.parse + perf.TezBuildDag,
+      submit: perf.TezSubmitDag + perf.TezSubmitToRunningDag,
+      running: perf.TezRunDag,
+      post: perf.PostATSHook + perf.RemoveTempOrDuplicateFiles + perf.RenameOrMoveFiles,
+    };
+
+    perf.total = perf.groupTotal.pre +
+        perf.groupTotal.submit +
+        perf.groupTotal.running +
+        perf.groupTotal.post;
+
+    return perf;
+  }),
+
+  alignBars: function (bars, perf) {
     bars.each(function (index, bar) {
-      var width = (widthFactors[index] / totalValue) * 100;
-      Ember.$(bar).css({
+      var width;
+
+      bar = Ember.$(bar);
+      width = (Ember.get(perf, bar.attr("data")) / perf.total) * 100;
+
+      bar.css({
         width: `${width}%`
       });
     });
   },
 
-  didInsertElement: Ember.observer("perf", function () {
-    var perfs = this.getDisplayedPerfValues(this.get("perf"));
+  didInsertElement: Ember.observer("normalizePerf", function () {
+    var perf = this.get("normalizedPerf");
 
-    this.alignBars(this.$().find(".sub-groups").find(".bar"), [].concat.apply([], perfs));
-
-    this.alignBars(this.$().find(".groups").find(".bar"), perfs.map(function (subPerfs) {
-      return subPerfs.reduce((a, b) => a + b, 0);
-    }));
+    this.alignBars(this.$().find(".sub-groups").find(".bar"), perf);
+    this.alignBars(this.$().find(".groups").find(".bar"), perf);
   })
-
 });
