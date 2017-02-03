@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -54,6 +55,8 @@ public class TestTokenCache {
   public static void setup() throws Exception {
     conf = new Configuration();
     conf.set(YarnConfiguration.RM_PRINCIPAL, "mapred/host@REALM");
+    conf.setSocketAddr(YarnConfiguration.RM_ADDRESS,
+        InetSocketAddress.createUnresolved("127.0.0.1", 8032));
     renewer = Master.getMasterPrincipal(conf);
   }
 
