@@ -561,7 +561,7 @@ public class TestFetcher {
         // Throw IOException when fetcher tries to connect again to the same node
         throw new FetcherReadTimeoutException("creating fetcher socket read timeout exception");
       }
-    }).when(fetcher).copyMapOutput(any(MapHost.class), any(DataInputStream.class));
+    }).when(fetcher).copyMapOutput(any(MapHost.class), any(DataInputStream.class), any(InputAttemptIdentifier.class));
 
     try {
       fetcher.copyFromHost(host);

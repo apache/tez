@@ -278,16 +278,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
-        String inputAttemptIdentifierId =
-            remaining.entrySet().iterator().next().getKey();
+        InputAttemptIdentifier inputAttemptIdentifier =
+            remaining.entrySet().iterator().next().getValue();
         // fail immediately after first failure because we dont know how much to
         // skip for this error in the input stream. So we cannot move on to the 
         // remaining outputs. YARN-1773. Will get to them in the next retry.
         try {
-          failedTasks = copyMapOutput(host, input);
-          if (failedTasks == null || failedTasks.length == 0) {
-            remaining.remove(inputAttemptIdentifierId);
-          }
+          failedTasks = copyMapOutput(host, input, inputAttemptIdentifier);
         } catch (FetcherReadTimeoutException e) {
           // Setup connection again if disconnected
           cleanupCurrentConnection(true);
@@ -431,7 +428,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   protected InputAttemptIdentifier[] copyMapOutput(MapHost host,
-                                DataInputStream input) throws FetcherReadTimeoutException {
+                                DataInputStream input, InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;
@@ -575,6 +572,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         // Note successful shuffle
         metrics.successFetch();
       }
+      remaining.remove(inputAttemptIdentifier.toString());
     } catch(IOException ioe) {
       if (stopped) {
         if (LOG.isDebugEnabled()) {

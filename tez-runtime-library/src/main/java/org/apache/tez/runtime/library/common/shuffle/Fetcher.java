@@ -596,10 +596,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             false);
       }
       try {
-        failedInputs = fetchInputs(input, callback);
-        if(failedInputs == null || failedInputs.length == 0) {
-         srcAttemptsRemaining.remove(inputAttemptIdentifier.toString());
-        }
+        failedInputs = fetchInputs(input, callback, inputAttemptIdentifier);
       } catch (FetcherReadTimeoutException e) {
         //clean up connection
         shutdownInternal(true);
@@ -833,7 +830,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
   }
   private InputAttemptIdentifier[] fetchInputs(DataInputStream input,
-      CachingCallBack callback) throws FetcherReadTimeoutException {
+      CachingCallBack callback, InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
     FetchedInput fetchedInput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;
@@ -972,6 +969,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         // Note successful shuffle
         // metrics.successFetch();
       }
+      srcAttemptsRemaining.remove(inputAttemptIdentifier.toString());
     } catch (IOException ioe) {
       if (isShutDown.get()) {
         cleanupFetchedInput(fetchedInput);
