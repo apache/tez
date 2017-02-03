@@ -201,7 +201,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     }
 
     if (shufflePayload.hasEmptyPartitions()) {
-      CompositeInputAttemptIdentifier srcAttemptIdentifier =
+      CompositeInputAttemptIdentifier compositeInputAttemptIdentifier =
           constructInputAttemptIdentifier(crdme.getTargetIndex(), crdme.getCount(), crdme.getVersion(), shufflePayload, false);
 
       boolean allPartitionsEmpty = true;
@@ -209,12 +209,13 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         int srcPartitionId = partitionId + i;
         allPartitionsEmpty &= emptyPartitionsBitSet.get(srcPartitionId);
         if (emptyPartitionsBitSet.get(srcPartitionId)) {
+          InputAttemptIdentifier srcAttemptIdentifier = compositeInputAttemptIdentifier.expand(i);
           if (LOG.isDebugEnabled()) {
-            LOG.debug("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
+            LOG.debug("Source partition: " + srcPartitionId + " did not generate any data. SrcAttempt: ["
                 + srcAttemptIdentifier + "]. Not fetching.");
           }
           numDmeEventsNoData.getAndIncrement();
-          shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(i));
+          shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         }
       }
 

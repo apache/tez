@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3606. Fix debug log for empty partitions to the expanded partitionId in the Composite case
   TEZ-3604. Remove the compositeInputAttemptIdentifier from remaining list upon fetch completion in the Ordered case
   TEZ-3599. Unordered Fetcher can hang if empty partitions are present
   TEZ-3596. Number of Empty DME logged for Composite fetch is too high

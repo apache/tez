@@ -190,12 +190,13 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
         int srcPartitionId = partitionId + i;
         allPartitionsEmpty &= emptyPartitionsBitSet.get(srcPartitionId);
         if (emptyPartitionsBitSet.get(srcPartitionId)) {
+          InputAttemptIdentifier srcInputAttemptIdentifier = compositeInputAttemptIdentifier.expand(i);
           if (LOG.isDebugEnabled()) {
-            LOG.debug("Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
-                + compositeInputAttemptIdentifier + "]. Not fetching.");
+            LOG.debug("Source partition: " + srcPartitionId + " did not generate any data. SrcAttempt: ["
+                + srcInputAttemptIdentifier + "]. Not fetching.");
           }
           numDmeEventsNoData.getAndIncrement();
-          scheduler.copySucceeded(compositeInputAttemptIdentifier.expand(i), null, 0, 0, 0, null, true);
+          scheduler.copySucceeded(srcInputAttemptIdentifier, null, 0, 0, 0, null, true);
         }
       }
 
