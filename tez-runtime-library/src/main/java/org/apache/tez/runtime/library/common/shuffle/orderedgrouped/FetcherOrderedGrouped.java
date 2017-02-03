@@ -278,11 +278,16 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptIdentifier[] failedTasks = null;
       while (!remaining.isEmpty() && failedTasks == null) {
+        String inputAttemptIdentifierId =
+            remaining.entrySet().iterator().next().getKey();
         // fail immediately after first failure because we dont know how much to
         // skip for this error in the input stream. So we cannot move on to the 
         // remaining outputs. YARN-1773. Will get to them in the next retry.
         try {
           failedTasks = copyMapOutput(host, input);
+          if (failedTasks == null || failedTasks.length == 0) {
+            remaining.remove(inputAttemptIdentifierId);
+          }
         } catch (FetcherReadTimeoutException e) {
           // Setup connection again if disconnected
           cleanupCurrentConnection(true);
@@ -568,7 +573,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         scheduler.copySucceeded(srcAttemptId, host, compressedLength, decompressedLength,
             endTime - startTime, mapOutput, false);
         // Note successful shuffle
-        remaining.remove(srcAttemptId.toString());
         metrics.successFetch();
       }
     } catch(IOException ioe) {
