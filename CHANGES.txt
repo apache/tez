@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3601. Add another HistoryLogLevel to suppress TaskAttempts at specific levels
   TEZ-3582. Exception swallowed in PipelinedSorter causing incorrect results.
   TEZ-3462. Task attempt failure during container shutdown loses useful container diagnostics
   TEZ-3574. Container reuse won't pickup extra dag level local resource.

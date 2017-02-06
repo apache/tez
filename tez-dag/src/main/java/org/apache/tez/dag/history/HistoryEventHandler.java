@@ -20,6 +20,7 @@ package org.apache.tez.dag.history;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
@@ -27,13 +28,18 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
+import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
+import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
 import org.apache.tez.dag.history.recovery.RecoveryService;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class HistoryEventHandler extends CompositeService {
 
@@ -45,8 +51,13 @@ public class HistoryEventHandler extends CompositeService {
   private HistoryLoggingService historyLoggingService;
 
   private HistoryLogLevel amHistoryLogLevel;
-  private Map<TezDAGID, HistoryLogLevel> dagIdToLogLevel =
-      new ConcurrentHashMap<TezDAGID, HistoryLogLevel>();
+  private final Map<TezDAGID, HistoryLogLevel> dagIdToLogLevel = new ConcurrentHashMap<>();
+  private Set<TaskAttemptTerminationCause> amTaskAttemptFilters;
+  private final Map<TezDAGID, Set<TaskAttemptTerminationCause>> dagIdToTaskAttemptFilters =
+      new ConcurrentHashMap<>();
+
+  private final ConcurrentHashMap<TezTaskAttemptID, DAGHistoryEvent> suppressedEvents =
+      new ConcurrentHashMap<>();
 
   public HistoryEventHandler(AppContext context) {
     super(HistoryEventHandler.class.getName());
@@ -80,6 +91,11 @@ public class HistoryEventHandler extends CompositeService {
     }
 
     amHistoryLogLevel = HistoryLogLevel.getLogLevel(context.getAMConf(), HistoryLogLevel.DEFAULT);
+    amTaskAttemptFilters = TezUtilsInternal.getEnums(
+        context.getAMConf(),
+        TezConfiguration.TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS,
+        TaskAttemptTerminationCause.class,
+        null);
 
     super.serviceInit(conf);
   }
@@ -108,15 +124,20 @@ public class HistoryEventHandler extends CompositeService {
     if(dagId != null) {
       dagIdStr = dagId.toString();
     }
+    HistoryEvent historyEvent = event.getHistoryEvent();
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Handling history event"
-          + ", eventType=" + event.getHistoryEvent().getEventType());
+          + ", eventType=" + historyEvent.getEventType());
     }
-    if (recoveryEnabled && event.getHistoryEvent().isRecoveryEvent()) {
+    if (recoveryEnabled && historyEvent.isRecoveryEvent()) {
       recoveryService.handle(event);
     }
-    if (event.getHistoryEvent().isHistoryEvent() && shouldLogEvent(event)) {
+    if (historyEvent.isHistoryEvent() && shouldLogEvent(event)) {
+      DAGHistoryEvent suppressedEvent = getSupressedEvent(historyEvent);
+      if (suppressedEvent != null) {
+        historyLoggingService.handle(suppressedEvent);
+      }
       historyLoggingService.handle(event);
     }
 
@@ -140,23 +161,86 @@ public class HistoryEventHandler extends CompositeService {
     }
 
     HistoryEvent historyEvent = event.getHistoryEvent();
-    if (historyEvent.getEventType() == HistoryEventType.DAG_SUBMITTED) {
-      dagLogLevel = HistoryLogLevel.getLogLevel(((DAGSubmittedEvent)historyEvent).getConf(),
-          amHistoryLogLevel);
+    HistoryEventType eventType = historyEvent.getEventType();
+    if (eventType == HistoryEventType.DAG_SUBMITTED) {
+      Configuration dagConf = ((DAGSubmittedEvent)historyEvent).getConf();
+      dagLogLevel = HistoryLogLevel.getLogLevel(dagConf, amHistoryLogLevel);
       dagIdToLogLevel.put(dagId, dagLogLevel);
-    } else if (historyEvent.getEventType() == HistoryEventType.DAG_RECOVERED) {
+      maybeUpdateDagTaskAttemptFilters(dagId, dagLogLevel, dagConf);
+    } else if (eventType == HistoryEventType.DAG_RECOVERED) {
       if (context.getCurrentDAG() != null) {
-        dagLogLevel = HistoryLogLevel.getLogLevel(context.getCurrentDAG().getConf(),
-            amHistoryLogLevel);
+        Configuration dagConf = context.getCurrentDAG().getConf();
+        dagLogLevel = HistoryLogLevel.getLogLevel(dagConf, amHistoryLogLevel);
         dagIdToLogLevel.put(dagId, dagLogLevel);
+        maybeUpdateDagTaskAttemptFilters(dagId, dagLogLevel, dagConf);
       }
-    } else if (historyEvent.getEventType() == HistoryEventType.DAG_FINISHED) {
-      if (dagIdToLogLevel.containsKey(dagId)) {
-        dagIdToLogLevel.remove(dagId);
-      }
+    } else if (eventType == HistoryEventType.DAG_FINISHED) {
+      dagIdToLogLevel.remove(dagId);
+      dagIdToTaskAttemptFilters.remove(dagId);
+      suppressedEvents.clear();
     }
 
-    return dagLogLevel.shouldLog(historyEvent.getEventType().getHistoryLogLevel());
+    if (dagLogLevel.shouldLog(historyEvent.getEventType().getHistoryLogLevel())) {
+      return shouldLogTaskAttemptEvents(event, dagLogLevel);
+    }
+    return false;
+  }
+
+  // If the log level is set to TASK_ATTEMPT and filters are configured, then we should suppress
+  // the start event and publish it only when TaskAttemptFinishedEvent is received after
+  // matching against the filter.
+  // Note: if the AM is killed before we get the TaskAttemptFinishedEvent, we'll lose this event.
+  private boolean shouldLogTaskAttemptEvents(DAGHistoryEvent event, HistoryLogLevel dagLogLevel) {
+    HistoryEvent historyEvent = event.getHistoryEvent();
+    HistoryEventType eventType = historyEvent.getEventType();
+    if (dagLogLevel == HistoryLogLevel.TASK_ATTEMPT &&
+        (eventType == HistoryEventType.TASK_ATTEMPT_STARTED ||
+         eventType == HistoryEventType.TASK_ATTEMPT_FINISHED)) {
+      TezDAGID dagId = event.getDagID();
+      Set<TaskAttemptTerminationCause> filters = null;
+      if (dagId != null) {
+        filters = dagIdToTaskAttemptFilters.get(dagId);
+      }
+      if (filters == null) {
+        filters = amTaskAttemptFilters;
+      }
+      if (filters == null) {
+        return true;
+      }
+      if (eventType == HistoryEventType.TASK_ATTEMPT_STARTED) {
+        suppressedEvents.put(((TaskAttemptStartedEvent)historyEvent).getTaskAttemptID(), event);
+        return false;
+      } else { // TaskAttemptFinishedEvent
+        TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent)historyEvent;
+        if (filters.contains(finishedEvent.getTaskAttemptError())) {
+          suppressedEvents.remove(finishedEvent.getTaskAttemptID());
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private void maybeUpdateDagTaskAttemptFilters(TezDAGID dagId, HistoryLogLevel dagLogLevel,
+      Configuration dagConf) {
+    if (dagLogLevel == HistoryLogLevel.TASK_ATTEMPT) {
+      Set<TaskAttemptTerminationCause> filters = TezUtilsInternal.getEnums(
+          dagConf,
+          TezConfiguration.TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS,
+          TaskAttemptTerminationCause.class,
+          null);
+      if (filters != null) {
+        dagIdToTaskAttemptFilters.put(dagId, filters);
+      }
+    }
+  }
+
+  private DAGHistoryEvent getSupressedEvent(HistoryEvent historyEvent) {
+    if (historyEvent.getEventType() == HistoryEventType.TASK_ATTEMPT_FINISHED) {
+      TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent)historyEvent;
+      return suppressedEvents.remove(finishedEvent.getTaskAttemptID());
+    }
+    return null;
   }
 
   public void handle(DAGHistoryEvent event) {

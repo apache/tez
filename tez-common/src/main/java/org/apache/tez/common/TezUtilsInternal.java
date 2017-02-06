@@ -26,8 +26,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +44,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.log4j.Appender;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -336,6 +339,22 @@ public class TezUtilsInternal {
       default:
         return TaskAttemptEndReason.OTHER;
     }
+  }
+
+  public static <T extends Enum<T>> Set<T> getEnums(Configuration conf, String confName,
+      Class<T> enumType, String defaultValues) {
+    String[] names = conf.getStrings(confName);
+    if (names == null) {
+      names = StringUtils.getStrings(defaultValues);
+    }
+    if (names == null) {
+      return null;
+    }
+    Set<T> enums = new HashSet<>();
+    for (String name : names) {
+      enums.add(Enum.valueOf(enumType, name));
+    }
+    return enums;
   }
 
   @Private
