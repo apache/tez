@@ -32,23 +32,29 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.api.HistoryLogLevel;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.events.AMStartedEvent;
+import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.dag.history.events.ContainerStoppedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
+import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexStartedEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.HadoopShim;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestHistoryEventHandler {
@@ -56,42 +62,69 @@ public class TestHistoryEventHandler {
   private static ApplicationId appId = ApplicationId.newInstance(1000l, 1);
   private static ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
   private static String user = "TEST_USER";
+  private Configuration baseConfig;
+
+  @Before
+  public void setupConfig() {
+    baseConfig = new Configuration(false);
+  }
 
   @Test
   public void testAll() {
-    testLogLevel(null, 6);
+    testLogLevel(null, 11);
     testLogLevel(HistoryLogLevel.NONE, 0);
     testLogLevel(HistoryLogLevel.AM, 1);
     testLogLevel(HistoryLogLevel.DAG, 3);
     testLogLevel(HistoryLogLevel.VERTEX, 4);
     testLogLevel(HistoryLogLevel.TASK, 5);
-    testLogLevel(HistoryLogLevel.ALL, 6);
+    testLogLevel(HistoryLogLevel.TASK_ATTEMPT, 9);
+    testLogLevel(HistoryLogLevel.ALL, 11);
+  }
+
+  @Test
+  public void testTaskAttemptFilters() {
+    baseConfig.set(TezConfiguration.TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS,
+        "EXTERNAL_PREEMPTION,INTERRUPTED_BY_USER");
+    testLogLevel(HistoryLogLevel.TASK_ATTEMPT, 5);
+    testLogLevelWithRecovery(HistoryLogLevel.TASK_ATTEMPT, 5);
+
+    baseConfig.set(TezConfiguration.TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS,
+        "EXTERNAL_PREEMPTION");
+    testLogLevel(HistoryLogLevel.TASK_ATTEMPT, 7);
+    testLogLevelWithRecovery(HistoryLogLevel.TASK_ATTEMPT, 7);
+
+    baseConfig.set(TezConfiguration.TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS, "INTERNAL_PREEMPTION");
+    testLogLevel(HistoryLogLevel.TASK_ATTEMPT, 9);
+    testLogLevelWithRecovery(HistoryLogLevel.TASK_ATTEMPT, 9);
   }
 
   @Test
   public void testWithDAGRecovery() {
-    testLogLevelWithRecovery(null, 6);
+    testLogLevelWithRecovery(null, 11);
     testLogLevelWithRecovery(HistoryLogLevel.AM, 1);
     testLogLevelWithRecovery(HistoryLogLevel.DAG, 3);
     testLogLevelWithRecovery(HistoryLogLevel.VERTEX, 4);
     testLogLevelWithRecovery(HistoryLogLevel.TASK, 5);
-    testLogLevelWithRecovery(HistoryLogLevel.ALL, 6);
+    testLogLevelWithRecovery(HistoryLogLevel.TASK_ATTEMPT, 9);
+    testLogLevelWithRecovery(HistoryLogLevel.ALL, 11);
   }
 
   @Test
   public void testMultipleDag() {
-    testLogLevel(null, HistoryLogLevel.NONE, 7);
-    testLogLevel(null, HistoryLogLevel.AM, 7);
-    testLogLevel(null, HistoryLogLevel.DAG, 9);
-    testLogLevel(null, HistoryLogLevel.VERTEX, 10);
-    testLogLevel(null, HistoryLogLevel.TASK, 11);
-    testLogLevel(null, HistoryLogLevel.ALL, 12);
+    testLogLevel(null, HistoryLogLevel.NONE, 14);
+    testLogLevel(null, HistoryLogLevel.AM, 14);
+    testLogLevel(null, HistoryLogLevel.DAG, 16);
+    testLogLevel(null, HistoryLogLevel.VERTEX, 17);
+    testLogLevel(null, HistoryLogLevel.TASK, 18);
+    testLogLevel(null, HistoryLogLevel.TASK_ATTEMPT, 22);
+    testLogLevel(null, HistoryLogLevel.ALL, 22);
     testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.NONE, 5);
     testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.AM, 5);
     testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.DAG, 7);
     testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.VERTEX, 8);
     testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.TASK, 9);
-    testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.ALL, 10);
+    testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.TASK_ATTEMPT, 13);
+    testLogLevel(HistoryLogLevel.VERTEX, HistoryLogLevel.ALL, 13);
     testLogLevel(HistoryLogLevel.NONE, HistoryLogLevel.NONE, 0);
   }
 
@@ -153,7 +186,7 @@ public class TestHistoryEventHandler {
   }
 
   private HistoryEventHandler createHandler(HistoryLogLevel logLevel) {
-    Configuration conf = new Configuration(false);
+    Configuration conf = new Configuration(baseConfig);
     conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
         InMemoryHistoryLoggingService.class.getName());
@@ -181,6 +214,7 @@ public class TestHistoryEventHandler {
 
     long time = System.currentTimeMillis();
     Configuration conf = new Configuration(inConf);
+
     historyEvents.add(new DAGHistoryEvent(null,
         new AMStartedEvent(attemptId, time, user)));
     historyEvents.add(new DAGHistoryEvent(dagId,
@@ -189,16 +223,33 @@ public class TestHistoryEventHandler {
     TezVertexID vertexID = TezVertexID.getInstance(dagId, 1);
     historyEvents.add(new DAGHistoryEvent(dagId,
         new VertexStartedEvent(vertexID, time, time)));
+    ContainerId containerId = ContainerId.newContainerId(attemptId, dagId.getId());
     TezTaskID tezTaskID = TezTaskID.getInstance(vertexID, 1);
     historyEvents.add(new DAGHistoryEvent(dagId,
         new TaskStartedEvent(tezTaskID, "test", time, time)));
+    historyEvents.add(
+        new DAGHistoryEvent(new ContainerLaunchedEvent(containerId, time, attemptId)));
     historyEvents.add(new DAGHistoryEvent(dagId,
         new TaskAttemptStartedEvent(TezTaskAttemptID.getInstance(tezTaskID, 1), "test", time,
-            ContainerId.newContainerId(attemptId, 1), NodeId.newInstance("localhost", 8765), null,
-            null, null)));
+            containerId, NodeId.newInstance("localhost", 8765), null, null, null)));
+    historyEvents.add(new DAGHistoryEvent(dagId,
+        new TaskAttemptFinishedEvent(TezTaskAttemptID.getInstance(tezTaskID, 1), "test", time,
+            time + 1, TaskAttemptState.KILLED, null,
+            TaskAttemptTerminationCause.EXTERNAL_PREEMPTION, "", null, null, null, time, null, time,
+            containerId, NodeId.newInstance("localhost", 8765), null, null, null)));
+    historyEvents.add(new DAGHistoryEvent(dagId,
+        new TaskAttemptStartedEvent(TezTaskAttemptID.getInstance(tezTaskID, 2), "test", time,
+            containerId, NodeId.newInstance("localhost", 8765), null, null, null)));
+    historyEvents.add(new DAGHistoryEvent(dagId,
+        new TaskAttemptFinishedEvent(TezTaskAttemptID.getInstance(tezTaskID, 2), "test", time + 2,
+            time + 3, TaskAttemptState.KILLED, null,
+            TaskAttemptTerminationCause.INTERRUPTED_BY_USER, "", null, null, null, time, null,
+            time + 2, containerId, NodeId.newInstance("localhost", 8765), null, null, null)));
     historyEvents.add(new DAGHistoryEvent(dagId,
         new DAGFinishedEvent(dagId, time, time, DAGState.SUCCEEDED, null, null, user, "test", null,
             attemptId, DAGPlan.getDefaultInstance())));
+    historyEvents.add(
+        new DAGHistoryEvent(new ContainerStoppedEvent(containerId, time + 4, 0, attemptId)));
     return historyEvents;
   }
 }

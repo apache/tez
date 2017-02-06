@@ -20,7 +20,6 @@ package org.apache.tez.dag.api;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1261,6 +1260,17 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_HISTORY_LOGGING_LOGLEVEL =
       TEZ_PREFIX + "history.logging.log.level";
+
+  /**
+   * List of comma separated enum values. Specifies the list of task attempt termination causes,
+   * which have to be suppressed from being logged to ATS. The valid filters are defined in the
+   * enum TaskAttemptTerminationCause. The filters are applied only if tez.history.logging.log.level
+   * is set to TASK_ATTEMPT.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_HISTORY_LOGGING_TASKATTEMPT_FILTERS =
+      TEZ_PREFIX + "history.logging.taskattempt-filters";
 
   /**
    * Comma separated list of Integers. These are the values that were set for the config value
