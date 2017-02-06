@@ -21,7 +21,6 @@ import Ember from 'ember';
 export default Ember.Component.extend({
   classNames: ['queries-page-search'],
 
-  queryName: Ember.computed.oneWay("tableDefinition.queryName"),
   queryID: Ember.computed.oneWay("tableDefinition.queryID"),
   dagID: Ember.computed.oneWay("tableDefinition.dagID"),
   appID: Ember.computed.oneWay("tableDefinition.appID"),
@@ -35,7 +34,6 @@ export default Ember.Component.extend({
 
   sendSearch: function () {
     this.get('parentView').sendAction('search', {
-      queryName: this.get("queryName"),
       queryID: this.get("queryID"),
       dagID: this.get("dagID"),
       appID: this.get("appID"),

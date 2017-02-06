@@ -42,7 +42,6 @@ export default AbstractAdapter.extend({
     executionMode: "executionmode",
     callerId: "callerId",
 
-    queryName: "queryname",
     tablesRead: "tablesread",
     tablesWritten: "tableswritten",
     operationID: "operationid",

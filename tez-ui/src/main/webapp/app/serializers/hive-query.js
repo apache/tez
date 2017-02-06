@@ -49,8 +49,6 @@ function getStatus(source) {
 
 export default TimelineSerializer.extend({
   maps: {
-    queryName: 'primaryfilters.queryname.0',
-
     queryText: 'otherinfo.QUERY.queryText',
 
     sessionID: 'otherinfo.INVOKER_INFO',

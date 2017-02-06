@@ -33,7 +33,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller);
 
   assert.ok(controller.queryParams);
-  assert.equal(controller.queryParams.length, 10 + 5);
+  assert.equal(controller.queryParams.length, 9 + 5);
 
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.headerComponentNames);
@@ -59,7 +59,6 @@ test('definition test', function(assert) {
       }),
       definition = controller.get("definition"),
 
-      testQueryName = "QueryName",
       testQueryID = "QueryID",
       testDagID = "DagID",
       testAppID = "AppID",
@@ -74,7 +73,6 @@ test('definition test', function(assert) {
       testMoreAvailable = true,
       testLoadingMore = true;
 
-  assert.equal(definition.get("queryName"), "");
   assert.equal(definition.get("queryID"), "");
   assert.equal(definition.get("dagID"), "");
   assert.equal(definition.get("appID"), "");
@@ -91,9 +89,6 @@ test('definition test', function(assert) {
   assert.equal(definition.get("loadingMore"), false);
 
   Ember.run(function () {
-    controller.set("queryName", testQueryName);
-    assert.equal(controller.get("definition.queryName"), testQueryName);
-
     controller.set("queryID", testQueryID);
     assert.equal(controller.get("definition.queryID"), testQueryID);
 

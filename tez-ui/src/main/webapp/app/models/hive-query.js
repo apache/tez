@@ -35,8 +35,6 @@ export default AbstractModel.extend({
     }
   },
 
-  queryName: DS.attr('string'),
-
   queryText: DS.attr("string"),
 
   dag: DS.attr('object'),

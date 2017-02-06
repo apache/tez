@@ -189,6 +189,7 @@ ALL CHANGES:
   TEZ-3593. Tez UI: Issues in timeline page
   TEZ-3594. Tez UI: Graphical view tooltip issues
   TEZ-3598. Tez UI: Text formatting changes
+  TEZ-3602. Tez UI: Query Name field is not required
 
 Release 0.8.5: Unreleased
 

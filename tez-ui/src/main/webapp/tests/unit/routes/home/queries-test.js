@@ -43,7 +43,6 @@ test('it exists', function(assert) {
 test('refresh test', function(assert) {
   let route = this.subject();
 
-  assert.equal(route.get("queryParams.queryName.refreshModel"), true);
   assert.equal(route.get("queryParams.queryID.refreshModel"), true);
   assert.equal(route.get("queryParams.dagID.refreshModel"), true);
   assert.equal(route.get("queryParams.appID.refreshModel"), true);
@@ -60,7 +59,7 @@ test('refresh test', function(assert) {
 
 test('loaderQueryParams test', function(assert) {
   let route = this.subject();
-  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 11 + 1);
+  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 10 + 1);
 });
 
 test('load - query test', function(assert) {

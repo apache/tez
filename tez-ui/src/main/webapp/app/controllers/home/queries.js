@@ -24,9 +24,8 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["queryName", "queryID", "dagID", "appID", "user", "requestUser",
+  queryParams: ["queryID", "dagID", "appID", "user", "requestUser",
       "tablesRead", "tablesWritten", "operationID", "queue"],
-  queryName: "",
   queryID: "",
   dagID: "",
   appID: "",
@@ -54,14 +53,13 @@ export default TableController.extend({
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("queryID", "queryName", "dagID", "appID", "user", "requestUser",
+  definition: Ember.computed("queryID", "dagID", "appID", "user", "requestUser",
       "executionMode", "tablesRead", "tablesWritten", "operationID", "queue",
       "pageNum", "moreAvailable", "loadingMore", function () {
 
     var definition = this.get("_definition");
 
     definition.setProperties({
-      queryName: this.get("queryName"),
       queryID: this.get("queryID"),
       dagID: this.get("dagID"),
       appID: this.get("appID"),
@@ -172,10 +170,6 @@ export default TableController.extend({
     id: 'hiveAddress',
     headerTitle: 'Hive Server 2 Address',
     contentPath: 'hiveAddress'
-  },{
-    id: 'queryName',
-    headerTitle: 'Query Name',
-    contentPath: 'queryName'
   },{
     id: 'instanceType',
     headerTitle: 'Client Type',

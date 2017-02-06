@@ -26,7 +26,6 @@ export default ServerSideOpsRoute.extend({
   title: "Hive Queries",
 
   queryParams: {
-    queryName: REFRESH,
     queryID: REFRESH,
     dagID: REFRESH,
     appID: REFRESH,
@@ -42,7 +41,6 @@ export default ServerSideOpsRoute.extend({
   },
 
   loaderQueryParams: {
-    queryName: "queryName",
     id: "queryID",
     dagID: "dagID",
     appID: "appID",
