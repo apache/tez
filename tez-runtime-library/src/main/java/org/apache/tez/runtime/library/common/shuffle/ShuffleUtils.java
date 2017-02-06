@@ -29,6 +29,7 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
@@ -516,35 +517,70 @@ public class ShuffleUtils {
     return builder.build();
   }
 
-  /**
-   * Log individual fetch complete event.
-   * This log information would be used by tez-tool/perf-analzyer/shuffle tools for mining
-   * - amount of data transferred between source to destination machine
-   * - time taken to transfer data between source to destination machine
-   * - details on DISK/DISK_DIRECT/MEMORY based shuffles
-   *
-   * @param log
-   * @param millis
-   * @param bytesCompressed
-   * @param bytesDecompressed
-   * @param outputType
-   * @param srcAttemptIdentifier
-   */
-  public static void logIndividualFetchComplete(Logger log, long millis, long
-      bytesCompressed,
-      long bytesDecompressed, String outputType, InputAttemptIdentifier srcAttemptIdentifier) {
-    double rate = 0;
-    if (millis != 0) {
-      rate = bytesCompressed / ((double) millis / 1000);
-      rate = rate / (1024 * 1024);
+  public static class FetchStatsLogger {
+    private final Logger activeLogger;
+    private final Logger aggregateLogger;
+    private final AtomicLong logCount = new AtomicLong();
+    private final AtomicLong compressedSize = new AtomicLong();
+    private final AtomicLong decompressedSize = new AtomicLong();
+    private final AtomicLong totalTime = new AtomicLong();
+
+    public FetchStatsLogger(Logger activeLogger, Logger aggregateLogger) {
+      this.activeLogger = activeLogger;
+      this.aggregateLogger = aggregateLogger;
     }
-    log.info(
-        "Completed fetch for attempt: "
-            + toShortString(srcAttemptIdentifier)
-            +" to " + outputType +
-            ", csize=" + bytesCompressed + ", dsize=" + bytesDecompressed +
-            ", EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
-            MBPS_FORMAT.get().format(rate) + " MB/s");
+
+    /**
+     * Log individual fetch complete event.
+     * This log information would be used by tez-tool/perf-analzyer/shuffle tools for mining
+     * - amount of data transferred between source to destination machine
+     * - time taken to transfer data between source to destination machine
+     * - details on DISK/DISK_DIRECT/MEMORY based shuffles
+     *
+     * @param millis
+     * @param bytesCompressed
+     * @param bytesDecompressed
+     * @param outputType
+     * @param srcAttemptIdentifier
+     */
+    public void logIndividualFetchComplete(long millis, long bytesCompressed,
+        long bytesDecompressed, String outputType, InputAttemptIdentifier srcAttemptIdentifier) {
+      double rate = 0;
+      if (millis != 0) {
+        rate = bytesCompressed / ((double) millis / 1000);
+        rate = rate / (1024 * 1024);
+      }
+      if (activeLogger.isInfoEnabled()) {
+        activeLogger.info(
+            "Completed fetch for attempt: "
+                + toShortString(srcAttemptIdentifier)
+                +" to " + outputType +
+                ", csize=" + bytesCompressed + ", dsize=" + bytesDecompressed +
+                ", EndTime=" + System.currentTimeMillis() + ", TimeTaken=" + millis + ", Rate=" +
+                MBPS_FORMAT.get().format(rate) + " MB/s");
+      } else {
+        long currentCount, currentCompressedSize, currentDecompressedSize, currentTotalTime;
+        synchronized (this) {
+          currentCount = logCount.incrementAndGet();
+          currentCompressedSize = compressedSize.addAndGet(bytesCompressed);
+          currentDecompressedSize = decompressedSize.addAndGet(bytesDecompressed);
+          currentTotalTime = totalTime.addAndGet(millis);
+          if (currentCount % 1000 == 0) {
+            compressedSize.set(0);
+            decompressedSize.set(0);
+            totalTime.set(0);
+          }
+        }
+        if (currentCount % 1000 == 0) {
+          double avgRate = currentTotalTime == 0 ? 0
+              : currentCompressedSize / (double)currentTotalTime / 1000 / 1024 / 1024;
+          aggregateLogger.info("Completed {} fetches, stats for last 1000 fetches: "
+              + "avg csize: {}, avg dsize: {}, avgTime: {}, avgRate: {}", currentCount,
+              currentCompressedSize / 1000, currentDecompressedSize / 1000, currentTotalTime / 1000,
+              MBPS_FORMAT.get().format(avgRate));
+        }
+      }
+    }
   }
 
   private static String toShortString(InputAttemptIdentifier inputAttemptIdentifier) {

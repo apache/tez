@@ -80,6 +80,7 @@ import org.apache.tez.runtime.library.common.shuffle.HostPort;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.InputHost.PartitionToInputs;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -98,6 +99,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public class ShuffleManager implements FetcherCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleManager.class);
+  private static final Logger LOG_FETCH = LoggerFactory.getLogger(LOG.getName() + ".fetch");
+  private static final FetchStatsLogger fetchStatsLogger = new FetchStatsLogger(LOG_FETCH, LOG);
 
   private final InputContext inputContext;
   private final int numInputs;
@@ -628,8 +631,8 @@ public class ShuffleManager implements FetcherCallback {
         if (!completedInputSet.contains(inputIdentifier)) {
           fetchedInput.commit();
           committed = true;
-          ShuffleUtils.logIndividualFetchComplete(LOG, copyDuration,
-              fetchedBytes, decompressedLength, fetchedInput.getType().toString(), srcAttemptIdentifier);
+          fetchStatsLogger.logIndividualFetchComplete(copyDuration, fetchedBytes,
+              decompressedLength, fetchedInput.getType().toString(), srcAttemptIdentifier);
 
           // Processing counters for completed and commit fetches only. Need
           // additional counters for excessive fetches - which primarily comes

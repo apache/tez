@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3581. Add different logger to enable suppressing logs for specific lines.
   TEZ-3601. Add another HistoryLogLevel to suppress TaskAttempts at specific levels
   TEZ-3600. Fix flaky test: TestTokenCache
   TEZ-3589. add a unit test for amKeepAlive not being shutdown if an app takes a long time to launch.

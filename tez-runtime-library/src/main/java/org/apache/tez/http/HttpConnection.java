@@ -36,10 +36,12 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class HttpConnection extends BaseHttpConnection {
 
   private static final Logger LOG = LoggerFactory.getLogger(HttpConnection.class);
+  private static final Logger URL_LOG = LoggerFactory.getLogger(LOG.getName() + ".url");
 
   private URL url;
   private final String logIdentifier;
@@ -56,6 +58,7 @@ public class HttpConnection extends BaseHttpConnection {
 
   private final HttpConnectionParams httpConnParams;
   private final StopWatch stopWatch;
+  private final AtomicLong urlLogCount;
 
   /**
    * HttpConnection
@@ -73,6 +76,7 @@ public class HttpConnection extends BaseHttpConnection {
     this.httpConnParams = connParams;
     this.url = url;
     this.stopWatch = new StopWatch();
+    this.urlLogCount = new AtomicLong();
     if (LOG.isDebugEnabled()) {
       LOG.debug("MapOutput URL :" + url.toString());
     }
@@ -229,9 +233,17 @@ public class HttpConnection extends BaseHttpConnection {
 
     // verify that replyHash is HMac of encHash
     SecureShuffleUtils.verifyReply(replyHash, encHash, jobTokenSecretMgr);
-    //Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM host
-    LOG.info("for url=" + url +
-        " sent hash and receievd reply " + stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
+    if (URL_LOG.isInfoEnabled()) {
+      // Following log statement will be used by tez-tool perf-analyzer for mapping attempt to NM
+      // host
+      URL_LOG.info("for url=" + url + " sent hash and receievd reply " +
+          stopWatch.now(TimeUnit.MILLISECONDS) + " ms");
+    } else {
+      // Log summary.
+      if (urlLogCount.incrementAndGet() % 1000 == 0) {
+        LOG.info("Sent hash and recieved reply for {} urls", urlLogCount);
+      }
+    }
   }
 
   /**

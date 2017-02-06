@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -24,7 +23,8 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.common.sort.impl.IFileOutputStream;
+import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -32,6 +32,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
@@ -47,8 +48,11 @@ import java.util.Random;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -69,10 +73,6 @@ import static org.mockito.Mockito.when;
  * limitations under the License.
  */
 public class TestShuffleUtils {
-
-  private static final String HOST = "localhost";
-  private static final int PORT = 8080;
-  private static final String PATH_COMPONENT = "attempt";
 
   private OutputContext outputContext;
   private Configuration conf;
@@ -312,5 +312,27 @@ public class TestShuffleUtils {
       Assert.fail("shuffle was supposed to throw!");
     } catch (IOException e) {
     }
+  }
+
+  @Test
+  public void testFetchStatsLogger() throws Exception {
+    Logger activeLogger = mock(Logger.class);
+    Logger aggregateLogger = mock(Logger.class);
+    FetchStatsLogger logger = new FetchStatsLogger(activeLogger, aggregateLogger);
+
+    InputAttemptIdentifier ident = new InputAttemptIdentifier(1, 1);
+    when(activeLogger.isInfoEnabled()).thenReturn(false);
+    for (int i = 0; i < 1000; i++) {
+      logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
+    }
+    verify(activeLogger, times(0)).info(anyString());
+    verify(aggregateLogger, times(1)).info(anyString(), Matchers.<Object[]>anyVararg());
+
+    when(activeLogger.isInfoEnabled()).thenReturn(true);
+    for (int i = 0; i < 1000; i++) {
+      logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
+    }
+    verify(activeLogger, times(1000)).info(anyString());
+    verify(aggregateLogger, times(1)).info(anyString(), Matchers.<Object[]>anyVararg());
   }
 }

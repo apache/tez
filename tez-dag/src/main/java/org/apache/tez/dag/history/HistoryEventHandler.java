@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,8 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class HistoryEventHandler extends CompositeService {
 
   private static Logger LOG = LoggerFactory.getLogger(HistoryEventHandler.class);
+  private static Logger LOG_CRITICAL_EVENTS =
+      LoggerFactory.getLogger(LOG.getName() + ".criticalEvents");
 
   private final AppContext context;
   private RecoveryService recoveryService;
@@ -58,6 +61,8 @@ public class HistoryEventHandler extends CompositeService {
 
   private final ConcurrentHashMap<TezTaskAttemptID, DAGHistoryEvent> suppressedEvents =
       new ConcurrentHashMap<>();
+
+  private final AtomicLong criticalEventCount = new AtomicLong();
 
   public HistoryEventHandler(AppContext context) {
     super(HistoryEventHandler.class.getName());
@@ -141,12 +146,18 @@ public class HistoryEventHandler extends CompositeService {
       historyLoggingService.handle(event);
     }
 
-    // TODO at some point we should look at removing this once
-    // there is a UI in place
-    LOG.info("[HISTORY]"
-        + "[DAG:" + dagIdStr + "]"
-        + "[Event:" + event.getHistoryEvent().getEventType().name() + "]"
-        + ": " + event.getHistoryEvent().toString());
+    if (LOG_CRITICAL_EVENTS.isInfoEnabled()) {
+      // TODO at some point we should look at removing this once
+      // there is a UI in place
+      LOG_CRITICAL_EVENTS.info("[HISTORY]"
+          + "[DAG:" + dagIdStr + "]"
+          + "[Event:" + event.getHistoryEvent().getEventType().name() + "]"
+          + ": " + event.getHistoryEvent().toString());
+    } else {
+      if (criticalEventCount.incrementAndGet() % 1000 == 0) {
+        LOG.info("Got {} critical events", criticalEventCount);
+      }
+    }
   }
 
   private boolean shouldLogEvent(DAGHistoryEvent event) {
