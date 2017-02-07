@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.common.resources.InitialMemoryAllocator;
 import org.apache.tez.runtime.common.resources.InitialMemoryRequestContext;
+import org.apache.tez.runtime.common.resources.InitialMemoryRequestContext.ComponentType;
 import org.apache.tez.runtime.library.input.OrderedGroupedKVInput;
 import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
@@ -129,9 +130,15 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
         + availableForAllocation + ", TotalRequested/TotalJVMHeap:"
         + new DecimalFormat("0.00").format(ratio));
 
+    int numInputRequestsScaled = 0;
+    int numOutputRequestsScaled = 0;
+    long totalInputAllocated = 0;
+    long totalOutputAllocated = 0;
+
     // Actual scaling
     List<Long> allocations = Lists.newArrayListWithCapacity(numRequests);
     for (Request request : requests) {
+      long allocated = 0;
       if (request.requestSize == 0) {
         allocations.add(0l);
         if (LOG.isDebugEnabled()) {
@@ -141,7 +148,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
       } else {
         double requestFactor = request.requestWeight / (double) numRequestsScaled;
         double scaledRequest = requestFactor * request.requestSize;
-        long allocated = Math.min(
+        allocated = Math.min(
             (long) ((scaledRequest / totalScaledRequest) * availableForAllocation),
             request.requestSize);
         // TODO Later - If requestedSize is used, the difference (allocated -
@@ -152,9 +159,52 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
               + request.requestType + " " + request.requestSize + "  to allocated: " + allocated);
         }
       }
-    }
-    return allocations;
 
+      if (request.componentType == ComponentType.INPUT) {
+        numInputRequestsScaled += request.requestWeight;
+        totalInputAllocated += allocated;
+      } else if (request.componentType == ComponentType.OUTPUT) {
+        numOutputRequestsScaled += request.requestWeight;
+        totalOutputAllocated += allocated;
+      }
+    }
+
+    if (!conf.getBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT_DEFAULT)) {
+      adjustAllocationsForNonConcurrent(allocations, requests,
+          numInputRequestsScaled, totalInputAllocated,
+          numOutputRequestsScaled, totalOutputAllocated);
+    }
+
+    return allocations;
+  }
+
+  private void adjustAllocationsForNonConcurrent(List<Long> allocations,
+      List<Request> requests, int numInputsScaled, long totalInputAllocated,
+      int numOutputsScaled, long totalOutputAllocated) {
+    boolean inputsEnabled = conf.getBoolean(
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED_DEFAULT);
+    LOG.info("Adjusting scaled allocations for I/O non-concurrent."
+        + " numInputsScaled: {} InputAllocated: {} numOutputsScaled: {} outputAllocated: {} inputsEnabled: {}",
+        numInputsScaled, totalInputAllocated, numOutputsScaled, totalOutputAllocated, inputsEnabled);
+    for (int i = 0; i < requests.size(); i++) {
+      Request request = requests.get(i);
+      long additional = 0;
+      if (request.componentType == ComponentType.INPUT && inputsEnabled) {
+        double share = request.requestWeight / (double)numInputsScaled;
+        additional = (long) (totalOutputAllocated * share);
+      } else if (request.componentType == ComponentType.OUTPUT) {
+        double share = request.requestWeight / (double)numOutputsScaled;
+        additional = (long) (totalInputAllocated * share);
+      }
+      if (additional > 0) {
+        long newTotal = Math.min(allocations.get(i) + additional, request.requestSize);
+        // TODO Later - If requestedSize is used, the difference could be allocated to others.
+        allocations.set(i, newTotal);
+        LOG.debug("Adding {} to {} total={}", additional, request.componentClassname, newTotal);
+      }
+    }
   }
 
   private void initialProcessMemoryRequestContext(InitialMemoryRequestContext context) {
@@ -164,9 +214,10 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
     String className = context.getComponentClassName();
     requestType = getRequestTypeForClass(className);
     Integer typeScaleFactor = getScaleFactorForType(requestType);
+    ComponentType componentType = context.getComponentType();
 
-    Request request = new Request(context.getComponentClassName(), context.getRequestedSize(),
-        requestType, typeScaleFactor);
+    Request request = new Request(context.getComponentClassName(), componentType,
+        context.getRequestedSize(), requestType, typeScaleFactor);
     requests.add(request);
     numRequestsScaled += typeScaleFactor;
   }
@@ -293,14 +344,17 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   private static class Request {
-    Request(String componentClassname, long requestSize, RequestType requestType, int requestWeight) {
+    Request(String componentClassname, ComponentType componentType, long requestSize,
+        RequestType requestType, int requestWeight) {
       this.componentClassname = componentClassname;
+      this.componentType = componentType;
       this.requestSize = requestSize;
       this.requestType = requestType;
       this.requestWeight = requestWeight;
     }
 
     String componentClassname;
+    ComponentType componentType;
     long requestSize;
     private RequestType requestType;
     private int requestWeight;

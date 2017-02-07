@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3244. Allow overlap of input and output memory when they are not concurrent
   TEZ-3581. Add different logger to enable suppressing logs for specific lines.
   TEZ-3601. Add another HistoryLogLevel to suppress TaskAttempts at specific levels
   TEZ-3600. Fix flaky test: TestTokenCache
@@ -197,6 +198,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3244. Allow overlap of input and output memory when they are not concurrent
   TEZ-3601. Add another HistoryLogLevel to suppress TaskAttempts at specific levels
   TEZ-3462. Task attempt failure during container shutdown loses useful container diagnostics
   TEZ-3574. Container reuse won't pickup extra dag level local resource.

@@ -61,6 +61,7 @@ public class MemoryDistributor {
 
   private long totalJvmMemory;
   private final boolean isEnabled;
+  private final boolean isInputOutputConcurrent;
   private final String allocatorClassName;
   private final Set<TaskContext> dupSet = Collections
       .newSetFromMap(new ConcurrentHashMap<TaskContext, Boolean>());
@@ -78,6 +79,9 @@ public class MemoryDistributor {
     this.conf = conf;
     isEnabled = conf.getBoolean(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED,
         TezConfiguration.TEZ_TASK_SCALE_MEMORY_ENABLED_DEFAULT);
+    isInputOutputConcurrent = conf.getBoolean(
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT,
+        TezConfiguration.TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT_DEFAULT);
 
     if (isEnabled) {
       allocatorClassName = conf.get(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
@@ -213,9 +217,11 @@ public class MemoryDistributor {
     Preconditions.checkState(numAllocations == numRequestors,
         "Number of allocations must match number of requestors. Allocated=" + numAllocations
             + ", Requests: " + numRequestors);
-    Preconditions.checkState(totalAllocated <= totalJvmMemory,
-        "Total allocation should be <= availableMem. TotalAllocated: " + totalAllocated
-            + ", totalJvmMemory: " + totalJvmMemory);
+    if (isInputOutputConcurrent) {
+      Preconditions.checkState(totalAllocated <= totalJvmMemory,
+          "Total allocation should be <= availableMem. TotalAllocated: " + totalAllocated
+              + ", totalJvmMemory: " + totalJvmMemory);
+    }
   }
 
 
