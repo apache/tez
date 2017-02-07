@@ -875,6 +875,36 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_SCALE_MEMORY_WEIGHTED_RATIOS =
       TEZ_TASK_PREFIX + "scale.memory.ratios";
 
+  /**
+   * Concurrent input/output memory allocation control. When enabled memory
+   * distributions assume that inputs and outputs will use their memory
+   * simultaneously. When disabled the distributions assume that outputs are not
+   * initialized until inputs release memory buffers, allowing inputs to
+   * leverage memory normally set aside for outputs and vice-versa.
+   * NOTE: This property currently is not supported by the ScalingAllocator
+   *       memory distributor.
+   */
+  @Private
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT =
+      TEZ_TASK_PREFIX + "scale.memory.input-output-concurrent";
+  public static final boolean TEZ_TASK_SCALE_MEMORY_INPUT_OUTPUT_CONCURRENT_DEFAULT = true;
+
+  /**
+   * Controls distributing output memory to inputs when non-concurrent I/O
+   * memory allocation is being used.  When enabled inputs will receive the
+   * same memory allocation as if concurrent I/O memory allocation were used.
+   * NOTE: This property currently is not supported by the ScalingAllocator
+   *       memory distributor.
+   */
+  @Private
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  public static final String TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED =
+      TEZ_TASK_PREFIX + "scale.memory.non-concurrent-inputs.enabled";
+  public static final boolean TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED_DEFAULT = false;
+
   @Private
   @Unstable
   /**
