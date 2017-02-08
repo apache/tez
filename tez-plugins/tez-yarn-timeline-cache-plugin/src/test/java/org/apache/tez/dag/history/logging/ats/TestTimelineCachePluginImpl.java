@@ -124,12 +124,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(3, groupIds.size());
+      Assert.assertEquals(2, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId1, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID1, appId1, 100).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID1, 100).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -143,12 +143,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(2, groupIds.size());
+      Assert.assertEquals(1, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId1, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID1, appId1).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID1).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -162,12 +162,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(2, groupIds.size());
+      Assert.assertEquals(1, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId1, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID1, appId1).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID1).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -181,12 +181,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(3, groupIds.size());
+      Assert.assertEquals(2, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId1, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID1, appId1, 100).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID1, 100).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -200,12 +200,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(4, groupIds.size());
+      Assert.assertEquals(3, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId2, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID2, appId2, 100, 50).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID2, 100, 50).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -219,12 +219,13 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(5, groupIds.size());
+      Assert.assertEquals(4, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId2, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID2, appId2, 100, 25, 50).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(
+            getGroupIds(dagID2, 100, 25, 50).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -238,12 +239,12 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(3, groupIds.size());
+      Assert.assertEquals(2, groupIds.size());
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         Assert.assertEquals(appId2, groupId.getApplicationId());
-        Assert.assertTrue(getGroupIds(dagID2, appId2, 100).contains(groupId.getTimelineEntityGroupId()));
+        Assert.assertTrue(getGroupIds(dagID2, 100).contains(groupId.getTimelineEntityGroupId()));
       }
     }
   }
@@ -261,21 +262,21 @@ public class TestTimelineCachePluginImpl {
         Assert.assertNull(groupIds);
         continue;
       }
-      Assert.assertEquals(6, groupIds.size());
+      Assert.assertEquals(4, groupIds.size());
       int found = 0;
       Iterator<TimelineEntityGroupId> iter = groupIds.iterator();
       while (iter.hasNext()) {
         TimelineEntityGroupId groupId = iter.next();
         if (groupId.getApplicationId().equals(appId1)) {
           String entityGroupId = groupId.getTimelineEntityGroupId();
-          if (getGroupIds(dagID1, appId1, 100).contains(entityGroupId)) {
+          if (getGroupIds(dagID1, 100).contains(entityGroupId)) {
             ++found;
           } else {
             Assert.fail("Unexpected group id: " + entityGroupId);
           }
         } else if (groupId.getApplicationId().equals(appId2)) {
           String entityGroupId = groupId.getTimelineEntityGroupId();
-          if (getGroupIds(dagID2, appId2, 100).contains(entityGroupId)) {
+          if (getGroupIds(dagID2, 100).contains(entityGroupId)) {
             ++found;
           } else {
             Assert.fail("Unexpected group id: " + entityGroupId);
@@ -284,7 +285,7 @@ public class TestTimelineCachePluginImpl {
           Assert.fail("Unexpected appId: " + groupId.getApplicationId());
         }
       }
-      Assert.assertEquals("All groupIds not returned", 6, found);
+      Assert.assertEquals("All groupIds not returned", 4, found);
     }
   }
 
@@ -374,8 +375,8 @@ public class TestTimelineCachePluginImpl {
     Assert.assertEquals("All groupIds not returned", 1, found);
   }
 
-  private Set<String> getGroupIds(TezDAGID dagId, ApplicationId appId, int ... allNumDagsPerGroup) {
-    HashSet<String> groupIds = Sets.newHashSet(dagId.toString(), appId.toString());
+  private Set<String> getGroupIds(TezDAGID dagId, int ... allNumDagsPerGroup) {
+    HashSet<String> groupIds = Sets.newHashSet(dagId.toString());
     for (int numDagsPerGroup : allNumDagsPerGroup) {
       groupIds.add(dagId.getGroupId(numDagsPerGroup));
     }

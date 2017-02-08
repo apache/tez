@@ -72,7 +72,6 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
   private Set<TimelineEntityGroupId> createTimelineEntityGroupIds(TezDAGID dagId) {
     ApplicationId appId = dagId.getApplicationId();
     HashSet<TimelineEntityGroupId> groupIds = Sets.newHashSet(
-        TimelineEntityGroupId.newInstance(appId, appId.toString()),
         TimelineEntityGroupId.newInstance(appId, dagId.toString()));
     for (int numGroupsPerDag : allNumGroupsPerDag) {
       groupIds.add(TimelineEntityGroupId.newInstance(appId, dagId.getGroupId(numGroupsPerDag)));
