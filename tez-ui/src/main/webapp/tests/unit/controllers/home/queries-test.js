@@ -37,11 +37,11 @@ test('Basic creation test', function(assert) {
 
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.headerComponentNames);
-  assert.ok(controller.headerComponentNames.length, 3);
+  assert.equal(controller.headerComponentNames.length, 3);
 
   assert.ok(controller.definition);
   assert.ok(controller.columns);
-  assert.ok(controller.columns.length, 9);
+  assert.equal(controller.columns.length, 16);
 
   assert.ok(controller.getCounterColumns);
 

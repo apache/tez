@@ -85,6 +85,7 @@ export default TableController.extend({
     headerTitle: 'Query ID',
     contentPath: 'entityID',
     cellComponentName: 'em-table-linked-cell',
+    minWidth: "250px",
     getCellContent: function (row) {
       return {
         routeName: "query",
@@ -96,11 +97,13 @@ export default TableController.extend({
     id: 'requestUser',
     headerTitle: 'User',
     contentPath: 'requestUser',
+    minWidth: "100px",
   },{
     id: 'status',
     headerTitle: 'Status',
     contentPath: 'status',
     cellComponentName: 'em-table-status-cell',
+    minWidth: "105px",
   },{
     id: 'queryText',
     headerTitle: 'Query',
@@ -110,6 +113,7 @@ export default TableController.extend({
     headerTitle: 'DAG ID',
     contentPath: 'dag.firstObject.entityID',
     cellComponentName: 'em-table-linked-cell',
+    minWidth: "250px",
     getCellContent: function (row) {
       return {
         routeName: "dag",
@@ -129,6 +133,7 @@ export default TableController.extend({
     id: 'clientAddress',
     headerTitle: 'Client Address',
     contentPath: 'clientAddress',
+    hiddenByDefault: true,
   },{
     id: 'startTime',
     headerTitle: 'Start Time',
@@ -166,22 +171,17 @@ export default TableController.extend({
     id: 'executionMode',
     headerTitle: 'Execution Mode',
     contentPath: 'executionMode',
+    minWidth: "100px",
   },{
     id: 'hiveAddress',
     headerTitle: 'Hive Server 2 Address',
-    contentPath: 'hiveAddress'
+    contentPath: 'hiveAddress',
+    hiddenByDefault: true,
   },{
     id: 'instanceType',
     headerTitle: 'Client Type',
-    contentPath: 'instanceType'
-  },{
-    id: 'sessionID',
-    headerTitle: 'Session ID',
-    contentPath: 'sessionID',
-  },{
-    id: 'threadName',
-    headerTitle: 'Thread Name',
-    contentPath: 'threadName',
+    contentPath: 'instanceType',
+    minWidth: "100px",
   }]),
 
   getCounterColumns: function () {
