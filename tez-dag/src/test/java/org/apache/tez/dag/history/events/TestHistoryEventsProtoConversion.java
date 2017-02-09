@@ -171,12 +171,13 @@ public class TestHistoryEventsProtoConversion {
     logEvents(event, deserializedEvent);
   }
 
+  private final String QUEUE_NAME = "TEST_QUEUE_NAME";
   private void testDAGSubmittedEvent() throws Exception {
     DAGSubmittedEvent event = new DAGSubmittedEvent(TezDAGID.getInstance(
         ApplicationId.newInstance(0, 1), 1), 1001l,
         DAGPlan.newBuilder().setName("foo").build(),
         ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1), null, "", null, null);
+            ApplicationId.newInstance(0, 1), 1), null, "", null, null, QUEUE_NAME);
     DAGSubmittedEvent deserializedEvent = (DAGSubmittedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
@@ -189,6 +190,7 @@ public class TestHistoryEventsProtoConversion {
         deserializedEvent.getSubmitTime());
     Assert.assertEquals(event.getDAGPlan(),
         deserializedEvent.getDAGPlan());
+    Assert.assertEquals(event.getQueueName(), deserializedEvent.getQueueName());
     logEvents(event, deserializedEvent);
   }
 

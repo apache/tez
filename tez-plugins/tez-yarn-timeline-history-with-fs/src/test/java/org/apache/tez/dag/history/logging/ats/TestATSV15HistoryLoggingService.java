@@ -450,7 +450,7 @@ public class TestATSV15HistoryLoggingService {
         new AMStartedEvent(attemptId, time, user)));
     historyEvents.add(new DAGHistoryEvent(dagId,
         new DAGSubmittedEvent(dagId, time, DAGPlan.getDefaultInstance(), attemptId, null, user,
-            conf, null)));
+            conf, null, "default")));
     TezVertexID vertexID = TezVertexID.getInstance(dagId, 1);
     historyEvents.add(new DAGHistoryEvent(dagId,
         new VertexStartedEvent(vertexID, time, time)));

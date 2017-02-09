@@ -515,6 +515,9 @@ public class HistoryEventJsonConversion {
       otherInfo.put(ATSConstants.CALLER_CONTEXT_TYPE,
           event.getDAGPlan().getCallerContext().getCallerType());
     }
+    if (event.getQueueName() != null) {
+      otherInfo.put(ATSConstants.DAG_SUBMITTED_QUEUE_NAME, event.getQueueName());
+    }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
     return jsonObject;

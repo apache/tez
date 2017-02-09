@@ -169,7 +169,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     // only for testing, DAGCommitStartedEvent is not supposed to happen at this time.
@@ -215,7 +215,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     rService.handle(new DAGHistoryEvent(dagID,
@@ -264,7 +264,7 @@ public class TestRecoveryParser {
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // wait until DAGSubmittedEvent is handled in the RecoveryEventHandling thread
     rService.await();
     rService.outputStreamMap.get(dagID).writeUTF("INVALID_DATA");
@@ -310,7 +310,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // write an corrupted SummaryEvent
     rService.summaryStream.writeChars("INVALID_DATA");
     rService.stop();
@@ -344,7 +344,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGCommitStartedEvent(dagID, 0L)));
@@ -376,7 +376,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGCommitStartedEvent(dagID, 0L)));
@@ -412,7 +412,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     rService.handle(new DAGHistoryEvent(dagID,
         new VertexCommitStartedEvent(TezVertexID.getInstance(dagID, 0), 0L)));
@@ -445,7 +445,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     TezVertexID vertexId = TezVertexID.getInstance(dagID, 0);
     rService.handle(new DAGHistoryEvent(dagID,
@@ -482,7 +482,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     rService.handle(new DAGHistoryEvent(dagID,
         new VertexGroupCommitStartedEvent(dagID, "group_1", 
@@ -516,7 +516,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     TezVertexID v0 = TezVertexID.getInstance(dagID, 0);
     TezVertexID v1 = TezVertexID.getInstance(dagID, 1);
@@ -565,7 +565,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     TezVertexID vertexId = TezVertexID.getInstance(dagID, 0);
     rService.handle(new DAGHistoryEvent(dagID,
@@ -601,7 +601,7 @@ public class TestRecoveryParser {
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     TezVertexID vertexId = TezVertexID.getInstance(dagID, 0);
     rService.handle(new DAGHistoryEvent(dagID,
@@ -640,7 +640,7 @@ public class TestRecoveryParser {
     // DAG  DAGSubmittedEvent -> DAGInitializedEvent -> DAGStartedEvent
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
-            null, "user", new Configuration(), null)));
+            null, "user", new Configuration(), null, null)));
     DAGInitializedEvent dagInitedEvent = new DAGInitializedEvent(dagID, 100L, 
         "user", "dagName", null);
     DAGStartedEvent dagStartedEvent = new DAGStartedEvent(dagID, 0L, "user", "dagName");

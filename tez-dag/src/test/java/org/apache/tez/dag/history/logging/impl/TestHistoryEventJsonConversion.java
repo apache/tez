@@ -124,7 +124,7 @@ public class TestHistoryEventJsonConversion {
           break;
         case DAG_SUBMITTED:
           event = new DAGSubmittedEvent(tezDAGID, random.nextInt(), dagPlan, applicationAttemptId,
-              null, user, null, null);
+              null, user, null, null, "Q_" + eventType.name());
           break;
         case DAG_INITIALIZED:
           event = new DAGInitializedEvent(tezDAGID, random.nextInt(), user, dagPlan.getName(), null);
@@ -200,7 +200,15 @@ public class TestHistoryEventJsonConversion {
       if (event == null || !event.isHistoryEvent()) {
         continue;
       }
-      HistoryEventJsonConversion.convertToJson(event);
+      JSONObject json = HistoryEventJsonConversion.convertToJson(event);
+      if (eventType == HistoryEventType.DAG_SUBMITTED) {
+        try {
+          Assert.assertEquals("Q_" + eventType.name(), json.getJSONObject(ATSConstants.OTHER_INFO)
+              .getString(ATSConstants.DAG_SUBMITTED_QUEUE_NAME));
+        } catch (JSONException ex) {
+          Assert.fail("Exception: " + ex.getMessage() + " for type: " + eventType);
+        }
+      }
     }
   }
 

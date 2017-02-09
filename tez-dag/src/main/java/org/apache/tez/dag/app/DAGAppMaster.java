@@ -2578,7 +2578,7 @@ public class DAGAppMaster extends AbstractService {
     // for an app later
     final DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName(), newDAG.getConf(), containerLogs);
+        newDAG.getUserName(), newDAG.getConf(), containerLogs, getSubmittedQueueName());
     boolean dagLoggingEnabled = newDAG.getConf().getBoolean(
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT);
@@ -2669,6 +2669,15 @@ public class DAGAppMaster extends AbstractService {
         return null;
       }
     });
+  }
+
+  private String getSubmittedQueueName() {
+    // TODO: Replace this with constant once the yarn patch is backported. (JIRA: TEZ-3279)
+    String submittedQueueName = System.getenv("YARN_RESOURCEMANAGER_APPLICATION_QUEUE");
+    if (submittedQueueName == null) {
+      submittedQueueName = amConf.get(TezConfiguration.TEZ_QUEUE_NAME);
+    }
+    return submittedQueueName;
   }
 
   @SuppressWarnings("unchecked")

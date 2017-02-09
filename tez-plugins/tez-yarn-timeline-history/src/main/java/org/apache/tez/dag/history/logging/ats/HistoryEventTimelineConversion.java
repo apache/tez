@@ -423,6 +423,9 @@ public class HistoryEventTimelineConversion {
       atsEntity.addOtherInfo(ATSConstants.CALLER_CONTEXT_TYPE,
           event.getDAGPlan().getCallerContext().getCallerType());
     }
+    if (event.getQueueName() != null) {
+      atsEntity.addOtherInfo(ATSConstants.DAG_SUBMITTED_QUEUE_NAME, event.getQueueName());
+    }
 
     return atsEntity;
   }
