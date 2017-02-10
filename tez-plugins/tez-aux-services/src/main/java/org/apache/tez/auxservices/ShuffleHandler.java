@@ -1182,7 +1182,21 @@ public class ShuffleHandler extends AuxiliaryService {
         throws IOException {
 
       long contentLength = 0;
+      // Content-Length only needs calculated for keep-alive keep alive
+      if (connectionKeepAliveEnabled || keepAliveParam) {
+        contentLength = getContentLength(mapIds, jobId, dagId, user, reduceRange, mapOutputInfoMap);
+      }
+
+      // Now set the response headers.
+      setResponseHeaders(response, keepAliveParam, contentLength);
+    }
+
+    long getContentLength(List<String> mapIds, String jobId, String dagId, String user, Range reduceRange, Map<String, MapOutputInfo> mapOutputInfoMap) throws IOException {
+      long contentLength = 0;
+      // Reduce count is written once per mapId
+      int reduceCountVSize = WritableUtils.getVIntSize(reduceRange.getLast() - reduceRange.getFirst() + 1);
       for (String mapId : mapIds) {
+        contentLength += reduceCountVSize;
         MapOutputInfo outputInfo = getMapOutputInfo(dagId, mapId, jobId, user);
         if (mapOutputInfoMap.size() < mapOutputMetaInfoCacheSize) {
           mapOutputInfoMap.put(mapId, outputInfo);
@@ -1199,25 +1213,20 @@ public class ShuffleHandler extends AuxiliaryService {
           contentLength += indexRecord.getPartLength();
         }
       }
-
-      // Now set the response headers.
-      setResponseHeaders(response, keepAliveParam, contentLength);
+      return contentLength;
     }
 
-    protected void setResponseHeaders(HttpResponse response,
-        boolean keepAliveParam, long contentLength) {
-      if (!connectionKeepAliveEnabled && !keepAliveParam) {
+    protected void setResponseHeaders(HttpResponse response, boolean keepAliveParam, long contentLength) {
+      if (connectionKeepAliveEnabled || keepAliveParam) {
+        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(contentLength));
+        response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+        response.setHeader(HttpHeaders.Values.KEEP_ALIVE, "timeout=" + connectionKeepAliveTimeOut);
+        LOG.info("Content Length in shuffle : " + contentLength);
+      } else {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Setting connection close header...");
         }
         response.setHeader(HttpHeaders.Names.CONNECTION, CONNECTION_CLOSE);
-      } else {
-        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH,
-          String.valueOf(contentLength));
-        response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-        response.setHeader(HttpHeaders.Values.KEEP_ALIVE, "timeout="
-            + connectionKeepAliveTimeOut);
-        LOG.info("Content Length in shuffle : " + contentLength);
       }
     }
 

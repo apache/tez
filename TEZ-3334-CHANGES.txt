@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3612. Tez Shuffle Handler Content length does not match actual
   TEZ-3608. Fetcher can hang if copyMapOutput/fetchInputs returns early
   TEZ-3606. Fix debug log for empty partitions to the expanded partitionId in the Composite case
   TEZ-3604. Remove the compositeInputAttemptIdentifier from remaining list upon fetch completion in the Ordered case
