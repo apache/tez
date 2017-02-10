@@ -41,7 +41,6 @@ import org.apache.tez.dag.api.DAGNotRunningException;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -85,52 +84,49 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   @Override
   public DAGStatus getDAGStatus(Set<StatusGetOpts> statusOptions)
-      throws IOException, TezException, ApplicationNotFoundException {
+      throws IOException, TezException {
     return getDAGStatus(statusOptions, 0);
   }
 
 
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws IOException, TezException, ApplicationNotFoundException {
-    if (createAMProxyIfNeeded()) {
+      long timeout) throws IOException, TezException {
       try {
-        DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
-        return dagStatus;
-      } catch (TezException e) {
-        resetProxy(e); // create proxy again
-        throw e;
-      } catch (IOException e) {
-        resetProxy(e); // create proxy again
-        throw e;
-      }
-    }
+        if (createAMProxyIfNeeded()) {
+          DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
+          return dagStatus;
+        }
 
-    // either the dag is not running or some exception happened
-    return null;
+        // the dag is not running
+        return null;
+      } catch (TezException | IOException e) {
+        resetProxy(e); // create proxy again
+        throw e;
+      } catch(ApplicationNotFoundException e) {
+        // propagate as TezException
+        throw new TezException(e);
+      }
   }
 
   @Override
   public VertexStatus getVertexStatus(String vertexName,
       Set<StatusGetOpts> statusOptions)
-      throws IOException, TezException, ApplicationNotFoundException {
-
-    if(createAMProxyIfNeeded()) {
-      try {
+      throws IOException, TezException {
+    try {
+      if (createAMProxyIfNeeded()) {
         return getVertexStatusViaAM(vertexName, statusOptions);
-      } catch (TezException e) {
-        resetProxy(e); // create proxy again
-        throw e;
-      } catch (IOException e) {
-        resetProxy(e); // create proxy again
-        throw e;
       }
+
+      return null;
+    } catch (TezException | IOException e) {
+      resetProxy(e); // create proxy again
+      throw e;
+    } catch (ApplicationNotFoundException e) {
+      // propagate as TezException
+      throw new TezException(e);
     }
-
-    return null;
   }
-
-
 
   @Override
   public void tryKillDAG() throws TezException, IOException {
