@@ -1437,9 +1437,6 @@ public class ShuffleHandler extends AuxiliaryService {
       if (!attemptId.equals(that.attemptId)) {
         return false;
       }
-      if (dagId != that.dagId) {
-        return false;
-      }
 
       if (!jobId.equals(that.jobId)) {
         return false;
@@ -1451,7 +1448,6 @@ public class ShuffleHandler extends AuxiliaryService {
     @Override
     public int hashCode() {
       int result = jobId.hashCode();
-      result = 31 * result + dagId.hashCode();
       result = 31 * result + attemptId.hashCode();
       return result;
     }
