@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3621. Optimize the Shuffle Handler content length calculation for keep alive
   TEZ-3620. UnorderedPartitionedKVOutput is missing the shuffle service config in the confKeys set
   TEZ-3618. Shuffle Handler Loading cache equality tests always results is false
   TEZ-3612. Tez Shuffle Handler Content length does not match actual
