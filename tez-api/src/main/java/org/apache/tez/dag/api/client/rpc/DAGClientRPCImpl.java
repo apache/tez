@@ -41,7 +41,6 @@ import org.apache.tez.dag.api.DAGNotRunningException;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -130,6 +129,15 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     return null;
   }
 
+  @Override
+  public String getDagIdentifierString() {
+    return dagId.toString();
+  }
+
+  @Override
+  public String getSessionIdentifierString() {
+    return appId.toString();
+  }
 
 
   @Override
