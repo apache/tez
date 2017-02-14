@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3550. Provide access to sessionId/dagId via DagClient.
   TEZ-3609. Improve ATSv15 performance for DAG entities read calls.
   TEZ-3244. Allow overlap of input and output memory when they are not concurrent
   TEZ-3601. Add another HistoryLogLevel to suppress TaskAttempts at specific levels

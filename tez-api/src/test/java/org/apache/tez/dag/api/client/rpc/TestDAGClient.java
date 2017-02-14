@@ -210,6 +210,8 @@ public class TestDAGClient {
   @Test(timeout = 5000)
   public void testApp() throws IOException, TezException, ServiceException{
     assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
+    assertEquals(mockAppId.toString(), dagClient.getSessionIdentifierString());
+    assertEquals(dagIdStr, dagClient.getDagIdentifierString());
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     assertEquals(mockAppReport, realClient.getApplicationReportInternal());
   }
