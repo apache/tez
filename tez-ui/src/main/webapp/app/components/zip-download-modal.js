@@ -23,7 +23,7 @@ export default Ember.Component.extend({
   content: null,
 
   _onSuccess: Ember.observer("content.downloader.succeeded", function () {
-    if(this.get("content.downloader.succeeded")) {
+    if(this.get("content.downloader.succeeded") && !this.get("content.downloader.partial")) {
       Ember.run.later(this, "close");
     }
   }),

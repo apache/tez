@@ -110,6 +110,10 @@ var IO = {
       var reqID = getRequestId();
       pendingRequests[reqID] = xhr;
 
+      if(item.onFetch) {
+        item.onFetch(item.context);
+      }
+
       xhr.done(function(data/*, statusText, xhr*/) {
         delete pendingRequests[reqID];
 
@@ -129,8 +133,17 @@ var IO = {
       }).fail(function(xhr, statusText/*, errorObject*/) {
         delete pendingRequests[reqID];
         inProgress--;
-        if(item.onItemFail) {
-          item.onItemFail();
+
+        if(item.retryCount) {
+          itemList.unshift(item);
+          item.retryCount--;
+          if(item.onRetry) {
+            item.onRetry(item.context);
+          }
+          Ember.run.later(processNext, 3000 + Math.random() * 3000);
+        }
+        else if(item.onItemFail) {
+          item.onItemFail(xhr, item.context);
           processNext();
         }
         else {
@@ -286,27 +299,47 @@ export default function downloadDagZip(dag, options) {
         {
           url: getUrl('TEZ_APPLICATION', 'tez_' + dag.get("appID")),
           context: { name: 'application', type: 'TEZ_APPLICATION' },
-          onItemFetched: processSingleItem
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processSingleItem,
+          onItemFail: processFailure,
+          retryCount: 3,
         },
         {
           url: getUrl('TEZ_DAG_ID', dagID),
           context: { name: 'dag', type: 'TEZ_DAG_ID' },
-          onItemFetched: processSingleItem
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processSingleItem,
+          onItemFail: processFailure,
+          retryCount: 3,
         },
         {
           url: getUrl('TEZ_VERTEX_ID', null, dagID),
           context: { name: 'vertices', type: 'TEZ_VERTEX_ID', part: 0 },
-          onItemFetched: processMultipleItems
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processMultipleItems,
+          onItemFail: processFailure,
+          retryCount: 3,
         },
         {
           url: getUrl('TEZ_TASK_ID', null, dagID),
           context: { name: 'tasks', type: 'TEZ_TASK_ID', part: 0 },
-          onItemFetched: processMultipleItems
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processMultipleItems,
+          onItemFail: processFailure,
+          retryCount: 3,
         },
         {
           url: getUrl('TEZ_TASK_ATTEMPT_ID', null, dagID),
           context: { name: 'task_attempts', type: 'TEZ_TASK_ATTEMPT_ID', part: 0 },
-          onItemFetched: processMultipleItems
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processMultipleItems,
+          onItemFail: processFailure,
+          retryCount: 3,
         }
       ];
 
@@ -334,7 +367,9 @@ export default function downloadDagZip(dag, options) {
       }),
       downloaderProxy = Ember.Object.create({
         percent: 0,
+        message: "",
         succeeded: false,
+        partial: false,
         failed: false,
         cancel: function() {
           downloader.cancel();
@@ -353,6 +388,7 @@ export default function downloadDagZip(dag, options) {
         url = `${url}&fromId=${fromID}`;
       }
     }
+
     return url;
   }
 
@@ -365,6 +401,30 @@ export default function downloadDagZip(dag, options) {
     if (numItemTypesToDownload === 0) {
       downloader.finish();
     }
+  }
+
+  function onFetch(context) {
+    downloaderProxy.set("message", `Fetching ${context.name} data.`);
+  }
+
+  function onRetry(context) {
+    downloaderProxy.set("message", `Downloading ${context.name} data failed. Retrying!`);
+  }
+
+  function processFailure(data, context) {
+    var obj = {};
+    try {
+      obj[context.name] = JSON.parse(data.responseText);
+    }
+    catch(e) {
+      obj[context.name] = data.responseText;
+    }
+
+    downloaderProxy.set("partial", true);
+    downloaderProxy.set("message", `Downloading ${context.name} data failed!`);
+
+    zipHelper.addFile({name: `error.${context.name}.json`, data: JSON.stringify(obj, null, 2)});
+    checkIfAllDownloaded();
   }
 
   function processSingleItem(data, context) {
@@ -415,6 +475,7 @@ export default function downloadDagZip(dag, options) {
 
   zipHelper.then(function(zippedBlob) {
     saveAs(zippedBlob, `${dagID}.zip`);
+    downloaderProxy.set("message", `Download complete.`);
     downloaderProxy.set("succeeded", true);
   }, function() {
     Ember.Logger.error('zip Failed');
