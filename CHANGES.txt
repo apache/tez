@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3625. Dag.getVertex should obtain a readlock.
   TEZ-3624. Split multiple calls on the same line in TaskCommunicatorContextImpl.
   TEZ-3550. Provide access to sessionId/dagId via DagClient.
   TEZ-3609. Improve ATSv15 performance for DAG entities read calls.
