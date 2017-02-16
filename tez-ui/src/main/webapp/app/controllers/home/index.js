@@ -24,13 +24,17 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID"],
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "appid", "id", "user", "dag_name"],
   dagName: "",
   dagID: "",
   submitter: "",
   status: "",
   appID: "",
   callerID: "",
+  appid: "",
+  id: "",
+  user: "",
+  dag_name: "",
 
   // Because pageNo is a query param added by table controller, and in the current design
   // we don't want page to be a query param as only the first page will be loaded first.
@@ -52,6 +56,22 @@ export default TableController.extend({
       "appID", "callerID", "pageNum", "moreAvailable", "loadingMore", function () {
 
     var definition = this.get("_definition");
+    if (!this.get("appID")) {
+      this.set("appID", this.get("appid"));
+      this.set("appid", "");
+    }
+    if (!this.get("dagID")) {
+      this.set("dagID", this.get("id"));
+      this.set("id", "");
+    }
+    if (!this.get("submitter")) {
+      this.set("submitter", this.get("user"));
+      this.set("user", "");
+    }
+    if (!this.get("dagName")) {
+      this.set("dagName", this.get("dag_name"));
+      this.set("dag_name", "");
+    }
 
     definition.setProperties({
       dagName: this.get("dagName"),

@@ -55,7 +55,10 @@ Router.map(function() {
   });
 
   // Alias for backward compatibility with Tez UI V1
-  this.route('app', {path: '/tez-app/:app_id'}, function () {});
+  this.route('app', {path: '/tez-app/:app_id'}, function () {
+    this.route('dags');
+    this.route('configs');
+  });
   this.route('app', {path: '/app/:app_id'}, function () {
     this.route('dags');
     this.route('configs');
