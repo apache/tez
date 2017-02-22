@@ -400,6 +400,9 @@ public class HistoryEventTimelineConversion {
       atsEntity.addPrimaryFilter(ATSConstants.CALLER_CONTEXT_ID,
           event.getDAGPlan().getCallerContext().getCallerId());
     }
+    if (event.getQueueName() != null) {
+      atsEntity.addPrimaryFilter(ATSConstants.DAG_QUEUE_NAME, event.getQueueName());
+    }
 
     try {
       atsEntity.addOtherInfo(ATSConstants.DAG_PLAN,
@@ -424,7 +427,7 @@ public class HistoryEventTimelineConversion {
           event.getDAGPlan().getCallerContext().getCallerType());
     }
     if (event.getQueueName() != null) {
-      atsEntity.addOtherInfo(ATSConstants.DAG_SUBMITTED_QUEUE_NAME, event.getQueueName());
+      atsEntity.addOtherInfo(ATSConstants.DAG_QUEUE_NAME, event.getQueueName());
     }
 
     return atsEntity;

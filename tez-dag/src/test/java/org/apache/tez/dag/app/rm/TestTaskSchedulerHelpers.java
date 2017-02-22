@@ -287,9 +287,9 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public void setApplicationRegistrationData(Resource maxContainerCapability,
-        Map<ApplicationAccessType, String> appAcls, ByteBuffer key) {
+        Map<ApplicationAccessType, String> appAcls, ByteBuffer key, String queueName) {
       invocations++;
-      real.setApplicationRegistrationData(maxContainerCapability, appAcls, key);
+      real.setApplicationRegistrationData(maxContainerCapability, appAcls, key, queueName);
     }
 
     @Override

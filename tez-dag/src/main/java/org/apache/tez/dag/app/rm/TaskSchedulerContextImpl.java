@@ -92,9 +92,10 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   @Override
   public void setApplicationRegistrationData(Resource maxContainerCapability,
                                              Map<ApplicationAccessType, String> appAcls,
-                                             ByteBuffer clientAMSecretKey) {
-    taskSchedulerManager.setApplicationRegistrationData(schedulerId, maxContainerCapability, appAcls,
-        clientAMSecretKey);
+                                             ByteBuffer clientAMSecretKey,
+                                             String queueName) {
+    taskSchedulerManager.setApplicationRegistrationData(schedulerId, maxContainerCapability,
+        appAcls, clientAMSecretKey, queueName);
   }
 
   @Override

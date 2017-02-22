@@ -490,6 +490,9 @@ public class HistoryEventJsonConversion {
       primaryFilters.put(ATSConstants.CALLER_CONTEXT_TYPE,
           event.getDAGPlan().getCallerContext().getCallerType());
     }
+    if (event.getQueueName() != null) {
+      primaryFilters.put(ATSConstants.DAG_QUEUE_NAME, event.getQueueName());
+    }
 
     jsonObject.put(ATSConstants.PRIMARY_FILTERS, primaryFilters);
 
@@ -516,7 +519,7 @@ public class HistoryEventJsonConversion {
           event.getDAGPlan().getCallerContext().getCallerType());
     }
     if (event.getQueueName() != null) {
-      otherInfo.put(ATSConstants.DAG_SUBMITTED_QUEUE_NAME, event.getQueueName());
+      otherInfo.put(ATSConstants.DAG_QUEUE_NAME, event.getQueueName());
     }
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 

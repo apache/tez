@@ -371,7 +371,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
       getContext().setApplicationRegistrationData(
           response.getMaximumResourceCapability(),
           response.getApplicationACLs(),
-          response.getClientToAMTokenMasterKey());
+          response.getClientToAMTokenMasterKey(),
+          response.getQueue());
 
       delayedContainerManager.start();
     } catch (YarnException e) {

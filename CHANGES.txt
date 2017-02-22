@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3627. Use queue name available in RegisterApplicationMasterResponse for publishing to ATS.
   TEZ-3610. TEZ UI 0.7 0.9 compatibility for url query params and tez-app sub-routes
   TEZ-3625. Dag.getVertex should obtain a readlock.
   TEZ-3624. Split multiple calls on the same line in TaskCommunicatorContextImpl.

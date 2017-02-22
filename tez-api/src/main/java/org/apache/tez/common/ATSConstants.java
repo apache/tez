@@ -55,7 +55,7 @@ public class ATSConstants {
   public static final String DAG_PLAN = "dagPlan";
   public static final String DAG_NAME = "dagName";
   public static final String DAG_STATE = "dagState";
-  public static final String DAG_SUBMITTED_QUEUE_NAME = "submittedQueueName";
+  public static final String DAG_QUEUE_NAME = "queueName";
   public static final String DAG_AM_WEB_SERVICE_VERSION = "amWebServiceVersion";
   public static final String RECOVERY_FAILURE_REASON = "recoveryFailureReason";
   public static final String VERTEX_NAME = "vertexName";

@@ -1528,7 +1528,6 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private class RunningAppContext implements AppContext {
-
     private DAG dag;
     private DAGRecoveryData dagRecoveryData;
     private final Configuration conf;
@@ -1537,6 +1536,8 @@ public class DAGAppMaster extends AbstractService {
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
     private final EventHandler eventHandler;
+    private volatile String queueName;
+
     public RunningAppContext(Configuration config) {
       checkNotNull(config, "config is null");
       this.conf = config;
@@ -1792,6 +1793,16 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public DAGRecoveryData getDAGRecoveryData() {
       return dagRecoveryData;
+    }
+
+    @Override
+    public String getQueueName() {
+      return queueName;
+    }
+
+    @Override
+    public void setQueueName(String queueName) {
+      this.queueName = queueName;
     }
   }
 
@@ -2578,7 +2589,7 @@ public class DAGAppMaster extends AbstractService {
     // for an app later
     final DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName(), newDAG.getConf(), containerLogs, getSubmittedQueueName());
+        newDAG.getUserName(), newDAG.getConf(), containerLogs, getContext().getQueueName());
     boolean dagLoggingEnabled = newDAG.getConf().getBoolean(
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT);
@@ -2670,15 +2681,6 @@ public class DAGAppMaster extends AbstractService {
         return null;
       }
     });
-  }
-
-  private String getSubmittedQueueName() {
-    // TODO: Replace this with constant once the yarn patch is backported. (JIRA: TEZ-3279)
-    String submittedQueueName = System.getenv("YARN_RESOURCEMANAGER_APPLICATION_QUEUE");
-    if (submittedQueueName == null) {
-      submittedQueueName = amConf.get(TezConfiguration.TEZ_QUEUE_NAME);
-    }
-    return submittedQueueName;
   }
 
   @SuppressWarnings("unchecked")

@@ -204,7 +204,9 @@ public class TestHistoryEventJsonConversion {
       if (eventType == HistoryEventType.DAG_SUBMITTED) {
         try {
           Assert.assertEquals("Q_" + eventType.name(), json.getJSONObject(ATSConstants.OTHER_INFO)
-              .getString(ATSConstants.DAG_SUBMITTED_QUEUE_NAME));
+              .getString(ATSConstants.DAG_QUEUE_NAME));
+          Assert.assertEquals("Q_" + eventType.name(), json
+              .getJSONObject(ATSConstants.PRIMARY_FILTERS).getString(ATSConstants.DAG_QUEUE_NAME));
         } catch (JSONException ex) {
           Assert.fail("Exception: " + ex.getMessage() + " for type: " + eventType);
         }

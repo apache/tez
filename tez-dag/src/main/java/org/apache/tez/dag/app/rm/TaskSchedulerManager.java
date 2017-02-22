@@ -768,9 +768,11 @@ public class TaskSchedulerManager extends AbstractService implements
       int schedulerId,
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls, 
-      ByteBuffer clientAMSecretKey) {
+      ByteBuffer clientAMSecretKey,
+      String queueName) {
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
+    this.appContext.setQueueName(queueName);
     this.appAcls = appAcls;
     this.clientService.setClientAMSecretKey(clientAMSecretKey);
   }
