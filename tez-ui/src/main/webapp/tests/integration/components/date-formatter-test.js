@@ -38,3 +38,14 @@ test('Basic creation test', function(assert) {
 
   assert.equal(this.$().text().trim(), 'Not Available!');
 });
+
+test('Negative value test', function(assert) {
+  this.render(hbs`{{date-formatter -1}}`);
+  assert.equal(this.$().text().trim(), 'Not Available!');
+
+  this.render(hbs`{{date-formatter -99}}`);
+  assert.equal(this.$().text().trim(), 'Not Available!');
+
+  this.render(hbs`{{date-formatter 0}}`);
+  assert.equal(this.$().text().trim(), 'Not Available!');
+});
