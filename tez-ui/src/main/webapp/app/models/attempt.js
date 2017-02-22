@@ -72,7 +72,22 @@ export default AMTimelineModel.extend({
   containerID: DS.attr('string'),
   nodeID: DS.attr('string'),
 
-  logURL: DS.attr('string'),
+  inProgressLogsURL: DS.attr('string'),
+  completedLogsURL: DS.attr('string'),
+  logURL: Ember.computed("entityID", "inProgressLogsURL", "completedLogsURL", "dag.isComplete", function () {
+    var logURL = this.get("inProgressLogsURL");
+
+    if(logURL) {
+      if(logURL.indexOf("://") === -1) {
+        let attemptID = this.get("entityID"),
+            yarnProtocol = this.get('env.app.yarnProtocol');
+        return `${yarnProtocol}://${logURL}/syslog_${attemptID}`;
+      }
+      else { // LLAP log link
+        return this.get("dag.isComplete") ? this.get("completedLogsURL") : logURL;
+      }
+    }
+  }),
 
   containerLogURL: DS.attr('string'),
 });

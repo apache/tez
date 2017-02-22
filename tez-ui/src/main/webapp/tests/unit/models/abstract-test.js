@@ -41,6 +41,33 @@ test('Basic test for existence', function(assert) {
   assert.ok(model.isComplete);
 });
 
+test('isComplete test', function(assert) {
+  let model = this.subject();
+  assert.equal(model.get("isComplete"), false);
+
+  Ember.run(function () {
+    model.set("status", "SUCCEEDED");
+    assert.equal(model.get("isComplete"), true);
+
+    model.set("status", null);
+    assert.equal(model.get("isComplete"), false);
+    model.set("status", "FINISHED");
+    assert.equal(model.get("isComplete"), true);
+
+    model.set("status", null);
+    model.set("status", "FAILED");
+    assert.equal(model.get("isComplete"), true);
+
+    model.set("status", null);
+    model.set("status", "KILLED");
+    assert.equal(model.get("isComplete"), true);
+
+    model.set("status", null);
+    model.set("status", "ERROR");
+    assert.equal(model.get("isComplete"), true);
+  });
+});
+
 test('_notifyProperties test - will fail if _notifyProperties implementation is changed in ember-data', function(assert) {
   let model = this.subject();
 

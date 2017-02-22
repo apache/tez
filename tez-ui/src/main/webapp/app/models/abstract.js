@@ -52,6 +52,7 @@ export default DS.Model.extend({
       case "FINISHED":
       case "FAILED":
       case "KILLED":
+      case "ERROR":
         return true;
     }
     return false;
