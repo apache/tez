@@ -48,16 +48,31 @@ test('canPoll test', function(assert) {
     loadedValue: {
       app: {
         isComplete: false
-      }
+      },
+      dag: undefined
     }
   });
-  assert.ok(route.get("canPoll"), true);
+  assert.ok(route.get("canPoll"), true, "Test 1");
 
   route.set("loadedValue.app.isComplete", true);
-  assert.notOk(route.get("canPoll"));
+  assert.notOk(route.get("canPoll"), "Test 2");
 
   route.set("loadedValue.app.isComplete", undefined);
-  assert.notOk(route.get("canPoll"));
+  assert.notOk(route.get("canPoll"), "Test 3");
+
+  route.set("loadedValue.dag", Ember.Object.create({
+    isComplete: false
+  }));
+  assert.ok(route.get("canPoll"), "Test 4");
+
+  route.set("loadedValue.dag.isComplete", true);
+  assert.notOk(route.get("canPoll"), "Test 5");
+
+  route.set("loadedValue.dag", undefined);
+  assert.notOk(route.get("canPoll"), "Test 6");
+
+  route.set("loadedValue.app.isComplete", false);
+  assert.ok(route.get("canPoll"), "Test 7");
 });
 
 test('_loadedValueObserver test', function(assert) {

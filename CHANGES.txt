@@ -203,6 +203,7 @@ ALL CHANGES:
   TEZ-3619. Tez UI: Improve DAG Data download
   TEZ-3629. Tez UI: Enable the UI to display log links from LLAP
   TEZ-3626. Tez UI: First Task Start Time & Last Task Finish Time values are showing up incorrectly
+  TEZ-3630. Tez UI: Use DAG status for controlling auto-refresh polling
 
 Release 0.8.5: Unreleased
 

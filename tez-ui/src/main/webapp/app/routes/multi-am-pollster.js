@@ -21,8 +21,11 @@ import AmPollsterRoute from './am-pollster';
 
 export default AmPollsterRoute.extend({
 
-  canPoll: Ember.computed("polledRecords.0.app.isComplete", "loadedValue", function () {
-    var isComplete = this.get("polledRecords.0.app.isComplete");
+  canPoll: Ember.computed("polledRecords.0.dag.isComplete", "polledRecords.0.app.isComplete", "loadedValue", function () {
+    var isComplete = this.get("polledRecords.0.dag.isComplete");
+    if(isComplete === undefined) {
+      isComplete = this.get("polledRecords.0.app.isComplete");
+    }
     return isComplete === false && this._super();
   }),
 
