@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3634. reduce the default buffer sizes in PipelinedSorter by a small amount.
   TEZ-3627. Use queue name available in RegisterApplicationMasterResponse for publishing to ATS.
   TEZ-3610. TEZ UI 0.7 0.9 compatibility for url query params and tez-app sub-routes
   TEZ-3625. Dag.getVertex should obtain a readlock.

@@ -132,7 +132,8 @@ public class PipelinedSorter extends ExternalSorter {
        * When lazy-allocation is enabled, framework takes care of auto
        * allocating memory on need basis. Desirable block size is set to 256MB
        */
-      MIN_BLOCK_SIZE = 256 << 20; //256 MB
+      //256 MB - 64 bytes. See comment for the 32MB allocation.
+      MIN_BLOCK_SIZE = ((256 << 20) - 64);
     } else {
       int minBlockSize = conf.getInt(TezRuntimeConfiguration
               .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB,
@@ -267,7 +268,11 @@ public class PipelinedSorter extends ExternalSorter {
      */
     if (lazyAllocateMem) {
       if (buffers == null || buffers.isEmpty()) {
-        return 32 << 20; //32 MB
+        //32 MB - 64 bytes
+        // These buffers end up occupying 33554456 (32M + 24) bytes.
+        // On large JVMs (64G+), with G1Gc - the region size maxes out at
+        // 32M. Without the -64, this structure would end up using 2 regions.
+        return ((32 << 20) - 64);
       }
     }
 
