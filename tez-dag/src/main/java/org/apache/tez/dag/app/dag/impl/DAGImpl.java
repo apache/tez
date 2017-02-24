@@ -1810,12 +1810,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @Override
   public Vertex getVertex(String vertexName) {
-    this.readLock.lock();
-    try {
-      return vertexMap.get(vertexName);
-    } finally {
-      this.readLock.unlock();
-    }
+    return vertexMap.get(vertexName);
   }
 
   private void mayBeConstructFinalFullCounters() {

@@ -2638,7 +2638,6 @@ public class DAGAppMaster extends AbstractService {
 
     // Send out an event to inform components that a new DAG has been submitted.
     // Information about this DAG is available via the context.
-    // This event may be processed after DAG_INIT, but will be processed before DAG_START
     sendEvent(new DAGAppMasterEvent(DAGAppMasterEventType.NEW_DAG_SUBMITTED));
     // create a job event for job initialization
     DAGEvent initDagEvent = new DAGEvent(currentDAG.getID(), DAGEventType.DAG_INIT);
