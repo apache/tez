@@ -2506,7 +2506,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (i <= newNumTasks) {
         continue;
       }
-      LOG.info("Removing task: " + entry.getKey());
+      LOG.debug("Removing task: {}", entry.getKey());
       iter.remove();
       this.numTasks--;
     }
