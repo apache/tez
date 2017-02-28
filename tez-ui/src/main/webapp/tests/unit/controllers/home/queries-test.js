@@ -38,6 +38,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.breadcrumbs);
   assert.ok(controller.headerComponentNames);
   assert.equal(controller.headerComponentNames.length, 3);
+  assert.equal(controller.footerComponentNames.length, 1);
 
   assert.ok(controller.definition);
   assert.ok(controller.columns);

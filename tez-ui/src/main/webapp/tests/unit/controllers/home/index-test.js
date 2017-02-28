@@ -26,7 +26,7 @@ moduleFor('controller:home/index', 'Unit | Controller | home/index', {
 });
 
 test('Basic creation test', function(assert) {
-  assert.expect(2 + 12);
+  assert.expect(2 + 4 + 1 + 4 + 2 + 2);
 
   let controller = this.subject({
     initVisibleColumns: Ember.K,
@@ -47,6 +47,7 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.queryParams);
   assert.ok(controller.headerComponentNames);
   assert.equal(controller.headerComponentNames.length, 3);
+  assert.equal(controller.footerComponentNames.length, 1);
 
   assert.ok(controller._definition);
   assert.ok(controller.definition);

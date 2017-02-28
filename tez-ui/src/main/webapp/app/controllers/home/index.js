@@ -49,6 +49,7 @@ export default TableController.extend({
   loadingMore: false,
 
   headerComponentNames: ['dags-page-search', 'table-controls', 'pagination-ui'],
+  footerComponentNames: ['pagination-ui'],
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
