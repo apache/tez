@@ -35,6 +35,7 @@ import org.apache.hadoop.io.FileChunk;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.util.Time;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -145,6 +146,12 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
+
+  // Variables for stats and logging
+  private long lastInMemSegmentLogTime = -1L;
+  private final SegmentStatsTracker statsInMemTotal = new SegmentStatsTracker();
+  private final SegmentStatsTracker statsInMemLastLog = new SegmentStatsTracker();
+
 
   private AtomicInteger mergeFileSequenceId = new AtomicInteger(0);
 
@@ -465,13 +472,11 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     unreserve(size);
   }
 
+
   @Override
   public synchronized void closeInMemoryFile(MapOutput mapOutput) { 
     inMemoryMapOutputs.add(mapOutput);
-    LOG.info("closeInMemoryFile -> map-output of size: " + mapOutput.getSize()
-          + ", inMemoryMapOutputs.size() -> " + inMemoryMapOutputs.size()
-          + ", commitMemory -> " + commitMemory + ", usedMemory ->" + usedMemory + ", mapOutput=" +
-          mapOutput);
+    trackAndLogCloseInMemoryFile(mapOutput);
 
     commitMemory+= mapOutput.getSize();
 
@@ -486,6 +491,44 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
             inMemoryMapOutputs.size() >= memToMemMergeOutputsThreshold) {
           memToMemMerger.startMerge(inMemoryMapOutputs);
         }
+      }
+    }
+  }
+
+  private void trackAndLogCloseInMemoryFile(MapOutput mapOutput) {
+    statsInMemTotal.updateStats(mapOutput.getSize());
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("closeInMemoryFile -> map-output of size: " + mapOutput.getSize()
+          + ", inMemoryMapOutputs.size() -> " + inMemoryMapOutputs.size()
+          + ", commitMemory -> " + commitMemory + ", usedMemory ->" +
+          usedMemory + ", mapOutput=" +
+          mapOutput);
+    } else {
+      statsInMemLastLog.updateStats(mapOutput.getSize());
+      long now = Time.monotonicNow();
+      if (now > lastInMemSegmentLogTime + 30 * 1000L) {
+        LOG.info(
+            "CloseInMemoryFile. Current state: inMemoryMapOutputs.size={}," +
+                " commitMemory={}," +
+                " usedMemory={}. Since last log:" +
+                " count={}," +
+                " min={}," +
+                " max={}," +
+                " total={}," +
+                " avg={}",
+            inMemoryMapOutputs.size(),
+            commitMemory,
+            usedMemory,
+            statsInMemLastLog.count,
+            statsInMemLastLog.minSize,
+            statsInMemLastLog.maxSize,
+            statsInMemLastLog.size,
+            (statsInMemLastLog.count == 0 ? "nan" :
+                (statsInMemLastLog.size / (double) statsInMemLastLog.count))
+        );
+        statsInMemLastLog.reset();
+        lastInMemSegmentLogTime = now;
       }
     }
   }
@@ -505,9 +548,13 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   
   public synchronized void closeInMemoryMergedFile(MapOutput mapOutput) {
     inMemoryMergedMapOutputs.add(mapOutput);
-    LOG.info("closeInMemoryMergedFile -> size: " + mapOutput.getSize() +
-             ", inMemoryMergedMapOutputs.size() -> " + 
-             inMemoryMergedMapOutputs.size());
+    if (LOG.isDebugEnabled()) {
+      // This log could be moved to INFO level for a while, after mem-to-mem
+      // merge is production ready.
+      LOG.debug("closeInMemoryMergedFile -> size: " + mapOutput.getSize() +
+          ", inMemoryMergedMapOutputs.size() -> " +
+          inMemoryMergedMapOutputs.size());
+    }
 
     commitMemory += mapOutput.getSize();
 
@@ -535,14 +582,29 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     }
 
     onDiskMapOutputs.add(file);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("close onDiskFile=" + file.getPath() + ", len=" + file.getLength());
-    }
+    logCloseOnDiskFile(file);
 
     synchronized (onDiskMerger) {
       if (!onDiskMerger.isInProgress() &&
           onDiskMapOutputs.size() >= (2 * ioSortFactor - 1)) {
         onDiskMerger.startMerge(onDiskMapOutputs);
+      }
+    }
+  }
+
+  private long lastOnDiskSegmentLogTime = -1L;
+  private void logCloseOnDiskFile(FileChunk file) {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+          "close onDiskFile=" + file.getPath() + ", len=" + file.getLength() +
+              ", onDisMapOutputs=" + onDiskMapOutputs.size());
+    } else {
+      long now = Time.monotonicNow();
+      if (now > lastOnDiskSegmentLogTime + 30 * 1000L) {
+        LOG.info(
+            "close onDiskFile. State: NumOnDiskFiles={}. Current: path={}, len={}",
+            onDiskMapOutputs.size(), file.getPath(), file.getLength());
+        lastOnDiskSegmentLogTime = now;
       }
     }
   }
@@ -575,6 +637,14 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       inMemoryMapOutputs.clear();
       List<FileChunk> disk = new ArrayList<FileChunk>(onDiskMapOutputs);
       onDiskMapOutputs.clear();
+
+      if (statsInMemTotal.count > 0) {
+        LOG.info(
+            "TotalInMemFetchStats: count={}, totalSize={}, min={}, max={}, avg={}",
+            statsInMemTotal.count, statsInMemTotal.size,
+            statsInMemTotal.minSize, statsInMemTotal.maxSize,
+            (statsInMemTotal.size / (float) statsInMemTotal.size));
+      }
 
       // Don't attempt a final merge if close is invoked as a result of a previous
       // shuffle exception / error.
@@ -1069,21 +1139,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
                                        List<MapOutput> inMemoryMapOutputs,
                                        List<FileChunk> onDiskMapOutputs
                                        ) throws IOException, InterruptedException {
-    LOG.info("finalMerge called with " + 
-             inMemoryMapOutputs.size() + " in-memory map-outputs and " + 
-             onDiskMapOutputs.size() + " on-disk map-outputs");
 
-    if (LOG.isDebugEnabled()) {
-      for (MapOutput inMemoryMapOutput : inMemoryMapOutputs) {
-        LOG.debug("inMemoryOutput=" + inMemoryMapOutput + ", size=" + inMemoryMapOutput
-            .getSize());
-      }
-
-      for (FileChunk onDiskMapOutput : onDiskMapOutputs) {
-        LOG.debug("onDiskMapOutput=" + onDiskMapOutput.getPath() + ", size=" + onDiskMapOutput
-                .getLength());
-      }
-    }
+    logFinalMergeStart(inMemoryMapOutputs, onDiskMapOutputs);
+    StringBuilder finalMergeLog = new StringBuilder();
     
     inputContext.notifyProgress();
 
@@ -1148,15 +1206,25 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
         // add to list of final disk outputs.
         onDiskMapOutputs.add(new FileChunk(outputPath, 0, fStatus.getLen()));
 
-        LOG.info("Merged " + numMemDiskSegments + " segments, " +
-                 inMemToDiskBytes + " bytes to disk to satisfy " +
-                 "reduce memory limit. outputPath=" + outputPath);
+        if (LOG.isInfoEnabled()) {
+          finalMergeLog.append("MemMerged: " + numMemDiskSegments + ", " + inMemToDiskBytes);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Merged " + numMemDiskSegments + "segments, size=" +
+                inMemToDiskBytes + " to " + outputPath);
+          }
+        }
+
         inMemToDiskBytes = 0;
         memDiskSegments.clear();
       } else if (inMemToDiskBytes != 0) {
-        LOG.info("Keeping " + numMemDiskSegments + " segments, " +
-            inMemToDiskBytes + " bytes in memory for " +
-                 "intermediate, on-disk merge");
+        if (LOG.isInfoEnabled()) {
+          finalMergeLog.append("DelayedMemMerge: " + numMemDiskSegments + ", " + inMemToDiskBytes);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Keeping " + numMemDiskSegments + " segments, " +
+                inMemToDiskBytes + " bytes in memory for " +
+                "intermediate, on-disk merge");
+          }
+        }
       }
     }
 
@@ -1167,8 +1235,11 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     for (FileChunk fileChunk : onDisk) {
       final long fileLength = fileChunk.getLength();
       onDiskBytes += fileLength;
-      LOG.info("Disk file=" + fileChunk.getPath() + ", len=" + fileLength + ", isLocal=" +
-          fileChunk.isLocalFile());
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Disk file=" + fileChunk.getPath() + ", len=" + fileLength +
+            ", isLocal=" +
+            fileChunk.isLocalFile());
+      }
 
       final Path file = fileChunk.getPath();
       TezCounter counter =
@@ -1179,8 +1250,13 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       diskSegments.add(new DiskSegment(fs, file, fileOffset, fileLength, codec, ifileReadAhead,
                                    ifileReadAheadLength, ifileBufferSize, preserve, counter));
     }
-    LOG.info("Merging " + onDisk.length + " files, " +
-             onDiskBytes + " bytes from disk");
+    if (LOG.isInfoEnabled()) {
+      finalMergeLog.append(". DiskSeg: " + onDisk.length + ", " + onDiskBytes);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Merging " + onDisk.length + " files, " +
+            onDiskBytes + " bytes from disk");
+      }
+    }
     Collections.sort(diskSegments, new Comparator<Segment>() {
       public int compare(Segment o1, Segment o2) {
         if (o1.getLength() == o2.getLength()) {
@@ -1194,8 +1270,14 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     List<Segment> finalSegments = new ArrayList<Segment>();
     long inMemBytes = createInMemorySegments(inMemoryMapOutputs, 
                                              finalSegments, 0);
-    LOG.info("Merging " + finalSegments.size() + " segments, " +
-             inMemBytes + " bytes from memory into reduce");
+    if (LOG.isInfoEnabled()) {
+      finalMergeLog.append(". MemSeg: " + finalSegments.size() + ", " + inMemBytes);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Merging " + finalSegments.size() + " segments, " +
+            inMemBytes + " bytes from memory into reduce");
+      }
+    }
+
     if (0 != onDiskBytes) {
       final int numInMemSegments = memDiskSegments.size();
       diskSegments.addAll(0, memDiskSegments);
@@ -1211,11 +1293,43 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       finalSegments.add(new Segment(
             new RawKVIteratorReader(diskMerge, onDiskBytes), null));
     }
+    if (LOG.isInfoEnabled()) {
+      LOG.info(finalMergeLog.toString());
+    }
     // This is doing nothing but creating an iterator over the segments.
     return TezMerger.merge(job, fs, keyClass, valueClass,
                  finalSegments, finalSegments.size(), tmpDir,
                  comparator, progressable, spilledRecordsCounter, null,
                  additionalBytesRead, null);
+  }
+
+
+  private void logFinalMergeStart(List<MapOutput> inMemoryMapOutputs,
+                                  List<FileChunk> onDiskMapOutputs) {
+    long inMemSegmentSize = 0;
+    for (MapOutput inMemoryMapOutput : inMemoryMapOutputs) {
+      inMemSegmentSize += inMemoryMapOutput.getSize();
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("finalMerge: inMemoryOutput=" + inMemoryMapOutput + ", size=" +
+            inMemoryMapOutput.getSize());
+      }
+    }
+    long onDiskSegmentSize = 0;
+    for (FileChunk onDiskMapOutput : onDiskMapOutputs) {
+      onDiskSegmentSize += onDiskMapOutput.getLength();
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("finalMerge: onDiskMapOutput=" + onDiskMapOutput.getPath() +
+            ", size=" + onDiskMapOutput.getLength());
+      }
+    }
+
+    LOG.info(
+        "finalMerge with #inMemoryOutputs={}, size={} and #onDiskOutputs={}, size={}",
+        inMemoryMapOutputs.size(), inMemSegmentSize, onDiskMapOutputs.size(),
+        onDiskSegmentSize);
+
   }
 
   @VisibleForTesting
@@ -1231,5 +1345,32 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   @VisibleForTesting
   void waitForMemToMemMerge() throws InterruptedException {
     memToMemMerger.waitForMerge();
+  }
+
+
+
+  private static class SegmentStatsTracker {
+    private long size;
+    private int count;
+    private long minSize;
+    private long maxSize;
+
+    SegmentStatsTracker() {
+      reset();
+    }
+
+    void updateStats(long segSize) {
+      size += segSize;
+      count++;
+      minSize = (segSize < minSize ? segSize : minSize);
+      maxSize = (segSize > maxSize ? segSize : maxSize);
+    }
+
+    void reset() {
+      size = 0L;
+      count = 0;
+      minSize = Long.MAX_VALUE;
+      maxSize = Long.MIN_VALUE;
+    }
   }
 }
