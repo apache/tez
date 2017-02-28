@@ -36,6 +36,7 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.version);
 
+  assert.ok(model.llapAppID);
   assert.ok(model.sessionID);
   assert.ok(model.threadName);
 

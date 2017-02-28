@@ -41,6 +41,7 @@ export default AbstractModel.extend({
 
   sessionID: DS.attr('string'),
   operationID: DS.attr('string'),
+  llapAppID: DS.attr('string'),
 
   instanceType: DS.attr('string'),
   executionMode: DS.attr('string'), // Would be ideally TEZ

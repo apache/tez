@@ -53,6 +53,7 @@ export default TimelineSerializer.extend({
 
     sessionID: 'otherinfo.INVOKER_INFO',
     operationID: 'primaryfilters.operationid.0',
+    llapAppID: 'otherinfo.LLAP_APP_ID',
 
     instanceType: 'otherinfo.HIVE_INSTANCE_TYPE',
     executionMode: 'primaryfilters.executionmode.0',

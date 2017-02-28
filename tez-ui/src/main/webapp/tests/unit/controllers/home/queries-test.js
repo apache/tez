@@ -42,7 +42,7 @@ test('Basic creation test', function(assert) {
 
   assert.ok(controller.definition);
   assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 16);
+  assert.equal(controller.columns.length, 17);
 
   assert.ok(controller.getCounterColumns);
 

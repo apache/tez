@@ -69,6 +69,12 @@
       <td>Session ID</td>
       <td>{{txt model.sessionID}}</td>
     </tr>
+    {{#if model.llapAppID}}
+      <tr>
+        <td>LLAP App ID</td>
+        <td>{{txt model.llapAppID}}</td>
+      </tr>
+    {{/if}}
     <tr>
       <td>Thread Name</td>
       <td>{{txt model.threadName}}</td>

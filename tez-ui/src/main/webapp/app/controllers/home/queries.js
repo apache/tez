@@ -131,6 +131,11 @@ export default TableController.extend({
     headerTitle: 'Tables Written',
     contentPath: 'tablesWritten',
   },{
+    id: 'llapAppID',
+    headerTitle: 'LLAP App ID',
+    contentPath: 'llapAppID',
+    minWidth: "250px",
+  },{
     id: 'clientAddress',
     headerTitle: 'Client Address',
     contentPath: 'clientAddress',
