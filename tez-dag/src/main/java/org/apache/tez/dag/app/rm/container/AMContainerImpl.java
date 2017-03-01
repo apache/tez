@@ -401,6 +401,7 @@ public class AMContainerImpl implements AMContainer {
     return this.taskCommId;
   }
 
+  @Override
   public boolean isInErrorState() {
     return inError;
   }

@@ -1183,7 +1183,7 @@ public class TestAMContainer {
 
   // TODO Verify diagnostics in most of the tests.
 
-  private static class WrappedContainer {
+  static class WrappedContainer {
 
     long rmIdentifier = 2000;
     static final int taskPriority = 10;
@@ -1215,10 +1215,10 @@ public class TestAMContainer {
     public AMContainerImpl amContainer;
 
     @SuppressWarnings("deprecation") // ContainerId
-    public WrappedContainer(boolean shouldProfile, String profileString) {
+    public WrappedContainer(boolean shouldProfile, String profileString, int cIdInt) {
       applicationID = ApplicationId.newInstance(rmIdentifier, 1);
       appAttemptID = ApplicationAttemptId.newInstance(applicationID, 1);
-      containerID = ContainerId.newInstance(appAttemptID, 1);
+      containerID = ContainerId.newInstance(appAttemptID, cIdInt);
       nodeID = NodeId.newInstance("host", 12500);
       nodeHttpAddress = "host:12501";
       resource = Resource.newInstance(1024, 1);
@@ -1265,7 +1265,7 @@ public class TestAMContainer {
     }
 
     public WrappedContainer() {
-      this(false, null);
+      this(false, null, 1);
     }
 
     protected void mockDAGID() {

@@ -19,8 +19,11 @@
 package org.apache.tez.dag.app.rm.container;
 
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.slf4j.Logger;
@@ -41,7 +44,8 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   private final TaskCommunicatorManagerInterface tal;
   private final AppContext context;
   private final ContainerSignatureMatcher containerSignatureMatcher;
-  private final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
+  @VisibleForTesting
+  final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskCommunicatorManagerInterface tal,
       ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
@@ -64,9 +68,21 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   }
 
   public boolean addContainerIfNew(Container container, int schedulerId, int launcherId, int taskCommId) {
-    AMContainer amc = new AMContainerImpl(container, chh, tal,
-      containerSignatureMatcher, context, schedulerId, launcherId, taskCommId);
+    AMContainer amc = createAmContainer(container, chh, tal,
+        containerSignatureMatcher, context, schedulerId, launcherId, taskCommId);
+
     return (containerMap.putIfAbsent(container.getId(), amc) == null);
+  }
+
+  AMContainer createAmContainer(Container container,
+                                ContainerHeartbeatHandler chh,
+                                TaskCommunicatorManagerInterface tal,
+                                ContainerSignatureMatcher signatureMatcher,
+                                AppContext appContext, int schedulerId,
+                                int launcherId, int taskCommId) {
+    AMContainer amc = new AMContainerImpl(container, chh, tal,
+        signatureMatcher, appContext, schedulerId, launcherId, taskCommId);
+    return amc;
   }
 
   public AMContainer get(ContainerId containerId) {
@@ -79,6 +95,24 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
 
   public void dagComplete(DAG dag){
     AMContainerHelpers.dagComplete(dag.getID());
+    // Cleanup completed containers after a query completes.
+    cleanupCompletedContainers();
+  }
+
+  private void cleanupCompletedContainers() {
+    Iterator<Map.Entry<ContainerId, AMContainer>> iterator = containerMap.entrySet().iterator();
+    int count = 0;
+    while (iterator.hasNext()) {
+      Map.Entry<ContainerId, AMContainer> entry = iterator.next();
+      AMContainer amContainer = entry.getValue();
+      if (AMContainerState.COMPLETED.equals(amContainer.getState()) || amContainer.isInErrorState()) {
+        iterator.remove();
+        count++;
+      }
+    }
+    LOG.info(
+        "Cleaned up completed containers on dagComplete. Removed={}, Remaining={}",
+        count, containerMap.size());
   }
 
 }

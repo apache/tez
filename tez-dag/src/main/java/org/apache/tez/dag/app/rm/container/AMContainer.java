@@ -36,4 +36,5 @@ public interface AMContainer extends EventHandler<AMContainerEvent>{
   public int getTaskSchedulerIdentifier();
   public int getContainerLauncherIdentifier();
   public int getTaskCommunicatorIdentifier();
+  public boolean isInErrorState();
 }
