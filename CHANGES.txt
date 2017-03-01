@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3643. Long running AMs can go out of memory due to retained AMContainer instances.
   TEZ-3637. TezMerger logs too much at INFO level
   TEZ-3638. VertexImpl logs too much at info when removing tasks after auto-reduce parallelism
   TEZ-3634. reduce the default buffer sizes in PipelinedSorter by a small amount.
