@@ -187,7 +187,6 @@ public class IFile {
       if (!headerWritten) {
         outputStream.write(HEADER, 0, HEADER.length - 1);
         outputStream.write((compressOutput) ? (byte) 1 : (byte) 0);
-        outputStream.flush();
         headerWritten = true;
       }
     }
