@@ -32,9 +32,12 @@ import org.apache.tez.Utils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
+import org.apache.tez.dag.app.rm.node.AMNodeEventContainerCompleted;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.state.OnStateChangedCallback;
+import org.apache.tez.state.StateMachineTez;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.Credentials;
@@ -48,7 +51,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
-import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.app.AppContext;
@@ -118,6 +120,8 @@ public class AMContainerImpl implements AMContainer {
 
   private Credentials credentials;
   private boolean credentialsChanged = false;
+
+  private boolean completedMessageSent = false;
   
   // TODO Consider registering with the TAL, instead of the TAL pulling.
   // Possibly after splitting TAL and ContainerListener.
@@ -127,8 +131,11 @@ public class AMContainerImpl implements AMContainer {
 
   // TODO Create a generic ERROR state. Container tries informing relevant components in this case.
 
+  private final NonRunningStateEnteredCallback NON_RUNNING_STATE_ENTERED_CALLBACK = new NonRunningStateEnteredCallback();
 
-  private final StateMachine<AMContainerState, AMContainerEventType, AMContainerEvent> stateMachine;
+  private final StateMachineTez<AMContainerState, AMContainerEventType, AMContainerEvent, AMContainerImpl>
+      stateMachine;
+
   private static final StateMachineFactory
       <AMContainerImpl, AMContainerState, AMContainerEventType, AMContainerEvent>
       stateMachineFactory =
@@ -328,7 +335,19 @@ public class AMContainerImpl implements AMContainer {
     this.schedulerId = schedulerId;
     this.launcherId = launcherId;
     this.taskCommId = taskCommId;
-    this.stateMachine = stateMachineFactory.make(this);
+    this.stateMachine = new StateMachineTez<>(stateMachineFactory.make(this), this);
+    augmentStateMachine();
+  }
+
+
+  private void augmentStateMachine() {
+    stateMachine
+        .registerStateEnteredCallback(AMContainerState.STOP_REQUESTED,
+            NON_RUNNING_STATE_ENTERED_CALLBACK)
+        .registerStateEnteredCallback(AMContainerState.STOPPING,
+            NON_RUNNING_STATE_ENTERED_CALLBACK)
+        .registerStateEnteredCallback(AMContainerState.COMPLETED,
+            NON_RUNNING_STATE_ENTERED_CALLBACK);
   }
 
   @Override
@@ -422,7 +441,7 @@ public class AMContainerImpl implements AMContainer {
         LOG.error("Can't handle event " + event.getType()
             + " at current state " + oldState + " for ContainerId "
             + this.containerId, e);
-        inError = true;
+        setError();
         // TODO Can't set state to COMPLETED. Add a default error state.
       }
       if (oldState != getState()) {
@@ -482,7 +501,7 @@ public class AMContainerImpl implements AMContainer {
                 msg, e));
         // We have not registered with any of the listeners etc yet. Send out a deallocateContainer
         // message and return. The AM will shutdown shortly.
-        container.inError = true;
+        container.setError();
         container.deAllocate();
         return;
       }
@@ -515,7 +534,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventAssignTA event = (AMContainerEventAssignTA) cEvent;
-      container.inError = true;
+      container.setError();
       container.registerFailedAttempt(event.getTaskAttemptId());
       container.maybeSendNodeFailureForFailedAssignment(event
           .getTaskAttemptId());
@@ -961,7 +980,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventAssignTA event = (AMContainerEventAssignTA) cEvent;
-      container.inError = true;
+      container.setError();
       String errorMessage = "AttemptId: " + event.getTaskAttemptId() +
           " cannot be allocated to container: " + container.getContainerId() +
           " in " + container.getState() + " state";
@@ -1032,7 +1051,7 @@ public class AMContainerImpl implements AMContainer {
 
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
-      container.inError = true;
+      container.setError();
     }
   }
 
@@ -1046,7 +1065,7 @@ public class AMContainerImpl implements AMContainer {
       // think the container is still around and assign a task to it. The task
       // ends up getting a CONTAINER_KILLED message. Task could handle this by
       // asking for a reschedule in this case. Will end up FAILING the task instead of KILLING it.
-      container.inError = true;
+      container.setError();
       AMContainerEventAssignTA event = (AMContainerEventAssignTA) cEvent;
       String errorMessage = "AttemptId: " + event.getTaskAttemptId()
           + " cannot be allocated to container: " + container.getContainerId()
@@ -1058,9 +1077,19 @@ public class AMContainerImpl implements AMContainer {
     }
   }
 
+  private static class NonRunningStateEnteredCallback
+      implements OnStateChangedCallback<AMContainerState, AMContainerImpl> {
+
+    @Override
+    public void onStateChanged(AMContainerImpl amContainer,
+                               AMContainerState amContainerState) {
+      amContainer.handleNonRunningStateEntered();
+    }
+  }
+
   private void handleExtraTAAssign(
       AMContainerEventAssignTA event, TezTaskAttemptID currentTaId) {
-    this.inError = true;
+    setError();
     String errorMessage = "AMScheduler Error: Multiple simultaneous " +
         "taskAttempt allocations to: " + this.getContainerId() +
         ". Attempts: " + currentTaId + ", " + event.getTaskAttemptId() +
@@ -1076,6 +1105,19 @@ public class AMContainerImpl implements AMContainer {
     this.sendStopRequestToNM();
     this.unregisterFromTAListener(ContainerEndReason.FRAMEWORK_ERROR, errorMessage);
     this.unregisterFromContainerListener();
+  }
+
+  private void setError() {
+    this.inError = true;
+    handleNonRunningStateEntered();
+  }
+
+  private void handleNonRunningStateEntered() {
+    if (!completedMessageSent) {
+      completedMessageSent = true;
+      sendEvent(new AMNodeEventContainerCompleted(getContainer().getNodeId(),
+          schedulerId, containerId));
+    }
   }
 
   protected void registerFailedAttempt(TezTaskAttemptID taId) {

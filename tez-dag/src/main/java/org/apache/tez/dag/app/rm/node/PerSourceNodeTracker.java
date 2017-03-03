@@ -24,6 +24,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +107,8 @@ public class PerSourceNodeTracker {
         }
         break;
       default:
-        nodeMap.get(nodeId).handle(rEvent);
+        amNode = nodeMap.get(nodeId);
+        amNode.handle(rEvent);
     }
   }
 
@@ -184,6 +186,13 @@ public class PerSourceNodeTracker {
     for (NodeId nodeId : nodeMap.keySet()) {
       sendEvent(new AMNodeEvent(nodeId, sourceId, eventType));
     }
+  }
+
+  public void dagComplete(DAG dag) {
+    for (AMNode amNode : nodeMap.values()) {
+      amNode.dagComplete(dag);
+    }
+    // TODO TEZ-2337 Maybe reset failures from previous DAGs
   }
 
   @SuppressWarnings("unchecked")
