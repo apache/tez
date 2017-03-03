@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -324,6 +325,78 @@ public class TestAMNodeTracker {
     } finally {
       amNodeTracker.stop();
     }
+  }
+
+  @Test(timeout = 10000L)
+  public void testNodeCompletedAndCleanup() {
+    AppContext appContext = mock(AppContext.class);
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
+    TestEventHandler handler = new TestEventHandler();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    AMContainerMap amContainerMap = mock(AMContainerMap.class);
+    TaskSchedulerManager taskSchedulerManager =
+        mock(TaskSchedulerManager.class);
+    dispatcher.register(AMNodeEventType.class, amNodeTracker);
+    dispatcher.register(AMContainerEventType.class, amContainerMap);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
+    amNodeTracker.init(conf);
+    amNodeTracker.start();
+
+    try {
+
+      NodeId nodeId = NodeId.newInstance("fakenode", 3333);
+      amNodeTracker.nodeSeen(nodeId, 0);
+
+      AMNode amNode = amNodeTracker.get(nodeId, 0);
+      ContainerId[] containerIds = new ContainerId[7];
+
+      // Start 5 containers.
+      for (int i = 0; i < 5; i++) {
+        containerIds[i] = mock(ContainerId.class);
+        amNodeTracker
+            .handle(new AMNodeEventContainerAllocated(nodeId, 0, containerIds[i]));
+      }
+      assertEquals(5, amNode.getContainers().size());
+
+      // Finnish 1st dag
+      amNodeTracker.dagComplete(mock(DAG.class));
+      assertEquals(5, amNode.getContainers().size());
+
+
+      // Mark 2 as complete. Finish 2nd dag.
+      for (int i = 0; i < 2; i++) {
+        amNodeTracker.handle(
+            new AMNodeEventContainerCompleted(nodeId, 0, containerIds[i]));
+      }
+      amNodeTracker.dagComplete(mock(DAG.class));
+      assertEquals(3, amNode.getContainers().size());
+
+      // Add 2 more containers. Mark all as complete. Finish 3rd dag.
+      for (int i = 5; i < 7; i++) {
+        containerIds[i] = mock(ContainerId.class);
+        amNodeTracker
+            .handle(new AMNodeEventContainerAllocated(nodeId, 0, containerIds[i]));
+      }
+      assertEquals(5, amNode.getContainers().size());
+      amNodeTracker.dagComplete(mock(DAG.class));
+      assertEquals(5, amNode.getContainers().size());
+      amNodeTracker.dagComplete(mock(DAG.class));
+      assertEquals(5, amNode.getContainers().size());
+
+      for (int i = 2; i < 7; i++) {
+        amNodeTracker.handle(
+            new AMNodeEventContainerCompleted(nodeId, 0, containerIds[i]));
+      }
+      assertEquals(5, amNode.getContainers().size());
+      amNodeTracker.dagComplete(mock(DAG.class));
+      assertEquals(0, amNode.getContainers().size());
+
+    } finally {
+      amNodeTracker.stop();
+    }
+
   }
 
   @Test(timeout=10000)
