@@ -629,6 +629,16 @@ public class TestTezClientUtils {
     javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
         Resource.newInstance(355, 1), 100);
     Assert.assertEquals(origJavaOpts, javaOpts);
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(1000, 1), -1);
+    Assert.assertTrue(javaOpts.contains("-Xmx700m"));
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(5000, 1), -1);
+    Assert.assertTrue(javaOpts.contains("-Xmx4000m"));
   }
 
   @Test (timeout=5000)

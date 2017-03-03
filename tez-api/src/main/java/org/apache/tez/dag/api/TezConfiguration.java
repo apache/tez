@@ -356,6 +356,10 @@ public class TezConfiguration extends Configuration {
    * actual allocation of memory to tasks the cluster. The value if used as a
    * fraction that is applied to the memory allocated Factor to size Xmx based
    * on container memory size. Value should be greater than 0 and less than 1.
+   *
+   * Set this value to -1 to allow Tez to use different default max heap fraction
+   * for different container memory size. Current policy is to use 0.7 for container
+   * smaller than 4GB and use 0.8 for larger container.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="float")

@@ -39,6 +39,7 @@ import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.math3.util.Precision;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
@@ -963,8 +964,15 @@ public class TezClientUtils {
         || (resource.getMemory() <= 0)) {
       return javaOpts;
     }
-    if (maxHeapFactor <= 0 || maxHeapFactor >= 1) {
+
+    if ((maxHeapFactor <= 0 && !Precision.equals(maxHeapFactor, -1, 0.01)) || maxHeapFactor >= 1) {
       return javaOpts;
+    }
+
+    if (Precision.equals(maxHeapFactor, -1, 0.01)) {
+      maxHeapFactor = resource.getMemory() < TezConstants.TEZ_CONTAINER_SMALL_SLAB_BOUND_MB
+        ? TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB
+        : TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB;
     }
     int maxMemory = (int)(resource.getMemory() * maxHeapFactor);
     maxMemory = maxMemory <= 0 ? 1 : maxMemory;
