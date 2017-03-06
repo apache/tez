@@ -176,6 +176,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
   }
 
   public void validate() throws IOException {
+    stopWatch.reset().start();
     // get the shuffle version
     if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME
         .equals(response.getHeader(ShuffleHeader.HTTP_HEADER_NAME))

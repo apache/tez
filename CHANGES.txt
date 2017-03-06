@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+  TEZ-3649. AsyncHttpConnection should add StopWatch start.
   TEZ-3647. Add a setting which lets Tez determine Xmx.
   TEZ-3644. Cleanup container list stored in AMNode.
   TEZ-3646. IFile.Writer has an extra output stream flush call
