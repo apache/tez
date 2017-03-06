@@ -214,9 +214,6 @@ public class IFile {
       //account for header bytes
       decompressedBytesWritten += HEADER.length;
 
-      //Flush the stream
-      out.flush();
-
       // Close the underlying stream iff we own it...
       if (ownOutputStream) {
         out.close();
@@ -226,7 +223,7 @@ public class IFile {
           compressedOut.finish();
           compressedOut.resetState();
         }
-        // Write the checksum
+        // Write the checksum and flush the buffer
         checksumOut.finish();
       }
       //header bytes are already included in rawOut
