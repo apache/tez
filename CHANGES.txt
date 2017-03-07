@@ -7,6 +7,13 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+
+Release 0.8.5: 2016-03-13
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
   TEZ-3644. Cleanup container list stored in AMNode.
   TEZ-3643. Long running AMs can go out of memory due to retained AMContainer instances.
   TEZ-3624. Split multiple calls on the same line in TaskCommunicatorContextImpl.
