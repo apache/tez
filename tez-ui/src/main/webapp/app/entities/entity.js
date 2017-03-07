@@ -187,6 +187,10 @@ var Entity = Ember.Object.extend(NameMixin, {
       MoreObject.forEach(needs, function (name, needOptions) {
         needOptions = that.normalizeNeed(name, needOptions, parentModel, queryParams, urlParams);
 
+        if(MoreObject.isFunction(needOptions.loadType)) {
+          needOptions.loadType = needOptions.loadType.call(needOptions, parentModel);
+        }
+
         if(needOptions.loadType !== "demand") {
           let needLoader = that._loadNeed(loader, parentModel, needOptions, options);
 

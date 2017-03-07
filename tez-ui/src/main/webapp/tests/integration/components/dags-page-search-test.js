@@ -30,7 +30,7 @@ test('Basic creation test', function(assert) {
 
   this.render(hbs`{{dags-page-search}}`);
 
-  assert.equal(this.$("input").length, 5);
+  assert.equal(this.$("input").length, 6);
   assert.equal(this.$("select").length, 1);
 
   // Template block usage:" + EOL +
@@ -40,6 +40,6 @@ test('Basic creation test', function(assert) {
     {{/dags-page-search}}
   `);
 
-  assert.equal(this.$("input").length, 5);
+  assert.equal(this.$("input").length, 6);
   assert.equal(this.$("select").length, 1);
 });

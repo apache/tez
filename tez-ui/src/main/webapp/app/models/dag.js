@@ -43,6 +43,11 @@ export default AMTimelineModel.extend({
     app: {
       type: ["AhsApp", "appRm"],
       idKey: "appID",
+      loadType: function (record) {
+        if(record.get("queueName")) {
+          return "demand";
+        }
+      },
       silent: true
     }
   },
@@ -58,8 +63,9 @@ export default AMTimelineModel.extend({
 
   domain: DS.attr("string"),
   containerLogs: DS.attr("object"),
-  queue: Ember.computed("app", function () {
-    return this.get("app.queue");
+  queueName: DS.attr("string"),
+  queue: Ember.computed("queueName", "app", function () {
+    return this.get("queueName") || this.get("app.queue");
   }),
 
   vertexIdNameMap: DS.attr("object"),

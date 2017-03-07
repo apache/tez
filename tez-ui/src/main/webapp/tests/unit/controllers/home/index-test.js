@@ -56,6 +56,17 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.actions.pageChanged);
 });
 
+test('queryParams test', function(assert) {
+  let controller = this.subject({
+        initVisibleColumns: Ember.K,
+        beforeSort: {bind: Ember.K},
+        send: Ember.K
+      });
+
+  // 11 New, 5 Inherited & 4 for backward compatibility
+  assert.equal(controller.get("queryParams.length"), 7 + 5 + 4);
+});
+
 test('definition test', function(assert) {
   let controller = this.subject({
         initVisibleColumns: Ember.K,
@@ -69,6 +80,7 @@ test('definition test', function(assert) {
       testStatus = "Status",
       testAppID = "AppID",
       testCallerID = "CallerID",
+      testQueue = "Queue",
       testPageNum = 10,
       testMoreAvailable = true,
       testLoadingMore = true;
@@ -79,6 +91,7 @@ test('definition test', function(assert) {
   assert.equal(definition.get("status"), "");
   assert.equal(definition.get("appID"), "");
   assert.equal(definition.get("callerID"), "");
+  assert.equal(definition.get("queue"), "");
 
   assert.equal(definition.get("pageNum"), 1);
 
@@ -103,6 +116,9 @@ test('definition test', function(assert) {
 
     controller.set("callerID", testCallerID);
     assert.equal(controller.get("definition.callerID"), testCallerID);
+
+    controller.set("queue", testQueue);
+    assert.equal(controller.get("definition.queue"), testQueue);
 
     controller.set("pageNum", testPageNum);
     assert.equal(controller.get("definition.pageNum"), testPageNum);

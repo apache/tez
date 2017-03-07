@@ -56,7 +56,7 @@ test('refresh test', function(assert) {
 
 test('loaderQueryParams test', function(assert) {
   let route = this.subject();
-  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 7);
+  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 8);
 });
 
 test('filterRecords test', function(assert) {

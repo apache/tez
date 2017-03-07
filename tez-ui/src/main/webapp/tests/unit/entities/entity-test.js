@@ -230,6 +230,31 @@ test('setNeed test', function(assert) {
   assert.equal(parentModel.get(testName), undefined);
 });
 
+test('loadAllNeeds loadType=function test', function(assert) {
+  var entity = this.subject(),
+      loader = {},
+      testRecord = Ember.Object.create({
+        refreshLoadTime: Ember.K,
+        needs: {
+          app: {
+            idKey: "appID",
+            loadType: function (record) {
+              assert.ok(testRecord === record);
+              return "demand";
+            }
+          },
+        },
+        appID: 1,
+      });
+
+  entity._loadNeed = function () {
+    assert.ok(true); // Shouldn't be called
+  };
+
+  assert.expect(1 + 1);
+  assert.equal(entity.loadAllNeeds(loader, testRecord), undefined);
+});
+
 test('_loadNeed single string type test', function(assert) {
   let entity = this.subject(),
       loader,

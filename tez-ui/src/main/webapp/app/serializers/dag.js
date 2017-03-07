@@ -121,7 +121,9 @@ export default TimelineSerializer.extend({
 
     // appID
     domain: 'domain',
-    // queue
+
+    queueName: 'otherinfo.queueName',
+
     containerLogs: getContainerLogs,
 
     vertexIdNameMap: getIdNameMap,

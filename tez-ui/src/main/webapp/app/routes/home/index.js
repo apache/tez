@@ -32,6 +32,7 @@ export default ServerSideOpsRoute.extend({
     status: REFRESH,
     appID: REFRESH,
     callerID: REFRESH,
+    queue: REFRESH,
 
     rowCount: REFRESH
   },
@@ -43,6 +44,7 @@ export default ServerSideOpsRoute.extend({
     status: "status",
     appID: "appID",
     callerID: "callerID",
+    queueName: "queue",
 
     limit: "rowCount",
   },
@@ -63,7 +65,8 @@ export default ServerSideOpsRoute.extend({
       submitter: query.submitter,
       status: query.status,
       appID: query.appID,
-      callerID: query.callerID
+      callerID: query.callerID,
+      queue: query.queueName
     };
 
     return records.filter(function (record) {

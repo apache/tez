@@ -41,6 +41,7 @@ export default AbstractAdapter.extend({
     requestuser: "requestuser",
     executionMode: "executionmode",
     callerId: "callerId",
+    queueName: "queueName",
 
     tablesRead: "tablesread",
     tablesWritten: "tableswritten",

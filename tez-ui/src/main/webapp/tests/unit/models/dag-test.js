@@ -58,3 +58,21 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.amWsVersion);
 });
+
+test('queue test', function(assert) {
+  let model = this.subject(),
+      queueName = "queueName",
+      appQueueName = "AppQueueName";
+
+  assert.equal(model.get("queue"), undefined);
+
+  Ember.run(function () {
+    model.set("app", {
+      queue: appQueueName
+    });
+    assert.equal(model.get("queue"), appQueueName);
+
+    model.set("queueName", queueName);
+    assert.equal(model.get("queue"), queueName);
+  });
+});

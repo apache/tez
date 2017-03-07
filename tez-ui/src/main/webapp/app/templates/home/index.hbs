@@ -36,6 +36,11 @@
     loadPage="loadPage"
     reload="reload"
   }}
+  {{#if queue}}
+    <div class="alert alert-info">
+      <strong>Info!</strong> Searching on Queue Name is supported only form <strong>Tez 0.9.0</strong>. So DAGs created by older versions of Tez will not be available!
+    </div>
+  {{/if}}
 {{else}}
   {{partial "loading"}}
 {{/if}}

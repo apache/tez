@@ -24,13 +24,16 @@ import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "appid", "id", "user", "dag_name"],
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "queue",
+      "appid", "id", "user", "dag_name"],
   dagName: "",
   dagID: "",
   submitter: "",
   status: "",
   appID: "",
   callerID: "",
+  queue: "",
+
   appid: "",
   id: "",
   user: "",
@@ -53,8 +56,8 @@ export default TableController.extend({
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("dagName", "dagID", "submitter", "status",
-      "appID", "callerID", "pageNum", "moreAvailable", "loadingMore", function () {
+  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "callerID", "queue",
+      "pageNum", "moreAvailable", "loadingMore", function () {
 
     var definition = this.get("_definition");
     if (!this.get("appID")) {
@@ -81,6 +84,7 @@ export default TableController.extend({
       status: this.get("status"),
       appID: this.get("appID"),
       callerID: this.get("callerID"),
+      queue: this.get("queue"),
 
       pageNum: this.get("pageNum"),
 
@@ -155,7 +159,18 @@ export default TableController.extend({
   },{
     id: 'queue',
     headerTitle: 'Queue',
-    contentPath: 'queue'
+    contentPath: 'queue',
+    observePath: true,
+    getCellContent: function (row) {
+      var queueName = row.get("queue");
+      if(!row.get("queueName") && row.get("app.queue")) {
+        return {
+          comment: "Queue name for this row was loaded separately, and will not be searchable!",
+          content: queueName
+        };
+      }
+      return queueName;
+    }
   },{
     id: 'callerID',
     headerTitle: 'Caller ID',
