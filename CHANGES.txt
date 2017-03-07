@@ -217,7 +217,14 @@ ALL CHANGES:
   TEZ-3642. Tez UI: Auto-refresh is not stopping when DAG is the main entity
   TEZ-3503. Tez UI: Support search by queue name
 
-Release 0.8.5: Unreleased
+Release 0.8.6: Unreleased
+
+INCOMPATIBLE CHANGES
+
+ALL CHANGES:
+
+
+Release 0.8.5: 2016-03-13
 
 INCOMPATIBLE CHANGES
 
