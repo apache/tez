@@ -362,7 +362,7 @@ public class LocalClient extends FrameworkClient {
 
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-        versionInfo.getVersion(), 1, credentials, jobUserName, amPluginDescriptorProto);
+        versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto);
   }
 
   private AMPluginDescriptorProto getPluginDescriptorInfo(Configuration conf,

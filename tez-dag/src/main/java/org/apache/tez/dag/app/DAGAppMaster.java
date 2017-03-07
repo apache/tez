@@ -268,7 +268,6 @@ public class DAGAppMaster extends AbstractService {
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
-  private final int maxAppAttempts;
   private final List<String> diagnostics = new ArrayList<String>();
   private String containerLogs;
 
@@ -346,7 +345,7 @@ public class DAGAppMaster extends AbstractService {
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
-      String [] localDirs, String[] logDirs, String clientVersion, int maxAppAttempts,
+      String [] localDirs, String[] logDirs, String clientVersion,
       Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
@@ -365,7 +364,6 @@ public class DAGAppMaster extends AbstractService {
     this.shutdownHandler = createShutdownHandler();
     this.dagVersionInfo = new TezDagVersionInfo();
     this.clientVersion = clientVersion;
-    this.maxAppAttempts = maxAppAttempts;
     this.amCredentials = credentials;
     this.amPluginDescriptorProto = pluginDescriptorProto;
     this.appMasterUgi = UserGroupInformation
@@ -460,8 +458,6 @@ public class DAGAppMaster extends AbstractService {
     boolean disableVersionCheck = conf.getBoolean(
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK,
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT);
-
-    isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
     // Check client - AM version compatibility
     LOG.info("Comparing client version with AM version"
@@ -589,13 +585,6 @@ public class DAGAppMaster extends AbstractService {
 
     if (enableWebUIService()) {
       addIfServiceDependency(taskSchedulerManager, webUIService);
-    }
-
-    if (isLastAMRetry) {
-      LOG.info("AM will unregister as this is the last attempt"
-          + ", currentAttempt=" + appAttemptID.getAttemptId()
-          + ", maxAttempts=" + maxAppAttempts);
-      this.taskSchedulerManager.setShouldUnregisterFlag();
     }
 
     dispatcher.register(AMSchedulerEventType.class,
@@ -2401,14 +2390,6 @@ public class DAGAppMaster extends AbstractService {
         clientVersion = VersionInfo.UNKNOWN;
       }
 
-      // TODO Should this be defaulting to 1. Was there a version of YARN where this was not setup ?
-      int maxAppAttempts = 1;
-      String maxAppAttemptsEnv = System.getenv(
-          ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
-      if (maxAppAttemptsEnv != null) {
-        maxAppAttempts = Integer.parseInt(maxAppAttemptsEnv);
-      }
-
       validateInputParam(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV);
 
@@ -2465,7 +2446,7 @@ public class DAGAppMaster extends AbstractService {
               System.getenv(Environment.PWD.name()),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name())),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOG_DIRS.name())),
-              clientVersion, maxAppAttempts, credentials, jobUserName, amPluginDescriptorProto);
+              clientVersion, credentials, jobUserName, amPluginDescriptorProto);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
