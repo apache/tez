@@ -34,11 +34,14 @@ test('Basic creation test', function(assert) {
   assert.ok(entity.query);
 
   assert.ok(entity.normalizeNeed);
+  assert.ok(entity.setNeed);
   assert.ok(entity._loadNeed);
   assert.ok(entity.loadNeed);
 
   assert.ok(entity._loadAllNeeds);
   assert.ok(entity.loadAllNeeds);
+
+  assert.ok(entity.resetAllNeeds);
 });
 
 test('normalizeNeed test', function(assert) {
@@ -206,6 +209,27 @@ test('loadAllNeeds silent=true test', function(assert) {
   });
 });
 
+test('setNeed test', function(assert) {
+  let entity = this.subject(),
+      parentModel = Ember.Object.create({
+        refreshLoadTime: function () {
+          assert.ok(true);
+        }
+      }),
+      testModel = {},
+      testName = "name";
+
+  assert.expect(1 + 2);
+
+  entity.setNeed(parentModel, testName, testModel);
+  assert.equal(parentModel.get(testName), testModel);
+
+  parentModel.set("isDeleted", true);
+  parentModel.set(testName, undefined);
+  entity.setNeed(parentModel, testName, testModel);
+  assert.equal(parentModel.get(testName), undefined);
+});
+
 test('_loadNeed single string type test', function(assert) {
   let entity = this.subject(),
       loader,
@@ -299,4 +323,29 @@ test('_loadNeed test with silent false', function(assert) {
   entity.loadAllNeeds(loader, testModel).catch(function (err) {
     assert.equal(err, testErr);
   });
+});
+
+test('resetAllNeeds test', function(assert) {
+  let entity = this.subject(),
+      parentModel = Ember.Object.create({
+        needs : {
+          foo: {},
+          bar: {}
+        },
+        foo: 1,
+        bar: 2,
+        refreshLoadTime: function () {
+          assert.ok(true);
+        }
+      });
+
+  assert.expect(2 + 2 + 2);
+
+  assert.equal(parentModel.get("foo"), 1);
+  assert.equal(parentModel.get("bar"), 2);
+
+  entity.resetAllNeeds({}, parentModel);
+
+  assert.equal(parentModel.get("foo"), null);
+  assert.equal(parentModel.get("bar"), null);
 });

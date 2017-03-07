@@ -32,6 +32,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       params: query,
       urlParams: urlParams
     }).then(function (record) {
+      that.resetAllNeeds(loader, record, options);
       return that._loadAllNeeds(loader, record, options, urlParams);
     });
   },
@@ -44,6 +45,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       urlParams: urlParams
     }).then(function (records) {
       return Ember.RSVP.all(records.map(function (record) {
+        that.resetAllNeeds(loader, record, options);
         return that._loadAllNeeds(loader, record, options, urlParams);
       })).then(function () {
        return records;
@@ -96,6 +98,14 @@ var Entity = Ember.Object.extend(NameMixin, {
     return Ember.Object.create(need, overrides);
   },
 
+  setNeed: function (parentModel, name, model) {
+    if(!parentModel.get("isDeleted")) {
+      parentModel.set(name, model);
+      parentModel.refreshLoadTime();
+    }
+    return parentModel;
+  },
+
   _loadNeed: function (loader, parentModel, needOptions, options, index) {
     var needLoader,
         that = this,
@@ -128,10 +138,7 @@ var Entity = Ember.Object.extend(NameMixin, {
     }
 
     needLoader = needLoader.then(function (model) {
-      if(!parentModel.get("isDeleted")) {
-        parentModel.set(needOptions.name, model);
-        parentModel.refreshLoadTime();
-      }
+      that.setNeed(parentModel, needOptions.name, model);
       return model;
     });
 
@@ -141,10 +148,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       }
 
       if(needOptions.silent) {
-        if(!parentModel.get("isDeleted")) {
-          parentModel.set(needOptions.name, null);
-          parentModel.refreshLoadTime();
-        }
+        that.setNeed(parentModel, needOptions.name, null);
       }
       else {
         throw(err);
@@ -198,6 +202,19 @@ var Entity = Ember.Object.extend(NameMixin, {
     }
   },
 
+  resetAllNeeds: function (loader, parentModel/*, options*/) {
+    var needs = parentModel.get("needs"),
+        that = this;
+
+    if(needs) {
+      MoreObject.forEach(needs, function (name, needOptions) {
+        needOptions = that.normalizeNeed(name, needOptions, parentModel);
+        that.setNeed(parentModel, needOptions.name, null);
+      });
+    }
+
+    return parentModel;
+  },
 });
 
 export default Entity;

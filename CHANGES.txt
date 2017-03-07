@@ -214,6 +214,7 @@ ALL CHANGES:
   TEZ-3630. Tez UI: Use DAG status for controlling auto-refresh polling
   TEZ-3639. Tez UI: Footer pagination is improper in landing page
   TEZ-3640. Tez UI: Add associated llap application id to queries page
+  TEZ-3642. Tez UI: Auto-refresh is not stopping when DAG is the main entity
 
 Release 0.8.5: Unreleased
 
