@@ -6,6 +6,7 @@ Release 0.8.6: Unreleased
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+TEZ-3632. Tez Task attempt listing can hang if log link is null
 
 
 Release 0.8.5: 2016-03-13
