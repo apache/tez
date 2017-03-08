@@ -690,7 +690,7 @@ App.Helpers.misc = {
       }
 
       link = attempt.get('completedLog');
-      if (link && yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED') {
+      if (link && (yarnAppState === 'FINISHED' || yarnAppState === 'KILLED' || yarnAppState === 'FAILED')) {
         params["start"] = "0";
 
         if(!link.match("/syslog_")) {
