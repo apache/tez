@@ -200,9 +200,10 @@ export default Process.extend({
         let properties = this.getVisibleProps().map(function (definition) {
           return {
             name: definition.get("headerTitle"),
-            value: that.get("vertex").get(definition.get("contentPath")),
+            value: definition.getCellContent(that.get("vertex")),
             type: Ember.get(definition, "cellDefinition.type"),
-            format: Ember.get(definition, "cellDefinition.format")
+            format: Ember.get(definition, "cellDefinition.format"),
+            componentName: Ember.get(definition, "cellComponentName")
           };
         });
 

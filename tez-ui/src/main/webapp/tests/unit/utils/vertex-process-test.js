@@ -220,6 +220,9 @@ test('getTooltipContents-event test', function(assert) {
 });
 
 test('getTooltipContents-process test', function(assert) {
+  function getCellContent(row) {
+    return row.get(this.get("contentPath"));
+  }
   var process = VertexProcess.create({
     name: "TestName",
     vertex: Ember.Object.create({
@@ -232,6 +235,7 @@ test('getTooltipContents-process test', function(assert) {
         id: "prop1",
         headerTitle: "Prop 1",
         contentPath: "prop1",
+        getCellContent: getCellContent,
         cellDefinition: {
           type: "Type1",
           format: "Format1"
@@ -239,7 +243,8 @@ test('getTooltipContents-process test', function(assert) {
       }), Ember.Object.create({
         id: "prop2",
         headerTitle: "Prop 2",
-        contentPath: "prop2"
+        contentPath: "prop2",
+        getCellContent: getCellContent
       })];
     }
   });

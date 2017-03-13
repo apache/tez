@@ -49,11 +49,11 @@ test('duration test', function(assert) {
     assert.equal(model.get("duration"), 0);
 
     model.set("startTime", 0);
-    assert.equal(model.get("duration").message, "Start time is less than or equal to zero!");
+    assert.equal(model.get("duration"), undefined);
 
     resetAndCheckModel();
     model.set("endTime", 0);
-    assert.equal(model.get("duration").message, "End time is less than or equal to zero!");
+    assert.equal(model.get("duration"), undefined);
 
     resetAndCheckModel();
     model.set("endTime", 50);
@@ -61,11 +61,11 @@ test('duration test', function(assert) {
 
     resetAndCheckModel();
     model.set("startTime", -100);
-    assert.equal(model.get("duration").message, "Start time is less than or equal to zero!");
+    assert.equal(model.get("duration"), undefined);
 
     resetAndCheckModel();
     model.set("endTime", -200);
-    assert.equal(model.get("duration").message, "End time is less than or equal to zero!");
+    assert.equal(model.get("duration"), undefined);
 
     resetAndCheckModel();
     model.set("startTime", undefined);

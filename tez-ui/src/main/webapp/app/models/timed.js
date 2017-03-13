@@ -30,14 +30,8 @@ export default AbstractModel.extend({
     var startTime = this.get("startTime"),
         endTime = this.get("endTime");
 
-    if(startTime !== undefined && endTime !== undefined && startTime !== null && endTime !== null) {
-      if(startTime <= 0) {
-        return new Error("Start time is less than or equal to zero!");
-      }
-      else if(endTime <= 0) {
-        return new Error("End time is less than or equal to zero!");
-      }
-      else if(startTime > endTime) {
+    if(startTime > 0 && endTime > 0) {
+      if(startTime > endTime) {
         let delta = startTime - endTime;
         return new Error(`Start time is greater than end time by ${delta} msecs!`);
       }
