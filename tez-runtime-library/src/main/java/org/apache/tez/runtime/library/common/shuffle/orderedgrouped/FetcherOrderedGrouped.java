@@ -504,11 +504,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       if (mapOutput.getType() == Type.MEMORY) {
         ShuffleUtils.shuffleToMemory(mapOutput.getMemory(), input,
           (int) decompressedLength, (int) compressedLength, codec, ifileReadAhead,
-          ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier().toString());
+          ifileReadAheadLength, LOG, mapOutput.getAttemptIdentifier());
       } else if (mapOutput.getType() == Type.DISK) {
         ShuffleUtils.shuffleToDisk(mapOutput.getDisk(), host.getHostIdentifier(),
           input, compressedLength, decompressedLength, LOG,
-          mapOutput.getAttemptIdentifier().toString(),
+          mapOutput.getAttemptIdentifier(),
           ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
       } else {
         throw new IOException("Unknown mapOutput type while fetching shuffle data:" +

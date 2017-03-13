@@ -284,7 +284,7 @@ public class TestShuffleUtils {
     byte[] header = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F', (byte) 1};
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
-          1024, 128, mockCodec, false, 0, mock(Logger.class), "identifier");
+          1024, 128, mockCodec, false, 0, mock(Logger.class), null);
       Assert.fail("shuffle was supposed to throw!");
     } catch (IOException e) {
       Assert.assertTrue(e.getCause() instanceof InternalError);
@@ -301,14 +301,14 @@ public class TestShuffleUtils {
     ByteArrayInputStream in = new ByteArrayInputStream(bogusData);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ShuffleUtils.shuffleToDisk(baos, "somehost", in,
-        bogusData.length, 2000, mock(Logger.class), "identifier", false, 0, false);
+        bogusData.length, 2000, mock(Logger.class), null, false, 0, false);
     Assert.assertArrayEquals(bogusData, baos.toByteArray());
 
     // verify sending same stream of zeroes with validation generates an exception
     in.reset();
     try {
       ShuffleUtils.shuffleToDisk(mock(OutputStream.class), "somehost", in,
-          bogusData.length, 2000, mock(Logger.class), "identifier", false, 0, true);
+          bogusData.length, 2000, mock(Logger.class), null, false, 0, true);
       Assert.fail("shuffle was supposed to throw!");
     } catch (IOException e) {
     }
