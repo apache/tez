@@ -44,7 +44,7 @@ export default AMTimelineModel.extend({
       type: ["AhsApp", "appRm"],
       idKey: "appID",
       loadType: function (record) {
-        if(record.get("queueName")) {
+        if(record.get("queueName") && record.get("atsStatus") !== "RUNNING") {
           return "demand";
         }
       },

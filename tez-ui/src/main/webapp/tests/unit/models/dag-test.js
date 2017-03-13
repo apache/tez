@@ -59,6 +59,25 @@ test('Basic creation test', function(assert) {
   assert.ok(model.amWsVersion);
 });
 
+test('app loadType test', function(assert) {
+  let loadType = this.subject().get("needs.app.loadType"),
+      record = Ember.Object.create();
+
+  assert.equal(loadType(record), undefined);
+
+  record.set("queueName", "Q");
+  assert.equal(loadType(record), "demand");
+
+  record.set("atsStatus", "RUNNING");
+  assert.equal(loadType(record), undefined);
+
+  record.set("atsStatus", "SUCCEEDED");
+  assert.equal(loadType(record), "demand");
+
+  record.set("queueName", undefined);
+  assert.equal(loadType(record), undefined);
+});
+
 test('queue test', function(assert) {
   let model = this.subject(),
       queueName = "queueName",
