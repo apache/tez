@@ -290,11 +290,10 @@ public class TestCartesianProductVertexManagerUnpartitioned {
     VertexManagerEvent vmEvent =
       VertexManagerEvent.create("cp vertex", proto.toByteString().asReadOnlyByteBuffer());
 
-    Formatter formatter = new Formatter();
     for (int i = 0; i < desiredBytesPerGroup/outputBytesPerTaskV0; i++) {
       vmEvent.setProducerAttemptIdentifier(
         new TaskAttemptIdentifierImpl("dag", "v0", TezTaskAttemptID.fromString(
-          formatter.format("attempt_1441301219877_0109_1_00_%06d_0", i).toString())));
+          String.format("attempt_1441301219877_0109_1_00_%06d_0", i))));
       vertexManager.onVertexManagerEventReceived(vmEvent);
     }
     verify(context, never()).reconfigureVertex(anyInt(), any(VertexLocationHint.class),
@@ -313,10 +312,9 @@ public class TestCartesianProductVertexManagerUnpartitioned {
         anyMapOf(String.class, EdgeProperty.class));
       vmEvent.setProducerAttemptIdentifier(
         new TaskAttemptIdentifierImpl("dag", "v1", TezTaskAttemptID.fromString(
-          formatter.format("attempt_1441301219877_0109_1_01_%06d_0", i).toString())));
+          String.format("attempt_1441301219877_0109_1_01_%06d_0", i))));
       vertexManager.onVertexManagerEventReceived(vmEvent);
     }
-    formatter.close();
     verify(context, times(1)).reconfigureVertex(parallelismCaptor.capture(),
       isNull(VertexLocationHint.class), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();

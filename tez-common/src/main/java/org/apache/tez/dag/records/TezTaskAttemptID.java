@@ -21,14 +21,9 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.text.NumberFormat;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 
 /**
  * TezTaskAttemptID represents the immutable and unique identifier for
@@ -50,17 +45,9 @@ import com.google.common.cache.LoadingCache;
 public class TezTaskAttemptID extends TezID {
   public static final String ATTEMPT = "attempt";
   private TezTaskID taskId;
-  
-  private static LoadingCache<TezTaskAttemptID, TezTaskAttemptID> taskAttemptIDCache = CacheBuilder.newBuilder().softValues().
-      build(
-          new CacheLoader<TezTaskAttemptID, TezTaskAttemptID>() {
-            @Override
-            public TezTaskAttemptID load(TezTaskAttemptID key) throws Exception {
-              return key;
-            }
-          }
-      );
-  
+
+  private static TezIDCache<TezTaskAttemptID> tezTaskAttemptIDCache = new TezIDCache<>();
+
   // Public for Writable serialization. Verify if this is actually required.
   public TezTaskAttemptID() {
   }
@@ -71,13 +58,12 @@ public class TezTaskAttemptID extends TezID {
    * @param id the task attempt number
    */
   public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {
-    return taskAttemptIDCache.getUnchecked(new TezTaskAttemptID(taskID, id));
+    return tezTaskAttemptIDCache.getInstance(new TezTaskAttemptID(taskID, id));
   }
 
   @InterfaceAudience.Private
   public static void clearCache() {
-    taskAttemptIDCache.invalidateAll();
-    taskAttemptIDCache.cleanUp();
+    tezTaskAttemptIDCache.clear();
   }
 
   private TezTaskAttemptID(TezTaskID taskId, int id) {
@@ -108,7 +94,9 @@ public class TezTaskAttemptID extends TezID {
    * @return the builder that was passed in.
    */
   protected StringBuilder appendTo(StringBuilder builder) {
-    return taskId.appendTo(builder).append(SEPARATOR).append(id);
+    taskId.appendTo(builder);
+    builder.append(SEPARATOR);
+    return builder.append(id);
   }
   
   @Override
@@ -151,25 +139,20 @@ public class TezTaskAttemptID extends TezID {
     super.write(out);
   }
 
-  protected static final ThreadLocal<NumberFormat> tezTaskAttemptIdFormat = new ThreadLocal<NumberFormat>() {
-    @Override
-    public NumberFormat initialValue() {
-      NumberFormat fmt = NumberFormat.getInstance();
-      fmt.setGroupingUsed(false);
-      fmt.setMinimumIntegerDigits(1);
-      return fmt;
-    }
-  };
-
   public static TezTaskAttemptID fromString(String taIdStr) {
     try {
-      String[] split = taIdStr.split("_");
-      String rmId = split[1];
-      int appId = TezDAGID.tezAppIdFormat.get().parse(split[2]).intValue();
-      int dagId = TezDAGID.tezDagIdFormat.get().parse(split[3]).intValue();
-      int vId = TezVertexID.tezVertexIdFormat.get().parse(split[4]).intValue();
-      int taskId = TezTaskID.tezTaskIdFormat.get().parse(split[5]).intValue();
-      int id = tezTaskAttemptIdFormat.get().parse(split[6]).intValue();
+      int pos1 = taIdStr.indexOf(SEPARATOR);
+      int pos2 = taIdStr.indexOf(SEPARATOR, pos1 + 1);
+      int pos3 = taIdStr.indexOf(SEPARATOR, pos2 + 1);
+      int pos4 = taIdStr.indexOf(SEPARATOR, pos3 + 1);
+      int pos5 = taIdStr.indexOf(SEPARATOR, pos4 + 1);
+      int pos6 = taIdStr.indexOf(SEPARATOR, pos5 + 1);
+      String rmId = taIdStr.substring(pos1 + 1, pos2);
+      int appId = Integer.parseInt(taIdStr.substring(pos2 + 1, pos3));
+      int dagId = Integer.parseInt(taIdStr.substring(pos3 + 1, pos4));
+      int vId = Integer.parseInt(taIdStr.substring(pos4 + 1, pos5));
+      int taskId = Integer.parseInt(taIdStr.substring(pos5 + 1, pos6));
+      int id = Integer.parseInt(taIdStr.substring(pos6 + 1));
 
       return TezTaskAttemptID.getInstance(
           TezTaskID.getInstance(
