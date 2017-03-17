@@ -1158,6 +1158,19 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "cluster.additional.classpath.prefix";
 
   /**
+   * Boolean value.
+   * If this value is true then tez explicitly adds hadoop conf directory into classpath for AM and
+   * task containers. Default is false.
+   */
+  @Private
+  @Unstable
+  @ConfigurationScope(Scope.CLIENT)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_CLASSPATH_ADD_HADOOP_CONF = TEZ_PREFIX +
+      "classpath.add-hadoop-conf";
+  public static final boolean TEZ_CLASSPATH_ADD_HADOOP_CONF_DEFAULT = false;
+
+  /**
    * Session-related properties
    */
   @Private

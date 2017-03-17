@@ -70,6 +70,21 @@ public class TestTezYARNUtils {
     Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
     Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
         + "lib" + File.separator + "*"));
+    Assert.assertTrue(!classpath.contains(Environment.HADOOP_CONF_DIR.$()));
+    Assert.assertTrue(classpath.indexOf(Environment.PWD.$()) <
+        classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
+  }
+
+  @Test(timeout = 5000)
+  public void testNoHadoopConfInClasspath() {
+    Configuration conf = new Configuration(false);
+    conf.setBoolean(TezConfiguration.TEZ_CLASSPATH_ADD_HADOOP_CONF, true);
+    String classpath = TezYARNUtils.getFrameworkClasspath(conf, true);
+    Assert.assertTrue(classpath.contains(Environment.PWD.$()));
+    Assert.assertTrue(classpath.contains(Environment.PWD.$() + File.separator + "*"));
+    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator + "*"));
+    Assert.assertTrue(classpath.contains(TezConstants.TEZ_TAR_LR_NAME + File.separator
+        + "lib" + File.separator + "*"));
     Assert.assertTrue(classpath.contains(Environment.HADOOP_CONF_DIR.$()));
     Assert.assertTrue(classpath.indexOf(Environment.PWD.$()) <
         classpath.indexOf(TezConstants.TEZ_TAR_LR_NAME));
