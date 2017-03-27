@@ -95,11 +95,7 @@ public class AMContainerHelpers {
    */
   private static ContainerLaunchContext createCommonContainerLaunchContext(
       Map<ApplicationAccessType, String> applicationACLs,
-<<<<<<< HEAD
-      Credentials credentials, Map<String, LocalResource> localResources, Configuration conf) {
-=======
-      Credentials credentials) {
->>>>>>> master
+      Credentials credentials, Configuration conf) {
 
     // Application environment
     Map<String, String> environment = new HashMap<String, String>();
@@ -165,7 +161,7 @@ public class AMContainerHelpers {
     synchronized (commonContainerSpecLock) {
       if (!commonContainerSpecs.containsKey(tezDAGID)) {
         commonContainerSpec =
-            createCommonContainerLaunchContext(acls, credentials);
+            createCommonContainerLaunchContext(acls, credentials, conf);
         commonContainerSpecs.put(tezDAGID, commonContainerSpec);
       } else {
         commonContainerSpec = commonContainerSpecs.get(tezDAGID);
