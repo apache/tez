@@ -268,7 +268,6 @@ public class DAGAppMaster extends AbstractService {
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
   private final Map<String, LocalResource> cumulativeAdditionalResources = new HashMap<String, LocalResource>();
-  private final int maxAppAttempts;
   private final List<String> diagnostics = new ArrayList<String>();
   private String containerLogs;
 
@@ -346,7 +345,7 @@ public class DAGAppMaster extends AbstractService {
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
       Clock clock, long appSubmitTime, boolean isSession, String workingDirectory,
-      String [] localDirs, String[] logDirs, String clientVersion, int maxAppAttempts,
+      String [] localDirs, String[] logDirs, String clientVersion,
       Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
     super(DAGAppMaster.class.getName());
     this.clock = clock;
@@ -365,7 +364,6 @@ public class DAGAppMaster extends AbstractService {
     this.shutdownHandler = createShutdownHandler();
     this.dagVersionInfo = new TezDagVersionInfo();
     this.clientVersion = clientVersion;
-    this.maxAppAttempts = maxAppAttempts;
     this.amCredentials = credentials;
     this.amPluginDescriptorProto = pluginDescriptorProto;
     this.appMasterUgi = UserGroupInformation
@@ -432,6 +430,12 @@ public class DAGAppMaster extends AbstractService {
     initResourceCalculatorPlugins();
     this.hadoopShim = new HadoopShimsLoader(this.amConf).getHadoopShim();
 
+    long sleepTimeBeforeSecs = this.amConf.getLong(
+        TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS,
+        TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT);
+    if (sleepTimeBeforeSecs >= 0) {
+      this.shutdownHandler.setSleepTimeBeforeExit(sleepTimeBeforeSecs);
+    }
 
     this.isLocal = conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE,
         TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
@@ -454,8 +458,6 @@ public class DAGAppMaster extends AbstractService {
     boolean disableVersionCheck = conf.getBoolean(
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK,
         TezConfiguration.TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT);
-
-    isLastAMRetry = appAttemptID.getAttemptId() >= maxAppAttempts;
 
     // Check client - AM version compatibility
     LOG.info("Comparing client version with AM version"
@@ -583,13 +585,6 @@ public class DAGAppMaster extends AbstractService {
 
     if (enableWebUIService()) {
       addIfServiceDependency(taskSchedulerManager, webUIService);
-    }
-
-    if (isLastAMRetry) {
-      LOG.info("AM will unregister as this is the last attempt"
-          + ", currentAttempt=" + appAttemptID.getAttemptId()
-          + ", maxAttempts=" + maxAppAttempts);
-      this.taskSchedulerManager.setShouldUnregisterFlag();
     }
 
     dispatcher.register(AMSchedulerEventType.class,
@@ -924,6 +919,11 @@ public class DAGAppMaster extends AbstractService {
 
   protected class DAGAppMasterShutdownHandler {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
+    private long sleepTimeBeforeExit = TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT;
+
+    void setSleepTimeBeforeExit(long sleepTimeBeforeExit) {
+      this.sleepTimeBeforeExit = sleepTimeBeforeExit;
+    }
 
     public void shutdown() {
       shutdown(false);
@@ -941,16 +941,19 @@ public class DAGAppMaster extends AbstractService {
       }
       LOG.info("Handling DAGAppMaster shutdown");
 
-      AMShutdownRunnable r = new AMShutdownRunnable(now);
+      AMShutdownRunnable r = new AMShutdownRunnable(now, sleepTimeBeforeExit);
       Thread t = new Thread(r, "AMShutdownThread");
       t.start();
     }
 
     private class AMShutdownRunnable implements Runnable {
       private final boolean immediateShutdown;
+      private final long sleepTimeBeforeExit;
 
-      public AMShutdownRunnable(boolean immediateShutdown) {
+      public AMShutdownRunnable(boolean immediateShutdown,
+                                long sleepTimeBeforeExit) {
         this.immediateShutdown = immediateShutdown;
+        this.sleepTimeBeforeExit = sleepTimeBeforeExit;
       }
 
       @Override
@@ -959,8 +962,8 @@ public class DAGAppMaster extends AbstractService {
         // final states. Will be removed once RM come on. TEZ-160.
         if (!immediateShutdown) {
           try {
-            LOG.info("Sleeping for 5 seconds before shutting down");
-            Thread.sleep(TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT);
+            LOG.info("Sleeping for {} ms before shutting down", sleepTimeBeforeExit);
+            Thread.sleep(sleepTimeBeforeExit);
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
@@ -1514,7 +1517,6 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private class RunningAppContext implements AppContext {
-
     private DAG dag;
     private DAGRecoveryData dagRecoveryData;
     private final Configuration conf;
@@ -1523,6 +1525,8 @@ public class DAGAppMaster extends AbstractService {
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
     private final EventHandler eventHandler;
+    private volatile String queueName;
+
     public RunningAppContext(Configuration config) {
       checkNotNull(config, "config is null");
       this.conf = config;
@@ -1778,6 +1782,16 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public DAGRecoveryData getDAGRecoveryData() {
       return dagRecoveryData;
+    }
+
+    @Override
+    public String getQueueName() {
+      return queueName;
+    }
+
+    @Override
+    public void setQueueName(String queueName) {
+      this.queueName = queueName;
     }
   }
 
@@ -2376,14 +2390,6 @@ public class DAGAppMaster extends AbstractService {
         clientVersion = VersionInfo.UNKNOWN;
       }
 
-      // TODO Should this be defaulting to 1. Was there a version of YARN where this was not setup ?
-      int maxAppAttempts = 1;
-      String maxAppAttemptsEnv = System.getenv(
-          ApplicationConstants.MAX_APP_ATTEMPTS_ENV);
-      if (maxAppAttemptsEnv != null) {
-        maxAppAttempts = Integer.parseInt(maxAppAttemptsEnv);
-      }
-
       validateInputParam(appSubmitTimeStr,
           ApplicationConstants.APP_SUBMIT_TIME_ENV);
 
@@ -2430,6 +2436,8 @@ public class DAGAppMaster extends AbstractService {
       UserGroupInformation.setConfiguration(conf);
       Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 
+      TezUtilsInternal.setSecurityUtilConfigration(LOG, conf);
+
       DAGAppMaster appMaster =
           new DAGAppMaster(applicationAttemptId, containerId, nodeHostString,
               Integer.parseInt(nodePortString),
@@ -2438,7 +2446,7 @@ public class DAGAppMaster extends AbstractService {
               System.getenv(Environment.PWD.name()),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS.name())),
               TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOG_DIRS.name())),
-              clientVersion, maxAppAttempts, credentials, jobUserName, amPluginDescriptorProto);
+              clientVersion, credentials, jobUserName, amPluginDescriptorProto);
       ShutdownHookManager.get().addShutdownHook(
         new DAGAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
 
@@ -2562,7 +2570,7 @@ public class DAGAppMaster extends AbstractService {
     // for an app later
     final DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(newDAG.getID(),
         submitTime, dagPlan, this.appAttemptID, cumulativeAdditionalResources,
-        newDAG.getUserName(), newDAG.getConf(), containerLogs);
+        newDAG.getUserName(), newDAG.getConf(), containerLogs, getContext().getQueueName());
     boolean dagLoggingEnabled = newDAG.getConf().getBoolean(
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT);

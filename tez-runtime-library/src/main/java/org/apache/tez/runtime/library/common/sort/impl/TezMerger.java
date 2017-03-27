@@ -90,32 +90,6 @@ public class TezMerger {
                                            mergePhase);
   }
 
-  public static 
-  TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
-                            Class keyClass, Class valueClass, 
-                            CompressionCodec codec, boolean ifileReadAhead,
-                            int ifileReadAheadLength, int ifileBufferSize,
-                            Path[] inputs, boolean deleteInputs, 
-                            int mergeFactor, Path tmpDir,
-                            RawComparator comparator,
-                            Progressable reporter,
-                            TezCounter readsCounter,
-                            TezCounter writesCounter,
-                            TezCounter mergedMapOutputsCounter,
-                            TezCounter bytesReadCounter,
-                            Progress mergePhase)
-      throws IOException, InterruptedException {
-    return 
-      new MergeQueue(conf, fs, inputs, deleteInputs, codec, ifileReadAhead,
-                           ifileReadAheadLength, ifileBufferSize, false, comparator, 
-                           reporter, mergedMapOutputsCounter).merge(
-                                           keyClass, valueClass,
-                                           mergeFactor, tmpDir,
-                                           readsCounter, writesCounter,
-                                           bytesReadCounter,
-                                           mergePhase);
-  }
-  
   // Used by the in-memory merger.
   public static
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs, 
@@ -225,8 +199,8 @@ public class TezMerger {
         }
       }
     }
-    if ((count > 0) && LOG.isDebugEnabled()) {
-      LOG.debug("writeFile SAME_KEY count=" + count);
+    if ((count > 0) && LOG.isTraceEnabled()) {
+      LOG.trace("writeFile SAME_KEY count=" + count);
     }
   }
 
@@ -510,7 +484,9 @@ public class TezMerger {
       this.considerFinalMergeForProgress = considerFinalMergeForProgress;
       
       for (Path file : inputs) {
-        LOG.debug("MergeQ: adding: " + file);
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("MergeQ: adding: " + file);
+        }
         segments.add(new DiskSegment(fs, file, codec, ifileReadAhead,
                                       ifileReadAheadLength, ifileBufferSize,
                                       !deleteInputs, 
@@ -702,10 +678,12 @@ public class TezMerger {
                                      TezCounter bytesReadCounter,
                                      Progress mergePhase)
         throws IOException, InterruptedException {
-      LOG.info("Merging " + segments.size() + " sorted segments");
       if (segments.size() == 0) {
         LOG.info("Nothing to merge. Returning an empty iterator");
         return new EmptyIterator();
+      }
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Merging " + segments.size() + " sorted segments");
       }
 
       /*
@@ -806,19 +784,23 @@ public class TezMerger {
             mergeProgress.set(totalBytesProcessed * progPerByte);
           else
             mergeProgress.set(1.0f); // Last pass and no segments left - we're done
-          
-          LOG.info("Down to the last merge-pass, with " + numSegments + 
-                   " segments left of total size: " +
-                   (totalBytes - totalBytesProcessed) + " bytes");
+
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Down to the last merge-pass, with " + numSegments +
+                " segments left of total size: " +
+                (totalBytes - totalBytesProcessed) + " bytes");
+          }
           // At this point, Factor Segments have not been physically
           // materialized. The merge will be done dynamically. Some of them may
           // be in-memory segments, other on-disk semgnets. Decision to be made
           // by a finalMerge is that is required.
           return this;
         } else {
-          LOG.info("Merging " + segmentsToMerge.size() + 
-                   " intermediate segments out of a total of " + 
-                   (segments.size()+segmentsToMerge.size()));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Merging " + segmentsToMerge.size() +
+                " intermediate segments out of a total of " +
+                (segments.size() + segmentsToMerge.size()));
+          }
           
           long bytesProcessedInPrevMerges = totalBytesProcessed;
           totalBytesProcessed += startBytes;

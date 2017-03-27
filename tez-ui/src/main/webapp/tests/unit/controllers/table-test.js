@@ -63,3 +63,42 @@ test('Basic creation test', function(assert) {
   assert.ok(controller.actions.openColumnSelector);
   assert.ok(controller.actions.columnsSelected);
 });
+
+test('initVisibleColumns test', function(assert) {
+  let controller = this.subject({
+    send: Ember.K,
+    localStorage: Ember.Object.create(),
+    columns: []
+  });
+
+  controller.set("columns", [{
+    id: "c1",
+  }, {
+    id: "c2",
+  }, {
+    id: "c3",
+  }]);
+  controller.initVisibleColumns();
+  assert.equal(controller.get("visibleColumnIDs.c1"), true);
+  assert.equal(controller.get("visibleColumnIDs.c2"), true);
+  assert.equal(controller.get("visibleColumnIDs.c3"), true);
+
+  controller.set("columns", [{
+    id: "c1",
+    hiddenByDefault: true,
+  }, {
+    id: "c2",
+  }, {
+    id: "c3",
+    hiddenByDefault: true,
+  }]);
+  controller.initVisibleColumns();
+  assert.equal(controller.get("visibleColumnIDs.c1"), false);
+  assert.equal(controller.get("visibleColumnIDs.c2"), true);
+  assert.equal(controller.get("visibleColumnIDs.c3"), false);
+
+  controller.initVisibleColumns();
+  assert.equal(controller.get("visibleColumnIDs.c1"), false);
+  assert.equal(controller.get("visibleColumnIDs.c2"), true);
+  assert.equal(controller.get("visibleColumnIDs.c3"), false);
+});

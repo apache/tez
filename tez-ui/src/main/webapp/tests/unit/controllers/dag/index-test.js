@@ -32,4 +32,5 @@ test('Basic creation test', function(assert) {
   });
 
   assert.ok(controller);
+  assert.equal(controller.logLinkDefinition.target, "_blank");
 });

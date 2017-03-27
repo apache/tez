@@ -444,7 +444,7 @@ public class TestATSHistoryLoggingService {
     Configuration conf = new Configuration(service.getConfig());
     historyEvents.add(new DAGHistoryEvent(null, new AMStartedEvent(attemptId, time, "user")));
     historyEvents.add(new DAGHistoryEvent(dagId, new DAGSubmittedEvent(dagId, time,
-        DAGPlan.getDefaultInstance(), attemptId, null, "user", conf, null)));
+        DAGPlan.getDefaultInstance(), attemptId, null, "user", conf, null, "default")));
     TezVertexID vertexID = TezVertexID.getInstance(dagId, 1);
     historyEvents.add(new DAGHistoryEvent(dagId, new VertexStartedEvent(vertexID, time, time)));
     TezTaskID tezTaskID = TezTaskID.getInstance(vertexID, 1);

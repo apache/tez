@@ -18,37 +18,64 @@
 
 import Ember from 'ember';
 
-import TableController from './table';
+import TableController from '../table';
 import ColumnDefinition from 'em-table/utils/column-definition';
 import TableDefinition from 'em-table/utils/table-definition';
 
 export default TableController.extend({
 
-  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID"],
+  queryParams: ["dagName", "dagID", "submitter", "status", "appID", "callerID", "queue",
+      "appid", "id", "user", "dag_name"],
   dagName: "",
   dagID: "",
   submitter: "",
   status: "",
   appID: "",
   callerID: "",
+  queue: "",
+
+  appid: "",
+  id: "",
+  user: "",
+  dag_name: "",
 
   // Because pageNo is a query param added by table controller, and in the current design
   // we don't want page to be a query param as only the first page will be loaded first.
   pageNum: 1,
 
-  breadcrumbs: [],
+  breadcrumbs: [{
+    text: "All DAGs",
+    routeName: "home.index",
+  }],
 
   moreAvailable: false,
   loadingMore: false,
 
-  headerComponentNames: ['dags-page-search', 'table-controls', 'dags-pagination-ui'],
+  headerComponentNames: ['dags-page-search', 'table-controls', 'pagination-ui'],
+  footerComponentNames: ['pagination-ui'],
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("dagName", "dagID", "submitter", "status",
-      "appID", "callerID", "pageNum", "moreAvailable", "loadingMore", function () {
+  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "callerID", "queue",
+      "pageNum", "moreAvailable", "loadingMore", function () {
 
     var definition = this.get("_definition");
+    if (!this.get("appID")) {
+      this.set("appID", this.get("appid"));
+      this.set("appid", "");
+    }
+    if (!this.get("dagID")) {
+      this.set("dagID", this.get("id"));
+      this.set("id", "");
+    }
+    if (!this.get("submitter")) {
+      this.set("submitter", this.get("user"));
+      this.set("user", "");
+    }
+    if (!this.get("dagName")) {
+      this.set("dagName", this.get("dag_name"));
+      this.set("dag_name", "");
+    }
 
     definition.setProperties({
       dagName: this.get("dagName"),
@@ -57,6 +84,7 @@ export default TableController.extend({
       status: this.get("status"),
       appID: this.get("appID"),
       callerID: this.get("callerID"),
+      queue: this.get("queue"),
 
       pageNum: this.get("pageNum"),
 
@@ -131,7 +159,18 @@ export default TableController.extend({
   },{
     id: 'queue',
     headerTitle: 'Queue',
-    contentPath: 'queue'
+    contentPath: 'queue',
+    observePath: true,
+    getCellContent: function (row) {
+      var queueName = row.get("queue");
+      if(!row.get("queueName") && row.get("app.queue")) {
+        return {
+          comment: "Queue name for this row was loaded separately, and will not be searchable!",
+          content: queueName
+        };
+      }
+      return queueName;
+    }
   },{
     id: 'callerID',
     headerTitle: 'Caller ID',

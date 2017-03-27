@@ -333,7 +333,7 @@ public class TestRecoveryService {
     DAGPlan dagPlan = DAGPlan.newBuilder().setName("test_dag").build();
     // This writes to recovery immediately.
     recoveryService.handle(new DAGHistoryEvent(dagId, new DAGSubmittedEvent(
-        dagId, startTime, dagPlan, appAttemptId, null, "nobody", conf, null)));
+        dagId, startTime, dagPlan, appAttemptId, null, "nobody", conf, null, "default")));
     waitForDrain(-1);
     verify(summaryFos, times(1)).hflush();
     verify(dagFos, times(1)).hflush();

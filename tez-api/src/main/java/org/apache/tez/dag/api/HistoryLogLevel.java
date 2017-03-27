@@ -34,6 +34,7 @@ public enum HistoryLogLevel {
   DAG,
   VERTEX,
   TASK,
+  TASK_ATTEMPT,
   ALL;
 
   public static final HistoryLogLevel DEFAULT = ALL;

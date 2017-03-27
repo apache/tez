@@ -207,6 +207,37 @@ public class TestTezClientUtils {
     assertFalse(localizedMap.isEmpty());
   }
 
+
+    /**
+   *
+   */
+  @Test (timeout=5000)
+  public void testTezDefaultFS() throws Exception {
+    FileSystem localFs = FileSystem.getLocal(new Configuration());
+    StringBuilder tezLibUris = new StringBuilder();
+
+    Path topDir = new Path(TEST_ROOT_DIR, "testTezDefaultFS");
+    if (localFs.exists(topDir)) {
+      localFs.delete(topDir, true);
+    }
+    localFs.mkdirs(topDir);
+
+    Path file = new Path(topDir, "file.jar");
+
+    Assert.assertTrue(localFs.createNewFile(file));
+    tezLibUris.append(localFs.makeQualified(file).toString());
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.set(TezConfiguration.TEZ_LIB_URIS, tezLibUris.toString());
+    conf.set("fs.defaultFS", "hdfs:///localhost:1234");
+    Credentials credentials = new Credentials();
+    Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
+    TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap);
+
+    Assert.assertTrue(localFs.delete(file, true));
+    Assert.assertTrue(localFs.delete(topDir, true));
+  }
+
     /**
    *
    */
@@ -598,6 +629,16 @@ public class TestTezClientUtils {
     javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
         Resource.newInstance(355, 1), 100);
     Assert.assertEquals(origJavaOpts, javaOpts);
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(1000, 1), -1);
+    Assert.assertTrue(javaOpts.contains("-Xmx700m"));
+
+    origJavaOpts = "";
+    javaOpts = TezClientUtils.maybeAddDefaultMemoryJavaOpts(origJavaOpts,
+        Resource.newInstance(5000, 1), -1);
+    Assert.assertTrue(javaOpts.contains("-Xmx4000m"));
   }
 
   @Test (timeout=5000)

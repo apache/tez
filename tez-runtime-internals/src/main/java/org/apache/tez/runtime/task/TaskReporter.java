@@ -34,6 +34,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.util.ShutdownHookManager;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
@@ -123,6 +124,10 @@ public class TaskReporter implements TaskReporterInterface {
   @Override
   public void shutdown() {
     heartbeatExecutor.shutdownNow();
+  }
+
+  protected boolean isShuttingDown() {
+    return ShutdownHookManager.get().isShutdownInProgress();
   }
 
   @VisibleForTesting
@@ -447,13 +452,19 @@ public class TaskReporter implements TaskReporterInterface {
                                                   Throwable t, String diagnostics,
                                                   EventMetaData srcMeta) throws IOException,
       TezException {
-    return currentCallable.taskTerminated(taskAttemptID, false, taskFailureType, t, diagnostics, srcMeta);
+    if(!isShuttingDown()) {
+      return currentCallable.taskTerminated(taskAttemptID, false, taskFailureType, t, diagnostics, srcMeta);
+    }
+    return false;
   }
 
   @Override
   public boolean taskKilled(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
                             EventMetaData srcMeta) throws IOException, TezException {
-    return currentCallable.taskTerminated(taskAttemptID, true, null, t, diagnostics, srcMeta);
+    if(!isShuttingDown()) {
+      return currentCallable.taskTerminated(taskAttemptID, true, null, t, diagnostics, srcMeta);
+    }
+    return false;
   }
 
   @Override

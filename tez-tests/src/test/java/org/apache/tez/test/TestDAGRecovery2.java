@@ -78,6 +78,7 @@ public class TestDAGRecovery2 {
       Configuration miniTezconf = new Configuration(conf);
       miniTezconf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 4);
       miniTezconf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
+      miniTezconf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       miniTezCluster.init(miniTezconf);
       miniTezCluster.start();
     }

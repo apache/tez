@@ -63,4 +63,7 @@ export default AMTimelineModel.extend({
   dag: DS.attr('object'), // Auto-loaded by need
 
   failedTaskAttempts: DS.attr('number'),
+
+  successfulAttemptID: DS.attr('string'),
+  attemptIDs: DS.attr("object"),
 });

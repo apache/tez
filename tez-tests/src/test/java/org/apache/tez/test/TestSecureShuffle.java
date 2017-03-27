@@ -37,6 +37,7 @@ import org.apache.hadoop.hdfs.server.namenode.EditLogFileOutputStream;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.junit.After;
@@ -129,6 +130,8 @@ public class TestSecureShuffle {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3 * 1000);
     //set to low value so that it can detect failures quickly
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
+
+    conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
 
     miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName() + "-" +
         (enableSSLInCluster ? "withssl" : "withoutssl"), 1, 1, 1);

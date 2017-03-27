@@ -17,36 +17,27 @@
  */
 
 import Ember from 'ember';
+import DS from 'ember-data';
 
-import { moduleFor, test } from 'ember-qunit';
+import AbstractModel from './abstract';
 
-moduleFor('controller:dags', 'Unit | Controller | dags', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+export default AbstractModel.extend({
 
-test('Basic creation test', function(assert) {
-  assert.expect(2 + 3 + 1 + 3 + 1 + 1);
+  startTime: DS.attr('number'),
+  endTime: DS.attr('number'),
 
-  let controller = this.subject({
-    initVisibleColumns: Ember.K,
-    beforeSort: {bind: Ember.K},
-    send: function (name, query) {
-      assert.equal(name, "setBreadcrumbs");
-      assert.ok(query);
+  duration: Ember.computed("startTime", "endTime", function () {
+    var startTime = this.get("startTime"),
+        endTime = this.get("endTime");
+
+    if(startTime > 0 && endTime > 0) {
+      if(startTime > endTime) {
+        let delta = startTime - endTime;
+        return new Error(`Start time is greater than end time by ${delta} msecs!`);
+      }
+
+      return endTime - startTime;
     }
-  });
+  }),
 
-  assert.ok(controller);
-  assert.ok(controller.columns);
-  assert.ok(controller.getCounterColumns);
-
-  assert.ok(controller.pageNum);
-
-  assert.ok(controller.queryParams);
-  assert.ok(controller.headerComponentNames);
-  assert.ok(controller.definition);
-
-  assert.ok(controller.actions.search);
-  assert.ok(controller.actions.pageChanged);
 });

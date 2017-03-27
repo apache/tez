@@ -20,7 +20,6 @@ import Ember from 'ember';
 
 export function initialize(/* application */) {
   Ember.$(document).tooltip({
-    delay: 20,
     tooltipClass: 'generic-tooltip'
   });
 

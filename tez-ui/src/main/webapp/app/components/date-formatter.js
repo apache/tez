@@ -24,6 +24,14 @@ export default Ember.Component.extend({
 
   content: null,
 
+  date: Ember.computed("content", function () {
+    var content = this.get("content");
+    if(content <= 0) {
+      content = undefined;
+    }
+    return content;
+  }),
+
   env: Ember.inject.service('env'),
   timeZone: Ember.computed.oneWay('env.app.timeZone'),
 

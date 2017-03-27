@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
 
-import static org.apache.hadoop.security.ssl.SSLFactory.DEFAULT_SSL_REQUIRE_CLIENT_CERT;
 import static org.apache.hadoop.security.ssl.SSLFactory.KEYSTORES_FACTORY_CLASS_KEY;
 import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
 import static org.apache.hadoop.security.ssl.SSLFactory.SSL_HOSTNAME_VERIFIER_KEY;
@@ -60,6 +59,7 @@ public class SSLFactory implements ConnectionConfigurator {
 
   public static final String SSL_ENABLED_PROTOCOLS = "hadoop.ssl.enabled.protocols";
   public static final String DEFAULT_SSL_ENABLED_PROTOCOLS = "TLSv1";
+  public static final boolean DEFAULT_SSL_REQUIRE_CLIENT_CERT = false;
 
   private Configuration conf;
   private Mode mode;

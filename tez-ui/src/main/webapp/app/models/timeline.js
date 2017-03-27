@@ -19,9 +19,9 @@
 import DS from 'ember-data';
 import Ember from 'ember';
 
-import AbstractModel from './abstract';
+import TimedModel from './timed';
 
-export default AbstractModel.extend({
+export default TimedModel.extend({
 
   needs:{
     app: {
@@ -55,13 +55,6 @@ export default AbstractModel.extend({
 
   progress: Ember.computed("status", function () {
     return this.get("status") === "SUCCEEDED" ? 1 : null;
-  }),
-
-  startTime: DS.attr("number"),
-  endTime: DS.attr("number"),
-  duration: Ember.computed("startTime", "endTime", function () {
-    var duration = this.get("endTime") - this.get("startTime");
-    return duration > 0 ? duration : null;
   }),
 
   // Hash will be created only on demand, till then counters will be stored in _counterGroups

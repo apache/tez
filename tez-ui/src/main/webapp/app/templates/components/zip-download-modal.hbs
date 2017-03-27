@@ -18,17 +18,21 @@
 
 <div class="message">
   {{#if content.downloader.failed}}
-    <i class="fa fa-lg fa-exclamation-circle"></i>
+    <i class="fa fa-lg fa-exclamation-circle error"></i>
     Error downloading data!
+  {{else}}{{#if (and content.downloader.partial content.downloader.succeeded)}}
+    <i class="fa fa-lg fa-exclamation-circle warning"></i>
+    Data downloaded might be incomplete. Please check the zip!
   {{else}}
-    <i class="fa fa-lg fa-spinner fa-spin"></i>
     Downloading data for dag: <b>{{content.dag.entityID}}</b>
-  {{/if}}
+    {{em-progress value=content.downloader.percent striped=true}}
+    {{content.downloader.message}}
+  {{/if}}{{/if}}
 </div>
 
 
 <div class="form-actions">
-  {{#if content.downloader.failed}}
+  {{#if (or content.downloader.failed content.downloader.partial)}}
     <button type="button" class="btn btn-primary" data-dismiss="modal" aria-label="Close">Ok</button>
   {{else}}
     <button type="button" class="btn" data-dismiss="modal" aria-label="Close" {{action "cancel"}}>Cancel</button>

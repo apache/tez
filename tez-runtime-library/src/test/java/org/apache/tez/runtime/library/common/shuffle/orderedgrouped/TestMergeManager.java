@@ -235,8 +235,8 @@ public class TestMergeManager {
     assertEquals(0, mergeManager.getUsedMemory());
     assertEquals(0, mergeManager.getCommitMemory());
 
-    byte[] data1 = generateData(conf, 10);
-    byte[] data2 = generateData(conf, 20);
+    byte[] data1 = generateData(conf, 10, null);
+    byte[] data2 = generateData(conf, 20, null);
     MapOutput firstMapOutput = mergeManager.reserve(null, data1.length, data1.length, 0);
     MapOutput secondMapOutput = mergeManager.reserve(null, data2.length, data2.length, 0);
     assertEquals(MapOutput.Type.MEMORY, firstMapOutput.getType());
@@ -294,15 +294,19 @@ public class TestMergeManager {
      * - After 3 segment commits, it would trigger mem-to-mem merge.
      * - All of them can be merged in memory.
      */
-    byte[] data1 = generateDataBySize(conf, 10);
-    byte[] data2 = generateDataBySize(conf, 20);
-    byte[] data3 = generateDataBySize(conf, 200);
-    byte[] data4 = generateDataBySize(conf, 20000);
+    InputAttemptIdentifier inputAttemptIdentifier1 = new InputAttemptIdentifier(0,0);
+    InputAttemptIdentifier inputAttemptIdentifier2 = new InputAttemptIdentifier(1,0);
+    InputAttemptIdentifier inputAttemptIdentifier3 = new InputAttemptIdentifier(2,0);
+    InputAttemptIdentifier inputAttemptIdentifier4 = new InputAttemptIdentifier(3,0);
+    byte[] data1 = generateDataBySize(conf, 10, inputAttemptIdentifier1);
+    byte[] data2 = generateDataBySize(conf, 20, inputAttemptIdentifier2);
+    byte[] data3 = generateDataBySize(conf, 200, inputAttemptIdentifier3);
+    byte[] data4 = generateDataBySize(conf, 20000, inputAttemptIdentifier4);
 
-    MapOutput mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
-    MapOutput mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
-    MapOutput mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
-    MapOutput mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+    MapOutput mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    MapOutput mo2 = mergeManager.reserve(inputAttemptIdentifier1, data2.length, data2.length, 0);
+    MapOutput mo3 = mergeManager.reserve(inputAttemptIdentifier1, data3.length, data3.length, 0);
+    MapOutput mo4 = mergeManager.reserve(inputAttemptIdentifier1, data4.length, data4.length, 0);
 
     assertEquals(MapOutput.Type.MEMORY, mo1.getType());
     assertEquals(MapOutput.Type.MEMORY, mo2.getType());
@@ -351,15 +355,15 @@ public class TestMergeManager {
     mergeManager.configureAndStart();
 
     //Single shuffle limit is 25% of 2000000
-    data1 = generateDataBySize(conf, 10);
-    data2 = generateDataBySize(conf, 400000);
-    data3 = generateDataBySize(conf, 400000);
-    data4 = generateDataBySize(conf, 400000);
+    data1 = generateDataBySize(conf, 10, inputAttemptIdentifier1);
+    data2 = generateDataBySize(conf, 400000, inputAttemptIdentifier2);
+    data3 = generateDataBySize(conf, 400000, inputAttemptIdentifier3);
+    data4 = generateDataBySize(conf, 400000, inputAttemptIdentifier4);
 
-    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
-    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
-    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
-    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+    mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(inputAttemptIdentifier2, data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(inputAttemptIdentifier3, data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(inputAttemptIdentifier4, data4.length, data4.length, 0);
 
     assertEquals(MapOutput.Type.MEMORY, mo1.getType());
     assertEquals(MapOutput.Type.MEMORY, mo2.getType());
@@ -409,15 +413,15 @@ public class TestMergeManager {
     mergeManager.configureAndStart();
 
     //Single shuffle limit is 25% of 2000000
-    data1 = generateDataBySize(conf, 400000);
-    data2 = generateDataBySize(conf, 400000);
-    data3 = generateDataBySize(conf, 400000);
-    data4 = generateDataBySize(conf, 400000);
+    data1 = generateDataBySize(conf, 400000, inputAttemptIdentifier1);
+    data2 = generateDataBySize(conf, 400000, inputAttemptIdentifier2);
+    data3 = generateDataBySize(conf, 400000, inputAttemptIdentifier3);
+    data4 = generateDataBySize(conf, 400000, inputAttemptIdentifier4);
 
-    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
-    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
-    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
-    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+    mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(inputAttemptIdentifier2, data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(inputAttemptIdentifier3, data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(inputAttemptIdentifier4, data4.length, data4.length, 0);
 
     assertEquals(MapOutput.Type.MEMORY, mo1.getType());
     assertEquals(MapOutput.Type.MEMORY, mo2.getType());
@@ -465,15 +469,15 @@ public class TestMergeManager {
     mergeManager.configureAndStart();
 
     //Single shuffle limit is 25% of 2000000
-    data1 = generateDataBySize(conf, 490000);
-    data2 = generateDataBySize(conf, 490000);
-    data3 = generateDataBySize(conf, 490000);
-    data4 = generateDataBySize(conf, 230000);
+    data1 = generateDataBySize(conf, 490000, inputAttemptIdentifier1);
+    data2 = generateDataBySize(conf, 490000, inputAttemptIdentifier2);
+    data3 = generateDataBySize(conf, 490000, inputAttemptIdentifier3);
+    data4 = generateDataBySize(conf, 230000, inputAttemptIdentifier4);
 
-    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
-    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
-    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
-    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+    mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(inputAttemptIdentifier2, data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(inputAttemptIdentifier3, data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(inputAttemptIdentifier4, data4.length, data4.length, 0);
 
     assertTrue(mergeManager.getUsedMemory() >= (490000 + 490000 + 490000 + 23000));
 
@@ -520,15 +524,15 @@ public class TestMergeManager {
     mergeManager.configureAndStart();
 
     //Single shuffle limit is 25% of 2000000
-    data1 = generateDataBySize(conf, 490000);
-    data2 = generateDataBySize(conf, 490000);
-    data3 = generateDataBySize(conf, 490000);
-    data4 = generateDataBySize(conf, 230000);
+    data1 = generateDataBySize(conf, 490000, inputAttemptIdentifier1);
+    data2 = generateDataBySize(conf, 490000, inputAttemptIdentifier2);
+    data3 = generateDataBySize(conf, 490000, inputAttemptIdentifier3);
+    data4 = generateDataBySize(conf, 230000, inputAttemptIdentifier4);
 
-    mo1 = mergeManager.reserve(new InputAttemptIdentifier(0,0), data1.length, data1.length, 0);
-    mo2 = mergeManager.reserve(new InputAttemptIdentifier(1,0), data2.length, data2.length, 0);
-    mo3 = mergeManager.reserve(new InputAttemptIdentifier(2,0), data3.length, data3.length, 0);
-    mo4 = mergeManager.reserve(new InputAttemptIdentifier(3,0), data4.length, data4.length, 0);
+    mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    mo2 = mergeManager.reserve(inputAttemptIdentifier2, data2.length, data2.length, 0);
+    mo3 = mergeManager.reserve(inputAttemptIdentifier3, data3.length, data3.length, 0);
+    mo4 = mergeManager.reserve(inputAttemptIdentifier4, data4.length, data4.length, 0);
 
     assertTrue(mergeManager.getUsedMemory() >= (490000 + 490000 + 490000 + 23000));
 
@@ -566,7 +570,7 @@ public class TestMergeManager {
     Assert.assertFalse(mergeManager.isMergeComplete());
   }
 
-  private byte[] generateDataBySize(Configuration conf, int rawLen) throws IOException {
+  private byte[] generateDataBySize(Configuration conf, int rawLen, InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
     IFile.Writer writer =
@@ -584,11 +588,11 @@ public class TestMergeManager {
     int rawLength = (int)writer.getRawLength();
     byte[] data = new byte[rawLength];
     ShuffleUtils.shuffleToMemory(data, new ByteArrayInputStream(baos.toByteArray()),
-        rawLength, compressedLength, null, false, 0, LOG, "sometask");
+        rawLength, compressedLength, null, false, 0, LOG, inputAttemptIdentifier);
     return data;
   }
 
-  private byte[] generateData(Configuration conf, int numEntries) throws IOException {
+  private byte[] generateData(Configuration conf, int numEntries, InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
     IFile.Writer writer =
@@ -601,7 +605,7 @@ public class TestMergeManager {
     int rawLength = (int)writer.getRawLength();
     byte[] data = new byte[rawLength];
     ShuffleUtils.shuffleToMemory(data, new ByteArrayInputStream(baos.toByteArray()),
-        rawLength, compressedLength, null, false, 0, LOG, "sometask");
+        rawLength, compressedLength, null, false, 0, LOG, inputAttemptIdentifier);
     return data;
   }
 

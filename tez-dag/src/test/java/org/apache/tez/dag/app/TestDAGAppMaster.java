@@ -109,7 +109,7 @@ public class TestDAGAppMaster {
     // finishing an in-progress DAG.
     ApplicationId appId = ApplicationId.newInstance(1, 1);
     ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
-    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true, 3);
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true);
     TezConfiguration conf = new TezConfiguration(false);
     conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
     dam.init(conf);
@@ -427,7 +427,7 @@ public class TestDAGAppMaster {
         "127.0.0.1", 0, 0, new SystemClock(), 1, true,
         TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
         new String[] {TEST_DIR.toString()},
-        new TezApiVersionInfo().getVersion(), 1, amCreds,
+        new TezApiVersionInfo().getVersion(), amCreds,
         "someuser", null);
     am.init(conf);
     am.start();
@@ -544,11 +544,11 @@ public class TestDAGAppMaster {
     private DAGAppMasterShutdownHandler mockShutdown;
     private TaskSchedulerManager mockScheduler = mock(TaskSchedulerManager.class);
 
-    public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession, int maxAttempts) {
+    public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession) {
       super(attemptId, ContainerId.newContainerId(attemptId, 1), "hostname", 12345, 12346,
           new SystemClock(), 0, isSession, TEST_DIR.getAbsolutePath(),
           new String[] { TEST_DIR.getAbsolutePath() }, new String[] { TEST_DIR.getAbsolutePath() },
-          new TezDagVersionInfo().getVersion(), maxAttempts, createCredentials(), "jobname", null);
+          new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null);
     }
 
     private static Credentials createCredentials() {

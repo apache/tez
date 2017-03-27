@@ -41,7 +41,6 @@ import org.apache.tez.dag.api.DAGNotRunningException;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -130,6 +129,15 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     return null;
   }
 
+  @Override
+  public String getDagIdentifierString() {
+    return dagId.toString();
+  }
+
+  @Override
+  public String getSessionIdentifierString() {
+    return appId.toString();
+  }
 
 
   @Override
@@ -227,8 +235,15 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   ApplicationReport getAppReport() throws IOException, TezException,
       ApplicationNotFoundException {
+    FrameworkClient client = null;
     try {
-      ApplicationReport appReport = frameworkClient.getApplicationReport(appId);
+      ApplicationReport appReport = null;
+      if (!frameworkClient.isRunning()) {
+        client = FrameworkClient.createFrameworkClient(conf);
+        appReport = client.getApplicationReport(appId);
+      } else {
+        appReport = frameworkClient.getApplicationReport(appId);
+      }
       if (LOG.isDebugEnabled()) {
         LOG.debug("App: " + appId + " in state: "
             + appReport.getYarnApplicationState());
@@ -238,6 +253,10 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       throw e;
     } catch (YarnException e) {
       throw new TezException(e);
+    } finally {
+      if (client != null) {
+        client.stop();
+      }
     }
   }
 

@@ -27,5 +27,8 @@ message CartesianProductConfigProto {
     optional bytes filterUserPayload = 5;
     optional float minFraction = 6;
     optional float maxFraction = 7;
-    repeated int32 numTasks = 8;
+    optional bool enableAutoGrouping = 8;
+    optional int64 desiredBytesPerGroup = 9;
+    repeated int32 numTasks = 10;
+    repeated int32 numGroups = 11;
 }

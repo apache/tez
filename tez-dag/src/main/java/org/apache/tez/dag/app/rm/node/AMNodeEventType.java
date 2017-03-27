@@ -21,7 +21,10 @@ package org.apache.tez.dag.app.rm.node;
 public enum AMNodeEventType {
   //Producer: Scheduler
   N_CONTAINER_ALLOCATED,
-  
+
+  //Producer: Container
+  N_CONTAINER_COMPLETED,
+
   //Producer: TaskSchedulerEventHandler
   N_TA_SUCCEEDED,
 

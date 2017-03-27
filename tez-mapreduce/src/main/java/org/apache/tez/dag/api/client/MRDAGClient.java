@@ -66,6 +66,16 @@ public class MRDAGClient extends DAGClient {
   }
 
   @Override
+  public String getDagIdentifierString() {
+    return realClient.getDagIdentifierString();
+  }
+
+  @Override
+  public String getSessionIdentifierString() {
+    return realClient.getSessionIdentifierString();
+  }
+
+  @Override
   public void tryKillDAG() throws IOException, TezException {
     realClient.tryKillDAG();
   }

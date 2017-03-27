@@ -26,6 +26,7 @@ import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,6 +91,9 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
     }
     getContext().vertexReconfigurationPlanned();
   }
+
+  @Override
+  public void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws IOException {}
 
   @Override
   public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions)

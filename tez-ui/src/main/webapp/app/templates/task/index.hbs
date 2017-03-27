@@ -77,6 +77,31 @@
           {{/if}}
         </td>
       </tr>
+      <tr>
+        <td>Container Logs</td>
+        <td>
+          {{#if attempts}}
+            {{#each attempts as |attempt|}}
+              <dag class="display-block">
+                Attempt {{attempt.index}} :&nbsp;
+                {{#if attempt.containerLogURL}}
+                  <a href={{attempt.containerLogURL}} target="_blank">
+                    <i class="fa fa-file-o" aria-hidden="true"></i> View
+                  </a>
+                  &nbsp;
+                  <a href={{attempt.containerLogURL}} target="_blank" download>
+                    <i class="fa fa-download" aria-hidden="true"></i> Download
+                  </a>
+                {{else}}
+                  <span class="txt-message">Not Available!</span>
+                {{/if}}
+              </dag>
+            {{/each}}
+          {{else}}
+            <i class="fa fa-spinner fa-spin"></i> Loading...
+          {{/if}}
+        </td>
+      </tr>
     </tbody>
   </table>
 

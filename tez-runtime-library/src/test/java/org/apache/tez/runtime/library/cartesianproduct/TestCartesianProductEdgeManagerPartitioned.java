@@ -51,7 +51,7 @@ public class TestCartesianProductEdgeManagerPartitioned {
   @Test(timeout = 5000)
   public void testTwoWay() throws Exception {
     CartesianProductEdgeManagerConfig emConfig =
-      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1"}, new int[]{3,4}, null, null);
+      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1"}, new int[]{3,4}, null, null, null);
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(12);
     testTwoWayV0(emConfig);
     testTwoWayV1(emConfig);
@@ -145,7 +145,7 @@ public class TestCartesianProductEdgeManagerPartitioned {
       new CartesianProductFilterDescriptor(TestFilter.class.getName())
         .setUserPayload(UserPayload.create(buffer));
     CartesianProductEdgeManagerConfig emConfig =
-      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1"}, new int[]{3,4}, null,
+      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1"}, new int[]{3,4}, null, null,
         filterDescriptor);
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(3);
     testTwoWayV0WithFilter(emConfig);
@@ -206,7 +206,7 @@ public class TestCartesianProductEdgeManagerPartitioned {
   @Test(timeout = 5000)
   public void testThreeWay() throws Exception {
     CartesianProductEdgeManagerConfig emConfig =
-      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1","v2"}, new int[]{4,3,2}, null, null);
+      new CartesianProductEdgeManagerConfig(true, new String[]{"v0","v1","v2"}, new int[]{4,3,2}, null, null, null);
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(24);
     testThreeWayV0(emConfig);
     testThreeWayV1(emConfig);

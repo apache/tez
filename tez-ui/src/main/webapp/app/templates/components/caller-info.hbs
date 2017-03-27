@@ -18,7 +18,11 @@
 
 <div class="panel panel-info">
   <div class="panel-heading">
-    Additional Info from {{type}}
+    {{#if title}}
+      {{title}}
+    {{else}}
+      Additional Info from {{type}}
+    {{/if}}
   </div>
   <textarea></textarea>
 </div>

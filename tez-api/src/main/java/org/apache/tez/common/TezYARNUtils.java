@@ -18,7 +18,6 @@
 package org.apache.tez.common;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,8 +37,17 @@ import org.apache.tez.dag.api.TezConstants;
 @Private
 public class TezYARNUtils {
   private static Logger LOG = LoggerFactory.getLogger(TezYARNUtils.class);
-  
-  private static Pattern ENV_VARIABLE_PATTERN = Pattern.compile(Shell.getEnvironmentVariableRegex());
+
+  public static final String ENV_NAME_REGEX = "[A-Za-z_][A-Za-z0-9_]*";
+
+  private static final Pattern VAR_SUBBER =
+    Pattern.compile(Shell.getEnvironmentVariableRegex());
+  private static final Pattern VARVAL_SPLITTER = Pattern.compile(
+    "(?<=^|,)"                            // preceded by ',' or line begin
+      + '(' + ENV_NAME_REGEX + ')'      // var group
+      + '='
+      + "([^,]*)"                             // val group
+  );
 
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
@@ -94,10 +102,10 @@ public class TezYARNUtils {
         classpathBuilder.append(c.trim())
             .append(File.pathSeparator);
       }
-    } else {
+    } else if (conf.getBoolean(TezConfiguration.TEZ_CLASSPATH_ADD_HADOOP_CONF,
+        TezConfiguration.TEZ_CLASSPATH_ADD_HADOOP_CONF_DEFAULT)) {
       // Setup HADOOP_CONF_DIR after PWD and tez-libs, if it's required.
-      classpathBuilder.append(Environment.HADOOP_CONF_DIR.$())
-          .append(File.pathSeparator);
+      classpathBuilder.append(Environment.HADOOP_CONF_DIR.$()).append(File.pathSeparator);
     }
 
     if (!userClassesTakesPrecedence) {
@@ -126,10 +134,10 @@ public class TezYARNUtils {
   public static void appendToEnvFromInputString(Map<String, String> env,
       String envString, String classPathSeparator) {
     if (envString != null && envString.length() > 0) {
-      String childEnvs[] = envString.split(",");
-      for (String cEnv : childEnvs) {
-        String[] parts = cEnv.split("="); // split on '='
-        Matcher m = ENV_VARIABLE_PATTERN.matcher(parts[1]);
+      Matcher varValMatcher = VARVAL_SPLITTER.matcher(envString);
+      while (varValMatcher.find()) {
+        String envVar = varValMatcher.group(1);
+        Matcher m = VAR_SUBBER.matcher(varValMatcher.group(2));
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
           String var = m.group(1);
@@ -145,7 +153,7 @@ public class TezYARNUtils {
             m.appendReplacement(sb, Matcher.quoteReplacement(replace));
         }
         m.appendTail(sb);
-        addToEnvironment(env, parts[0], sb.toString(), classPathSeparator);
+        addToEnvironment(env, envVar, sb.toString(), classPathSeparator);
       }
     }
   }
@@ -156,7 +164,7 @@ public class TezYARNUtils {
       String childEnvs[] = envString.split(",");
       for (String cEnv : childEnvs) {
         String[] parts = cEnv.split("="); // split on '='
-        Matcher m = ENV_VARIABLE_PATTERN.matcher(parts[1]);
+        Matcher m = VAR_SUBBER .matcher(parts[1]);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
           String var = m.group(1);

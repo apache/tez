@@ -101,6 +101,7 @@ public class AMNodeTracker extends AbstractService implements
     // No synchronization required until there's multiple dispatchers.
     switch (rEvent.getType()) {
       case N_CONTAINER_ALLOCATED:
+      case N_CONTAINER_COMPLETED:
       case N_TA_SUCCEEDED:
       case N_TA_ENDED:
       case N_IGNORE_BLACKLISTING_ENABLED:
@@ -140,7 +141,9 @@ public class AMNodeTracker extends AbstractService implements
   }
 
   public void dagComplete(DAG dag) {
-    // TODO TEZ-2337 Maybe reset failures from previous DAGs
+    for (PerSourceNodeTracker perSourceNodeTracker : perSourceNodeTrackers.values()) {
+      perSourceNodeTracker.dagComplete(dag);
+    }
   }
 
   private PerSourceNodeTracker getAndCreateIfNeededPerSourceTracker(int schedulerId) {

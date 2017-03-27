@@ -212,6 +212,16 @@ public class CartesianProductConfig {
       builder.setMaxFraction(conf.getFloat(
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION,
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT));
+      String enableAutoGrouping =
+        conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING);
+      if (enableAutoGrouping != null) {
+        builder.setEnableAutoGrouping(Boolean.parseBoolean(enableAutoGrouping));
+      }
+      String desiredBytesPerGroup =
+        conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP);
+      if (desiredBytesPerGroup != null) {
+        builder.setDesiredBytesPerGroup(Long.parseLong(desiredBytesPerGroup));
+      }
     }
     Preconditions.checkArgument(builder.getMinFraction() <= builder.getMaxFraction(),
       "min fraction(" + builder.getMinFraction() + ") should be less than max fraction(" +

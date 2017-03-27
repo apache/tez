@@ -124,7 +124,8 @@ public class TestTaskErrorsUsingLocalMode {
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
     tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
-    TezClient tezClient1 = TezClient.create("commonName", tezConf1, true);
+    tezConf1.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
+    TezClient tezClient1 = TezClient.create(name, tezConf1, true);
     tezClient1.start();
     return tezClient1;
   }

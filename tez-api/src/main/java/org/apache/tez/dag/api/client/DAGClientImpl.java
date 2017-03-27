@@ -76,27 +76,28 @@ public class DAGClientImpl extends DAGClient {
       VertexStatus.State.ERROR);
   private long statusPollInterval;
   private long diagnoticsWaitTimeout;
+  private boolean cleanupFrameworkClient;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
-                       @Nullable FrameworkClient frameworkClient) {
+      YarnConfiguration yarnConf, @Nullable FrameworkClient frameworkClient) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
-    if (frameworkClient != null &&
-        conf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT)) {
+    if (frameworkClient != null) {
       this.frameworkClient = frameworkClient;
     } else {
       this.frameworkClient = FrameworkClient.createFrameworkClient(conf);
-      this.frameworkClient.init(conf, new YarnConfiguration(conf));
+      this.frameworkClient.init(conf, yarnConf);
       this.frameworkClient.start();
+      cleanupFrameworkClient = true;
     }
     isATSEnabled = conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-            .equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
-            conf.getBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
-                 TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT) &&
-            conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
-                 TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT) &&
-            DAGClientTimelineImpl.isSupported();
+        .equals("org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService") &&
+        conf.getBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED,
+            TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED_DEFAULT) &&
+        conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
+            TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT) &&
+        DAGClientTimelineImpl.isSupported();
 
     realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
     statusPollInterval = conf.getLong(
@@ -318,6 +319,16 @@ public class DAGClientImpl extends DAGClient {
   }
 
   @Override
+  public String getDagIdentifierString() {
+    return realClient.getDagIdentifierString();
+  }
+
+  @Override
+  public String getSessionIdentifierString() {
+    return realClient.getSessionIdentifierString();
+  }
+
+  @Override
   public void tryKillDAG() throws IOException, TezException {
     if (!dagCompleted) {
       realClient.tryKillDAG();
@@ -341,7 +352,7 @@ public class DAGClientImpl extends DAGClient {
   @Override
   public void close() throws IOException {
     realClient.close();
-    if (frameworkClient != null) {
+    if (frameworkClient != null && cleanupFrameworkClient) {
       frameworkClient.stop();
     }
   }

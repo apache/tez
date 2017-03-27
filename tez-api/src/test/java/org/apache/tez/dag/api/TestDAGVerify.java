@@ -20,6 +20,7 @@ package org.apache.tez.dag.api;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1166,4 +1167,28 @@ public class TestDAGVerify {
     dag.verify();
   }
 
+  @Test(timeout = 5000)
+  public void testDAGWithConflictingResource() {
+    DAG dag = DAG.create("dag");
+    Map<String, LocalResource> localResourceMap = new HashMap<>();
+    String commonResourceKey = "local resource";
+    localResourceMap.put("lr", LocalResource.newInstance(null, LocalResourceType.FILE,
+      LocalResourceVisibility.APPLICATION, 0, 0));
+    dag.addTaskLocalFiles(localResourceMap);
+
+    Vertex v1 = Vertex.create("v", ProcessorDescriptor.create(dummyProcessorClassName), 1);
+    // same key but different resource
+    localResourceMap.put("lr", LocalResource.newInstance(null, LocalResourceType.FILE,
+      LocalResourceVisibility.APPLICATION, 10, 0));
+    v1.addTaskLocalFiles(localResourceMap);
+
+    dag.addVertex(v1);
+
+    try {
+      dag.verify();
+      Assert.fail("should report failure on conflict resources");
+    } catch (Exception e) {
+      Assert.assertTrue(e.getMessage().contains("There is conflicting local resource"));
+    }
+  }
 }

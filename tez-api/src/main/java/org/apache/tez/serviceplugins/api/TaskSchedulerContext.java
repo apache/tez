@@ -131,7 +131,8 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
   void setApplicationRegistrationData(
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls,
-      ByteBuffer clientAMSecretKey
+      ByteBuffer clientAMSecretKey,
+      String queueName
   );
 
   /**

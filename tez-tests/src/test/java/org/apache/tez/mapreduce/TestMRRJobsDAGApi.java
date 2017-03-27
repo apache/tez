@@ -163,6 +163,7 @@ public class TestMRRJobsDAGApi {
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       conf.setInt("yarn.nodemanager.delete.debug-delay-sec", 20000);
+      conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }

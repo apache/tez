@@ -84,6 +84,19 @@ public abstract class DAGClient implements Closeable {
     throws IOException, TezException;
 
   /**
+   * Get the dag identifier for the currently executing dag. This is a string
+   * which represents this dag
+   * @return the dag identifier
+   */
+  public abstract String getDagIdentifierString();
+
+  /**
+   * Get the session identifier for the session in which this dag is running
+   * @return the session identifier
+   */
+  public abstract String getSessionIdentifierString();
+
+  /**
    * Kill a running DAG
    *
    */

@@ -1,0 +1,159 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Mixins
+.hue-bkg(@hue) {
+  background-color: hsl(@hue, .9, .75);
+}
+
+.nth-hue-bkg(@index, @hue) {
+  &:nth-child(@{index}) {
+    .hue-bkg(@hue);
+  }
+}
+
+.timeline-bars {
+  font-size: 0;
+  margin: 20px 0 20px 0;
+  overflow: hidden;
+
+  .no-select;
+
+  .bar {
+    display: inline-block;
+
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    vertical-align: top;
+  }
+
+  .groups {
+    height: 30px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    .bar {
+      width: 25%;
+      height: 30px;
+      font-weight: bold;
+
+      padding-top: 5px;
+
+      border: solid @border-color;
+      border-width: 1px 1px 0px 1px;
+      border-radius: 10px 10px 0 0;
+
+      background-color: #F7F7F7;
+    }
+  }
+
+  .sub-groups {
+    height: 40px;
+    border: 1px solid @border-color;
+
+    white-space: nowrap;
+
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+
+    .bar {
+      width: 10%;
+      height: 40px;
+
+      padding-top: 10px;
+
+      border-left: 1px solid @border-color;
+
+      &:first-child {
+        border: none;
+      }
+
+      .nth-hue-bkg(1, 0);
+      .nth-hue-bkg(2, 40);
+      .nth-hue-bkg(3, 80);
+      .nth-hue-bkg(4, 200);
+      .nth-hue-bkg(5, 160);
+      .nth-hue-bkg(6, 120);
+      .nth-hue-bkg(7, 240);
+      .nth-hue-bkg(8, 280);
+      .nth-hue-bkg(9, 320);
+    }
+  }
+}
+
+.query-timeline {
+  table.detail-list {
+    i {
+      display: inline-block;
+
+      width: .85em;
+      height: .85em;
+      border: 1px solid @border-color;
+      border-radius: .5em;
+
+      margin-right: 5px;
+      margin-top: 1px;
+    }
+
+    &:nth-of-type(1) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(0);
+      }
+      &:nth-of-type(2) i {
+        .hue-bkg(40);
+      }
+      &:nth-of-type(3) i {
+        .hue-bkg(80);
+      }
+    }
+
+    &:nth-of-type(2) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(200);
+      }
+      &:nth-of-type(2) i {
+        .hue-bkg(160);
+      }
+    }
+
+    &:nth-of-type(3) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(120);
+      }
+    }
+
+    &:nth-of-type(4) tbody tr {
+      &:nth-of-type(1) i {
+        .hue-bkg(240);
+      }
+      &:nth-of-type(2) i {
+        .hue-bkg(280);
+      }
+      &:nth-of-type(3) i {
+        .hue-bkg(320);
+      }
+    }
+  }
+}

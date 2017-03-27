@@ -906,6 +906,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     this.localResources = DagTypeConverters
         .createLocalResourceMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getLocalResourceList());
+    this.localResources.putAll(dag.getLocalResources());
     this.environment = DagTypeConverters
         .createEnvironmentMapFromDAGPlan(vertexPlan.getTaskConfig()
             .getEnvironmentSettingList());
@@ -2505,7 +2506,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (i <= newNumTasks) {
         continue;
       }
-      LOG.info("Removing task: " + entry.getKey());
+      LOG.debug("Removing task: {}", entry.getKey());
       iter.remove();
       this.numTasks--;
     }

@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.app.dag.DAG;
 
 public interface AMNode extends EventHandler<AMNodeEvent> {
   
@@ -33,4 +34,6 @@ public interface AMNode extends EventHandler<AMNodeEvent> {
   public boolean isUnhealthy();
   public boolean isBlacklisted();
   public boolean isUsable();
+
+  void dagComplete(DAG dag);
 }

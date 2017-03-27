@@ -36,6 +36,16 @@
 
   <profiles>
     <profile>
+      <id>useNode012</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <nodeVersion>v0.12.18</nodeVersion>
+        <npmVersion>2.15.11</npmVersion>
+      </properties>
+    </profile>
+    <profile>
       <id>cleanUICache</id>
       <activation>
         <activeByDefault>false</activeByDefault>

@@ -145,5 +145,12 @@ export default AMTimelineModel.extend({
   dagID: DS.attr('string'),
   dag: DS.attr('object'), // Auto-loaded by need
 
+  description: Ember.computed("dag.vertices", "name", function () {
+    try {
+      let vertex = this.get("dag.vertices").findBy("vertexName", this.get("name"));
+      return JSON.parse(vertex.userPayloadAsText).desc;
+    }catch(e) {}
+  }),
+
   servicePlugin: DS.attr('object'),
 });

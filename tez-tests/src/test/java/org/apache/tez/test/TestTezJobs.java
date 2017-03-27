@@ -138,6 +138,7 @@ public class TestTezJobs {
       mrrTezCluster = new MiniTezCluster(TestTezJobs.class.getName(), 1, 1, 1);
       Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
+      conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
@@ -1210,7 +1211,7 @@ public class TestTezJobs {
       tezConf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS, 5);
       TezClient tezClient = TezClient.create("testAMClientHeartbeatTimeout", tezConf, true);
       tezClient.start();
-      tezClient.cancelAMKeepAlive();
+      tezClient.cancelAMKeepAlive(true);
 
       ApplicationId appId = tezClient.getAppMasterApplicationId();
 

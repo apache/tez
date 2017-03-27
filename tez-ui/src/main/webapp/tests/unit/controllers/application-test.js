@@ -32,14 +32,18 @@ test('Basic creation test', function(assert) {
 test('prefixedBreadcrumbs test', function(assert) {
   let controller = this.subject(),
       prefixedBreadcrumbs,
-      testText = "foo";
+      testText = "foo",
+      testRouteName = "RouteName";
 
   controller.breadcrumbs = [{
-    text: testText
+    text: testText,
+    routeName: testRouteName
   }];
   prefixedBreadcrumbs = controller.get("prefixedBreadcrumbs");
 
   assert.equal(prefixedBreadcrumbs.length, 2);
-  assert.equal(prefixedBreadcrumbs[0].text, "All DAGs");
+  assert.equal(prefixedBreadcrumbs[0].text, "Home");
+  assert.equal(prefixedBreadcrumbs[0].routeName, "application");
   assert.equal(prefixedBreadcrumbs[1].text, testText);
+  assert.equal(prefixedBreadcrumbs[1].routeName, testRouteName);
 });

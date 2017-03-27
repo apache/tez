@@ -36,6 +36,11 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.dagID);
   assert.ok(model.dag);
+
+  assert.ok(model.failedTaskAttempts);
+
+  assert.ok(model.successfulAttemptID);
+  assert.ok(model.attemptIDs);
 });
 
 test('index test', function(assert) {

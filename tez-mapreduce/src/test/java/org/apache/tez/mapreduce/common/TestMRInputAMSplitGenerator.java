@@ -85,7 +85,10 @@ public class TestMRInputAMSplitGenerator {
   private void testGroupSplitsAndSortSplits(boolean groupSplitsEnabled,
       boolean sortSplitsEnabled) throws Exception {
     Configuration conf = new Configuration();
-    String[] splitLengths = new String[] {"1000", "2000", "3000"};
+    String[] splitLengths = new String[50];
+    for (int i = 0; i < splitLengths.length; i++) {
+      splitLengths[i] = Integer.toString(1000 * (i + 1));
+    }
     conf.setStrings(SPLITS_LENGTHS, splitLengths);
     DataSourceDescriptor dataSource = MRInput.createConfigBuilder(
         conf, InputFormatForTest.class).
@@ -99,39 +102,48 @@ public class TestMRInputAMSplitGenerator {
 
     List<Event> events = splitGenerator.initialize();
 
-    assertEquals(splitLengths.length + 1, events.size());
     assertTrue(events.get(0) instanceof InputConfigureVertexTasksEvent);
-    for (int i = 1; i < splitLengths.length + 1; i++) {
+    boolean shuffled = false;
+    InputSplit previousIs = null;
+    int numRawInputSplits = 0;
+    for (int i = 1; i < events.size(); i++) {
       assertTrue(events.get(i) instanceof InputDataInformationEvent);
       InputDataInformationEvent diEvent = (InputDataInformationEvent) (events.get(i));
       assertNull(diEvent.getDeserializedUserPayload());
       assertNotNull(diEvent.getUserPayload());
       MRSplitProto eventProto = MRSplitProto.parseFrom(ByteString.copyFrom(
           diEvent.getUserPayload()));
-      InputSplit is = MRInputUtils.getNewSplitDetailsFromEvent(eventProto, new Configuration());
+      InputSplit is = MRInputUtils.getNewSplitDetailsFromEvent(
+          eventProto, new Configuration());
       if (groupSplitsEnabled) {
-        // For this configuration, there is no actual split grouping.
-        is = ((TezGroupedSplit)is).getGroupedSplits().get(0);
+        numRawInputSplits += ((TezGroupedSplit)is).getGroupedSplits().size();
+        for (InputSplit inputSplit : ((TezGroupedSplit)is).getGroupedSplits()) {
+          assertTrue(inputSplit instanceof InputSplitForTest);
+        }
+        assertTrue(((TezGroupedSplit)is).getGroupedSplits().get(0)
+            instanceof InputSplitForTest);
+      } else {
+        numRawInputSplits++;
+        assertTrue(is instanceof InputSplitForTest);
       }
-      assertTrue(is instanceof InputSplitForTest);
       // The splits in the list returned from InputFormat has ascending
-      // size in order. MRInputAMSplitGenerator might sort the list
-      // from InputFormat depending on sortSplitsEnabled.
-      if (i == 1) {
-        // The first split returned from MRInputAMSplitGenerator.
-        // When sort split is enabled, the first split returned from
-        // MRInputAMSplitGenerator is the last split in the list returned
-        // from InputFormat.
-        assertEquals(sortSplitsEnabled ? splitLengths.length : 1,
-            ((InputSplitForTest) is).getIdentifier());
-      } else if (i == splitLengths.length) {
-        // The last split returned from MRInputAMSplitGenerator
-        // When sort split is enabled, the last split returned from
-        // MRInputAMSplitGenerator is the first split in the list returned
-        // from InputFormat.
-        assertEquals(sortSplitsEnabled ? 1 : splitLengths.length,
-            ((InputSplitForTest) is).getIdentifier());
+      // size in order.
+      // If sortSplitsEnabled is true, MRInputAMSplitGenerator will sort the
+      // splits in descending order.
+      // If sortSplitsEnabled is false, MRInputAMSplitGenerator will shuffle
+      // the splits.
+      if (previousIs != null) {
+        if (sortSplitsEnabled) {
+          assertTrue(is.getLength() <= previousIs.getLength());
+        } else {
+          shuffled |= (is.getLength() > previousIs.getLength());
+        }
       }
+      previousIs = is;
+    }
+    assertEquals(splitLengths.length, numRawInputSplits);
+    if (!sortSplitsEnabled) {
+      assertTrue(shuffled);
     }
   }
 

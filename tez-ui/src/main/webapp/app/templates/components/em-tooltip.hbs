@@ -35,13 +35,17 @@
                   {{prop.name}}
                 </td>
                 <td>
-                  {{txt prop.value
-                  type=prop.type
-                  format=prop.format
-                  timeZone=prop.timeZone
-                  valueFormat=prop.valueFormat
-                  valueTimeZone=prop.valueTimeZone
-                  valueUnit=prop.valueUnit}}
+                  {{#if prop.componentName}}
+                    {{component prop.componentName content=prop.value}}
+                  {{else}}
+                    {{txt prop.value
+                    type=prop.type
+                    format=prop.format
+                    timeZone=prop.timeZone
+                    valueFormat=prop.valueFormat
+                    valueTimeZone=prop.valueTimeZone
+                    valueUnit=prop.valueUnit}}
+                  {{/if}}
                 </td>
               </tr>
             {{/each}}

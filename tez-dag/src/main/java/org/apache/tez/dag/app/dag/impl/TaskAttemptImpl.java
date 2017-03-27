@@ -509,6 +509,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
     this.creationTime = clock.getTime();
+    //set last notified progress time to current time
+    this.lastNotifyProgressTimestamp = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);

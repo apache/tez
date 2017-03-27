@@ -41,7 +41,9 @@ export default Ember.Route.extend({
     resetTooltip: function () {
       Ember.$(document).tooltip("destroy");
       Ember.$(document).tooltip({
-        delay: 20,
+        show: {
+          delay: 500
+        },
         tooltipClass: 'generic-tooltip'
       });
     },

@@ -30,10 +30,13 @@ import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUs
 class CartesianProductVertexManagerConfig extends CartesianProductConfig {
   private final float minFraction;
   private final float maxFraction;
+  private final boolean enableAutoGrouping;
+  private final long desiredBytesPerGroup;
 
   public CartesianProductVertexManagerConfig(boolean isPartitioned, String[] sourceVertices,
                                              int[] numPartitions,
                                              float minFraction, float maxFraction,
+                                             boolean enableAutoGrouping, long desiredBytesPerGroup,
                                              CartesianProductFilterDescriptor filterDescriptor) {
     super(isPartitioned, numPartitions, sourceVertices, filterDescriptor);
     Preconditions.checkArgument(minFraction <= maxFraction,
@@ -41,6 +44,8 @@ class CartesianProductVertexManagerConfig extends CartesianProductConfig {
         maxFraction  + ") in cartesian product slow start");
     this.minFraction = minFraction;
     this.maxFraction = maxFraction;
+    this.enableAutoGrouping = enableAutoGrouping;
+    this.desiredBytesPerGroup = desiredBytesPerGroup;
   }
 
   public float getMinFraction() {
@@ -69,7 +74,20 @@ class CartesianProductVertexManagerConfig extends CartesianProductConfig {
     }
     float minFraction = proto.getMinFraction();
     float maxFraction = proto.getMaxFraction();
+
+    boolean enableAutoGrouping = proto.hasEnableAutoGrouping() ? proto.getEnableAutoGrouping()
+      : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT;
+    long desiredBytesPerGroup = proto.hasDesiredBytesPerGroup() ? proto.getDesiredBytesPerGroup()
+      : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP_DEFAULT;
     return new CartesianProductVertexManagerConfig(isPartitioned, sourceVertices, numPartitions,
-      minFraction, maxFraction, filterDescriptor);
+      minFraction, maxFraction, enableAutoGrouping, desiredBytesPerGroup, filterDescriptor);
+  }
+
+  public boolean isEnableAutoGrouping() {
+    return enableAutoGrouping;
+  }
+
+  public long getDesiredBytesPerGroup() {
+    return desiredBytesPerGroup;
   }
 }

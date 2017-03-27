@@ -32,6 +32,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       params: query,
       urlParams: urlParams
     }).then(function (record) {
+      that.resetAllNeeds(loader, record, options);
       return that._loadAllNeeds(loader, record, options, urlParams);
     });
   },
@@ -44,6 +45,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       urlParams: urlParams
     }).then(function (records) {
       return Ember.RSVP.all(records.map(function (record) {
+        that.resetAllNeeds(loader, record, options);
         return that._loadAllNeeds(loader, record, options, urlParams);
       })).then(function () {
        return records;
@@ -55,7 +57,7 @@ var Entity = Ember.Object.extend(NameMixin, {
     var need = {
       name: name,
       type: name,
-      idKey: needOptions,
+      idKey: "",
 
       loadType: "", // Possible values lazy, demand
       silent: false,
@@ -66,8 +68,6 @@ var Entity = Ember.Object.extend(NameMixin, {
     overrides = {};
 
     if(typeof needOptions === 'object') {
-      Ember.assert(`idKey not defined for need '${name}'!`, needOptions.idKey);
-
       if(MoreObject.isFunction(needOptions.urlParams)) {
         overrides.urlParams = needOptions.urlParams.call(needOptions, parentModel);
       }
@@ -75,7 +75,17 @@ var Entity = Ember.Object.extend(NameMixin, {
         overrides.queryParams = needOptions.queryParams.call(needOptions, parentModel);
       }
 
+      overrides.idKey = needOptions.idKey;
+
       overrides = Ember.Object.create({}, needOptions, overrides);
+    }
+    else if(typeof needOptions === 'string') {
+      overrides.idKey = needOptions;
+    }
+
+    if(typeof overrides.idKey === 'string') {
+      overrides.withID = true;
+      overrides.id = parentModel.get(overrides.idKey);
     }
 
     if(queryParams) {
@@ -86,6 +96,14 @@ var Entity = Ember.Object.extend(NameMixin, {
     }
 
     return Ember.Object.create(need, overrides);
+  },
+
+  setNeed: function (parentModel, name, model) {
+    if(!parentModel.get("isDeleted")) {
+      parentModel.set(name, model);
+      parentModel.refreshLoadTime();
+    }
+    return parentModel;
   },
 
   _loadNeed: function (loader, parentModel, needOptions, options, index) {
@@ -101,17 +119,26 @@ var Entity = Ember.Object.extend(NameMixin, {
     index = index || 0;
     type = types[index];
 
-    needLoader = loader.queryRecord(
-      type,
-      parentModel.get(needOptions.idKey),
-      options,
-      needOptions.queryParams,
-      needOptions.urlParams
-    );
+    if(needOptions.withID) {
+      needLoader = loader.queryRecord(
+        type,
+        needOptions.id,
+        options,
+        needOptions.queryParams,
+        needOptions.urlParams
+      );
+    }
+    else {
+      needLoader = loader.query(
+        type,
+        needOptions.queryParams,
+        options,
+        needOptions.urlParams
+      );
+    }
 
     needLoader = needLoader.then(function (model) {
-      parentModel.set(needOptions.name, model);
-      parentModel.refreshLoadTime();
+      that.setNeed(parentModel, needOptions.name, model);
       return model;
     });
 
@@ -121,8 +148,7 @@ var Entity = Ember.Object.extend(NameMixin, {
       }
 
       if(needOptions.silent) {
-        parentModel.set(needOptions.name, null);
-        parentModel.refreshLoadTime();
+        that.setNeed(parentModel, needOptions.name, null);
       }
       else {
         throw(err);
@@ -161,6 +187,10 @@ var Entity = Ember.Object.extend(NameMixin, {
       MoreObject.forEach(needs, function (name, needOptions) {
         needOptions = that.normalizeNeed(name, needOptions, parentModel, queryParams, urlParams);
 
+        if(MoreObject.isFunction(needOptions.loadType)) {
+          needOptions.loadType = needOptions.loadType.call(needOptions, parentModel);
+        }
+
         if(needOptions.loadType !== "demand") {
           let needLoader = that._loadNeed(loader, parentModel, needOptions, options);
 
@@ -176,6 +206,19 @@ var Entity = Ember.Object.extend(NameMixin, {
     }
   },
 
+  resetAllNeeds: function (loader, parentModel/*, options*/) {
+    var needs = parentModel.get("needs"),
+        that = this;
+
+    if(needs) {
+      MoreObject.forEach(needs, function (name, needOptions) {
+        needOptions = that.normalizeNeed(name, needOptions, parentModel);
+        that.setNeed(parentModel, needOptions.name, null);
+      });
+    }
+
+    return parentModel;
+  },
 });
 
 export default Entity;

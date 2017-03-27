@@ -57,6 +57,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   private boolean historyLoggingEnabled = true;
   private Configuration conf;
   private String containerLogs;
+  private String queueName;
 
   public DAGSubmittedEvent() {
   }
@@ -64,7 +65,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
       DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
       Map<String, LocalResource> cumulativeAdditionalLocalResources,
-      String user, Configuration conf, String containerLogs) {
+      String user, Configuration conf, String containerLogs, String queueName) {
     this.dagID = dagID;
     this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
@@ -74,6 +75,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     this.user = user;
     this.conf = conf;
     this.containerLogs = containerLogs;
+    this.queueName = queueName;
   }
 
   @Override
@@ -97,6 +99,9 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
         .setApplicationAttemptId(applicationAttemptId.toString())
         .setDagPlan(dagPlan)
         .setSubmitTime(submitTime);
+    if (queueName != null) {
+      builder.setQueueName(queueName);
+    }
     if (cumulativeAdditionalLocalResources != null && !cumulativeAdditionalLocalResources.isEmpty()) {
       builder.setCumulativeAdditionalAmResources(DagTypeConverters
           .convertFromLocalResources(cumulativeAdditionalLocalResources));
@@ -111,6 +116,9 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     this.submitTime = proto.getSubmitTime();
     this.applicationAttemptId = ConverterUtils.toApplicationAttemptId(
         proto.getApplicationAttemptId());
+    if (proto.hasQueueName()) {
+      this.queueName = proto.getQueueName();
+    }
     if (proto.hasCumulativeAdditionalAmResources()) {
       this.cumulativeAdditionalLocalResources = DagTypeConverters.convertFromPlanLocalResources(proto
           .getCumulativeAdditionalAmResources());
@@ -134,7 +142,8 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public String toString() {
     return "dagID=" + dagID
-        + ", submitTime=" + submitTime;
+        + ", submitTime=" + submitTime
+        + ", queueName=" + queueName;
   }
 
   @Override
@@ -202,5 +211,9 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public String getContainerLogs() {
     return containerLogs;
+  }
+
+  public String getQueueName() {
+    return queueName;
   }
 }

@@ -20,22 +20,97 @@ import Ember from 'ember';
 
 import TimelineSerializer from './timeline';
 
+function getEndTime(source) {
+  var time = Ember.get(source, 'otherinfo.endTime'),
+      event = source.events;
+
+  if(!time && event) {
+    event = event.findBy('eventtype', 'QUERY_COMPLETED');
+    if(event) {
+      time = event.timestamp;
+    }
+  }
+
+  return time;
+}
+
+function getStatus(source) {
+  var status = Ember.get(source, 'otherinfo.STATUS');
+
+  switch(status) {
+    case true:
+      return "SUCCEEDED";
+    case false:
+      return "FAILED";
+    default:
+      return "RUNNING";
+  }
+}
+
 export default TimelineSerializer.extend({
   maps: {
-    queryText: 'queryText',
+    queryText: 'otherinfo.QUERY.queryText',
+
+    sessionID: 'otherinfo.INVOKER_INFO',
+    operationID: 'primaryfilters.operationid.0',
+    llapAppID: 'otherinfo.LLAP_APP_ID',
+
+    instanceType: 'otherinfo.HIVE_INSTANCE_TYPE',
+    executionMode: 'primaryfilters.executionmode.0',
+
+    domain: 'domain',
+    threadName: 'otherinfo.THREAD_NAME',
+    queue: 'primaryfilters.queue.0',
+    version: 'otherinfo.VERSION',
+
+    hiveAddress: 'otherinfo.HIVE_ADDRESS',
+    clientAddress: 'otherinfo.CLIENT_IP_ADDRESS',
+
+    user: 'primaryfilters.user.0',
+    requestUser: 'primaryfilters.requestuser.0',
+
+    tablesRead: 'primaryfilters.tablesread',
+    tablesWritten: 'primaryfilters.tableswritten',
+
+    status: getStatus,
+
+    configsJSON: "otherinfo.CONF",
+
+    startTime: 'starttime',
+    endTime: getEndTime,
+
+    perf: "otherinfo.PERF"
   },
 
   extractAttributes: function (modelClass, resourceHash) {
     var data = resourceHash.data,
-        query = Ember.get(resourceHash, "data.otherinfo.QUERY");
+        query = Ember.get(resourceHash, "data.otherinfo.QUERY"),
+        perf = Ember.get(resourceHash, "data.otherinfo.PERF");
 
     if(query) {
-      let queryObj = {};
       try{
-        queryObj = JSON.parse(query);
+        data.otherinfo.QUERY = JSON.parse(query);
       }catch(e){}
+    }
 
-      data.queryText = Ember.get(queryObj, "queryText");
+    if(!data.otherinfo.CLIENT_IP_ADDRESS) {
+      data.otherinfo.CLIENT_IP_ADDRESS = data.otherinfo.HIVE_ADDRESS;
+    }
+
+    if(perf) {
+      try{
+        let PERF = JSON.parse(perf);
+        PERF["PostATSHook"] = PERF["PostHook.org.apache.hadoop.hive.ql.hooks.ATSHook"];
+        data.otherinfo.PERF = PERF;
+      }catch(e){}
+    }
+
+    data.primaryfilters = data.primaryfilters || {};
+    if(!Ember.get(data, "primaryfilters.tablesread.length")) {
+      data.primaryfilters.tablesread = new Error("None");
+    }
+    if(!Ember.get(data, "primaryfilters.tableswritten.length")) {
+      data.primaryfilters.tableswritten = new Error("None");
     }
 
     return this._super(modelClass, resourceHash);

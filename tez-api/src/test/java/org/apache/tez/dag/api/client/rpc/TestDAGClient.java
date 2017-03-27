@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -200,8 +201,10 @@ public class TestDAGClient {
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithoutCounters).build());
     when(mockProxy.getVertexStatus(isNull(RpcController.class), argThat(new VertexCounterRequestMatcher())))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithCounters).build());
-   
-    dagClient = new DAGClientImpl(mockAppId, dagIdStr, new TezConfiguration(), null);
+
+    TezConfiguration tezConf = new TezConfiguration();
+    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
+    dagClient = new DAGClientImpl(mockAppId, dagIdStr, tezConf,  yarnConf, null);
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     realClient.appReport = mockAppReport;
     realClient.proxy = mockProxy;
@@ -210,6 +213,8 @@ public class TestDAGClient {
   @Test(timeout = 5000)
   public void testApp() throws IOException, TezException, ServiceException{
     assertTrue(dagClient.getExecutionContext().contains(mockAppId.toString()));
+    assertEquals(mockAppId.toString(), dagClient.getSessionIdentifierString());
+    assertEquals(dagIdStr, dagClient.getDagIdentifierString());
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     assertEquals(mockAppReport, realClient.getApplicationReportInternal());
   }
@@ -335,8 +340,10 @@ public class TestDAGClient {
 
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800l);
+    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
 
-    DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null);
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf,
+        yarnConf,null);
     DAGClientRPCImplForTest dagClientRpc =
         new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
     dagClient.setRealClient(dagClientRpc);
@@ -417,12 +424,14 @@ public class TestDAGClient {
                                      String loggingClass, boolean amHistoryLoggingEnabled,
                                      boolean dagHistoryLoggingEnabled) {
     TezConfiguration tezConf = new TezConfiguration();
+    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
 
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, loggingClass);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED, amHistoryLoggingEnabled);
     tezConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, dagHistoryLoggingEnabled);
 
-    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf, null);
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf,
+        yarnConf,null);
     assertEquals(expected, dagClient.getIsATSEnabled());
   }
 
@@ -466,10 +475,10 @@ public class TestDAGClient {
     private DAGStatus rmDagStatus;
     int numGetStatusViaRmInvocations = 0;
 
-    public DAGClientImplForTest(ApplicationId appId, String dagId,
-                                TezConfiguration conf,
-                                @Nullable FrameworkClient frameworkClient) {
-      super(appId, dagId, conf, frameworkClient);
+    public DAGClientImplForTest(ApplicationId appId, String dagId, TezConfiguration conf,
+        YarnConfiguration yarnConf,
+        @Nullable FrameworkClient frameworkClient) {
+      super(appId, dagId, conf, yarnConf, frameworkClient);
     }
 
     private void setRealClient(DAGClientRPCImplForTest dagClientRpcImplForTest) {

@@ -768,9 +768,11 @@ public class TaskSchedulerManager extends AbstractService implements
       int schedulerId,
       Resource maxContainerCapability,
       Map<ApplicationAccessType, String> appAcls, 
-      ByteBuffer clientAMSecretKey) {
+      ByteBuffer clientAMSecretKey,
+      String queueName) {
     this.appContext.getClusterInfo().setMaxContainerCapability(
         maxContainerCapability);
+    this.appContext.setQueueName(queueName);
     this.appAcls = appAcls;
     this.clientService.setClientAMSecretKey(clientAMSecretKey);
   }
@@ -988,9 +990,17 @@ public class TaskSchedulerManager extends AbstractService implements
           .replaceAll(HISTORY_URL_BASE, historyUrlBase)
           .replaceAll("([^:])/{2,}", "$1/");
 
-      // make sure we have a valid scheme
-      if (!historyUrl.startsWith("http")) {
-        historyUrl = "http://" + historyUrl;
+      // FIXME: we should not need this check in the first place.
+      // Might be better to remove it in the next release and not fix badly configured URLs.
+      boolean checkSchemePrefix = config.getBoolean(
+          TezConfiguration.TEZ_AM_UI_HISTORY_URL_SCHEME_CHECK_ENABLED,
+          TezConfiguration.TEZ_AM_UI_HISTORY_URL_SCHEME_CHECK_ENABLED_DEFAULT);
+
+      if (checkSchemePrefix) {
+        // make sure we have a valid scheme
+        if (!historyUrl.startsWith("http")) {
+          historyUrl = "http://" + historyUrl;
+        }
       }
     }
 

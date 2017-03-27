@@ -54,6 +54,7 @@ message DAGSubmittedProto {
   optional int64 submit_time = 3;
   optional string application_attempt_id = 4;
   optional PlanLocalResourcesProto cumulative_additional_am_resources = 5;
+  optional string queue_name = 6;
 }
 
 message DAGInitializedProto {

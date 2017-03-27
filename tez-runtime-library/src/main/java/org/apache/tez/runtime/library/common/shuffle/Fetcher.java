@@ -940,11 +940,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           ShuffleUtils.shuffleToMemory(((MemoryFetchedInput) fetchedInput).getBytes(),
               input, (int) decompressedLength, (int) compressedLength, codec,
               ifileReadAhead, ifileReadAheadLength, LOG,
-              fetchedInput.getInputAttemptIdentifier().toString());
+              fetchedInput.getInputAttemptIdentifier());
         } else if (fetchedInput.getType() == Type.DISK) {
           ShuffleUtils.shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
               (host + ":" + port), input, compressedLength, decompressedLength, LOG,
-              fetchedInput.getInputAttemptIdentifier().toString(),
+              fetchedInput.getInputAttemptIdentifier(),
               ifileReadAhead, ifileReadAheadLength, verifyDiskChecksum);
         } else {
           throw new TezUncheckedException("Bad fetchedInput type while fetching shuffle data " +

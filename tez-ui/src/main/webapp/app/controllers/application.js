@@ -19,8 +19,8 @@
 import Ember from 'ember';
 
 const BREADCRUMB_PREFIX = [{
-  text: "All DAGs",
-  routeName: 'application'
+  text: "Home",
+  routeName: "application"
 }];
 
 export default Ember.Controller.extend({

@@ -27,6 +27,7 @@ export default Ember.Component.extend({
   status: Ember.computed.oneWay("tableDefinition.status"),
   appID: Ember.computed.oneWay("tableDefinition.appID"),
   callerID: Ember.computed.oneWay("tableDefinition.callerID"),
+  queue: Ember.computed.oneWay("tableDefinition.queue"),
 
   sendSearch: function () {
     this.get('parentView').sendAction('search', {
@@ -36,6 +37,7 @@ export default Ember.Component.extend({
       status: this.get("status"),
       appID: this.get("appID"),
       callerID: this.get("callerID"),
+      queue: this.get("queue"),
     });
   },
 

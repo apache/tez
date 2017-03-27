@@ -35,6 +35,8 @@ test('Basic creation test', function(assert) {
   assert.ok(serializer.maps.endTime);
   assert.ok(serializer.maps.containerLogs);
   assert.ok(serializer.maps.vertexIdNameMap);
+
+  assert.equal(Object.keys(serializer.get("maps")).length, 18 + 5); //18 own & 7 inherited
 });
 
 test('atsStatus test', function(assert) {

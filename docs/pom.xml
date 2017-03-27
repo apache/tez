@@ -176,6 +176,15 @@
         </roles>
       </developer>
       <developer>
+        <id>harishjp</id>
+        <name>Harish JP</name>
+        <email>harishjp@apache.org</email>
+        <timezone>+5.5</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+      </developer>
+      <developer>
         <id>hitesh</id>
         <name>Hitesh Shah</name>
         <email>hitesh@apache.org</email>
@@ -380,6 +389,15 @@
         <timezone>-8</timezone>
         <roles>
           <role>PMC</role>
+        </roles>
+      </developer>
+      <developer>
+        <id>zhiyuany</id>
+        <name>Zhiyuan Yang</name>
+        <email>zhiyuany@apache.org</email>
+        <timezone>-8</timezone>
+        <roles>
+          <role>Committer</role>
         </roles>
       </developer>
       <developer>

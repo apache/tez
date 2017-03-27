@@ -16,27 +16,10 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs autoRefreshVisible=false loadTime=loadTime}}
-
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
-
-    classNames="all-dags-table"
-
-    headerComponentNames=headerComponentNames
-
-    definition=definition
-    enableSort=false
-
-    rowAction="rowCountChanged"
-
-    search="search"
-    loadPage="loadPage"
-    reload="reload"
-  }}
+{{#if content}}
+  <a href="javascript:void(0);" {{action "click"}}>View</a>
+  &nbsp;
+  <a href="javascript:void(0);" {{action "click" true}}>Download</a>
 {{else}}
-  {{partial "loading"}}
+  <span class="txt-message">Not Available!</span>
 {{/if}}

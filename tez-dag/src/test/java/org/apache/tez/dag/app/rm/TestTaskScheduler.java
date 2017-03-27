@@ -150,7 +150,8 @@ public class TestTaskScheduler {
     RegisterApplicationMasterResponse regResponse = mockRMClient.getRegistrationResponse();
     verify(mockApp).setApplicationRegistrationData(regResponse.getMaximumResourceCapability(),
                                                    regResponse.getApplicationACLs(),
-                                                   regResponse.getClientToAMTokenMasterKey());
+                                                   regResponse.getClientToAMTokenMasterKey(),
+                                                   regResponse.getQueue());
 
     Assert.assertEquals(scheduler.getClusterNodeCount(), mockRMClient.getClusterNodeCount());
 

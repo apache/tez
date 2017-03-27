@@ -24,7 +24,9 @@ const Router = Ember.Router.extend({
 });
 
 Router.map(function() {
-  this.route('dags', { path: '/' });
+  this.route('home', {path: '/'}, function() {
+    this.route('queries');
+  });
   this.route('dag', {path: '/dag/:dag_id'}, function() {
     this.route('vertices');
     this.route('tasks');
@@ -47,14 +49,20 @@ Router.map(function() {
   this.route('attempt', {path: '/attempt/:attempt_id'}, function () {
     this.route('counters');
   });
+  this.route('query', {path: '/query/:query_id'}, function() {
+    this.route('configs');
+    this.route('timeline');
+  });
+
   // Alias for backward compatibility with Tez UI V1
-  this.route('app', {path: '/tez-app/:app_id'}, function () {});
+  this.route('app', {path: '/tez-app/:app_id'}, function () {
+    this.route('dags');
+    this.route('configs');
+  });
   this.route('app', {path: '/app/:app_id'}, function () {
     this.route('dags');
     this.route('configs');
   });
-  this.route('multi-am-pollster');
-  this.route('single-am-pollster');
 });
 
 export default Router;

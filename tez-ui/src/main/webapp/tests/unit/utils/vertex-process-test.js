@@ -220,6 +220,9 @@ test('getTooltipContents-event test', function(assert) {
 });
 
 test('getTooltipContents-process test', function(assert) {
+  function getCellContent(row) {
+    return row.get(this.get("contentPath"));
+  }
   var process = VertexProcess.create({
     name: "TestName",
     vertex: Ember.Object.create({
@@ -231,21 +234,41 @@ test('getTooltipContents-process test', function(assert) {
       return [Ember.Object.create({
         id: "prop1",
         headerTitle: "Prop 1",
-        contentPath: "prop1"
+        contentPath: "prop1",
+        getCellContent: getCellContent,
+        cellDefinition: {
+          type: "Type1",
+          format: "Format1"
+        }
       }), Ember.Object.create({
         id: "prop2",
         headerTitle: "Prop 2",
-        contentPath: "prop2"
+        contentPath: "prop2",
+        getCellContent: getCellContent
       })];
     }
   });
 
   var processTooltip = process.getTooltipContents("event-bar")[0];
   assert.equal(processTooltip.title, "TestName");
-  assert.notOk(processTooltip.properties);
+  assert.equal(processTooltip.properties[0].name, "Prop 1");
+  assert.equal(processTooltip.properties[0].value, "val1");
+  assert.equal(processTooltip.properties[0].type, "Type1");
+  assert.equal(processTooltip.properties[0].format, "Format1");
+  assert.equal(processTooltip.properties[1].name, "Prop 2");
 
   processTooltip = process.getTooltipContents("process-line")[0];
   assert.equal(processTooltip.title, "TestName");
-  assert.notOk(processTooltip.properties);
+  assert.equal(processTooltip.properties[0].name, "Prop 1");
+  assert.equal(processTooltip.properties[0].value, "val1");
+  assert.equal(processTooltip.properties[0].type, "Type1");
+  assert.equal(processTooltip.properties[0].format, "Format1");
+  assert.equal(processTooltip.properties[1].name, "Prop 2");
+
+  processTooltip = process.getTooltipContents("consolidated-process", {
+    contribution: 10
+  })[0];
+  assert.equal(processTooltip.title, "TestName");
+  assert.equal(processTooltip.description, "Contribution 10%");
 
 });

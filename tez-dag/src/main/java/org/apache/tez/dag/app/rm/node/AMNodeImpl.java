@@ -19,6 +19,8 @@
 package org.apache.tez.dag.app.rm.node;
 
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
+import org.apache.tez.dag.app.dag.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -60,20 +63,19 @@ public class AMNodeImpl implements AMNode {
   private boolean blacklistingEnabled;
   private boolean ignoreBlacklisting = false;
   private boolean nodeUpdatesRescheduleEnabled;
-  private Set<TezTaskAttemptID> failedAttemptIds = Sets.newHashSet();
+  private final Set<TezTaskAttemptID> failedAttemptIds = Sets.newHashSet();
 
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
 
   @VisibleForTesting
-  final List<ContainerId> containers = new LinkedList<ContainerId>();
+  final Set<ContainerId> containers = new LinkedHashSet<>();
+  final Set<ContainerId> completedContainers = new HashSet<>();
   int numFailedTAs = 0;
   int numSuccessfulTAs = 0;
-  
-  //Book-keeping only. In case of Health status change.
-  private final List<ContainerId> pastContainers = new LinkedList<ContainerId>();
 
-
+  private static final ContainerCompletedTransition CONTAINER_COMPLETED_TRANSITION =
+      new ContainerCompletedTransition();
 
   private final StateMachine<AMNodeState, AMNodeEventType, AMNodeEvent> stateMachine;
 
@@ -103,6 +105,8 @@ public class AMNodeImpl implements AMNode {
           new IgnoreBlacklistingStateChangeTransition(true))
       .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
           AMNodeEventType.N_TURNED_HEALTHY)
+      .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
+          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
 
       // Transitions from BLACKLISTED state.
       .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
@@ -120,6 +124,8 @@ public class AMNodeImpl implements AMNode {
       .addTransition(AMNodeState.BLACKLISTED, AMNodeState.FORCED_ACTIVE,
           AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
           new IgnoreBlacklistingStateChangeTransition(true))
+      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(
           AMNodeState.BLACKLISTED,
           AMNodeState.BLACKLISTED,
@@ -142,6 +148,8 @@ public class AMNodeImpl implements AMNode {
           EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
           AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
           new IgnoreBlacklistingDisabledTransition())
+      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
+          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(
           AMNodeState.FORCED_ACTIVE,
           AMNodeState.FORCED_ACTIVE,
@@ -167,6 +175,8 @@ public class AMNodeImpl implements AMNode {
       .addTransition(AMNodeState.UNHEALTHY,
           EnumSet.of(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE),
           AMNodeEventType.N_TURNED_HEALTHY, new NodeTurnedHealthyTransition())
+      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
           AMNodeEventType.N_TURNED_UNHEALTHY, new GenericErrorTransition())
 
@@ -259,7 +269,6 @@ public class AMNodeImpl implements AMNode {
       sendEvent(new AMContainerEventNodeFailed(c, "Node blacklisted"));
     }
     // these containers are not useful anymore
-    pastContainers.addAll(containers);
     containers.clear();
     sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true, schedulerId));
   }
@@ -295,9 +304,9 @@ public class AMNodeImpl implements AMNode {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       AMNodeEventTaskAttemptEnded event = (AMNodeEventTaskAttemptEnded) nEvent;
-      LOG.info("Attempt failed on node: " + node.getNodeId() + " TA: "
-          + event.getTaskAttemptId() + " failed: " + event.failed()
-          + " container: " + event.getContainerId() + " numFailedTAs: "
+      LOG.info("Attempt " + (event.failed() ? "failed" : "killed") + "on node: " + node.getNodeId()
+          + " TA: " + event.getTaskAttemptId()
+          + ", container: " + event.getContainerId() + ", numFailedTAs: "
           + node.numFailedTAs);
       if (event.failed()) {
         // ignore duplicate attempt ids
@@ -381,8 +390,6 @@ public class AMNodeImpl implements AMNode {
       AMNodeEventContainerAllocated event = (AMNodeEventContainerAllocated) nEvent;
       node.sendEvent(new AMContainerEvent(event.getContainerId(),
           AMContainerEventType.C_STOP_REQUEST));
-      // ZZZ CReuse: Should the scheduler check node state before scheduling a
-      // container on it ?
     }
   }
 
@@ -434,13 +441,23 @@ public class AMNodeImpl implements AMNode {
       MultipleArcTransition<AMNodeImpl, AMNodeEvent, AMNodeState> {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
-      node.pastContainers.addAll(node.containers);
       node.containers.clear();
       if (node.ignoreBlacklisting) {
         return AMNodeState.FORCED_ACTIVE;
       } else {
         return AMNodeState.ACTIVE;
       }
+    }
+  }
+
+  protected static class ContainerCompletedTransition
+      implements SingleArcTransition<AMNodeImpl, AMNodeEvent> {
+
+    @Override
+    public void transition(AMNodeImpl amNode, AMNodeEvent amNodeEvent) {
+      AMNodeEventContainerCompleted cc =
+          (AMNodeEventContainerCompleted) amNodeEvent;
+      amNode.completedContainers.add(cc.getContainerId());
     }
   }
 
@@ -467,5 +484,29 @@ public class AMNodeImpl implements AMNode {
   @Override
   public boolean isUsable() {
     return !(isUnhealthy() || isBlacklisted());
+  }
+
+  @Override
+  public void dagComplete(DAG dag) {
+    this.writeLock.lock();
+    try {
+      int countBefore = containers.size();
+      int countCompleted = completedContainers.size();
+
+
+      // Actual functionality.
+      containers.removeAll(completedContainers);
+      completedContainers.clear();
+
+      int countAfter = containers.size();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Node {}, cleaning up knownContainers. current={}, completed={}, postCleanup={}",
+            getNodeId(), countBefore, countCompleted, countAfter);
+      }
+
+    } finally {
+      this.writeLock.unlock();
+    }
   }
 }

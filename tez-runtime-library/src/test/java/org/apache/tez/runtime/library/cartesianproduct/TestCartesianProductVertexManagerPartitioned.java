@@ -69,13 +69,16 @@ public class TestCartesianProductVertexManagerPartitioned {
     setupWithConfig(
       new CartesianProductVertexManagerConfig(true, new String[]{"v0","v1"}, new int[] {2, 2},
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT, null));
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT,
+        false, 0, null));
   }
 
   private void setupWithConfig(CartesianProductVertexManagerConfig config)
     throws TezReflectionException {
     MockitoAnnotations.initMocks(this);
     context = mock(VertexManagerPluginContext.class);
+    when(context.getVertexName()).thenReturn("cp");
+    when(context.getVertexNumTasks("cp")).thenReturn(-1);
     vertexManager = new CartesianProductVertexManagerPartitioned(context);
     Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
     edgePropertyMap.put("v0", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
@@ -116,10 +119,10 @@ public class TestCartesianProductVertexManagerPartitioned {
   public void testReconfigureVertex() throws Exception {
     testReconfigureVertexHelper(
       new CartesianProductVertexManagerConfig(true, new String[]{"v0", "v1"}, new int[] {5, 5}, 0,
-        0, new CartesianProductFilterDescriptor(TestFilter.class.getName())), 10);
+        0, false, 0, new CartesianProductFilterDescriptor(TestFilter.class.getName())), 10);
     testReconfigureVertexHelper(
       new CartesianProductVertexManagerConfig(true, new String[]{"v0", "v1"}, new int[] {5, 5}, 0,
-        0, null), 25);
+        0, false, 0, null), 25);
   }
 
   @Test(timeout = 5000)

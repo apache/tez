@@ -152,6 +152,17 @@
     </table>
   {{/if}}
 
+  {{#if model.description}}
+    <div class="panel panel-info">
+      <div class="panel-heading">
+        Description
+      </div>
+      <div class="panel-body">
+        {{{model.description}}}
+      </div>
+    </div>
+  {{/if}}
+
   {{#if model.diagnostics}}
     <div class="panel panel-danger">
       <div class="panel-heading">

@@ -76,6 +76,22 @@
           {{/if}}
         </td>
       </tr>
+      <tr>
+        <td>Container Logs</td>
+        <td>
+          {{#if model.containerLogURL}}
+            <a href={{model.containerLogURL}} target="_blank">
+              <i class="fa fa-file-o" aria-hidden="true"></i> View
+            </a>
+            &nbsp;
+            <a href={{model.containerLogURL}} target="_blank" download>
+              <i class="fa fa-download" aria-hidden="true"></i> Download
+            </a>
+          {{else}}
+              <span class="txt-message">Not Available!</span>
+          {{/if}}
+        </td>
+      </tr>
     </tbody>
   </table>
 

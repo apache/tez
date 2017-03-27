@@ -112,6 +112,8 @@ public class TestPipelinedShuffle {
     //set to low value so that it can detect failures quickly
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
 
+    conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
+
     miniTezCluster = new MiniTezCluster(TestPipelinedShuffle.class.getName(), 1, 1, 1);
 
     miniTezCluster.init(conf);

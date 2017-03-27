@@ -27,10 +27,10 @@ test('Basic creation test', function(assert) {
   let serializer = this.subject();
 
   assert.ok(serializer);
-  assert.ok(serializer.maps.logURL);
+  assert.equal(Object.keys(serializer.maps).length, 8 + 8);
 });
 
-test('logURL test', function(assert) {
+test('containerLogURL test', function(assert) {
   let serializer = this.subject({
     env: {
       app: {
@@ -39,10 +39,9 @@ test('logURL test', function(assert) {
     }
   });
 
-  assert.equal(serializer.maps.logURL.call(serializer, {
-    entity: "id_1",
+  assert.equal(serializer.maps.containerLogURL.call(serializer, {
     otherinfo: {
       inProgressLogsURL: "abc.com/test/link",
     }
-  }), "ptcl://abc.com/test/link/syslog_id_1");
+  }), "ptcl://abc.com/test/link");
 });

@@ -18,11 +18,11 @@
 
 import Ember from 'ember';
 
-import AbstractRoute from './abstract';
+import ServerSideOpsRoute from '../server-side-ops';
 
 const REFRESH = {refreshModel: true};
 
-export default AbstractRoute.extend({
+export default ServerSideOpsRoute.extend({
   title: "All DAGs",
 
   queryParams: {
@@ -32,24 +32,25 @@ export default AbstractRoute.extend({
     status: REFRESH,
     appID: REFRESH,
     callerID: REFRESH,
+    queue: REFRESH,
 
     rowCount: REFRESH
   },
 
   loaderQueryParams: {
     dagName: "dagName",
-    dagID: "dagID",
+    id: "dagID",
     user: "submitter",
     status: "status",
     appID: "appID",
     callerID: "callerID",
+    queueName: "queue",
 
     limit: "rowCount",
   },
 
+  entityType: "dag",
   loaderNamespace: "dags",
-
-  fromId: null,
 
   setupController: function (controller, model) {
     this._super(controller, model);
@@ -60,11 +61,12 @@ export default AbstractRoute.extend({
   filterRecords: function (records, query) {
     query = {
       name: query.dagName,
-      entityID: query.dagID,
+      entityID: query.id,
       submitter: query.submitter,
       status: query.status,
       appID: query.appID,
-      callerID: query.callerID
+      callerID: query.callerID,
+      queue: query.queueName
     };
 
     return records.filter(function (record) {
@@ -77,42 +79,17 @@ export default AbstractRoute.extend({
     });
   },
 
-  load: function (value, query/*, options*/) {
-    var loader,
-        that = this,
-        limit = this.get("controller.rowCount") || query.limit;
-
-    if(query.dagID) {
-      that.set("loadedRecords", []);
-      loader = this.get("loader").queryRecord('dag', query.dagID, {reload: true}).then(function (record) {
-        return [record];
-      },function () {
-        return [];
-      });
-    }
-    else {
-      query = Ember.$.extend({}, query, {
-        limit: limit + 1
-      });
-      loader = this.get("loader").query('dag', query, {reload: true});
-    }
-
+  load: function (value, query, options) {
+    var loader = this._super(value, query, options),
+        that = this;
     return loader.then(function (records) {
-
-      if(records.get("length") > limit) {
-        let lastRecord = records.popObject();
-        that.set("controller.moreAvailable", true);
-        that.set("fromId", lastRecord.get("entityID"));
-      }
-      else {
-        that.set("controller.moreAvailable", false);
-      }
-
       records = that.filterRecords(records, query);
       records.forEach(function (record) {
         if(record.get("status") === "RUNNING") {
           that.get("loader").loadNeed(record, "am", {reload: true}).catch(function () {
-            record.set("am", null);
+            if(!record.get("isDeleted")) {
+              record.set("am", null);
+            }
           });
         }
       });
@@ -120,52 +97,11 @@ export default AbstractRoute.extend({
     });
   },
 
-  loadNewPage: function () {
-    var query = this.get("currentQuery"),
-        that = this;
-
-    query = Ember.$.extend({}, query, {
-      fromId: this.get("fromId")
-    });
-
-    this.set("controller.loadingMore", true);
-    return this.load(null, query).then(function (data) {
-      if(that.get("controller.loadingMore")) {
-        that.set("controller.loadingMore", false);
-        that.get("loadedValue").pushObjects(data);
-        return data;
-      }
-    });
-  },
-
   actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    },
-    loadPage: function (page) {
-      var that = this;
-      if(this.get("controller.moreAvailable") && !this.get("controller.loadingMore")) {
-        this.send("resetTooltip");
-        this.loadNewPage().then(function (data) {
-          if(data) {
-            that.set("controller.pageNum", page);
-          }
-          return data;
-        });
-      }
-    },
-    reload: function () {
-      this.set("controller.loadingMore", false);
-      this.set("controller.pageNum", 1);
-      this._super();
-    },
     willTransition: function () {
       var loader = this.get("loader");
       loader.unloadAll("dag");
       loader.unloadAll("ahs-app");
-
-      this.set("controller.pageNum", 1);
-
       this._super();
     },
   }

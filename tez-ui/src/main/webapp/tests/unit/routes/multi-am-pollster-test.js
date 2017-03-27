@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:multi-am-pollster', 'Unit | Route | multi am pollster', {
@@ -29,4 +30,47 @@ test('Basic creation test', function(assert) {
   assert.ok(route);
   assert.ok(route.canPoll);
   assert.ok(route.actions.setPollingRecords);
+});
+
+test('canPoll test', function(assert) {
+  let record = Ember.Object.create({
+      }),
+      route = this.subject({
+        polling: {
+          resetPoll: function () {}
+        },
+        _canPollObserver: function () {},
+        polledRecords: Ember.A([record]),
+        loadedValue: {}
+      });
+
+  assert.notOk(route.get("canPoll"));
+
+  record.setProperties({
+    app: Ember.Object.create({
+      isComplete: false
+    }),
+    dag: undefined
+  });
+  assert.ok(route.get("canPoll"), true, "Test 1");
+
+  record.set("app.isComplete", true);
+  assert.notOk(route.get("canPoll"), "Test 2");
+
+  record.set("app.isComplete", undefined);
+  assert.notOk(route.get("canPoll"), "Test 3");
+
+  record.set("dag", Ember.Object.create({
+    isComplete: false
+  }));
+  assert.ok(route.get("canPoll"), "Test 4");
+
+  record.set("dag.isComplete", true);
+  assert.notOk(route.get("canPoll"), "Test 5");
+
+  record.set("dag", undefined);
+  assert.notOk(route.get("canPoll"), "Test 6");
+
+  record.set("app.isComplete", false);
+  assert.ok(route.get("canPoll"), "Test 7");
 });

@@ -28,4 +28,6 @@ test('Basic creation test', function(assert) {
 
   assert.ok(serializer);
   assert.ok(serializer.maps);
+
+  assert.equal(Object.keys(serializer.maps).length, 5 + 7); // 5 own and 7 inherited
 });

@@ -195,12 +195,15 @@ export default Process.extend({
         vertexDescription = `Contribution ${options.contribution}%`;
         /* falls through */
       case "process-name":
+      case "event-bar":
+      case "process-line":
         let properties = this.getVisibleProps().map(function (definition) {
           return {
             name: definition.get("headerTitle"),
-            value: that.get("vertex").get(definition.get("contentPath")),
+            value: definition.getCellContent(that.get("vertex")),
             type: Ember.get(definition, "cellDefinition.type"),
-            format: Ember.get(definition, "cellDefinition.format")
+            format: Ember.get(definition, "cellDefinition.format"),
+            componentName: Ember.get(definition, "cellComponentName")
           };
         });
 
@@ -208,12 +211,6 @@ export default Process.extend({
           title: this.get("name"),
           properties: properties,
           description: vertexDescription
-        }];
-      break;
-      case "event-bar":
-      case "process-line":
-        contents = [{
-          title: this.get("name"),
         }];
       break;
       case "event":

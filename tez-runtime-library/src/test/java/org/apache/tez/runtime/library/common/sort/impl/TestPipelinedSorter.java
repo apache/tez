@@ -602,13 +602,13 @@ public class TestPipelinedSorter {
         numOutputs, (128l << 20));
     assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
         sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
     writeData(sorter, 100, 1024*1024, false); //100 1 MB KV. Will spill
 
     //Now it should have created 2 buffers, 32 & 96 MB buffers.
     assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
-    assertTrue(sorter.buffers.get(1).capacity() == 96 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
+    assertTrue(sorter.buffers.get(1).capacity() == 96 * 1024 * 1024 + 64);
     closeSorter(sorter);
     verifyCounters(sorter, outputContext);
 
@@ -620,12 +620,12 @@ public class TestPipelinedSorter {
         .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
     sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (300l << 20));
     assertTrue(sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
 
     writeData(sorter, 50, 1024*1024, false); //50 1 MB KV to allocate 2nd buf
     assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
-    assertTrue(sorter.buffers.get(1).capacity() == 268 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
+    assertTrue(sorter.buffers.get(1).capacity() == 268 * 1024 * 1024 + 64);
 
     //48 MB. Do not pre-allocate.
     // Get 32 MB buffer first invariably and proceed with the rest.
@@ -636,13 +636,13 @@ public class TestPipelinedSorter {
         numOutputs, (48l << 20));
     assertTrue("Expected 1 sort buffers. current len=" + sorter.buffers.size(),
         sorter.buffers.size() == 1);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
     writeData(sorter, 20, 1024*1024, false); //100 1 MB KV. Will spill
 
     //Now it should have created 2 buffers, 32 & 96 MB buffers.
     assertTrue(sorter.buffers.size() == 2);
-    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024);
-    assertTrue(sorter.buffers.get(1).capacity() == 16 * 1024 * 1024);
+    assertTrue(sorter.buffers.get(0).capacity() == 32 * 1024 * 1024 - 64);
+    assertTrue(sorter.buffers.get(1).capacity() == 16 * 1024 * 1024 + 64);
     closeSorter(sorter);
   }
 
