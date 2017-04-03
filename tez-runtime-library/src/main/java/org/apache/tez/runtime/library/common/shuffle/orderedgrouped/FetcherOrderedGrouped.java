@@ -69,6 +69,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final TezCounter wrongReduceErrs;
   private final FetchedInputAllocatorOrderedGrouped allocator;
   private final ShuffleScheduler scheduler;
+  private final ShuffleClientMetrics metrics;
   private final ExceptionReporter exceptionReporter;
   private final int id;
   private final String logIdentifier;
@@ -106,6 +107,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   public FetcherOrderedGrouped(HttpConnectionParams httpConnectionParams,
                                ShuffleScheduler scheduler,
                                FetchedInputAllocatorOrderedGrouped allocator,
+                               ShuffleClientMetrics metrics,
                                ExceptionReporter exceptionReporter, JobTokenSecretManager jobTokenSecretMgr,
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
@@ -128,6 +130,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                boolean verifyDiskChecksum) {
     this.scheduler = scheduler;
     this.allocator = allocator;
+    this.metrics = metrics;
     this.exceptionReporter = exceptionReporter;
     this.mapHost = mapHost;
     this.currentPartition = this.mapHost.getPartitionId();
@@ -166,6 +169,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   @VisibleForTesting
   protected void fetchNext() throws InterruptedException, IOException {
     try {
+      metrics.threadBusy();
+
       if (localDiskFetchEnabled && mapHost.getHost().equals(localShuffleHost) && mapHost.getPort() == localShufflePort) {
         setupLocalDiskFetch(mapHost);
       } else {
@@ -175,6 +180,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     } finally {
       cleanupCurrentConnection(false);
       scheduler.freeHost(mapHost);
+      metrics.threadFree();
     }
   }
 
@@ -518,6 +524,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                               endTime - startTime, mapOutput, false);
       // Note successful shuffle
       remaining.remove(srcAttemptId.toString());
+      metrics.successFetch();
       return null;
     } catch (IOException ioe) {
       if (stopped) {
@@ -555,6 +562,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
       // Inform the shuffle-scheduler
       mapOutput.abort();
+      metrics.failedFetch();
       return new InputAttemptIdentifier[] {srcAttemptId};
     }
   }
@@ -677,11 +685,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           scheduler.copySucceeded(srcAttemptId, host, indexRecord.getPartLength(),
               indexRecord.getRawLength(), (endTime - startTime), mapOutput, true);
           iter.remove();
+          metrics.successFetch();
         } catch (IOException e) {
           if (mapOutput != null) {
             mapOutput.abort();
           }
           if (!stopped) {
+            metrics.failedFetch();
             ioErrs.increment(1);
             scheduler.copyFailed(srcAttemptId, host, true, false, true);
             LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
