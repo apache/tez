@@ -63,7 +63,6 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
@@ -431,11 +430,11 @@ public class ShuffleManager implements FetcherCallback {
 
     // Remove obsolete inputs from the list being given to the fetcher. Also
     // remove from the obsolete list.
-    PartitionToInputs pendingInputsOfOnePartition = inputHost
-        .clearAndGetOnePartition();
+    PartitionToInputs pendingInputsOfOnePartitionRange = inputHost
+        .clearAndGetOnePartitionRange();
     int includedMaps = 0;
     for (Iterator<InputAttemptIdentifier> inputIter =
-        pendingInputsOfOnePartition.getInputs().iterator();
+        pendingInputsOfOnePartitionRange.getInputs().iterator();
             inputIter.hasNext();) {
       InputAttemptIdentifier input = inputIter.next();
 
@@ -467,8 +466,8 @@ public class ShuffleManager implements FetcherCallback {
       if (includedMaps >= maxTaskOutputAtOnce) {
         inputIter.remove();
         //add to inputHost
-        inputHost.addKnownInput(pendingInputsOfOnePartition.getPartition(), pendingInputsOfOnePartition.getPartitionCount(),
-            input);
+        inputHost.addKnownInput(pendingInputsOfOnePartitionRange.getPartition(),
+            pendingInputsOfOnePartitionRange.getPartitionCount(), input);
       } else {
         includedMaps++;
       }
@@ -477,13 +476,13 @@ public class ShuffleManager implements FetcherCallback {
       pendingHosts.add(inputHost); //add it to queue
     }
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
-        pendingInputsOfOnePartition.getPartition(),
-        pendingInputsOfOnePartition.getPartitionCount(),
-            pendingInputsOfOnePartition.getInputs());
+        pendingInputsOfOnePartitionRange.getPartition(),
+        pendingInputsOfOnePartitionRange.getPartitionCount(),
+            pendingInputsOfOnePartitionRange.getInputs());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created Fetcher for host: " + inputHost.getHost()
           + ", info: " + inputHost.getAdditionalInfo()
-          + ", with inputs: " + pendingInputsOfOnePartition);
+          + ", with inputs: " + pendingInputsOfOnePartitionRange);
     }
     return fetcherBuilder.build();
   }

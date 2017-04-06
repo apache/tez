@@ -106,7 +106,7 @@ public class InputHost extends HostPort {
     inputs.add(srcAttempt);
   }
 
-  public synchronized PartitionToInputs clearAndGetOnePartition() {
+  public synchronized PartitionToInputs clearAndGetOnePartitionRange() {
     for (Map.Entry<PartitionRange, BlockingQueue<InputAttemptIdentifier>> entry :
         partitionToInputs.entrySet()) {
       List<InputAttemptIdentifier> inputs =

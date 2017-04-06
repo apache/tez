@@ -177,14 +177,20 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
         this.state = ContainerState.RUNNING;
 
         int shufflePort = TezRuntimeUtils.INVALID_PORT;
-        ByteBuffer portInfo =
-            response.getAllServicesMetaData().get(
-                conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-                    TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
-        if (portInfo != null) {
-          DataInputByteBuffer in = new DataInputByteBuffer();
-          in.reset(portInfo);
-          shufflePort = in.readInt();
+        Map<String, java.nio.ByteBuffer> servicesMetaData = response.getAllServicesMetaData();
+        if (servicesMetaData != null) {
+          String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+              TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+          ByteBuffer portInfo = servicesMetaData.get(auxiliaryService);
+          if (portInfo != null) {
+            DataInputByteBuffer in = new DataInputByteBuffer();
+            in.reset(portInfo);
+            shufflePort = in.readInt();
+          } else {
+            LOG.warn("Shuffle port for {} is not present is the services metadata response", auxiliaryService);
+          }
+        } else {
+          LOG.warn("Shuffle port cannot be found since services metadata response is missing");
         }
 
         deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
