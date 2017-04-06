@@ -96,7 +96,6 @@ public class LocalContainerLauncher extends ContainerLauncher {
   private final boolean isLocalMode;
   int shufflePort = TezRuntimeUtils.INVALID_PORT;
   private DeletionTracker deletionTracker;
-  boolean shouldDelete;
 
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
@@ -161,8 +160,6 @@ public class LocalContainerLauncher extends ContainerLauncher {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
-    shouldDelete = conf.getBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED,
-        TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED_DEFAULT);
     String tezDefaultComponentName =
         isLocalMode ? TezConstants.getTezUberServicePluginName() :
         TezConstants.getTezYarnServicePluginName();
