@@ -61,10 +61,10 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
 
   public ShuffleInputEventHandlerOrderedGrouped(InputContext inputContext,
                                                 ShuffleScheduler scheduler,
-                                                Configuration conf) {
+                                                boolean compositeFetch) {
     this.inputContext = inputContext;
     this.scheduler = scheduler;
-    this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
+    this.compositeFetch = compositeFetch;
     this.inflater = TezCommonUtils.newInflater();
   }
 

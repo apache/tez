@@ -265,14 +265,14 @@ public class ShuffleUtils {
    * @param finalMergeEnabled
    * @param isLastEvent
    * @param pathComponent
-   * @param conf
+   * @param auxiliaryService
    * @param deflater
    * @return ByteBuffer
    * @throws IOException
    */
   static ByteBuffer generateDMEPayload(boolean sendEmptyPartitionDetails,
       int numPhysicalOutputs, TezSpillRecord spillRecord, OutputContext context,
-      int spillId, boolean finalMergeEnabled, boolean isLastEvent, String pathComponent, Configuration conf, Deflater deflater)
+      int spillId, boolean finalMergeEnabled, boolean isLastEvent, String pathComponent, String auxiliaryService, Deflater deflater)
       throws IOException {
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
         .newBuilder();
@@ -301,9 +301,6 @@ public class ShuffleUtils {
 
     if (!sendEmptyPartitionDetails || outputGenerated) {
       String host = context.getExecutionContext().getHostName();
-      String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-          TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
-
       ByteBuffer shuffleMetadata = context
           .getServiceProviderMetaData(auxiliaryService);
       int shufflePort = ShuffleUtils.deserializeShuffleProviderMetaData(shuffleMetadata);
@@ -391,13 +388,13 @@ public class ShuffleUtils {
    * @param numPhysicalOutputs
    * @param pathComponent
    * @param partitionStats
-   * @param conf
+   * @param auxiliaryService
    * @throws IOException
    */
   public static void generateEventOnSpill(List<Event> eventList, boolean finalMergeEnabled,
       boolean isLastEvent, OutputContext context, int spillId, TezSpillRecord spillRecord,
       int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
-      @Nullable long[] partitionStats, boolean reportDetailedPartitionStats, Configuration conf, Deflater deflater)
+      @Nullable long[] partitionStats, boolean reportDetailedPartitionStats, String auxiliaryService, Deflater deflater)
       throws IOException {
     Preconditions.checkArgument(eventList != null, "EventList can't be null");
 
@@ -415,7 +412,7 @@ public class ShuffleUtils {
 
     ByteBuffer payload = generateDMEPayload(sendEmptyPartitionDetails, numPhysicalOutputs,
         spillRecord, context, spillId,
-        finalMergeEnabled, isLastEvent, pathComponent, conf, deflater);
+        finalMergeEnabled, isLastEvent, pathComponent, auxiliaryService, deflater);
 
     if (finalMergeEnabled || isLastEvent) {
       VertexManagerEvent vmEvent = generateVMEvent(context, partitionStats,

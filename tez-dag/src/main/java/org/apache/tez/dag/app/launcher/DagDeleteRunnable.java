@@ -18,11 +18,11 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 
 import java.net.URL;
@@ -33,15 +33,15 @@ class DagDeleteRunnable implements Runnable {
   final JobTokenSecretManager jobTokenSecretManager;
   final String tezDefaultComponentName;
   final int shufflePort;
-  final Configuration conf;
+  final HttpConnectionParams httpConnectionParams;
 
   public DagDeleteRunnable(NodeId nodeId, int shufflePort, TezDAGID currentDag,
-                           Configuration conf,
+                           HttpConnectionParams httpConnectionParams,
                            JobTokenSecretManager jobTokenSecretMgr, String tezDefaultComponent) {
     this.nodeId = nodeId;
     this.shufflePort = shufflePort;
     this.dag = currentDag;
-    this.conf = conf;
+    this.httpConnectionParams = httpConnectionParams;
     this.jobTokenSecretManager = jobTokenSecretMgr;
     this.tezDefaultComponentName = tezDefaultComponent;
   }
@@ -53,7 +53,7 @@ class DagDeleteRunnable implements Runnable {
           nodeId.getHost(), shufflePort,
           dag.getApplicationId().toString(), dag.getId(), false);
       BaseHttpConnection httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL,
-          TezRuntimeUtils.getHttpConnectionParams(conf), "DAGDelete", jobTokenSecretManager);
+          httpConnectionParams, "DAGDelete", jobTokenSecretManager);
       httpConnection.connect();
       httpConnection.getInputStream();
     } catch (Exception e) {

@@ -50,7 +50,7 @@ public class DeletionTrackerImpl extends DeletionTracker {
       //TODO: add check for healthy node
       if (shufflePort != TezRuntimeUtils.INVALID_PORT) {
         DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
-            shufflePort, dag, conf, jobTokenSecretManager, this.pluginName);
+            shufflePort, dag, TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager, this.pluginName);
         dagDeleteService.submit(dagDeleteRunnable);
       }
     }
