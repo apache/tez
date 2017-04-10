@@ -46,21 +46,23 @@ import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUs
 @Evolving
 public class CartesianProductConfig {
   private final boolean isPartitioned;
-  private final String[] sourceVertices;
+  private final String[] sources;
+ // numPartition[i] means how many partitions sourceVertices[i] will generate
+ // (not used in unpartitioned case)
   private final int[] numPartitions;
   private final CartesianProductFilterDescriptor filterDescriptor;
 
   /**
    * create config for unpartitioned case
-   * @param sourceVertices list of source vertices names
+   * @param sources list of names of source vertices or vertex groups
    */
-  public CartesianProductConfig(List<String> sourceVertices) {
-    Preconditions.checkArgument(sourceVertices != null, "source vertices list cannot be null");
-    Preconditions.checkArgument(sourceVertices.size() > 1,
-      "there must be more than 1 source " + "vertices, currently only " + sourceVertices.size());
+  public CartesianProductConfig(List<String> sources) {
+    Preconditions.checkArgument(sources != null, "source list cannot be null");
+    Preconditions.checkArgument(sources.size() > 1,
+      "there must be more than 1 source " + "67, currently only " + sources.size());
 
     this.isPartitioned = false;
-    this.sourceVertices = sourceVertices.toArray(new String[sourceVertices.size()]);
+    this.sources = sources.toArray(new String[sources.size()]);
     this.numPartitions = null;
     this.filterDescriptor = null;
   }
@@ -86,12 +88,12 @@ public class CartesianProductConfig {
 
     this.isPartitioned = true;
     this.numPartitions = new int[vertexPartitionMap.size()];
-    this.sourceVertices = new String[vertexPartitionMap.size()];
+    this.sources = new String[vertexPartitionMap.size()];
     this.filterDescriptor = filterDescriptor;
 
     int i = 0;
     for (Map.Entry<String, Integer> entry : vertexPartitionMap.entrySet()) {
-      this.sourceVertices[i] = entry.getKey();
+      this.sources[i] = entry.getKey();
       this.numPartitions[i] = entry.getValue();
       i++;
     }
@@ -102,23 +104,23 @@ public class CartesianProductConfig {
   /**
    * create config for partitioned case, with specified source vertices order
    * @param numPartitions
-   * @param sourceVertices
+   * @param sources
    * @param filterDescriptor
    */
   @VisibleForTesting
-  protected CartesianProductConfig(int[] numPartitions, String[] sourceVertices,
+  protected CartesianProductConfig(int[] numPartitions, String[] sources,
                                    CartesianProductFilterDescriptor filterDescriptor) {
     Preconditions.checkArgument(numPartitions != null, "partitions count array can't be null");
-    Preconditions.checkArgument(sourceVertices != null, "source vertices array can't be null");
-    Preconditions.checkArgument(numPartitions.length == sourceVertices.length,
-      "partitions count array(length: " + numPartitions.length + ") and source vertices array " +
-        "(length: " + sourceVertices.length + ") cannot have different length");
-    Preconditions.checkArgument(sourceVertices.length > 1,
-      "there must be more than 1 source " + "vertices, currently only " + sourceVertices.length);
+    Preconditions.checkArgument(sources != null, "source array can't be null");
+    Preconditions.checkArgument(numPartitions.length == sources.length,
+      "partitions count array(length: " + numPartitions.length + ") and source array " +
+        "(length: " + sources.length + ") cannot have different length");
+    Preconditions.checkArgument(sources.length > 1,
+      "there must be more than 1 source " + ", currently only " + sources.length);
 
     this.isPartitioned = true;
     this.numPartitions = numPartitions;
-    this.sourceVertices = sourceVertices;
+    this.sources = sources;
     this.filterDescriptor = filterDescriptor;
 
     checkNumPartitions();
@@ -128,11 +130,11 @@ public class CartesianProductConfig {
    * create config for both cases, used by subclass
    */
   protected CartesianProductConfig(boolean isPartitioned, int[] numPartitions,
-                                   String[] sourceVertices,
+                                   String[] sources,
                                    CartesianProductFilterDescriptor filterDescriptor) {
     this.isPartitioned = isPartitioned;
     this.numPartitions = numPartitions;
-    this.sourceVertices = sourceVertices;
+    this.sources = sources;
     this.filterDescriptor = filterDescriptor;
   }
 
@@ -142,11 +144,11 @@ public class CartesianProductConfig {
       boolean isUnpartitioned = true;
       for (int i = 0; i < numPartitions.length; i++) {
         Preconditions.checkArgument(this.numPartitions[i] > 0,
-          "Vertex " + sourceVertices[i] + "has negative (" + numPartitions[i] + ") partitions");
+          "Vertex " + sources[i] + "has negative (" + numPartitions[i] + ") partitions");
         isUnpartitioned = isUnpartitioned && numPartitions[i] == 1;
       }
       Preconditions.checkArgument(!isUnpartitioned,
-        "every source vertex has 1 partition in a partitioned case");
+        "every source has 1 partition in a partitioned case");
     } else {
       Preconditions.checkArgument(this.numPartitions == null,
         "partition counts should be null in unpartitioned case");
@@ -154,10 +156,10 @@ public class CartesianProductConfig {
   }
 
   /**
-   * @return the array of source vertices names
+   * @return the array of source vertices (or source vertex group) names
    */
   public List<String> getSourceVertices() {
-    return Collections.unmodifiableList(Arrays.asList(sourceVertices));
+    return Collections.unmodifiableList(Arrays.asList(sources));
   }
 
   /**
@@ -187,7 +189,7 @@ public class CartesianProductConfig {
     CartesianProductConfigProto.Builder builder =
       CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(this.isPartitioned)
-      .addAllSourceVertices(Arrays.asList(sourceVertices));
+      .addAllSources(Arrays.asList(sources));
 
     if (isPartitioned) {
       builder.addAllNumPartitions(Ints.asList(numPartitions));
@@ -220,7 +222,7 @@ public class CartesianProductConfig {
       String desiredBytesPerGroup =
         conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP);
       if (desiredBytesPerGroup != null) {
-        builder.setDesiredBytesPerGroup(Long.parseLong(desiredBytesPerGroup));
+        builder.setDesiredBytesPerChunk(Long.parseLong(desiredBytesPerGroup));
       }
     }
     Preconditions.checkArgument(builder.getMinFraction() <= builder.getMaxFraction(),
@@ -246,10 +248,10 @@ public class CartesianProductConfig {
   protected static CartesianProductConfig fromProto(
     CartesianProductConfigProto proto) {
     if (!proto.getIsPartitioned()) {
-      return new CartesianProductConfig(proto.getSourceVerticesList());
+      return new CartesianProductConfig(proto.getSourcesList());
     } else {
-      String[] sourceVertices = new String[proto.getSourceVerticesList().size()];
-      proto.getSourceVerticesList().toArray(sourceVertices);
+      String[] sourceVertices = new String[proto.getSourcesList().size()];
+      proto.getSourcesList().toArray(sourceVertices);
       CartesianProductFilterDescriptor filterDescriptor = null;
       if (proto.hasFilterClassName()) {
         filterDescriptor = new CartesianProductFilterDescriptor(proto.getFilterClassName());

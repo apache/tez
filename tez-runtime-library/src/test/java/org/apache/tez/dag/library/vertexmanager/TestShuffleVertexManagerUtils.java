@@ -331,6 +331,11 @@ public class TestShuffleVertexManagerUtils {
           public int getDestinationVertexNumTasks() {
             return numTasks;
           }
+
+          @Override
+          public String getVertexGroupName() {
+            return null;
+          }
         };
         if (newEdgeManagers != null) {
           EdgeManagerPlugin edgeManager = ReflectionUtils

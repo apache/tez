@@ -27,7 +27,9 @@ import javax.annotation.Nullable;
 
 class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManagerReal {
   private int positionId;
-  private int[] numGroups;
+  private int numChunk;
+  private int chunkIdOffset;
+  private int[] numChunkPerSrc;
   private int numDestinationConsumerTasks;
   private Grouper grouper = new Grouper();
 
@@ -36,32 +38,38 @@ class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManag
   }
 
   public void initialize(CartesianProductEdgeManagerConfig config) {
-    positionId = config.getSourceVertices().indexOf(getContext().getSourceVertexName());
-    this.numGroups = config.getNumGroups();
+    String groupName = getContext().getVertexGroupName();
+    String srcName = groupName != null ? groupName : getContext().getSourceVertexName();
+    this.positionId = config.getSourceVertices().indexOf(srcName);
+    this.numChunkPerSrc = config.numChunksPerSrc;
+    this.numChunk = config.numChunk;
+    this.chunkIdOffset = config.chunkIdOffset;
 
-    if (numGroups != null && numGroups[positionId] != 0) {
-      grouper.init(config.getNumTasks()[positionId], numGroups[positionId]);
+    if (numChunk != 0) {
+      grouper.init(getContext().getSourceVertexNumTasks(), numChunk);
       numDestinationConsumerTasks = 1;
-      for (int numGroup : numGroups) {
+      for (int numGroup : numChunkPerSrc) {
         numDestinationConsumerTasks *= numGroup;
       }
-      numDestinationConsumerTasks /= numGroups[positionId];
+      numDestinationConsumerTasks /= numChunkPerSrc[positionId];
     }
   }
 
   @Override
   public int routeInputErrorEventToSource(int destTaskId, int failedInputId) throws Exception {
     return failedInputId + grouper.getFirstTaskInGroup(
-      CartesianProductCombination.fromTaskId(numGroups, destTaskId).getCombination().get(positionId));
+      CartesianProductCombination.fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionId)
+        - chunkIdOffset);
   }
 
   @Override
   public EventRouteMetadata routeDataMovementEventToDestination(int srcTaskId, int srcOutputId,
                                                                 int destTaskId) throws Exception {
-    int groupId =
-      CartesianProductCombination.fromTaskId(numGroups, destTaskId).getCombination().get(positionId);
-    if (grouper.isInGroup(srcTaskId, groupId)) {
-      int idx = srcTaskId - grouper.getFirstTaskInGroup(groupId);
+    int chunkId =
+      CartesianProductCombination.fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionId)
+        - chunkIdOffset;
+    if (0 <= chunkId && chunkId < numChunk && grouper.isInGroup(srcTaskId, chunkId)) {
+      int idx = srcTaskId - grouper.getFirstTaskInGroup(chunkId);
       return EventRouteMetadata.create(1, new int[] {idx});
     }
     return null;
@@ -72,10 +80,11 @@ class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManag
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
                                                                                   int destTaskId)
     throws Exception {
-    int groupId =
-      CartesianProductCombination.fromTaskId(numGroups, destTaskId).getCombination().get(positionId);
-    if (grouper.isInGroup(srcTaskId, groupId)) {
-      int idx = srcTaskId - grouper.getFirstTaskInGroup(groupId);
+    int chunkId =
+      CartesianProductCombination.fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionId)
+        - chunkIdOffset;
+    if (0 <= chunkId && chunkId < numChunk && grouper.isInGroup(srcTaskId, chunkId)) {
+      int idx = srcTaskId - grouper.getFirstTaskInGroup(chunkId);
       return CompositeEventRouteMetadata.create(1, idx, 0);
     }
     return null;
@@ -86,10 +95,11 @@ class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManag
   public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(int srcTaskId,
                                                                          int destTaskId)
     throws Exception {
-    int groupId =
-      CartesianProductCombination.fromTaskId(numGroups, destTaskId).getCombination().get(positionId);
-    if (grouper.isInGroup(srcTaskId, groupId)) {
-      int idx = srcTaskId - grouper.getFirstTaskInGroup(groupId);
+    int chunkId =
+      CartesianProductCombination.fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionId)
+        - chunkIdOffset;
+    if (0 <= chunkId && chunkId < numChunk && grouper.isInGroup(srcTaskId, chunkId)) {
+      int idx = srcTaskId - grouper.getFirstTaskInGroup(chunkId);
       return EventRouteMetadata.create(1, new int[] {idx});
     }
     return null;
@@ -97,9 +107,10 @@ class CartesianProductEdgeManagerUnpartitioned extends CartesianProductEdgeManag
 
   @Override
   public int getNumDestinationTaskPhysicalInputs(int destTaskId) {
-    int groupId =
-      CartesianProductCombination.fromTaskId(numGroups, destTaskId).getCombination().get(positionId);
-    return grouper.getNumTasksInGroup(groupId);
+    int chunkId =
+      CartesianProductCombination.fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionId)
+        - chunkIdOffset;
+    return 0 <= chunkId && chunkId < numChunk ? grouper.getNumTasksInGroup(chunkId) : 0;
   }
 
   @Override

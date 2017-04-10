@@ -5940,10 +5940,10 @@ public class TestVertexImpl {
         VertexEventType.V_INIT));
     dispatcher.await();
     
-    Assert.assertNull(vA.getGroupInputSpecList(0));
-    Assert.assertNull(vB.getGroupInputSpecList(0));
+    Assert.assertNull(vA.getGroupInputSpecList());
+    Assert.assertNull(vB.getGroupInputSpecList());
     
-    List<GroupInputSpec> groupInSpec = vC.getGroupInputSpecList(0);
+    List<GroupInputSpec> groupInSpec = vC.getGroupInputSpecList();
     Assert.assertEquals(1, groupInSpec.size());
     Assert.assertEquals("Group", groupInSpec.get(0).getGroupName());
     assertTrue(groupInSpec.get(0).getGroupVertices().contains("A"));

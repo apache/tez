@@ -149,7 +149,7 @@ public interface Vertex extends Comparable<Vertex> {
   List<InputSpec> getInputSpecList(int taskIndex) throws AMUserCodeException;
   List<OutputSpec> getOutputSpecList(int taskIndex) throws AMUserCodeException;
   
-  List<GroupInputSpec> getGroupInputSpecList(int taskIndex);
+  List<GroupInputSpec> getGroupInputSpecList();
   void addSharedOutputs(Set<String> outputs);
   Set<String> getSharedOutputs();
 

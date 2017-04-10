@@ -28,6 +28,7 @@ import java.util.zip.Deflater;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,6 +130,17 @@ public class Edge {
       return destinationVertex.getTotalTasks();
     }
 
+    @Override
+    public String getVertexGroupName() {
+      if (destinationVertex.getGroupInputSpecList() != null) {
+        for (GroupInputSpec group : destinationVertex.getGroupInputSpecList()) {
+          if (group.getGroupVertices().contains(getSourceVertexName())) {
+            return group.getGroupName();
+          }
+        }
+      }
+      return null;
+    }
   }
 
   private EdgeProperty edgeProperty;

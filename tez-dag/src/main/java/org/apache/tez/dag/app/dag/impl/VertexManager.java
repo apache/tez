@@ -24,6 +24,7 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +36,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -357,6 +359,18 @@ public class VertexManager {
     public synchronized void doneReconfiguringVertex() {
       checkAndThrowIfDone();
       managedVertex.doneReconfiguringVertex();
+    }
+
+    @Override
+    public Map<String, List<String>> getInputVertexGroups() {
+      checkAndThrowIfDone();
+      Map<String, List<String>> inputGroups = Maps.newHashMap();
+      if (managedVertex.getGroupInputSpecList() != null) {
+        for (GroupInputSpec group : managedVertex.getGroupInputSpecList()) {
+          inputGroups.put(group.getGroupName(), Collections.unmodifiableList(group.getGroupVertices()));
+        }
+      }
+      return inputGroups;
     }
 
     @Override

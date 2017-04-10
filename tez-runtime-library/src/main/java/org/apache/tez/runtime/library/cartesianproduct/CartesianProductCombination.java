@@ -25,49 +25,47 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Represent the combination of source partitions or tasks.
+ * Represent the combination of source chunks. A chunk is one or more source tasks or partitions.
  *
- * For example, if we have two source vertices and each generates two partition, we will have 2*2=4
- * destination tasks. The mapping from source partition/task to destination task is like this:
+ * For example, if we have two source vertices and each generates two chunks, we will have 2*2=4
+ * destination tasks. The mapping from source chunks to destination task is like this:
  * <0, 0> -> 0, <0, 1> -> 1, <1, 0> -> 2, <1, 1> -> 3;
  *
- * Basically, it stores the source partition/task combination and can compute corresponding
+ * Basically, it stores the source chunk id combination and can compute corresponding
  * destination task. It can also figure out the source combination from a given destination task.
- * Task id is mapped in the ascending order of combinations, starting from 0. <field>factor</field>
- * is the helper array to computer task id, so task id = (combination) dot-product (factor)
+ * Task id is mapped in the ascending order of combinations, starting from 0.
  *
  * You can traverse all combinations with <method>firstTask</method> and <method>nextTask</method>,
  * like <0, 0> -> <0, 1> -> <1, 0> -> <1, 1>.
  *
- * Or you can also traverse all combinations that has one specific partition with
- * <method>firstTaskWithFixedPartition</method> and <method>nextTaskWithFixedPartition</method>,
+ * Or you can also traverse all combinations that has one specific chunk with
+ * <method>firstTaskWithFixedChunk</method> and <method>nextTaskWithFixedChunk</method>,
  * like <0, 1, 0> -> <0, 1, 1> -> <1, 1, 0> -> <1, 1, 1> (all combinations with 2nd vertex's 2nd
- * partition.
+ * chunk.
  */
 class CartesianProductCombination {
-  // numPartitions for partitioned case, numTasks for unpartitioned case
-  private int[] numPartitionOrTask;
-  // at which position (in source vertices array) our vertex is
+  private int[] numChunk;
+  // which position (in source vertices array) we care about
   private int positionId = -1;
-  // The i-th element Ci represents partition/task Ci of source vertex i.
+  // The i-th element Ci represents chunk Ci of source vertex i.
   private final Integer[] combination;
-  // the weight of each vertex when computing the task id
+  // helper array to computer task id: task id = (combination) dot-product (factor)
   private final Integer[] factor;
 
-  public CartesianProductCombination(int[] numPartitionOrTask) {
-    Preconditions.checkArgument(!Ints.contains(numPartitionOrTask, 0),
-      "CartesianProductCombination doesn't allow zero partition or task");
-    this.numPartitionOrTask = Arrays.copyOf(numPartitionOrTask, numPartitionOrTask.length);
-    combination = new Integer[numPartitionOrTask.length];
-    factor = new Integer[numPartitionOrTask.length];
+  public CartesianProductCombination(int[] numChunk) {
+    Preconditions.checkArgument(!Ints.contains(numChunk, 0),
+      "CartesianProductCombination doesn't allow zero chunk");
+    this.numChunk = Arrays.copyOf(numChunk, numChunk.length);
+    combination = new Integer[numChunk.length];
+    factor = new Integer[numChunk.length];
     factor[factor.length-1] = 1;
     for (int i = combination.length-2; i >= 0; i--) {
-      factor[i] = factor[i+1]*numPartitionOrTask[i+1];
+      factor[i] = factor[i+1]* numChunk[i+1];
     }
   }
 
-  public CartesianProductCombination(int[] numPartitionOrTask, int positionId) {
-    this(numPartitionOrTask);
+  public CartesianProductCombination(int[] numChunk, int positionId) {
+    this(numChunk);
     this.positionId = positionId;
   }
 
@@ -79,24 +77,24 @@ class CartesianProductCombination {
   }
 
   /**
-   * first combination with given partition id in current position
-   * @param partition
+   * first combination with given chunk id in current position
+   * @param chunkId
    */
-  public void firstTaskWithFixedPartition(int partition) {
+  public void firstTaskWithFixedChunk(int chunkId) {
     Preconditions.checkArgument(positionId >= 0 && positionId < combination.length);
     Arrays.fill(combination, 0);
-    combination[positionId] = partition;
+    combination[positionId] = chunkId;
   }
 
   /**
-   * next combination without current partition in current position
+   * next combination without current chunk in current position
    * @return false if there is no next combination
    */
-  public boolean nextTaskWithFixedPartition() {
+  public boolean nextTaskWithFixedChunk() {
     Preconditions.checkArgument(positionId >= 0 && positionId < combination.length);
     int i;
     for (i = combination.length-1; i >= 0; i--) {
-      if (i != positionId && combination[i] != numPartitionOrTask[i]-1) {
+      if (i != positionId && combination[i] != numChunk[i]-1) {
         break;
       }
     }
@@ -117,20 +115,20 @@ class CartesianProductCombination {
   }
 
   /**
-   * first combination with given partition id in current position
+   * first combination with given chunk id in current position
    */
   public void firstTask() {
     Arrays.fill(combination, 0);
   }
 
   /**
-   * next combination without current partition in current position
+   * next combination without current chunk in current position
    * @return false if there is no next combination
    */
   public boolean nextTask() {
     int i;
     for (i = combination.length-1; i >= 0; i--) {
-      if (combination[i] != numPartitionOrTask[i]-1) {
+      if (combination[i] != numChunk[i]-1) {
         break;
       }
     }
@@ -145,19 +143,19 @@ class CartesianProductCombination {
   }
 
   /**
-   * @return corresponding task id for current combination
+   * @return corresponding chunk id for current combination
    */
-  public int getTaskId() {
-    int taskId = 0;
+  public int getChunkId() {
+    int chunkId = 0;
     for (int i = 0; i < combination.length; i++) {
-      taskId += combination[i]*factor[i];
+      chunkId += combination[i]*factor[i];
     }
-    return taskId;
+    return chunkId;
   }
 
-  public static CartesianProductCombination fromTaskId(int[] numPartitionOrTask,
+  public static CartesianProductCombination fromTaskId(int[] numChunk,
                                                        int taskId) {
-    CartesianProductCombination result = new CartesianProductCombination(numPartitionOrTask);
+    CartesianProductCombination result = new CartesianProductCombination(numChunk);
     for (int i = 0; i < result.combination.length; i++) {
       result.combination[i] = taskId/result.factor[i];
       taskId %= result.factor[i];

@@ -39,15 +39,15 @@ public class TestCartesianProductVertexManagerConfig {
     CartesianProductVertexManagerConfig vmConf =
       CartesianProductVertexManagerConfig.fromUserPayload(config.toUserPayload(conf));
     assertEquals(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT,
-      vmConf.isEnableAutoGrouping());
+      vmConf.enableAutoGrouping);
     assertEquals(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP_DEFAULT,
-      vmConf.getDesiredBytesPerGroup());
+      vmConf.desiredBytesPerChunk);
 
     // auto group set in proto
     conf.setBoolean(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING, true);
     conf.setLong(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP, 1000);
     vmConf = CartesianProductVertexManagerConfig.fromUserPayload(config.toUserPayload(conf));
-    assertEquals(true, vmConf.isEnableAutoGrouping());
-    assertEquals(1000, vmConf.getDesiredBytesPerGroup());
+    assertEquals(true, vmConf.enableAutoGrouping);
+    assertEquals(1000, vmConf.desiredBytesPerChunk);
   }
 }
