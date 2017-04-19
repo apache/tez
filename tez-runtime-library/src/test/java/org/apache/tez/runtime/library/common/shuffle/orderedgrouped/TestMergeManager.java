@@ -766,7 +766,7 @@ public class TestMergeManager {
   }
 
 
-  void testLocalDiskMergeMultipleTasks(boolean interruptInMiddle)
+  void testLocalDiskMergeMultipleTasks(final boolean interruptInMiddle)
       throws IOException, InterruptedException {
     Configuration conf = new TezConfiguration(defaultConf);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
@@ -791,7 +791,21 @@ public class TestMergeManager {
 
     MergeManager t0mergeManagerReal =
         new MergeManager(conf, localFs, localDirAllocator, t0inputContext, null, null, null, null,
-            t0exceptionReporter, 2000000, null, false, -1);
+            t0exceptionReporter, 2000000, null, false, -1) {
+          // override for interruptInMiddle testing
+          @Override
+          public synchronized void closeOnDiskFile(FileChunk file) {
+            if (interruptInMiddle) {
+              try {
+                Thread.sleep(2000);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+              }
+            }
+            super.closeOnDiskFile(file);
+          }
+        };
     MergeManager t0mergeManager = spy(t0mergeManagerReal);
     t0mergeManager.configureAndStart();
 
@@ -854,14 +868,6 @@ public class TestMergeManager {
       t0mergeManager.onDiskMerger.merge(t0MergeFiles);
       Assert.assertEquals(1, t0mergeManager.onDiskMapOutputs.size());
     } else {
-
-      doAnswer(new Answer() {
-        @Override public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-          //Simulate artificial delay so that interrupting thread can get a chance
-          Thread.sleep(2000);
-          return invocationOnMock.callRealMethod();
-        }
-      }).when(t0mergeManager).closeOnDiskFile(any(FileChunk.class));
 
       //Start Interrupting thread
       Thread interruptingThread = new Thread(new InterruptingThread(t0mergeManager.onDiskMerger));
