@@ -12,6 +12,7 @@
     "build": "TMPDIR=tmp node ./node_modules/ember-cli/bin/ember build",
     "start": "TMPDIR=tmp node ./node_modules/ember-cli/bin/ember server",
     "test": "TMPDIR=tmp node ./node_modules/ember-cli/bin/ember test",
+    "test-serve": "TMPDIR=tmp node ./node_modules/ember-cli/bin/ember test --serve",
 
     "build:mvn": "TMPDIR=tmp node/node ./node_modules/ember-cli/bin/ember build -prod",
     "test:mvn": "TMPDIR=tmp node/node ./node_modules/ember-cli/bin/ember test"

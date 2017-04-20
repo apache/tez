@@ -35,6 +35,7 @@ test('Basic creation test', function(assert) {
 
     assert.ok(!!model);
     assert.ok(!!model.needs.am);
+    assert.ok(!!model.needs.info);
     assert.equal(model.get("queue"), testQueue);
   });
 
@@ -55,6 +56,10 @@ test('Basic creation test', function(assert) {
   assert.ok(model.callerContext);
   assert.ok(model.callerDescription);
   assert.ok(model.callerType);
+
+  assert.ok(model.dagPlan);
+  assert.ok(model.callerData);
+  assert.ok(model.info);
 
   assert.ok(model.amWsVersion);
 });
@@ -93,5 +98,44 @@ test('queue test', function(assert) {
 
     model.set("queueName", queueName);
     assert.equal(model.get("queue"), queueName);
+  });
+});
+
+test('vertices, edges & vertexGroups test', function(assert) {
+  let testVertices = {},
+      testEdges = {},
+      testVertexGroups = {},
+      model = this.subject({
+        dagPlan: {
+          vertices: testVertices,
+          edges: testEdges,
+          vertexGroups: testVertexGroups
+        }
+      });
+
+  assert.equal(model.get("vertices"), testVertices);
+  assert.equal(model.get("edges"), testEdges);
+  assert.equal(model.get("vertexGroups"), testVertexGroups);
+
+  Ember.run(function () {
+    testVertices = {};
+    testEdges = {};
+    testVertexGroups = {};
+
+    model.set("info", {
+      dagPlan: {
+        vertices: testVertices,
+        edges: testEdges,
+        vertexGroups: testVertexGroups
+      }
+    });
+    assert.notEqual(model.get("vertices"), testVertices);
+    assert.notEqual(model.get("edges"), testEdges);
+    assert.notEqual(model.get("vertexGroups"), testVertexGroups);
+
+    model.set("dagPlan", null);
+    assert.equal(model.get("vertices"), testVertices);
+    assert.equal(model.get("edges"), testEdges);
+    assert.equal(model.get("vertexGroups"), testVertexGroups);
   });
 });

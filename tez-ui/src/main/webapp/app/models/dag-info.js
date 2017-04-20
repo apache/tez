@@ -16,48 +16,13 @@
  * limitations under the License.
  */
 
-b {
-  font-weight: bold;
-}
-.horizontal-half {
-  width: 50%;
-}
+import DS from 'ember-data';
 
-.display-block {
-  display: block;
-}
+import AMTimelineModel from './am-timeline';
 
-.left-delim {
-  border-left: 1px solid @border-color;
-  margin-left: 10px;
-  padding-left: 10px;
-}
+export default AMTimelineModel.extend({
 
-.align-checknradio {
-  input[type=checkbox], input[type=radio] {
-    vertical-align: middle;
-    position: relative;
-    bottom: .2em;
-  }
-}
+  dagPlan: DS.attr('object'),
+  callerData: DS.attr('object'),
 
-.diagnostics {
-  padding: 10px;
-  white-space: pre-line;
-
-  div {
-    padding-left: 20px;
-  }
-}
-
-.em-table {
-  .em-progress-container {
-    padding-top: 1px;
-  }
-
-  .table-footer {
-    .pagination-ui {
-      margin-top: 10px;
-    }
-  }
-}
+});

@@ -1,4 +1,4 @@
-/**
+{{!
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -14,50 +14,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+}}
 
-b {
-  font-weight: bold;
-}
-.horizontal-half {
-  width: 50%;
-}
-
-.display-block {
-  display: block;
-}
-
-.left-delim {
-  border-left: 1px solid @border-color;
-  margin-left: 10px;
-  padding-left: 10px;
-}
-
-.align-checknradio {
-  input[type=checkbox], input[type=radio] {
-    vertical-align: middle;
-    position: relative;
-    bottom: .2em;
-  }
-}
-
-.diagnostics {
-  padding: 10px;
-  white-space: pre-line;
-
-  div {
-    padding-left: 20px;
-  }
-}
-
-.em-table {
-  .em-progress-container {
-    padding-top: 1px;
-  }
-
-  .table-footer {
-    .pagination-ui {
-      margin-top: 10px;
-    }
-  }
-}
+<button type="button"
+        class="btn btn-success {{if countersLoaded 'no-visible'}}"
+        {{action "loadCounters"}}
+        title="Load counter values for all the above rows. Please note that loading counters is a costly operation.">
+  Load Counters
+</button>

@@ -30,6 +30,9 @@ export default MultiAmPollsterRoute.extend({
   },
 
   load: function (value, query, options) {
+    options = Ember.$.extend({
+      demandNeeds: ["info", "dag"]
+    }, options);
     return this.get("loader").query('vertex', {
       dagID: this.modelFor("dag").get("id")
     }, options);

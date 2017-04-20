@@ -19,9 +19,9 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 
-import AMTimelineModel from './am-timeline';
+import DAGInfoModel from './dag-info';
 
-export default AMTimelineModel.extend({
+export default DAGInfoModel.extend({
   needs: {
     am: {
       type: "dagAm",
@@ -49,6 +49,12 @@ export default AMTimelineModel.extend({
         }
       },
       silent: true
+    },
+    info: {
+      type: "dagInfo",
+      idKey: "entityID",
+      loadType: "demand",
+      silent: true
     }
   },
 
@@ -57,9 +63,9 @@ export default AMTimelineModel.extend({
   submitter: DS.attr("string"),
 
   // Serialize when required
-  vertices: DS.attr('object'),
-  edges: DS.attr('object'),
-  vertexGroups: DS.attr('object'),
+  vertices: Ember.computed.or("dagPlan.vertices", "info.dagPlan.vertices"),
+  edges: Ember.computed.or("dagPlan.edges", "info.dagPlan.edges"),
+  vertexGroups: Ember.computed.or("dagPlan.vertexGroups", "info.dagPlan.vertexGroups"),
 
   domain: DS.attr("string"),
   containerLogs: DS.attr("object"),
@@ -72,9 +78,17 @@ export default AMTimelineModel.extend({
   vertexNameIdMap: DS.attr("object"),
 
   callerID: DS.attr("string"),
-  callerContext: DS.attr("string"),
-  callerDescription: DS.attr("string"),
-  callerType: DS.attr("string"),
+  callerContext: Ember.computed.or("callerData.callerContext", "info.callerData.callerContext"),
+  callerDescription: Ember.computed.or("callerData.callerDescription", "info.callerData.callerDescription"),
+  callerType: Ember.computed.or("callerData.callerType", "info.callerData.callerType"),
 
   amWsVersion: DS.attr("string"),
+
+  info: DS.attr("object"),
+
+  counterGroupsHash: Ember.computed("am.counterGroupsHash", "_counterGroups", "info.counterGroupsHash", function () {
+    var amCounters = this.get("am.counterGroupsHash"),
+        atsCounters = this.get("info.counterGroupsHash") || this._super();
+    return amCounters ? Ember.$.extend({}, atsCounters, amCounters) : atsCounters;
+  })
 });

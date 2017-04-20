@@ -29,6 +29,8 @@ test('Basic creation test', function(assert) {
   assert.ok(serializer);
   assert.ok(serializer.extractArrayPayload);
   assert.ok(serializer.maps);
+
+  assert.equal(Object.keys(serializer.get("maps")).length, 7);
 });
 
 test('extractArrayPayload test', function(assert) {

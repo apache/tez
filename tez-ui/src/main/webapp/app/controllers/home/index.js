@@ -52,7 +52,7 @@ export default TableController.extend({
   loadingMore: false,
 
   headerComponentNames: ['dags-page-search', 'table-controls', 'pagination-ui'],
-  footerComponentNames: ['pagination-ui'],
+  footerComponentNames: ['home-table-controls', 'pagination-ui'],
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
@@ -89,7 +89,9 @@ export default TableController.extend({
       pageNum: this.get("pageNum"),
 
       moreAvailable: this.get("moreAvailable"),
-      loadingMore: this.get("loadingMore")
+      loadingMore: this.get("loadingMore"),
+
+      minRowsForFooter: 0
     });
 
     return definition;

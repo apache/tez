@@ -16,48 +16,25 @@
  * limitations under the License.
  */
 
-b {
-  font-weight: bold;
-}
-.horizontal-half {
-  width: 50%;
-}
+import Ember from 'ember';
 
-.display-block {
-  display: block;
-}
+export default Ember.Component.extend({
+  classNames: ['home-table-controls'],
 
-.left-delim {
-  border-left: 1px solid @border-color;
-  margin-left: 10px;
-  padding-left: 10px;
-}
+  countersLoaded: Ember.computed("dataProcessor.processedRows.@each.counterGroupsHash", function () {
+    var processedRows = this.get("dataProcessor.processedRows"),
+        countersLoaded = true;
+    if(processedRows) {
+      countersLoaded = processedRows.some(function (row) {
+        return Object.keys(row.get("counterGroupsHash")).length !== 0;
+      });
+    }
+    return countersLoaded;
+  }),
 
-.align-checknradio {
-  input[type=checkbox], input[type=radio] {
-    vertical-align: middle;
-    position: relative;
-    bottom: .2em;
-  }
-}
-
-.diagnostics {
-  padding: 10px;
-  white-space: pre-line;
-
-  div {
-    padding-left: 20px;
-  }
-}
-
-.em-table {
-  .em-progress-container {
-    padding-top: 1px;
-  }
-
-  .table-footer {
-    .pagination-ui {
-      margin-top: 10px;
+  actions: {
+    loadCounters: function () {
+      this.get('targetObject.targetObject').send('loadCounters');
     }
   }
-}
+});

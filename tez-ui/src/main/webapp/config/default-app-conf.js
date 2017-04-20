@@ -46,7 +46,8 @@ module.exports = { // Tez App configurations
       task: 'TEZ_TASK_ID',
       attempt: 'TEZ_TASK_ATTEMPT_ID',
 
-      "hive-query": 'HIVE_QUERY_ID',
+      'dag-info': 'TEZ_DAG_EXTRA_INFO',
+      'hive-query': 'HIVE_QUERY_ID',
 
       app: 'TEZ_APPLICATION'
     },

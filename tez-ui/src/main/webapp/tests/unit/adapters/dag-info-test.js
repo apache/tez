@@ -16,48 +16,15 @@
  * limitations under the License.
  */
 
-b {
-  font-weight: bold;
-}
-.horizontal-half {
-  width: 50%;
-}
+import { moduleFor, test } from 'ember-qunit';
 
-.display-block {
-  display: block;
-}
+moduleFor('adapter:dag-info', 'Unit | Adapter | dag info', {
+  // Specify the other units that are required for this test.
+  // needs: ['serializer:foo']
+});
 
-.left-delim {
-  border-left: 1px solid @border-color;
-  margin-left: 10px;
-  padding-left: 10px;
-}
+test('Basic creation test', function(assert) {
+  let adapter = this.subject();
 
-.align-checknradio {
-  input[type=checkbox], input[type=radio] {
-    vertical-align: middle;
-    position: relative;
-    bottom: .2em;
-  }
-}
-
-.diagnostics {
-  padding: 10px;
-  white-space: pre-line;
-
-  div {
-    padding-left: 20px;
-  }
-}
-
-.em-table {
-  .em-progress-container {
-    padding-top: 1px;
-  }
-
-  .table-footer {
-    .pagination-ui {
-      margin-top: 10px;
-    }
-  }
-}
+  assert.ok(adapter);
+});
