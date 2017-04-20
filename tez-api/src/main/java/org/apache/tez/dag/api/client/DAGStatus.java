@@ -164,8 +164,8 @@ public class DAGStatus {
       DAGStatus other = (DAGStatus)obj;
       return getState() == other.getState()
           && getDiagnostics().equals(other.getDiagnostics())
-          && getDAGProgress().equals(getDAGProgress())
-          && getVertexProgress().equals(getVertexProgress())
+          && getDAGProgress().equals(other.getDAGProgress())
+          && getVertexProgress().equals(other.getVertexProgress())
           && 
           ((getDAGCounters() == null && other.getDAGCounters() == null) 
             || getDAGCounters().equals(other.getDAGCounters()));

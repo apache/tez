@@ -120,8 +120,8 @@ public class VertexStatus {
     if (obj instanceof VertexStatus){
       VertexStatus other = (VertexStatus)obj;
       return getState().equals(other.getState())
-          && getDiagnostics().equals(getDiagnostics())
-          && getProgress().equals(getProgress())
+          && getDiagnostics().equals(other.getDiagnostics())
+          && getProgress().equals(other.getProgress())
           && 
           ((getVertexCounters() == null && other.getVertexCounters() == null) 
               || getVertexCounters().equals(other.getVertexCounters()));
