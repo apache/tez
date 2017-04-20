@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -94,12 +95,13 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
                              InputDescriptor inputDescriptor, Map<String, LogicalInput> inputs,
                              InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
-                             ExecutionContext ExecutionContext, long memAvailable) {
+                             ExecutionContext ExecutionContext, long memAvailable,
+                             TezExecutors sharedExecutor) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID, wrapCounters(runtimeTask,
         taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
-        objectRegistry, ExecutionContext, memAvailable);
+        objectRegistry, ExecutionContext, memAvailable, sharedExecutor);
     checkNotNull(inputIndex, "inputIndex is null");
     checkNotNull(sourceVertexName, "sourceVertexName is null");
     checkNotNull(inputs, "input map is null");
@@ -153,7 +155,6 @@ public class TezInputContextImpl extends TezTaskContextImpl
     return sourceVertexName;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);

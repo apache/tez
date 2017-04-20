@@ -32,6 +32,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -63,10 +64,11 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
       Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext, long memAvailable) {
+      ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
     super(conf, workDirs, appAttemptNumber, dagName, vertexName, vertexParallelism, taskAttemptID,
         runtimeTask.addAndGetTezCounter(vertexName), runtimeTask, tezUmbilical, serviceConsumerMetadata,
-        auxServiceEnv, memDist, processorDescriptor, objectRegistry, ExecutionContext, memAvailable);
+        auxServiceEnv, memDist, processorDescriptor, objectRegistry, ExecutionContext, memAvailable,
+        sharedExecutor);
     checkNotNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
@@ -98,7 +100,6 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
     }
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);

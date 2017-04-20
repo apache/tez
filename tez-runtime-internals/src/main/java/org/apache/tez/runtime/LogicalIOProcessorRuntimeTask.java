@@ -56,6 +56,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RunnableWithNdc;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -158,13 +159,15 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private final boolean initializeProcessorFirst;
   private final boolean initializeProcessorIOSerially;
+  private final TezExecutors sharedExecutor;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
       Map<String, ByteBuffer> serviceConsumerMetadata, Map<String, String> envMap,
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
       String pid, ExecutionContext ExecutionContext, long memAvailable,
-      boolean updateSysCounters, HadoopShim hadoopShim) throws IOException {
+      boolean updateSysCounters, HadoopShim hadoopShim,
+      TezExecutors sharedExecutor) throws IOException {
     // Note: If adding any fields here, make sure they're cleaned up in the cleanupContext method.
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical, pid, updateSysCounters);
@@ -217,6 +220,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.hadoopShim = hadoopShim;
     this.maxEventBacklog = tezConf.getInt(TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG,
         TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT);
+    this.sharedExecutor = sharedExecutor;
   }
 
   /**
@@ -596,7 +600,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         inputSpec.getInputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         inputSpec.getInputDescriptor(), inputMap, inputReadyTracker, objectRegistry,
-        ExecutionContext, memAvailable);
+        ExecutionContext, memAvailable, sharedExecutor);
     return inputContext;
   }
 
@@ -611,7 +615,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         outputSpec.getOutputDescriptor().getUserPayload(), this,
         serviceConsumerMetadata, envMap, initialMemoryDistributor,
         outputSpec.getOutputDescriptor(), objectRegistry, ExecutionContext,
-        memAvailable);
+        memAvailable, sharedExecutor);
     return outputContext;
   }
 
@@ -622,8 +626,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         taskSpec.getVertexParallelism(),
         taskSpec.getTaskAttemptID(),
         processorDescriptor.getUserPayload(), this,
-        serviceConsumerMetadata, envMap, initialMemoryDistributor,
-        processorDescriptor, inputReadyTracker, objectRegistry, ExecutionContext, memAvailable);
+        serviceConsumerMetadata, envMap, initialMemoryDistributor, processorDescriptor,
+        inputReadyTracker, objectRegistry, ExecutionContext, memAvailable, sharedExecutor);
     return processorContext;
   }
 

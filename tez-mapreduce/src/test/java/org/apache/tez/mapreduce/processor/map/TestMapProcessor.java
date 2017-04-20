@@ -21,22 +21,10 @@ package org.apache.tez.mapreduce.processor.map;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileSplit;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.db.FloatSplitter;
-import org.apache.hadoop.mapreduce.split.JobSplit;
-import org.apache.hadoop.mapreduce.split.SplitMetaInfoReaderTez;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +40,7 @@ import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
@@ -86,8 +75,6 @@ public class TestMapProcessor {
   private static FileSystem localFs = null; 
   private static Path workDir = null;
   static float progressUpdate = 0.0f;
-  final private static FsPermission JOB_FILE_PERMISSION = FsPermission
-      .createImmutable((short) 0644);
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
@@ -163,15 +150,17 @@ public class TestMapProcessor {
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
     LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask(localFs, workDir, jobConf, 0,
         new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
-        Collections.singletonList(mapInputSpec),
-        Collections.singletonList(mapOutputSpec));
-    
+        Collections.singletonList(mapInputSpec), Collections.singletonList(mapOutputSpec),
+        sharedExecutor);
+
     task.initialize();
     task.run();
     task.close();
-    
+    sharedExecutor.shutdownNow();
+
     OutputContext outputContext = task.getOutputContexts().iterator().next();
     TezTaskOutput mapOutputs = new TezTaskOutputFiles(jobConf, outputContext.getUniqueIdentifier());
     
@@ -236,11 +225,12 @@ public class TestMapProcessor {
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(jobConf);
     final LogicalIOProcessorRuntimeTask task = MapUtils.createLogicalTask
         (localFs, workDir, jobConf, 0,
             new Path(workDir, "map0"), new TestUmbilical(), dagName, vertexName,
             Collections.singletonList(mapInputSpec),
-            Collections.singletonList(mapOutputSpec));
+            Collections.singletonList(mapOutputSpec), sharedExecutor);
 
     ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     Thread monitorProgress = new Thread(new Runnable() {
@@ -259,5 +249,6 @@ public class TestMapProcessor {
     Assert.assertTrue("Progress Updates should be captured!",
         progressUpdate > 0.0f && progressUpdate < 1.0f);
     task.close();
+    sharedExecutor.shutdownNow();
   }
 }

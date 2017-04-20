@@ -1790,4 +1790,22 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "am.client.heartbeat.poll.interval.millis";
   public static final int TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_DEFAULT = -1;
 
+  /**
+   * Int value. Minimum number of threads to be allocated by TezSharedExecutor.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_SHARED_EXECUTOR_MIN_THREADS = "tez.shared-executor.min-threads";
+  public static final int TEZ_SHARED_EXECUTOR_MIN_THREADS_DEFAULT = 0;
+
+  /**
+   * Int value. Maximum number of threads to be allocated by TezSharedExecutor. If value is negative
+   * then Integer.MAX_VALUE is used as the limit.
+   * Default: Integer.MAX_VALUE.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_SHARED_EXECUTOR_MAX_THREADS = "tez.shared-executor.max-threads";
+  public static final int TEZ_SHARED_EXECUTOR_MAX_THREADS_DEFAULT = -1;
+
 }
