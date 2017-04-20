@@ -35,7 +35,6 @@ import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -50,6 +49,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.utils.Utils;
@@ -68,6 +68,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -191,6 +192,22 @@ public class ATSImportTool extends Configured implements Tool {
     //Download dag
     String dagUrl = String.format("%s/%s/%s", baseUri, Constants.TEZ_DAG_ID, dagId);
     JSONObject dagRoot = getJsonRootEntity(dagUrl);
+
+    // We have added dag extra info, if we find any from ATS we copy the info into dag object
+    // extra info.
+    String dagExtraInfoUrl = String.format("%s/%s/%s", baseUri, EntityTypes.TEZ_DAG_EXTRA_INFO,
+        dagId);
+    JSONObject dagExtraInfo = getJsonRootEntity(dagExtraInfoUrl);
+    if (dagExtraInfo.has(Constants.OTHER_INFO)) {
+      JSONObject dagOtherInfo = dagRoot.getJSONObject(Constants.OTHER_INFO);
+      JSONObject extraOtherInfo = dagExtraInfo.getJSONObject(Constants.OTHER_INFO);
+      @SuppressWarnings("unchecked")
+      Iterator<String> iter = extraOtherInfo.keys();
+      while (iter.hasNext()) {
+        String key = iter.next();
+        dagOtherInfo.put(key, extraOtherInfo.get(key));
+      }
+    }
     finalJson.put(Constants.DAG, dagRoot);
 
     //Create a zip entry with dagId as its name.

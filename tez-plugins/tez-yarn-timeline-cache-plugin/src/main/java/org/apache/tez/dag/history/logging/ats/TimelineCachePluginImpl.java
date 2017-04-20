@@ -50,6 +50,7 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
   static {
     knownEntityTypes = Sets.newHashSet(
         EntityTypes.TEZ_DAG_ID.name(),
+        EntityTypes.TEZ_DAG_EXTRA_INFO.name(),
         EntityTypes.TEZ_VERTEX_ID.name(),
         EntityTypes.TEZ_TASK_ID.name(),
         EntityTypes.TEZ_TASK_ATTEMPT_ID.name(),
@@ -84,7 +85,8 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
         || entityId == null || entityId.isEmpty()) {
       return null;
     }
-    if (entityType.equals(EntityTypes.TEZ_DAG_ID.name())) {
+    if (entityType.equals(EntityTypes.TEZ_DAG_ID.name()) ||
+        entityType.equals(EntityTypes.TEZ_DAG_EXTRA_INFO.name())) {
       TezDAGID dagId = TezDAGID.fromString(entityId);
       if (dagId != null) {
         return createTimelineEntityGroupIds(dagId);
