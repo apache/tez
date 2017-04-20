@@ -36,7 +36,7 @@ public class TestHadoop25_26_27ShimProvider {
     Assert.assertNotNull(provider.createHadoopShim("foo", 2, 6));
     Assert.assertNotNull(provider.createHadoopShim("foo", 2, 7));
 
-    Assert.assertEquals(HadoopShim26.class,
+    Assert.assertEquals(HadoopShim27.class,
         provider.createHadoopShim("foo", 2, 7).getClass());
   }
 
@@ -51,7 +51,7 @@ public class TestHadoop25_26_27ShimProvider {
     HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
     HadoopShim shim = loader.getHadoopShim();
     Assert.assertNotNull(shim);
-    Assert.assertEquals(HadoopShim26.class, shim.getClass());
+    Assert.assertEquals(HadoopShim27.class, shim.getClass());
   }
 
   @Test

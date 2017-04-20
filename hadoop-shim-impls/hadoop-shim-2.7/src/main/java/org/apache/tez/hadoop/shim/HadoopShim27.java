@@ -18,16 +18,35 @@
 
 package org.apache.tez.hadoop.shim;
 
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.proto.YarnServiceProtos.SchedulerResourceTypes;
 
 @Private
-public class HadoopShim25_26_27Provider extends HadoopShimProvider {
+public class HadoopShim27 extends HadoopShim {
 
   @Override
-  public HadoopShim createHadoopShim(String hadoopVersion, int majorVersion, int minorVersion) {
-    if (majorVersion == 2 && (minorVersion == 5 || minorVersion == 6 || minorVersion == 7)) {
-      return new HadoopShim26();
-    }
-    return null;
+  public void setHadoopCallerContext(String context) {
+    // Not supported
   }
+
+  @Override
+  public void clearHadoopCallerContext() {
+    // Not supported
+  }
+
+  @Override
+  public Set<String> getSupportedResourceTypes(RegisterApplicationMasterResponse response) {
+    EnumSet<SchedulerResourceTypes> supportedResourceTypes = response.getSchedulerResourceTypes();
+    Set<String> supportedTypes = new HashSet<String>();
+    for (SchedulerResourceTypes resourceType : supportedResourceTypes) {
+      supportedTypes.add(resourceType.name());
+    }
+    return supportedTypes;
+  }
+
 }

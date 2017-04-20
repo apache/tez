@@ -146,7 +146,7 @@
 
   <profiles>
     <profile>
-      <id>hadoop26</id>
+      <id>hadoop27</id>
       <dependencies>
         <dependency>
           <groupId>org.apache.tez</groupId>

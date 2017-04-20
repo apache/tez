@@ -18,28 +18,16 @@
 
 package org.apache.tez.hadoop.shim;
 
-import java.util.Set;
-
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 
 @Private
-public class HadoopShim24 extends HadoopShim {
+public class HadoopShim25_26_27Provider extends HadoopShimProvider {
 
   @Override
-  public void setHadoopCallerContext(String context) {
-    // Not supported
-  }
-
-  @Override
-  public void clearHadoopCallerContext() {
-    // Not supported
-  }
-
-  @Override
-  public Set<String> getSupportedResourceTypes(RegisterApplicationMasterResponse response) {
-    // Not supported
+  public HadoopShim createHadoopShim(String hadoopVersion, int majorVersion, int minorVersion) {
+    if (majorVersion == 2 && (minorVersion == 5 || minorVersion == 6 || minorVersion == 7)) {
+      return new HadoopShim27();
+    }
     return null;
   }
-
 }
