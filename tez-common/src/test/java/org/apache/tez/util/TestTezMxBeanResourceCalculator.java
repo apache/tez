@@ -52,8 +52,8 @@ public class TestTezMxBeanResourceCalculator {
   public void testResourceCalculator() {
     Assert.assertTrue(resourceCalculator instanceof TezMxBeanResourceCalculator);
     Assert.assertTrue(resourceCalculator.getCumulativeCpuTime() > 0);
-    Assert.assertTrue(resourceCalculator.getCumulativeVmem() > 0);
-    Assert.assertTrue(resourceCalculator.getCumulativeRssmem() > 0);
+    Assert.assertTrue(resourceCalculator.getVirtualMemorySize() > 0);
+    Assert.assertTrue(resourceCalculator.getRssMemorySize() > 0);
     Assert.assertTrue(resourceCalculator.getProcessTreeDump().equals(""));
     Assert.assertTrue(resourceCalculator.checkPidPgrpidForMatch());
   }

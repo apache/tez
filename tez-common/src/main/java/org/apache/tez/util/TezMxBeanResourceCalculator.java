@@ -58,7 +58,7 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
     return "";
   }
 
-  @Override public long getCumulativeVmem(int olderThanAge) {
+  @Override public long getVirtualMemorySize(int olderThanAge) {
     try {
       return (Long) getCommittedVirtualMemorySize.invoke(osBean);
     } catch (IllegalArgumentException e) {
@@ -70,7 +70,7 @@ public class TezMxBeanResourceCalculator extends ResourceCalculatorProcessTree {
     }
   }
 
-  @Override public long getCumulativeRssmem(int olderThanAge) {
+  @Override public long getRssMemorySize(int olderThanAge) {
     //Not supported directly (RSS ~= memory consumed by JVM from Xmx)
     return runtime.totalMemory();
   }
