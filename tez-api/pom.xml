@@ -208,4 +208,16 @@
     </plugins>
   </reporting>
 
+  <profiles>
+    <profile>
+      <id>hadoop28</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-hdfs-client</artifactId>
+          <version>${hadoop.version}</version>
+       </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
