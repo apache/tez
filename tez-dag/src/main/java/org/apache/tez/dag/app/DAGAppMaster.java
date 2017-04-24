@@ -478,16 +478,18 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
+    dispatcher = createDispatcher();
+
     if (isLocal) {
        conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
        conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
            TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT);
+    } else {
+      dispatcher.enableExitOnDispatchException();
     }
-    conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, !isLocal);
     String strAppId = this.appAttemptID.getApplicationId().toString();
     this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
-    dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
     this.aclManager = new ACLManager(appMasterUgi.getShortUserName(), this.amConf);
 
