@@ -444,20 +444,17 @@ public class ShuffleManager implements FetcherCallback {
       }
 
       // Avoid adding attempts which have already completed.
-      if(input instanceof CompositeInputAttemptIdentifier) {
-        if (completedInputSet.nextClearBit(input.getInputIdentifier()) >=
-            input.getInputIdentifier() + ((CompositeInputAttemptIdentifier) input).getInputIdentifierCount()) {
-          inputIter.remove();
-          continue;
-        }
+      boolean alreadyCompleted;
+      if (input instanceof CompositeInputAttemptIdentifier) {
+        CompositeInputAttemptIdentifier compositeInput = (CompositeInputAttemptIdentifier)input;
+        int nextClearBit = completedInputSet.nextClearBit(compositeInput.getInputIdentifier());
+        int maxClearBit = compositeInput.getInputIdentifier() + compositeInput.getInputIdentifierCount();
+        alreadyCompleted = nextClearBit > maxClearBit;
       } else {
-        if (completedInputSet.get(input.getInputIdentifier())) {
-          inputIter.remove();
-          continue;
-        }
+          alreadyCompleted = completedInputSet.get(input.getInputIdentifier());
       }
-      // Avoid adding attempts which have been marked as OBSOLETE 
-      if (obsoletedInputs.contains(input)) {
+      // Avoid adding attempts which have already completed or have been marked as OBSOLETE
+      if (alreadyCompleted || obsoletedInputs.contains(input)) {
         inputIter.remove();
         continue;
       }
@@ -537,23 +534,17 @@ public class ShuffleManager implements FetcherCallback {
     if (LOG.isDebugEnabled()) {
       LOG.debug("No input data exists for SrcTask: " + inputIdentifier + ". Marking as complete.");
     }
-    
-    if (!completedInputSet.get(inputIdentifier)) {
-      synchronized (completedInputSet) {
-        if (!completedInputSet.get(inputIdentifier)) {
-          NullFetchedInput fetchedInput = new NullFetchedInput(srcAttemptIdentifier);
-          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
-            registerCompletedInput(fetchedInput);
-          } else {
-            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
-          }
-        }
-      }
-    }
-
-    // Awake the loop to check for termination.
     lock.lock();
     try {
+      if (!completedInputSet.get(inputIdentifier)) {
+        NullFetchedInput fetchedInput = new NullFetchedInput(srcAttemptIdentifier);
+        if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+          registerCompletedInput(fetchedInput);
+        } else {
+          registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
+        }
+      }
+      // Awake the loop to check for termination.
       wakeLoop.signal();
     } finally {
       lock.unlock();
@@ -570,7 +561,7 @@ public class ShuffleManager implements FetcherCallback {
     lastEventReceived.setValue(relativeTime);
   }
 
-  public synchronized void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
+  void obsoleteKnownInput(InputAttemptIdentifier srcAttemptIdentifier) {
     obsoletedInputs.add(srcAttemptIdentifier);
     // TODO NEWTEZ Maybe inform the fetcher about this. For now, this is used during the initial fetch list construction.
   }
@@ -632,60 +623,40 @@ public class ShuffleManager implements FetcherCallback {
     lock.lock();
     try {
       lastProgressTime = System.currentTimeMillis();
+      inputContext.notifyProgress();
+      if (!completedInputSet.get(inputIdentifier)) {
+        fetchedInput.commit();
+        ShuffleUtils.logIndividualFetchComplete(LOG, copyDuration,
+            fetchedBytes, decompressedLength, fetchedInput.getType().toString(), srcAttemptIdentifier);
+
+        // Processing counters for completed and commit fetches only. Need
+        // additional counters for excessive fetches - which primarily comes
+        // in after speculation or retries.
+        shuffledInputsCounter.increment(1);
+        bytesShuffledCounter.increment(fetchedBytes);
+        if (fetchedInput.getType() == Type.MEMORY) {
+          bytesShuffledToMemCounter.increment(fetchedBytes);
+        } else if (fetchedInput.getType() == Type.DISK) {
+          bytesShuffledToDiskCounter.increment(fetchedBytes);
+        } else if (fetchedInput.getType() == Type.DISK_DIRECT) {
+          bytesShuffledDirectDiskCounter.increment(fetchedBytes);
+        }
+        decompressedDataSizeCounter.increment(decompressedLength);
+
+        if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+          registerCompletedInput(fetchedInput);
+        } else {
+          registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
+        }
+
+        totalBytesShuffledTillNow += fetchedBytes;
+        logProgress();
+        wakeLoop.signal();
+      } else {
+        fetchedInput.abort(); // If this fails, the fetcher may attempt another abort.
+      }
     } finally {
       lock.unlock();
-    }
-    
-    inputContext.notifyProgress();
-    boolean committed = false;
-    if (!completedInputSet.get(inputIdentifier)) {
-      synchronized (completedInputSet) {
-        if (!completedInputSet.get(inputIdentifier)) {
-          fetchedInput.commit();
-          committed = true;
-          ShuffleUtils.logIndividualFetchComplete(LOG, copyDuration,
-              fetchedBytes, decompressedLength, fetchedInput.getType().toString(), srcAttemptIdentifier);
-
-          // Processing counters for completed and commit fetches only. Need
-          // additional counters for excessive fetches - which primarily comes
-          // in after speculation or retries.
-          shuffledInputsCounter.increment(1);
-          bytesShuffledCounter.increment(fetchedBytes);
-          if (fetchedInput.getType() == Type.MEMORY) {
-            bytesShuffledToMemCounter.increment(fetchedBytes);
-          } else if (fetchedInput.getType() == Type.DISK) {
-            bytesShuffledToDiskCounter.increment(fetchedBytes);
-          } else if (fetchedInput.getType() == Type.DISK_DIRECT) {
-            bytesShuffledDirectDiskCounter.increment(fetchedBytes);
-          }
-          decompressedDataSizeCounter.increment(decompressedLength);
-
-          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
-            registerCompletedInput(fetchedInput);
-          } else {
-            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier, fetchedInput);
-          }
-
-          lock.lock();
-          try {
-            totalBytesShuffledTillNow += fetchedBytes;
-            logProgress();
-          } finally {
-            lock.unlock();
-          }
-        }
-      }
-    }
-    if (!committed) {
-      fetchedInput.abort(); // If this fails, the fetcher may attempt another abort.
-    } else {
-      lock.lock();
-      try {
-        // Signal the wakeLoop to check for termination.
-        wakeLoop.signal();
-      } finally {
-        lock.unlock();
-      }
     }
     // TODO NEWTEZ Maybe inform fetchers, in case they have an alternate attempt of the same task in their queue.
   }
