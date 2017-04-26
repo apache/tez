@@ -380,9 +380,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
       pendingSpillCount.incrementAndGet();
 
+      int spillNumber = numSpills.getAndIncrement();
       ListenableFuture<SpillResult> future = spillExecutor.submit(
-          new SpillCallable(currentBuffer, codec, spilledRecordsCounter, numSpills.getAndIncrement()));
-      Futures.addCallback(future, new SpillCallback(numSpills.get()));
+          new SpillCallable(currentBuffer, codec, spilledRecordsCounter, spillNumber));
+      Futures.addCallback(future, new SpillCallback(spillNumber));
       // Update once per buffer (instead of every record)
       updateTezCountersAndNotify();
 
