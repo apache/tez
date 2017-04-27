@@ -66,10 +66,6 @@
       <artifactId>tez-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.tez</groupId>
-      <artifactId>tez-mapreduce</artifactId>
-    </dependency>
-    <dependency>
       <!-- Required for the ShuffleHandler -->
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-runtime-library</artifactId>

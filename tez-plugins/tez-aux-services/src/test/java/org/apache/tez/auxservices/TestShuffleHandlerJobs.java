@@ -39,7 +39,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -86,7 +85,6 @@ public class TestShuffleHandlerJobs {
       conf.set(serviceStr, ShuffleHandler.class.getName());
       conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
-      conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
       tezCluster.init(conf);
       tezCluster.start();
