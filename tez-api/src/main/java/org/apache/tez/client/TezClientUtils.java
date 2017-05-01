@@ -20,6 +20,7 @@ package org.apache.tez.client;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,6 +39,7 @@ import java.util.Vector;
 import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.apache.tez.common.JavaOptsChecker;
@@ -1077,4 +1079,28 @@ public class TezClientUtils {
     }
   }
 
+
+  public static byte[] getLocalSha(Path path, Configuration conf) throws IOException {
+    InputStream is = null;
+    try {
+      is = FileSystem.getLocal(conf).open(path);
+      return DigestUtils.sha256(is);
+    } finally {
+      if (is != null) {
+        is.close();
+      }
+    }
+  }
+
+  public static byte[] getResourceSha(URI uri, Configuration conf) throws IOException {
+    InputStream is = null;
+    try {
+      is = FileSystem.get(uri, conf).open(new Path(uri));
+      return DigestUtils.sha256(is);
+    } finally {
+      if (is != null) {
+        is.close();
+      }
+    }
+  }
 }

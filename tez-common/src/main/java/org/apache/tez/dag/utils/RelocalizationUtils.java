@@ -19,7 +19,6 @@
 package org.apache.tez.dag.utils;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collections;
@@ -27,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -67,29 +65,5 @@ public class RelocalizationUtils {
     Path srcPath = new Path(uri);
     fs.copyToLocalFile(srcPath, dFile);
     return dFile.makeQualified(FileSystem.getLocal(conf).getUri(), cwd);
-  }
-
-  public static byte[] getLocalSha(Path path, Configuration conf) throws IOException {
-    InputStream is = null;
-    try {
-      is = FileSystem.getLocal(conf).open(path);
-      return DigestUtils.sha256(is);
-    } finally {
-      if (is != null) {
-        is.close();
-      }
-    }
-  }
-
-  public static byte[] getResourceSha(URI uri, Configuration conf) throws IOException {
-    InputStream is = null;
-    try {
-      is = FileSystem.get(uri, conf).open(new Path(uri));
-      return DigestUtils.sha256(is);
-    } finally {
-      if (is != null) {
-        is.close();
-      }
-    }
   }
 }
