@@ -3052,6 +3052,21 @@ public class TestVertexImpl {
     Assert.assertEquals(12, fromEventId);
     Assert.assertEquals(1, eventInfo.getEvents().size());
     Assert.assertEquals(EventType.INPUT_FAILED_EVENT, eventInfo.getEvents().get(0).getEventType());
+
+    // Let failed task send more event
+    for (int i=11; i<14; ++i) {
+      v4.handle(new VertexEventRouteEvent(v4.getVertexId(), Collections.singletonList(
+          new TezEvent(DataMovementEvent.create(0, null),
+              new EventMetaData(EventProducerConsumerType.OUTPUT, v3.getName(), v3.getName(), v3TaId)))));
+    }
+    dispatcher.await();
+    // 11 events + 1 INPUT_FAILED_EVENT.
+    // Events sent out later by failed tasks should not be available.
+    Assert.assertEquals(12, v4.getOnDemandRouteEvents().size());
+
+    fromEventId = 0;
+    eventInfo = v4.getTaskAttemptTezEvents(v4TaId, fromEventId, 0, 100);
+    Assert.assertEquals(EventType.INPUT_FAILED_EVENT, eventInfo.getEvents().get(0).getEventType());
   }
   
   @Test (timeout = 5000)

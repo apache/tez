@@ -232,16 +232,56 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     assertTrue("Shuffle info events should not be empty for pipelined shuffle",
         !scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
 
+    int valuesInMapLocations = scheduler.mapLocations.values().size();
+    assertTrue("Maplocations should have values. current size: " + valuesInMapLocations,
+        valuesInMapLocations > 0);
+
+    // start scheduling for download
+    scheduler.getMapsForHost(scheduler.mapLocations.values().iterator().next());
+
     //Attempt #0 comes up. When processing this, it should report exception
     attemptNum = 0;
     inputIdx = 1;
     Event dme2 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0, attemptNum);
     handler.handleEvents(Collections.singletonList(dme2));
 
-    InputAttemptIdentifier id2 =
+    // task should issue kill request
+    verify(scheduler, times(1)).killSelf(any(IOException.class), any(String.class));
+  }
+
+  @Test (timeout = 5000)
+  public void testPipelinedShuffle_WithObsoleteEvents() throws IOException, InterruptedException {
+    //Process attempt #1 first
+    int attemptNum = 1;
+    int inputIdx = 1;
+
+    Event dme1 = createDataMovementEvent(attemptNum, inputIdx, null, false, true, true, 0, attemptNum);
+    handler.handleEvents(Collections.singletonList(dme1));
+
+    InputAttemptIdentifier id1 =
         new InputAttemptIdentifier(inputIdx, attemptNum,
             PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0);
-    verify(scheduler, times(1)).reportExceptionForInput(any(IOException.class));
+
+    verify(scheduler, times(1)).addKnownMapOutput(eq(HOST), eq(PORT), eq(1), eq(id1));
+    assertTrue("Shuffle info events should not be empty for pipelined shuffle",
+        !scheduler.pipelinedShuffleInfoEventsMap.isEmpty());
+
+    int valuesInMapLocations = scheduler.mapLocations.values().size();
+    assertTrue("Maplocations should have values. current size: " + valuesInMapLocations,
+        valuesInMapLocations > 0);
+
+    // start scheduling for download. Sets up scheduledForDownload in eventInfo.
+    scheduler.getMapsForHost(scheduler.mapLocations.values().iterator().next());
+
+    // send input failed event.
+    List<Event> events = new LinkedList<Event>();
+    int targetIdx = 1;
+    InputFailedEvent failedEvent = InputFailedEvent.create(targetIdx, 0);
+    events.add(failedEvent);
+    handler.handleEvents(events);
+
+    // task should issue kill request, as inputs are scheduled for download already.
+    verify(scheduler, times(1)).killSelf(any(IOException.class), any(String.class));
   }
 
   @Test(timeout = 5000)
