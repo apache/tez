@@ -4,6 +4,7 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3705. Modify DeletionTracker and deletion threads to be initialized only if enabled for tez_shuffle
   TEZ-3685. ShuffleHandler completedInputSet off-by-one error
   TEZ-3684. Incorporate first pass non-essential TEZ-3334 pre-merge feedback
   TEZ-3683. LocalContainerLauncher#shouldDelete member variable is not used

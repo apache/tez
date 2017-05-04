@@ -663,19 +663,19 @@ public class TezConfiguration extends Configuration {
   /** Boolean value. Instructs AM to delete Dag directory upon completion */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="boolean")
-  public static final String TEZ_AM_DAG_DELETE_ENABLED = TEZ_AM_PREFIX
-      + "dag.delete.enabled";
-  public static final boolean TEZ_AM_DAG_DELETE_ENABLED_DEFAULT = false;
+  public static final String TEZ_AM_DAG_CLEANUP_ON_COMPLETION = TEZ_AM_PREFIX
+      + "dag.cleanup.on.completion";
+  public static final boolean TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT = false;
 
   /**
    * Int value. Upper limit on the number of threads used to delete DAG directories on nodes.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
-  public static final String TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT =
+  public static final String TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT =
       TEZ_AM_PREFIX + "dag.deletion.thread-count-limit";
 
-  public static final int TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT_DEFAULT = 30;
+  public static final int TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT_DEFAULT = 10;
 
   /** Int value. The amount of memory in MB to be used by tasks. This applies to all tasks across
    * all vertices. Setting it to the same value for all tasks is helpful for container reuse and 

@@ -52,6 +52,7 @@ import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -163,12 +164,17 @@ public class LocalContainerLauncher extends ContainerLauncher {
     String tezDefaultComponentName =
         isLocalMode ? TezConstants.getTezUberServicePluginName() :
         TezConstants.getTezYarnServicePluginName();
-    String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
-        TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
-    deletionTracker = ReflectionUtils.createClazzInstance(
-        deletionTrackerClassName,new Class[] {
-            Map.class, Configuration.class, String.class},
-        new Object[] {new HashMap<NodeId, Integer>(), conf, tezDefaultComponentName});
+    boolean cleanupDagDataOnComplete = ShuffleUtils.isTezShuffleHandler(conf)
+        && conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
+        TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
+    if (cleanupDagDataOnComplete) {
+      String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
+          TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
+      deletionTracker = ReflectionUtils.createClazzInstance(
+          deletionTrackerClassName, new Class[]{
+              Map.class, Configuration.class, String.class},
+          new Object[]{new HashMap<NodeId, Integer>(), conf, tezDefaultComponentName});
+    }
   }
 
   @Override
@@ -272,8 +278,9 @@ public class LocalContainerLauncher extends ContainerLauncher {
       RunningTaskCallback callback = new RunningTaskCallback(event.getContainerId());
       runningContainers.put(event.getContainerId(), callback);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
-
-      deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
+      if (deletionTracker != null) {
+        deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
+      }
     } catch (RejectedExecutionException e) {
       handleLaunchFailed(e, event.getContainerId());
     }
@@ -411,7 +418,9 @@ public class LocalContainerLauncher extends ContainerLauncher {
   }
 
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
-    deletionTracker.dagComplete(dag, jobTokenSecretManager);
+    if (deletionTracker != null) {
+      deletionTracker.dagComplete(dag, jobTokenSecretManager);
+    }
   }
 
 }
