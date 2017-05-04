@@ -852,9 +852,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private void handleTaskAttemptCompletion(TezTaskAttemptID attemptId,
       TaskAttemptStateInternal attemptState) {
     this.sendTaskAttemptCompletionEvent(attemptId, attemptState);
-    if (getInternalState() != TaskStateInternal.SUCCEEDED) {
-      sendDAGSchedulerFinishedEvent(attemptId); // not a retro active action
-    }
+    sendDAGSchedulerFinishedEvent(attemptId);
   }
 
   private void sendDAGSchedulerFinishedEvent(TezTaskAttemptID taId) {
