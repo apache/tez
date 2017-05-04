@@ -1167,6 +1167,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
+  // Verifies failure in case of a file size difference. Does not verify sha differences.
   @Test(timeout = 5000)
   public void testDAGWithConflictingResource() {
     DAG dag = DAG.create("dag");
@@ -1185,7 +1186,7 @@ public class TestDAGVerify {
     dag.addVertex(v1);
 
     try {
-      dag.verify();
+      dag.verifyLocalResources(new TezConfiguration());
       Assert.fail("should report failure on conflict resources");
     } catch (Exception e) {
       Assert.assertTrue(e.getMessage().contains("There is conflicting local resource"));

@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.CompositeService;
@@ -77,7 +78,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
   protected final Map<Class<? extends Enum>, EventHandler> eventHandlers = Maps.newHashMap();
   protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> eventDispatchers = 
       Maps.newHashMap();
-  private boolean exitOnDispatchException;
+  private boolean exitOnDispatchException = false;
 
   AsyncDispatcherConcurrent(String name, int numThreads) {
     super(name);
@@ -126,10 +127,6 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
   
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
-    // TODO TEZ-2049 remove YARN reference
-    this.exitOnDispatchException =
-        conf.getBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY,
-          Dispatcher.DEFAULT_DISPATCHER_EXIT_ON_ERROR);
     super.serviceInit(conf);
   }
 
@@ -282,6 +279,11 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
           + handler.getClass());
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
+  }
+
+  @VisibleForTesting
+  public void enableExitOnDispatchException() {
+    this.exitOnDispatchException = true;
   }
 
   @Override

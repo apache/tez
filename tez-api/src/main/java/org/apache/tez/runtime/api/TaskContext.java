@@ -20,6 +20,7 @@ package org.apache.tez.runtime.api;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
 
@@ -234,5 +235,19 @@ public interface TaskContext {
    * @return the execution context
    */
   public ExecutionContext getExecutionContext();
-    
+
+  /**
+   * Create a new ExecutorService with the given parallelism and thread name format. The parallelism
+   * might not be guaranteed. The service returned works with tez framework, currently it provides
+   * thread reuse across tasks.
+   * Note: This is an unstable api, and is not recommended to be used by external users. Please wait
+   * until API and code is stablized by use in Tez processors, input and outputs.
+   * @param parallelism The expected parallelism for for this ExecutorService.
+   * @param threadNameFormat The thread name format, format will be given one parameter, threadId.
+   * @return An ExecutorService instance.
+   */
+  @Private
+  @Unstable
+  public ExecutorService createTezFrameworkExecutorService(
+      int parallelism, String threadNameFormat);
 }

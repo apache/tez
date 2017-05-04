@@ -40,6 +40,8 @@ test('Basic creation test', function(assert) {
   assert.ok(route.filterRecords);
 
   assert.ok(route.actions.willTransition);
+  assert.ok(route.actions.loadCounters);
+  assert.ok(route.actions.tableRowsChanged);
 });
 
 test('refresh test', function(assert) {
@@ -161,4 +163,26 @@ test('actions.willTransition test', function(assert) {
 
   assert.expect(2);
   route.send("willTransition");
+});
+
+test('actions.loadCounters test', function(assert) {
+  let route = this.subject({
+        controller: Ember.Object.create()
+      }),
+      visibleRecords = [{}, {}, {}],
+      index = 0;
+
+  route.loader = {
+    loadNeed: function (record, name) {
+      assert.equal(record, visibleRecords[index++]);
+      assert.equal(name, "info");
+      return Ember.RSVP.resolve(record);
+    }
+  };
+  assert.expect(3 * 2);
+
+  route.send("loadCounters");
+
+  route.set("visibleRecords", visibleRecords);
+  route.send("loadCounters");
 });

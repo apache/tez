@@ -74,7 +74,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
   protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> concurrentEventDispatchers = 
       Maps.newHashMap();
   
-  private boolean exitOnDispatchException;
+  private boolean exitOnDispatchException = false;
 
   public AsyncDispatcher(String name) {
     this(name, new LinkedBlockingQueue<Event>());
@@ -121,10 +121,6 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
-    // TODO TEZ-2049 remove YARN reference
-    this.exitOnDispatchException =
-        conf.getBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY,
-          Dispatcher.DEFAULT_DISPATCHER_EXIT_ON_ERROR);
     super.serviceInit(conf);
   }
 
@@ -225,6 +221,11 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     checkForExistingConcurrentDispatcher(eventType);
   }
 
+  @VisibleForTesting
+  public void enableExitOnDispatchException() {
+    exitOnDispatchException = true;
+  }
+
   /**
    * Add an EventHandler for events handled inline on this dispatcher
    */
@@ -278,6 +279,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     LOG.info(
           "Registering " + eventType + " for concurrent dispatch using: " + handler.getClass());
     AsyncDispatcherConcurrent dispatcher = new AsyncDispatcherConcurrent(dispatcherName, numThreads);
+    if (exitOnDispatchException) {
+      dispatcher.enableExitOnDispatchException();
+    }
     dispatcher.register(eventType, handler);
     concurrentEventDispatchers.put(eventType, dispatcher);
     addIfService(dispatcher);
@@ -292,6 +296,9 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     checkForExistingDispatchers(true, eventType);
     LOG.info("Registering " + eventType + " with existing concurrent dispatch using: "
           + handler.getClass());
+    if (exitOnDispatchException) {
+      dispatcher.enableExitOnDispatchException();
+    }
     dispatcher.register(eventType, handler);
     concurrentEventDispatchers.put(eventType, dispatcher);
   }

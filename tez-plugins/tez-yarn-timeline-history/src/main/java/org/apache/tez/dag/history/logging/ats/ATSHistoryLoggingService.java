@@ -336,11 +336,13 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       if (event.getDagID() != null && skippedDAGs.contains(event.getDagID())) {
         continue;
       }
-      TimelineEntity entity = HistoryEventTimelineConversion.convertToTimelineEntity(
+      List<TimelineEntity> eventEntities = HistoryEventTimelineConversion.convertToTimelineEntities(
           event.getHistoryEvent());
-      entities.add(entity);
+      entities.addAll(eventEntities);
       if (historyACLPolicyManager != null && domainId != null && !domainId.isEmpty()) {
-        historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
+        for (TimelineEntity entity: eventEntities) {
+          historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
+        }
       }
     }
 

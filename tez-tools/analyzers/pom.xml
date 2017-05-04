@@ -27,16 +27,7 @@
 
   <profiles>
     <profile>
-      <id>hadoop24</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <modules>
-        <module>job-analyzer</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>hadoop26</id>
+      <id>hadoop27</id>
       <activation>
         <property>
           <name>!skipATS</name>

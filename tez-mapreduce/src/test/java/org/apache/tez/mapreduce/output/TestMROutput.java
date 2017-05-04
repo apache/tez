@@ -46,6 +46,8 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezExecutors;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -235,7 +237,7 @@ public class TestMROutput {
   public static LogicalIOProcessorRuntimeTask createLogicalTask(
       Configuration conf,
       TezUmbilical umbilical, String dagName,
-      String vertexName) throws Exception {
+      String vertexName, TezExecutors sharedExecutor) throws Exception {
     ProcessorDescriptor procDesc = ProcessorDescriptor.create(TestProcessor.class.getName());
     List<InputSpec> inputSpecs = Lists.newLinkedList();
     List<OutputSpec> outputSpecs = Lists.newLinkedList();
@@ -263,9 +265,9 @@ public class TestMROutput {
         null,
         new HashMap<String, String>(),
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim());
+        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor);
   }
-  
+
   public static class TestOutputCommitter extends OutputCommitter {
 
     @Override
@@ -395,10 +397,13 @@ public class TestMROutput {
   @Ignore
   @Test
   public void testPerf() throws Exception {
-    LogicalIOProcessorRuntimeTask task = createLogicalTask(new Configuration(), 
-        new TestUmbilical(), "dag", "vertex");
+    Configuration conf = new Configuration();
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(conf);
+    LogicalIOProcessorRuntimeTask task = createLogicalTask(conf, new TestUmbilical(), "dag",
+        "vertex", sharedExecutor);
     task.initialize();
     task.run();
     task.close();
+    sharedExecutor.shutdownNow();
   }
 }

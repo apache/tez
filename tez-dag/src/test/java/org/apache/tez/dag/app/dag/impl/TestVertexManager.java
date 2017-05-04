@@ -20,6 +20,8 @@ package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -30,6 +32,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -55,6 +59,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.Before;
 import org.junit.Test;
@@ -203,6 +208,27 @@ public class TestVertexManager {
       edgeVertexSet.add(tezEvent.getDestinationInfo().getEdgeVertexName());
     }
     assertEquals(Sets.newHashSet("input1","input2"), edgeVertexSet);
+  }
+
+  @Test(timeout = 5000)
+  public void testVMPluginCtxGetInputVertexGroup() throws Exception {
+    VertexManager vm =
+      new VertexManager(
+        VertexManagerPluginDescriptor.create(CustomVertexManager.class
+          .getName()), UserGroupInformation.getCurrentUser(),
+        mockVertex, mockAppContext, mock(StateChangeNotifier.class));
+
+    assertTrue(vm.pluginContext.getInputVertexGroups().isEmpty());
+
+    String group = "group", v1 = "v1", v2 = "v2";
+    when(mockVertex.getGroupInputSpecList())
+      .thenReturn(Arrays.asList(new GroupInputSpec(group, Arrays.asList(v1, v2), null)));
+    Map<String, List<String>> groups = vm.pluginContext.getInputVertexGroups();
+    assertEquals(1, groups.size());
+    assertTrue(groups.containsKey(group));
+    assertEquals(2, groups.get(group).size());
+    assertTrue(groups.get(group).contains(v1));
+    assertTrue(groups.get(group).contains(v2));
   }
 
   public static class CustomVertexManager extends VertexManagerPlugin {

@@ -17,8 +17,11 @@
  */
 package org.apache.tez.dag.api;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -34,6 +37,8 @@ import java.util.Stack;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
@@ -686,21 +691,69 @@ public class DAG {
     }
 
     // check for conflicts between dag level local resource and vertex level local resource
+
+
+    return topologicalVertexStack;
+  }
+
+  @VisibleForTesting
+  void verifyLocalResources(Configuration tezConf) {
     for (Vertex v : vertices.values()) {
-      for (Map.Entry<String, LocalResource> localResource : v.getTaskLocalFiles().entrySet()) {
+      for (Map.Entry<String, LocalResource> localResource : v
+          .getTaskLocalFiles().entrySet()) {
         String resourceName = localResource.getKey();
         LocalResource resource = localResource.getValue();
         if (commonTaskLocalFiles.containsKey(resourceName)
-          && !commonTaskLocalFiles.get(resourceName).equals(resource)) {
-          throw new IllegalStateException("There is conflicting local resource (" + resourceName
-            + ") between dag local resource and vertex " + v.getName() + " local resource. "
-            + "\nResource of dag : " + commonTaskLocalFiles.get(resourceName)
-            + "\nResource of vertex: " + resource);
+            && !commonTaskLocalFiles.get(resourceName).equals(resource)) {
+          // Different for some reason. Compare size, and then eventually hash
+          try {
+
+            LocalResource commonLr = commonTaskLocalFiles.get(resourceName);
+            if (resource.getSize() != commonLr.getSize()) {
+              throw new IllegalStateException(
+                  "There is conflicting local resource (size mismatch) (" +
+                      resourceName
+                      + ") between dag local resource and vertex " +
+                      v.getName() + " local resource. "
+                      + "\nResource of dag : " +
+                      commonTaskLocalFiles.get(resourceName)
+                      + "\nResource of vertex: " + resource);
+            }
+
+            Path vertexResourcePath =
+                ConverterUtils.getPathFromYarnURL(resource.getResource());
+            Path commonResourcePath = ConverterUtils.getPathFromYarnURL(
+                commonLr.getResource());
+
+            byte[] vertexResourceSha = TezClientUtils
+                .getResourceSha(vertexResourcePath.toUri(), tezConf);
+            byte[] commonResourceSha = TezClientUtils
+                .getResourceSha(commonResourcePath.toUri(), tezConf);
+
+            if (!Arrays.equals(vertexResourceSha, commonResourceSha)) {
+              throw new IllegalStateException(
+                  "There is conflicting local resource (sha mismatch) (" +
+                      resourceName
+                      + ") between dag local resource and vertex " +
+                      v.getName() + " local resource. "
+                      + "\nResource of dag : " +
+                      commonTaskLocalFiles.get(resourceName)
+                      + "\nResource of vertex: " + resource);
+            }
+
+          } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(
+                "Failed while attempting to validate sha for conflicting resources (" +
+                    resourceName
+                    + ") between dag local resource and vertex " + v.getName() +
+                    " local resource. "
+                    + "\nResource of dag : " +
+                    commonTaskLocalFiles.get(resourceName)
+                    + "\nResource of vertex: " + resource);
+          }
         }
       }
     }
-
-    return topologicalVertexStack;
   }
 
   // Adaptation of Tarjan's algorithm for connected components.
@@ -794,6 +847,7 @@ public class DAG {
       boolean tezLrsAsArchive, ServicePluginsDescriptor servicePluginsDescriptor,
       JavaOptsChecker javaOptsChecker) {
     Deque<String> topologicalVertexStack = verify(true);
+    verifyLocalResources(tezConf);
 
     DAGPlan.Builder dagBuilder = DAGPlan.newBuilder();
     dagBuilder.setName(this.name);

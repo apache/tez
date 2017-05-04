@@ -248,7 +248,7 @@ public class TestATSHistoryLoggingService {
       .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
 
     // All calls made with session domain id.
-    verify(historyACLPolicyManager, times(5)).updateTimelineEntityDomain(any(), eq("session-id"));
+    verify(historyACLPolicyManager, times(6)).updateTimelineEntityDomain(any(), eq("session-id"));
   }
 
   @Test(timeout=10000)
@@ -299,7 +299,7 @@ public class TestATSHistoryLoggingService {
 
     // All calls made with session domain id.
     verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), eq("session-id"));
-    Assert.assertEquals(5, atsEntitiesCounter);
+    Assert.assertEquals(6, atsEntitiesCounter);
   }
 
   @Test(timeout=10000)
@@ -333,7 +333,7 @@ public class TestATSHistoryLoggingService {
 
     // All calls made with session domain id.
     verify(historyACLPolicyManager, times(1)).updateTimelineEntityDomain(any(), eq("test-domain"));
-    verify(historyACLPolicyManager, times(4)).updateTimelineEntityDomain(any(), eq("dag-domain"));
+    verify(historyACLPolicyManager, times(5)).updateTimelineEntityDomain(any(), eq("dag-domain"));
   }
 
   @Test(timeout=10000)
@@ -433,7 +433,7 @@ public class TestATSHistoryLoggingService {
 
     // All calls made with session domain id.
     verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String)any());
-    Assert.assertEquals(5, atsEntitiesCounter);
+    Assert.assertEquals(6, atsEntitiesCounter);
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,

@@ -29,43 +29,14 @@ import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderPseudoAuthenticatedStrategy;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestTimelineReaderFactory {
 
-  @Before
-  public void setup() {
-    // Disable tests if hadoop version is less than 2.4.0
-    // as Timeline is not supported in 2.2.x or 2.3.x
-    String hadoopVersion = System.getProperty("tez.hadoop.version");
-    Assume.assumeFalse(hadoopVersion.startsWith("2.2.") || hadoopVersion.startsWith("2.3."));
-  }
-
-  // ensure on hadoop 2.4 TimelinePseudoAuthenticatedStrategy is used.
-  @Test(timeout = 5000)
-  public void testShouldUsePseudoAuthStrategyForHadoop24() throws TezException {
-    String hadoopVersion = System.getProperty("tez.hadoop.version");
-    Assume.assumeTrue(hadoopVersion.startsWith("2.4.") || hadoopVersion.startsWith("2.5."));
-
-    String returnedClassName =
-        TimelineReaderFactory.getTimelineReaderStrategy(mock(Configuration.class), false, 0)
-            .getClass()
-            .getCanonicalName();
-    Assert.assertEquals("should use pseudo auth on hadoop2.4",
-        "org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderPseudoAuthenticatedStrategy",
-        returnedClassName);
-  }
-
   // ensure on hadoop 2.6+ TimelineReaderTokenAuthenticatedStrategy is used.
   @Test(timeout = 5000)
   public void testShouldUseTokenDelegationAuthStrategyForHadoop26() throws TezException {
-    String hadoopVersion = System.getProperty("tez.hadoop.version");
-    Assume.assumeFalse(hadoopVersion.startsWith("2.2.") ||
-        hadoopVersion.startsWith("2.3.") ||
-            hadoopVersion.startsWith("2.4.") ||
-            hadoopVersion.startsWith("2.5."));
 
     String returnedClassName =
         TimelineReaderFactory.getTimelineReaderStrategy(mock(Configuration.class), false, 0)

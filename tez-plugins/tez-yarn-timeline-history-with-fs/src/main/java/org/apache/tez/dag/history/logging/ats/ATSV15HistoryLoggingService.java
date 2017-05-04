@@ -21,6 +21,7 @@ package org.apache.tez.dag.history.logging.ats;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -375,16 +376,20 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
     if (event.getDagID() != null && skippedDAGs.contains(event.getDagID())) {
       return;
     }
-
-    TimelineEntity entity = HistoryEventTimelineConversion.convertToTimelineEntity(
+    TimelineEntityGroupId groupId = getGroupId(event);
+    List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(
         event.getHistoryEvent());
+    for (TimelineEntity entity : entities) {
+      logEntity(groupId, entity, domainId);
+    }
+  }
 
+  private void logEntity(TimelineEntityGroupId groupId, TimelineEntity entity, String domainId) {
     if (historyACLPolicyManager != null && domainId != null && !domainId.isEmpty()) {
       historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
     }
 
     try {
-      TimelineEntityGroupId groupId = getGroupId(event);
       TimelinePutResponse response = timelineClient.putEntities(
           appContext.getApplicationAttemptId(), groupId, entity);
       if (response != null

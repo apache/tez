@@ -27,6 +27,7 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -61,10 +62,11 @@ public class TestProcessorContext {
     TaskSpec mockSpec = mock(TaskSpec.class);
     when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
     when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
-    LogicalIOProcessorRuntimeTask runtimeTask = new LogicalIOProcessorRuntimeTask(
-        mockSpec, 1, 
-        new Configuration(), new String[]{"/"}, 
-        tezUmbilical, null, null, null, null, "", null, 1024, false, new DefaultHadoopShim());
+    Configuration conf = new Configuration();
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(conf);
+    LogicalIOProcessorRuntimeTask runtimeTask = new LogicalIOProcessorRuntimeTask(mockSpec, 1, conf,
+        new String[]{"/"}, tezUmbilical, null, null, null, null, "", null, 1024, false,
+        new DefaultHadoopShim(), sharedExecutor);
     LogicalIOProcessorRuntimeTask mockTask = spy(runtimeTask);
     Map<String, ByteBuffer> serviceConsumerMetadata = Maps.newHashMap();
     Map<String, String> auxServiceEnv = Maps.newHashMap();
@@ -94,7 +96,8 @@ public class TestProcessorContext {
             inputReadyTracker,
             objectRegistry,
             execContext,
-            memAvailable);
+            memAvailable,
+            sharedExecutor);
 
     assertEquals(dagNumber, procContext.getDagIdentifier());
     assertEquals(appAttemptNumber, procContext.getDAGAttemptNumber());
@@ -107,5 +110,6 @@ public class TestProcessorContext {
      // test auto call of notifyProgress
      procContext.setProgress(0.1f);
      verify(mockTask, times(1)).notifyProgressInvocation();
+     sharedExecutor.shutdown();
   }
 }

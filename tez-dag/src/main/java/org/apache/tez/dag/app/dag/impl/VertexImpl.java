@@ -727,6 +727,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   // must be a random access structure
   
   private final List<EventInfo> onDemandRouteEvents = Lists.newArrayListWithCapacity(1000);
+  // Do not send any events if attempt is already failed. TaskAttemptId
+  private final Set<TezTaskAttemptID> failedTaskIds = Sets.newHashSet();
   private final ReadWriteLock onDemandRouteEventsReadWriteLock = new ReentrantReadWriteLock();
   private final Lock onDemandRouteEventsReadLock = onDemandRouteEventsReadWriteLock.readLock();
   private final Lock onDemandRouteEventsWriteLock = onDemandRouteEventsReadWriteLock.writeLock();
@@ -1581,7 +1583,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return TaskSpec.createBaseTaskSpec(getDAG().getName(),
         getName(), getTotalTasks(), getProcessorDescriptor(),
         getInputSpecList(taskIndex), getOutputSpecList(taskIndex), 
-        getGroupInputSpecList(taskIndex), vertexOnlyConf);
+        getGroupInputSpecList(), vertexOnlyConf);
   }
 
   @Override
@@ -3982,6 +3984,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private void processOnDemandEvent(TezEvent tezEvent, Edge srcEdge, int srcTaskIndex) {
     onDemandRouteEventsWriteLock.lock();
     try {
+      if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT ||
+          tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) {
+        if (failedTaskIds.contains(tezEvent.getSourceInfo().getTaskAttemptID())) {
+          return;
+        }
+      }
       onDemandRouteEvents.add(new EventInfo(tezEvent, srcEdge, srcTaskIndex));
       if (tezEvent.getEventType() == EventType.INPUT_FAILED_EVENT) {
         for (EventInfo eventInfo : onDemandRouteEvents) {
@@ -3996,6 +4004,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             // can be obsoleted by an input failed event from the
             // same source edge+task
             eventInfo.isObsolete = true;
+            failedTaskIds.add(tezEvent.getSourceInfo().getTaskAttemptID());
           }
         }
       }
@@ -4422,7 +4431,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
 
   @Override
-  public List<GroupInputSpec> getGroupInputSpecList(int taskIndex) {
+  public List<GroupInputSpec> getGroupInputSpecList() {
     readLock.lock();
     try {
       return groupInputSpecList;

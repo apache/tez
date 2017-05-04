@@ -21,14 +21,15 @@ option java_outer_classname = "CartesianProductUserPayload";
 
 message CartesianProductConfigProto {
     required bool isPartitioned = 1;
-    repeated string sourceVertices = 2;
+    repeated string sources = 2;
     repeated int32 numPartitions = 3;
     optional string filterClassName = 4;
     optional bytes filterUserPayload = 5;
     optional float minFraction = 6;
     optional float maxFraction = 7;
     optional bool enableAutoGrouping = 8;
-    optional int64 desiredBytesPerGroup = 9;
-    repeated int32 numTasks = 10;
-    repeated int32 numGroups = 11;
+    optional int64 desiredBytesPerChunk = 9;
+    repeated int32 numChunks = 10;
+    optional int32 numChunk = 11;
+    optional int32 chunkIdOffset = 12;
 }

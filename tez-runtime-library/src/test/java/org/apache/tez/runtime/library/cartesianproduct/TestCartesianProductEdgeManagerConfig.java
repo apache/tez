@@ -28,23 +28,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestCartesianProductEdgeManagerConfig {
   @Test(timeout = 5000)
-  public void testAutoGroupingConfig() throws IOException {
+  public void testUnpartitionedAutoGroupingConfig() throws IOException {
     List<String> sourceVertices = new ArrayList<>();
     sourceVertices.add("v0");
     sourceVertices.add("v1");
-    int[] numTasks = new int[] {4, 5};
-    int[] numGroups = new int[] {2, 3};
+    int[] numChunkPerSrc = new int[] {2, 3};
+    int numGroup = 3, chunkIdOffset = 0;
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
-    builder.setIsPartitioned(false).addAllNumTasks(Ints.asList(numTasks))
-      .addAllSourceVertices(sourceVertices).addAllNumGroups(Ints.asList(numGroups));
+    builder.setIsPartitioned(false).addAllNumChunks(Ints.asList(numChunkPerSrc))
+      .addAllSources(sourceVertices).setNumChunk(numGroup).setChunkIdOffset(chunkIdOffset);
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray()));
 
     CartesianProductEdgeManagerConfig config =
       CartesianProductEdgeManagerConfig.fromUserPayload(payload);
-    assertArrayEquals(numGroups, config.getNumGroups());
+    assertArrayEquals(numChunkPerSrc, config.numChunksPerSrc);
+    assertEquals(numGroup, config.numChunk);
+    assertEquals(chunkIdOffset, config.chunkIdOffset);
   }
 }

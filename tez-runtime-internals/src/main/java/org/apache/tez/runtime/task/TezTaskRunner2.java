@@ -35,6 +35,8 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.TezExecutors;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -102,6 +104,25 @@ public class TezTaskRunner2 {
   // The callable which is being used to execute the task.
   private volatile TaskRunner2Callable taskRunnerCallable;
 
+  // This instance is set only if the runner was not configured explicity and will be shutdown
+  // when this task is finished.
+  private final TezSharedExecutor localExecutor;
+
+  @Deprecated
+  public TezTaskRunner2(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
+      TaskSpec taskSpec, int appAttemptNumber,
+      Map<String, ByteBuffer> serviceConsumerMetadata,
+      Map<String, String> serviceProviderEnvMap,
+      Multimap<String, String> startedInputsMap,
+      TaskReporterInterface taskReporter, ExecutorService executor,
+      ObjectRegistry objectRegistry, String pid,
+      ExecutionContext executionContext, long memAvailable,
+      boolean updateSysCounters, HadoopShim hadoopShim) throws IOException {
+    this(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
+        serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry,
+        pid, executionContext, memAvailable, updateSysCounters, hadoopShim, null);
+  }
+
   public TezTaskRunner2(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
                         TaskSpec taskSpec, int appAttemptNumber,
                         Map<String, ByteBuffer> serviceConsumerMetadata,
@@ -110,7 +131,8 @@ public class TezTaskRunner2 {
                         TaskReporterInterface taskReporter, ExecutorService executor,
                         ObjectRegistry objectRegistry, String pid,
                         ExecutionContext executionContext, long memAvailable,
-                        boolean updateSysCounters, HadoopShim hadoopShim) throws
+                        boolean updateSysCounters, HadoopShim hadoopShim,
+                        TezExecutors sharedExecutor) throws
       IOException {
     this.ugi = ugi;
     this.taskReporter = taskReporter;
@@ -125,9 +147,11 @@ public class TezTaskRunner2 {
         taskConf.set(entry.getKey(), entry.getValue());
       }
     }
+    localExecutor = sharedExecutor == null ? new TezSharedExecutor(tezConf) : null;
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
-        objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim);
+        objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim,
+        sharedExecutor == null ? localExecutor : sharedExecutor);
   }
 
   /**
@@ -257,6 +281,9 @@ public class TezTaskRunner2 {
       taskReporter.unregisterTask(task.getTaskAttemptID());
       if (taskKillStartTime != 0) {
         LOG.info("Time taken to interrupt task={}", (System.currentTimeMillis() - taskKillStartTime));
+      }
+      if (localExecutor != null) {
+        localExecutor.shutdown();
       }
       Thread.interrupted();
     }

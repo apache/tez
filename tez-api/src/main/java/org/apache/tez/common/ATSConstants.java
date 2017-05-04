@@ -47,6 +47,7 @@ public class ATSConstants {
   public static final String USER = "user";
   public static final String CALLER_CONTEXT_ID = "callerId";
   public static final String CALLER_CONTEXT_TYPE = "callerType";
+  public static final String CALLER_CONTEXT = "callerContext";
 
   /* Keys used in other info */
   public static final String APP_SUBMIT_TIME = "appSubmitTime";

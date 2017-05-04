@@ -67,6 +67,7 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.client.CallerContext;
+import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -478,16 +479,18 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
+    dispatcher = createDispatcher();
+
     if (isLocal) {
        conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
        conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
            TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS_DEFAULT);
+    } else {
+      dispatcher.enableExitOnDispatchException();
     }
-    conf.setBoolean(Dispatcher.DISPATCHER_EXIT_ON_ERROR_KEY, !isLocal);
     String strAppId = this.appAttemptID.getApplicationId().toString();
     this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
-    dispatcher = createDispatcher();
     context = new RunningAppContext(conf);
     this.aclManager = new ACLManager(appMasterUgi.getShortUserName(), this.amConf);
 
@@ -1452,7 +1455,7 @@ public class DAGAppMaster extends AbstractService {
             // The existing file must already be in usercache... let's try to find it.
             Path localFile = findLocalFileForResource(fileName);
             if (localFile != null) {
-              oldSha = RelocalizationUtils.getLocalSha(localFile, conf);
+              oldSha = TezClientUtils.getLocalSha(localFile, conf);
             } else {
               LOG.warn("Couldn't find local file for " + oldLr);
             }
@@ -1460,11 +1463,11 @@ public class DAGAppMaster extends AbstractService {
             LOG.warn("Error getting SHA from local file for " + oldLr, ex);
           }
           if (oldSha == null) { // Well, no dice.
-            oldSha = RelocalizationUtils.getResourceSha(getLocalResourceUri(oldLr), conf);
+            oldSha = TezClientUtils.getResourceSha(getLocalResourceUri(oldLr), conf);
           }
           // Get the new SHA directly from Hadoop stream. If it matches, we already have the
           // file, and if it doesn't we are going to fail; no need to download either way.
-          byte[] newSha = RelocalizationUtils.getResourceSha(getLocalResourceUri(newLr), conf);
+          byte[] newSha = TezClientUtils.getResourceSha(getLocalResourceUri(newLr), conf);
           return Arrays.equals(oldSha, newSha);
         }
       });

@@ -53,6 +53,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
@@ -90,6 +91,8 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
   private final Map<String, String> localEnv = new HashMap<String, String>();
   private volatile FileSystem localFs;
   private final long memoryPerExecutor;
+
+  private final TezExecutors sharedExecutor;
   // TODO Support for removing queued containers, interrupting / killing specific containers - when preemption is supported
 
 
@@ -97,7 +100,8 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
 
   public ContainerRunnerImpl(int numExecutors, String[] localDirsBase,
                              AtomicReference<InetSocketAddress> localAddress,
-                             long totalMemoryAvailableBytes) {
+                             long totalMemoryAvailableBytes,
+                             TezExecutors sharedExecutor) {
     super("ContainerRunnerImpl");
     Preconditions.checkState(numExecutors > 0,
         "Invalid number of executors: " + numExecutors + ". Must be > 0");
@@ -117,6 +121,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
         "memoryPerExecutorDerived=" + memoryPerExecutor +
         ", numExecutors=" + numExecutors
     );
+    this.sharedExecutor = sharedExecutor;
   }
 
   @Override
@@ -262,7 +267,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
     TaskRunnerCallable callable = new TaskRunnerCallable(request, new Configuration(getConfig()),
         new ExecutionContextImpl(localAddress.get().getHostName()), env, localDirs,
-        workingDir, credentials, memoryPerExecutor);
+        workingDir, credentials, memoryPerExecutor, sharedExecutor);
     ListenableFuture<ContainerExecutionResult> future = executorService.submit(callable);
     Futures.addCallback(future, new TaskRunnerCallback(request, callable));
   }
@@ -385,12 +390,13 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     private volatile TezTaskRunner2 taskRunner;
     private volatile TaskReporter taskReporter;
     private TezTaskUmbilicalProtocol umbilical;
+    private final TezExecutors sharedExecutor;
 
 
     TaskRunnerCallable(SubmitWorkRequestProto request, Configuration conf,
                              ExecutionContext executionContext, Map<String, String> envMap,
                              String[] localDirs, String workingDir, Credentials credentials,
-                             long memoryAvailable) {
+                             long memoryAvailable, TezExecutors sharedExecutor) {
       this.request = request;
       this.conf = conf;
       this.executionContext = executionContext;
@@ -405,6 +411,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           .setDaemon(true)
           .setNameFormat("TezTaskRunner_" + request.getTaskSpec().getTaskAttemptIdString()).build());
       executor = MoreExecutors.listeningDecorator(executorReal);
+      this.sharedExecutor = sharedExecutor;
     }
 
     @Override
@@ -454,7 +461,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           request.getAppAttemptNumber(),
           serviceConsumerMetadata, envMap, startedInputsMap, taskReporter, executor, objectRegistry,
           pid,
-          executionContext, memoryAvailable, false, new DefaultHadoopShim());
+          executionContext, memoryAvailable, false, new DefaultHadoopShim(), sharedExecutor);
 
       boolean shouldDie;
       try {

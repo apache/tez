@@ -111,7 +111,7 @@ public class TestATSV15HistoryLoggingService {
     List<TimelineEntity> nonGroupedDagEvents = entityLog.get(
         TimelineEntityGroupId.newInstance(appId, dagId1.toString()));
     assertNotNull(nonGroupedDagEvents);
-    assertEquals(4, nonGroupedDagEvents.size());
+    assertEquals(5, nonGroupedDagEvents.size());
 
     service.stop();
   }
@@ -139,7 +139,7 @@ public class TestATSV15HistoryLoggingService {
     List<TimelineEntity> nonGroupedDagEvents = entityLog.get(
         TimelineEntityGroupId.newInstance(appId, dagId1.toString()));
     assertNotNull(nonGroupedDagEvents);
-    assertEquals(4, nonGroupedDagEvents.size());
+    assertEquals(5, nonGroupedDagEvents.size());
 
     service.stop();
   }
@@ -185,7 +185,7 @@ public class TestATSV15HistoryLoggingService {
     List<TimelineEntity> groupedDagEvents = entityLog.get(
         TimelineEntityGroupId.newInstance(appId, dagId1.getGroupId(numDagsPerGroup)));
     assertNotNull(groupedDagEvents);
-    assertEquals(8, groupedDagEvents.size());
+    assertEquals(10, groupedDagEvents.size());
 
     nonGroupedDagEvents = entityLog.get(
         TimelineEntityGroupId.newInstance(appId, dagId3.toString()));
@@ -194,7 +194,7 @@ public class TestATSV15HistoryLoggingService {
     groupedDagEvents = entityLog.get(
         TimelineEntityGroupId.newInstance(appId, dagId3.getGroupId(numDagsPerGroup)));
     assertNotNull(groupedDagEvents);
-    assertEquals(4, groupedDagEvents.size());
+    assertEquals(5, groupedDagEvents.size());
 
     service.stop();
   }
@@ -338,7 +338,7 @@ public class TestATSV15HistoryLoggingService {
 
     // calls were made with correct domain ids.
     verify(historyACLPolicyManager, times(1)).updateTimelineEntityDomain(any(), eq("session-id"));
-    verify(historyACLPolicyManager, times(4)).updateTimelineEntityDomain(any(), eq("dag-id"));
+    verify(historyACLPolicyManager, times(5)).updateTimelineEntityDomain(any(), eq("dag-id"));
 
     service.stop();
   }

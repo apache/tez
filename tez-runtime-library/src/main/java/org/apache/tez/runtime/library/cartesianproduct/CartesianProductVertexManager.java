@@ -30,6 +30,8 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,13 @@ import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
  *
  * Predefined parallelism isn't allowed for cartesian product vertex. Parallellism has to be
  * determined by vertex manager.
+ *
+ * If a vertex use this vertex, its input edges must be either cartesian product edge or broadcast
+ * edge.
+ *
+ * Sources can be either vertices or vertex groups (only in unpartitioned case).
+ *
+ * Slow start only works in partitioned case. Auto grouping only works in unpartitioned case.
  */
 public class CartesianProductVertexManager extends VertexManagerPlugin {
   /**
@@ -95,26 +104,37 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
     // check whether DAG and config are is consistent
     Map<String, EdgeProperty> edgePropertyMap = getContext().getInputVertexEdgeProperties();
     Set<String> sourceVerticesDAG = edgePropertyMap.keySet();
-    Set<String> sourceVerticesConfig = new HashSet<>();
-    sourceVerticesConfig.addAll(config.getSourceVertices());
+    Set<String> sourceVerticesConfig = new HashSet<>(config.getSourceVertices());
+
+    Map<String, List<String>> vertexGroups = getContext().getInputVertexGroups();
+    Map<String, String> vertexToGroup = new HashMap<>();
+    for (Map.Entry<String, List<String>> group : vertexGroups.entrySet()) {
+      for (String vertex : group.getValue()) {
+        vertexToGroup.put(vertex, group.getKey());
+      }
+    }
 
     for (Map.Entry<String, EdgeProperty> entry : edgePropertyMap.entrySet()) {
       String vertex = entry.getKey();
+      String group = vertexToGroup.get(vertex);
       EdgeProperty edgeProperty = entry.getValue();
       EdgeManagerPluginDescriptor empDescriptor = edgeProperty.getEdgeManagerDescriptor();
       if (empDescriptor != null
         && empDescriptor.getClassName().equals(CartesianProductEdgeManager.class.getName())) {
-        Preconditions.checkArgument(sourceVerticesConfig.contains(vertex),
+        Preconditions.checkArgument(
+          sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
           vertex + " has CartesianProductEdgeManager but isn't in " +
             "CartesianProductVertexManagerConfig");
       } else {
-        Preconditions.checkArgument(!sourceVerticesConfig.contains(vertex),
+        Preconditions.checkArgument(
+          !sourceVerticesConfig.contains(vertex) && !sourceVerticesConfig.contains(group),
           vertex + " has no CartesianProductEdgeManager but is in " +
             "CartesianProductVertexManagerConfig");
       }
 
       if (edgeProperty.getDataMovementType() == CUSTOM) {
-        Preconditions.checkArgument(sourceVerticesConfig.contains(vertex),
+        Preconditions.checkArgument(
+          sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
           "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
       } else {
         Preconditions.checkArgument(edgeProperty.getDataMovementType() == BROADCAST,
@@ -122,14 +142,19 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
       }
     }
 
-    for (String vertex : sourceVerticesConfig) {
-      Preconditions.checkArgument(sourceVerticesDAG.contains(vertex),
-        vertex + " is in CartesianProductVertexManagerConfig but not a source vertex in DAG");
-      Preconditions.checkArgument(
-        edgePropertyMap.get(vertex).getEdgeManagerDescriptor().getClassName()
-          .equals(CartesianProductEdgeManager.class.getName()),
-        vertex + " is in CartesianProductVertexManagerConfig and a source vertex, but has no " +
-          "CartesianProductEdgeManager");
+    for (String src : sourceVerticesConfig) {
+      List<String> vertices =
+        vertexGroups.containsKey(src) ? vertexGroups.get(src) : Collections.singletonList(src);
+      for (String v : vertices) {
+        Preconditions.checkArgument(
+          sourceVerticesDAG.contains(v),
+          v + " is in CartesianProductVertexManagerConfig but not a source vertex in DAG");
+        Preconditions.checkArgument(
+          edgePropertyMap.get(v).getEdgeManagerDescriptor().getClassName()
+            .equals(CartesianProductEdgeManager.class.getName()),
+          v + " is in CartesianProductVertexManagerConfig and a source vertex, but has no " +
+            "CartesianProductEdgeManager");
+      }
     }
 
     vertexManagerReal = config.getIsPartitioned()

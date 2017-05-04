@@ -32,6 +32,9 @@ export default SingleAmPollsterRoute.extend({
   },
 
   load: function (value, query, options) {
+    options = Ember.$.extend({
+      demandNeeds: ["info"]
+    }, options);
     return this.get("loader").queryRecord('dag', this.modelFor("dag").get("id"), options);
   },
 

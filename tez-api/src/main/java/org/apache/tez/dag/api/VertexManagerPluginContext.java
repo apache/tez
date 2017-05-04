@@ -350,4 +350,13 @@ public interface VertexManagerPluginContext {
   // TODO must be done later after TEZ-1714
   //public void vertexManagerDone();
 
+  /**
+   * Get input vertex groups of this vertex, including vertex group name and
+   * all members vertex name
+   *
+   * @return map whose key is vertex group name and value is list of members' name,
+   *         or empty map if there is no input vertex group.
+   */
+  Map<String, List<String>> getInputVertexGroups();
+
 }

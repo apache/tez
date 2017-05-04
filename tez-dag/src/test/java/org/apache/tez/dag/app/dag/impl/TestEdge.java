@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -34,6 +35,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -67,7 +69,9 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
+import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.test.EdgeManagerForTest;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -475,5 +479,33 @@ public class TestEdge {
         throws Exception {
       return emConf.sourceTaskIndex;
     }
+  }
+
+  @Test(timeout = 5000)
+  public void testEdgeManagerPluginCtxGetVertexGroupName() throws TezException {
+    EdgeManagerPluginDescriptor edgeManagerDescriptor =
+      EdgeManagerPluginDescriptor.create(EdgeManagerForTest.class.getName());
+    EdgeProperty edgeProp = EdgeProperty.create(edgeManagerDescriptor,
+      DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, OutputDescriptor.create("Out"),
+      InputDescriptor.create("In"));
+    Edge edge = new Edge(edgeProp, null, null);
+
+    Vertex srcV = mock(Vertex.class), destV = mock(Vertex.class);
+    String srcName = "srcV", destName = "destV";
+    when(srcV.getName()).thenReturn(srcName);
+    when(destV.getName()).thenReturn(destName);
+    edge.setSourceVertex(srcV);
+    edge.setDestinationVertex(destV);
+
+    assertNull(edge.edgeManager.getContext().getVertexGroupName());
+
+    String group = "group";
+    when(destV.getGroupInputSpecList())
+      .thenReturn(Arrays.asList(new GroupInputSpec(group, Arrays.asList("v1", "v3"), null)));
+    assertNull(edge.edgeManager.getContext().getVertexGroupName());
+
+    when(destV.getGroupInputSpecList())
+      .thenReturn(Arrays.asList(new GroupInputSpec(group, Arrays.asList(srcName, "v3"), null)));
+    assertEquals(group, edge.edgeManager.getContext().getVertexGroupName());
   }
 }

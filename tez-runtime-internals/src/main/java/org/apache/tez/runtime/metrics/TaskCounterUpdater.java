@@ -122,8 +122,8 @@ public class TaskCounterUpdater {
     }
     pTree.updateProcessTree();
     long cpuTime = pTree.getCumulativeCpuTime();
-    long pMem = pTree.getCumulativeRssmem();
-    long vMem = pTree.getCumulativeVmem();
+    long pMem = pTree.getRssMemorySize();
+    long vMem = pTree.getVirtualMemorySize();
     // Remove the CPU time consumed previously by JVM reuse
     cpuTime -= initCpuCumulativeTime;
     tezCounters.findCounter(TaskCounter.CPU_MILLISECONDS).setValue(cpuTime);

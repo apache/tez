@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.app.dag.DAGScheduler;
+import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
@@ -842,6 +845,45 @@ public class TestTaskImpl {
     mockTask.handle(createTaskTASucceededEvent(specAttempt.getID()));
     assertEquals(TaskState.FAILED, mockTask.getState());
     assertEquals(2, mockTask.getAttemptList().size());
+  }
+
+  @Test(timeout = 20000)
+  public void testKilledAttemptUpdatesDAGScheduler() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    MockTaskAttemptImpl firstAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(firstAttempt.getID());
+    updateAttemptState(firstAttempt, TaskAttemptState.RUNNING);
+
+    // Add a speculative task attempt
+    mockTask.handle(createTaskTAAddSpecAttempt(firstAttempt.getID()));
+    MockTaskAttemptImpl specAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(specAttempt.getID());
+    updateAttemptState(specAttempt, TaskAttemptState.RUNNING);
+    assertEquals(2, mockTask.getAttemptList().size());
+
+    // Have the first task succeed
+    eventHandler.events.clear();
+    mockTask.handle(createTaskTASucceededEvent(firstAttempt.getID()));
+    verifyOutgoingEvents(eventHandler.events, DAGEventType.DAG_SCHEDULER_UPDATE,
+        VertexEventType.V_TASK_COMPLETED, VertexEventType.V_TASK_ATTEMPT_COMPLETED);
+
+    // The task should now have succeeded and sent kill to other attempt
+    assertTaskSucceededState();
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+        eq(firstAttempt.getID().getId()));
+    @SuppressWarnings("rawtypes")
+    Event event = eventHandler.events.get(eventHandler.events.size()-1);
+    assertEquals(TaskAttemptEventType.TA_KILL_REQUEST, event.getType());
+    assertEquals(specAttempt.getID(),
+        ((TaskAttemptEventKillRequest) event).getTaskAttemptID());
+
+    eventHandler.events.clear();
+    // Emulate the spec attempt being killed
+    mockTask.handle(createTaskTAKilledEvent(specAttempt.getID()));
+    assertTaskSucceededState();
+    verifyOutgoingEvents(eventHandler.events, DAGEventType.DAG_SCHEDULER_UPDATE,
+        VertexEventType.V_TASK_ATTEMPT_COMPLETED);
   }
 
   @Test(timeout = 20000)

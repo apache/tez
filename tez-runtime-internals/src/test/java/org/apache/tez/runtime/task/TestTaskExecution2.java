@@ -49,6 +49,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezExecutors;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
@@ -778,19 +780,21 @@ public class TestTaskExecution2 {
         new TaskSpec(taskAttemptId, "dagName", "vertexName", -1, processorDescriptor,
             new ArrayList<InputSpec>(), new ArrayList<OutputSpec>(), null, null);
 
+    TezExecutors sharedExecutor = new TezSharedExecutor(tezConf);
     TezTaskRunner2 taskRunner;
     if (testRunner) {
       taskRunner = new TezTaskRunner2ForTest(tezConf, ugi, localDirs, taskSpec, 1,
           new HashMap<String, ByteBuffer>(), new HashMap<String, String>(),
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
-          Runtime.getRuntime().maxMemory(), updateSysCounters);
+          Runtime.getRuntime().maxMemory(), updateSysCounters, sharedExecutor);
     } else {
       taskRunner = new TezTaskRunner2(tezConf, ugi, localDirs, taskSpec, 1,
           new HashMap<String, ByteBuffer>(), new HashMap<String, String>(),
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
-          Runtime.getRuntime().maxMemory(), updateSysCounters, new DefaultHadoopShim());
+          Runtime.getRuntime().maxMemory(), updateSysCounters, new DefaultHadoopShim(),
+          sharedExecutor);
     }
 
     return taskRunner;
@@ -815,10 +819,12 @@ public class TestTaskExecution2 {
                                  String pid,
                                  ExecutionContext executionContext,
                                  long memAvailable,
-                                 boolean updateSysCounters) throws IOException {
+                                 boolean updateSysCounters,
+                                 TezExecutors sharedExecutor) throws IOException {
       super(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
           serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry, pid,
-          executionContext, memAvailable, updateSysCounters, new DefaultHadoopShim());
+          executionContext, memAvailable, updateSysCounters, new DefaultHadoopShim(),
+          sharedExecutor);
     }
 
 

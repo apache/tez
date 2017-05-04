@@ -19,7 +19,7 @@
 
 import Ember from 'ember';
 
-import TimelineSerializer from './timeline';
+import DAGInfoSerializer from './dag-info';
 
 var MoreObject = more.Object;
 
@@ -102,11 +102,13 @@ function getIdNameMap(source) {
   return idNameMap;
 }
 
-export default TimelineSerializer.extend({
+export default DAGInfoSerializer.extend({
   maps: {
     name: 'primaryfilters.dagName.0',
 
     submitter: 'primaryfilters.user.0',
+
+    callerID: 'primaryfilters.callerId.0',
 
     atsStatus: getStatus,
     // progress
@@ -114,10 +116,6 @@ export default TimelineSerializer.extend({
     startTime: getStartTime,
     endTime: getEndTime,
     // duration
-
-    vertices: 'otherinfo.dagPlan.vertices',
-    edges: 'otherinfo.dagPlan.edges',
-    vertexGroups: 'otherinfo.dagPlan.vertexGroups',
 
     // appID
     domain: 'domain',
@@ -129,41 +127,6 @@ export default TimelineSerializer.extend({
     vertexIdNameMap: getIdNameMap,
     vertexNameIdMap: 'otherinfo.vertexNameIdMapping',
 
-    callerID: 'primaryfilters.callerId.0',
-    callerContext: 'callerContext',
-    callerDescription: 'callerDescription',
-    callerType: 'callerType',
-
     amWsVersion: 'otherinfo.amWebServiceVersion',
-  },
-
-  normalizeResourceHash: function (resourceHash) {
-    var data = resourceHash.data,
-        dagInfo = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
-        dagContext = Ember.get(resourceHash, "data.otherinfo.dagPlan.dagContext"); // Old style
-
-    if(dagContext) {
-      data.callerContext = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
-      data.callerDescription = Ember.get(dagContext, "description");
-      data.callerType = Ember.get(dagContext, "callerType");
-    }
-    else if(dagInfo) {
-      let infoObj = {};
-      try{
-        infoObj = JSON.parse(dagInfo);
-      }catch(e){
-        infoObj = dagInfo;
-      }
-
-      data.callerContext = Ember.get(infoObj, "context");
-      data.callerDescription = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
-    }
-
-    return resourceHash;
-  },
-
-  extractAttributes: function (modelClass, resourceHash) {
-    return this._super(modelClass, this.normalizeResourceHash(resourceHash));
-  },
-
+  }
 });

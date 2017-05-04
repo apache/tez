@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EntityDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -67,6 +69,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   private final int vertexParallelism;
   private final ExecutionContext ExecutionContext;
   private final long memAvailable;
+  private final TezExecutors sharedExecutor;
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
@@ -75,7 +78,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
       TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext, long memAvailable) {
+      ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
     checkNotNull(conf, "conf is null");
     checkNotNull(dagName, "dagName is null");
     checkNotNull(taskVertexName, "taskVertexName is null");
@@ -85,6 +88,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
     checkNotNull(auxServiceEnv, "auxServiceEnv is null");
     checkNotNull(memDist, "memDist is null");
     checkNotNull(descriptor, "descriptor is null");
+    checkNotNull(sharedExecutor, "sharedExecutor is null");
     this.dagName = dagName;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
@@ -106,6 +110,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
     this.vertexParallelism = vertexParallelism;
     this.ExecutionContext = ExecutionContext;
     this.memAvailable = memAvailable;
+    this.sharedExecutor = sharedExecutor;
   }
 
   @Override
@@ -235,6 +240,12 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   @Override
   public ExecutionContext getExecutionContext() {
     return this.ExecutionContext;
+  }
+
+  @Override
+  public ExecutorService createTezFrameworkExecutorService(
+      int parallelism, String threadNameFormat) {
+    return sharedExecutor.createExecutorService(parallelism, threadNameFormat);
   }
 
   private int generateId() {

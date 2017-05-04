@@ -82,7 +82,7 @@ export default AbstractController.extend({
         case "progress":
           this.send("openModal", {
             title: "Cannot sort!",
-            content: `Sorting on ${columnName} is disabled for running DAGs!`
+            content: `Sorting on ${columnName} is disabled for running DAGs while Auto Refresh is enabled!`
           });
           return false;
       }

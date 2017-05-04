@@ -122,15 +122,15 @@ public class TestCartesianProductConfig {
     // auto grouping conf not set
     CartesianProductConfigProto proto = config.toProto(conf);
     assertFalse(proto.hasEnableAutoGrouping());
-    assertFalse(proto.hasDesiredBytesPerGroup());
+    assertFalse(proto.hasDesiredBytesPerChunk());
 
     // auto groupinig conf not set
     conf.setBoolean(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING, true);
     conf.setLong(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP, 1000);
     proto = config.toProto(conf);
     assertTrue(proto.hasEnableAutoGrouping());
-    assertTrue(proto.hasDesiredBytesPerGroup());
+    assertTrue(proto.hasDesiredBytesPerChunk());
     assertEquals(true, proto.getEnableAutoGrouping());
-    assertEquals(1000, proto.getDesiredBytesPerGroup());
+    assertEquals(1000, proto.getDesiredBytesPerChunk());
   }
 }

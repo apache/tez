@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -81,10 +82,11 @@ public class TestLogicalIOProcessorRuntimeTask {
     TezTaskAttemptID taId2 = createTaskAttemptID(vertexId, 2);
     TaskSpec task2 = createTaskSpec(taId2, "dag2", "vertex1", 10);
 
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(tezConf);
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
-        new DefaultHadoopShim());
+        new DefaultHadoopShim(), sharedExecutor);
 
     try {
       lio1.initialize();
@@ -105,6 +107,7 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
     } catch(Exception e) {
       fail();
+      sharedExecutor.shutdownNow();
     } finally {
       cleanupAndTest(lio1);
     }
@@ -114,7 +117,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
-        new DefaultHadoopShim());
+        new DefaultHadoopShim(), sharedExecutor);
     try {
       lio2.initialize();
       lio2.run();
@@ -134,6 +137,7 @@ public class TestLogicalIOProcessorRuntimeTask {
       fail();
     } finally {
       cleanupAndTest(lio2);
+      sharedExecutor.shutdownNow();
     }
 
   }
@@ -275,7 +279,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     @Override
     public void start() throws Exception {
       startCount++;
-      this.vertexParallelism = getContext().getVertexParallelism();
+      vertexParallelism = getContext().getVertexParallelism();
       getContext().notifyProgress();
     }
 
@@ -315,7 +319,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void start() throws Exception {
       System.err.println("Out started");
       startCount++;
-      this.vertexParallelism = getContext().getVertexParallelism();
+      vertexParallelism = getContext().getVertexParallelism();
       getContext().notifyProgress();
     }
 

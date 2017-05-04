@@ -28,32 +28,24 @@ import java.nio.ByteBuffer;
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 
 class CartesianProductVertexManagerConfig extends CartesianProductConfig {
-  private final float minFraction;
-  private final float maxFraction;
-  private final boolean enableAutoGrouping;
-  private final long desiredBytesPerGroup;
+  final float minFraction;
+  final float maxFraction;
+  final boolean enableAutoGrouping;
+  final long desiredBytesPerChunk;
 
-  public CartesianProductVertexManagerConfig(boolean isPartitioned, String[] sourceVertices,
+  public CartesianProductVertexManagerConfig(boolean isPartitioned, String[] sources,
                                              int[] numPartitions,
                                              float minFraction, float maxFraction,
-                                             boolean enableAutoGrouping, long desiredBytesPerGroup,
+                                             boolean enableAutoGrouping, long desiredBytesPerChunk,
                                              CartesianProductFilterDescriptor filterDescriptor) {
-    super(isPartitioned, numPartitions, sourceVertices, filterDescriptor);
+    super(isPartitioned, numPartitions, sources, filterDescriptor);
     Preconditions.checkArgument(minFraction <= maxFraction,
       "min fraction(" + minFraction + ") should be less than max fraction(" +
         maxFraction  + ") in cartesian product slow start");
     this.minFraction = minFraction;
     this.maxFraction = maxFraction;
     this.enableAutoGrouping = enableAutoGrouping;
-    this.desiredBytesPerGroup = desiredBytesPerGroup;
-  }
-
-  public float getMinFraction() {
-    return minFraction;
-  }
-
-  public float getMaxFraction() {
-    return maxFraction;
+    this.desiredBytesPerChunk = desiredBytesPerChunk;
   }
 
   public static CartesianProductVertexManagerConfig fromUserPayload(UserPayload payload)
@@ -62,8 +54,8 @@ class CartesianProductVertexManagerConfig extends CartesianProductConfig {
       CartesianProductConfigProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
 
     boolean isPartitioned = proto.getIsPartitioned();
-    String[] sourceVertices = new String[proto.getSourceVerticesList().size()];
-    proto.getSourceVerticesList().toArray(sourceVertices);
+    String[] sources = new String[proto.getSourcesList().size()];
+    proto.getSourcesList().toArray(sources);
     int[] numPartitions =
       proto.getNumPartitionsCount() == 0 ? null : Ints.toArray(proto.getNumPartitionsList());
     CartesianProductFilterDescriptor filterDescriptor = proto.hasFilterClassName()
@@ -77,17 +69,9 @@ class CartesianProductVertexManagerConfig extends CartesianProductConfig {
 
     boolean enableAutoGrouping = proto.hasEnableAutoGrouping() ? proto.getEnableAutoGrouping()
       : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT;
-    long desiredBytesPerGroup = proto.hasDesiredBytesPerGroup() ? proto.getDesiredBytesPerGroup()
+    long desiredBytesPerGroup = proto.hasDesiredBytesPerChunk() ? proto.getDesiredBytesPerChunk()
       : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP_DEFAULT;
-    return new CartesianProductVertexManagerConfig(isPartitioned, sourceVertices, numPartitions,
+    return new CartesianProductVertexManagerConfig(isPartitioned, sources, numPartitions,
       minFraction, maxFraction, enableAutoGrouping, desiredBytesPerGroup, filterDescriptor);
-  }
-
-  public boolean isEnableAutoGrouping() {
-    return enableAutoGrouping;
-  }
-
-  public long getDesiredBytesPerGroup() {
-    return desiredBytesPerGroup;
   }
 }

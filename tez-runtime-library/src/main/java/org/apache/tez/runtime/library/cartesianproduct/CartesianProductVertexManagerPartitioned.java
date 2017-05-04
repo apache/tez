@@ -174,12 +174,12 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
     // determine the destination task with largest id to schedule
     float percentFinishedSrcTask = numFinishedSrcTasks*1f/totalNumSrcTasks;
     int numTaskToSchedule;
-    if (percentFinishedSrcTask < config.getMinFraction()) {
+    if (percentFinishedSrcTask < config.minFraction) {
       numTaskToSchedule = 0;
-    } else if (config.getMinFraction() <= percentFinishedSrcTask &&
-        percentFinishedSrcTask <= config.getMaxFraction()) {
-      numTaskToSchedule = (int) ((percentFinishedSrcTask-config.getMinFraction())
-        /(config.getMaxFraction()-config.getMinFraction())*parallelism);
+    } else if (config.minFraction <= percentFinishedSrcTask &&
+        percentFinishedSrcTask <= config.maxFraction) {
+      numTaskToSchedule = (int) ((percentFinishedSrcTask-config.minFraction)
+        /(config.maxFraction-config.minFraction)*parallelism);
     } else {
       numTaskToSchedule = parallelism;
     }

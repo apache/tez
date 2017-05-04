@@ -58,4 +58,8 @@ public interface EdgeManagerPluginContext {
    */
   public int getDestinationVertexNumTasks();
 
+  /**
+   * @return the name of vertex group that source vertex belongs to, or null
+   */
+  String getVertexGroupName();
 }

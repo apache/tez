@@ -306,6 +306,15 @@ export default function downloadDagZip(dag, options) {
           retryCount: 3,
         },
         {
+          url: getUrl('TEZ_DAG_EXTRA_INFO', dagID),
+          context: { name: 'dag-extra-info', type: 'TEZ_DAG_EXTRA_INFO' },
+          onFetch: onFetch,
+          onRetry: onRetry,
+          onItemFetched: processSingleItem,
+          onItemFail: processFailure,
+          retryCount: 3,
+        },
+        {
           url: getUrl('TEZ_DAG_ID', dagID),
           context: { name: 'dag', type: 'TEZ_DAG_ID' },
           onFetch: onFetch,

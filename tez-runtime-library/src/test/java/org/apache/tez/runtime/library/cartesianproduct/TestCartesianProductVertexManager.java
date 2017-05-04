@@ -29,6 +29,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +130,24 @@ public class TestCartesianProductVertexManager {
 
     // edge in config but not in dag
     edgePropertyMap.remove("v2");
+    try {
+      vertexManager.initialize();
+      assertTrue(false);
+    } catch (Exception ignored) {}
+  }
+
+  @Test(timeout = 5000)
+  public void testCheckDAGConfigConsistentWithVertexGroup() throws Exception {
+    // positive case
+    edgePropertyMap.put("v2", cpEdge);
+    config = new CartesianProductConfig(new int[]{2, 3}, new String[]{"v0", "g0"}, null);
+    Map<String, List<String>> vertexGroups = new HashMap<>();
+    vertexGroups.put("g0", Arrays.asList("v1", "v2"));
+    when(context.getInputVertexGroups()).thenReturn(vertexGroups);
+    vertexManager.initialize();
+
+    // vertex group is in cartesian product config, but one member doesn't have cp edge
+    edgePropertyMap.put("v2", broadcastEdge);
     try {
       vertexManager.initialize();
       assertTrue(false);

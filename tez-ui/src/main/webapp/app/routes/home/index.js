@@ -52,6 +52,8 @@ export default ServerSideOpsRoute.extend({
   entityType: "dag",
   loaderNamespace: "dags",
 
+  visibleRecords: [],
+
   setupController: function (controller, model) {
     this._super(controller, model);
     Ember.run.later(this, "startCrumbBubble");
@@ -104,5 +106,21 @@ export default ServerSideOpsRoute.extend({
       loader.unloadAll("ahs-app");
       this._super();
     },
+
+    loadCounters: function () {
+      var visibleRecords = this.get("visibleRecords").slice(),
+          loader = this.get("loader");
+
+      function loadInfoOfNextDAG() {
+        if(visibleRecords.length) {
+          loader.loadNeed(visibleRecords.shift(), "info").finally(loadInfoOfNextDAG);
+        }
+      }
+
+      loadInfoOfNextDAG();
+    },
+    tableRowsChanged: function (records) {
+      this.set("visibleRecords", records);
+    }
   }
 });

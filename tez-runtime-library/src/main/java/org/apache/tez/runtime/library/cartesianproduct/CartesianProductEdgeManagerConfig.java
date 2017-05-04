@@ -27,23 +27,18 @@ import java.nio.ByteBuffer;
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
 
 class CartesianProductEdgeManagerConfig extends CartesianProductConfig {
-  private final int[] numTasks;
-  private final int[] numGroups;
+  final int[] numChunksPerSrc;
+  final int numChunk;
+  final int chunkIdOffset;
 
   protected CartesianProductEdgeManagerConfig(boolean isPartitioned, String[] sourceVertices,
-                                            int[] numPartitions, int[] numTasks, int[] numGroups,
-                                            CartesianProductFilterDescriptor filterDescriptor) {
+                                              int[] numPartitions, int[] numChunksPerSrc, int numChunk,
+                                              int chunkIdOffset,
+                                              CartesianProductFilterDescriptor filterDescriptor) {
     super(isPartitioned, numPartitions, sourceVertices, filterDescriptor);
-    this.numTasks = numTasks;
-    this.numGroups = numGroups;
-  }
-
-  public int[] getNumTasks() {
-    return this.numTasks;
-  }
-
-  public int[] getNumGroups() {
-    return this.numGroups;
+    this.numChunksPerSrc = numChunksPerSrc;
+    this.numChunk = numChunk;
+    this.chunkIdOffset = chunkIdOffset;
   }
 
   public static CartesianProductEdgeManagerConfig fromUserPayload(UserPayload payload)
@@ -52,8 +47,8 @@ class CartesianProductEdgeManagerConfig extends CartesianProductConfig {
       CartesianProductConfigProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
 
     boolean isPartitioned = proto.getIsPartitioned();
-    String[] sourceVertices = new String[proto.getSourceVerticesList().size()];
-    proto.getSourceVerticesList().toArray(sourceVertices);
+    String[] sources = new String[proto.getSourcesList().size()];
+    proto.getSourcesList().toArray(sources);
     int[] numPartitions =
       proto.getNumPartitionsCount() == 0 ? null : Ints.toArray(proto.getNumPartitionsList());
     CartesianProductFilterDescriptor filterDescriptor = proto.hasFilterClassName()
@@ -62,11 +57,11 @@ class CartesianProductEdgeManagerConfig extends CartesianProductConfig {
       filterDescriptor.setUserPayload(
         UserPayload.create(ByteBuffer.wrap(proto.getFilterUserPayload().toByteArray())));
     }
-    int[] numTasks =
-      proto.getNumTasksCount() == 0 ? null : Ints.toArray(proto.getNumTasksList());
-    int[] numGroups =
-      proto.getNumGroupsCount() == 0 ? null : Ints.toArray(proto.getNumGroupsList());
-    return new CartesianProductEdgeManagerConfig(isPartitioned, sourceVertices, numPartitions,
-      numTasks, numGroups, filterDescriptor);
+    int[] humChunksPerSrc =
+      proto.getNumChunksCount() == 0 ? null : Ints.toArray(proto.getNumChunksList());
+    int numChunk = proto.getNumChunk();
+    int chunkIdOffset = proto.getChunkIdOffset();
+    return new CartesianProductEdgeManagerConfig(isPartitioned, sources, numPartitions,
+      humChunksPerSrc, numChunk, chunkIdOffset, filterDescriptor);
   }
 }

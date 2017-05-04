@@ -54,6 +54,7 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.mapreduce.TezTestUtils;
@@ -201,7 +202,7 @@ public class MapUtils {
       JobConf jobConf, int mapId, Path mapInput,
       TezUmbilical umbilical, String dagName,
       String vertexName, List<InputSpec> inputSpecs,
-      List<OutputSpec> outputSpecs) throws Exception {
+      List<OutputSpec> outputSpecs, TezSharedExecutor sharedExecutor) throws Exception {
     jobConf.setInputFormat(SequenceFileInputFormat.class);
 
     ProcessorDescriptor mapProcessorDesc = ProcessorDescriptor.create(
@@ -237,7 +238,7 @@ public class MapUtils {
         serviceConsumerMetadata,
         envMap,
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim());
+        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor);
     return task;
   }
 }

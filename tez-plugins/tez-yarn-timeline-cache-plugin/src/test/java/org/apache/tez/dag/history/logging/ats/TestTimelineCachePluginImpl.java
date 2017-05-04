@@ -101,12 +101,14 @@ public class TestTimelineCachePluginImpl {
 
     typeIdMap1 = new HashMap<String, String>();
     typeIdMap1.put(EntityTypes.TEZ_DAG_ID.name(), dagID1.toString());
+    typeIdMap1.put(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), dagID1.toString());
     typeIdMap1.put(EntityTypes.TEZ_VERTEX_ID.name(), vertexID1.toString());
     typeIdMap1.put(EntityTypes.TEZ_TASK_ID.name(), taskID1.toString());
     typeIdMap1.put(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), attemptID1.toString());
 
     typeIdMap2 = new HashMap<String, String>();
     typeIdMap2.put(EntityTypes.TEZ_DAG_ID.name(), dagID2.toString());
+    typeIdMap2.put(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), dagID2.toString());
     typeIdMap2.put(EntityTypes.TEZ_VERTEX_ID.name(), vertexID2.toString());
     typeIdMap2.put(EntityTypes.TEZ_TASK_ID.name(), taskID2.toString());
     typeIdMap2.put(EntityTypes.TEZ_TASK_ATTEMPT_ID.name(), attemptID2.toString());

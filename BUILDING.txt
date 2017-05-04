@@ -11,7 +11,7 @@ Requirements:
 * Findbugs 2.0.2 or later (if running findbugs)
 * ProtocolBuffer 2.5.0
 * Internet connection for first build (to fetch all dependencies)
-* Hadoop version should be 2.6.0 or higher.
+* Hadoop version should be 2.7.0 or higher.
 
 ----------------------------------------------------------------------------------
 Maven main modules:
@@ -43,7 +43,7 @@ Maven build goals:
  * Run clover                : mvn test -Pclover [-Dclover.license=${user.home}/clover.license]
  * Run Rat                   : mvn apache-rat:check
  * Build javadocs            : mvn javadoc:javadoc
- * Build distribution        : mvn package[-Dhadoop.version=2.6.0]
+ * Build distribution        : mvn package[-Dhadoop.version=2.7.0]
  * Visualize state machines  : mvn compile -Pvisualize -DskipTests=true
  
 Build options:
@@ -64,7 +64,7 @@ Tests options:
 ----------------------------------------------------------------------------------
 Building against a specific version of hadoop:
 
-Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.6.0 or higher.
+Tez runs on top of Apache Hadoop YARN and requires hadoop version 2.7.0 or higher.
 
 By default, it can be compiled against other compatible hadoop versions by just
 specifying the hadoop.version. For example, to build tez against hadoop 3.0.0-SNAPSHOT 
@@ -75,15 +75,15 @@ To skip Tests and java docs
 
  $ mvn package -Dhadoop.version=3.0.0-SNAPSHOT -DskipTests -Dmaven.javadoc.skip=true
 
-However, to build against hadoop versions lower or higher than 2.6.0, you will need to do the
+However, to build against hadoop versions higher than 2.7.0, you will need to do the
 following:
 
 For Hadoop version X where X >= 2.8.0
 
- $ mvn package  -Dhadoop.version=${X} -Phadoop28 -P\!hadoop26
+ $ mvn package  -Dhadoop.version=${X} -Phadoop28 -P\!hadoop27
 
 For recent versions of Hadoop (which do not bundle aws and azure by default),
-you can bundle AWS-S3 (2.6.0+) or Azure (2.7.0+) support:
+you can bundle AWS-S3 (2.7.0+) or Azure (2.7.0+) support:
 
  $ mvn package -Dhadoop.version=${X} -Paws -Pazure 
 
@@ -99,14 +99,9 @@ In case of issue with UI build, please clean the UI cache.
 
 Issue with PhantomJS on building in PowerPC.
 
- Official PhantomJS binaries are not yet available for Power platform. Hence you would have to
- manually install it. Please refer to https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md
+ Official PhantomJS binaries were not available for Power platform. Hence if the build fails in PPC
+ please try installing PhantomJS manually and rerun. Refer https://github.com/ibmsoe/phantomjs-1/blob/v2.1.1-ppc64/README.md
  and install it globally for the build to work.
-
-Issue with PhantomJS on building in RHEL 6 - Latest versions of Node JS doesn't work well with RHEL 6.
-Please use the following profile to build with an older version of Node.
-
- $ mvn package -PuseNode012
 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
