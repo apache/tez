@@ -277,7 +277,17 @@ public class TezSharedExecutor implements TezExecutors {
 
     @Override
     public boolean isTerminated() {
-      return isShutdown() && futures.isEmpty();
+      if (!isShutdown()) {
+        return false;
+      }
+      // futures should be empty ideally, but there is a corner case where all the futures are done
+      // but not yet removed from futures map, for that case we check if the future is done.
+      for (ManagedFutureTask<?> future : futures.keySet()) {
+        if (!future.isDone()) {
+          return false;
+        }
+      }
+      return true;
     }
 
     @Override
