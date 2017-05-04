@@ -18,27 +18,18 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezDAGID;
 
 public abstract class DeletionTracker {
 
   protected final Configuration conf;
-  protected ExecutorService dagDeleteService;
   protected String pluginName;
 
   public DeletionTracker(Configuration conf, String pluginName) {
     this.conf = conf;
-    dagDeleteService = Executors.newFixedThreadPool(
-        conf.getInt(TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT,
-            TezConfiguration.TEZ_AM_DAG_DELETION_THREAD_COUNT_LIMIT_DEFAULT), new ThreadFactoryBuilder()
-            .setDaemon(true).setNameFormat("ShuffleDeleteTracker #%d").build());
     this.pluginName = pluginName;
   }
 
@@ -51,7 +42,6 @@ public abstract class DeletionTracker {
   }
 
   public void shutdown() {
-    dagDeleteService.shutdownNow();
-    dagDeleteService = null;
+    // do nothing
   }
 }

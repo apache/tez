@@ -20,17 +20,11 @@ package org.apache.tez.auxservices;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportRequest;
 import org.apache.hadoop.yarn.api.protocolrecords.GetApplicationReportResponse;
-import org.apache.hadoop.yarn.api.protocolrecords.impl.pb
-    .GetApplicationReportRequestPBImpl;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.resourcemanager.ClientRMService;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -45,7 +39,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.test.MiniTezCluster;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -56,7 +49,7 @@ public class TestShuffleHandlerJobs {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestShuffleHandlerJobs.class);
 
-  protected static MiniTezCluster mrrTezCluster;
+  protected static MiniTezCluster tezCluster;
   protected static MiniDFSCluster dfsCluster;
 
   private static Configuration conf = new Configuration();
@@ -81,8 +74,8 @@ public class TestShuffleHandlerJobs {
       return;
     }
 
-    if (mrrTezCluster == null) {
-      mrrTezCluster = new MiniTezCluster(TestShuffleHandlerJobs.class.getName(), NUM_NMS,
+    if (tezCluster == null) {
+      tezCluster = new MiniTezCluster(TestShuffleHandlerJobs.class.getName(), NUM_NMS,
           1, 1);
       Configuration conf = new Configuration();
       conf.set(YarnConfiguration.NM_AUX_SERVICES,
@@ -92,19 +85,18 @@ public class TestShuffleHandlerJobs {
       conf.set(serviceStr, ShuffleHandler.class.getName());
       conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
       conf.set("fs.defaultFS", remoteFs.getUri().toString());   // use HDFS
-      conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
-      mrrTezCluster.init(conf);
-      mrrTezCluster.start();
+      tezCluster.init(conf);
+      tezCluster.start();
     }
 
   }
 
   @AfterClass
   public static void tearDown() {
-    if (mrrTezCluster != null) {
-      mrrTezCluster.stop();
-      mrrTezCluster = null;
+    if (tezCluster != null) {
+      tezCluster.stop();
+      tezCluster = null;
     }
     if (dfsCluster != null) {
       dfsCluster.shutdown();
@@ -123,10 +115,10 @@ public class TestShuffleHandlerJobs {
     String outputDirStr = "/tmp/owc-output/";
     Path outputDir = new Path(outputDirStr);
 
-    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    TezConfiguration tezConf = new TezConfiguration(tezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
     tezConf.set(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID, ShuffleHandler.TEZ_SHUFFLE_SERVICEID);
-    tezConf.setBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED, true);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION, true);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
     tezConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, false);
@@ -138,7 +130,7 @@ public class TestShuffleHandlerJobs {
               inputDirStr, outputDirStr, "10"}, tezSession)==0);
       verifyOutput(outputDir, remoteFs);
       tezSession.stop();
-      ClientRMService rmService = mrrTezCluster.getResourceManager().getClientRMService();
+      ClientRMService rmService = tezCluster.getResourceManager().getClientRMService();
       boolean isAppComplete = false;
       while(!isAppComplete) {
         GetApplicationReportResponse resp = rmService.getApplicationReport(
@@ -158,7 +150,7 @@ public class TestShuffleHandlerJobs {
         Thread.sleep(100);
       }
       for(int i = 0; i < NUM_NMS; i++) {
-        String appPath = mrrTezCluster.getTestWorkDir() + "/" + this.getClass().getName()
+        String appPath = tezCluster.getTestWorkDir() + "/" + this.getClass().getName()
             + "-localDir-nm-" + i + "_0/usercache/" + UserGroupInformation.getCurrentUser().getUserName()
             + "/appcache/" + job.getAppId();
         String dagPathStr = appPath + "/dag_1";

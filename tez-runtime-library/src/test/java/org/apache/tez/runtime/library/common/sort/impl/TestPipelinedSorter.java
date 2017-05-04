@@ -100,7 +100,9 @@ public class TestPipelinedSorter {
     ApplicationId appId = ApplicationId.newInstance(10000, 1);
     TezCounters counters = new TezCounters();
     String uniqueId = UUID.randomUUID().toString();
-    this.outputContext = createMockOutputContext(counters, appId, uniqueId, getConf());
+    String auxiliaryService = getConf().get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    this.outputContext = createMockOutputContext(counters, appId, uniqueId, auxiliaryService);
   }
 
   public static Configuration getConf() {
@@ -754,7 +756,7 @@ public class TestPipelinedSorter {
   }
 
   private static OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
-      String uniqueId, Configuration conf) throws IOException {
+      String uniqueId, String auxiliaryService) throws IOException {
     OutputContext outputContext = mock(OutputContext.class);
 
     ExecutionContext execContext = new ExecutionContextImpl("localhost");
@@ -762,9 +764,7 @@ public class TestPipelinedSorter {
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
     serviceProviderMetaData.writeInt(80);
     doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(outputContext)
-        .getServiceProviderMetaData
-            (conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-                TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
+        .getServiceProviderMetaData(auxiliaryService);
 
     doReturn(execContext).when(outputContext).getExecutionContext();
     doReturn(mock(OutputStatisticsReporter.class)).when(outputContext).getStatisticsReporter();

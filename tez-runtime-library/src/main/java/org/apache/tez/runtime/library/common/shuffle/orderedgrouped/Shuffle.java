@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -188,7 +189,7 @@ public class Shuffle implements ExceptionReporter {
     eventHandler= new ShuffleInputEventHandlerOrderedGrouped(
         inputContext,
         scheduler,
-        conf);
+        ShuffleUtils.isTezShuffleHandler(conf));
     
     ExecutorService rawExecutor = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("ShuffleAndMergeRunner {" + srcNameTrimmed + "}").build());

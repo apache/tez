@@ -20,7 +20,12 @@ package org.apache.tez.dag.app.launcher;
 
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
@@ -29,29 +34,29 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 
 public class DeletionTrackerImpl extends DeletionTracker {
-  Map<NodeId, Integer> nodeIdShufflePortMap;
-  String pluginName;
+  private Map<NodeId, Integer> nodeIdShufflePortMap;
+  private ExecutorService dagCleanupService;
 
   public DeletionTrackerImpl(Map<NodeId, Integer> nodeIdShufflePortMap, Configuration conf, String pluginName) {
     super(conf, pluginName);
     this.nodeIdShufflePortMap = nodeIdShufflePortMap;
+    this.dagCleanupService = new ThreadPoolExecutor(0, conf.getInt(TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT,
+        TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT_DEFAULT), 10,
+        TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+        new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ShuffleDeleteTracker #%d").build());
   }
 
   @Override
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
-    boolean shouldDelete = conf.getBoolean(TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED,
-        TezConfiguration.TEZ_AM_DAG_DELETE_ENABLED_DEFAULT);
-    if (!shouldDelete) {
-      return;
-    }
+    super.dagComplete(dag, jobTokenSecretManager);
     for (Map.Entry<NodeId, Integer> entry : nodeIdShufflePortMap.entrySet()) {
       NodeId nodeId = entry.getKey();
       int shufflePort = entry.getValue();
       //TODO: add check for healthy node
       if (shufflePort != TezRuntimeUtils.INVALID_PORT) {
         DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
-            shufflePort, dag, conf, jobTokenSecretManager, this.pluginName);
-        dagDeleteService.submit(dagDeleteRunnable);
+            shufflePort, dag, TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager, this.pluginName);
+        dagCleanupService.submit(dagDeleteRunnable);
       }
     }
     nodeIdShufflePortMap.clear();
@@ -63,6 +68,14 @@ public class DeletionTrackerImpl extends DeletionTracker {
       if(nodeIdShufflePortMap.get(nodeId) == null) {
         nodeIdShufflePortMap.put(nodeId, port);
       }
+    }
+  }
+
+  @Override
+  public void shutdown() {
+    if (dagCleanupService != null) {
+      dagCleanupService.shutdownNow();
+      dagCleanupService = null;
     }
   }
 }

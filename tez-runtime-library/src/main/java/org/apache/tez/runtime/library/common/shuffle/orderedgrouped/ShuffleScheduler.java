@@ -1305,7 +1305,7 @@ class ShuffleScheduler {
 
   boolean isInputFinished(int inputIndex, int inputEnd) {
     synchronized (finishedMaps) {
-      return finishedMaps.nextClearBit(inputIndex) >= inputEnd;
+      return finishedMaps.nextClearBit(inputIndex) > inputEnd;
     }
   }
 

@@ -67,7 +67,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapred.proto.ShuffleHandlerRecoveryProtos.JobShuffleInfoProto;
 import org.apache.hadoop.mapreduce.JobID;
-import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.Constants;
@@ -216,6 +215,9 @@ public class ShuffleHandler extends AuxiliaryService {
       1000;
 
   public static final String CONNECTION_CLOSE = "close";
+
+  public static final String SHUFFLE_SSL_ENABLED_KEY = "tez.shuffle.ssl.enabled";
+  public static final boolean SHUFFLE_SSL_ENABLED_DEFAULT = false;
 
   public static final String SUFFLE_SSL_FILE_BUFFER_SIZE_KEY =
     "tez.shuffle.ssl.file.buffer.size";
@@ -770,8 +772,8 @@ public class ShuffleHandler extends AuxiliaryService {
 
     public HttpPipelineFactory(Configuration conf) throws Exception {
       SHUFFLE = getShuffle(conf);
-      if (conf.getBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY,
-                          MRConfig.SHUFFLE_SSL_ENABLED_DEFAULT)) {
+      if (conf.getBoolean(SHUFFLE_SSL_ENABLED_KEY,
+                          SHUFFLE_SSL_ENABLED_DEFAULT)) {
         LOG.info("Encrypted shuffle is enabled.");
         sslFactory = new SSLFactory(SSLFactory.Mode.SERVER, conf);
         sslFactory.init();
