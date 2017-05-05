@@ -135,7 +135,11 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   @VisibleForTesting
   int sizePerBuffer;
   @VisibleForTesting
+  int lastBufferSize;
+  @VisibleForTesting
   int numInitializedBuffers;
+  @VisibleForTesting
+  int spillLimit;
 
   private Throwable spillException;
   private AtomicBoolean isShutdown = new AtomicBoolean(false);
@@ -161,9 +165,12 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   private final long indexFileSizeEstimate;
 
+  private List<WrappedBuffer> filledBuffers = new ArrayList<>();
+
   public UnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf,
       int numOutputs, long availableMemoryBytes) throws IOException {
     super(outputContext, conf, numOutputs);
+
     Preconditions.checkArgument(availableMemoryBytes >= 0, "availableMemory should be >= 0 bytes");
 
     this.deflater = TezCommonUtils.newBestCompressionDeflater();
@@ -187,7 +194,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     // Allow unit tests to control the buffer sizes.
     int maxSingleBufferSizeBytes = conf.getInt(
-        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, Integer.MAX_VALUE);
+        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES,
+        Integer.MAX_VALUE);
     computeNumBuffersAndSize(maxSingleBufferSizeBytes);
 
     availableBuffers = new LinkedBlockingQueue<WrappedBuffer>();
@@ -251,11 +259,48 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         + ", reportPartitionStats=" + reportPartitionStats);
   }
 
+  private static final int ALLOC_OVERHEAD = 64;
   private void computeNumBuffersAndSize(int bufferLimit) {
-    numBuffers = Math.max(2, (int) (availableMemory / bufferLimit)
-        + ((availableMemory % bufferLimit) == 0 ? 0 : 1));
-    sizePerBuffer = (int) (availableMemory / numBuffers);
+    numBuffers = (int)(availableMemory / bufferLimit);
+
+    if (numBuffers >= 2) {
+      sizePerBuffer = bufferLimit - ALLOC_OVERHEAD;
+      lastBufferSize = (int)(availableMemory % bufferLimit);
+      // Use leftover memory last buffer only if the leftover memory > 50% of bufferLimit
+      if (lastBufferSize > bufferLimit / 2) {
+        numBuffers += 1;
+      } else {
+        if (lastBufferSize > 0) {
+          LOG.warn("Underallocating memory. Unused memory size: {}.",  lastBufferSize);
+        }
+        lastBufferSize = sizePerBuffer;
+      }
+    } else {
+      // We should have minimum of 2 buffers.
+      numBuffers = 2;
+      if (availableMemory / numBuffers > Integer.MAX_VALUE) {
+        sizePerBuffer = Integer.MAX_VALUE;
+      } else {
+        sizePerBuffer = (int)(availableMemory / numBuffers);
+      }
+      // 2 equal sized buffers.
+      lastBufferSize = sizePerBuffer;
+    }
+    // Ensure allocation size is multiple of INT_SIZE, truncate down.
     sizePerBuffer = sizePerBuffer - (sizePerBuffer % INT_SIZE);
+    lastBufferSize = lastBufferSize - (lastBufferSize % INT_SIZE);
+
+    int mergePercent = conf.getInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT_DEFAULT);
+    spillLimit = numBuffers * mergePercent / 100;
+    // Keep within limits.
+    if (spillLimit < 1) {
+      spillLimit = 1;
+    }
+    if (spillLimit > numBuffers) {
+      spillLimit = numBuffers;
+    }
   }
 
   @Override
@@ -375,18 +420,22 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       currentBuffer.reset();
     } else {
       // Update overall stats
-      LOG.info(destNameTrimmed + ": " + "Moving to next buffer and triggering spill");
+      LOG.info(destNameTrimmed + ": " + "Moving to next buffer");
       updateGlobalStats(currentBuffer);
 
-      pendingSpillCount.incrementAndGet();
-
-      int spillNumber = numSpills.getAndIncrement();
-      ListenableFuture<SpillResult> future = spillExecutor.submit(
-          new SpillCallable(currentBuffer, codec, spilledRecordsCounter, spillNumber));
-      Futures.addCallback(future, new SpillCallback(spillNumber));
-      // Update once per buffer (instead of every record)
-      updateTezCountersAndNotify();
-
+      filledBuffers.add(currentBuffer);
+      if (filledBuffers.size() >= spillLimit) {
+        LOG.info(destNameTrimmed + ": triggering spill");
+        pendingSpillCount.incrementAndGet();
+        int spillNumber = numSpills.getAndIncrement();
+        ListenableFuture<SpillResult> future = spillExecutor.submit(new SpillCallable(
+            new ArrayList<WrappedBuffer>(filledBuffers), codec, spilledRecordsCounter,
+            spillNumber));
+        filledBuffers.clear();
+        Futures.addCallback(future, new SpillCallback(spillNumber));
+        // Update once per buffer (instead of every record)
+        updateTezCountersAndNotify();
+      }
       WrappedBuffer wb = getNextAvailableBuffer();
       currentBuffer = wb;
     }
@@ -408,7 +457,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   private WrappedBuffer getNextAvailableBuffer() throws IOException {
     if (availableBuffers.peek() == null) {
       if (numInitializedBuffers < numBuffers) {
-        buffers[numInitializedBuffers] = new WrappedBuffer(numPartitions, sizePerBuffer);
+        buffers[numInitializedBuffers] = new WrappedBuffer(numPartitions,
+            numInitializedBuffers == numBuffers - 1 ? lastBufferSize : sizePerBuffer);
         numInitializedBuffers++;
         return buffers[numInitializedBuffers - 1];
       } else {
@@ -428,16 +478,16 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   // All spills using compression for now.
   private class SpillCallable extends CallableWithNdc<SpillResult> {
 
-    private final WrappedBuffer wrappedBuffer;
+    private final List<WrappedBuffer> filledBuffers;
     private final CompressionCodec codec;
     private final TezCounter numRecordsCounter;
     private int spillIndex;
     private SpillPathDetails spillPathDetails;
     private int spillNumber;
 
-    public SpillCallable(WrappedBuffer wrappedBuffer, CompressionCodec codec,
+    public SpillCallable(List<WrappedBuffer> filledBuffers, CompressionCodec codec,
         TezCounter numRecordsCounter, SpillPathDetails spillPathDetails) {
-      this.wrappedBuffer = wrappedBuffer;
+      this.filledBuffers = filledBuffers;
       this.codec = codec;
       this.numRecordsCounter = numRecordsCounter;
       this.spillIndex = spillPathDetails.spillIndex;
@@ -446,9 +496,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       this.spillPathDetails = spillPathDetails;
     }
 
-    public SpillCallable(WrappedBuffer wrappedBuffer, CompressionCodec codec,
+    public SpillCallable(List<WrappedBuffer> filledBuffers, CompressionCodec codec,
         TezCounter numRecordsCounter, int spillNumber) throws IOException {
-      this.wrappedBuffer = wrappedBuffer;
+      this.filledBuffers = filledBuffers;
       this.codec = codec;
       this.numRecordsCounter = numRecordsCounter;
       this.spillNumber = spillNumber;
@@ -474,33 +524,43 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         IFile.Writer writer = null;
         try {
           long segmentStart = out.getPos();
-          if (wrappedBuffer.partitionPositions[i] == WrappedBuffer.PARTITION_ABSENT_POSITION) {
-            // Skip empty partition.
-            continue;
-          }
-          writer = new Writer(conf, out, keyClass, valClass, codec, null, null);
-          long numRecords = writePartition(wrappedBuffer.partitionPositions[i], wrappedBuffer,
-              writer, key, val);
-          if (numRecordsCounter != null) {
-            // TezCounter is not threadsafe; Since numRecordsCounter would be updated from
-            // multiple threads, it is good to synchronize it when incrementing it for correctness.
-            synchronized (numRecordsCounter) {
-              numRecordsCounter.increment(numRecords);
+          long numRecords = 0;
+          for (WrappedBuffer buffer : filledBuffers) {
+            outputContext.notifyProgress();
+            if (buffer.partitionPositions[i] == WrappedBuffer.PARTITION_ABSENT_POSITION) {
+              // Skip empty partition.
+              continue;
             }
+            if (writer == null) {
+              writer = new Writer(conf, out, keyClass, valClass, codec, null, null);
+            }
+            numRecords += writePartition(buffer.partitionPositions[i], buffer, writer, key, val);
           }
-          writer.close();
-          compressedLength += writer.getCompressedLength();
-          TezIndexRecord indexRecord = new TezIndexRecord(segmentStart, writer.getRawLength(),
-              writer.getCompressedLength());
-          spillRecord.putIndex(indexRecord, i);
-          writer = null;
+          if (writer != null) {
+            if (numRecordsCounter != null) {
+              // TezCounter is not threadsafe; Since numRecordsCounter would be updated from
+              // multiple threads, it is good to synchronize it when incrementing it for correctness.
+              synchronized (numRecordsCounter) {
+                numRecordsCounter.increment(numRecords);
+              }
+            }
+            writer.close();
+            compressedLength += writer.getCompressedLength();
+            TezIndexRecord indexRecord = new TezIndexRecord(segmentStart, writer.getRawLength(),
+                writer.getCompressedLength());
+            spillRecord.putIndex(indexRecord, i);
+            writer = null;
+          }
         } finally {
           if (writer != null) {
             writer.close();
           }
         }
       }
-      spillResult = new SpillResult(compressedLength, this.wrappedBuffer);
+      key.close();
+      val.close();
+
+      spillResult = new SpillResult(compressedLength, this.filledBuffers);
 
       handleSpillIndex(spillPathDetails, spillRecord);
       LOG.info(destNameTrimmed + ": " + "Finished spill " + spillIndex);
@@ -717,10 +777,11 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       return false;
     } else {
       updateGlobalStats(currentBuffer);
+      filledBuffers.add(currentBuffer);
 
       //setup output file and index file
       SpillPathDetails spillPathDetails = getSpillPathDetails(true, -1);
-      SpillCallable spillCallable = new SpillCallable(currentBuffer, codec, null, spillPathDetails);
+      SpillCallable spillCallable = new SpillCallable(filledBuffers, codec, null, spillPathDetails);
       try {
         SpillResult spillResult = spillCallable.call();
 
@@ -901,7 +962,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
               sizePerPartition[i] += writer.getRawLength();
             }
             writer.close();
-            additionalSpillBytesWritternCounter.increment(writer.getCompressedLength());
+            synchronized (additionalSpillBytesWritternCounter) {
+              additionalSpillBytesWritternCounter.increment(writer.getCompressedLength());
+            }
             TezIndexRecord indexRecord = new TezIndexRecord(recordStart, writer.getRawLength(),
                 writer.getCompressedLength());
             spillRecord.putIndex(indexRecord, i);
@@ -1072,25 +1135,47 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     @Override
     public void onSuccess(SpillResult result) {
-      spilledSize += result.spillSize;
+      synchronized (UnorderedPartitionedKVWriter.this) {
+        spilledSize += result.spillSize;
+      }
 
-      sendPipelinedEventForSpill(result.wrappedBuffer.recordsPerPartition,
-          result.wrappedBuffer.sizePerPartition, spillNumber, false);
+      int recordsPerPartition[] = null;
+      long sizePerPartition[] = null;
+      if (result.filledBuffers.size() == 1) {
+        recordsPerPartition = result.filledBuffers.get(0).recordsPerPartition;
+        sizePerPartition = result.filledBuffers.get(0).sizePerPartition;
+      } else {
+        recordsPerPartition = new int[numPartitions];
+        sizePerPartition = new long[numPartitions];
+        for (WrappedBuffer buffer : result.filledBuffers) {
+          for (int i = 0; i < numPartitions; ++i) {
+            recordsPerPartition[i] += buffer.recordsPerPartition[i];
+            sizePerPartition[i] += buffer.sizePerPartition[i];
+          }
+        }
+      }
+
+      sendPipelinedEventForSpill(recordsPerPartition, sizePerPartition, spillNumber, false);
 
       try {
-        result.wrappedBuffer.reset();
-        availableBuffers.add(result.wrappedBuffer);
-
+        for (WrappedBuffer buffer : result.filledBuffers) {
+          buffer.reset();
+          availableBuffers.add(buffer);
+        }
       } catch (Throwable e) {
-        LOG.error(destNameTrimmed + ": " + "Failure while attempting to reset buffer after spill", e);
+        LOG.error(destNameTrimmed + ": Failure while attempting to reset buffer after spill", e);
         outputContext.reportFailure(TaskFailureType.NON_FATAL, e, "Failure while attempting to reset buffer after spill");
       }
 
       if (!pipelinedShuffle) {
-        additionalSpillBytesWritternCounter.increment(result.spillSize);
+        synchronized(additionalSpillBytesWritternCounter) {
+          additionalSpillBytesWritternCounter.increment(result.spillSize);
+        }
       } else {
-        fileOutputBytesCounter.increment(indexFileSizeEstimate);
-        fileOutputBytesCounter.increment(result.spillSize);
+        synchronized(fileOutputBytesCounter) {
+          fileOutputBytesCounter.increment(indexFileSizeEstimate);
+          fileOutputBytesCounter.increment(result.spillSize);
+        }
       }
 
       spillLock.lock();
@@ -1121,11 +1206,11 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   private static class SpillResult {
     final long spillSize;
-    final WrappedBuffer wrappedBuffer;
+    final List<WrappedBuffer> filledBuffers;
 
-    SpillResult(long size, WrappedBuffer wrappedBuffer) {
+    SpillResult(long size, List<WrappedBuffer> filledBuffers) {
       this.spillSize = size;
-      this.wrappedBuffer = wrappedBuffer;
+      this.filledBuffers = filledBuffers;
     }
   }
 
