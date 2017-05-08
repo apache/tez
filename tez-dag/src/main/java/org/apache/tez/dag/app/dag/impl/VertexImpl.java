@@ -727,8 +727,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   // must be a random access structure
   
   private final List<EventInfo> onDemandRouteEvents = Lists.newArrayListWithCapacity(1000);
-  // Do not send any events if attempt is already failed. TaskAttemptId
-  private final Set<TezTaskAttemptID> failedTaskIds = Sets.newHashSet();
+  // Do not send any events if attempt is failed due to INPUT_FAILED_EVENTS.
+  private final Set<TezTaskAttemptID> failedTaskAttemptIDs = Sets.newHashSet();
   private final ReadWriteLock onDemandRouteEventsReadWriteLock = new ReentrantReadWriteLock();
   private final Lock onDemandRouteEventsReadLock = onDemandRouteEventsReadWriteLock.readLock();
   private final Lock onDemandRouteEventsWriteLock = onDemandRouteEventsReadWriteLock.writeLock();
@@ -3986,7 +3986,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     try {
       if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT ||
           tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) {
-        if (failedTaskIds.contains(tezEvent.getSourceInfo().getTaskAttemptID())) {
+        // Prevent any failed task (due to INPUT_FAILED_EVENT) sending events downstream. E.g LLAP
+        if (failedTaskAttemptIDs.contains(tezEvent.getSourceInfo().getTaskAttemptID())) {
           return;
         }
       }
@@ -4004,7 +4005,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             // can be obsoleted by an input failed event from the
             // same source edge+task
             eventInfo.isObsolete = true;
-            failedTaskIds.add(tezEvent.getSourceInfo().getTaskAttemptID());
+            failedTaskAttemptIDs.add(tezEvent.getSourceInfo().getTaskAttemptID());
           }
         }
       }

@@ -714,7 +714,7 @@ class ShuffleScheduler {
 
   @VisibleForTesting
   void killSelf(Exception exception, String message) {
-    LOG.error(srcNameTrimmed + ": " + "Reporting exception for input", exception);
+    LOG.error(message, exception);
     try {
       this.close();
     } finally {

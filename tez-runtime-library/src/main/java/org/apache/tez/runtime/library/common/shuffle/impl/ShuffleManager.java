@@ -392,16 +392,26 @@ public class ShuffleManager implements FetcherCallback {
     if (input.canRetrieveInputInChunks()) {
       ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
       if (eventInfo != null && input.getAttemptNumber() != eventInfo.attemptNum) {
-        //speculative attempts or failure attempts. Fail fast here.
-        reportFatalError(new IOException(), input + " already exists. "
-            + "Previous attempt's data could have been already merged "
-            + "to memory/disk outputs.  Failing the fetch early. currentAttemptNum=" + eventInfo
-            .attemptNum + ", eventsProcessed=" + eventInfo.eventsProcessed + ", newAttemptNum=" +
-            input.getAttemptNumber());
-        return false;
+        if (eventInfo.scheduledForDownload || !eventInfo.eventsProcessed.isEmpty()) {
+          IOException exception = new IOException("Previous event already got scheduled for " +
+              input + ". Previous attempt's data could have been already merged "
+              + "to memory/disk outputs.  Killing (self) this task early."
+              + " currentAttemptNum=" + eventInfo.attemptNum
+              + ", eventsProcessed=" + eventInfo.eventsProcessed
+              + ", scheduledForDownload=" + eventInfo.scheduledForDownload
+              + ", newAttemptNum=" + input.getAttemptNumber());
+          String message = "Killing self as previous attempt data could have been consumed";
+          killSelf(exception, message);
+          return false;
+        }
       }
     }
     return true;
+  }
+
+  void killSelf(Exception exception, String message) {
+    LOG.error(message, exception);
+    this.inputContext.killSelf(exception, message);
   }
 
   @VisibleForTesting
@@ -464,6 +474,12 @@ public class ShuffleManager implements FetcherCallback {
     }
     if (inputHost.getNumPendingPartitions() > 0) {
       pendingHosts.add(inputHost); //add it to queue
+    }
+    for(InputAttemptIdentifier input : pendingInputsOfOnePartition.getInputs()) {
+      ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
+      if (eventInfo != null) {
+        eventInfo.scheduledForDownload = true;
+      }
     }
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
         pendingInputsOfOnePartition.getPartition(),
@@ -575,6 +591,7 @@ public class ShuffleManager implements FetcherCallback {
     int finalEventId = -1; //0 indexed
     int attemptNum;
     String id;
+    boolean scheduledForDownload; // whether chunks got scheduled for download
 
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
@@ -606,7 +623,8 @@ public class ShuffleManager implements FetcherCallback {
 
     public String toString() {
       return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
-          +  ", id=" + id + ", attemptNum=" + attemptNum + "]";
+          +  ", id=" + id + ", attemptNum=" + attemptNum
+          + ", scheduledForDownload=" + scheduledForDownload + "]";
     }
   }
 
