@@ -18,21 +18,22 @@
 
 package org.apache.tez.dag.app.dag;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Queue;
 
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public abstract class DAGScheduler {
   private static class VertexInfo {
     int concurrencyLimit;
     int concurrency;
-    Queue<DAGEventSchedulerUpdate> pendingAttempts = Lists.newLinkedList();
-    
+    Map<TezTaskAttemptID, DAGEventSchedulerUpdate> pendingAttempts =
+        new LinkedHashMap<TezTaskAttemptID, DAGEventSchedulerUpdate>();
+
     VertexInfo(int limit) {
       this.concurrencyLimit = limit;
     }
@@ -42,7 +43,7 @@ public abstract class DAGScheduler {
   
   public void addVertexConcurrencyLimit(TezVertexID vId, int concurrency) {
     if (vertexInfo == null) {
-      vertexInfo = Maps.newHashMap();
+      vertexInfo = new HashMap<TezVertexID, VertexInfo>();
     }
     if (concurrency > 0) {
       vertexInfo.put(vId, new VertexInfo(concurrency));
@@ -60,7 +61,7 @@ public abstract class DAGScheduler {
   private void scheduleTaskWithLimit(DAGEventSchedulerUpdate event, VertexInfo vInfo) {
     if (vInfo != null) {
       if (vInfo.concurrency >= vInfo.concurrencyLimit) {
-        vInfo.pendingAttempts.add(event);
+        vInfo.pendingAttempts.put(event.getAttempt().getID(), event);
         return; // already at max concurrency
       }
       vInfo.concurrency++;
@@ -73,9 +74,14 @@ public abstract class DAGScheduler {
     if (vertexInfo != null) {
       VertexInfo vInfo = vertexInfo.get(event.getAttempt().getID().getTaskID().getVertexID());
       if (vInfo != null) {
-        vInfo.concurrency--;
-        if (!vInfo.pendingAttempts.isEmpty()) {
-          scheduleTaskWithLimit(vInfo.pendingAttempts.poll(), vInfo);
+        if(vInfo.pendingAttempts.remove(event.getAttempt().getID()) == null) {
+          vInfo.concurrency--;
+          if(!vInfo.pendingAttempts.isEmpty()) {
+            Iterator<DAGEventSchedulerUpdate> i = vInfo.pendingAttempts.values().iterator();
+            DAGEventSchedulerUpdate nextTaskAttempt = i.next();
+            i.remove();
+            scheduleTaskWithLimit(nextTaskAttempt, vInfo);
+          }
         }
       }
     }
