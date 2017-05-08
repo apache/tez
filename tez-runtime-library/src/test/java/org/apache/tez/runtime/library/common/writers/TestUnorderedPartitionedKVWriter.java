@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.common.writers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -51,6 +52,7 @@ import com.google.protobuf.ByteString;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -399,6 +401,20 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> events = kvWriter.close();
     verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
+    if (!pipeliningEnabled) {
+      VertexManagerEvent vmEvent = null;
+      for (Event event : events) {
+        if (event instanceof VertexManagerEvent) {
+          assertNull(vmEvent);
+          vmEvent = (VertexManagerEvent) event;
+        }
+      }
+      VertexManagerEventPayloadProto vmEventPayload =
+        VertexManagerEventPayloadProto.parseFrom(
+          ByteString.copyFrom(vmEvent.getUserPayload().asReadOnlyBuffer()));
+      assertEquals(numRecordsWritten, vmEventPayload.getNumRecord());
+    }
+
     TezCounter outputLargeRecordsCounter = counters.findCounter(TaskCounter.OUTPUT_LARGE_RECORDS);
     assertEquals(numLargeKeys + numLargevalues + numLargeKvPairs,
         outputLargeRecordsCounter.getValue());
@@ -481,8 +497,8 @@ public class TestUnorderedPartitionedKVWriter {
 
   private int[] getPartitionStats(VertexManagerEvent vme) throws IOException {
     RoaringBitmap partitionStats = new RoaringBitmap();
-    ShuffleUserPayloads.VertexManagerEventPayloadProto
-        payload = ShuffleUserPayloads.VertexManagerEventPayloadProto
+    VertexManagerEventPayloadProto
+        payload = VertexManagerEventPayloadProto
         .parseFrom(ByteString.copyFrom(vme.getUserPayload()));
     if (!reportPartitionStats.isEnabled()) {
       assertFalse(payload.hasPartitionStats());
