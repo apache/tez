@@ -41,7 +41,8 @@ public class TestCartesianProductEdgeManager {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true)
       .addAllSources(Arrays.asList("v0", "v1"))
-      .addAllNumPartitions(Ints.asList(2,3));
+      .addAllNumPartitions(Ints.asList(2,3))
+      .setMaxParallelism(100).setMinOpsPerWorker(1);
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray()));
     when(context.getUserPayload()).thenReturn(payload);
     edgeManager.initialize();
@@ -52,12 +53,13 @@ public class TestCartesianProductEdgeManager {
     builder.clear();
     builder.setIsPartitioned(false)
       .addAllSources(Arrays.asList("v0", "v1"))
-      .addAllNumChunks(Ints.asList(2,3));
+      .addAllNumChunks(Ints.asList(2,3))
+      .setMaxParallelism(100).setMinOpsPerWorker(1);
     payload = UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray()));
     when(context.getUserPayload()).thenReturn(payload);
     when(context.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize();
     assertTrue(edgeManager.getEdgeManagerReal()
-      instanceof CartesianProductEdgeManagerUnpartitioned);
+      instanceof FairCartesianProductEdgeManager);
   }
 }

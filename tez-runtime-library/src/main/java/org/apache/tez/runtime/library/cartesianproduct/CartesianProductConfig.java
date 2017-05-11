@@ -48,12 +48,12 @@ public class CartesianProductConfig {
   private final boolean isPartitioned;
   private final String[] sources;
  // numPartition[i] means how many partitions sourceVertices[i] will generate
- // (not used in unpartitioned case)
+ // (not used in fair cartesian product)
   private final int[] numPartitions;
   private final CartesianProductFilterDescriptor filterDescriptor;
 
   /**
-   * create config for unpartitioned case
+   * create config for fair cartesian product
    * @param sources list of names of source vertices or vertex groups
    */
   public CartesianProductConfig(List<String> sources) {
@@ -84,7 +84,7 @@ public class CartesianProductConfig {
                                 CartesianProductFilterDescriptor filterDescriptor) {
     Preconditions.checkArgument(vertexPartitionMap != null, "vertex-partition map cannot be null");
     Preconditions.checkArgument(vertexPartitionMap.size() > 1,
-      "there must be more than 1 source " + "vertices, currently only " + vertexPartitionMap.size());
+      "there must be more than 1 source vertices, currently only " + vertexPartitionMap.size());
 
     this.isPartitioned = true;
     this.numPartitions = new int[vertexPartitionMap.size()];
@@ -151,7 +151,7 @@ public class CartesianProductConfig {
         "every source has 1 partition in a partitioned case");
     } else {
       Preconditions.checkArgument(this.numPartitions == null,
-        "partition counts should be null in unpartitioned case");
+        "partition counts should be null in fair cartesian product");
     }
   }
 
@@ -202,11 +202,6 @@ public class CartesianProductConfig {
       }
     }
 
-    builder.setMinFraction(
-      CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT);
-    builder.setMaxFraction(
-      CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT);
-
     if (conf != null) {
       builder.setMinFraction(conf.getFloat(
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION,
@@ -214,20 +209,36 @@ public class CartesianProductConfig {
       builder.setMaxFraction(conf.getFloat(
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION,
         CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT));
-      String enableAutoGrouping =
-        conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING);
-      if (enableAutoGrouping != null) {
-        builder.setEnableAutoGrouping(Boolean.parseBoolean(enableAutoGrouping));
+      builder.setMaxParallelism(conf.getInt(
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM,
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT));
+      builder.setMinOpsPerWorker(conf.getLong(
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER,
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT));
+      builder.setEnableGrouping(conf.getBoolean(
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING,
+        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT));
+      if (conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION) != null) {
+        builder.setGroupingFraction(Float.parseFloat(
+          conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION)));
+        Preconditions.checkArgument(0 < builder.getGroupingFraction() &&
+          builder.getGroupingFraction() <= 1, "grouping fraction should be larger than 0 and less" +
+          " or equal to 1, current value: " + builder.getGroupingFraction());
       }
-      String desiredBytesPerGroup =
-        conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP);
-      if (desiredBytesPerGroup != null) {
-        builder.setDesiredBytesPerChunk(Long.parseLong(desiredBytesPerGroup));
+      if (conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS) != null) {
+        builder.setNumPartitionsForFairCase(Integer.parseInt(
+          conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS)));
+        Preconditions.checkArgument(builder.getNumPartitionsForFairCase() > 0,
+          "Number of partitions for fair cartesian product should be positive integer");
       }
     }
     Preconditions.checkArgument(builder.getMinFraction() <= builder.getMaxFraction(),
       "min fraction(" + builder.getMinFraction() + ") should be less than max fraction(" +
         builder.getMaxFraction() + ") in cartesian product slow start");
+    Preconditions.checkArgument(builder.getMaxParallelism() > 0,
+      "max parallelism must be positive, currently is " + builder.getMaxParallelism());
+    Preconditions.checkArgument(builder.getMinOpsPerWorker() > 0,
+      "Min ops per worker must be positive, currently is " + builder.getMinOpsPerWorker());
 
     return builder.build();
   }

@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.cartesianproduct;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -39,10 +40,11 @@ import java.util.Set;
 
 import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
 import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 
 /**
  * This VM wrap a real vertex manager implementation object. It choose whether it's partitioned or
- * unpartitioned implementation according to the config. All method invocations are actually
+ * fair implementation according to the config. All method invocations are actually
  * redirected to real implementation.
  *
  * Predefined parallelism isn't allowed for cartesian product vertex. Parallellism has to be
@@ -51,9 +53,9 @@ import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
  * If a vertex use this vertex, its input edges must be either cartesian product edge or broadcast
  * edge.
  *
- * Sources can be either vertices or vertex groups (only in unpartitioned case).
+ * Sources can be either vertices or vertex groups (only in fair cartesian product).
  *
- * Slow start only works in partitioned case. Auto grouping only works in unpartitioned case.
+ * Slow start only works in partitioned case.
  */
 public class CartesianProductVertexManager extends VertexManagerPlugin {
   /**
@@ -72,22 +74,46 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
 
   /**
-   * Enables automatic grouping. It groups source tasks of each cartesian product source vertex
-   * so that every group generates similar output size. And parallelism can be reduced because
-   * destination tasks handle combinations of per group output instead of per task output. This is
-   * only available for unpartitioned case for now, and it's useful for scenarios where there are
-   * many source tasks generate small outputs.
+   * Num partitions as int value, for fair cartesian product only.
+   * Set this if auto determined num partition is not large enough
    */
-  public static final String TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING =
-    "tez.cartesian-product.enable-auto-grouping";
-  public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_AUTO_GROUPING_DEFAULT = false;
+  public static final String TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS =
+    "tez.cartesian-product.num-partitions";
 
   /**
-   * The number of output bytes we want from each group.
+   * Whether to disable grouping in fair cartesian product
+   * If this is set to true, it's best to set "tez.cartesian-product.num-partitions" to 1 to avoid
+   * unnecessary overhead caused by multiple partitions.
    */
-  public static final String TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP =
-    "tez.cartesian-product.desired-input-per-src";
-  public static final long TEZ_CARTESIAN_PRODUCT_DESIRED_BYTES_PER_GROUP_DEFAULT = 32 * 1024 * 1024;
+  public static final String TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING =
+    "tez.cartesian-product.disable-grouping";
+  public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT = true;
+
+  /**
+   * If every source vertex has this percents of tasks completed and generate some output,
+   * we can begin auto grouping.
+   *
+   * Positive float value, max 1.
+   * If not set, auto grouping will begin once every source vertex generate enough output
+   */
+  public static final String TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION =
+    "tez.cartesian-product.grouping-fraction";
+
+  /**
+   * Max parallelism, for fair cartesian product only.
+   * This is used to avoid get too many tasks. The value must be positive.
+   */
+  public static final String TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM =
+    "tez.cartesian-product.max-parallelism";
+  public static final int TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT = 1000;
+
+  /**
+   * Min cartesian product operations per worker, for fair cartesian product only.
+   * This is used to avoid a task gets too small workload. The value must be positive.
+   */
+  public static final String TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER =
+    "tez.cartesian-product.min-ops-per-worker";
+  public static final long TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT = 1000000;
 
   private CartesianProductVertexManagerReal vertexManagerReal = null;
 
@@ -99,12 +125,12 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
 
   @Override
   public void initialize() throws Exception {
-    CartesianProductVertexManagerConfig config =
-      CartesianProductVertexManagerConfig.fromUserPayload(getContext().getUserPayload());
+    CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(
+      ByteString.copyFrom(getContext().getUserPayload().getPayload()));
     // check whether DAG and config are is consistent
     Map<String, EdgeProperty> edgePropertyMap = getContext().getInputVertexEdgeProperties();
     Set<String> sourceVerticesDAG = edgePropertyMap.keySet();
-    Set<String> sourceVerticesConfig = new HashSet<>(config.getSourceVertices());
+    Set<String> sourceVerticesConfig = new HashSet<>(config.getSourcesList());
 
     Map<String, List<String>> vertexGroups = getContext().getInputVertexGroups();
     Map<String, String> vertexToGroup = new HashMap<>();
@@ -159,7 +185,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
 
     vertexManagerReal = config.getIsPartitioned()
       ? new CartesianProductVertexManagerPartitioned(getContext())
-      : new CartesianProductVertexManagerUnpartitioned(getContext());
+      : new FairCartesianProductVertexManager(getContext());
     vertexManagerReal.initialize(config);
   }
 

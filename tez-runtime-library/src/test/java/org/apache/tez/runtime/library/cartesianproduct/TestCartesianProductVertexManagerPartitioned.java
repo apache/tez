@@ -32,6 +32,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -66,14 +67,13 @@ public class TestCartesianProductVertexManagerPartitioned {
 
   @Before
   public void setup() throws TezReflectionException {
-    setupWithConfig(
-      new CartesianProductVertexManagerConfig(true, new String[]{"v0","v1"}, new int[] {2, 2},
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT,
-        false, 0, null));
+    CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
+    builder.setIsPartitioned(true).addSources("v0").addSources("v1")
+      .addNumPartitions(2).addNumPartitions(2);
+    setupWithConfig(builder.build());
   }
 
-  private void setupWithConfig(CartesianProductVertexManagerConfig config)
+  private void setupWithConfig(CartesianProductConfigProto config)
     throws TezReflectionException {
     MockitoAnnotations.initMocks(this);
     context = mock(VertexManagerPluginContext.class);
@@ -102,7 +102,7 @@ public class TestCartesianProductVertexManagerPartitioned {
     }
   }
 
-  private void testReconfigureVertexHelper(CartesianProductVertexManagerConfig config,
+  private void testReconfigureVertexHelper(CartesianProductConfigProto config,
                                            int parallelism)
     throws Exception {
     setupWithConfig(config);
@@ -117,12 +117,12 @@ public class TestCartesianProductVertexManagerPartitioned {
 
   @Test(timeout = 5000)
   public void testReconfigureVertex() throws Exception {
-    testReconfigureVertexHelper(
-      new CartesianProductVertexManagerConfig(true, new String[]{"v0", "v1"}, new int[] {5, 5}, 0,
-        0, false, 0, new CartesianProductFilterDescriptor(TestFilter.class.getName())), 10);
-    testReconfigureVertexHelper(
-      new CartesianProductVertexManagerConfig(true, new String[]{"v0", "v1"}, new int[] {5, 5}, 0,
-        0, false, 0, null), 25);
+    CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
+    builder.setIsPartitioned(true).addSources("v0").addSources("v1")
+      .addNumPartitions(5).addNumPartitions(5).setFilterClassName(TestFilter.class.getName());
+    testReconfigureVertexHelper(builder.build(), 10);
+    builder.clearFilterClassName();
+    testReconfigureVertexHelper(builder.build(), 25);
   }
 
   @Test(timeout = 5000)

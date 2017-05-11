@@ -143,9 +143,9 @@ class CartesianProductCombination {
   }
 
   /**
-   * @return corresponding chunk id for current combination
+   * @return corresponding task id for current combination
    */
-  public int getChunkId() {
+  public int getTaskId() {
     int chunkId = 0;
     for (int i = 0; i < combination.length; i++) {
       chunkId += combination[i]*factor[i];

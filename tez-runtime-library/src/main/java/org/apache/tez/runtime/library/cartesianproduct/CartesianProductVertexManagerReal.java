@@ -21,6 +21,7 @@ import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,7 +40,7 @@ abstract class CartesianProductVertexManagerReal {
     return this.context;
   }
 
-  public abstract void initialize(CartesianProductVertexManagerConfig config) throws Exception;
+  public abstract void initialize(CartesianProductConfigProto config) throws Exception;
 
   public abstract void onVertexManagerEventReceived(VertexManagerEvent vmEvent) throws IOException;
 
