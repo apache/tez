@@ -476,11 +476,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public float getProgress() {
     readLock.lock();
     try {
-      TaskAttempt bestAttempt = selectBestAttempt();
-      if (bestAttempt == null) {
-        return 0f;
+      final TaskStateInternal state = getInternalState();
+      if (state == TaskStateInternal.RUNNING) {
+        TaskAttempt bestAttempt = selectBestAttempt();
+        if (bestAttempt == null) {
+          return 0f;
+        }
+        return bestAttempt.getProgress();
+      } else if (state == TaskStateInternal.SUCCEEDED) {
+        return 1.0f;
+      } else {
+        return 0.0f;
       }
-      return bestAttempt.getProgress();
     } finally {
       readLock.unlock();
     }

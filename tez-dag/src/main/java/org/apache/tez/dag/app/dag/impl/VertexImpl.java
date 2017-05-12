@@ -1344,7 +1344,30 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   public float getProgress() {
     this.readLock.lock();
     try {
-      computeProgress();
+      final VertexState state = this.getState();
+      switch (state) {
+      case NEW:
+      case INITED:
+      case INITIALIZING:
+        progress = 0.0f;
+        break;
+      case RUNNING:
+        computeProgress();
+        break;
+      case KILLED:
+      case ERROR:
+      case FAILED:
+      case TERMINATING:
+        progress = 0.0f;
+        break;
+      case COMMITTING:
+      case SUCCEEDED:
+        progress = 1.0f;
+        break;
+      default:
+        // unknown, do not change progress
+        break;
+      }
       return progress;
     } finally {
       this.readLock.unlock();
@@ -1381,7 +1404,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       ProgressBuilder progress = new ProgressBuilder();
       progress.setTotalTaskCount(numTasks);
       progress.setSucceededTaskCount(succeededTaskCount);
-      progress.setRunningTaskCount(getRunningTasks());
+      if (inTerminalState()) {
+        progress.setRunningTaskCount(0);
+      } else {
+        progress.setRunningTaskCount(getRunningTasks());
+      }
       progress.setFailedTaskCount(failedTaskCount);
       progress.setKilledTaskCount(killedTaskCount);
       progress.setFailedTaskAttemptCount(failedTaskAttemptCount.get());
@@ -1434,7 +1461,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     try {
       float progress = 0f;
       for (Task task : this.tasks.values()) {
-        progress += (task.isFinished() ? 1f : task.getProgress());
+        progress += (task.getProgress());
       }
       if (this.numTasks != 0) {
         progress /= this.numTasks;
