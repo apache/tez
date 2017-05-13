@@ -18,43 +18,16 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import java.util.Map;
-
-import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 public class TaskAttemptEventStartedRemotely extends TaskAttemptEvent implements RecoveryEvent {
 
-  private final ContainerId containerId;
-  // TODO Can appAcls be handled elsewhere ?
-  private final Map<ApplicationAccessType, String> applicationACLs;
-  private boolean fromRecovery = false;
-
-  public TaskAttemptEventStartedRemotely(TezTaskAttemptID id, ContainerId containerId,
-      Map<ApplicationAccessType, String> appAcls) {
+  public TaskAttemptEventStartedRemotely(TezTaskAttemptID id) {
     super(id, TaskAttemptEventType.TA_STARTED_REMOTELY);
-    this.containerId = containerId;
-    this.applicationACLs = appAcls;
-  }
-
-  public TaskAttemptEventStartedRemotely(TezTaskAttemptID id, ContainerId containerId,
-      Map<ApplicationAccessType, String> appAcls, boolean fromRecovery) {
-    this(id, containerId, appAcls);
-    this.fromRecovery = fromRecovery;
-  }
-
-  public ContainerId getContainerId() {
-    return containerId;
-  }
-
-  public Map<ApplicationAccessType, String> getApplicationACLs() {
-    return applicationACLs;
   }
 
   @Override
   public boolean isFromRecovery() {
-    return fromRecovery;
+    return false;
   }
-
 }

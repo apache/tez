@@ -28,6 +28,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 public enum TaskAttemptStateInternal {
   NEW,
   START_WAIT,
+  SUBMITTED,
   RUNNING,
   KILL_IN_PROGRESS, 
   FAIL_IN_PROGRESS,

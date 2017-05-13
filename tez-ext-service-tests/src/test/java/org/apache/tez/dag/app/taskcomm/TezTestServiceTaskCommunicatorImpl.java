@@ -132,8 +132,9 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
     }
     // Have to register this up front right now. Otherwise, it's possible for the task to start
     // sending out status/DONE/KILLED/FAILED messages before TAImpl knows how to handle them.
-    getContext()
-        .taskStartedRemotely(taskSpec.getTaskAttemptID(), containerId);
+
+    getContext().taskSubmitted(taskSpec.getTaskAttemptID(), containerId);
+    getContext().taskStartedRemotely(taskSpec.getTaskAttemptID());
     communicator.submitWork(requestProto, host, port,
         new TezTestServiceCommunicator.ExecuteRequestCallback<SubmitWorkResponseProto>() {
           @Override

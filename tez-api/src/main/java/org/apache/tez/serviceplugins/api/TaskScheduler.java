@@ -45,6 +45,10 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
 
   private final TaskSchedulerContext taskSchedulerContext;
 
+  public enum SchedulerTaskState {
+    SUBMITTED, STARTED,
+  }
+
   public TaskScheduler(TaskSchedulerContext taskSchedulerContext) {
     this.taskSchedulerContext = taskSchedulerContext;
   }
@@ -190,6 +194,17 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
                                     ContainerId containerId, Priority priority,
                                     Object containerSignature,
                                     Object clientCookie) throws ServicePluginException;
+
+  /**
+   * Information about the state of a previously allocated task.
+   *
+   * @param task  the task for which an update is being provided
+   * @param state the updated state
+   * @throws ServicePluginException
+   */
+  public void taskStateUpdated(Object task, SchedulerTaskState state) throws
+      ServicePluginException {
+  }
 
   /**
    * A request to deallocate a task. This is typically a result of a task completing - with success

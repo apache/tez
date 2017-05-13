@@ -259,6 +259,9 @@ public class TaskSchedulerManager extends AbstractService implements
     case S_TA_LAUNCH_REQUEST:
       handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
       break;
+    case S_TA_STATE_UPDATED:
+      handleTAStateUpdated((AMSchedulerEventTAStateUpdated) sEvent);
+      break;
     case S_TA_ENDED: // TaskAttempt considered complete.
       AMSchedulerEventTAEnded event = (AMSchedulerEventTAEnded)sEvent;
       switch(event.getState()) {
@@ -513,6 +516,23 @@ public class TaskSchedulerManager extends AbstractService implements
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
           + ", taskAttemptId=" + taskAttempt.getID();
+      LOG.error(msg, e);
+      sendEvent(
+          new DAGAppMasterEventUserServiceFatalError(
+              DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR,
+              msg, e));
+    }
+  }
+
+  private void handleTAStateUpdated(AMSchedulerEventTAStateUpdated event) {
+    try {
+      taskSchedulers[event.getSchedulerId()].taskStateUpdated(event.getTaskAttempt(), event.getState());
+    } catch (Exception e) {
+      String msg = "Error in TaskScheduler for handling Task State Update"
+          + ", eventType=" + event.getType()
+          + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
+          + ", taskAttemptId=" + event.getTaskAttempt().getID()
+          + ", state=" + event.getState();
       LOG.error(msg, e);
       sendEvent(
           new DAGAppMasterEventUserServiceFatalError(
