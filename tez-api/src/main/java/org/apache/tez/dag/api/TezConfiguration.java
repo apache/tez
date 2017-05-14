@@ -571,6 +571,16 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT = 4;
 
   /**
+   * Boolean value. Specifies whether a re-scheduled attempt of a task, caused by previous
+   * failures gets special treatment - higher priority, dropped location hints.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY =
+      TEZ_AM_PREFIX + "task.reschedule.higher.priority";
+  public static final boolean TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT=true;
+
+  /**
    * Boolean value. Enabled blacklisting of nodes of nodes that are considered faulty. These nodes 
    * will not be used to execute tasks.
    */

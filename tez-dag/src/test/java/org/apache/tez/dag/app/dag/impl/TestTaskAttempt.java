@@ -139,6 +139,7 @@ public class TestTaskAttempt {
   }
   
   AppContext appCtx;
+  TezConfiguration vertexConf = new TezConfiguration();
   TaskLocationHint locationHint;
   Vertex mockVertex;
   ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
@@ -157,6 +158,7 @@ public class TestTaskAttempt {
 
     mockVertex = mock(Vertex.class);
     when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
+    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(vertexConf));
 
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
@@ -202,7 +204,50 @@ public class TestTaskAttempt {
       assertEquals(host, true, taImpl.taskHosts.contains(host));
     }
   }
-  
+
+  @Test(timeout = 5000)
+  public void testRetriesAtSamePriorityConfig() {
+
+    // Override the test defaults to setup the config change
+    TezConfiguration vertexConf = new TezConfiguration();
+    vertexConf.setBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY, false);
+    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(vertexConf));
+
+    TaskAttemptImpl.ScheduleTaskattemptTransition sta =
+        new TaskAttemptImpl.ScheduleTaskattemptTransition();
+
+    EventHandler eventHandler = mock(EventHandler.class);
+    TezTaskID taskID = TezTaskID.getInstance(
+        TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx,
+        false, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+
+    TaskAttemptImpl taImplReScheduled = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new SystemClock(),
+        mock(TaskHeartbeatHandler.class), appCtx,
+        true, Resource.newInstance(1024, 1), createFakeContainerContext(), false);
+
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+
+    TaskAttemptEventSchedule sEvent = mock(TaskAttemptEventSchedule.class);
+    when(sEvent.getPriorityLowLimit()).thenReturn(3);
+    when(sEvent.getPriorityHighLimit()).thenReturn(1);
+
+    // Verify priority for a non-retried attempt
+    sta.transition(taImpl, sEvent);
+    verify(eventHandler, times(1)).handle(arg.capture());
+    AMSchedulerEventTALaunchRequest launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
+    Assert.assertEquals(2, launchEvent.getPriority());
+
+    // Verify priority for a retried attempt is the same
+    sta.transition(taImplReScheduled, sEvent);
+    verify(eventHandler, times(2)).handle(arg.capture());
+    launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
+    Assert.assertEquals(2, launchEvent.getPriority());
+  }
+
   @Test(timeout = 5000)
   public void testPriority() {
     TaskAttemptImpl.ScheduleTaskattemptTransition sta =

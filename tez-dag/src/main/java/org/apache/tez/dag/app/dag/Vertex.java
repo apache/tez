@@ -200,4 +200,11 @@ public interface Vertex extends Comparable<Vertex> {
   void reportTaskStartTime(long taskStartTime);
   public long getFirstTaskStartTime();
   public long getLastTaskFinishTime();
+
+  VertexConfig getVertexConfig();
+
+  interface VertexConfig {
+    int getMaxFailedTaskAttempts();
+    boolean getTaskRescheduleHigherPriority();
+  }
 }

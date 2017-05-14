@@ -91,7 +91,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventTezEventUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
@@ -165,6 +164,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
 
+  // Should not be used to access configuration. User vertex.VertexConfig instead
   protected final Configuration conf;
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
@@ -542,6 +542,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
       TezTaskAttemptID schedulingCausalTA) {
 
+    // TODO: Move these configs over to Vertex.VertexConfig
     MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
@@ -1307,7 +1308,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.taskRacks = racks;
 
       // Ask for hosts / racks only if not a re-scheduled task.
-      if (ta.isRescheduled) {
+      if (ta.isRescheduled && ta.getVertex().getVertexConfig().getTaskRescheduleHigherPriority()) {
         locationHint = null;
       }
 
@@ -1315,7 +1316,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       
       // Send out a launch request to the scheduler.
       int priority;
-      if (ta.isRescheduled) {
+      if (ta.isRescheduled  && ta.getVertex().getVertexConfig().getTaskRescheduleHigherPriority()) {
         // higher priority for rescheduled attempts
         priority = scheduleEvent.getPriorityHighLimit();
       } else {
