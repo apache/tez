@@ -257,6 +257,15 @@
         </roles>
       </developer>
       <developer>
+        <id>kshukla</id>
+        <name>Kuhu Shukla</name>
+        <email>kshukla@apache.org</email>
+        <timezone>-6</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+      </developer>
+      <developer>
         <id>mattmann</id>
         <name>Chris Mattmann</name>
         <email>mattmann@apache.org</email>
