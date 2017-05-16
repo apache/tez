@@ -933,10 +933,11 @@ public class TestUnorderedPartitionedKVWriter {
     IntWritable keyDeser = new IntWritable();
     LongWritable valDeser = new LongWritable();
     for (int i = 0; i < numOutputs; i++) {
+      TezIndexRecord indexRecord = spillRecord.getIndex(i);
       if (skippedPartitions != null && skippedPartitions.contains(i)) {
+        assertFalse("The Index Record for partition " + i + " should not have any data", indexRecord.hasData());
         continue;
       }
-      TezIndexRecord indexRecord = spillRecord.getIndex(i);
       FSDataInputStream inStream = FileSystem.getLocal(conf).open(outputFilePath);
       inStream.seek(indexRecord.getStartOffset());
       IFile.Reader reader = new IFile.Reader(inStream, indexRecord.getPartLength(), codec, null,

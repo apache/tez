@@ -51,6 +51,6 @@ public class TezIndexRecord {
   public boolean hasData() {
     //TEZ-941 - Avoid writing out empty partitions
     //EOF_MARKER + Header bytes
-    return !(rawLength == (IFile.HEADER.length + 2));
+    return !(rawLength <= (IFile.HEADER.length + 2));
   }
 }
