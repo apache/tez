@@ -91,6 +91,7 @@ public class AMContainerImpl implements AMContainer {
   private final int schedulerId;
   private final int launcherId;
   private final int taskCommId;
+  private String auxiliaryService;
 
   private final List<TezTaskAttemptID> completedAttempts =
       new LinkedList<TezTaskAttemptID>();
@@ -313,7 +314,7 @@ public class AMContainerImpl implements AMContainer {
   // additional change - JvmID, YarnChild, etc depend on TaskType.
   public AMContainerImpl(Container container, ContainerHeartbeatHandler chh,
       TaskCommunicatorManagerInterface tal, ContainerSignatureMatcher signatureMatcher,
-      AppContext appContext, int schedulerId, int launcherId, int taskCommId) {
+      AppContext appContext, int schedulerId, int launcherId, int taskCommId, String auxiliaryService) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -329,6 +330,7 @@ public class AMContainerImpl implements AMContainer {
     this.launcherId = launcherId;
     this.taskCommId = taskCommId;
     this.stateMachine = stateMachineFactory.make(this);
+    this.auxiliaryService = auxiliaryService;
   }
 
   @Override
@@ -498,7 +500,7 @@ public class AMContainerImpl implements AMContainer {
           cAddress,
           containerContext.getCredentials(),
           container.appContext, container.container.getResource(),
-          container.appContext.getAMConf());
+          container.appContext.getAMConf(), container.auxiliaryService);
 
       // Registering now, so that in case of delayed NM response, the child
       // task is not told to die since the TAL does not know about the container.

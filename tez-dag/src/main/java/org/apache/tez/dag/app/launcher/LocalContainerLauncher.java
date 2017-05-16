@@ -50,7 +50,6 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
@@ -143,14 +142,9 @@ public class LocalContainerLauncher extends ContainerLauncher {
       String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
           TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
       localEnv = Maps.newHashMap();
+      shufflePort = 0;
       AuxiliaryServiceHelper.setServiceDataIntoEnv(
-          auxiliaryService, ByteBuffer.allocate(4).putInt(0), localEnv);
-      try {
-        shufflePort = TezRuntimeUtils.deserializeShuffleProviderMetaData(
-            AuxiliaryServiceHelper.getServiceDataFromEnv(auxiliaryService, localEnv));
-      } catch (IOException e) {
-        LOG.warn("Could not extract shuffle aux-service port!");
-      }
+          auxiliaryService, ByteBuffer.allocate(4).putInt(shufflePort), localEnv);
     } else {
       localEnv = System.getenv();
     }
@@ -161,9 +155,6 @@ public class LocalContainerLauncher extends ContainerLauncher {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
-    String tezDefaultComponentName =
-        isLocalMode ? TezConstants.getTezUberServicePluginName() :
-        TezConstants.getTezYarnServicePluginName();
     boolean cleanupDagDataOnComplete = ShuffleUtils.isTezShuffleHandler(conf)
         && conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
         TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
@@ -172,8 +163,8 @@ public class LocalContainerLauncher extends ContainerLauncher {
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
           deletionTrackerClassName, new Class[]{
-              Map.class, Configuration.class, String.class},
-          new Object[]{new HashMap<NodeId, Integer>(), conf, tezDefaultComponentName});
+              Map.class, Configuration.class},
+          new Object[]{new HashMap<NodeId, Integer>(), conf});
     }
   }
 
@@ -279,7 +270,7 @@ public class LocalContainerLauncher extends ContainerLauncher {
       runningContainers.put(event.getContainerId(), callback);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
       if (deletionTracker != null) {
-        deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
+        deletionTracker.addNodeShufflePort(event.getNodeId(), shufflePort);
       }
     } catch (RejectedExecutionException e) {
       handleLaunchFailed(e, event.getContainerId());

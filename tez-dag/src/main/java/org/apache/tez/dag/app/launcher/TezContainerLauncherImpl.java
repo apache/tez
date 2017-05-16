@@ -194,7 +194,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
           LOG.warn("Shuffle port cannot be found since services metadata response is missing");
         }
         if (deletionTracker != null) {
-          deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
+          deletionTracker.addNodeShufflePort(event.getNodeId(), shufflePort);
         }
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
@@ -341,8 +341,8 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
           deletionTrackerClassName, new Class[]{
-              Map.class, Configuration.class, String.class},
-          new Object[]{new HashMap<NodeId, Integer>(), conf, TezConstants.getTezYarnServicePluginName()});
+              Map.class, Configuration.class},
+          new Object[]{new HashMap<NodeId, Integer>(), conf});
     }
   }
 

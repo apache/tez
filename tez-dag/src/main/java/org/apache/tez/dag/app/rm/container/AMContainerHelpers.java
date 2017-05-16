@@ -154,13 +154,11 @@ public class AMContainerHelpers {
       String javaOpts,
       InetSocketAddress taskAttemptListenerAddress, Credentials credentials,
       AppContext appContext, Resource containerResource,
-      Configuration conf) {
+      Configuration conf, String auxiliaryService) {
 
     ContainerLaunchContext commonContainerSpec = null;
     synchronized (commonContainerSpecLock) {
       if (!commonContainerSpecs.containsKey(tezDAGID)) {
-        String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
-            TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
         commonContainerSpec =
             createCommonContainerLaunchContext(acls, credentials, commonDAGLRs, auxiliaryService);
         commonContainerSpecs.put(tezDAGID, commonContainerSpec);
