@@ -1075,8 +1075,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     for (MapOutput mo : inMemoryMapOutputs) {
       fullSize += mo.getMemory().length;
     }
+    int inMemoryMapOutputsOffset = 0;
     while((fullSize > leaveBytes) && !Thread.currentThread().isInterrupted()) {
-      MapOutput mo = inMemoryMapOutputs.remove(0);
+      MapOutput mo = inMemoryMapOutputs.get(inMemoryMapOutputsOffset++);
       byte[] data = mo.getMemory();
       long size = data.length;
       totalSize += size;
@@ -1088,6 +1089,8 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
                                             (mo.isPrimaryMapOutput() ? 
                                             mergedMapOutputsCounter : null)));
     }
+    // Bulk remove removed in-memory map outputs efficiently
+    inMemoryMapOutputs.subList(0, inMemoryMapOutputsOffset).clear();
     return totalSize;
   }
 
