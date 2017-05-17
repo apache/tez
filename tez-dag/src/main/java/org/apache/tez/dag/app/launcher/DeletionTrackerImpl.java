@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.launcher;
 
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,12 +39,11 @@ import org.slf4j.LoggerFactory;
 
 public class DeletionTrackerImpl extends DeletionTracker {
   private static final Logger LOG = LoggerFactory.getLogger(DeletionTrackerImpl.class);
-  private Map<NodeId, Integer> nodeIdShufflePortMap;
+  private Map<NodeId, Integer> nodeIdShufflePortMap = new HashMap<NodeId, Integer>();
   private ExecutorService dagCleanupService;
 
-  public DeletionTrackerImpl(Map<NodeId, Integer> nodeIdShufflePortMap, Configuration conf) {
+  public DeletionTrackerImpl(Configuration conf) {
     super(conf);
-    this.nodeIdShufflePortMap = nodeIdShufflePortMap;
     this.dagCleanupService = new ThreadPoolExecutor(0, conf.getInt(TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT,
         TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT_DEFAULT), 10,
         TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
