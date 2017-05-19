@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.common.writers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -52,6 +53,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
@@ -94,7 +96,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -127,7 +128,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   @SuppressWarnings("deprecation")
-  @Parameterized.Parameters(name = "test[{0}, {1}, {2}]")
+  @Parameterized.Parameters(name = "test[{0}, {1}]")
   public static Collection<Object[]> data() {
     Object[][] data = new Object[][] {
         { false, ReportPartitionStats.DISABLED },
@@ -166,7 +167,8 @@ public class TestUnorderedPartitionedKVWriter {
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, auxiliaryService);
 
-    int maxSingleBufferSizeBytes = 2047;
+    final int maxSingleBufferSizeBytes = 2047;
+    final long sizePerBuffer = maxSingleBufferSizeBytes - 64 - maxSingleBufferSizeBytes % 4;
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
         false, maxSingleBufferSizeBytes);
 
@@ -174,57 +176,106 @@ public class TestUnorderedPartitionedKVWriter {
 
     UnorderedPartitionedKVWriter kvWriter = null;
 
+    // Not enough memory so divide into 2 buffers.
     kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs, 2048);
     assertEquals(2, kvWriter.numBuffers);
     assertEquals(1024, kvWriter.sizePerBuffer);
+    assertEquals(1024, kvWriter.lastBufferSize);
     assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
 
+    // allocate exact
     kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
         maxSingleBufferSizeBytes * 3);
     assertEquals(3, kvWriter.numBuffers);
-    assertEquals(maxSingleBufferSizeBytes - maxSingleBufferSizeBytes % 4, kvWriter.sizePerBuffer);
+    assertEquals(sizePerBuffer, kvWriter.sizePerBuffer);
+    assertEquals(sizePerBuffer, kvWriter.lastBufferSize);
     assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
 
+    // under allocate
     kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
-        maxSingleBufferSizeBytes * 2 + 1);
-    assertEquals(3, kvWriter.numBuffers);
-    assertEquals(1364, kvWriter.sizePerBuffer);
+        maxSingleBufferSizeBytes * 2 + maxSingleBufferSizeBytes / 2);
+    assertEquals(2, kvWriter.numBuffers);
+    assertEquals(sizePerBuffer, kvWriter.sizePerBuffer);
+    assertEquals(sizePerBuffer, kvWriter.lastBufferSize);
     assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
 
-    kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs, 10240);
-    assertEquals(6, kvWriter.numBuffers);
-    assertEquals(1704, kvWriter.sizePerBuffer);
+    // over allocate
+    kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
+        maxSingleBufferSizeBytes * 2 + maxSingleBufferSizeBytes / 2 + 1);
+    assertEquals(3, kvWriter.numBuffers);
+    assertEquals(sizePerBuffer, kvWriter.sizePerBuffer);
+    assertEquals(maxSingleBufferSizeBytes / 2 + 1, kvWriter.lastBufferSize);
     assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
+
+    // spill limit 1.
+    kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
+        4 * maxSingleBufferSizeBytes + 1);
+    assertEquals(4, kvWriter.numBuffers);
+    assertEquals(sizePerBuffer, kvWriter.sizePerBuffer);
+    assertEquals(sizePerBuffer, kvWriter.lastBufferSize);
+    assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
+
+    // spill limit 2.
+    conf.setInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT,
+        50);
+    kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
+        4 * maxSingleBufferSizeBytes + 1);
+    assertEquals(4, kvWriter.numBuffers);
+    assertEquals(sizePerBuffer, kvWriter.sizePerBuffer);
+    assertEquals(sizePerBuffer, kvWriter.lastBufferSize);
+    assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(2, kvWriter.spillLimit);
+
+    // Available memory is less than buffer size.
+    conf.unset(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
+    kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext, conf, numOutputs,
+        2048);
+    assertEquals(2, kvWriter.numBuffers);
+    assertEquals(1024, kvWriter.sizePerBuffer);
+    assertEquals(1024, kvWriter.lastBufferSize);
+    assertEquals(1, kvWriter.numInitializedBuffers);
+    assertEquals(1, kvWriter.spillLimit);
   }
 
   @Test(timeout = 10000)
   public void testNoSpill() throws IOException, InterruptedException {
-    baseTest(10, 10, null, shouldCompress);
+    baseTest(10, 10, null, shouldCompress, -1, 0);
   }
 
   @Test(timeout = 10000)
   public void testSingleSpill() throws IOException, InterruptedException {
-    baseTest(50, 10, null, shouldCompress);
+    baseTest(50, 10, null, shouldCompress, -1, 0);
   }
 
   @Test(timeout = 10000)
   public void testMultipleSpills() throws IOException, InterruptedException {
-    baseTest(200, 10, null, shouldCompress);
+    baseTest(200, 10, null, shouldCompress, -1, 0);
+  }
+
+  @Test(timeout = 10000)
+  public void testMergeBuffersAndSpill() throws IOException, InterruptedException {
+    baseTest(200, 10, null, shouldCompress, 2048, 10);
   }
 
   @Test(timeout = 10000)
   public void testNoRecords() throws IOException, InterruptedException {
-    baseTest(0, 10, null, shouldCompress);
+    baseTest(0, 10, null, shouldCompress, -1, 0);
   }
 
   @Test(timeout = 10000)
   public void testSkippedPartitions() throws IOException, InterruptedException {
-    baseTest(200, 10, Sets.newHashSet(2, 5), shouldCompress);
+    baseTest(200, 10, Sets.newHashSet(2, 5), shouldCompress, -1, 0);
   }
 
   @Test(timeout = 10000)
   public void testNoSpill_SinglePartition() throws IOException, InterruptedException {
-    baseTest(10, 1, null, shouldCompress);
+    baseTest(10, 1, null, shouldCompress, -1, 0);
   }
 
 
@@ -357,6 +408,20 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> events = kvWriter.close();
     verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
+    if (!pipeliningEnabled) {
+      VertexManagerEvent vmEvent = null;
+      for (Event event : events) {
+        if (event instanceof VertexManagerEvent) {
+          assertNull(vmEvent);
+          vmEvent = (VertexManagerEvent) event;
+        }
+      }
+      VertexManagerEventPayloadProto vmEventPayload =
+        VertexManagerEventPayloadProto.parseFrom(
+          ByteString.copyFrom(vmEvent.getUserPayload().asReadOnlyBuffer()));
+      assertEquals(numRecordsWritten, vmEventPayload.getNumRecord());
+    }
+
     TezCounter outputLargeRecordsCounter = counters.findCounter(TaskCounter.OUTPUT_LARGE_RECORDS);
     assertEquals(numLargeKeys + numLargevalues + numLargeKvPairs,
         outputLargeRecordsCounter.getValue());
@@ -439,8 +504,8 @@ public class TestUnorderedPartitionedKVWriter {
 
   private int[] getPartitionStats(VertexManagerEvent vme) throws IOException {
     RoaringBitmap partitionStats = new RoaringBitmap();
-    ShuffleUserPayloads.VertexManagerEventPayloadProto
-        payload = ShuffleUserPayloads.VertexManagerEventPayloadProto
+    VertexManagerEventPayloadProto
+        payload = VertexManagerEventPayloadProto
         .parseFrom(ByteString.copyFrom(vme.getUserPayload()));
     if (!reportPartitionStats.isEnabled()) {
       assertFalse(payload.hasPartitionStats());
@@ -713,7 +778,8 @@ public class TestUnorderedPartitionedKVWriter {
 
 
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
-      boolean shouldCompress) throws IOException, InterruptedException {
+      boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent)
+          throws IOException, InterruptedException {
     PartitionerForTest partitioner = new PartitionerForTest();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
@@ -724,7 +790,11 @@ public class TestUnorderedPartitionedKVWriter {
     OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, auxiliaryService);
 
     Configuration conf = createConfiguration(outputContext, IntWritable.class, LongWritable.class,
-        shouldCompress, -1);
+        shouldCompress, maxSingleBufferSizeBytes);
+    conf.setInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT,
+        bufferMergePercent);
+
     CompressionCodec codec = null;
     if (shouldCompress) {
       codec = new DefaultCodec();
@@ -765,7 +835,7 @@ public class TestUnorderedPartitionedKVWriter {
     List<Event> events = kvWriter.close();
 
     int recordsPerBuffer = sizePerBuffer / sizePerRecordWithOverhead;
-    int numExpectedSpills = numRecordsWritten / recordsPerBuffer;
+    int numExpectedSpills = numRecordsWritten / recordsPerBuffer / kvWriter.spillLimit;
 
     verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
 
@@ -814,7 +884,7 @@ public class TestUnorderedPartitionedKVWriter {
         assertTrue(additionalSpillBytesRead > (recordsPerBuffer * numExpectedSpills * sizePerRecord));
       }
     }
-    assertTrue(additionalSpillBytesWritten == additionalSpillBytesRead);
+    assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
     assertEquals(numExpectedSpills, numAdditionalSpillsCounter.getValue());
 
     BitSet emptyPartitionBits = null;
@@ -876,10 +946,11 @@ public class TestUnorderedPartitionedKVWriter {
     IntWritable keyDeser = new IntWritable();
     LongWritable valDeser = new LongWritable();
     for (int i = 0; i < numOutputs; i++) {
+      TezIndexRecord indexRecord = spillRecord.getIndex(i);
       if (skippedPartitions != null && skippedPartitions.contains(i)) {
+        assertFalse("The Index Record for partition " + i + " should not have any data", indexRecord.hasData());
         continue;
       }
-      TezIndexRecord indexRecord = spillRecord.getIndex(i);
       FSDataInputStream inStream = FileSystem.getLocal(conf).open(outputFilePath);
       inStream.seek(indexRecord.getStartOffset());
       IFile.Reader reader = new IFile.Reader(inStream, indexRecord.getPartLength(), codec, null,
@@ -902,7 +973,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private static String createRandomString(int size) {
-    StringBuilder sb = new StringBuilder();
+    StringBuilder sb = new StringBuilder(size);
     Random random = new Random();
     for (int i = 0; i < size; i++) {
       int r = Math.abs(random.nextInt()) % 26;

@@ -15,24 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.tez.runtime.library.partitioner;
 
-option java_package = "org.apache.tez.runtime.library.cartesianproduct";
-option java_outer_classname = "CartesianProductUserPayload";
+import org.apache.tez.runtime.library.api.Partitioner;
 
-message CartesianProductConfigProto {
-    required bool isPartitioned = 1;
-    repeated string sources = 2;
-    repeated int32 numPartitions = 3;
-    optional string filterClassName = 4;
-    optional bytes filterUserPayload = 5;
-    optional float minFraction = 6;
-    optional float maxFraction = 7;
-    optional int32 maxParallelism = 8;
-    optional int64 minOpsPerWorker = 9;
-    repeated int32 numChunks = 10;
-    repeated int32 numTaskPerVertexInGroup = 11;
-    optional int32 positionInGroup = 12;
-    optional int32 numPartitionsForFairCase = 13;
-    optional bool enableGrouping = 14;
-    optional float groupingFraction = 15;
+public class RoundRobinPartitioner implements Partitioner {
+    private int x = 0;
+
+    @Override
+    public int getPartition(Object key, Object value, int numPartitions) {
+      x = x % numPartitions;
+      return (x++) % numPartitions;
+    }
 }

@@ -31,12 +31,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventSubmitted;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
 import org.apache.tez.dag.app.dag.event.TaskEventTALaunched;
 import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
+import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -88,7 +91,6 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventTezEventUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
-import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStatusUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventType;
 import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
@@ -162,6 +164,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   static final TezCounters EMPTY_COUNTERS = new TezCounters();
 
+  // Should not be used to access configuration. User vertex.VertexConfig instead
   protected final Configuration conf;
   @SuppressWarnings("rawtypes")
   protected EventHandler eventHandler;
@@ -276,8 +279,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           new SucceededTransition())
 
       .addTransition(TaskAttemptStateInternal.START_WAIT,
-          TaskAttemptStateInternal.RUNNING,
-          TaskAttemptEventType.TA_STARTED_REMOTELY, new StartedTransition())
+          TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptEventType.TA_SUBMITTED, new SubmittedTransition())
       .addTransition(TaskAttemptStateInternal.START_WAIT,
           TaskAttemptStateInternal.KILL_IN_PROGRESS,
           TaskAttemptEventType.TA_KILL_REQUEST,
@@ -302,6 +305,62 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptStateInternal.KILLED,
           TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
           new ContainerCompletedBeforeRunningTransition(KILLED_HELPER))
+
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.RUNNING,
+          TaskAttemptEventType.TA_STARTED_REMOTELY, new StartedTransition())
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptEventType.TA_STATUS_UPDATE, STATUS_UPDATER)
+      // Optional, may not come in for all tasks.
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.SUCCEEDED, TaskAttemptEventType.TA_DONE,
+          new SucceededTransition())
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_FAILED,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_TIMED_OUT,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_KILL_REQUEST,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_KILLED,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.KILL_IN_PROGRESS,
+          TaskAttemptEventType.TA_NODE_FAILED,
+          new TerminatedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATING,
+          new TerminatedWhileRunningTransition(FAILED_HELPER))
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.FAILED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED,
+          new ContainerCompletedWhileRunningTransition())
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.KILLED,
+          TaskAttemptEventType.TA_CONTAINER_TERMINATED_BY_SYSTEM,
+          new ContainerCompletedWhileRunningTransition(KILLED_HELPER))
+      .addTransition(
+          TaskAttemptStateInternal.SUBMITTED,
+          EnumSet.of(TaskAttemptStateInternal.FAIL_IN_PROGRESS,
+              TaskAttemptStateInternal.SUBMITTED),
+          TaskAttemptEventType.TA_OUTPUT_FAILED,
+          new OutputReportedFailedTransition())
+      // for recovery, needs to log the TA generated events in TaskAttemptFinishedEvent
+      .addTransition(TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptStateInternal.SUBMITTED,
+          TaskAttemptEventType.TA_TEZ_EVENT_UPDATE,
+          new TezEventUpdaterTransition())
+
+
 
       .addTransition(TaskAttemptStateInternal.RUNNING,
           TaskAttemptStateInternal.RUNNING,
@@ -483,6 +542,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
       TezTaskAttemptID schedulingCausalTA) {
 
+    // TODO: Move these configs over to Vertex.VertexConfig
     MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
         .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
@@ -852,6 +912,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     switch (smState) {
     case NEW:
     case START_WAIT:
+    case SUBMITTED:
       return TaskAttemptState.STARTING;
     case RUNNING:
       return TaskAttemptState.RUNNING;
@@ -1247,7 +1308,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.taskRacks = racks;
 
       // Ask for hosts / racks only if not a re-scheduled task.
-      if (ta.isRescheduled) {
+      if (ta.isRescheduled && ta.getVertex().getVertexConfig().getTaskRescheduleHigherPriority()) {
         locationHint = null;
       }
 
@@ -1255,7 +1316,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       
       // Send out a launch request to the scheduler.
       int priority;
-      if (ta.isRescheduled) {
+      if (ta.isRescheduled  && ta.getVertex().getVertexConfig().getTaskRescheduleHigherPriority()) {
         // higher priority for rescheduled attempts
         priority = scheduleEvent.getPriorityHighLimit();
       } else {
@@ -1350,13 +1411,14 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
   }
 
-  protected static class StartedTransition implements
+  protected static class SubmittedTransition implements
       SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+
     @Override
     public void transition(TaskAttemptImpl ta, TaskAttemptEvent origEvent) {
-      TaskAttemptEventStartedRemotely event = (TaskAttemptEventStartedRemotely) origEvent;
+      TaskAttemptEventSubmitted event = (TaskAttemptEventSubmitted) origEvent;
 
-      AMContainer amContainer = ta.appContext.getAllContainers().get(event.getContainerId()); 
+      AMContainer amContainer = ta.appContext.getAllContainers().get(event.getContainerId());
       Container container = amContainer.getContainer();
 
       ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
@@ -1376,11 +1438,12 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.httpPort = nodeHttpInetAddr.getPort();
       ta.sendEvent(createDAGCounterUpdateEventTALaunched(ta));
 
-      LOG.info("TaskAttempt: [" + ta.attemptId + "] started."
+      LOG.info("TaskAttempt: [" + ta.attemptId + "] submitted."
           + " Is using containerId: [" + ta.containerId + "]" + " on NM: ["
           + ta.containerNodeId + "]");
 
-      // JobHistoryEvent
+      // JobHistoryEvent.
+      // The started event represents when the attempt was submitted to the executor.
       ta.logJobHistoryAttemptStarted();
 
       // TODO Remove after HDFS-5098
@@ -1398,13 +1461,29 @@ public class TaskAttemptImpl implements TaskAttempt,
 
       // Inform the Task
       ta.sendEvent(new TaskEventTALaunched(ta.attemptId));
-      
+
       if (ta.isSpeculationEnabled()) {
         ta.sendEvent(new SpeculatorEventTaskAttemptStatusUpdate(ta.attemptId, TaskAttemptState.RUNNING,
             ta.launchTime, true));
       }
 
+      ta.sendEvent(
+          new AMSchedulerEventTAStateUpdated(ta, TaskScheduler.SchedulerTaskState.SUBMITTED,
+              ta.getVertex().getTaskSchedulerIdentifier()));
       ta.taskHeartbeatHandler.register(ta.attemptId);
+    }
+  }
+
+  protected static class StartedTransition implements
+      SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent> {
+
+    @Override
+    public void transition(TaskAttemptImpl ta, TaskAttemptEvent taskAttemptEvent) {
+      ta.sendEvent(
+          new AMSchedulerEventTAStateUpdated(ta, TaskScheduler.SchedulerTaskState.STARTED,
+              ta.getVertex().getTaskSchedulerIdentifier()));
+      // Nothing specific required for recovery, since recovery processes the START/END events
+      // only and moves the attempt to a final state, or an initial state.
     }
   }
   

@@ -109,11 +109,31 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
   void containerAlive(ContainerId containerId);
 
   /**
-   * Inform the framework that the task has started execution
+   * Inform the framework that the task has been submitted for execution. The expectation is that
+   * the implementing TaskCommunicator will inform the framework about task submission, followed
+   * by the task starting.
    *
    * @param taskAttemptId the relevant task attempt id
    * @param containerId   the containerId in which the task attempt is running
    */
+  void taskSubmitted(TezTaskAttemptID taskAttemptId, ContainerId containerId);
+
+  /**
+   * Inform the framework that the task has started execution
+   *
+   * @param taskAttemptId the relevant task attempt id
+   */
+  void taskStartedRemotely(TezTaskAttemptID taskAttemptId);
+
+  /**
+   * Inform the framework that the task has started execution
+   *
+   * Use {@link #taskSubmitted(TezTaskAttemptID, ContainerId)}
+   * and {@link #taskStartedRemotely(TezTaskAttemptID)} instead
+   *
+   * @param taskAttemptId the relevant task attempt id
+   */
+  @Deprecated
   void taskStartedRemotely(TezTaskAttemptID taskAttemptId, ContainerId containerId);
 
   /**

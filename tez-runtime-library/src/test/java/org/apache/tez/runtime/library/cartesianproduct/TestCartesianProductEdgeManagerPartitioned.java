@@ -17,6 +17,7 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
+import com.google.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
@@ -27,6 +28,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -50,19 +52,22 @@ public class TestCartesianProductEdgeManagerPartitioned {
    */
   @Test(timeout = 5000)
   public void testTwoWay() throws Exception {
-    CartesianProductEdgeManagerConfig emConfig = new CartesianProductEdgeManagerConfig(true,
-      new String[]{"v0","v1"}, new int[]{3,4}, null, 0, 0, null);
+    CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
+    builder.setIsPartitioned(true).addSources("v0").addSources("v1")
+      .addNumPartitions(3).addNumPartitions(4);
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(12);
-    testTwoWayV0(emConfig);
-    testTwoWayV1(emConfig);
+    CartesianProductConfigProto config = builder.build();
+    testTwoWayV0(config);
+    testTwoWayV1(config);
   }
 
-  private void testTwoWayV0(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testTwoWayV0(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v0");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(0, compositeRoutingData.getSource());
@@ -88,12 +93,13 @@ public class TestCartesianProductEdgeManagerPartitioned {
     assertEquals(3, edgeManager.getNumSourceTaskPhysicalOutputs(2));
   }
 
-  private void testTwoWayV1(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testTwoWayV1(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v1");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(1, compositeRoutingData.getSource());
@@ -138,25 +144,25 @@ public class TestCartesianProductEdgeManagerPartitioned {
    */
   @Test(timeout = 5000)
   public void testTwoWayWithFilter() throws Exception {
-    ByteBuffer buffer = ByteBuffer.allocate(2);
-    buffer.putChar('>');
+    CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
+    ByteBuffer buffer = ByteBuffer.allocate(2).putChar('>');
     buffer.flip();
-    CartesianProductFilterDescriptor filterDescriptor =
-      new CartesianProductFilterDescriptor(TestFilter.class.getName())
-        .setUserPayload(UserPayload.create(buffer));
-    CartesianProductEdgeManagerConfig emConfig = new CartesianProductEdgeManagerConfig(true,
-      new String[]{"v0","v1"}, new int[]{3,4}, null, 0, 0, filterDescriptor);
+    builder.setIsPartitioned(true).addSources("v0").addSources("v1")
+      .addNumPartitions(3).addNumPartitions(4).setFilterClassName(TestFilter.class.getName())
+      .setFilterUserPayload(ByteString.copyFrom(buffer));
+    CartesianProductConfigProto config = builder.build();
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(3);
-    testTwoWayV0WithFilter(emConfig);
-    testTwoWayV1WithFilter(emConfig);
+    testTwoWayV0WithFilter(config);
+    testTwoWayV1WithFilter(config);
   }
 
-  private void testTwoWayV0WithFilter(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testTwoWayV0WithFilter(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v0");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(2, compositeRoutingData.getSource());
@@ -174,12 +180,13 @@ public class TestCartesianProductEdgeManagerPartitioned {
     assertEquals(3, edgeManager.getNumSourceTaskPhysicalOutputs(2));
   }
 
-  private void testTwoWayV1WithFilter(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testTwoWayV1WithFilter(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v1");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(0, compositeRoutingData.getSource());
@@ -204,21 +211,25 @@ public class TestCartesianProductEdgeManagerPartitioned {
    */
   @Test(timeout = 5000)
   public void testThreeWay() throws Exception {
-    CartesianProductEdgeManagerConfig emConfig = new CartesianProductEdgeManagerConfig(true,
-      new String[]{"v0","v1","v2"}, new int[]{4,3,2}, null, 0, 0, null);
+    CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
+    builder.setIsPartitioned(true).addSources("v0").addSources("v1").addSources("v2")
+      .addNumPartitions(4).addNumPartitions(3).addNumPartitions(2);
+    CartesianProductConfigProto config = builder.build();
+
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(24);
-    testThreeWayV0(emConfig);
-    testThreeWayV1(emConfig);
-    testThreeWayV2(emConfig);
+    testThreeWayV0(config);
+    testThreeWayV1(config);
+    testThreeWayV2(config);
   }
 
-  private void testThreeWayV0(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testThreeWayV0(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v0");
 
     when(mockContext.getSourceVertexNumTasks()).thenReturn(2);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(0, compositeRoutingData.getSource());
@@ -236,12 +247,13 @@ public class TestCartesianProductEdgeManagerPartitioned {
     assertEquals(4, edgeManager.getNumSourceTaskPhysicalOutputs(2));
   }
 
-  private void testThreeWayV1(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testThreeWayV1(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v1");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(3);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(0, compositeRoutingData.getSource());
@@ -259,12 +271,13 @@ public class TestCartesianProductEdgeManagerPartitioned {
     assertEquals(3, edgeManager.getNumSourceTaskPhysicalOutputs(2));
   }
 
-  private void testThreeWayV2(CartesianProductEdgeManagerConfig config) throws Exception {
+  private void testThreeWayV2(CartesianProductConfigProto config) throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn("v2");
     when(mockContext.getSourceVertexNumTasks()).thenReturn(4);
     edgeManager.initialize(config);
 
-    CompositeEventRouteMetadata compositeRoutingData = edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
+    CompositeEventRouteMetadata compositeRoutingData =
+      edgeManager.routeCompositeDataMovementEventToDestination(1, 1);
     assertNotNull(compositeRoutingData);
     assertEquals(1, compositeRoutingData.getCount());
     assertEquals(1, compositeRoutingData.getSource());

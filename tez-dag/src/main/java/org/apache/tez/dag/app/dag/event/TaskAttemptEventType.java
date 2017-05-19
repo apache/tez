@@ -27,6 +27,7 @@ public enum TaskAttemptEventType {
   TA_SCHEDULE,
 
   //Producer: TaskAttemptListener | Vertex after routing events
+  TA_SUBMITTED,
   TA_STARTED_REMOTELY,
   TA_STATUS_UPDATE,
   TA_TEZ_EVENT_UPDATE,  // for recovery

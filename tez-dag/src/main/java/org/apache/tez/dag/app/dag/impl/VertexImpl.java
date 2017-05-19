@@ -258,6 +258,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private final float maxFailuresPercent;
   private boolean logSuccessDiagnostics = false;
 
+  private final VertexConfigImpl vertexContextConfig;
   //fields initialized in init
 
   @VisibleForTesting
@@ -727,8 +728,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   // must be a random access structure
   
   private final List<EventInfo> onDemandRouteEvents = Lists.newArrayListWithCapacity(1000);
-  // Do not send any events if attempt is already failed. TaskAttemptId
-  private final Set<TezTaskAttemptID> failedTaskIds = Sets.newHashSet();
+  // Do not send any events if attempt is failed due to INPUT_FAILED_EVENTS.
+  private final Set<TezTaskAttemptID> failedTaskAttemptIDs = Sets.newHashSet();
   private final ReadWriteLock onDemandRouteEventsReadWriteLock = new ReentrantReadWriteLock();
   private final Lock onDemandRouteEventsReadLock = onDemandRouteEventsReadWriteLock.readLock();
   private final Lock onDemandRouteEventsWriteLock = onDemandRouteEventsReadWriteLock.writeLock();
@@ -878,7 +879,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         vertexOnlyConf.set(keyValuePair.getKey(), keyValuePair.getValue());
       }
     }
-
+    this.vertexContextConfig = new VertexConfigImpl(vertexConf);
 
     this.clock = clock;
     this.appContext = appContext;
@@ -1304,6 +1305,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
 
+  @Override
+  public VertexConfig getVertexConfig() {
+    return vertexContextConfig;
+  }
+
   boolean inTerminalState() {
     VertexState state = getInternalState();
     if (state == VertexState.ERROR || state == VertexState.FAILED
@@ -1344,7 +1350,30 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   public float getProgress() {
     this.readLock.lock();
     try {
-      computeProgress();
+      final VertexState state = this.getState();
+      switch (state) {
+      case NEW:
+      case INITED:
+      case INITIALIZING:
+        progress = 0.0f;
+        break;
+      case RUNNING:
+        computeProgress();
+        break;
+      case KILLED:
+      case ERROR:
+      case FAILED:
+      case TERMINATING:
+        progress = 0.0f;
+        break;
+      case COMMITTING:
+      case SUCCEEDED:
+        progress = 1.0f;
+        break;
+      default:
+        // unknown, do not change progress
+        break;
+      }
       return progress;
     } finally {
       this.readLock.unlock();
@@ -1381,7 +1410,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       ProgressBuilder progress = new ProgressBuilder();
       progress.setTotalTaskCount(numTasks);
       progress.setSucceededTaskCount(succeededTaskCount);
-      progress.setRunningTaskCount(getRunningTasks());
+      if (inTerminalState()) {
+        progress.setRunningTaskCount(0);
+      } else {
+        progress.setRunningTaskCount(getRunningTasks());
+      }
       progress.setFailedTaskCount(failedTaskCount);
       progress.setKilledTaskCount(killedTaskCount);
       progress.setFailedTaskAttemptCount(failedTaskAttemptCount.get());
@@ -1434,7 +1467,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     try {
       float progress = 0f;
       for (Task task : this.tasks.values()) {
-        progress += (task.isFinished() ? 1f : task.getProgress());
+        progress += (task.getProgress());
       }
       if (this.numTasks != 0) {
         progress /= this.numTasks;
@@ -3986,7 +4019,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     try {
       if (tezEvent.getEventType() == EventType.DATA_MOVEMENT_EVENT ||
           tezEvent.getEventType() == EventType.COMPOSITE_DATA_MOVEMENT_EVENT) {
-        if (failedTaskIds.contains(tezEvent.getSourceInfo().getTaskAttemptID())) {
+        // Prevent any failed task (due to INPUT_FAILED_EVENT) sending events downstream. E.g LLAP
+        if (failedTaskAttemptIDs.contains(tezEvent.getSourceInfo().getTaskAttemptID())) {
           return;
         }
       }
@@ -4004,7 +4038,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             // can be obsoleted by an input failed event from the
             // same source edge+task
             eventInfo.isObsolete = true;
-            failedTaskIds.add(tezEvent.getSourceInfo().getTaskAttemptID());
+            failedTaskAttemptIDs.add(tezEvent.getSourceInfo().getTaskAttemptID());
           }
         }
       }
@@ -4605,6 +4639,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.fullCounters = counters;
     } finally {
       writeLock.unlock();
+    }
+  }
+
+  @VisibleForTesting
+  static class VertexConfigImpl implements VertexConfig {
+
+    private final int maxFailedTaskAttempts;
+    private final boolean taskRescheduleHigherPriority;
+
+    public VertexConfigImpl(Configuration conf) {
+      this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
+          TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
+      this.taskRescheduleHigherPriority =
+          conf.getBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY,
+              TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT);
+    }
+
+    @Override
+    public int getMaxFailedTaskAttempts() {
+      return maxFailedTaskAttempts;
+    }
+
+    @Override
+    public boolean getTaskRescheduleHigherPriority() {
+      return taskRescheduleHigherPriority;
     }
   }
 }

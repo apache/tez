@@ -228,10 +228,13 @@ public class TestShuffleInputEventHandlerImpl {
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1, 1);
     verify(shuffleManager, times(2)).addKnownInput(eq(HOST), eq(PORT), eq(expectedId2), eq(0));
 
+    // Let attemptNum 0 be scheduled.
+    shuffleManager.shuffleInfoEventsMap.get(expectedId2.getInputIdentifier()).scheduledForDownload = true;
+
     //0--> 1 with spill id 1 (attemptNum 1).  This should report exception
     dme = createDataMovementEvent(true, 0, 1, 1, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
+    verify(inputContext).killSelf(any(Throwable.class), anyString());
   }
 
   /**
@@ -257,10 +260,13 @@ public class TestShuffleInputEventHandlerImpl {
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1, 1);
     verify(shuffleManager, times(1)).addKnownInput(eq(HOST), eq(PORT), eq(expected), eq(0));
 
+    // Let attemptNum 1 be scheduled.
+    shuffleManager.shuffleInfoEventsMap.get(expected.getInputIdentifier()).scheduledForDownload = true;
+
     //Now send attemptNum 0.  This should throw exception, because attempt #1 is already added
     dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 0);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
+    verify(inputContext).killSelf(any(Throwable.class), anyString());
   }
 
   /**
@@ -295,11 +301,13 @@ public class TestShuffleInputEventHandlerImpl {
         PATH_COMPONENT, false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1);
     verify(shuffleManager, times(2)).addCompletedInputWithNoData(expected);
 
+    // Let attemptNum 0 be scheduled.
+    shuffleManager.shuffleInfoEventsMap.get(expected.getInputIdentifier()).scheduledForDownload = true;
 
     //Now send attemptNum 1.  This should throw exception, because attempt #1 is already added
     dme = createDataMovementEvent(true, 0, 1, 0, false, new BitSet(), 4, 1);
     handler.handleEvents(Collections.singletonList(dme));
-    verify(inputContext).reportFailure(any(TaskFailureType.class), any(Throwable.class), anyString());
+    verify(inputContext).killSelf(any(Throwable.class), anyString());
   }
 
   private Event createDataMovementEvent(boolean addSpillDetails, int srcIdx, int targetIdx,

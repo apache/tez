@@ -315,8 +315,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         }
         task = getContainerTask(containerId);
         if (task != null && !task.shouldDie()) {
-          getContext()
-              .taskStartedRemotely(task.getTaskSpec().getTaskAttemptID(), containerId);
+          getContext().taskSubmitted(task.getTaskSpec().getTaskAttemptID(), containerId);
+          getContext().taskStartedRemotely(task.getTaskSpec().getTaskAttemptID());
         }
       }
       if (LOG.isDebugEnabled()) {

@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.rm;
 public enum AMSchedulerEventType {
   //Producer: TaskAttempt
   S_TA_LAUNCH_REQUEST,
+  S_TA_STATE_UPDATED,
   S_TA_ENDED, // Annotated with FAILED/KILLED/SUCCEEDED.
 
   //Producer: Node

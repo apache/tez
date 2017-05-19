@@ -449,6 +449,8 @@ public class ShuffleUtils {
     // multiple events would end up adding up to final output size.
     // This is needed for auto-reduce parallelism to work properly.
     vmBuilder.setOutputSize(outputSize);
+    vmBuilder.setNumRecord(context.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS).getValue()
+     + context.getCounters().findCounter(TaskCounter.OUTPUT_LARGE_RECORDS).getValue());
 
     //set partition stats
     if (sizePerPartition != null && sizePerPartition.length > 0) {

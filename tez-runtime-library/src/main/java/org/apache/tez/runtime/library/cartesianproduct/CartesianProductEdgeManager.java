@@ -19,14 +19,17 @@ package org.apache.tez.runtime.library.cartesianproduct;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.ByteString;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 
 import javax.annotation.Nullable;
 
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
+
 /**
  * This EM wrap a real edge manager implementation object. It choose whether it's partitioned or
- * unpartitioned implementation according to the config. All method invocations are actually
+ * fair implementation according to the config. All method invocations are actually
  * redirected to real implementation.
  */
 public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
@@ -39,12 +42,12 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public void initialize() throws Exception {
     Preconditions.checkArgument(getContext().getUserPayload() != null);
-    CartesianProductEdgeManagerConfig config = CartesianProductEdgeManagerConfig.fromUserPayload(
-      getContext().getUserPayload());
+    CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(
+      ByteString.copyFrom(getContext().getUserPayload().getPayload()));
     // no need to check config because config comes from VM and is already checked by VM
     edgeManagerReal = config.getIsPartitioned()
       ? new CartesianProductEdgeManagerPartitioned(getContext())
-      : new CartesianProductEdgeManagerUnpartitioned(getContext());
+      : new FairCartesianProductEdgeManager(getContext());
     edgeManagerReal.initialize(config);
   }
 

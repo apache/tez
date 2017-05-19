@@ -30,12 +30,12 @@ public class TestGrouper {
   @Test(timeout = 5000)
   public void testEvenlyGrouping() {
     grouper.init(4, 2);
-    assertEquals(0, grouper.getFirstTaskInGroup(0));
-    assertEquals(2, grouper.getFirstTaskInGroup(1));
-    assertEquals(2, grouper.getNumTasksInGroup(0));
-    assertEquals(2, grouper.getNumTasksInGroup(1));
-    assertEquals(1, grouper.getLastTaskInGroup(0));
-    assertEquals(3, grouper.getLastTaskInGroup(1));
+    assertEquals(0, grouper.getFirstItemInGroup(0));
+    assertEquals(2, grouper.getFirstItemInGroup(1));
+    assertEquals(2, grouper.getNumItemsInGroup(0));
+    assertEquals(2, grouper.getNumItemsInGroup(1));
+    assertEquals(1, grouper.getLastItemInGroup(0));
+    assertEquals(3, grouper.getLastItemInGroup(1));
     assertEquals(0, grouper.getGroupId(1));
     assertEquals(1, grouper.getGroupId(2));
     assertTrue(grouper.isInGroup(2, 1));
@@ -45,12 +45,12 @@ public class TestGrouper {
   @Test(timeout = 5000)
   public void testUnevenlyGrouping() {
     grouper.init(5, 2);
-    assertEquals(0, grouper.getFirstTaskInGroup(0));
-    assertEquals(2, grouper.getFirstTaskInGroup(1));
-    assertEquals(2, grouper.getNumTasksInGroup(0));
-    assertEquals(3, grouper.getNumTasksInGroup(1));
-    assertEquals(1, grouper.getLastTaskInGroup(0));
-    assertEquals(4, grouper.getLastTaskInGroup(1));
+    assertEquals(0, grouper.getFirstItemInGroup(0));
+    assertEquals(2, grouper.getFirstItemInGroup(1));
+    assertEquals(2, grouper.getNumItemsInGroup(0));
+    assertEquals(3, grouper.getNumItemsInGroup(1));
+    assertEquals(1, grouper.getLastItemInGroup(0));
+    assertEquals(4, grouper.getLastItemInGroup(1));
     assertEquals(0, grouper.getGroupId(1));
     assertEquals(1, grouper.getGroupId(3));
     assertTrue(grouper.isInGroup(3, 1));
@@ -60,9 +60,9 @@ public class TestGrouper {
   @Test(timeout = 5000)
   public void testSingleGroup() {
     grouper.init(4, 1);
-    assertEquals(0, grouper.getFirstTaskInGroup(0));
-    assertEquals(4, grouper.getNumTasksInGroup(0));
-    assertEquals(3, grouper.getLastTaskInGroup(0));
+    assertEquals(0, grouper.getFirstItemInGroup(0));
+    assertEquals(4, grouper.getNumItemsInGroup(0));
+    assertEquals(3, grouper.getLastItemInGroup(0));
     assertEquals(0, grouper.getGroupId(0));
     assertEquals(0, grouper.getGroupId(3));
     assertTrue(grouper.isInGroup(3, 0));
@@ -71,9 +71,9 @@ public class TestGrouper {
   @Test(timeout = 5000)
   public void testNoGrouping() {
     grouper.init(2, 2);
-    assertEquals(0, grouper.getFirstTaskInGroup(0));
-    assertEquals(1, grouper.getNumTasksInGroup(0));
-    assertEquals(0, grouper.getLastTaskInGroup(0));
+    assertEquals(0, grouper.getFirstItemInGroup(0));
+    assertEquals(1, grouper.getNumItemsInGroup(0));
+    assertEquals(0, grouper.getLastItemInGroup(0));
     assertEquals(0, grouper.getGroupId(0));
     assertTrue(grouper.isInGroup(0, 0));
   }

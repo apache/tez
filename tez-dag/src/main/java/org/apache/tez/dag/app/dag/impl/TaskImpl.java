@@ -53,7 +53,6 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TaskLocationHint;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
@@ -358,9 +357,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock = readWriteLock.readLock();
     writeLock = readWriteLock.writeLock();
     this.attempts = Collections.emptyMap();
-    // TODO Avoid reading this from configuration for each task.
-    maxFailedAttempts = this.conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
-                              TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
+    maxFailedAttempts = vertex.getVertexConfig().getMaxFailedTaskAttempts();
     taskId = TezTaskID.getInstance(vertexId, taskIndex);
     this.taskCommunicatorManagerInterface = taskCommunicatorManagerInterface;
     this.taskHeartbeatHandler = thh;
@@ -476,11 +473,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public float getProgress() {
     readLock.lock();
     try {
-      TaskAttempt bestAttempt = selectBestAttempt();
-      if (bestAttempt == null) {
-        return 0f;
+      final TaskStateInternal state = getInternalState();
+      if (state == TaskStateInternal.RUNNING) {
+        TaskAttempt bestAttempt = selectBestAttempt();
+        if (bestAttempt == null) {
+          return 0f;
+        }
+        return bestAttempt.getProgress();
+      } else if (state == TaskStateInternal.SUCCEEDED) {
+        return 1.0f;
+      } else {
+        return 0.0f;
       }
-      return bestAttempt.getProgress();
     } finally {
       readLock.unlock();
     }

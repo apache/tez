@@ -123,8 +123,19 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   }
 
   @Override
+  public void taskSubmitted(TezTaskAttemptID taskAttemptId, ContainerId containerId) {
+    taskCommunicatorManager.taskSubmitted(taskAttemptId, containerId);
+  }
+
+  @Override
+  public void taskStartedRemotely(TezTaskAttemptID taskAttemptId) {
+    taskCommunicatorManager.taskStartedRemotely(taskAttemptId);
+  }
+
+  @Override
   public void taskStartedRemotely(TezTaskAttemptID taskAttemptId, ContainerId containerId) {
-    taskCommunicatorManager.taskStartedRemotely(taskAttemptId, containerId);
+    taskSubmitted(taskAttemptId, containerId);
+    taskStartedRemotely(taskAttemptId);
   }
 
   @Override

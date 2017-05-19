@@ -63,6 +63,10 @@ public class TaskSchedulerWrapper {
     real.allocateTask(task, capability, containerId, priority, containerSignature, clientCookie);
   }
 
+  public void taskStateUpdated(Object task, TaskScheduler.SchedulerTaskState state) throws Exception {
+    real.taskStateUpdated(task, state);
+  }
+
   public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason,
                                 @Nullable String diagnostics) throws Exception {
     return real.deallocateTask(task, taskSucceeded, endReason, diagnostics);

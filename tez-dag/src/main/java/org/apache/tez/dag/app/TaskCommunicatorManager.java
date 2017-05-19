@@ -33,6 +33,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.tez.Utils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventSubmitted;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.serviceplugins.api.DagInfo;
@@ -374,9 +375,13 @@ public class TaskCommunicatorManager extends AbstractService implements
     pingContainerHeartbeatHandler(containerId);
   }
 
-  public void taskStartedRemotely(TezTaskAttemptID taskAttemptID, ContainerId containerId) {
-    sendEvent(new TaskAttemptEventStartedRemotely(taskAttemptID, containerId, null));
+  public void taskSubmitted(TezTaskAttemptID taskAttemptId, ContainerId containerId) {
+    sendEvent(new TaskAttemptEventSubmitted(taskAttemptId, containerId));
     pingContainerHeartbeatHandler(containerId);
+  }
+
+  public void taskStartedRemotely(TezTaskAttemptID taskAttemptID) {
+    sendEvent(new TaskAttemptEventStartedRemotely(taskAttemptID));
   }
 
   public void taskKilled(TezTaskAttemptID taskAttemptId, TaskAttemptEndReason taskAttemptEndReason,

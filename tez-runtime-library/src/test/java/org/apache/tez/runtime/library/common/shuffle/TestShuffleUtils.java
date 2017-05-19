@@ -44,8 +44,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.List;
-import java.util.Random;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
@@ -139,9 +139,8 @@ public class TestShuffleUtils {
     TezSpillRecord spillRecord = new TezSpillRecord(numPartitions);
     long startOffset = 0;
     long partLen = 200; //compressed
-    Random rnd = new Random();
     for(int i=0;i<numPartitions;i++) {
-      long rawLen = rnd.nextLong();
+      long rawLen = ThreadLocalRandom.current().nextLong(100, 200);
       if (i % 2  == 0 || allEmptyPartitions) {
         rawLen = 6; //indicates empty partition
       }
