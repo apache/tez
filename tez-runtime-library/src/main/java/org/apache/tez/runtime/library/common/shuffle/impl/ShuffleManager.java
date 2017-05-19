@@ -485,7 +485,7 @@ public class ShuffleManager implements FetcherCallback {
     if (inputHost.getNumPendingPartitions() > 0) {
       pendingHosts.add(inputHost); //add it to queue
     }
-    for(InputAttemptIdentifier input : pendingInputsOfOnePartition.getInputs()) {
+    for(InputAttemptIdentifier input : pendingInputsOfOnePartitionRange.getInputs()) {
       ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
       if (eventInfo != null) {
         eventInfo.scheduledForDownload = true;
