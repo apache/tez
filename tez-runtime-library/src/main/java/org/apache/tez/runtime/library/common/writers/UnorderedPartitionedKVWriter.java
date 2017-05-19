@@ -420,12 +420,17 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       currentBuffer.reset();
     } else {
       // Update overall stats
-      LOG.info(destNameTrimmed + ": " + "Moving to next buffer");
+      final int filledBufferCount = filledBuffers.size();
+      if (LOG.isDebugEnabled() || (filledBufferCount % 10) == 0) {
+        LOG.info(destNameTrimmed + ": " + "Moving to next buffer. Total filled buffers: " + filledBufferCount);
+      }
       updateGlobalStats(currentBuffer);
 
       filledBuffers.add(currentBuffer);
       if (filledBuffers.size() >= spillLimit) {
-        LOG.info(destNameTrimmed + ": triggering spill");
+        if (LOG.isDebugEnabled() || (filledBufferCount % 10) == 0) {
+          LOG.info(destNameTrimmed + ": triggering spill");
+        }
         pendingSpillCount.incrementAndGet();
         int spillNumber = numSpills.getAndIncrement();
         ListenableFuture<SpillResult> future = spillExecutor.submit(new SpillCallable(
