@@ -19,9 +19,11 @@
 package org.apache.tez.dag.app.launcher;
 
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -32,14 +34,16 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeletionTrackerImpl extends DeletionTracker {
-  private Map<NodeId, Integer> nodeIdShufflePortMap;
+  private static final Logger LOG = LoggerFactory.getLogger(DeletionTrackerImpl.class);
+  private Map<NodeId, Integer> nodeIdShufflePortMap = new HashMap<NodeId, Integer>();
   private ExecutorService dagCleanupService;
 
-  public DeletionTrackerImpl(Map<NodeId, Integer> nodeIdShufflePortMap, Configuration conf, String pluginName) {
-    super(conf, pluginName);
-    this.nodeIdShufflePortMap = nodeIdShufflePortMap;
+  public DeletionTrackerImpl(Configuration conf) {
+    super(conf);
     this.dagCleanupService = new ThreadPoolExecutor(0, conf.getInt(TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT,
         TezConfiguration.TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT_DEFAULT), 10,
         TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
@@ -54,16 +58,20 @@ public class DeletionTrackerImpl extends DeletionTracker {
       int shufflePort = entry.getValue();
       //TODO: add check for healthy node
       if (shufflePort != TezRuntimeUtils.INVALID_PORT) {
-        DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId,
-            shufflePort, dag, TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager, this.pluginName);
-        dagCleanupService.submit(dagDeleteRunnable);
+        DagDeleteRunnable dagDeleteRunnable = new DagDeleteRunnable(nodeId, shufflePort, dag,
+            TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager);
+        try {
+          dagCleanupService.submit(dagDeleteRunnable);
+        } catch (RejectedExecutionException rejectedException) {
+          LOG.info("Ignoring deletion request for " + dagDeleteRunnable);
+        }
       }
     }
     nodeIdShufflePortMap.clear();
   }
 
   @Override
-  public void addNodeShufflePorts(NodeId nodeId, int port) {
+  public void addNodeShufflePort(NodeId nodeId, int port) {
     if (port != TezRuntimeUtils.INVALID_PORT) {
       if(nodeIdShufflePortMap.get(nodeId) == null) {
         nodeIdShufflePortMap.put(nodeId, port);

@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.io.DataInputByteBuffer;
-import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.tez.common.DagContainerLauncher;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -44,7 +44,6 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
-import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
 import org.slf4j.Logger;
@@ -75,7 +74,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 /**
  * This class is responsible for launching of containers.
  */
-public class TezContainerLauncherImpl extends ContainerLauncher {
+public class TezContainerLauncherImpl extends DagContainerLauncher {
 
   // TODO Ensure the same thread is used to launch / stop the same container. Or - ensure event ordering.
   static final Logger LOG = LoggerFactory.getLogger(TezContainerLauncherImpl.class);
@@ -194,7 +193,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
           LOG.warn("Shuffle port cannot be found since services metadata response is missing");
         }
         if (deletionTracker != null) {
-          deletionTracker.addNodeShufflePorts(event.getNodeId(), shufflePort);
+          deletionTracker.addNodeShufflePort(event.getNodeId(), shufflePort);
         }
       } catch (Throwable t) {
         String message = "Container launch failed for " + containerID + " : "
@@ -340,9 +339,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
       String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
-          deletionTrackerClassName, new Class[]{
-              Map.class, Configuration.class, String.class},
-          new Object[]{new HashMap<NodeId, Integer>(), conf, TezConstants.getTezYarnServicePluginName()});
+          deletionTrackerClassName, new Class[]{Configuration.class}, new Object[]{conf});
     }
   }
 
@@ -444,6 +441,7 @@ public class TezContainerLauncherImpl extends ContainerLauncher {
     }
   }
 
+  @Override
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     if (deletionTracker != null) {
       deletionTracker.dagComplete(dag, jobTokenSecretManager);

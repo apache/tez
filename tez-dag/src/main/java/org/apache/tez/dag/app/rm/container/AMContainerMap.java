@@ -32,6 +32,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
@@ -46,6 +47,7 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   private final ContainerSignatureMatcher containerSignatureMatcher;
   @VisibleForTesting
   final ConcurrentHashMap<ContainerId, AMContainer> containerMap;
+  private String auxiliaryService;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskCommunicatorManagerInterface tal,
       ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
@@ -55,6 +57,8 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
     this.context = context;
     this.containerSignatureMatcher = containerSignatureMatcher;
     this.containerMap = new ConcurrentHashMap<ContainerId, AMContainer>();
+    this.auxiliaryService = context.getAMConf().get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
   }
 
   @Override
@@ -69,8 +73,7 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
 
   public boolean addContainerIfNew(Container container, int schedulerId, int launcherId, int taskCommId) {
     AMContainer amc = createAmContainer(container, chh, tal,
-        containerSignatureMatcher, context, schedulerId, launcherId, taskCommId);
-
+        containerSignatureMatcher, context, schedulerId, launcherId, taskCommId, auxiliaryService);
     return (containerMap.putIfAbsent(container.getId(), amc) == null);
   }
 
@@ -79,9 +82,9 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
                                 TaskCommunicatorManagerInterface tal,
                                 ContainerSignatureMatcher signatureMatcher,
                                 AppContext appContext, int schedulerId,
-                                int launcherId, int taskCommId) {
+                                int launcherId, int taskCommId, String auxiliaryService) {
     AMContainer amc = new AMContainerImpl(container, chh, tal,
-        signatureMatcher, appContext, schedulerId, launcherId, taskCommId);
+        signatureMatcher, appContext, schedulerId, launcherId, taskCommId, auxiliaryService);
     return amc;
   }
 

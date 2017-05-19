@@ -26,18 +26,16 @@ import org.apache.tez.dag.records.TezDAGID;
 public abstract class DeletionTracker {
 
   protected final Configuration conf;
-  protected String pluginName;
 
-  public DeletionTracker(Configuration conf, String pluginName) {
+  public DeletionTracker(Configuration conf) {
     this.conf = conf;
-    this.pluginName = pluginName;
   }
 
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     //do nothing
   }
 
-  public void addNodeShufflePorts(NodeId nodeId, int port) {
+  public void addNodeShufflePort(NodeId nodeId, int port) {
     //do nothing
   }
 

@@ -4,6 +4,8 @@ Apache Tez Change Log
 INCOMPATIBLE CHANGES:
 
 ALL CHANGES:
+  TEZ-3726. Clean up DeletionTracker's reflection instantiation and provide ContainerLauncher with dagComplete() functionality
+  TEZ-3725. Cleanup http connections and other unnecessary fields in DAG Deletion tracker classes.
   TEZ-3705. Modify DeletionTracker and deletion threads to be initialized only if enabled for tez_shuffle
   TEZ-3685. ShuffleHandler completedInputSet off-by-one error
   TEZ-3684. Incorporate first pass non-essential TEZ-3334 pre-merge feedback

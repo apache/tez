@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -143,7 +143,7 @@ public class TestAMContainerMap {
                                   TaskCommunicatorManagerInterface tal,
                                   ContainerSignatureMatcher signatureMatcher,
                                   AppContext appContext, int schedulerId,
-                                  int launcherId, int taskCommId) {
+                                  int launcherId, int taskCommId, String auxiliaryService) {
       return wrappedContainers[container.getId().getId()].amContainer;
     }
 

@@ -24,41 +24,56 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URL;
 
 class DagDeleteRunnable implements Runnable {
+  private static final Logger LOG = LoggerFactory.getLogger(DagDeleteRunnable.class);
   final NodeId nodeId;
   final TezDAGID dag;
   final JobTokenSecretManager jobTokenSecretManager;
-  final String tezDefaultComponentName;
   final int shufflePort;
   final HttpConnectionParams httpConnectionParams;
 
   public DagDeleteRunnable(NodeId nodeId, int shufflePort, TezDAGID currentDag,
                            HttpConnectionParams httpConnectionParams,
-                           JobTokenSecretManager jobTokenSecretMgr, String tezDefaultComponent) {
+                           JobTokenSecretManager jobTokenSecretMgr) {
     this.nodeId = nodeId;
     this.shufflePort = shufflePort;
     this.dag = currentDag;
     this.httpConnectionParams = httpConnectionParams;
     this.jobTokenSecretManager = jobTokenSecretMgr;
-    this.tezDefaultComponentName = tezDefaultComponent;
   }
 
   @Override
   public void run() {
+    BaseHttpConnection httpConnection = null;
     try {
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerDagComplete(
           nodeId.getHost(), shufflePort,
           dag.getApplicationId().toString(), dag.getId(), false);
-      BaseHttpConnection httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL,
-          httpConnectionParams, "DAGDelete", jobTokenSecretManager);
+      httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL, httpConnectionParams,
+          "DAGDelete", jobTokenSecretManager);
       httpConnection.connect();
       httpConnection.getInputStream();
     } catch (Exception e) {
-      TezContainerLauncherImpl.LOG.warn("Could not setup HTTP Connection to the node " + nodeId.getHost() + " for dag delete "
-          + e);
+      LOG.warn("Could not setup HTTP Connection to the node " + nodeId.getHost() + " for dag delete. ", e);
+    } finally {
+      try {
+        if (httpConnection != null) {
+          httpConnection.cleanup(true);
+        }
+      } catch (IOException ioe) {
+        LOG.warn("Encountered IOException for " + nodeId.getHost() + " during close. ", ioe);
+      }
     }
+  }
+
+  @Override
+  public String toString() {
+    return "DagDeleteRunnable nodeId=" + nodeId + ", shufflePort=" + shufflePort + ", dagId=" + dag.toString();
   }
 }
