@@ -21,11 +21,14 @@ import DS from 'ember-data';
 
 import AMTimelineModel from './am-timeline';
 
-function valueComputerFactory(path1, path2) {
+function valueComputerFactory(path1, path2, path3) {
   return function () {
     var value = this.get(path1);
-    if(value === undefined || value === null){
-      value = this.get(path2);
+    if(path2 && (value === undefined || value === null)){
+       value = this.get(path2);
+    }
+    if(path3 && (value === undefined || value === null)){
+       value = this.get(path3);
     }
     return value;
   };
@@ -69,8 +72,8 @@ export default AMTimelineModel.extend({
   initTime: Ember.computed("am.initTime", "_initTime",
     valueComputerFactory("am.initTime", "_initTime")
   ),
-  startTime: Ember.computed("am.startTime", "_startTime",
-    valueComputerFactory("am.startTime", "_startTime")
+  startTime: Ember.computed("firstTaskStartTime", "am.startTime", "_startTime",
+    valueComputerFactory("firstTaskStartTime", "am.startTime", "_startTime")
   ),
   endTime: Ember.computed("am.endTime", "_endTime",
     valueComputerFactory("am.endTime", "_endTime")
