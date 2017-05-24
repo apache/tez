@@ -23,8 +23,7 @@ import java.util.Set;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-
-import com.google.common.collect.Sets;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 
 @Public
 @Unstable
@@ -57,4 +56,8 @@ public abstract class HadoopShim {
     return null;
   }
 
+  public FinalApplicationStatus applyFinalApplicationStatusCorrection(FinalApplicationStatus orig,
+      boolean isSessionMode, boolean isError) {
+    return orig;
+  }
 }

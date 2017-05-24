@@ -20,19 +20,23 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +44,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.token.Token;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -50,6 +56,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
@@ -58,6 +65,8 @@ import org.apache.tez.runtime.library.common.shuffle.FetchResult;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -69,6 +78,17 @@ public class TestShuffleManager {
   private static final int PORT = 8080;
   private static final String PATH_COMPONENT = "attempttmp";
   private final Configuration conf = new Configuration();
+  private TezExecutors sharedExecutor;
+
+  @Before
+  public void setup() {
+    sharedExecutor = new TezSharedExecutor(conf);
+  }
+
+  @After
+  public void cleanup() {
+    sharedExecutor.shutdownNow();
+  }
 
   /**
    * One reducer fetches multiple partitions from each mapper.
@@ -137,6 +157,7 @@ public class TestShuffleManager {
     port_dob.writeInt(PORT);
     final ByteBuffer shuffleMetaData = ByteBuffer.wrap(port_dob.getData(), 0,
         port_dob.getLength());
+    port_dob.close();
 
     ExecutionContext executionContext = mock(ExecutionContext.class);
     doReturn(FETCHER_HOST).when(executionContext).getHostName();
@@ -148,10 +169,30 @@ public class TestShuffleManager {
         .getServiceProviderMetaData(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
             TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
     doReturn(executionContext).when(inputContext).getExecutionContext();
+    when(inputContext.createTezFrameworkExecutorService(anyInt(), anyString())).thenAnswer(
+        new Answer<ExecutorService>() {
+          @Override
+          public ExecutorService answer(InvocationOnMock invocation) throws Throwable {
+            return sharedExecutor.createExecutorService(
+                invocation.getArgumentAt(0, Integer.class),
+                invocation.getArgumentAt(1, String.class));
+          }
+        });
     return inputContext;
   }
 
-  @SuppressWarnings("unchecked")
+  @Test(timeout=5000)
+  public void testUseSharedExecutor() throws Exception {
+    InputContext inputContext = createInputContext();
+    createShuffleManager(inputContext, 2);
+    verify(inputContext, times(0)).createTezFrameworkExecutorService(anyInt(), anyString());
+
+    inputContext = createInputContext();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL, true);
+    createShuffleManager(inputContext, 2);
+    verify(inputContext).createTezFrameworkExecutorService(anyInt(), anyString());
+  }
+
   private ShuffleManagerForTest createShuffleManager(
       InputContext inputContext, int expectedNumOfPhysicalInputs)
           throws IOException {
@@ -162,7 +203,7 @@ public class TestShuffleManager {
         inputContext.getWorkDirs());
 
     DataOutputBuffer out = new DataOutputBuffer();
-    Token<JobTokenIdentifier> token = new Token(new JobTokenIdentifier(),
+    Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(new JobTokenIdentifier(),
         new JobTokenSecretManager(null));
     token.write(out);
     doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).
@@ -202,9 +243,9 @@ public class TestShuffleManager {
           conf));
       final FetchResult mockFetcherResult = mock(FetchResult.class);
       try {
-        doAnswer(new Answer() {
+        doAnswer(new Answer<FetchResult>() {
           @Override
-          public Object answer(InvocationOnMock invocation) throws Throwable {
+          public FetchResult answer(InvocationOnMock invocation) throws Throwable {
             for(InputAttemptIdentifier input : fetcher.getSrcAttempts()) {
               ShuffleManagerForTest.this.fetchSucceeded(
                   fetcher.getHost(), input, new TestFetchedInput(input), 0, 0,

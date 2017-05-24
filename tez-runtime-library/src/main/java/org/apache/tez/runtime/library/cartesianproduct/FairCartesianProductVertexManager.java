@@ -89,7 +89,8 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     // or estimated total number of output record (after reconfiguration)
     long numRecord;
 
-    public String toString(boolean afterReconfigure) {
+    @Override
+    public String toString() {
       StringBuilder sb = new StringBuilder();
       sb.append("Source at position ");
       sb.append(position);
@@ -99,11 +100,11 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
         sb.append(name);
 
       }
-      sb.append("num chunk ").append(numChunk);
+      sb.append(", num chunk ").append(numChunk);
       sb.append(": {");
       for (SrcVertex srcV : srcVertices) {
         sb.append("[");
-        sb.append(srcV.toString(afterReconfigure));
+        sb.append(srcV.toString());
         sb.append("], ");
       }
       sb.deleteCharAt(sb.length() - 1);
@@ -165,17 +166,13 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     // or estimated total number of output record (after reconfiguration)
     long numRecord;
 
-    public String toString(boolean afterReconfigure) {
+    public String toString() {
       StringBuilder sb = new StringBuilder();
       sb.append("vertex ").append(name).append(", ");
-      if (afterReconfigure) {
-        sb.append("estimated # output records ").append(numRecord).append(", ");
-        sb.append("# chunks ").append(source.numChunk);
-      } else {
-        sb.append(numTask).append(" tasks, ");
-        sb.append(taskWithVMEvent.getCardinality()).append(" VMEvents, ");
-        sb.append("numRecord ").append(numRecord);
-      }
+      sb.append(numTask).append(" tasks, ");
+      sb.append(taskWithVMEvent.getCardinality()).append(" VMEvents, ");
+      sb.append("numRecord ").append(numRecord).append(", ");
+      sb.append("estimated # output records ").append(estimateNumRecord());
       return sb.toString();
     }
 
@@ -189,8 +186,8 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
     public boolean isChunkCompleted(int chunkId) {
       grouper.init(numTask * numPartitions, source.numChunk);
-      int firstRelevantTask = grouper.getFirstItemInGroup(chunkId) / maxParallelism;
-      int lastRelevantTask = grouper.getLastItemInGroup(chunkId) / maxParallelism;
+      int firstRelevantTask = grouper.getFirstItemInGroup(chunkId) / numPartitions;
+      int lastRelevantTask = grouper.getLastItemInGroup(chunkId) / numPartitions;
       for (int relevantTask = firstRelevantTask; relevantTask <= lastRelevantTask; relevantTask++) {
         if (!taskCompleted.contains(relevantTask)) {
           return false;
@@ -274,6 +271,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
           srcVerticesByName.get(srcVName).source = source;
         }
       } else {
+        source.name = srcName;
         source.srcVertices.add(srcVerticesByName.get(srcName));
         srcVerticesByName.get(srcName).source = source;
       }
@@ -292,6 +290,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     throws Exception {
     vertexStarted = true;
     if (completions != null) {
+      LOG.info("OnVertexStarted with " + completions.size() + " completed source task");
       for (TaskAttemptIdentifier attempt : completions) {
         addCompletedSrcTaskToProcess(attempt);
       }
@@ -387,7 +386,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       for (SrcVertex srcV : srcVerticesByName.values()) {
         if (srcV.taskCompleted.getCardinality() < srcV.numTask
           && (srcV.numTask * config.getGroupingFraction() > srcV.taskCompleted.getCardinality()
-            || srcV.numRecord == 0)) {
+          || srcV.numRecord == 0)) {
           return false;
         }
       }
@@ -402,17 +401,19 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       }
     }
 
-    LOG.info("Start reconfigure, "
+    LOG.info("Start reconfiguring vertex " + getContext().getVertexName()
       + ", max parallelism: " + maxParallelism
-      + ", min-ops-per-worker: " + minOpsPerWorker);
+      + ", min-ops-per-worker: " + minOpsPerWorker
+      + ", num partition: " + numPartitions);
     for (Source src : sourcesByName.values()) {
-      LOG.info(src.toString(false));
+      LOG.info(src.toString());
     }
 
     long totalOps = 1;
     for (Source src : sourcesByName.values()) {
       src.numRecord = src.estimateNumRecord();
       if (src.numRecord == 0) {
+        LOG.info("Set parallelism to 0 because source " + src.name + " has 0 output recorc");
         reconfigureWithZeroTask();
         return true;
       }
@@ -420,6 +421,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       try {
         totalOps  = LongMath.checkedMultiply(totalOps, src.numRecord);
       } catch (ArithmeticException e) {
+        LOG.info("totalOps exceeds " + Long.MAX_VALUE + ", capping to " + Long.MAX_VALUE);
         totalOps = Long.MAX_VALUE;
       }
     }
@@ -430,6 +432,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     } else {
       parallelism = (int) ((totalOps + minOpsPerWorker - 1) / minOpsPerWorker);
     }
+    LOG.info("Total ops " + totalOps + ", initial parallelism " + parallelism);
 
     // determine num chunk for each source by weighted factorization of initial parallelism
     // final parallelism will be product of all #chunk
@@ -450,11 +453,10 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       parallelism *= src.numChunk;
     }
 
-    LOG.info("After reconfigure, ");
+    LOG.info("After reconfigure, final parallelism " + parallelism);
     for (Source src : sourcesByName.values()) {
-      LOG.info(src.toString(false));
+      LOG.info(src.toString());
     }
-    LOG.info("Final parallelism: " + parallelism);
 
     for (int i = 0; i < numChunksPerSrc.length; i++) {
       numChunksPerSrc[i] = sourcesByName.get(sourceList.get(i)).numChunk;
@@ -516,9 +518,9 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     CartesianProductCombination combination =
       new CartesianProductCombination(numChunksPerSrc, src.position);
 
-    grouper.init(srcV.numTask * maxParallelism, src.numChunk);
-    int firstRelevantChunk = grouper.getGroupId(taskId * maxParallelism);
-    int lastRelevantChunk = grouper.getGroupId(taskId * maxParallelism + maxParallelism - 1);
+    grouper.init(srcV.numTask * numPartitions, src.numChunk);
+    int firstRelevantChunk = grouper.getGroupId(taskId * numPartitions);
+    int lastRelevantChunk = grouper.getGroupId(taskId * numPartitions + numPartitions - 1);
     for (int chunkId = firstRelevantChunk; chunkId <= lastRelevantChunk; chunkId++) {
       combination.firstTaskWithFixedChunk(chunkId);
       do {
