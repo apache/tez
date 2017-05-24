@@ -17,6 +17,7 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -41,6 +42,8 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezExecutors;
+import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
@@ -50,12 +53,25 @@ import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestShuffleScheduler {
 
+  private TezExecutors sharedExecutor;
+
+  @Before
+  public void setup() {
+    sharedExecutor = new TezSharedExecutor(new Configuration());
+  }
+
+  @After
+  public void cleanup() {
+    sharedExecutor.shutdownNow();
+  }
 
   @Test (timeout = 10000)
   public void testNumParallelScheduledFetchers() throws IOException, InterruptedException {
@@ -104,6 +120,27 @@ public class TestShuffleScheduler {
       }
       executor.shutdownNow();
     }
+  }
+
+  @Test(timeout=5000)
+  public void testUseSharedExecutor() throws Exception {
+    InputContext inputContext = createTezInputContext();
+    Configuration conf = new TezConfiguration();
+    int numInputs = 10;
+    Shuffle shuffle = mock(Shuffle.class);
+    MergeManager mergeManager = mock(MergeManager.class);
+
+    ShuffleSchedulerForTest scheduler = new ShuffleSchedulerForTest(inputContext, conf, numInputs,
+        shuffle, mergeManager, mergeManager, System.currentTimeMillis(), null, false, 0, "srcName");
+    verify(inputContext, times(0)).createTezFrameworkExecutorService(anyInt(), anyString());
+    scheduler.close();
+
+    inputContext = createTezInputContext();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL, true);
+    scheduler = new ShuffleSchedulerForTest(inputContext, conf, numInputs, shuffle, mergeManager,
+        mergeManager, System.currentTimeMillis(), null, false, 0, "srcName");
+    verify(inputContext).createTezFrameworkExecutorService(anyInt(), anyString());
+    scheduler.close();
   }
 
   @Test(timeout = 5000)
@@ -909,6 +946,15 @@ public class TestShuffleScheduler {
         new JobTokenSecretManager());
     ByteBuffer tokenBuffer = TezCommonUtils.serializeServiceData(sessionToken);
     doReturn(tokenBuffer).when(inputContext).getServiceConsumerMetaData(anyString());
+    when(inputContext.createTezFrameworkExecutorService(anyInt(), anyString())).thenAnswer(
+        new Answer<ExecutorService>() {
+          @Override
+          public ExecutorService answer(InvocationOnMock invocation) throws Throwable {
+            return sharedExecutor.createExecutorService(
+                invocation.getArgumentAt(0, Integer.class),
+                invocation.getArgumentAt(1, String.class));
+          }
+        });
     return inputContext;
   }
 
@@ -948,9 +994,9 @@ public class TestShuffleScheduler {
     FetcherOrderedGrouped constructFetcherForHost(MapHost mapHost) {
       numFetchersCreated.incrementAndGet();
       FetcherOrderedGrouped mockFetcher = mock(FetcherOrderedGrouped.class);
-      doAnswer(new Answer() {
+      doAnswer(new Answer<Void>() {
         @Override
-        public Object answer(InvocationOnMock invocation) throws Throwable {
+        public Void answer(InvocationOnMock invocation) throws Throwable {
           if (fetcherShouldWait) {
             Thread.sleep(100000l);
           }
