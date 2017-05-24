@@ -89,6 +89,8 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptSucceeded;
 import org.apache.tez.dag.app.web.WebUIService;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.hadoop.shim.HadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 
 import com.google.common.base.Preconditions;
 
@@ -132,6 +134,7 @@ public class TaskSchedulerManager extends AbstractService implements
   // Custom AppIds to avoid container conflicts if there's multiple sources
   private final long SCHEDULER_APP_ID_BASE = 111101111;
   private final long SCHEDULER_APP_ID_INCREMENT = 111111111;
+  private final HadoopShim hadoopShim;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
                               = new LinkedBlockingQueue<AMSchedulerEvent>();
@@ -160,6 +163,7 @@ public class TaskSchedulerManager extends AbstractService implements
     this.webUI = null;
     this.historyUrl = null;
     this.isLocalMode = false;
+    this.hadoopShim = new HadoopShimsLoader(appContext.getAMConf()).getHadoopShim();
   }
 
   /**
@@ -179,7 +183,8 @@ public class TaskSchedulerManager extends AbstractService implements
                               ContainerSignatureMatcher containerSignatureMatcher,
                               WebUIService webUI,
                               List<NamedEntityDescriptor> schedulerDescriptors,
-                              boolean isLocalMode) {
+                              boolean isLocalMode,
+                              HadoopShim hadoopShim) {
     super(TaskSchedulerManager.class.getName());
     Preconditions.checkArgument(schedulerDescriptors != null && !schedulerDescriptors.isEmpty(),
         "TaskSchedulerDescriptors must be specified");
@@ -190,6 +195,7 @@ public class TaskSchedulerManager extends AbstractService implements
     this.webUI = webUI;
     this.historyUrl = getHistoryUrl();
     this.isLocalMode = isLocalMode;
+    this.hadoopShim = hadoopShim;
     this.appCallbackExecutor = createAppCallbackExecutorService();
     if (this.webUI != null) {
       this.webUI.setHistoryUrl(this.historyUrl);
@@ -820,6 +826,8 @@ public class TaskSchedulerManager extends AbstractService implements
       } else {
         finishState = FinalApplicationStatus.UNDEFINED;
       }
+      finishState = hadoopShim.applyFinalApplicationStatusCorrection(finishState,
+          dagAppMaster.isSession(), appMasterState == DAGAppMasterState.ERROR);
       List<String> diagnostics = dagAppMaster.getDiagnostics();
       if(diagnostics != null) {
         for (String s : diagnostics) {

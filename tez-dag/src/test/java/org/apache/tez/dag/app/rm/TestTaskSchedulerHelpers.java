@@ -70,6 +70,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
+import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
@@ -154,7 +155,7 @@ class TestTaskSchedulerHelpers {
                                        UserPayload defaultPayload) {
       super(appContext, null, eventHandler, containerSignatureMatcher, null,
           Lists.newArrayList(new NamedEntityDescriptor("FakeScheduler", null)),
-          false);
+          false, new HadoopShimsLoader(appContext.getAMConf()).getHadoopShim());
       this.amrmClientAsync = amrmClientAsync;
       this.containerSignatureMatcher = containerSignatureMatcher;
       this.defaultPayload = defaultPayload;

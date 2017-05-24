@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.hadoop.ipc.CallerContext;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.SchedulerResourceTypes;
 
 public class HadoopShim28 extends HadoopShim {
@@ -48,5 +49,20 @@ public class HadoopShim28 extends HadoopShim {
       supportedTypes.add(resourceType.name());
     }
     return supportedTypes;
+  }
+
+  @Override
+  public FinalApplicationStatus applyFinalApplicationStatusCorrection(FinalApplicationStatus orig,
+      boolean isSessionMode, boolean isError) {
+    switch (orig) {
+      case FAILED:
+        // App is failed if dag failed in non-session mode or there was an error.
+        return (!isSessionMode || isError) ?
+            FinalApplicationStatus.FAILED : FinalApplicationStatus.ENDED;
+      case SUCCEEDED:
+        return isSessionMode ? FinalApplicationStatus.ENDED : FinalApplicationStatus.SUCCEEDED;
+      default:
+        return orig;
+    }
   }
 }
