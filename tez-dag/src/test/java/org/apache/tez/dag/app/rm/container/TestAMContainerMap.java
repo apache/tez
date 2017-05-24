@@ -45,6 +45,7 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.junit.Test;
+import static org.mockito.Mockito.when;
 
 public class TestAMContainerMap {
 
@@ -55,6 +56,7 @@ public class TestAMContainerMap {
     ContainerHeartbeatHandler chh = mock(ContainerHeartbeatHandler.class);
     TaskCommunicatorManagerInterface tal = mock(TaskCommunicatorManagerInterface.class);
     AppContext appContext = mock(AppContext.class);
+    when(appContext.getAMConf()).thenReturn(new Configuration());
 
 
 

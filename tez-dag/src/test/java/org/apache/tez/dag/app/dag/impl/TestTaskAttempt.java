@@ -153,6 +153,7 @@ public class TestTaskAttempt {
   @Before
   public void setupTest() {
     appCtx = mock(AppContext.class);
+    when(appCtx.getAMConf()).thenReturn(new Configuration());
     when(appCtx.getContainerLauncherName(anyInt())).thenReturn(
         TezConstants.getTezYarnServicePluginName());
 
