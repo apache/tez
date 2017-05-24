@@ -97,7 +97,7 @@ public class DAGUtils {
   public static final String VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY = "edgeMergedInputs";
   public static final String VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY = "destinationVertexName";
 
-
+  private DAGUtils() {}
 
   public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan) throws JSONException {
     JSONObject dagJson;

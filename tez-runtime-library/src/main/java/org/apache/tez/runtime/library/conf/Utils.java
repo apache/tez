@@ -24,6 +24,8 @@ import org.apache.tez.dag.api.EdgeProperty;
 @Private
 class Utils {
 
+  private Utils() {}
+
   /**
    * Modify the EdgeProperty to set the history text if available
    * @param edgeConfig Edge config

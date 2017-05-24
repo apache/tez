@@ -48,6 +48,8 @@ public class Utils {
   private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Utils.class);
 
 
+  private Utils() {}
+
   /**
    * Parse tez counters from json
    *

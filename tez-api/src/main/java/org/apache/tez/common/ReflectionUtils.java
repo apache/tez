@@ -36,6 +36,8 @@ public class ReflectionUtils {
 
   private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
 
+  private ReflectionUtils() {}
+
   @Private
   public static Class<?> getClazz(String className) throws TezReflectionException {
     Class<?> clazz = CLAZZ_CACHE.get(className);

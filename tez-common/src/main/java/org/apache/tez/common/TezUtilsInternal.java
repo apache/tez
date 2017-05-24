@@ -69,6 +69,8 @@ public class TezUtilsInternal {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtilsInternal.class);
 
+  private TezUtilsInternal() {}
+
   public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
       IOException {
     FileInputStream confPBBinaryStream = null;

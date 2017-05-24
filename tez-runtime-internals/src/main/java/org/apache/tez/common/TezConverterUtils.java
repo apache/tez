@@ -30,6 +30,8 @@ import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskFailure
 
 public class TezConverterUtils {
 
+  private TezConverterUtils() {}
+
   /**
    * return a {@link URI} from a given url
    *

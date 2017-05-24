@@ -49,6 +49,8 @@ public class TezYARNUtils {
       + "([^,]*)"                             // val group
   );
 
+  private TezYARNUtils() {}
+
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
     boolean userClassesTakesPrecedence =

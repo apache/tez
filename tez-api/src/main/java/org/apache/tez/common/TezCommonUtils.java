@@ -64,6 +64,8 @@ public class TezCommonUtils {
 
   public static final String TEZ_SYSTEM_SUB_DIR = ".tez";
 
+  private TezCommonUtils() {}
+
   /**
    * <p>
    * This function returns the staging directory defined in the config with

@@ -63,4 +63,5 @@ public class Constants {
   public static final String TEZ_RUNTIME_TASK_OUTPUT_MANAGER = 
       "tez.runtime.task.local.output.manager";
 
+  private Constants() {}
 }

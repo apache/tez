@@ -134,4 +134,5 @@ public class ATSConstants {
   public static final String CALLER_TYPE = "callerType";
   public static final String DESCRIPTION = "description";
 
+  private ATSConstants() {}
 }

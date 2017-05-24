@@ -31,6 +31,8 @@ import java.util.Map;
 @InterfaceAudience.Private
 public class EnvironmentUpdateUtils {
 
+  private EnvironmentUpdateUtils() {}
+
   /**
    * Allows dynamic update to the environment variables. After calling put,
    * System.getenv(key) will then return value.

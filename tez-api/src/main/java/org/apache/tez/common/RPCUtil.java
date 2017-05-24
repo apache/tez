@@ -31,6 +31,8 @@ import com.google.protobuf.ServiceException;
 
 public class RPCUtil {
 
+  private RPCUtil() {}
+
   /**
    * Returns an instance of {@link TezException}
    */

@@ -26,6 +26,8 @@ import com.google.protobuf.ByteString;
 
 public class ProtoUtils {
 
+  private ProtoUtils() {}
+
   public static RecoveryProtos.SummaryEventProto toSummaryEventProto(
       TezDAGID dagID, long timestamp, HistoryEventType historyEventType, byte[] payload) {
     RecoveryProtos.SummaryEventProto.Builder builder =
