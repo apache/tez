@@ -21,7 +21,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.ContainerSignatureMatcher;
@@ -34,6 +36,7 @@ public class TestTaskCommunicatorContextImpl {
   @Test(timeout = 5000)
   public void testIsKnownContainer() {
     AppContext appContext = mock(AppContext.class);
+    when(appContext.getAMConf()).thenReturn(new Configuration());
     TaskCommunicatorManager tal = mock(TaskCommunicatorManager.class);
 
     AMContainerMap amContainerMap = new AMContainerMap(mock(ContainerHeartbeatHandler.class), tal, mock(
