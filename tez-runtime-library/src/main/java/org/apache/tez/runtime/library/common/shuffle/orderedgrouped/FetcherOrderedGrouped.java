@@ -417,7 +417,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
     @Override
     public String toString() {
-      return new String("id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce);
+      return "id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce;
     }
   }
 

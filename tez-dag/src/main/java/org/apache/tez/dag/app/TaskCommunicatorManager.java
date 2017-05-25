@@ -140,9 +140,9 @@ public class TaskCommunicatorManager extends AbstractService implements
     this.context = context;
     this.taskHeartbeatHandler = thh;
     this.containerHeartbeatHandler = chh;
-    Preconditions.checkArgument(
-        taskCommunicatorDescriptors != null && !taskCommunicatorDescriptors.isEmpty(),
-        "TaskCommunicators must be specified");
+    if (taskCommunicatorDescriptors == null || taskCommunicatorDescriptors.isEmpty()) {
+      throw new IllegalArgumentException("TaskCommunicators must be specified");
+    }
     this.taskCommunicators = new TaskCommunicatorWrapper[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorContexts = new TaskCommunicatorContext[taskCommunicatorDescriptors.size()];
     this.taskCommunicatorServiceWrappers = new ServicePluginLifecycleAbstractService[taskCommunicatorDescriptors.size()];

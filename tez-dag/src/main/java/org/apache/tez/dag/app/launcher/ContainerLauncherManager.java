@@ -75,9 +75,9 @@ public class ContainerLauncherManager extends AbstractService
 
     this.isIncompleteCtor = false;
     this.appContext = context;
-    Preconditions.checkArgument(
-        containerLauncherDescriptors != null && !containerLauncherDescriptors.isEmpty(),
-        "ContainerLauncherDescriptors must be specified");
+    if (containerLauncherDescriptors == null || containerLauncherDescriptors.isEmpty()) {
+      throw new IllegalArgumentException("ContainerLauncherDescriptors must be specified");
+    }
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherDescriptors.size()];
     containerLaunchers = new ContainerLauncherWrapper[containerLauncherDescriptors.size()];
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[containerLauncherDescriptors.size()];

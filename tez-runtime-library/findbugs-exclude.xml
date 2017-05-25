@@ -117,7 +117,7 @@
   </Match>
 
   <Match>
-    <Class name="org.apache.tez.runtime.library.common.shuffle.ShuffleUtils"/>
+    <Class name="org.apache.tez.runtime.library.common.TezRuntimeUtils"/>
     <Method name="getHttpConnectionParams" params="org.apache.hadoop.conf.Configuration" return="org.apache.tez.http.HttpConnectionParams"/>
     <Bug pattern="DC_PARTIALLY_CONSTRUCTED"/>
   </Match>

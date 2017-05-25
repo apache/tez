@@ -828,7 +828,7 @@ public class ShuffleHandler extends AuxiliaryService {
 
     @Override
     public String toString() {
-      return new String("range: " + first + "-" + last);
+      return "range: " + first + "-" + last;
     }
   }
 

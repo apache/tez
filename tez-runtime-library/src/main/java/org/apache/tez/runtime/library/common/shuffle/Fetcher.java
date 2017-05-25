@@ -826,7 +826,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     @Override
     public String toString() {
-      return new String("id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce);
+      return "id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce;
     }
   }
   private InputAttemptIdentifier[] fetchInputs(DataInputStream input,
