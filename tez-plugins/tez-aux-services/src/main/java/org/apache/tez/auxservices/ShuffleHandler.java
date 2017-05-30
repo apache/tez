@@ -55,9 +55,8 @@ import java.util.regex.Pattern;
 import javax.crypto.SecretKey;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.LocalDirAllocator;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -1110,9 +1109,9 @@ public class ShuffleHandler extends AuxiliaryService {
           && dagIdQ != null && !dagIdQ.isEmpty()) {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
-          LocalFileSystem lfs = FileSystem.getLocal(conf);
+          FileContext lfc = FileContext.getLocalFSFileContext();
           for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
-            lfs.delete(dagPath, true);
+            lfc.delete(dagPath, true);
           }
         } catch (IOException e) {
           LOG.warn("Encountered exception during dag delete "+ e);
