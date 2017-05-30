@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -77,6 +78,7 @@ import org.apache.hadoop.yarn.server.records.Version;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.socket.SocketChannel;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.AbstractChannel;
@@ -316,6 +318,16 @@ public class TestShuffleHandler {
         failures.size() == 0);
   }
 
+  static class LastSocketAddress {
+    SocketAddress lastAddress;
+    void setAddress(SocketAddress lastAddress) {
+      this.lastAddress = lastAddress;
+    }
+    SocketAddress getSocketAddres() {
+      return lastAddress;
+    }
+  }
+
   @Test(timeout = 10000)
   public void testKeepAlive() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
@@ -324,6 +336,8 @@ public class TestShuffleHandler {
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
     conf.setInt(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT, -100);
+    final LastSocketAddress lastSocketAddress = new LastSocketAddress();
+
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
       @Override
       protected Shuffle getShuffle(final Configuration conf) {
@@ -373,6 +387,7 @@ public class TestShuffleHandler {
           protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx,
                                                 Channel ch, String user, String mapId, Range reduceRange,
                                                 MapOutputInfo info) throws IOException {
+            lastSocketAddress.setAddress(ch.getRemoteAddress());
             HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
 
             // send a shuffle header and a lot of data down the channel
@@ -432,6 +447,9 @@ public class TestShuffleHandler {
     Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
     ShuffleHeader header = new ShuffleHeader();
     header.readFields(input);
+    byte[] buffer = new byte[1024];
+    while (input.read(buffer) != -1) {}
+    SocketAddress firstAddress = lastSocketAddress.getSocketAddres();
     input.close();
 
     // For keepAlive via URL
@@ -453,6 +471,11 @@ public class TestShuffleHandler {
     header = new ShuffleHeader();
     header.readFields(input);
     input.close();
+    SocketAddress secondAddress = lastSocketAddress.getSocketAddres();
+    Assert.assertNotNull("Initial shuffle address should not be null", firstAddress);
+    Assert.assertNotNull("Keep-Alive shuffle address should not be null", secondAddress);
+    Assert.assertEquals("Initial shuffle address and keep-alive shuffle "
+        + "address should be the same", firstAddress, secondAddress);
   }
 
   @Test
@@ -1147,14 +1170,19 @@ public class TestShuffleHandler {
         mock(ChannelHandlerContext.class);
     final MessageEvent mockEvt = mock(MessageEvent.class);
     final Channel mockCh = mock(AbstractChannel.class);
+    final ChannelPipeline mockPipeline = Mockito.mock(ChannelPipeline.class);
 
     // Mock HttpRequest and ChannelFuture
     final HttpRequest mockHttpRequest = createMockHttpRequest();
     final ChannelFuture mockFuture = createMockChannelFuture(mockCh,
         listenerList);
+    final ShuffleHandler.TimeoutHandler timerHandler =
+        new ShuffleHandler.TimeoutHandler();
 
     // Mock Netty Channel Context and Channel behavior
     Mockito.doReturn(mockCh).when(mockCtx).getChannel();
+    Mockito.when(mockCh.getPipeline()).thenReturn(mockPipeline);
+    Mockito.when(mockPipeline.get(Mockito.any(String.class))).thenReturn(timerHandler);
     when(mockCtx.getChannel()).thenReturn(mockCh);
     Mockito.doReturn(mockFuture).when(mockCh).write(Mockito.any(Object.class));
     when(mockCh.write(Object.class)).thenReturn(mockFuture);
