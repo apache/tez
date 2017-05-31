@@ -148,7 +148,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID = TEZ_AM_PREFIX +
       "shuffle.auxiliary-service.id";
   public static final String TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT =
-      "mapreduce_shuffle";
+      TezConstants.TEZ_SHUFFLE_HANDLER_SERVICE_ID;
 
   /**
    * String value. Specifies a directory where Tez can create temporary job artifacts.

@@ -69,7 +69,12 @@ public class TezConstants {
     TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
   
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
-  
+  /**
+   * The service id for the NodeManager plugin used to share intermediate data
+   * between vertices.
+   */
+  public static final String TEZ_SHUFFLE_HANDLER_SERVICE_ID = "mapreduce_shuffle";
+
   public static final String TEZ_PREWARM_DAG_NAME_PREFIX = "TezPreWarmDAG";
 
   public static final String DAG_RECOVERY_DATA_DIR_NAME = "recovery";
