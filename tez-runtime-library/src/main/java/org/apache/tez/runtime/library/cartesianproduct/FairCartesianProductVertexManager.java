@@ -434,22 +434,17 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     }
     LOG.info("Total ops " + totalOps + ", initial parallelism " + parallelism);
 
-    // determine num chunk for each source by weighted factorization of initial parallelism
-    // final parallelism will be product of all #chunk
-    double k = Math.log10(parallelism);
-    for (Source src : sourcesByName.values()) {
-      k -= Math.log10(src.numRecord);
-    }
-    k = Math.pow(10, k / sourcesByName.size());
-
-    parallelism = 1;
-    for (Source src : sourcesByName.values()) {
-      if (enableGrouping) {
-        src.numChunk = Math.min(src.getSrcVertexWithMostOutput().numTask * numPartitions,
-          Math.max(1, (int) (src.numRecord * k)));
-      } else {
+    if (enableGrouping) {
+      determineNumChunks(sourcesByName, parallelism);
+    } else {
+      for (Source src : sourcesByName.values()) {
         src.numChunk = src.getSrcVertexWithMostOutput().numTask;
       }
+    }
+
+    // final parallelism will be product of all #chunk
+    parallelism = 1;
+    for (Source src : sourcesByName.values()) {
       parallelism *= src.numChunk;
     }
 
@@ -489,6 +484,43 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     vertexReconfigured = true;
     getContext().doneReconfiguringVertex();
     return true;
+  }
+
+  /**
+   * determine num chunk for each source by weighted factorization of initial parallelism
+   **/
+  private void determineNumChunks(Map<String, Source> sourcesByName, int parallelism) {
+    // first round: set numChunk to 1 if source output is too small
+    double k = Math.log10(parallelism);
+    for (Source src : sourcesByName.values()) {
+      k -= Math.log10(src.numRecord);
+    }
+    k = Math.pow(10, k / sourcesByName.size());
+
+    for (Source src : sourcesByName.values()) {
+      if (src.numRecord * k < 2) {
+        src.numChunk = 1;
+      }
+    }
+
+    // second round: weighted factorization
+    k = Math.log10(parallelism);
+    int numLargeSrc = 0;
+    for (Source src : sourcesByName.values()) {
+      if (src.numChunk != 1) {
+        k -= Math.log10(src.numRecord);
+        numLargeSrc++;
+      }
+    }
+    k = Math.pow(10, k / numLargeSrc);
+
+    for (Source src : sourcesByName.values()) {
+      if (src.numChunk != 1) {
+        src.numChunk = Math.min(maxParallelism,
+          Math.min(src.getSrcVertexWithMostOutput().numTask * numPartitions,
+            Math.max(1, (int) (src.numRecord * k))));
+      }
+    }
   }
 
   private void tryScheduleTasks() throws IOException {
