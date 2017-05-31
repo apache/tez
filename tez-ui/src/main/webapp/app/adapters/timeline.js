@@ -33,6 +33,8 @@ export default AbstractAdapter.extend({
     attemptID: 'TEZ_TASK_ATTEMPT_ID',
     hiveQueryID: 'HIVE_QUERY_ID',
     appID: 'applicationId',
+    DAG_ID: "DAG_ID",
+    APP_ID: "APP_ID",
 
     dagName: 'dagName',
     user: "user",

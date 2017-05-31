@@ -42,8 +42,8 @@ export default ServerSideOpsRoute.extend({
 
   loaderQueryParams: {
     id: "queryID",
-    dagID: "dagID",
-    appID: "appID",
+    DAG_ID: "dagID",
+    APP_ID: "appID",
     executionMode: "executionMode",
     user: "user",
     requestuser: "requestUser",
@@ -59,36 +59,6 @@ export default ServerSideOpsRoute.extend({
   loaderNamespace: "queries",
 
   fromId: null,
-
-  load: function (value, query, options) {
-    var that = this;
-
-    if(query.dagID) {
-      return that.get("loader").queryRecord("dag", query.dagID).then(function (dag) {
-        return that.load(value, {
-          id: dag.get("callerID")
-        }, options);
-      }, function () {
-        return [];
-      });
-    }
-    else if(query.appID) {
-      return that.get("loader").query("dag", {
-        appID: query.appID,
-        limit: query.limit
-      }).then(function (dags) {
-        return Ember.RSVP.all(dags.map(function (dag) {
-          return that.get("loader").queryRecord("hive-query", dag.get("callerID"), options);
-        }));
-      }, function () {
-        return [];
-      });
-    }
-
-    return this._super(value, query, options).then(function (records) {
-      return records.toArray();
-    });
-  },
 
   setupController: function (controller, model) {
     this._super(controller, model);

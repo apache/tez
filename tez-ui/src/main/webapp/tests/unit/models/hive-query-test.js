@@ -42,6 +42,8 @@ test('Basic creation test', function(assert) {
 
   assert.ok(model.queryText);
 
+  assert.ok(model.dagID);
+
   assert.ok(model.configsJSON);
 
   assert.ok(model.startTime);

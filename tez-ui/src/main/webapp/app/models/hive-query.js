@@ -32,6 +32,11 @@ export default AbstractModel.extend({
           callerId: model.get("entityID")
         };
       },
+      loadType: function (record) {
+        if(record.get("dagID")) {
+          return "demand";
+        }
+      },
     }
   },
 
@@ -39,6 +44,8 @@ export default AbstractModel.extend({
 
   dag: DS.attr('object'),
 
+  dagID: DS.attr('string'),
+  appID: DS.attr('string'),
   sessionID: DS.attr('string'),
   operationID: DS.attr('string'),
   llapAppID: DS.attr('string'),

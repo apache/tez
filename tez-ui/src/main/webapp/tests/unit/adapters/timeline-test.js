@@ -37,7 +37,7 @@ test('Basic creation test', function(assert) {
 
 test('filters test', function(assert) {
   let filters = this.subject().filters;
-  assert.equal(Object.keys(filters).length, 6 + 8 + 4);
+  assert.equal(Object.keys(filters).length, 8 + 8 + 4);
 });
 
 test('stringifyFilters test', function(assert) {

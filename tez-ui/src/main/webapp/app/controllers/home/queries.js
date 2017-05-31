@@ -112,14 +112,15 @@ export default TableController.extend({
   },{
     id: 'dagID',
     headerTitle: 'DAG ID',
-    contentPath: 'dag.firstObject.entityID',
+    contentPath: 'dagID',
     cellComponentName: 'em-table-linked-cell',
     minWidth: "250px",
     getCellContent: function (row) {
+      var dagID = row.get("dagID") || row.get("dag.firstObject.entityID");
       return {
         routeName: "dag",
-        model: row.get("dag.firstObject.entityID"),
-        text: row.get("dag.firstObject.entityID")
+        model: dagID,
+        text: dagID
       };
     }
   },{
@@ -160,13 +161,14 @@ export default TableController.extend({
   },{
     id: 'appID',
     headerTitle: 'Application Id',
-    contentPath: 'dag.firstObject.appID',
+    contentPath: 'appID',
     cellComponentName: 'em-table-linked-cell',
     getCellContent: function (row) {
+      var appID = row.get("appID") || row.get("dag.firstObject.appID");
       return {
         routeName: "app",
-        model: row.get("dag.firstObject.appID"),
-        text: row.get("dag.firstObject.appID")
+        model: appID,
+        text: appID
       };
     }
   },{

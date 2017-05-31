@@ -51,6 +51,8 @@ export default TimelineSerializer.extend({
   maps: {
     queryText: 'otherinfo.QUERY.queryText',
 
+    dagID: 'primaryfilters.DAG_ID',
+    appID: 'primaryfilters.APP_ID',
     sessionID: 'otherinfo.INVOKER_INFO',
     operationID: 'primaryfilters.operationid.0',
     llapAppID: 'otherinfo.LLAP_APP_ID',
