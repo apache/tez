@@ -259,6 +259,12 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   @Test(timeout = 10000)
+  public void testMultipleSpillsWithSmallBuffer() throws IOException, InterruptedException {
+    // numBuffers is much higher than available threads.
+    baseTest(200, 10, null, shouldCompress, 512, 0, 9600);
+  }
+
+  @Test(timeout = 10000)
   public void testMergeBuffersAndSpill() throws IOException, InterruptedException {
     baseTest(200, 10, null, shouldCompress, 2048, 10);
   }
@@ -702,8 +708,8 @@ public class TestUnorderedPartitionedKVWriter {
     } else {
       assertEquals(0, fileOutputBytes);
     }
-    assertEquals(recordsPerBuffer * numExpectedSpills,
-        spilledRecordsCounter.getValue());
+    // due to multiple threads, buffers could be merged in chunks in scheduleSpill.
+    assertTrue(recordsPerBuffer * numExpectedSpills >= spilledRecordsCounter.getValue());
     long additionalSpillBytesWritten =
         additionalSpillBytesWritternCounter.getValue();
     long additionalSpillBytesRead = additionalSpillBytesReadCounter.getValue();
@@ -776,9 +782,16 @@ public class TestUnorderedPartitionedKVWriter {
     }
   }
 
-
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
       boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent)
+      throws IOException, InterruptedException {
+    baseTest(numRecords, numPartitions, skippedPartitions, shouldCompress,
+        maxSingleBufferSizeBytes, bufferMergePercent, 2048);
+  }
+
+  private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
+      boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent, int
+      availableMemory)
           throws IOException, InterruptedException {
     PartitionerForTest partitioner = new PartitionerForTest();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
@@ -802,7 +815,6 @@ public class TestUnorderedPartitionedKVWriter {
     }
 
     int numOutputs = numPartitions;
-    long availableMemory = 2048;
     int numRecordsWritten = 0;
 
     Map<Integer, Multimap<Integer, Long>> expectedValues = new HashMap<Integer, Multimap<Integer, Long>>();
@@ -885,7 +897,8 @@ public class TestUnorderedPartitionedKVWriter {
       }
     }
     assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
-    assertEquals(numExpectedSpills, numAdditionalSpillsCounter.getValue());
+    // due to multiple threads, buffers could be merged in chunks in scheduleSpill.
+    assertTrue(numExpectedSpills >= numAdditionalSpillsCounter.getValue());
 
     BitSet emptyPartitionBits = null;
     // Verify the events returned
