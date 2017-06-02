@@ -328,10 +328,9 @@ public class MRHelpers {
    * running Map tasks
    */
   public static Resource getResourceForMRMapper(Configuration conf) {
-    return Resource.newInstance(conf.getInt(
-        MRJobConfig.MAP_MEMORY_MB, MRJobConfig.DEFAULT_MAP_MEMORY_MB),
-        conf.getInt(MRJobConfig.MAP_CPU_VCORES,
-            MRJobConfig.DEFAULT_MAP_CPU_VCORES));
+    JobConf jobConf = conf instanceof JobConf ? (JobConf)conf : new JobConf(conf);
+    return Resource.newInstance((int)jobConf.getMemoryForMapTask(),
+        jobConf.getInt(MRJobConfig.MAP_CPU_VCORES, MRJobConfig.DEFAULT_MAP_CPU_VCORES));
   }
 
   /**
@@ -351,10 +350,9 @@ public class MRHelpers {
    * running Reduce tasks
    */
   public static Resource getResourceForMRReducer(Configuration conf) {
-    return Resource.newInstance(conf.getInt(
-            MRJobConfig.REDUCE_MEMORY_MB, MRJobConfig.DEFAULT_REDUCE_MEMORY_MB),
-        conf.getInt(MRJobConfig.REDUCE_CPU_VCORES,
-            MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
+    JobConf jobConf = conf instanceof JobConf ? (JobConf)conf : new JobConf(conf);
+    return Resource.newInstance((int)jobConf.getMemoryForReduceTask(),
+        conf.getInt(MRJobConfig.REDUCE_CPU_VCORES, MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
   }
 
   /**
