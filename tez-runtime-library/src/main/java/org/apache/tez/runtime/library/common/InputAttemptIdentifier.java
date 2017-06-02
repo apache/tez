@@ -45,7 +45,7 @@ public class InputAttemptIdentifier {
    * These fields are added for additional information about the source and are not meant to
    * alter the way these sources would be stored in hashmap.
    */
-  private final SPILL_INFO fetchTypeInfo;
+  private final byte fetchTypeInfo;
   private final int spillEventId;
 
   public InputAttemptIdentifier(int inputIndex, int attemptNumber) {
@@ -66,7 +66,7 @@ public class InputAttemptIdentifier {
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
     this.shared = shared;
-    this.fetchTypeInfo = fetchTypeInfo;
+    this.fetchTypeInfo = (byte)fetchTypeInfo.ordinal();
     this.spillEventId = spillEventId;
     if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
       throw new TezUncheckedException(
@@ -91,7 +91,12 @@ public class InputAttemptIdentifier {
   }
 
   public SPILL_INFO getFetchTypeInfo() {
-    return fetchTypeInfo;
+    if (fetchTypeInfo == SPILL_INFO.INCREMENTAL_UPDATE.ordinal()) {
+      return SPILL_INFO.INCREMENTAL_UPDATE;
+    } else if (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE.ordinal()) {
+      return SPILL_INFO.FINAL_UPDATE;
+    }
+    return SPILL_INFO.FINAL_MERGE_ENABLED;
   }
 
   public int getSpillEventId() {
@@ -99,8 +104,8 @@ public class InputAttemptIdentifier {
   }
 
   public boolean canRetrieveInputInChunks() {
-    return (fetchTypeInfo == SPILL_INFO.INCREMENTAL_UPDATE) ||
-        (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE);
+    return (fetchTypeInfo == SPILL_INFO.INCREMENTAL_UPDATE.ordinal()) ||
+        (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE.ordinal());
   }
 
   // PathComponent & shared does not need to be part of the hashCode and equals computation.
@@ -134,6 +139,6 @@ public class InputAttemptIdentifier {
   public String toString() {
     return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
         + ", attemptNumber=" + attemptNumber + ", pathComponent="
-        + pathComponent + ", spillType=" + fetchTypeInfo.ordinal() + ", spillId=" + spillEventId  +"]";
+        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId  +"]";
   }
 }
