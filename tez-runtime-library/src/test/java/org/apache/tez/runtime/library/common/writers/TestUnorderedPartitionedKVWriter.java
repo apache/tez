@@ -287,31 +287,57 @@ public class TestUnorderedPartitionedKVWriter {
 
   @Test(timeout = 10000)
   public void testRandomText() throws IOException, InterruptedException {
-    textTest(100, 10, 2048, 0, 0, 0, false);
+    textTest(100, 10, 2048, 0, 0, 0, false, true);
   }
 
   @Test(timeout = 10000)
   public void testLargeKeys() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 10, 0, 0, false);
+    textTest(0, 10, 2048, 10, 0, 0, false, true);
   }
 
   @Test(timeout = 10000)
   public void testLargevalues() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 0, 10, 0, false);
+    textTest(0, 10, 2048, 0, 10, 0, false, true);
   }
 
   @Test(timeout = 10000)
   public void testLargeKvPairs() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 0, 0, 10, false);
+    textTest(0, 10, 2048, 0, 0, 10, false, true);
   }
 
   @Test(timeout = 10000)
   public void testTextMixedRecords() throws IOException, InterruptedException {
-    textTest(100, 10, 2048, 10, 10, 10, false);
+    textTest(100, 10, 2048, 10, 10, 10, false, true);
+  }
+
+  @Test(timeout = 10000000)
+  public void testRandomTextWithoutFinalMerge() throws IOException, InterruptedException {
+    textTest(100, 10, 2048, 0, 0, 0, false, false);
+  }
+
+  @Test(timeout = 10000)
+  public void testLargeKeysWithoutFinalMerge() throws IOException, InterruptedException {
+    textTest(0, 10, 2048, 10, 0, 0, false, false);
+  }
+
+  @Test(timeout = 10000)
+  public void testLargevaluesWithoutFinalMerge() throws IOException, InterruptedException {
+    textTest(0, 10, 2048, 0, 10, 0, false, false);
+  }
+
+  @Test(timeout = 10000)
+  public void testLargeKvPairsWithoutFinalMerge() throws IOException, InterruptedException {
+    textTest(0, 10, 2048, 0, 0, 10, false, false);
+  }
+
+  @Test(timeout = 10000)
+  public void testTextMixedRecordsWithoutFinalMerge() throws IOException, InterruptedException {
+    textTest(100, 10, 2048, 10, 10, 10, false, false);
   }
 
   public void textTest(int numRegularRecords, int numPartitions, long availableMemory,
-      int numLargeKeys, int numLargevalues, int numLargeKvPairs, boolean pipeliningEnabled) throws IOException,
+      int numLargeKeys, int numLargevalues, int numLargeKvPairs,
+      boolean pipeliningEnabled, boolean isFinalMergeEnabled) throws IOException,
       InterruptedException {
     Partitioner partitioner = new HashPartitioner();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
@@ -325,10 +351,9 @@ public class TestUnorderedPartitionedKVWriter {
 
     Configuration conf = createConfiguration(outputContext, Text.class, Text.class, shouldCompress,
         -1, HashPartitioner.class);
-    if (pipeliningEnabled) {
-      conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, true);
-      conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
-    }
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, pipeliningEnabled);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, isFinalMergeEnabled);
+
     CompressionCodec codec = null;
     if (shouldCompress) {
       codec = new DefaultCodec();
@@ -432,7 +457,7 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(numLargeKeys + numLargevalues + numLargeKvPairs,
         outputLargeRecordsCounter.getValue());
 
-    if (pipeliningEnabled) {
+    if (pipeliningEnabled || !isFinalMergeEnabled) {
       return;
     }
 
@@ -590,7 +615,7 @@ public class TestUnorderedPartitionedKVWriter {
 
   @Test(timeout = 10000)
   public void testLargeKvPairs_WithPipelinedShuffle() throws IOException, InterruptedException {
-    textTest(0, 10, 2048, 10, 20, 50, true);
+    textTest(0, 10, 2048, 10, 20, 50, true, false);
   }
 
 
