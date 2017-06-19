@@ -127,6 +127,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
     if (isStarted.get()) {
       //TODO: Do we need to support sending payloads via events?
       returnEvents = kvWriter.close();
+      kvWriter = null;
     } else {
       LOG.warn(getContext().getDestinationVertexName() +
           ": Attempting to close output {} of type {} before it was started. Generating empty events",

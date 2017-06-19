@@ -187,6 +187,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       sorter.close();
       this.endTime = System.nanoTime();
       returnEvents = generateEvents();
+      sorter = null;
     } else {
       LOG.warn(getContext().getDestinationVertexName() +
           ": Attempting to close output {} of type {} before it was started. Generating empty events",

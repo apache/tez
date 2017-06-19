@@ -15,23 +15,58 @@
 package org.apache.tez.runtime.library.output;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 // Tests which don't require parameterization
 public class TestUnorderedKVOutput2 {
+  private Configuration conf;
+  private FileSystem localFs;
+  private Path workingDir;
+
+  @Before
+  public void setup() throws IOException {
+    conf = new Configuration();
+    localFs = FileSystem.getLocal(conf);
+    workingDir = new Path(System.getProperty("test.build.data",
+        System.getProperty("java.io.tmpdir", "/tmp")),
+        TestUnorderedKVOutput2.class.getName()).makeQualified(
+            localFs.getUri(), localFs.getWorkingDirectory());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
+        HashPartitioner.class.getName());
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workingDir.toString());
+  }
+
+  @After
+  public void cleanup() throws IOException {
+    localFs.delete(workingDir, true);
+  }
 
   @Test(timeout = 5000)
   public void testNonStartedOutput() throws Exception {
@@ -56,5 +91,17 @@ public class TestUnorderedKVOutput2 {
     for (int i = 0 ; i < numPartitions ; i++) {
       assertTrue(emptyPartionsBitSet.get(i));
     }
+  }
+
+  @Test(timeout = 10000)
+  public void testClose() throws Exception {
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, workingDir);
+    int numPartitions = 1;
+    UnorderedKVOutput output = new UnorderedKVOutput(outputContext, numPartitions);
+    output.initialize();
+    output.start();
+    assertNotNull(output.getWriter());
+    output.close();
+    assertNull(output.getWriter());
   }
 }

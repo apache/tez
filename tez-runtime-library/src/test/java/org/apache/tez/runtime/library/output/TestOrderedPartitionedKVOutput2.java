@@ -23,22 +23,53 @@ import java.util.BitSet;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.tez.common.TezCommonUtils;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 // Tests which don't require parameterization
 public class TestOrderedPartitionedKVOutput2 {
+  private Configuration conf;
+  private FileSystem localFs;
+  private Path workingDir;
 
+  @Before
+  public void setup() throws IOException {
+    conf = new Configuration();
+    localFs = FileSystem.getLocal(conf);
+    workingDir = new Path(System.getProperty("test.build.data",
+        System.getProperty("java.io.tmpdir", "/tmp")),
+        TestUnorderedKVOutput2.class.getName()).makeQualified(
+        localFs.getUri(), localFs.getWorkingDirectory());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
+        HashPartitioner.class.getName());
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workingDir.toString());
+  }
+
+  @After
+  public void cleanup() throws IOException {
+    localFs.delete(workingDir, true);
+  }
 
   @Test(timeout = 5000)
   public void testNonStartedOutput() throws IOException {
-    OutputContext outputContext = OutputTestHelpers.createOutputContext();
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, workingDir);
     int numPartitions = 10;
     OrderedPartitionedKVOutput output = new OrderedPartitionedKVOutput(outputContext, numPartitions);
     output.initialize();
@@ -63,5 +94,13 @@ public class TestOrderedPartitionedKVOutput2 {
     }
   }
 
-
+  @Test(timeout = 10000)
+  public void testClose() throws Exception {
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, workingDir);
+    int numPartitions = 10;
+    OrderedPartitionedKVOutput output = new OrderedPartitionedKVOutput(outputContext, numPartitions);
+    output.initialize();
+    output.start();
+    output.close();
+  }
 }

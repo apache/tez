@@ -280,6 +280,7 @@ public class TestDefaultSorter {
     try {
       sorter.flush();
       sorter.close();
+      assertTrue(sorter.isClosed());
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID));
       verifyCounters(sorter, context);
     } catch(Exception e) {
@@ -302,6 +303,7 @@ public class TestDefaultSorter {
     try {
       sorter.flush();
       sorter.close();
+      assertTrue(sorter.isClosed());
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID +
           "_0"));
       verifyCounters(sorter, context);

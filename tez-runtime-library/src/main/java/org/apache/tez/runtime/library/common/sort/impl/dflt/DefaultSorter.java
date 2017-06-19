@@ -78,7 +78,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   private final static int APPROX_HEADER_LENGTH = 150;
 
   // k/v accounting
-  private final IntBuffer kvmeta; // metadata overlay on backing store
+  private IntBuffer kvmeta; // metadata overlay on backing store
   int kvstart;            // marks origin of spill metadata
   int kvend;              // marks end of spill metadata
   int kvindex;            // marks end of fully serialized records
@@ -91,7 +91,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   int bufvoid;            // marks the point where we should stop
                           // reading at the end of the buffer
 
-  private final byte[] kvbuffer;        // main output buffer
+  private byte[] kvbuffer;        // main output buffer
   private final byte[] b0 = new byte[0];
 
   protected static final int VALSTART = 0;         // val offset in acct
@@ -749,6 +749,16 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     }
   }
 
+  @Override
+  public void close() throws IOException {
+    super.close();
+    kvbuffer = null;
+    kvmeta = null;
+  }
+
+  boolean isClosed() {
+    return kvbuffer == null && kvmeta == null;
+  }
 
   protected class SpillThread extends Thread {
 
