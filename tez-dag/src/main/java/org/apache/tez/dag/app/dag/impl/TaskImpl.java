@@ -151,6 +151,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
   private static final SingleArcTransition<TaskImpl, TaskEvent>
      KILL_TRANSITION = new KillTransition();
+  private static final SingleArcTransition<TaskImpl, TaskEvent>
+      REDUNDANT_COMPLETED_TRANSITION = new AttemptRedundantCompletedTransition();
 
 
   private static final TaskStateChangedCallback STATE_CHANGED_CALLBACK = new TaskStateChangedCallback();
@@ -244,12 +246,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.SUCCEEDED),
         TaskEventType.T_ATTEMPT_KILLED, new TaskRetroactiveKilledTransition())
-    // Ignore-able transitions.
     .addTransition(
         TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
-        EnumSet.of(TaskEventType.T_ADD_SPEC_ATTEMPT,
+        TaskEventType.T_ATTEMPT_SUCCEEDED, REDUNDANT_COMPLETED_TRANSITION)
+    // Ignore-able transitions.
+    .addTransition(TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
+        EnumSet.of(
+            TaskEventType.T_ADD_SPEC_ATTEMPT,
             TaskEventType.T_TERMINATE,
-            TaskEventType.T_ATTEMPT_SUCCEEDED, // Maybe track and reuse later
             TaskEventType.T_ATTEMPT_LAUNCHED))
     .addTransition(TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
         TaskEventType.T_SCHEDULE)
@@ -257,12 +261,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // Transitions from FAILED state
     .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
         EnumSet.of(
-            TaskEventType.T_TERMINATE,
-            TaskEventType.T_SCHEDULE,
-            TaskEventType.T_ADD_SPEC_ATTEMPT,
             TaskEventType.T_ATTEMPT_FAILED,
             TaskEventType.T_ATTEMPT_KILLED,
-            TaskEventType.T_ATTEMPT_SUCCEEDED))
+            TaskEventType.T_ATTEMPT_SUCCEEDED), REDUNDANT_COMPLETED_TRANSITION)
+    .addTransition(TaskStateInternal.FAILED, TaskStateInternal.FAILED,
+        EnumSet.of(
+            TaskEventType.T_TERMINATE,
+            TaskEventType.T_SCHEDULE,
+            TaskEventType.T_ADD_SPEC_ATTEMPT))
 
     // Transitions from KILLED state
     // Ignorable event: T_ATTEMPT_KILLED
@@ -1263,7 +1269,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (task.getInternalState() == TaskStateInternal.SUCCEEDED &&
           !failedAttemptId.equals(task.successfulAttempt)) {
         // don't allow a different task attempt to override a previous
-        // succeeded state
+        // succeeded state and mark the attempt status as done
+        task.taskAttemptStatus.put(failedAttemptId.getId(), true);
         return TaskStateInternal.SUCCEEDED;
       }
       
@@ -1343,6 +1350,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           new VertexEventTaskCompleted(task.taskId, TaskState.KILLED));
       // TODO Metrics
       //task.metrics.endWaitingTask(task);
+    }
+  }
+
+  private static class AttemptRedundantCompletedTransition
+      implements SingleArcTransition<TaskImpl, TaskEvent> {
+    @Override
+    public void transition(TaskImpl task, TaskEvent event) {
+      TezTaskAttemptID successTaId = ((TaskEventTAUpdate)event).getTaskAttemptID();
+      task.taskAttemptStatus.put(successTaId.getId(), true);
     }
   }
 
