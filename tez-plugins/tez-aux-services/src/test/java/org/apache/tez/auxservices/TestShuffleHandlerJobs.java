@@ -103,7 +103,7 @@ public class TestShuffleHandlerJobs {
       dfsCluster = null;
     }
   }
-  @Test(timeout = 60000)
+  @Test(timeout = 300000)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
     Path inputDir = new Path(inputDirStr);
