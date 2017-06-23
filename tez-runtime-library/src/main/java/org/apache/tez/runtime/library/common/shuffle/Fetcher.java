@@ -853,7 +853,17 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           ShuffleHeader header = new ShuffleHeader();
           header.readFields(input);
           pathComponent = header.getMapId();
+          if (!pathComponent.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
+            throw new IllegalArgumentException("Invalid map id: " + header.getMapId() + ", expected to start with " +
+                InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.getPartition()
+                + " while fetching " + inputAttemptIdentifier);
+          }
+
           srcAttemptId = pathToAttemptMap.get(new PathPartition(pathComponent, header.getPartition()));
+          if (srcAttemptId == null) {
+            throw new IllegalArgumentException("Source attempt not found for map id: " + header.getMapId() +
+                ", partition: " + header.getPartition() + " while fetching " + inputAttemptIdentifier);
+          }
 
           if (header.getCompressedLength() == 0) {
             // Empty partitions are already accounted for
