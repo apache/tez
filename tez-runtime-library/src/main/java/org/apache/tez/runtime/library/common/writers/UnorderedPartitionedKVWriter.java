@@ -286,6 +286,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         + ", sizePerBuffer=" + sizePerBuffer
         + ", skipBuffers=" + skipBuffers
         + ", pipelinedShuffle=" + pipelinedShuffle
+        + ", isFinalMergeEnabled=" + isFinalMergeEnabled
         + ", numPartitions=" + numPartitions
         + ", reportPartitionStats=" + reportPartitionStats);
   }
@@ -917,7 +918,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     Path outputFilePath = null;
     Path indexFilePath = null;
 
-    if (!pipelinedShuffle) {
+    if (!pipelinedShuffle && isFinalMergeEnabled) {
       if (isFinalSpill) {
         outputFilePath = outputFileHandler.getOutputFileForWrite(spillSize);
         indexFilePath = outputFileHandler.getOutputIndexFileForWrite(indexFileSizeEstimate);

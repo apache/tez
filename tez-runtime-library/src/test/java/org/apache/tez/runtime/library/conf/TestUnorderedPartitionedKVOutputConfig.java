@@ -85,7 +85,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
             .setAdditionalConfiguration(TezRuntimeConfiguration
                 .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, "true")
             .setAdditionalConfiguration(TezRuntimeConfiguration
-                .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, "true")
+                .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, "false")
             .setAdditionalConfiguration(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
                 String.valueOf(false))
             .setAdditionalConfiguration(additionalConf)
@@ -103,9 +103,8 @@ public class TestUnorderedPartitionedKVOutputConfig {
     // Verify programmatic API usage
     assertEquals(true, conf.getBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, false));
-    //unorderedpartitioned writer ignores this value.
     assertEquals(false, conf.getBoolean(TezRuntimeConfiguration
-        .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false));
+        .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true));
     assertEquals(1111, conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 0));
     assertEquals("KEY", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
     assertEquals("VALUE", conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, ""));

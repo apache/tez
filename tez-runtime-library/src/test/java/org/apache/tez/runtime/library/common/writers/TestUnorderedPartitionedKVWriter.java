@@ -458,6 +458,11 @@ public class TestUnorderedPartitionedKVWriter {
         outputLargeRecordsCounter.getValue());
 
     if (pipeliningEnabled || !isFinalMergeEnabled) {
+      // verify spill data files and index file exist
+      for (int i = 0; i < kvWriter.numSpills.get(); i++) {
+        assertTrue(localFs.exists(kvWriter.outputFileHandler.getSpillFileForWrite(i, 0)));
+        assertTrue(localFs.exists(kvWriter.outputFileHandler.getSpillIndexFileForWrite(i, 0)));
+      }
       return;
     }
 
