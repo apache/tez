@@ -207,6 +207,13 @@
                     <exclude>META-INF/*.RSA</exclude>
                   </excludes>
                 </filter>
+                <!-- Remove SecurityInfo to avoid loading DAGClientSecurityInfo which can break daemon(RM,NM etc.) start up -->
+                <filter>
+                  <artifact>org.apache.tez:tez-api</artifact>
+                  <excludes>
+                    <exclude>META-INF/services/org.apache.hadoop.security.SecurityInfo</exclude>
+                  </excludes>
+                </filter>
               </filters>
               <relocations>
                 <relocation>
