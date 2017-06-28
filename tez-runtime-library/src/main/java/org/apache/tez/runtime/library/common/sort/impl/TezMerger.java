@@ -130,6 +130,29 @@ public class TezMerger {
 
   public static <K extends Object, V extends Object>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
+      Class keyClass, Class valueClass,
+      CompressionCodec codec,
+      List<Segment> segments,
+      int mergeFactor, Path tmpDir,
+      RawComparator comparator, Progressable reporter,
+      boolean sortSegments,
+      boolean considerFinalMergeForProgress,
+      TezCounter readsCounter,
+      TezCounter writesCounter,
+      TezCounter bytesReadCounter,
+      Progress mergePhase, boolean checkForSameKeys)
+      throws IOException, InterruptedException {
+    return new MergeQueue(conf, fs, segments, comparator, reporter,
+        sortSegments, codec, considerFinalMergeForProgress, checkForSameKeys).
+        merge(keyClass, valueClass,
+            mergeFactor, tmpDir,
+            readsCounter, writesCounter,
+            bytesReadCounter,
+            mergePhase);
+  }
+
+  public static <K extends Object, V extends Object>
+  TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
                             Class keyClass, Class valueClass,
                             CompressionCodec codec,
                             List<Segment> segments,
@@ -424,17 +447,18 @@ public class TezMerger {
   @VisibleForTesting
   static class MergeQueue<K extends Object, V extends Object>
   extends PriorityQueue<Segment> implements TezRawKeyValueIterator {
-    Configuration conf;
-    FileSystem fs;
-    CompressionCodec codec;
-    boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
-    int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
-    int ifileBufferSize = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT;
-    long recordsBeforeProgress = TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT;
+    final Configuration conf;
+    final FileSystem fs;
+    final CompressionCodec codec;
+    final boolean checkForSameKeys;
+    static final boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
+    static final int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
+    static final int ifileBufferSize = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT;
+    static final long recordsBeforeProgress = TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT;
     
     List<Segment> segments = new ArrayList<Segment>();
     
-    RawComparator comparator;
+    final RawComparator comparator;
 
     private long totalBytesProcessed;
     private float progPerByte;
@@ -444,7 +468,7 @@ public class TezMerger {
     // used in calculating mergeProgress.
     private final boolean considerFinalMergeForProgress;
 
-    Progressable reporter;
+    final Progressable reporter;
     
     final DataInputBuffer key = new DataInputBuffer();
     final DataInputBuffer value = new DataInputBuffer();
@@ -475,6 +499,7 @@ public class TezMerger {
                       TezCounter mergedMapOutputsCounter) 
     throws IOException {
       this.conf = conf;
+      this.checkForSameKeys = true;
       // this.recordsBeforeProgress =
       // conf.getLong(TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS,
       // TezJobConfig.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
@@ -500,9 +525,25 @@ public class TezMerger {
       Collections.sort(segments, segmentComparator); 
     }
     
-    public MergeQueue(Configuration conf, FileSystem fs, 
+    public MergeQueue(Configuration conf, FileSystem fs,
         List<Segment> segments, RawComparator comparator,
         Progressable reporter, boolean sortSegments, boolean considerFinalMergeForProgress) {
+      this(conf, fs, segments, comparator, reporter, sortSegments, null,
+          considerFinalMergeForProgress);
+    }
+
+    public MergeQueue(Configuration conf, FileSystem fs,
+        List<Segment> segments, RawComparator comparator,
+        Progressable reporter, boolean sortSegments, CompressionCodec codec,
+        boolean considerFinalMergeForProgress) {
+      this(conf, fs, segments, comparator, reporter, sortSegments, null,
+          considerFinalMergeForProgress, true);
+    }
+
+    public MergeQueue(Configuration conf, FileSystem fs,
+        List<Segment> segments, RawComparator comparator,
+        Progressable reporter, boolean sortSegments, CompressionCodec codec,
+        boolean considerFinalMergeForProgress, boolean checkForSameKeys) {
       this.conf = conf;
       this.fs = fs;
       this.comparator = comparator;
@@ -512,13 +553,7 @@ public class TezMerger {
       if (sortSegments) {
         Collections.sort(segments, segmentComparator);
       }
-    }
-
-    public MergeQueue(Configuration conf, FileSystem fs,
-        List<Segment> segments, RawComparator comparator,
-        Progressable reporter, boolean sortSegments, CompressionCodec codec,
-        boolean considerFinalMergeForProgress) {
-      this(conf, fs, segments, comparator, reporter, sortSegments, considerFinalMergeForProgress);
+      this.checkForSameKeys = checkForSameKeys;
       this.codec = codec;
     }
 
@@ -544,24 +579,26 @@ public class TezMerger {
 
     private void adjustPriorityQueue(Segment reader) throws IOException{
       long startPos = reader.getPosition();
-      if (hasNext == null) {
-        /**
-         * hasNext can be null during first iteration & prevKey is initialized here.
-         * In cases of NO_KEY/NEW_KEY, we readjust the queue later. If new segment/file is found
-         * during this process, we need to compare keys for RLE across segment boundaries.
-         * prevKey can't be empty at that time (e.g custom comparators)
-         */
-        populatePreviousKey();
-      } else {
-        //indicates a key has been read already
-        if (hasNext != KeyState.SAME_KEY) {
+      if (checkForSameKeys) {
+        if (hasNext == null) {
           /**
-           * Store previous key before reading next for later key comparisons.
-           * If all keys in a segment are unique, it would always hit this code path and key copies
-           * are wasteful in such condition, as these comparisons are mainly done for RLE.
-           * TODO: When better stats are available, this condition can be avoided.
+           * hasNext can be null during first iteration & prevKey is initialized here.
+           * In cases of NO_KEY/NEW_KEY, we readjust the queue later. If new segment/file is found
+           * during this process, we need to compare keys for RLE across segment boundaries.
+           * prevKey can't be empty at that time (e.g custom comparators)
            */
           populatePreviousKey();
+        } else {
+          //indicates a key has been read already
+          if (hasNext != KeyState.SAME_KEY) {
+            /**
+             * Store previous key before reading next for later key comparisons.
+             * If all keys in a segment are unique, it would always hit this code path and key copies
+             * are wasteful in such condition, as these comparisons are mainly done for RLE.
+             * TODO: When better stats are available, this condition can be avoided.
+             */
+            populatePreviousKey();
+          }
         }
       }
       hasNext = reader.readRawKey(nextKey);
@@ -589,7 +626,7 @@ public class TezMerger {
      */
     void compareKeyWithNextTopKey(Segment current) throws IOException {
       Segment nextTop = top();
-      if (nextTop != current) {
+      if (checkForSameKeys && nextTop != current) {
         //we have a different file. Compare it with previous key
         KeyValueBuffer nextKey = nextTop.getKey();
         int compare = compare(nextKey, prevKey);

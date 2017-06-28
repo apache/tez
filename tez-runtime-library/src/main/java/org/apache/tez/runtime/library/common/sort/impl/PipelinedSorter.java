@@ -37,6 +37,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
@@ -767,7 +768,7 @@ public class PipelinedSorter extends ExternalSorter {
             (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf),
             progressable, sortSegments, true,
             null, spilledRecordsCounter, additionalSpillBytesRead,
-            null); // Not using any Progress in TezMerger. Should just work.
+            null, merger.needsRLE()); // Not using any Progress in TezMerger. Should just work.
         //write merged output to disk
         long segmentStart = finalOut.getPos();
         Writer writer =
@@ -1267,6 +1268,12 @@ public class PipelinedSorter extends ExternalSorter {
     public SpanIterator pop() {
       return this.poll();
     }
+  }
+
+  @InterfaceAudience.Private
+  @VisibleForTesting
+  public boolean needsRLE() {
+    return merger.needsRLE();
   }
 
   private final class SpanMerger implements PartitionedRawKeyValueIterator {

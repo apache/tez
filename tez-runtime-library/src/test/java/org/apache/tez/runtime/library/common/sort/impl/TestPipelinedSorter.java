@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.atLeastOnce;
@@ -364,6 +365,38 @@ public class TestPipelinedSorter {
         initialAvailableMem);
 
     writeData(sorter, 10000, 100);
+    verifyCounters(sorter, outputContext);
+  }
+
+  @Test
+  public void testMultipleSpills() throws IOException {
+    Configuration conf = getConf();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    this.numOutputs = 5;
+    this.initialAvailableMem = 5 * 1024 * 1024;
+    conf.setInt(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 3);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem);
+
+    writeData(sorter, 25000, 1000);
+    assertFalse("Expecting needsRLE to be false", sorter.needsRLE());
+    verifyCounters(sorter, outputContext);
+  }
+
+  @Test
+  public void testMultipleSpills_WithRLE() throws IOException {
+    Configuration conf = getConf();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    this.numOutputs = 5;
+    this.initialAvailableMem = 5 * 1024 * 1024;
+    conf.setInt(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 3);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+        initialAvailableMem);
+
+    writeSimilarKeys(sorter, 25000, 1000, true);
+    assertTrue("Expecting needsRLE to be true", sorter.needsRLE());
     verifyCounters(sorter, outputContext);
   }
 
@@ -702,6 +735,25 @@ public class TestPipelinedSorter {
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen) throws IOException {
     writeData(sorter, numKeys, keyLen, true);
+  }
+
+  // duplicate some of the keys
+  private void writeSimilarKeys(ExternalSorter sorter, int numKeys, int keyLen,
+      boolean autoClose) throws IOException {
+    sortedDataMap.clear();
+    String keyStr = RandomStringUtils.randomAlphanumeric(keyLen);
+    for (int i = 0; i < numKeys; i++) {
+      if (i % 4 == 0) {
+        keyStr = RandomStringUtils.randomAlphanumeric(keyLen);
+      }
+      Text key = new Text(keyStr);
+      Text value = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
+      sorter.write(key, value);
+      sortedDataMap.put(key.toString(), value.toString()); //for verifying data later
+    }
+    if (autoClose) {
+      closeSorter(sorter);
+    }
   }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen,
