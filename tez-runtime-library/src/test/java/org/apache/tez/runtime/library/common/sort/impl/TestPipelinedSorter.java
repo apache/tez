@@ -176,9 +176,63 @@ public class TestPipelinedSorter {
     // final merge is disabled. Final output file would not be populated in this case.
     assertTrue(sorter.finalOutputFile == null);
     TezCounter numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
-    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
+//    assertTrue(sorter.getNumSpills() == numShuffleChunks.getValue());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
 
+  }
+
+  @Test
+  public void testEmptyPartitionsTwoSpillsNoEmptyEvents() throws Exception {
+    testEmptyPartitionsHelper(2, false);
+  }
+
+  @Test
+  public void testEmptyPartitionsTwoSpillsWithEmptyEvents() throws Exception {
+    testEmptyPartitionsHelper(2, true);
+  }
+
+  @Test
+  public void testEmptyPartitionsNoSpillsNoEmptyEvents() throws Exception {
+    testEmptyPartitionsHelper(0, false);
+  }
+
+  @Test
+  public void testEmptyPartitionsNoSpillsWithEmptyEvents() throws Exception {
+    testEmptyPartitionsHelper(0, true);
+  }
+
+  public void testEmptyPartitionsHelper(int numKeys, boolean sendEmptyPartitionDetails) throws IOException, InterruptedException {
+    int partitions = 50;
+    this.numOutputs = partitions;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    Configuration conf = getConf();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED, sendEmptyPartitionDetails);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    conf.setInt(TezRuntimeConfiguration
+        .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 1);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, partitions,
+        initialAvailableMem);
+
+    writeData(sorter, numKeys, 1000000);
+    if (numKeys == 0) {
+      assertTrue(sorter.getNumSpills() == 1);
+    } else {
+      assertTrue(sorter.getNumSpills() == numKeys + 1);
+    }
+    verifyCounters(sorter, outputContext);
+    Path indexFile = sorter.getFinalIndexFile();
+    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+    for (int i = 0; i < partitions; i++) {
+      TezIndexRecord tezIndexRecord = spillRecord.getIndex(i);
+      if (tezIndexRecord.hasData()) {
+        continue;
+      }
+      if (sendEmptyPartitionDetails) {
+        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 0, tezIndexRecord.getRawLength());
+      } else {
+        Assert.assertEquals("Unexpected raw length for " + i + "th partition", 6, tezIndexRecord.getRawLength());
+      }
+    }
   }
 
   @Test
@@ -452,10 +506,14 @@ public class TestPipelinedSorter {
     verifyCounters(sorter, outputContext);
     Path outputFile = sorter.finalOutputFile;
     FileSystem fs = outputFile.getFileSystem(conf);
-    IFile.Reader reader = new IFile.Reader(fs, outputFile, null, null, null, false, -1, 4096);
+    TezCounter finalOutputBytes =
+        outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
+    if (finalOutputBytes.getValue() > 0) {
+      IFile.Reader reader = new IFile.Reader(fs, outputFile, null, null, null, false, -1, 4096);
+      verifyData(reader);
+      reader.close();
+    }
     //Verify dataset
-    verifyData(reader);
-    reader.close();
     verify(outputContext, atLeastOnce()).notifyProgress();
   }
 
@@ -486,11 +544,11 @@ public class TestPipelinedSorter {
 
     TezCounter finalOutputBytes =
         context.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_PHYSICAL);
-    assertTrue(finalOutputBytes.getValue() > 0);
+    assertTrue(finalOutputBytes.getValue() >= 0);
 
     TezCounter outputBytesWithOverheadCounter = context.getCounters().findCounter
         (TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
-    assertTrue(outputBytesWithOverheadCounter.getValue() > 0);
+    assertTrue(outputBytesWithOverheadCounter.getValue() >= 0);
   }
 
 

@@ -490,8 +490,10 @@ public class PipelinedSorter extends ExternalSorter {
         Writer writer = null;
         try {
           long segmentStart = out.getPos();
-          writer = new Writer(conf, out, keyClass, valClass, codec,
-              spilledRecordsCounter, null, false);
+          if (!sendEmptyPartitionDetails || (i == partition)) {
+            writer = new Writer(conf, out, keyClass, valClass, codec,
+                spilledRecordsCounter, null, false);
+          }
           // we need not check for combiner since its a single record
           if (i == partition) {
             final long recordStart = out.getPos();
@@ -499,16 +501,18 @@ public class PipelinedSorter extends ExternalSorter {
             mapOutputRecordCounter.increment(1);
             mapOutputByteCounter.increment(out.getPos() - recordStart);
           }
-
-          writer.close();
-          adjustSpillCounters(writer.getRawLength(), writer.getCompressedLength());
-
+          long rawLength = 0;
+          long partLength = 0;
+          if (writer != null) {
+            writer.close();
+            rawLength = writer.getRawLength();
+            partLength = writer.getCompressedLength();
+          }
+          adjustSpillCounters(rawLength, partLength);
           // record offsets
           final TezIndexRecord rec =
               new TezIndexRecord(
-                  segmentStart,
-                  writer.getRawLength(),
-                  writer.getCompressedLength());
+                  segmentStart, rawLength, partLength);
           spillRec.putIndex(rec, i);
           writer = null;
         } finally {
@@ -569,28 +573,37 @@ public class PipelinedSorter extends ExternalSorter {
         TezRawKeyValueIterator kvIter = merger.filter(i);
         //write merged output to disk
         long segmentStart = out.getPos();
-        Writer writer =
-          new Writer(conf, out, keyClass, valClass, codec,
+        Writer writer = null;
+        boolean hasNext = kvIter.next();
+        if (hasNext || !sendEmptyPartitionDetails) {
+          writer = new Writer(conf, out, keyClass, valClass, codec,
               spilledRecordsCounter, null, merger.needsRLE());
+        }
         if (combiner == null) {
-          while(kvIter.next()) {
+          while (hasNext) {
             writer.append(kvIter.getKey(), kvIter.getValue());
+            hasNext = kvIter.next();
           }
         } else {          
-          runCombineProcessor(kvIter, writer);
+          if (hasNext) {
+            runCombineProcessor(kvIter, writer);
+          }
         }
+        long rawLength = 0;
+        long partLength = 0;
         //close
-        writer.close();
-        adjustSpillCounters(writer.getRawLength(), writer.getCompressedLength());
+        if (writer != null) {
+          writer.close();
+          rawLength = writer.getRawLength();
+          partLength = writer.getCompressedLength();
+        }
+        adjustSpillCounters(rawLength, partLength);
         // record offsets
-        final TezIndexRecord rec = 
-            new TezIndexRecord(
-                segmentStart,
-                writer.getRawLength(),
-                writer.getCompressedLength());
+        final TezIndexRecord rec =
+            new TezIndexRecord(segmentStart, rawLength, partLength);
         spillRec.putIndex(rec, i);
         if (!isFinalMergeEnabled() && reportPartitionStats()) {
-          partitionStats[i] += writer.getCompressedLength();
+          partitionStats[i] += partLength;
         }
       }
 
@@ -741,18 +754,21 @@ public class PipelinedSorter extends ExternalSorter {
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
 
       for (int parts = 0; parts < partitions; parts++) {
+        boolean shouldWrite = false;
         //create the segments to be merged
         List<Segment> segmentList =
             new ArrayList<Segment>(numSpills);
         for (int i = 0; i < numSpills; i++) {
           Path spillFilename = spillFilePaths.get(i);
           TezIndexRecord indexRecord = indexCacheList.get(i).getIndex(parts);
-
-          DiskSegment s =
-              new DiskSegment(rfs, spillFilename, indexRecord.getStartOffset(),
-                  indexRecord.getPartLength(), codec, ifileReadAhead,
-                  ifileReadAheadLength, ifileBufferSize, true);
-          segmentList.add(i, s);
+          if (indexRecord.hasData() || !sendEmptyPartitionDetails) {
+            shouldWrite = true;
+            DiskSegment s =
+                new DiskSegment(rfs, spillFilename, indexRecord.getStartOffset(),
+                    indexRecord.getPartLength(), codec, ifileReadAhead,
+                    ifileReadAheadLength, ifileBufferSize, true);
+            segmentList.add(s);
+          }
         }
 
         int mergeFactor =
@@ -771,29 +787,32 @@ public class PipelinedSorter extends ExternalSorter {
             null, merger.needsRLE()); // Not using any Progress in TezMerger. Should just work.
         //write merged output to disk
         long segmentStart = finalOut.getPos();
-        Writer writer =
-            new Writer(conf, finalOut, keyClass, valClass, codec,
-                spilledRecordsCounter, null, merger.needsRLE());
-        if (combiner == null || numSpills < minSpillsForCombine) {
-          TezMerger.writeFile(kvIter, writer, progressable,
-              TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
-        } else {
-          runCombineProcessor(kvIter, writer);
-        }
+        long rawLength = 0;
+        long partLength = 0;
+        if (shouldWrite) {
+          Writer writer =
+              new Writer(conf, finalOut, keyClass, valClass, codec,
+                  spilledRecordsCounter, null, merger.needsRLE());
+          if (combiner == null || numSpills < minSpillsForCombine) {
+            TezMerger.writeFile(kvIter, writer, progressable,
+                TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
+          } else {
+            runCombineProcessor(kvIter, writer);
+          }
 
-        //close
-        writer.close();
-        outputBytesWithOverheadCounter.increment(writer.getRawLength());
+          //close
+          writer.close();
+          rawLength = writer.getRawLength();
+          partLength = writer.getCompressedLength();
+        }
+        outputBytesWithOverheadCounter.increment(rawLength);
 
         // record offsets
         final TezIndexRecord rec =
-            new TezIndexRecord(
-                segmentStart,
-                writer.getRawLength(),
-                writer.getCompressedLength());
+            new TezIndexRecord(segmentStart, rawLength, partLength);
         spillRec.putIndex(rec, parts);
         if (reportPartitionStats()) {
-          partitionStats[parts] += writer.getCompressedLength();
+          partitionStats[parts] += partLength;
         }
       }
 

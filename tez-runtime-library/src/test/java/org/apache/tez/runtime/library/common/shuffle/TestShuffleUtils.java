@@ -142,7 +142,7 @@ public class TestShuffleUtils {
     for(int i=0;i<numPartitions;i++) {
       long rawLen = ThreadLocalRandom.current().nextLong(100, 200);
       if (i % 2  == 0 || allEmptyPartitions) {
-        rawLen = 6; //indicates empty partition
+        rawLen = 0; //indicates empty partition, see TEZ-3605
       }
       TezIndexRecord indexRecord = new TezIndexRecord(startOffset, rawLen, partLen);
       startOffset += partLen;
