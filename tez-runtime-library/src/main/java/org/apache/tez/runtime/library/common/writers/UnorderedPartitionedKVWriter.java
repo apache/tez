@@ -172,7 +172,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   //for single partition cases (e.g UnorderedKVOutput)
   private final IFile.Writer writer;
-  private final boolean skipBuffers;
+  @VisibleForTesting
+  final boolean skipBuffers;
 
   private final ReentrantLock spillLock = new ReentrantLock();
   private final Condition spillInProgress = spillLock.newCondition();
@@ -285,6 +286,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         + "numBuffers=" + numBuffers
         + ", sizePerBuffer=" + sizePerBuffer
         + ", skipBuffers=" + skipBuffers
+        + ", numPartitions=" + numPartitions
+        + ", availableMemory=" + availableMemory
+        + ", maxSingleBufferSizeBytes=" + maxSingleBufferSizeBytes
         + ", pipelinedShuffle=" + pipelinedShuffle
         + ", isFinalMergeEnabled=" + isFinalMergeEnabled
         + ", numPartitions=" + numPartitions
@@ -558,17 +562,14 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     public SpillCallable(List<WrappedBuffer> filledBuffers, CompressionCodec codec,
         TezCounter numRecordsCounter, SpillPathDetails spillPathDetails) {
-      this.filledBuffers = filledBuffers;
-      this.codec = codec;
-      this.numRecordsCounter = numRecordsCounter;
-      this.spillIndex = spillPathDetails.spillIndex;
+      this(filledBuffers, codec, numRecordsCounter, spillPathDetails.spillIndex);
       Preconditions.checkArgument(spillPathDetails.outputFilePath != null, "Spill output file "
           + "path can not be null");
       this.spillPathDetails = spillPathDetails;
     }
 
     public SpillCallable(List<WrappedBuffer> filledBuffers, CompressionCodec codec,
-        TezCounter numRecordsCounter, int spillNumber) throws IOException {
+        TezCounter numRecordsCounter, int spillNumber) {
       this.filledBuffers = filledBuffers;
       this.codec = codec;
       this.numRecordsCounter = numRecordsCounter;
@@ -720,47 +721,66 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
             emptyPartitions.set(0);
           }
           if (reportPartitionStats()) {
-            sizePerPartition[0] = rawLen;
+            if (outputRecordsCounter.getValue() > 0) {
+              sizePerPartition[0] = rawLen;
+            }
           }
           cleanupCurrentBuffer();
 
-          outputBytesWithOverheadCounter.increment(rawLen);
-          fileOutputBytesCounter.increment(compLen + indexFileSizeEstimate);
+          if (outputRecordsCounter.getValue() > 0) {
+            outputBytesWithOverheadCounter.increment(rawLen);
+            fileOutputBytesCounter.increment(compLen + indexFileSizeEstimate);
+          }
           eventList.add(generateVMEvent());
           eventList.add(generateDMEvent(false, -1, false, outputContext
               .getUniqueIdentifier(), emptyPartitions));
           return eventList;
         }
 
-        //Regular code path.
-        boolean updatedCounters = false;
-        if (numSpills.get() > 0 && isFinalMergeEnabled) {
-          mergeAll();
-        } else {
-          if (finalSpill() && !isFinalMergeEnabled) {
-            //final spill generated some data. Add it to final events
-            updateTezCountersAndNotify();
-            updatedCounters = true;
-            finalEvents.add(generateVMEvent());
-            finalEvents.add(generateDMEvent());
-          }
-        }
-        if (!updatedCounters) {
-          updateTezCountersAndNotify();
-        }
-        cleanupCurrentBuffer();
+        /*
+          1. Final merge enabled
+             - When lots of spills are there, mergeAll, generate events and return
+             - If there are no existing spills, check for final spill and generate events
+          2. Final merge disabled
+             - If finalSpill generated data, generate events and return
+             - If finalSpill did not generate data, it would automatically populate events
+         */
         if (isFinalMergeEnabled) {
+          if (numSpills.get() > 0) {
+            mergeAll();
+          } else {
+            finalSpill();
+          }
+          updateTezCountersAndNotify();
           eventList.add(generateVMEvent());
           eventList.add(generateDMEvent());
         } else {
-          //all events to be sent out are added in finalEvents.
+          // if no data is generated, finalSpill would create VMEvent & add to finalEvents
+          SpillResult result = finalSpill();
+          if (result != null) {
+            updateTezCountersAndNotify();
+            // Generate vm event
+            finalEvents.add(generateVMEvent());
+
+            // compute empty partitions based on spill result and generate DME
+            int spillNum = numSpills.get() - 1;
+            SpillCallback callback = new SpillCallback(spillNum);
+            callback.computePartitionStats(result);
+            BitSet emptyPartitions = getEmptyPartitions(callback.getRecordsPerPartition());
+            String pathComponent = generatePathComponent(outputContext.getUniqueIdentifier(), spillNum);
+            Event finalEvent = generateDMEvent(true, spillNum,
+                true, pathComponent, emptyPartitions);
+            finalEvents.add(finalEvent);
+          }
+          //all events to be sent out are in finalEvents.
           eventList.addAll(finalEvents);
         }
+        cleanupCurrentBuffer();
         return eventList;
       }
 
       //For pipelined case, send out an event in case finalspill generated a spill file.
-      if (finalSpill()) {
+      if (finalSpill() != null) {
         // VertexManagerEvent is only sent at the end and thus sizePerPartition is used
         // for the sum of all spills.
         mayBeSendEventsForSpill(currentBuffer.recordsPerPartition,
@@ -848,41 +868,44 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     availableBuffers.clear();
   }
 
-  private boolean finalSpill() throws IOException {
+  private SpillResult finalSpill() throws IOException {
     if (currentBuffer.nextPosition == 0) {
       if (pipelinedShuffle || !isFinalMergeEnabled) {
         List<Event> eventList = Lists.newLinkedList();
         eventList.add(ShuffleUtils.generateVMEvent(outputContext,
             reportPartitionStats() ? new long[numPartitions] : null,
-                reportDetailedPartitionStats(), deflater.get()));
-        //Send final event with all empty partitions and null path component.
-        BitSet emptyPartitions = new BitSet(numPartitions);
-        emptyPartitions.flip(0, numPartitions);
-        eventList.add(generateDMEvent(true, numSpills.get(), true,
-            null, emptyPartitions));
+            reportDetailedPartitionStats(), deflater.get()));
+        if (localOutputRecordsCounter == 0 && outputLargeRecordsCounter.getValue() == 0) {
+          // Should send this event (all empty partitions) only when no records are written out.
+          BitSet emptyPartitions = new BitSet(numPartitions);
+          emptyPartitions.flip(0, numPartitions);
+          eventList.add(generateDMEvent(true, numSpills.get(), true,
+              null, emptyPartitions));
+        }
         if (pipelinedShuffle) {
           outputContext.sendEvents(eventList);
         } else if (!isFinalMergeEnabled) {
-          finalEvents.addAll(eventList);
+          finalEvents.addAll(0, eventList);
         }
       }
-      return false;
+      return null;
     } else {
       updateGlobalStats(currentBuffer);
       filledBuffers.add(currentBuffer);
 
       //setup output file and index file
       SpillPathDetails spillPathDetails = getSpillPathDetails(true, -1);
-      SpillCallable spillCallable = new SpillCallable(filledBuffers, codec, null, spillPathDetails);
+      SpillCallable spillCallable = new SpillCallable(filledBuffers,
+          codec, null, spillPathDetails);
       try {
         SpillResult spillResult = spillCallable.call();
 
         fileOutputBytesCounter.increment(spillResult.spillSize);
         fileOutputBytesCounter.increment(indexFileSizeEstimate);
+        return spillResult;
       } catch (Exception ex) {
         throw (ex instanceof IOException) ? (IOException)ex : new IOException(ex);
       }
-      return true;
     }
 
   }
@@ -934,8 +957,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       indexFilePath  = outputFileHandler.getSpillIndexFileForWrite(spillNumber, indexFileSizeEstimate);
     }
 
-    SpillPathDetails spillDetails = new SpillPathDetails(outputFilePath, indexFilePath, spillNumber);
-    return spillDetails;
+    return new SpillPathDetails(outputFilePath, indexFilePath, spillNumber);
   }
 
   private void mergeAll() throws IOException {
@@ -1184,12 +1206,16 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
   }
 
+  private String generatePathComponent(String uniqueId, int spillNumber) {
+    return (uniqueId + "_" + spillNumber);
+  }
+
   private List<Event> generateEventForSpill(BitSet emptyPartitions, long[] sizePerPartition,
       int spillNumber,
       boolean isFinalUpdate) throws IOException {
     List<Event> eventList = Lists.newLinkedList();
     //Send out an event for consuming.
-    String pathComponent = (outputContext.getUniqueIdentifier() + "_" + spillNumber);
+    String pathComponent = generatePathComponent(outputContext.getUniqueIdentifier(), spillNumber);
     if (isFinalUpdate) {
       eventList.add(ShuffleUtils.generateVMEvent(outputContext,
           sizePerPartition, reportDetailedPartitionStats(), deflater.get()));
@@ -1237,19 +1263,14 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   private class SpillCallback implements FutureCallback<SpillResult> {
 
     private final int spillNumber;
+    private int recordsPerPartition[];
+    private long sizePerPartition[];
 
     SpillCallback(int spillNumber) {
       this.spillNumber = spillNumber;
     }
 
-    @Override
-    public void onSuccess(SpillResult result) {
-      synchronized (UnorderedPartitionedKVWriter.this) {
-        spilledSize += result.spillSize;
-      }
-
-      int recordsPerPartition[] = null;
-      long sizePerPartition[] = null;
+    void computePartitionStats(SpillResult result) {
       if (result.filledBuffers.size() == 1) {
         recordsPerPartition = result.filledBuffers.get(0).recordsPerPartition;
         sizePerPartition = result.filledBuffers.get(0).sizePerPartition;
@@ -1263,6 +1284,19 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
           }
         }
       }
+    }
+
+    int[] getRecordsPerPartition() {
+      return recordsPerPartition;
+    }
+
+    @Override
+    public void onSuccess(SpillResult result) {
+      synchronized (UnorderedPartitionedKVWriter.this) {
+        spilledSize += result.spillSize;
+      }
+
+      computePartitionStats(result);
 
       mayBeSendEventsForSpill(recordsPerPartition, sizePerPartition, spillNumber, false);
 
@@ -1276,7 +1310,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         outputContext.reportFailure(TaskFailureType.NON_FATAL, e, "Failure while attempting to reset buffer after spill");
       }
 
-      if (!pipelinedShuffle) {
+      if (!pipelinedShuffle && isFinalMergeEnabled) {
         synchronized(additionalSpillBytesWritternCounter) {
           additionalSpillBytesWritternCounter.increment(result.spillSize);
         }
