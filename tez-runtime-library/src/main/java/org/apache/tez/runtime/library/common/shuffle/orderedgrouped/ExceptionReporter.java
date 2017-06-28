@@ -22,4 +22,5 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
  */
 interface ExceptionReporter {
   void reportException(Throwable t);
+  void killSelf(Exception exception, String message);
 }

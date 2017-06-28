@@ -407,6 +407,15 @@ public class Shuffle implements ExceptionReporter {
       cleanupShuffleSchedulerIgnoreErrors();
     }
   }
+
+  @Private
+  @Override
+  public synchronized void killSelf(Exception exception, String message) {
+    if (!isShutDown.get() && throwable.get() == null) {
+      shutdown();
+      inputContext.killSelf(exception, message);
+    }
+  }
   
   public static class ShuffleError extends IOException {
     private static final long serialVersionUID = 5753909320586607881L;

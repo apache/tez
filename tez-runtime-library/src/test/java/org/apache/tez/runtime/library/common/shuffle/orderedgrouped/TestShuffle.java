@@ -108,6 +108,36 @@ public class TestShuffle {
 
   }
 
+  @Test(timeout = 10000)
+  public void testKillSelf() throws IOException, InterruptedException {
+    InputContext inputContext = createTezInputContext();
+    TezConfiguration conf = new TezConfiguration();
+    conf.setLong(Constants.TEZ_RUNTIME_TASK_MEMORY, 300000l);
+    Shuffle shuffle = new Shuffle(inputContext, conf, 1, 3000000l);
+    try {
+      shuffle.run();
+      ShuffleScheduler scheduler = shuffle.scheduler;
+      assertFalse("scheduler.isShutdown should be false", scheduler.isShutdown());
+
+      // killSelf() would invoke close(). Internally Shuffle --> merge.close() --> finalMerge()
+      // gets called. In MergeManager::finalMerge(), it would throw illegal argument exception as
+      // uniqueIdentifier is not present in inputContext. This is used as means of simulating
+      // exception.
+      scheduler.killSelf(new Exception(), "due to internal error");
+      assertTrue("scheduler.isShutdown should be true", scheduler.isShutdown());
+
+      //killSelf() should not result in reporting failure to AM
+      ArgumentCaptor<Throwable> throwableArgumentCaptor = ArgumentCaptor.forClass(Throwable.class);
+      ArgumentCaptor<String> stringArgumentCaptor = ArgumentCaptor.forClass(String.class);
+      verify(inputContext, times(0)).reportFailure(eq(TaskFailureType.NON_FATAL),
+          throwableArgumentCaptor.capture(),
+          stringArgumentCaptor.capture());
+    } finally {
+      shuffle.shutdown();
+    }
+
+  }
+
 
   private InputContext createTezInputContext() throws IOException {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);

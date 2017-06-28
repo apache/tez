@@ -728,11 +728,7 @@ class ShuffleScheduler {
   @VisibleForTesting
   void killSelf(Exception exception, String message) {
     LOG.error(message, exception);
-    try {
-      this.close();
-    } finally {
-      this.inputContext.killSelf(exception, message);
-    }
+    exceptionReporter.killSelf(exception, message);
   }
 
   private final AtomicInteger nextProgressLineEventCount = new AtomicInteger(0);
