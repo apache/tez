@@ -111,6 +111,24 @@ module.exports = { // Tez App configurations
           counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
         },
 
+        //WASB/ADLS counters
+        {
+          counterName: 'WASB_BYTES_READ',
+          counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
+        },
+        {
+          counterName: 'WASB_BYTES_WRITTEN',
+          counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
+        },
+        {
+          counterName: 'ADL_BYTES_READ',
+          counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
+        },
+        {
+          counterName: 'ADL_BYTES_WRITTEN',
+          counterGroupName: 'org.apache.tez.common.counters.FileSystemCounter',
+        },
+
         // Task Counters
         {
           counterName: "NUM_SPECULATIONS",
