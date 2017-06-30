@@ -2723,8 +2723,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (inputsWithInitializers != null) {
         LOG.info("Setting vertexManager to RootInputVertexManager for "
             + logIdentifier);
-        vertexManager = new VertexManager(
-            VertexManagerPluginDescriptor.create(RootInputVertexManager.class.getName()),
+        vertexManager = new VertexManager(RootInputVertexManager
+            .createConfigBuilder(vertexConf).build(),
             dagUgi, this, appContext, stateChangeNotifier);
       } else if (hasOneToOne && !hasCustom) {
         LOG.info("Setting vertexManager to InputReadyVertexManager for "

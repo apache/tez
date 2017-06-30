@@ -6830,7 +6830,8 @@ public class TestVertexImpl {
   }
 
   @InterfaceAudience.Private
-  public static class VertexManagerWithException extends RootInputVertexManager{
+  public static class VertexManagerWithException extends
+      ImmediateStartVertexManager{
 
     public static enum VMExceptionLocation {
       NoExceptionDoReconfigure,

@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -137,11 +138,11 @@ public class TestVertexManager {
   
   @Test(timeout = 5000)
   public void testOnRootVertexInitialized() throws Exception {
+    Configuration conf = new Configuration();
     VertexManager vm =
-        new VertexManager(
-            VertexManagerPluginDescriptor.create(RootInputVertexManager.class
-                .getName()), UserGroupInformation.getCurrentUser(), 
-                mockVertex, mockAppContext, mock(StateChangeNotifier.class));
+        new VertexManager(RootInputVertexManager.createConfigBuilder(conf)
+            .build(), UserGroupInformation.getCurrentUser(),
+            mockVertex, mockAppContext, mock(StateChangeNotifier.class));
     vm.initialize();
     InputDescriptor id1 = mock(InputDescriptor.class);
     List<Event> events1 = new LinkedList<Event>();
