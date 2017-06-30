@@ -22,7 +22,12 @@ import MultiAmPollsterRoute from '../multi-am-pollster';
 import virtualAnchor from '../../utils/virtual-anchor';
 
 export default MultiAmPollsterRoute.extend({
-  title: "All Tasks",
+  title: Ember.computed(function () {
+    var vertex = this.modelFor("vertex"),
+      name = vertex.get("name"),
+      entityID = vertex.get("entityID");
+    return `Vertex Tasks: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "vertex",
 

@@ -22,7 +22,11 @@ import SingleAmPollsterRoute from '../single-am-pollster';
 import DS from 'ember-data';
 
 export default SingleAmPollsterRoute.extend({
-  title: "Application Details",
+  title: Ember.computed(function () {
+    var app = this.modelFor("app"),
+      entityID = app.get("entityID");
+    return `Application: ${entityID}`;
+  }).volatile(),
 
   loaderNamespace: "app",
 

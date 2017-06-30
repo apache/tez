@@ -20,7 +20,11 @@ import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: "DAG Details",
+  title: Ember.computed(function () {
+    var task = this.modelFor("task"),
+      entityID = task.get("entityID");
+    return `Task Counters: ${entityID}`;
+  }).volatile(),
 
   loaderNamespace: "task",
 

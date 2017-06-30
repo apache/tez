@@ -20,7 +20,12 @@ import Ember from 'ember';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: "Vertex Swimlane",
+  title: Ember.computed(function () {
+    var dag = this.modelFor("dag"),
+      name = dag.get("name"),
+      entityID = dag.get("entityID");
+    return `Vertex Swimlane: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "dag",
 

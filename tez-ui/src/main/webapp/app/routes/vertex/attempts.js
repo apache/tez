@@ -20,7 +20,12 @@ import Ember from 'ember';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: "Task Attempts",
+  title: Ember.computed(function () {
+    var vertex = this.modelFor("vertex"),
+      name = vertex.get("name"),
+      entityID = vertex.get("entityID");
+    return `Vertex Task Attempts: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "vertex",
 

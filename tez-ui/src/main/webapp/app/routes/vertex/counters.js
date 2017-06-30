@@ -20,7 +20,12 @@ import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: "DAG Details",
+  title: Ember.computed(function () {
+    var vertex = this.modelFor("vertex"),
+      name = vertex.get("name"),
+      entityID = vertex.get("entityID");
+    return `Vertex Counters: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "vertex",
 

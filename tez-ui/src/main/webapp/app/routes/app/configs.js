@@ -20,7 +20,11 @@ import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: "Application Configurations",
+  title: Ember.computed(function () {
+    var app = this.modelFor("app"),
+      entityID = app.get("entityID");
+    return `Application Configuration: ${entityID}`;
+  }).volatile(),
 
   loaderNamespace: "app",
 

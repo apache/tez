@@ -68,7 +68,7 @@ export default Ember.Route.extend(NameMixin, {
   },
 
   setDocTitle: function () {
-    Ember.$(document).attr('title', "Tez UI : " + this.get('title'));
+    Ember.$(document).attr('title', this.get('title'));
   },
 
   setupController: function (controller, model) {

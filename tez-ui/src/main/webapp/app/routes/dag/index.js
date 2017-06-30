@@ -22,7 +22,12 @@ import SingleAmPollsterRoute from '../single-am-pollster';
 import downloadDAGZip from '../../utils/download-dag-zip';
 
 export default SingleAmPollsterRoute.extend({
-  title: "DAG Details",
+  title: Ember.computed(function () {
+    var dag = this.modelFor("dag"),
+      name = dag.get("name"),
+      entityID = dag.get("entityID");
+    return `DAG: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "dag",
 

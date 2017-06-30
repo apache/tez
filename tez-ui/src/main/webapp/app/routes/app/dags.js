@@ -20,7 +20,11 @@ import Ember from 'ember';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: "DAGs",
+  title: Ember.computed(function () {
+    var app = this.modelFor("app"),
+      entityID = app.get("entityID");
+    return `DAGs: ${entityID}`;
+  }).volatile(),
 
   loaderNamespace: "app",
 

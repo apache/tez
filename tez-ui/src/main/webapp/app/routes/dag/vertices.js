@@ -20,7 +20,12 @@ import Ember from 'ember';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: "All Vertices",
+  title: Ember.computed(function () {
+    var dag = this.modelFor("dag"),
+      name = dag.get("name"),
+      entityID = dag.get("entityID");
+    return `All Vertices: ${name} (${entityID})`;
+  }).volatile(),
 
   loaderNamespace: "dag",
 
