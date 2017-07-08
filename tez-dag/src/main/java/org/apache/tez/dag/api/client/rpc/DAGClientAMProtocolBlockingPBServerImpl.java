@@ -23,6 +23,7 @@ import java.security.AccessControlException;
 import java.util.List;
 import java.util.Map;
 
+import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -166,7 +167,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
         // need to deserialize large request from hdfs
         Path requestPath = new Path(request.getSerializedRequestPath());
         try (FSDataInputStream fsDataInputStream = stagingFs.open(requestPath)) {
-          request = SubmitDAGRequestProto.parseFrom(fsDataInputStream);
+          CodedInputStream in =
+              CodedInputStream.newInstance(fsDataInputStream);
+          in.setSizeLimit(Integer.MAX_VALUE);
+          request = SubmitDAGRequestProto.parseFrom(in);
         } catch (IOException e) {
           throw wrapException(e);
         }

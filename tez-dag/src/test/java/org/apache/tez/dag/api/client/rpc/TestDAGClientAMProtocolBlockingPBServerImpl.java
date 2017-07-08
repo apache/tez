@@ -68,7 +68,7 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 100000)
   @SuppressWarnings("unchecked")
   public void testSubmitDagInSessionWithLargeDagPlan() throws Exception {
     int maxIPCMsgSize = 1024;
@@ -77,7 +77,8 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxIPCMsgSize);
 
-    byte[] randomBytes = new byte[2*maxIPCMsgSize];
+    // Check with 70 MB (64 MB is CodedInputStream's default limit in earlier versions of protobuf)
+    byte[] randomBytes = new byte[70 << 20];
     (new Random()).nextBytes(randomBytes);
     UserPayload payload = UserPayload.create(ByteBuffer.wrap(randomBytes));
     Vertex vertex = Vertex.create("V", ProcessorDescriptor.create("P").setUserPayload(payload), 1);
