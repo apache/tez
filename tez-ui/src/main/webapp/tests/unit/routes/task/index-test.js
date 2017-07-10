@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:task/index', 'Unit | Route | task/index', {
@@ -36,9 +37,15 @@ test('Basic creation test', function(assert) {
 });
 
 test('setupController test', function(assert) {
-  assert.expect(1);
+  assert.expect(2);
 
   let route = this.subject({
+    modelFor: function (type) {
+      assert.equal(type, 'task');
+      return Ember.Object.create({
+        entityID: 'task_123'
+      });
+    },
     startCrumbBubble: function () {
       assert.ok(true);
     }

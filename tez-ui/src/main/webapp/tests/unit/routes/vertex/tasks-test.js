@@ -40,9 +40,15 @@ test('Basic creation test', function(assert) {
 });
 
 test('setupController test', function(assert) {
-  assert.expect(1);
+  assert.expect(2);
 
   let route = this.subject({
+    modelFor: function (type) {
+      assert.equal(type, 'vertex');
+      return Ember.Object.create({
+        entityID: 'vertex_123'
+      });
+    },
     startCrumbBubble: function () {
       assert.ok(true);
     }

@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import Ember from 'ember';
 import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('route:dag/index/index', 'Unit | Route | dag/index/index', {
@@ -38,9 +39,15 @@ test('Basic creation test', function(assert) {
 });
 
 test('setupController test', function(assert) {
-  assert.expect(1);
+  assert.expect(2);
 
   let route = this.subject({
+    modelFor: function (type) {
+      assert.equal(type, 'dag');
+      return Ember.Object.create({
+        entityID: 'dag_123'
+      });
+    },
     startCrumbBubble: function () {
       assert.ok(true);
     }

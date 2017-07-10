@@ -36,9 +36,15 @@ test('Basic creation test', function(assert) {
 });
 
 test('setupController test', function(assert) {
-  assert.expect(1);
+  assert.expect(2);
 
   let route = this.subject({
+    modelFor: function (type) {
+      assert.equal(type, 'app');
+      return Ember.Object.create({
+        entityID: 'app_123'
+      });
+    },
     startCrumbBubble: function () {
       assert.ok(true);
     }
