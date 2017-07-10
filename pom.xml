@@ -56,7 +56,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
-    <frontend-maven-plugin.version>1.2</frontend-maven-plugin.version>
+    <frontend-maven-plugin.version>1.4</frontend-maven-plugin.version>
     <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
     <javadoc-maven-plugin.version>2.10.4</javadoc-maven-plugin.version>
     <shade-maven-plugin.version>2.4.3</shade-maven-plugin.version>

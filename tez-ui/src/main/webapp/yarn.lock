@@ -1755,9 +1755,9 @@ ember-test-helpers@^0.5.32:
   dependencies:
     klassy "^0.1.3"
 
-ember-truth-helpers@1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/ember-truth-helpers/-/ember-truth-helpers-1.2.0.tgz#e63cffeaa8211882ae61a958816fded3790d065b"
+ember-truth-helpers@1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/ember-truth-helpers/-/ember-truth-helpers-1.3.0.tgz#6ed9f83ce9a49f52bb416d55e227426339a64c60"
   dependencies:
     ember-cli-babel "^5.1.5"
 
