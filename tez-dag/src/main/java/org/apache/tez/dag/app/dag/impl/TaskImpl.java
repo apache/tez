@@ -268,7 +268,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(
             TaskEventType.T_TERMINATE,
             TaskEventType.T_SCHEDULE,
-            TaskEventType.T_ADD_SPEC_ATTEMPT))
+            TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_ATTEMPT_LAUNCHED))
 
     // Transitions from KILLED state
     // Ignorable event: T_ATTEMPT_KILLED
@@ -289,6 +290,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskEventType.T_TERMINATE,
             TaskEventType.T_SCHEDULE,
             TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_ATTEMPT_LAUNCHED,
+            TaskEventType.T_ATTEMPT_SUCCEEDED,
+            TaskEventType.T_ATTEMPT_FAILED,
             TaskEventType.T_ATTEMPT_KILLED))
 
     // create the topology tables
