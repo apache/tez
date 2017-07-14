@@ -20,6 +20,9 @@
 
 package org.apache.tez.common;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+
+@InterfaceAudience.Private
 public class MRFrameworkConfigs {
 
   /**
