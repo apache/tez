@@ -44,6 +44,7 @@ import org.junit.runners.Parameterized;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1106,7 +1107,33 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertEquals(0, scheduledTasks.size());
     verify(mockContext).doneReconfiguringVertex();
   }
-  
+
+
+  @Test(timeout=5000)
+  public void testTezDrainCompletionsOnVertexStart() throws IOException {
+    Configuration conf = new Configuration();
+    ShuffleVertexManagerBase manager;
+
+    final String mockSrcVertexId1 = "Vertex1";
+    final String mockSrcVertexId2 = "Vertex2";
+    final String mockSrcVertexId3 = "Vertex3";
+    final String mockManagedVertexId = "Vertex4";
+
+    final List<Integer> scheduledTasks = Lists.newLinkedList();
+
+    final VertexManagerPluginContext mockContext = createVertexManagerContext(
+      mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
+      mockManagedVertexId, 4, scheduledTasks, null);
+
+    //min/max fraction of 0.01/0.75 would ensure that we hit determineParallelism code path on receiving first event itself.
+    manager = createManager(conf, mockContext, 0.01f, 0.75f);
+    Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
+    manager.onVertexStarted(Collections.singletonList(
+      TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
+    Assert.assertEquals(1, manager.numBipartiteSourceTasksCompleted);
+
+  }
+
   private ShuffleVertexManagerBase createManager(Configuration conf,
       VertexManagerPluginContext context, Float min, Float max) {
     return createManager(this.shuffleVertexManagerClass, conf, context, true,

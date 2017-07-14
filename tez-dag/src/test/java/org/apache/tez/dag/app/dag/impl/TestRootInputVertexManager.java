@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -489,6 +490,38 @@ public class TestRootInputVertexManager {
     Assert.assertEquals(manager.pendingTasks.size(), 0);
     Assert.assertEquals(scheduledTasks.size(), 0); // no task scheduled
     Assert.assertEquals(manager.numSourceTasksCompleted, 7);
+  }
+
+  @Test
+  public void testTezDrainCompletionsOnVertexStart() throws IOException {
+    Configuration conf = new Configuration();
+    RootInputVertexManager manager = null;
+    HashMap<String, EdgeProperty> mockInputVertices =
+        new HashMap<String, EdgeProperty>();
+    String mockSrcVertexId1 = "Vertex1";
+    EdgeProperty eProp1 = EdgeProperty.create(
+        EdgeProperty.DataMovementType.BROADCAST,
+        EdgeProperty.DataSourceType.PERSISTED,
+        EdgeProperty.SchedulingType.SEQUENTIAL,
+        OutputDescriptor.create("out"),
+        InputDescriptor.create("in"));
+
+    VertexManagerPluginContext mockContext =
+        mock(VertexManagerPluginContext.class);
+    when(mockContext.getVertexStatistics(any(String.class)))
+        .thenReturn(mock(VertexStatistics.class));
+    when(mockContext.getInputVertexEdgeProperties())
+        .thenReturn(mockInputVertices);
+    when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
+
+    mockInputVertices.put(mockSrcVertexId1, eProp1);
+
+    // check initialization
+    manager = createRootInputVertexManager(conf, mockContext, 0.1f, 0.1f);
+    Assert.assertEquals(0, manager.numSourceTasksCompleted);
+    manager.onVertexStarted(Collections.singletonList(
+      createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
+    Assert.assertEquals(1, manager.numSourceTasksCompleted);
   }
 
 

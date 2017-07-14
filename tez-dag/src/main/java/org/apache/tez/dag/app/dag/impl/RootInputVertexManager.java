@@ -171,6 +171,11 @@ public class RootInputVertexManager extends VertexManagerPlugin {
             + srcVertex + " as it has " + numTasks + " tasks");
       }
     }
+    if (completions != null) {
+      for (TaskAttemptIdentifier attempt : completions) {
+        onSourceTaskCompleted(attempt);
+      }
+    }
     onVertexStartedDone.set(true);
     // track the tasks in this vertex
     updatePendingTasks();
