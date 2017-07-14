@@ -509,7 +509,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           // Transitions from TERMINATING state.
           .addTransition
               (VertexState.TERMINATING,
-              EnumSet.of(VertexState.TERMINATING, VertexState.KILLED, VertexState.FAILED),
+              EnumSet.of(VertexState.TERMINATING, VertexState.KILLED, VertexState.FAILED, VertexState.ERROR),
               VertexEventType.V_TASK_COMPLETED,
               new TaskCompletedTransition())
           .addTransition(
@@ -532,7 +532,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                   VertexEventType.V_ROUTE_EVENT,
                   VertexEventType.V_SOURCE_TASK_ATTEMPT_COMPLETED,
                   VertexEventType.V_TASK_ATTEMPT_COMPLETED,
-                  VertexEventType.V_TASK_RESCHEDULED))
+                  VertexEventType.V_TASK_RESCHEDULED,
+                  VertexEventType.V_COMPLETED))
 
           // Transitions from SUCCEEDED state
           .addTransition(

@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.*;
@@ -3971,6 +3972,44 @@ public class TestVertexImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
 
+  }
+
+  @Test (timeout = 5000)
+  public void testTerminatingVertexForTaskComplete() throws Exception {
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan(false);
+    setupPostDagCreation();
+    VertexImpl vertex = spy(vertices.get("A"));
+    initVertex(vertex);
+    startVertex(vertex);
+    vertex.handle(new VertexEventTermination(vertex.getVertexId(), VertexTerminationCause.INTERNAL_ERROR));
+    dispatcher.await();
+    Assert.assertTrue(vertex.inTerminalState());
+    for (String diagnostic : vertex.getDiagnostics()) {
+      if (diagnostic.contains("Invalid event")) {
+        fail("Unexpected Invalid event transition!");
+      }
+    }
+  }
+
+  @Test (timeout = 5000)
+  public void testTerminatingVertexForVComplete() throws Exception {
+    setupPreDagCreation();
+    dagPlan = createSamplerDAGPlan(false);
+    setupPostDagCreation();
+    VertexImpl vertex = spy(vertices.get("A"));
+    initVertex(vertex);
+    startVertex(vertex);
+    vertex.handle(new VertexEventTermination(vertex.getVertexId(), VertexTerminationCause.INTERNAL_ERROR));
+    vertex.handle(new VertexEvent(
+        vertex.getVertexId(), VertexEventType.V_COMPLETED));
+    dispatcher.await();
+    Assert.assertTrue(vertex.inTerminalState());
+    for (String diagnostic : vertex.getDiagnostics()) {
+      if (diagnostic.contains("Invalid event")) {
+        fail("Unexpected Invalid event transition!");
+      }
+    }
   }
 
   @Test(timeout = 5000)
