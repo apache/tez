@@ -6,6 +6,13 @@ Release 0.9.0: 2016-07-13
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+  TEZ-3792. RootInputVertexManager doesn't drain queued source task completed events
+  TEZ-3795. Vertex state machine can throw InvalidStateTransitonException from TERMINATING state
+  TEZ-3794. tez-tools: swimlane does not recognize HistoryEventHandler.criticalEvents based logs
+  TEZ-3791. Failed/Killed task can throw InvalidStateTransitonException when a new attempt is launched
+  TEZ-3787. Remove Tez UI build and rebuild errors and warning due to yarn install and ember-truth-helpers
+TEZ-3786. Fix Tez UI test failures after TEZ-3775
+  TEZ-3784. Submitting very large DAG throws com.google.protobuf.CodedInputStream exception
   TEZ-3274. Vertex with MRInput and broadcast input does not respect slow start
   TEZ-3775. Tez UI: Show DAG context in document title
   TEZ-3605. Detect and prune empty partitions for the Ordered case
