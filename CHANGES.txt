@@ -1,9 +1,15 @@
 Apache Tez Change Log
 =====================
 
-Release 0.9.0: 2016-07-13
+Release 0.9.0: 2016-07-21
 
 INCOMPATIBLE CHANGES
+  TEZ-3693. ControlledClock is not used. 
+  TEZ-3745. Change master to required java 8
+  TEZ-3689. Change minimum hadoop version to 2.7.0.
+  TEZ-3611. Create lightweight summary events for ATS.
+  TEZ-3652. Remove ShuffleClientMetrics
+  TEZ-3659. AM/Task classpath should not contain hadoop conf directory.
 
 ALL CHANGES:
   TEZ-3798. Remove duplicate package-info.java
@@ -26,13 +32,11 @@ ALL CHANGES:
   TEZ-3761. NPE in Fetcher under load
   TEZ-3758. Vertex can hang in RUNNING state when two task attempts finish very closely and have retroactive failures
   TEZ-3768. Test timeout value for TestShuffleHandlerJobs is low
-  TEZ-3693. ControlledClock is not used. 
   TEZ-3766. Tez Aux-services : Clean up shaded jar to not include default config xml files and yarn-client pieces
   TEZ-3760. Tez AUX Services: Shading needs to filter SIG files with -Pazure builds
   TEZ-3741. Tez outputs should free memory when closed
   TEZ-3698: UnorderedKV writer should be able to honor tez.runtime.enable.final-merge.in.output without pipelinedshuffle
   TEZ-3732. Reduce Object size of InputAttemptIdentifier and MapOutput for large jobs
-  TEZ-3745. Change master to required java 8
   TEZ-3701. UnorderedPartitionedKVWriter - issues with parallel Deflater usage, synchronousqueue in threadpool
   TEZ-3750. Add TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT to UnorderedPartitionedKVOutput
   TEZ-3749. Get map and reduce task memory from JobConf
@@ -63,9 +67,7 @@ ALL CHANGES:
   TEZ-2049. Remove YARN references from Tez AsyncDispatcher
   TEZ-3675. Handle changes to ResourceCalculatorProcessTree in YARN-3427 for Hadoop 3.x
   TEZ-3690. Tez on hadoop 3 build failed due to hdfs client/server jar separation
-  TEZ-3689. Change minimum hadoop version to 2.7.0.
   TEZ-3687. Code smell in DAGStatus and VertexStatus equals implementation
-  TEZ-3611. Create lightweight summary events for ATS.
   TEZ-3631. Tez UI: TEZ_DAG_EXTRA_INFO compatibility changes - Makes All DAGs page faster
   TEZ-3680. Optimizations to UnorderedPartitionedKVWriter
   TEZ-1187. Add a framework ExecutorService which shares threads
@@ -73,11 +75,9 @@ ALL CHANGES:
   TEZ-3285. Tez UI: Lock down dependency versions
   TEZ-3683. LocalContainerLauncher#shouldDelete member variable is not used
   TEZ-3681. Improve UI error message while trying to sort running DAGs with Auto Refresh enabled
-  TEZ-3652. Remove ShuffleClientMetrics
   TEZ-3668. Explicitly include hadoop-mapreduce-client-shuffle for test in root pom
   TEZ-3667. Stop using org.apache.hadoop.security.ssl.SSLFactory.DEFAULT_SSL_REQUIRE_CLIENT_CERT
   TEZ-3665. TestATSV15HistoryLoggingService should use mocked TimelineClient
-  TEZ-3659. AM/Task classpath should not contain hadoop conf directory.
   TEZ-1526. LoadingCache for TezTaskID slow for large jobs
   TEZ-3653. Tez UI: Swimlane tooltip is not proper for running DAGs
   TEZ-3656. Tez UI: Status correction is not working as expected
