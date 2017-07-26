@@ -50,6 +50,8 @@ public class AnalyzerDriver {
           "Print the task concurrency details in a DAG");
       pgd.addClass("VertexLevelCriticalPathAnalyzer", VertexLevelCriticalPathAnalyzer.class,
           "Find critical path at vertex level in a DAG");
+      pgd.addClass("OneOnOneEdgeAnalyzer", OneOnOneEdgeAnalyzer.class,
+          "Find out schedule misses in 1:1 edges in a DAG");
       exitCode = pgd.run(argv);
     } catch(Throwable e){
       e.printStackTrace();
