@@ -19,6 +19,7 @@
 
 Releases
 ------------
+-   [Apache Tez&trade; 0.9.0](./apache-tez-0-9-0.html) (Jul 27, 2017)
 -   [Apache Tez&trade; 0.8.5](./apache-tez-0-8-5.html) (Mar 13, 2017)
 -   [Apache Tez&trade; 0.8.4](./apache-tez-0-8-4.html) (Jul 08, 2016)
 -   [Apache Tez&trade; 0.8.3](./apache-tez-0-8-3.html) (Apr 15, 2016)
