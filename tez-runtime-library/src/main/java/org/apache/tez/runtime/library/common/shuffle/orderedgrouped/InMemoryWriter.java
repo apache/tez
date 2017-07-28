@@ -37,6 +37,16 @@ public class InMemoryWriter extends Writer {
 
   // TODO Verify and fix counters if required.
 
+  private static class InMemoryBoundedByteArrayOutputStream extends BoundedByteArrayOutputStream {
+    InMemoryBoundedByteArrayOutputStream(byte[] array) {
+      super(array, 0, array.length);
+    }
+  }
+
+  public InMemoryWriter(byte[] array) {
+    this(new InMemoryBoundedByteArrayOutputStream(array));
+  }
+
   public InMemoryWriter(BoundedByteArrayOutputStream arrayStream) {
     super(null, null);
     this.out =

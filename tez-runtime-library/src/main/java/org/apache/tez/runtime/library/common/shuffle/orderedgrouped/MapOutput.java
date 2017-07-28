@@ -119,10 +119,6 @@ abstract class MapOutput {
   public byte[] getMemory() {
     return null;
   }
-
-  public BoundedByteArrayOutputStream getArrayStream() {
-    return null;
-  }
   
   public OutputStream getDisk() {
     return null;
@@ -253,27 +249,22 @@ abstract class MapOutput {
   }
 
   private static class InMemoryMapOutput extends MapOutput {
-    private BoundedByteArrayOutputStream byteStream;
+    private byte[] byteArray;
     private InMemoryMapOutput(InputAttemptIdentifier attemptIdentifier,
                               FetchedInputAllocatorOrderedGrouped callback,
                               long size, boolean primaryMapOutput) {
       super(attemptIdentifier, callback, primaryMapOutput);
-      this.byteStream = new BoundedByteArrayOutputStream((int)size);
+      this.byteArray = new byte[(int)size];
     }
 
     @Override
     public byte[] getMemory() {
-      return byteStream.getBuffer();
-    }
-
-    @Override
-    public BoundedByteArrayOutputStream getArrayStream() {
-      return byteStream;
+      return byteArray;
     }
 
     @Override
     public long getSize() {
-      return byteStream.getLimit();
+      return byteArray.length;
     }
 
     @Override
@@ -283,7 +274,7 @@ abstract class MapOutput {
 
     @Override
     public void abort() {
-      callback.unreserve(byteStream.getBuffer().length);
+      callback.unreserve(byteArray.length);
     }
 
     @Override

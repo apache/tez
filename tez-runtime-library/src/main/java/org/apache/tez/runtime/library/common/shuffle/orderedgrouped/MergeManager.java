@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BoundedByteArrayOutputStream;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.FileChunk;
 import org.apache.hadoop.io.RawComparator;
@@ -776,7 +777,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
       int noInMemorySegments = inMemorySegments.size();
 
-      Writer writer = new InMemoryWriter(mergedMapOutputs.getArrayStream());
+      Writer writer = new InMemoryWriter(mergedMapOutputs.getMemory());
 
       LOG.info(inputContext.getSourceVertexName() + ": " + "Initiating Memory-to-Memory merge with " + noInMemorySegments +
                " segments of total-size: " + mergeOutputSize);
@@ -856,7 +857,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       srcTaskIdentifier = inputs.get(0).getAttemptIdentifier();
 
       List<Segment> inMemorySegments = new ArrayList<Segment>();
-      long mergeOutputSize = 
+      long mergeOutputSize =
         createInMemorySegments(inputs, inMemorySegments,0);
       int noInMemorySegments = inMemorySegments.size();
 
@@ -1075,7 +1076,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     // closed but not yet present in inMemoryMapOutputs
     long fullSize = 0L;
     for (MapOutput mo : inMemoryMapOutputs) {
-      fullSize += mo.getMemory().length;
+      fullSize += mo.getSize();
     }
     int inMemoryMapOutputsOffset = 0;
     while((fullSize > leaveBytes) && !Thread.currentThread().isInterrupted()) {
