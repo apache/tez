@@ -201,4 +201,10 @@
     <Method name="maybeForceBuilderInitialization"/>
     <Bug pattern="UCF_USELESS_CONTROL_FLOW"/>
   </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.sort.impl.IFile$Reader"/>
+    <Field name="MAX_BUFFER_SIZE"/>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
 </FindBugsFilter>

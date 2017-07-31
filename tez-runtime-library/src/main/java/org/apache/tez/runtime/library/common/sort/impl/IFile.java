@@ -69,6 +69,7 @@ public class IFile {
     (byte) 'F' , (byte) 0};
 
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
+  private static final String REQ_BUFFER_SIZE_TOO_LARGE = "Size of data %d is greater than the max allowed of %d";
 
   /**
    * <code>IFile.Writer</code> to write out intermediate map-outputs.
@@ -480,6 +481,13 @@ public class IFile {
     public enum KeyState {NO_KEY, NEW_KEY, SAME_KEY}
 
     private static final int DEFAULT_BUFFER_SIZE = 128*1024;
+    @VisibleForTesting
+    // Not final for testing
+    protected static int MAX_BUFFER_SIZE
+            = Integer.MAX_VALUE - 8;  // The maximum array size is a little less than the
+                                      // max integer value. Trying to create a larger array
+                                      // will result in an OOM exception. The exact value
+                                      // is JVM dependent so setting it to max int - 8 to be safe.
 
     // Count records read from disk
     private long numRecordsRead = 0;
@@ -782,6 +790,21 @@ public class IFile {
       return readRawKey(key) != KeyState.NO_KEY;
     }
 
+    private static byte[] createLargerArray(int currentLength) {
+      if (currentLength > MAX_BUFFER_SIZE) {
+        throw new IllegalArgumentException(
+                String.format(REQ_BUFFER_SIZE_TOO_LARGE, currentLength, MAX_BUFFER_SIZE));
+      }
+      int newLength;
+      if (currentLength > (MAX_BUFFER_SIZE - currentLength)) {
+        // possible overflow: if (2*currentLength > MAX_BUFFER_SIZE)
+        newLength = currentLength;
+      } else {
+        newLength = currentLength << 1;
+      }
+      return new byte[newLength];
+    }
+
     public KeyState readRawKey(DataInputBuffer key) throws IOException {
       if (!positionToNextRecord(dataIn)) {
         if (LOG.isDebugEnabled()) {
@@ -798,7 +821,7 @@ public class IFile {
         return KeyState.SAME_KEY;
       }
       if (keyBytes.length < currentKeyLength) {
-        keyBytes = new byte[currentKeyLength << 1];
+        keyBytes = createLargerArray(currentKeyLength);
       }
       int i = readData(keyBytes, 0, currentKeyLength);
       if (i != currentKeyLength) {
@@ -810,10 +833,13 @@ public class IFile {
     }
 
     public void nextRawValue(DataInputBuffer value) throws IOException {
-      final byte[] valBytes =
-        ((value.getData().length < currentValueLength) || (value.getData() == keyBytes))
-        ? new byte[currentValueLength << 1]
-        : value.getData();
+      final byte[] valBytes;
+      if ((value.getData().length < currentValueLength) || (value.getData() == keyBytes)) {
+        valBytes = createLargerArray(currentValueLength);
+      } else {
+        valBytes = value.getData();
+      }
+
       int i = readData(valBytes, 0, currentValueLength);
       if (i != currentValueLength) {
         throw new IOException(String.format(INCOMPLETE_READ, currentValueLength, i));
