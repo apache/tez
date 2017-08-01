@@ -48,9 +48,12 @@ public class InMemoryWriter extends Writer {
   }
 
   public InMemoryWriter(BoundedByteArrayOutputStream arrayStream) {
-    super(null, null);
-    this.out =
-      new NonSyncDataOutputStream(new IFileOutputStream(arrayStream));
+    this(arrayStream, false);
+  }
+
+  public InMemoryWriter(BoundedByteArrayOutputStream arrayStream, boolean rle) {
+    super(null, null, rle);
+    this.out = new NonSyncDataOutputStream(new IFileOutputStream(arrayStream));
   }
 
   public void append(Object key, Object value) throws IOException {

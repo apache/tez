@@ -313,6 +313,9 @@ public class TestIFile {
     writer = new IFile.Writer(defaultConf, out,
         Text.class, IntWritable.class, codec, null, null, true);
 
+    BoundedByteArrayOutputStream boundedOut = new BoundedByteArrayOutputStream(1024*1024);
+    Writer inMemWriter = new InMemoryWriter(boundedOut, true);
+
     DataInputBuffer kin = new DataInputBuffer();
     kin.reset(kvbuffer, pos, keyLength);
 
@@ -324,6 +327,8 @@ public class TestIFile {
     //Write initial KV pair
     writer.append(kin, vin);
     assertFalse(writer.sameKey);
+    inMemWriter.append(kin, vin);
+    assertFalse(inMemWriter.sameKey);
     pos += (keyLength + valueLength);
 
     //Second key is similar to key1 (RLE should kick in)
@@ -332,6 +337,8 @@ public class TestIFile {
     vin.reset(vout.getData(), vout.getLength());
     writer.append(kin, vin);
     assertTrue(writer.sameKey);
+    inMemWriter.append(kin, vin);
+    assertTrue(inMemWriter.sameKey);
     pos += (keyLength + valueLength);
 
     //Next key (key3) is different (RLE should not kick in)
@@ -340,9 +347,13 @@ public class TestIFile {
     vin.reset(vout.getData(), vout.getLength());
     writer.append(kin, vin);
     assertFalse(writer.sameKey);
+    inMemWriter.append(kin, vin);
+    assertFalse(inMemWriter.sameKey);
 
     writer.close();
     out.close();
+    inMemWriter.close();
+    boundedOut.close();
   }
 
   @Test(timeout = 5000)
@@ -416,25 +427,25 @@ public class TestIFile {
 
     //No RLE, No RepeatKeys, no compression
     writer = new InMemoryWriter(bout);
-    writeTestFileUsingDataBuffer(writer, false, false, data, null);
+    writeTestFileUsingDataBuffer(writer, false, data);
     readUsingInMemoryReader(bout.getBuffer(), data);
 
     //No RLE, RepeatKeys, no compression
     bout.reset();
     writer = new InMemoryWriter(bout);
-    writeTestFileUsingDataBuffer(writer, false, true, data, null);
+    writeTestFileUsingDataBuffer(writer, true, data);
     readUsingInMemoryReader(bout.getBuffer(), data);
 
     //RLE, No RepeatKeys, no compression
     bout.reset();
-    writer = new InMemoryWriter(bout);
-    writeTestFileUsingDataBuffer(writer, true, false, data, null);
+    writer = new InMemoryWriter(bout, true);
+    writeTestFileUsingDataBuffer(writer, false, data);
     readUsingInMemoryReader(bout.getBuffer(), data);
 
     //RLE, RepeatKeys, no compression
     bout.reset();
-    writer = new InMemoryWriter(bout);
-    writeTestFileUsingDataBuffer(writer, true, true, data, null);
+    writer = new InMemoryWriter(bout, true);
+    writeTestFileUsingDataBuffer(writer, true, data);
     readUsingInMemoryReader(bout.getBuffer(), data);
   }
 
@@ -753,13 +764,13 @@ public class TestIFile {
     FSDataOutputStream out = localFs.create(outputPath);
     IFile.Writer writer = new IFile.Writer(defaultConf, out,
         Text.class, IntWritable.class, codec, null, null, rle);
-    writeTestFile(writer, rle, repeatKeys, data, codec);
+    writeTestFile(writer, repeatKeys, data);
     out.close();
     return  writer;
   }
 
-  private Writer writeTestFile(IFile.Writer writer, boolean rle, boolean repeatKeys,
-      List<KVPair> data, CompressionCodec codec) throws IOException {
+  private Writer writeTestFile(IFile.Writer writer, boolean repeatKeys,
+      List<KVPair> data) throws IOException {
     assertNotNull(writer);
 
     Text previousKey = null;
@@ -786,13 +797,13 @@ public class TestIFile {
     FSDataOutputStream out = localFs.create(outputPath);
     IFile.Writer writer = new IFile.Writer(defaultConf, out,
         Text.class, IntWritable.class, codec, null, null, rle);
-    writeTestFileUsingDataBuffer(writer, rle, repeatKeys, data, codec);
+    writeTestFileUsingDataBuffer(writer, repeatKeys, data);
     out.close();
     return writer;
   }
 
-  private Writer writeTestFileUsingDataBuffer(IFile.Writer writer, boolean rle, boolean repeatKeys,
-      List<KVPair> data, CompressionCodec codec) throws IOException {
+  private Writer writeTestFileUsingDataBuffer(Writer writer, boolean repeatKeys,
+      List<KVPair> data) throws IOException {
     DataInputBuffer previousKey = new DataInputBuffer();
     DataInputBuffer key = new DataInputBuffer();
     DataInputBuffer value = new DataInputBuffer();

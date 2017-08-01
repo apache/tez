@@ -127,11 +127,11 @@ public class IFile {
            writesCounter, serializedBytesCounter);
       ownOutputStream = true;
     }
-    
-    protected Writer(TezCounter writesCounter, TezCounter serializedBytesCounter) {
+
+    protected Writer(TezCounter writesCounter, TezCounter serializedBytesCounter, boolean rle) {
       writtenRecordsCounter = writesCounter;
       serializedUncompressedBytes = serializedBytesCounter;
-      this.rle = false;
+      this.rle = rle;
     }
 
     public Writer(Configuration conf, FSDataOutputStream outputStream,
