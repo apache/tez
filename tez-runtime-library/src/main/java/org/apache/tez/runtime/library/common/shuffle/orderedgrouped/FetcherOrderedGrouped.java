@@ -715,6 +715,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             srcAttemptId = scheduler.getIdentifierForFetchedOutput(srcAttemptId.getPathComponent(), reduceId);
             Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
             TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(), reduceId);
+            if(!indexRecord.hasData()) {
+              continue;
+            }
 
             mapOutput = getMapOutputForDirectDiskFetch(srcAttemptId, filename, indexRecord);
             long endTime = System.currentTimeMillis();
