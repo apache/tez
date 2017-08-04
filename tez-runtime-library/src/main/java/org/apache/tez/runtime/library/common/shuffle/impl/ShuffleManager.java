@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
@@ -320,10 +321,10 @@ public class ShuffleManager implements FetcherCallback {
       while (!isShutdown.get() && numCompletedInputs.get() < numInputs) {
         lock.lock();
         try {
-          if (runningFetchers.size() >= numFetchers || pendingHosts.isEmpty()) {
-            if (numCompletedInputs.get() < numInputs) {
-              wakeLoop.await();
-            }
+          while ((runningFetchers.size() >= numFetchers || pendingHosts.isEmpty())
+              && numCompletedInputs.get() < numInputs) {
+            inputContext.notifyProgress();
+            boolean ret = wakeLoop.await(1000, TimeUnit.MILLISECONDS);
           }
         } finally {
           lock.unlock();

@@ -812,6 +812,28 @@ public class TestShuffleScheduler {
     assertFalse("Host identifier mismatch", (host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"));
   }
 
+  @Test (timeout = 20000)
+  public void testProgressDuringGetHostWait() throws IOException, InterruptedException {
+    long startTime = System.currentTimeMillis();
+    Configuration conf = new TezConfiguration();
+    Shuffle shuffle = mock(Shuffle.class);
+    final ShuffleSchedulerForTest scheduler = createScheduler(startTime, 1, shuffle, conf);
+    Thread schedulerGetHostThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          scheduler.getHost();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    schedulerGetHostThread.start();
+    Thread.currentThread().sleep(1000 * 3 + 1000);
+    schedulerGetHostThread.interrupt();
+    verify(scheduler.inputContext, atLeast(3)).notifyProgress();
+  }
+
   @Test(timeout = 5000)
   public void testShutdown() throws Exception {
     InputContext inputContext = createTezInputContext();
@@ -964,6 +986,7 @@ public class TestShuffleScheduler {
     private final AtomicInteger numFetchersCreated = new AtomicInteger(0);
     private final boolean fetcherShouldWait;
     private final ExceptionReporter reporter;
+    private final InputContext inputContext;
 
     public ShuffleSchedulerForTest(InputContext inputContext, Configuration conf,
                                    int numberOfInputs,
@@ -989,6 +1012,7 @@ public class TestShuffleScheduler {
           ifileReadAhead, ifileReadAheadLength, srcNameTrimmed);
       this.fetcherShouldWait = fetcherShouldWait;
       this.reporter = shuffle;
+      this.inputContext = inputContext;
     }
 
     @Override
