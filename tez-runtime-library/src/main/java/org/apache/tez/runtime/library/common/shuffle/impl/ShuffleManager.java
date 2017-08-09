@@ -914,7 +914,17 @@ public class ShuffleManager implements FetcherCallback {
   static class NullFetchedInput extends FetchedInput {
 
     public NullFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
-      super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);
+      super(inputAttemptIdentifier, null);
+    }
+
+    @Override
+    public Type getType() {
+      return Type.MEMORY;
+    }
+
+    @Override
+    public long getSize() {
+      return -1;
     }
 
     @Override

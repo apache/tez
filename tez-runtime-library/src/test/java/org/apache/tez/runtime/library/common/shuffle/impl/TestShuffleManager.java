@@ -298,7 +298,17 @@ public class TestShuffleManager {
   static class TestFetchedInput extends FetchedInput {
 
     public TestFetchedInput(InputAttemptIdentifier inputAttemptIdentifier) {
-      super(Type.MEMORY, -1, -1, inputAttemptIdentifier, null);
+      super(inputAttemptIdentifier, null);
+    }
+
+    @Override
+    public long getSize() {
+      return -1;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.MEMORY;
     }
 
     @Override

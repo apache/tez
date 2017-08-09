@@ -29,41 +29,54 @@ import com.google.common.base.Preconditions;
 
 public class MemoryFetchedInput extends FetchedInput {
 
-  private BoundedByteArrayOutputStream byteStream;
+  private byte[] byteArray;
 
-  public MemoryFetchedInput(long actualSize, long compressedSize,
+  public MemoryFetchedInput(long actualSize,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler) {
-    super(Type.MEMORY, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
-    this.byteStream = new BoundedByteArrayOutputStream((int) actualSize);
+    super(inputAttemptIdentifier, callbackHandler);
+    this.byteArray = new byte[(int) actualSize];
+  }
+
+  @Override
+  public Type getType() {
+    return Type.MEMORY;
+  }
+
+  @Override
+  public long getSize() {
+    if (this.byteArray == null) {
+      return 0;
+    }
+    return this.byteArray.length;
   }
 
   @Override
   public OutputStream getOutputStream() {
-    return byteStream;
+    return new InMemoryBoundedByteArrayOutputStream(byteArray);
   }
 
   @Override
   public InputStream getInputStream() {
-    return new NonSyncByteArrayInputStream(byteStream.getBuffer());
+    return new NonSyncByteArrayInputStream(byteArray);
   }
 
   public byte[] getBytes() {
-    return byteStream.getBuffer();
+    return byteArray;
   }
   
   @Override
   public void commit() {
-    if (state == State.PENDING) {
-      state = State.COMMITTED;
+    if (isState(State.PENDING)) {
+      setState(State.COMMITTED);
       notifyFetchComplete();
     }
   }
 
   @Override
   public void abort() {
-    if (state == State.PENDING) {
-      state = State.ABORTED;
+    if (isState(State.PENDING)) {
+      setState(State.ABORTED);
       notifyFetchFailure();
     }
   }
@@ -71,20 +84,28 @@ public class MemoryFetchedInput extends FetchedInput {
   @Override
   public void free() {
     Preconditions.checkState(
-        state == State.COMMITTED || state == State.ABORTED,
+        isState(State.COMMITTED) || isState(State.ABORTED),
         "FetchedInput can only be freed after it is committed or aborted");
-    if (state == State.COMMITTED) { // ABORTED would have already called cleanup
-      state = State.FREED;
-      this.byteStream = null;
+    if (isState(State.COMMITTED)) { // ABORTED would have already called cleanup
+      setState(State.FREED);
       notifyFreedResource();
+      // Set this to null AFTER notifyFreedResource() so that getSize()
+      // returns the correct size
+      this.byteArray = null;
     }
   }
 
   @Override
   public String toString() {
     return "MemoryFetchedInput [inputAttemptIdentifier="
-        + inputAttemptIdentifier + ", actualSize=" + actualSize
-        + ", compressedSize=" + compressedSize + ", type=" + type + ", id="
-        + id + ", state=" + state + "]";
+        + getInputAttemptIdentifier() + ", size=" + getSize()
+        + ", type=" + getType() + ", id="
+        + getId() + ", state=" + getState() + "]";
+  }
+
+  private static class InMemoryBoundedByteArrayOutputStream extends BoundedByteArrayOutputStream {
+    InMemoryBoundedByteArrayOutputStream(byte[] array) {
+      super(array, 0, array.length);
+    }
   }
 }

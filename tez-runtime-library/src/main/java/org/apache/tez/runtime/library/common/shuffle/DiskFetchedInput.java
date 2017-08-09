@@ -40,21 +40,33 @@ public class DiskFetchedInput extends FetchedInput {
   private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final Path outputPath;
+  private final long size;
 
-  public DiskFetchedInput(long actualSize, long compressedSize,
+  public DiskFetchedInput(long compressedSize,
       InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler, Configuration conf,
       LocalDirAllocator localDirAllocator, TezTaskOutputFiles filenameAllocator)
       throws IOException {
-    super(Type.DISK, actualSize, compressedSize, inputAttemptIdentifier, callbackHandler);
+    super(inputAttemptIdentifier, callbackHandler);
 
+    this.size = compressedSize;
     this.localFS = FileSystem.getLocal(conf).getRaw();
     this.outputPath = filenameAllocator.getInputFileForWrite(
-        this.inputAttemptIdentifier.getInputIdentifier(), this
-            .inputAttemptIdentifier.getSpillEventId(), actualSize);
+        this.getInputAttemptIdentifier().getInputIdentifier(), this
+            .getInputAttemptIdentifier().getSpillEventId(), this.size);
     // Files are not clobbered due to the id being appended to the outputPath in the tmpPath,
     // otherwise fetches for the same task but from different attempts would clobber each other.
-    this.tmpOutputPath = outputPath.suffix(String.valueOf(id));
+    this.tmpOutputPath = outputPath.suffix(String.valueOf(getId()));
+  }
+
+  @Override
+  public Type getType() {
+    return Type.DISK;
+  }
+
+  @Override
+  public long getSize() {
+    return size;
   }
 
   @Override
@@ -68,7 +80,7 @@ public class DiskFetchedInput extends FetchedInput {
   }
 
   public final Path getInputPath() {
-    if (state == State.COMMITTED) {
+    if (isState(State.COMMITTED)) {
       return this.outputPath;
     }
     return this.tmpOutputPath;
@@ -76,8 +88,8 @@ public class DiskFetchedInput extends FetchedInput {
   
   @Override
   public void commit() throws IOException {
-    if (state == State.PENDING) {
-      state = State.COMMITTED;
+    if (isState(State.PENDING)) {
+      setState(State.COMMITTED);
       localFS.rename(tmpOutputPath, outputPath);
       notifyFetchComplete();
     }
@@ -85,8 +97,8 @@ public class DiskFetchedInput extends FetchedInput {
 
   @Override
   public void abort() throws IOException {
-    if (state == State.PENDING) {
-      state = State.ABORTED;
+    if (isState(State.PENDING)) {
+      setState(State.ABORTED);
       // TODO NEWTEZ Maybe defer this to container cleanup
       localFS.delete(tmpOutputPath, false);
       notifyFetchFailure();
@@ -96,10 +108,10 @@ public class DiskFetchedInput extends FetchedInput {
   @Override
   public void free() {
     Preconditions.checkState(
-        state == State.COMMITTED || state == State.ABORTED,
+        isState(State.COMMITTED) || isState(State.ABORTED),
         "FetchedInput can only be freed after it is committed or aborted");
-    if (state == State.COMMITTED) {
-      state = State.FREED;
+    if (isState(State.COMMITTED)) {
+      setState(State.FREED);
       try {
         // TODO NEWTEZ Maybe defer this to container cleanup
         localFS.delete(outputPath, false);
@@ -115,8 +127,8 @@ public class DiskFetchedInput extends FetchedInput {
   @Override
   public String toString() {
     return "DiskFetchedInput [outputPath=" + outputPath
-        + ", inputAttemptIdentifier=" + inputAttemptIdentifier
-        + ", actualSize=" + actualSize + ",compressedSize=" + compressedSize
-        + ", type=" + type + ", id=" + id + ", state=" + state + "]";
+        + ", inputAttemptIdentifier=" + getInputAttemptIdentifier()
+        + ", actualSize=" + getSize()
+        + ", type=" + getType() + ", id=" + getId() + ", state=" + getState() + "]";
   }
 }

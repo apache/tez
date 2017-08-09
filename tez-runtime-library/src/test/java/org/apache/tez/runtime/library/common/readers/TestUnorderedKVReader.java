@@ -96,7 +96,7 @@ public class TestUnorderedKVReader {
     createIFile(outputPath, 1);
 
     final LinkedList<LocalDiskFetchedInput> inputs = new LinkedList<LocalDiskFetchedInput>();
-    LocalDiskFetchedInput realFetchedInput = new LocalDiskFetchedInput(0, rawLen, compLen, new
+    LocalDiskFetchedInput realFetchedInput = new LocalDiskFetchedInput(0, compLen, new
         InputAttemptIdentifier(0, 0), outputPath, defaultConf, new FetchedInputCallback() {
       @Override
       public void fetchComplete(FetchedInput fetchedInput) {

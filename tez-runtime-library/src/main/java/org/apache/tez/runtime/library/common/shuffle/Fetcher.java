@@ -658,7 +658,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           idxRecord = getTezIndexRecord(srcAttemptId, reduceId);
 
           fetchedInput = new LocalDiskFetchedInput(idxRecord.getStartOffset(),
-              idxRecord.getRawLength(), idxRecord.getPartLength(), srcAttemptId,
+              idxRecord.getPartLength(), srcAttemptId,
               getShuffleInputFileName(srcAttemptId.getPathComponent(), null),
               conf,
               new FetchedInputCallback() {

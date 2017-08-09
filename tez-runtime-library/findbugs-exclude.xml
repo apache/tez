@@ -207,4 +207,10 @@
     <Field name="MAX_BUFFER_SIZE"/>
     <Bug pattern="MS_SHOULD_BE_FINAL"/>
   </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput"/>
+    <Method name="getBytes"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
 </FindBugsFilter>

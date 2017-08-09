@@ -246,8 +246,7 @@ public class TestFetcher {
         SHUFFLE_INPUT_FILE_PREFIX + pathComponent);
     Assert.assertTrue("success callback fs", f.getLocalFS() instanceof LocalFileSystem);
     Assert.assertEquals("success callback filesystem", f.getStartOffset(), p * 10);
-    Assert.assertEquals("success callback raw size", f.getActualSize(), p * 1000);
-    Assert.assertEquals("success callback compressed size", f.getCompressedSize(), p * 100);
+    Assert.assertEquals("success callback compressed size", f.getSize(), p * 100);
     Assert.assertEquals("success callback input id", f.getInputAttemptIdentifier(), srcAttempId.expand(0));
     Assert.assertEquals("success callback type", f.getType(), FetchedInput.Type.DISK_DIRECT);
   }

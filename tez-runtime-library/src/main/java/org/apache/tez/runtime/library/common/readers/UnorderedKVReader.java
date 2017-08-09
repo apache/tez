@@ -221,10 +221,10 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       MemoryFetchedInput mfi = (MemoryFetchedInput) fetchedInput;
 
       return new InMemoryReader(null, mfi.getInputAttemptIdentifier(),
-          mfi.getBytes(), 0, (int) mfi.getActualSize());
+          mfi.getBytes(), 0, (int) mfi.getSize());
     } else {
       return new IFile.Reader(fetchedInput.getInputStream(),
-          fetchedInput.getCompressedSize(), codec, null, null, ifileReadAhead,
+          fetchedInput.getSize(), codec, null, null, ifileReadAhead,
           ifileReadAheadLength, ifileBufferSize);
     }
   }

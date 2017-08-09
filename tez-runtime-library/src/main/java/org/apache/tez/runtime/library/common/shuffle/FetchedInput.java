@@ -42,37 +42,51 @@ public abstract class FetchedInput {
 
   private static AtomicInteger ID_GEN = new AtomicInteger(0);
 
-  protected InputAttemptIdentifier inputAttemptIdentifier;
-  protected final long actualSize;
-  protected final long compressedSize;
-  protected final Type type;
-  protected final FetchedInputCallback callback;
-  protected final int id;
-  protected State state;
+  private InputAttemptIdentifier inputAttemptIdentifier;
+  private final FetchedInputCallback callback;
+  private final int id;
+  private byte state;
 
-  public FetchedInput(Type type, long actualSize, long compressedSize,
-      InputAttemptIdentifier inputAttemptIdentifier,
+  protected FetchedInput(InputAttemptIdentifier inputAttemptIdentifier,
       FetchedInputCallback callbackHandler) {
-    this.type = type;
-    this.actualSize = actualSize;
-    this.compressedSize = compressedSize;
     this.inputAttemptIdentifier = inputAttemptIdentifier;
     this.callback = callbackHandler;
     this.id = ID_GEN.getAndIncrement();
-    this.state = State.PENDING;
+    this.state = (byte) State.PENDING.ordinal();
   }
 
-  public Type getType() {
-    return this.type;
+  public abstract Type getType();
+
+  protected boolean isState(State state) {
+    return this.state == (byte) state.ordinal();
   }
 
-  public long getActualSize() {
-    return this.actualSize;
+  protected void setState(State state) {
+    this.state = (byte) state.ordinal();
   }
-  
-  public long getCompressedSize() {
-    return this.compressedSize;
+
+  protected State getState() {
+    if (isState(State.PENDING)) {
+      return State.PENDING;
+    }
+    if (isState(State.COMMITTED)) {
+      return State.COMMITTED;
+    }
+    if (isState(State.ABORTED)) {
+      return State.ABORTED;
+    }
+    if (isState(State.FREED)) {
+      return State.FREED;
+    }
+    // Should not get here
+    return null;
   }
+
+  protected int getId() {
+    return this.id;
+  }
+
+  public abstract long getSize();
 
   public InputAttemptIdentifier getInputAttemptIdentifier() {
     return this.inputAttemptIdentifier;
