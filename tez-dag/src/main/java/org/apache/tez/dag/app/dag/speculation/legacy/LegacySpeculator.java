@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -67,6 +68,7 @@ public class LegacySpeculator {
   private static final double PROPORTION_RUNNING_TASKS_SPECULATABLE = 0.1;
   private static final double PROPORTION_TOTAL_TASKS_SPECULATABLE = 0.01;
   private static final int  MINIMUM_ALLOWED_SPECULATIVE_TASKS = 10;
+  private static final int VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION = 1;
 
   private static final Logger LOG = LoggerFactory.getLogger(LegacySpeculator.class);
 
@@ -88,7 +90,7 @@ public class LegacySpeculator {
 
   private Vertex vertex;
   private TaskRuntimeEstimator estimator;
-
+  private final long taskTimeout;
   private final Clock clock;
   private long nextSpeculateTime = Long.MIN_VALUE;
 
@@ -116,6 +118,9 @@ public class LegacySpeculator {
     this.vertex = vertex;
     this.estimator = estimator;
     this.clock = clock;
+    taskTimeout = conf.getLong(
+            TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
+            TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT);
   }
 
 /*   *************************************************************    */
@@ -209,7 +214,12 @@ public class LegacySpeculator {
   //
   // All of these values are negative.  Any value that should be allowed to
   //  speculate is 0 or positive.
-  private long speculationValue(Task task, long now) {
+  //
+  // If shouldUseTimeout is true, we will use timeout to decide on
+  // speculation instead of the task statistics. This can be useful, for
+  // example for single task vertices for which there are no tasks to compare
+  // with
+  private long speculationValue(Task task, long now, boolean shouldUseTimeout) {
     Map<TezTaskAttemptID, TaskAttempt> attempts = task.getAttempts();
     TezTaskID taskID = task.getTaskId();
     long acceptableRuntime = Long.MIN_VALUE;
@@ -220,7 +230,7 @@ public class LegacySpeculator {
       return NOT_RUNNING;
     }
     
-    if (!mayHaveSpeculated.contains(taskID)) {
+    if (!mayHaveSpeculated.contains(taskID) && !shouldUseTimeout) {
       acceptableRuntime = estimator.thresholdRuntime(taskID);
       if (acceptableRuntime == Long.MAX_VALUE) {
         return ON_SCHEDULE;
@@ -239,8 +249,6 @@ public class LegacySpeculator {
         }
         runningTaskAttemptID = taskAttempt.getID();
 
-        long estimatedRunTime = estimator.estimatedRuntime(runningTaskAttemptID);
-
         long taskAttemptStartTime
             = estimator.attemptEnrolledTime(runningTaskAttemptID);
         if (taskAttemptStartTime > now) {
@@ -249,43 +257,57 @@ public class LegacySpeculator {
           return TOO_NEW;
         }
 
-        long estimatedEndTime = estimatedRunTime + taskAttemptStartTime;
-
-        long estimatedReplacementEndTime
-            = now + estimator.newAttemptEstimatedRuntime();
-
-        float progress = taskAttempt.getProgress();
-        TaskAttemptHistoryStatistics data =
-            runningTaskAttemptStatistics.get(runningTaskAttemptID);
-        if (data == null) {
-          runningTaskAttemptStatistics.put(runningTaskAttemptID,
-            new TaskAttemptHistoryStatistics(estimatedRunTime, progress, now));
-        } else {
-          if (estimatedRunTime == data.getEstimatedRunTime()
-              && progress == data.getProgress()) {
-            // Previous stats are same as same stats
-            if (data.notHeartbeatedInAWhile(now)) {
-              // Stats have stagnated for a while, simulate heart-beat.
-              // Now simulate the heart-beat
-              statusUpdate(taskAttempt.getID(), taskAttempt.getState(), clock.getTime());
-            }
+        if (shouldUseTimeout) {
+          if ((now - taskAttemptStartTime) > taskTimeout) {
+            // If the task has timed out, then we want to schedule a speculation
+            // immediately. However we cannot return immediately since we may
+            // already have a speculation running.
+            result = Long.MAX_VALUE;
           } else {
-            // Stats have changed - update our data structure
-            data.setEstimatedRunTime(estimatedRunTime);
-            data.setProgress(progress);
-            data.resetHeartBeatTime(now);
+            // Task has not timed out so we are good
+            return ON_SCHEDULE;
           }
-        }
+        } else {
+          long estimatedRunTime = estimator.estimatedRuntime(runningTaskAttemptID);
 
-        if (estimatedEndTime < now) {
-          return PROGRESS_IS_GOOD;
-        }
+          long estimatedEndTime = estimatedRunTime + taskAttemptStartTime;
 
-        if (estimatedReplacementEndTime >= estimatedEndTime) {
-          return TOO_LATE_TO_SPECULATE;
-        }
+          long estimatedReplacementEndTime
+                  = now + estimator.newAttemptEstimatedRuntime();
 
-        result = estimatedEndTime - estimatedReplacementEndTime;
+          float progress = taskAttempt.getProgress();
+          TaskAttemptHistoryStatistics data =
+                  runningTaskAttemptStatistics.get(runningTaskAttemptID);
+          if (data == null) {
+            runningTaskAttemptStatistics.put(runningTaskAttemptID,
+                    new TaskAttemptHistoryStatistics(estimatedRunTime, progress, now));
+          } else {
+            if (estimatedRunTime == data.getEstimatedRunTime()
+                    && progress == data.getProgress()) {
+              // Previous stats are same as same stats
+              if (data.notHeartbeatedInAWhile(now)) {
+                // Stats have stagnated for a while, simulate heart-beat.
+                // Now simulate the heart-beat
+                statusUpdate(taskAttempt.getID(), taskAttempt.getState(), clock.getTime());
+              }
+            } else {
+              // Stats have changed - update our data structure
+              data.setEstimatedRunTime(estimatedRunTime);
+              data.setProgress(progress);
+              data.resetHeartBeatTime(now);
+            }
+          }
+
+          if (estimatedEndTime < now) {
+            return PROGRESS_IS_GOOD;
+          }
+
+          if (estimatedReplacementEndTime >= estimatedEndTime) {
+            return TOO_LATE_TO_SPECULATE;
+          }
+
+          result = estimatedEndTime - estimatedReplacementEndTime;
+        }
       }
     }
 
@@ -296,7 +318,7 @@ public class LegacySpeculator {
 
 
 
-    if (acceptableRuntime == Long.MIN_VALUE) {
+    if ((acceptableRuntime == Long.MIN_VALUE) && !shouldUseTimeout) {
       acceptableRuntime = estimator.thresholdRuntime(taskID);
       if (acceptableRuntime == Long.MAX_VALUE) {
         return ON_SCHEDULE;
@@ -329,11 +351,15 @@ public class LegacySpeculator {
 
     TezTaskID bestTaskID = null;
     long bestSpeculationValue = -1L;
+    boolean shouldUseTimeout =
+            (tasks.size() <= VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION) &&
+            (taskTimeout >= 0);
 
     // this loop is potentially pricey.
     // TODO track the tasks that are potentially worth looking at
     for (Map.Entry<TezTaskID, Task> taskEntry : tasks.entrySet()) {
-      long mySpeculationValue = speculationValue(taskEntry.getValue(), now);
+      long mySpeculationValue = speculationValue(taskEntry.getValue(), now,
+              shouldUseTimeout);
 
       if (mySpeculationValue == ALREADY_SPECULATING) {
         ++numberSpeculationsAlready;

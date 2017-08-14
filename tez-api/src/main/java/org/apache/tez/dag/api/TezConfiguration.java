@@ -527,6 +527,17 @@ public class TezConfiguration extends Configuration {
                                      TEZ_AM_PREFIX + "legacy.speculative.slowtask.threshold";
 
   /**
+   * Long value. Specifies the timeout after which tasks on a single task vertex must be speculated.
+   * A negative value means not to use timeout for speculation of single task vertices.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT =
+                                     TEZ_AM_PREFIX + "legacy.speculative.single.task.vertex.timeout";
+  public static final long TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT = -1;
+
+  /**
    * Int value. Upper limit on the number of threads user to launch containers in the app
    * master. Expert level setting. 
    */

@@ -19,6 +19,8 @@
 package org.apache.tez.dag.app;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.conf.Configuration;
@@ -97,7 +99,54 @@ public class TestSpeculation {
       mockAppLauncherGoFlag.notify();
     }     
   }
-  
+
+  @Test (timeout = 10000)
+  public void testSingleTaskSpeculation() throws Exception {
+    // Map<Timeout conf value, expected number of tasks>
+    Map<Long, Integer> confToExpected = new HashMap<Long, Integer>();
+    confToExpected.put(Long.MAX_VALUE >> 1, 1); // Really long time to speculate
+    confToExpected.put(100L, 2);
+    confToExpected.put(-1L, 1); // Don't speculate
+
+    for(Map.Entry<Long, Integer> entry : confToExpected.entrySet()) {
+      defaultConf.setLong(
+              TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
+              entry.getKey());
+      DAG dag = DAG.create("test");
+      Vertex vA = Vertex.create("A",
+              ProcessorDescriptor.create("Proc.class"),
+              1);
+      dag.addVertex(vA);
+
+      MockTezClient tezClient = createTezSession();
+
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+      TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
+      // original attempt is killed and speculative one is successful
+      TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
+      TezTaskAttemptID successTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
+
+      Thread.sleep(200);
+      // cause speculation trigger
+      mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
+
+      mockLauncher.startScheduling(true);
+      dagClient.waitForCompletion();
+      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+      Task task = dagImpl.getTask(killedTaId.getTaskID());
+      Assert.assertEquals(entry.getValue().intValue(), task.getAttempts().size());
+      if (entry.getValue() > 1) {
+        Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getID());
+        TaskAttempt killedAttempt = task.getAttempt(killedTaId);
+        Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
+        Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
+                killedAttempt.getTerminationCause());
+      }
+      tezClient.stop();
+    }
+  }
+
   public void testBasicSpeculation(boolean withProgress) throws Exception {
     DAG dag = DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
