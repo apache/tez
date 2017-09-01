@@ -72,7 +72,7 @@ export default AbstractAdapter.extend({
       var filter = this.get(`filters.${key}`);
 
       if(filter) {
-        if(!primaryFilter) {
+        if(!primaryFilter && !(filter === 'status' && value === 'RUNNING')) {
           primaryFilter = {};
           primaryFilter[filter] = value;
         }
