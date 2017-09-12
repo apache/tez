@@ -593,13 +593,23 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Boolean value. Specifies whether a re-scheduled attempt of a task, caused by previous
-   * failures gets special treatment - higher priority, dropped location hints.
+   * failures gets higher priority
    */
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty(type="boolean")
   public static final String TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY =
       TEZ_AM_PREFIX + "task.reschedule.higher.priority";
   public static final boolean TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT=true;
+
+  /**
+   * Boolean value. Specifies whether a re-scheduled attempt of a task, caused by previous
+   * failure get relaxed locality
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY =
+      TEZ_AM_PREFIX + "task.reschedule.relaxed.locality";
+  public static final boolean TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT=true;
 
   /**
    * Boolean value. Enabled blacklisting of nodes of nodes that are considered faulty. These nodes 

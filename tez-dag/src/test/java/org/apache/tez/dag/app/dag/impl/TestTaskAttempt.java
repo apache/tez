@@ -212,7 +212,13 @@ public class TestTaskAttempt {
     // Override the test defaults to setup the config change
     TezConfiguration vertexConf = new TezConfiguration();
     vertexConf.setBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY, false);
+    vertexConf.setBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY, true);
     when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(vertexConf));
+
+    // set locality
+    Set<String> hosts = new TreeSet<String>();
+    hosts.add("host1");
+    locationHint = TaskLocationHint.createTaskLocationHint(hosts, null);
 
     TaskAttemptImpl.ScheduleTaskattemptTransition sta =
         new TaskAttemptImpl.ScheduleTaskattemptTransition();
@@ -241,12 +247,15 @@ public class TestTaskAttempt {
     verify(eventHandler, times(1)).handle(arg.capture());
     AMSchedulerEventTALaunchRequest launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
     Assert.assertEquals(2, launchEvent.getPriority());
+    Assert.assertEquals(1, launchEvent.getLocationHint().getHosts().size());
+    Assert.assertTrue(launchEvent.getLocationHint().getHosts().contains("host1"));
 
     // Verify priority for a retried attempt is the same
     sta.transition(taImplReScheduled, sEvent);
     verify(eventHandler, times(2)).handle(arg.capture());
     launchEvent = (AMSchedulerEventTALaunchRequest) arg.getValue();
     Assert.assertEquals(2, launchEvent.getPriority());
+    Assert.assertNull(launchEvent.getLocationHint());
   }
 
   @Test(timeout = 5000)

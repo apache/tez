@@ -1314,7 +1314,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.taskRacks = racks;
 
       // Ask for hosts / racks only if not a re-scheduled task.
-      if (ta.isRescheduled && ta.getVertex().getVertexConfig().getTaskRescheduleHigherPriority()) {
+      if (ta.isRescheduled && ta.getVertex().getVertexConfig().getTaskRescheduleRelaxedLocality()) {
         locationHint = null;
       }
 

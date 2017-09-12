@@ -4648,6 +4648,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     private final int maxFailedTaskAttempts;
     private final boolean taskRescheduleHigherPriority;
+    private final boolean taskRescheduleRelaxedLocality;
 
     public VertexConfigImpl(Configuration conf) {
       this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
@@ -4655,6 +4656,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.taskRescheduleHigherPriority =
           conf.getBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY,
               TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT);
+      this.taskRescheduleRelaxedLocality =
+          conf.getBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY,
+              TezConfiguration.TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT);
     }
 
     @Override
@@ -4665,6 +4669,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     @Override
     public boolean getTaskRescheduleHigherPriority() {
       return taskRescheduleHigherPriority;
+    }
+
+    @Override
+    public boolean getTaskRescheduleRelaxedLocality() {
+      return taskRescheduleRelaxedLocality;
     }
   }
 }
