@@ -702,7 +702,9 @@ public class ShuffleManager implements FetcherCallback {
   private void maybeInformInputReady(FetchedInput fetchedInput) {
     lock.lock();
     try {
-      completedInputs.add(fetchedInput);
+      if (!(fetchedInput instanceof NullFetchedInput)) {
+        completedInputs.add(fetchedInput);
+      }
       if (!inputReadyNotificationSent.getAndSet(true)) {
         // TODO Should eventually be controlled by Inputs which are processing the data.
         inputContext.inputIsReady();
@@ -846,20 +848,6 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
 
-  /////////////////// Methods for walking the available inputs
-  
-  /**
-   * @return true if there is another input ready for consumption.
-   */
-  public boolean newInputAvailable() {
-    FetchedInput head = completedInputs.peek();
-    if (head == null || head instanceof NullFetchedInput) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
   /**
    * @return true if all of the required inputs have been fetched.
    */
@@ -878,21 +866,16 @@ public class ShuffleManager implements FetcherCallback {
    *         but more may become available.
    */
   public FetchedInput getNextInput() throws InterruptedException {
-    FetchedInput input = null;
-    do {
-      // Check for no additional inputs
-      lock.lock();
-      try {
-        input = completedInputs.peek();
-        if (input == null && allInputsFetched()) {
-          break;
-        }
-      } finally {
-        lock.unlock();
+    // Check for no additional inputs
+    lock.lock();
+    try {
+      if (completedInputs.peek() == null && allInputsFetched()) {
+        return null;
       }
-      input = completedInputs.take(); // block
-    } while (input instanceof NullFetchedInput);
-    return input;
+    } finally {
+      lock.unlock();
+    }
+    return completedInputs.take(); // block
   }
 
   public int getNumInputs() {
