@@ -36,7 +36,7 @@ test('Basic creation test', function(assert) {
   assert.ok(serializer.maps.containerLogs);
   assert.ok(serializer.maps.vertexIdNameMap);
 
-  assert.equal(Object.keys(serializer.get("maps")).length, 12 + 7); //12 own & 9 inherited (2 overwritten)
+  assert.equal(Object.keys(serializer.get("maps")).length, 13 + 7); //13 own & 9 inherited (2 overwritten)
 });
 
 test('atsStatus test', function(assert) {

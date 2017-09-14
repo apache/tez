@@ -128,5 +128,6 @@ export default DAGInfoSerializer.extend({
     vertexNameIdMap: 'otherinfo.vertexNameIdMapping',
 
     amWsVersion: 'otherinfo.amWebServiceVersion',
+    failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
   }
 });

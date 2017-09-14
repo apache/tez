@@ -62,6 +62,8 @@ test('Basic creation test', function(assert) {
   assert.ok(model.info);
 
   assert.ok(model.amWsVersion);
+  assert.ok(model.failedTaskAttempts);
+  assert.ok(model.finalStatus);
 });
 
 test('app loadType test', function(assert) {
@@ -81,6 +83,20 @@ test('app loadType test', function(assert) {
 
   record.set("queueName", undefined);
   assert.equal(loadType(record), undefined);
+});
+
+test('status test', function(assert) {
+  let model = this.subject();
+
+  Ember.run(function () {
+    model.set("status", "SUCCEEDED");
+    assert.equal(model.get("status"), "SUCCEEDED");
+    assert.equal(model.get("finalStatus"), "SUCCEEDED");
+
+    model.set("failedTaskAttempts", 1);
+    assert.equal(model.get("status"), "SUCCEEDED");
+    assert.equal(model.get("finalStatus"), "SUCCEEDED_WITH_FAILURES");
+  });
 });
 
 test('queue test', function(assert) {

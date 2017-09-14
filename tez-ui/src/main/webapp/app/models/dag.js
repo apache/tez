@@ -83,6 +83,15 @@ export default DAGInfoModel.extend({
   callerType: Ember.computed.or("callerData.callerType", "info.callerData.callerType"),
 
   amWsVersion: DS.attr("string"),
+  failedTaskAttempts: DS.attr("number"),
+
+  finalStatus: Ember.computed("status", "failedTaskAttempts", function () {
+    var status = this.get("status");
+    if(status === "SUCCEEDED" && this.get("failedTaskAttempts")) {
+      status = "SUCCEEDED_WITH_FAILURES";
+    }
+    return status;
+  }),
 
   info: DS.attr("object"),
 
