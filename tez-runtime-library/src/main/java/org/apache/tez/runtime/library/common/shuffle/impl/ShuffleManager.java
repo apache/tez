@@ -721,6 +721,10 @@ public class ShuffleManager implements FetcherCallback {
 
       int numComplete = numCompletedInputs.incrementAndGet();
       if (numComplete == numInputs) {
+        // Poison pill End of Input message to awake blocking take call
+        if (fetchedInput instanceof NullFetchedInput) {
+          completedInputs.add(fetchedInput);
+        }
         LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
       }
     } finally {
@@ -875,7 +879,12 @@ public class ShuffleManager implements FetcherCallback {
     } finally {
       lock.unlock();
     }
-    return completedInputs.take(); // block
+    // Block until next input or End of Input message
+    FetchedInput fetchedInput = completedInputs.take();
+    if (fetchedInput instanceof NullFetchedInput) {
+      fetchedInput = null;
+    }
+    return fetchedInput;
   }
 
   public int getNumInputs() {
