@@ -570,6 +570,23 @@ public class TestTaskSchedulerManager {
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
+  public void testShutdownBeforeStartTaskScheduler() {
+    Configuration conf = new TezConfiguration();
+    AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
+    doReturn(conf).when(appContext).getAMConf();
+
+    List<NamedEntityDescriptor> list = new LinkedList<>();
+    list.add(null);
+
+    TaskSchedulerManager taskSchedulerManager =
+        new TaskSchedulerManager(appContext, null, null,
+            null, null, list, false,null);
+    assertFalse("Should not return true unless actually unregistered successfully",
+        taskSchedulerManager.hasUnregistered());
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
   public void testReportFailureFromTaskScheduler() {
     String dagName = DAG_NAME;
     Configuration conf = new TezConfiguration();
