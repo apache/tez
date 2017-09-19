@@ -18,6 +18,7 @@
 
 package org.apache.tez.auxservices;
 
+import org.apache.hadoop.util.DiskChecker;
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
@@ -1160,7 +1161,11 @@ public class ShuffleHandler extends AuxiliaryService {
           }
           nextMap.addListener(new ReduceMapFileCount(reduceContext));
         } catch (IOException e) {
-          LOG.error("Shuffle error :", e);
+          if (e instanceof DiskChecker.DiskErrorException) {
+            LOG.error("Shuffle error :" + e);
+          } else {
+            LOG.error("Shuffle error :", e);
+          }
           String errorMessage = getErrorMessage(e);
           sendError(reduceContext.getCtx(), errorMessage,
               INTERNAL_SERVER_ERROR);
