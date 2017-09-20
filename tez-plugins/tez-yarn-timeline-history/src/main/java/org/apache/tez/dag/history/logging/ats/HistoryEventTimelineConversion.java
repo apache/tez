@@ -96,8 +96,8 @@ public class HistoryEventTimelineConversion {
         return Collections.singletonList(convertDAGStartedEvent((DAGStartedEvent) historyEvent));
       case DAG_FINISHED:
         return Lists.newArrayList(
-            convertDAGFinishedToDAGExtraInfoEntity((DAGFinishedEvent) historyEvent),
-            convertDAGFinishedEvent((DAGFinishedEvent) historyEvent));
+            convertDAGFinishedEvent((DAGFinishedEvent) historyEvent),
+            convertDAGFinishedToDAGExtraInfoEntity((DAGFinishedEvent) historyEvent));
       case VERTEX_INITIALIZED:
         return Collections.singletonList(
             convertVertexInitializedEvent((VertexInitializedEvent) historyEvent));
