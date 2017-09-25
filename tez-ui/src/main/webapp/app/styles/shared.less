@@ -60,4 +60,47 @@ b {
       margin-top: 10px;
     }
   }
+
+  .table-body .table-scroll-body .table-column .header-body {
+    .sort-icon {
+      right: 7px;
+      top: 50%;
+      margin-top: -10px;
+      width: 5px;
+      height: 20px;
+
+      &:before {
+        top: .3em;
+      }
+      &:after {
+        top: 1.2em;
+      }
+
+      &.asc{
+        &:after {
+          top: .3em;
+        }
+      }
+      &.desc {
+        &:before {
+          top: .3em;
+        }
+      }
+    }
+
+    .resize-column {
+      position: absolute;
+      right: 0px;
+      top: 50%;
+      margin-top: -10px;
+      width: 5px;
+
+      &:after {
+        content: "\F142";
+        font: normal normal normal 13px/1 FontAwesome;
+        position: absolute;
+        top: .3em;
+      }
+    }
+  }
 }
