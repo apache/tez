@@ -26,6 +26,6 @@ export default TimelineSerializer.extend({
     failedTaskAttempts: 'otherinfo.numFailedTaskAttempts',
 
     successfulAttemptID: 'otherinfo.successfulAttemptId',
-    attemptIDs: 'otherinfo.relatedentities.TEZ_TASK_ATTEMPT_ID',
+    attemptIDs: 'relatedentities.TEZ_TASK_ATTEMPT_ID',
   }
 });
