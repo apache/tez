@@ -68,7 +68,7 @@
     <tbody>
       <tr>
         <td>Total Tasks</td>
-        <td>{{txt model.totalTasks type="number"}}</td>
+        <td>{{stats-link value=model.totalTasks routeName="vertex.tasks"}}</td>
       </tr>
       <tr>
         <td>Succeeded Tasks</td>
@@ -81,6 +81,14 @@
       <tr>
         <td>Killed Tasks</td>
         <td>{{stats-link value=model.killedTasks routeName="vertex.tasks" statsType="KILLED"}}</td>
+      </tr>
+      <tr>
+        <td>Failed Task Attempts</td>
+        <td>{{stats-link value=model.failedTaskAttempts routeName="vertex.attempts" statsType="FAILED"}}</td>
+      </tr>
+      <tr>
+        <td>Killed Task Attempts</td>
+        <td>{{stats-link value=model.killedTaskAttempts routeName="vertex.attempts" statsType="KILLED"}}</td>
       </tr>
       <tr>
         <td>First Task Start Time</td>
