@@ -48,7 +48,6 @@ import org.apache.tez.common.DagContainerLauncher;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -99,6 +98,9 @@ public class LocalContainerLauncher extends DagContainerLauncher {
   private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
       runningContainers =
       new ConcurrentHashMap<ContainerId, RunningTaskCallback>();
+
+  private final ConcurrentHashMap<ContainerId, TezLocalCacheManager>
+          cacheManagers = new ConcurrentHashMap<>();
 
   private final ExecutorService callbackExecutor = Executors.newFixedThreadPool(1,
       new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CallbackExecutor").build());
@@ -229,6 +231,10 @@ public class LocalContainerLauncher extends DagContainerLauncher {
 
   private void handleLaunchFailed(Throwable t, ContainerId containerId) {
     String message;
+
+    // clean up distributed cache files
+    cleanupCacheFiles(containerId);
+
     if (t instanceof RejectedExecutionException) {
       message = "Failed to queue container launch for container Id: " + containerId;
     } else {
@@ -244,10 +250,22 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     String tokenIdentifier = context.getApplicationID().toString();
     try {
       TezChild tezChild;
+
       try {
         int taskCommId = context.getTaskCommunicatorIdentifier(event.getTaskCommunicatorName());
+
+        Configuration conf = context.getAMConf();
+        if (isLocalMode) {
+          TezLocalCacheManager cacheManager = new TezLocalCacheManager(
+              event.getContainerLaunchContext().getLocalResources(),
+              conf
+          );
+          cacheManagers.put(event.getContainerId(), cacheManager);
+          cacheManager.localize();
+        }
+
         tezChild =
-            createTezChild(context.getAMConf(), event.getContainerId(), tokenIdentifier,
+            createTezChild(conf, event.getContainerId(), tokenIdentifier,
                 context.getApplicationAttemptId().getAttemptId(), context.getLocalDirs(),
                 ((TezTaskCommunicatorImpl)tal.getTaskCommunicator(taskCommId).getTaskCommunicator()).getUmbilical(),
                 TezCommonUtils.parseCredentialsBytes(event.getContainerLaunchContext().getTokens().array()));
@@ -322,6 +340,9 @@ public class LocalContainerLauncher extends DagContainerLauncher {
                 (result.getThrowable() == null ? null : result.getThrowable().getMessage()) :
                 result.getErrorMessage(), TaskAttemptEndReason.APPLICATION_ERROR);
       }
+
+      // clean up distributed cache files
+      cleanupCacheFiles(containerId);
     }
 
     @Override
@@ -340,6 +361,22 @@ public class LocalContainerLauncher extends DagContainerLauncher {
         getContext().containerCompleted(containerId,
             TezChild.ContainerExecutionResult.ExitStatus.SUCCESS.getExitCode(),
             "CancellationException", TaskAttemptEndReason.COMMUNICATION_ERROR.CONTAINER_EXITED);
+      }
+
+      // clean up distributed cache files
+      cleanupCacheFiles(containerId);
+    }
+  }
+
+  private void cleanupCacheFiles(ContainerId container) {
+    if (isLocalMode) {
+      TezLocalCacheManager manager = cacheManagers.remove(container);
+      try {
+        if (manager != null) {
+          manager.cleanup();
+        }
+      } catch (IOException e) {
+        LOG.info("Unable to clean up local cache files: ", e);
       }
     }
   }
