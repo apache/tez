@@ -632,7 +632,7 @@ public class HistoryEventTimelineConversion {
 
     atsEntity.addOtherInfo(ATSConstants.START_TIME, event.getStartTime());
     atsEntity.addOtherInfo(ATSConstants.SCHEDULED_TIME, event.getScheduledTime());
-    atsEntity.addOtherInfo(ATSConstants.STATUS, TaskState.SCHEDULED.name());
+    atsEntity.addOtherInfo(ATSConstants.STATUS, event.getState().name());
 
     return atsEntity;
   }
