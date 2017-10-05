@@ -56,7 +56,6 @@ import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 
-
 /**
  * Implements a Map Reduce compatible combiner
  */
