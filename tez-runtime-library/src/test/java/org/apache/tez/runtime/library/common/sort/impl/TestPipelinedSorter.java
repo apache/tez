@@ -439,6 +439,29 @@ public class TestPipelinedSorter {
   }
 
   @Test
+  public void testWithCombiner() throws IOException {
+    Configuration conf = getConf();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, DummyCombiner.class.getName());
+    this.numOutputs = 5;
+    this.initialAvailableMem = 5 * 1024 * 1024;
+    conf.setInt(TezRuntimeConfiguration
+            .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 3);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+            initialAvailableMem);
+
+    writeData(sorter, 1, 20);
+
+    Path outputFile = sorter.finalOutputFile;
+    FileSystem fs = outputFile.getFileSystem(conf);
+    IFile.Reader reader = new IFile.Reader(fs, outputFile, null, null, null, false, -1, 4096);
+    verifyData(reader);
+    reader.close();
+
+    // verifyCounters(sorter, outputContext);
+  }
+
+  @Test
   public void testMultipleSpills_WithRLE() throws IOException {
     Configuration conf = getConf();
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);

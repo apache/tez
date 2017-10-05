@@ -586,7 +586,7 @@ public class PipelinedSorter extends ExternalSorter {
           }
         } else {          
           if (hasNext) {
-            runCombineProcessor(kvIter, writer);
+            runCombineProcessor(new AlreadyAdvancedTezIterator(kvIter), writer);
           }
         }
         long rawLength = 0;
@@ -625,6 +625,54 @@ public class PipelinedSorter extends ExternalSorter {
       if (out != null) {
         out.close();
       }
+    }
+  }
+
+  // This class wraps a TezRawKeyValueIterator but, when next() is called
+  // the first time, returns true instead of actually advancing the iterator.
+  // In spill() the iterator has already been advanced once to see if the
+  // partition is non-empty. However, the combiner assumes next()
+  // has never been called. Without this class data is silently dropped.
+  private static class AlreadyAdvancedTezIterator implements TezRawKeyValueIterator {
+    final TezRawKeyValueIterator delegate;
+    boolean skippedFirst = false;
+    public AlreadyAdvancedTezIterator(TezRawKeyValueIterator delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public DataInputBuffer getKey() throws IOException {
+      return delegate.getKey();
+    }
+
+    @Override
+    public DataInputBuffer getValue() throws IOException {
+      return delegate.getValue();
+    }
+
+    @Override
+    public boolean next() throws IOException {
+      if (!skippedFirst) {
+        skippedFirst = true;
+        return true;
+      } else {
+        return delegate.next();
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      delegate.close();
+    }
+
+    @Override
+    public Progress getProgress() {
+      return delegate.getProgress();
+    }
+
+    @Override
+    public boolean isSameKey() throws IOException {
+      return delegate.isSameKey();
     }
   }
 
