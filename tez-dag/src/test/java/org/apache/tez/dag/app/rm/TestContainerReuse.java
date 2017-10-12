@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.mockito.ArgumentCaptor;
@@ -1127,8 +1128,11 @@ public class TestContainerReuse {
     String rsrc1 = "rsrc1";
     String rsrc2 = "rsrc2";
     LocalResource lr1 = mock(LocalResource.class);
+    doReturn(LocalResourceType.FILE).when(lr1).getType();
     LocalResource lr2 = mock(LocalResource.class);
+    doReturn(LocalResourceType.FILE).when(lr2).getType();
     LocalResource lr3 = mock(LocalResource.class);
+    doReturn(LocalResourceType.FILE).when(lr3).getType();
 
     AMContainerEventAssignTA assignEvent = null;
 
