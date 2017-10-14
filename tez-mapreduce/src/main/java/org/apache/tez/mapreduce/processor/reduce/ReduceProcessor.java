@@ -309,6 +309,12 @@ public class ReduceProcessor extends MRTask {
       public DataInputBuffer getValue() throws IOException {
         return rawIter.getValue();
       }
+
+      @Override
+      public boolean hasNext() throws IOException {
+        return rawIter.hasNext();
+      }
+
       public boolean next() throws IOException {
         boolean ret = rawIter.next();
         reporter.setProgress(rawIter.getProgress().getProgress());

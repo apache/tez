@@ -158,6 +158,13 @@ public class TestMRCombiner {
       return false;
     }
 
+    public boolean hasNext() throws IOException {
+      if (i < (keys.length - 1)) {
+        return true;
+      }
+      return false;
+    }
+
     @Override
     public DataInputBuffer getValue() throws IOException {
       DataInputBuffer value = new DataInputBuffer();
