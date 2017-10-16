@@ -39,9 +39,11 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
+import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
+import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -458,7 +460,24 @@ public class TestPipelinedSorter {
     verifyData(reader);
     reader.close();
 
-    // verifyCounters(sorter, outputContext);
+    verifyCounters(sorter, outputContext);
+  }
+
+  // for testWithCombiner
+  public static class DummyCombiner implements Combiner {
+    public DummyCombiner(TaskContext ctx) {
+      // do nothing
+    }
+  
+    @Override
+    public void combine(TezRawKeyValueIterator rawIter, IFile.Writer writer) throws InterruptedException, IOException {
+      while (rawIter.next()) {
+        writer.append(rawIter.getKey(), rawIter.getValue());
+      }
+  
+      // invoked by caller
+      // writer.close();
+    }
   }
 
   @Test
