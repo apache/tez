@@ -73,6 +73,7 @@ export default MultiTableController.extend(AutoCounterColumn, {
     headerTitle: 'Successful/Last Attempt Log',
     cellComponentName: 'em-table-tasks-log-link-cell',
     enableSearch: false,
+    contentPath: 'logs',
     getCellContent: function (row) {
       var attemptID = row.get("successfulAttemptID");
       if(!attemptID) {
