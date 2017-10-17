@@ -1279,7 +1279,6 @@ public class PipelinedSorter extends ExternalSorter {
 
     @Override
     public boolean hasNext() throws IOException {
-      // cases:
       if (dirty || iter.hasNext()) {
         Integer part;
         if (dirty) {

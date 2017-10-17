@@ -468,15 +468,12 @@ public class TestPipelinedSorter {
     public DummyCombiner(TaskContext ctx) {
       // do nothing
     }
-  
+
     @Override
     public void combine(TezRawKeyValueIterator rawIter, IFile.Writer writer) throws InterruptedException, IOException {
       while (rawIter.next()) {
         writer.append(rawIter.getKey(), rawIter.getValue());
       }
-  
-      // invoked by caller
-      // writer.close();
     }
   }
 
