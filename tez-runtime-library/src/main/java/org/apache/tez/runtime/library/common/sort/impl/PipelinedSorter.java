@@ -574,15 +574,14 @@ public class PipelinedSorter extends ExternalSorter {
         //write merged output to disk
         long segmentStart = out.getPos();
         Writer writer = null;
-        boolean hasNext = kvIter.next();
+        boolean hasNext = kvIter.hasNext();
         if (hasNext || !sendEmptyPartitionDetails) {
           writer = new Writer(conf, out, keyClass, valClass, codec,
               spilledRecordsCounter, null, merger.needsRLE());
         }
         if (combiner == null) {
-          while (hasNext) {
+          while (kvIter.next()) {
             writer.append(kvIter.getKey(), kvIter.getValue());
-            hasNext = kvIter.next();
           }
         } else {          
           if (hasNext) {
@@ -842,6 +841,7 @@ public class PipelinedSorter extends ExternalSorter {
 
   private interface PartitionedRawKeyValueIterator extends TezRawKeyValueIterator {
     int getPartition();
+    Integer peekPartition();
   }
 
   private static class BufferStreamWrapper extends OutputStream
@@ -1129,6 +1129,11 @@ public class PipelinedSorter extends ExternalSorter {
       return true;
     }
 
+    @Override
+    public boolean hasNext() {
+      return (kvindex == maxindex);
+    }
+
     public void close() {
     }
 
@@ -1144,6 +1149,14 @@ public class PipelinedSorter extends ExternalSorter {
     public int getPartition() {
       final int partition = kvmeta.get(span.offsetFor(kvindex) + PARTITION);
       return partition;
+    }
+
+    public Integer peekPartition() {
+      if (!hasNext()) {
+        return null;
+      } else {
+          return kvmeta.get(span.offsetFor(kvindex + 1) + PARTITION);
+      }
     }
 
     @SuppressWarnings("unused")
@@ -1259,6 +1272,23 @@ public class PipelinedSorter extends ExternalSorter {
           return true;
         } else if(!dirty) {
           dirty = true; // we did a lookahead and failed to find partition
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean hasNext() throws IOException {
+      if (dirty || iter.hasNext()) {
+        Integer part;
+        if (dirty) {
+          part = iter.getPartition();
+        } else {
+          part = iter.peekPartition();
+        }
+
+        if (part != null) {
+          return (part >>> (32 - partitionBits)) == partition;
         }
       }
       return false;
@@ -1401,6 +1431,20 @@ public class PipelinedSorter extends ExternalSorter {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return peek() != null;
+    }
+
+    public Integer peekPartition() {
+      if (!hasNext()) {
+        return null;
+      } else {
+        SpanIterator peek = peek();
+        return peek.getPartition();
+      }
     }
 
     public DataInputBuffer getKey() { return key; }

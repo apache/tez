@@ -39,9 +39,11 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
+import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
+import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -436,6 +438,43 @@ public class TestPipelinedSorter {
     writeData(sorter, 25000, 1000);
     assertFalse("Expecting needsRLE to be false", sorter.needsRLE());
     verifyCounters(sorter, outputContext);
+  }
+
+  @Test
+  public void testWithCombiner() throws IOException {
+    Configuration conf = getConf();
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINER_CLASS, DummyCombiner.class.getName());
+    this.numOutputs = 5;
+    this.initialAvailableMem = 5 * 1024 * 1024;
+    conf.setInt(TezRuntimeConfiguration
+            .TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB, 3);
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs,
+            initialAvailableMem);
+
+    writeData(sorter, 1, 20);
+
+    Path outputFile = sorter.finalOutputFile;
+    FileSystem fs = outputFile.getFileSystem(conf);
+    IFile.Reader reader = new IFile.Reader(fs, outputFile, null, null, null, false, -1, 4096);
+    verifyData(reader);
+    reader.close();
+
+    verifyCounters(sorter, outputContext);
+  }
+
+  // for testWithCombiner
+  public static class DummyCombiner implements Combiner {
+    public DummyCombiner(TaskContext ctx) {
+      // do nothing
+    }
+
+    @Override
+    public void combine(TezRawKeyValueIterator rawIter, IFile.Writer writer) throws InterruptedException, IOException {
+      while (rawIter.next()) {
+        writer.append(rawIter.getKey(), rawIter.getValue());
+      }
+    }
   }
 
   @Test

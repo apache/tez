@@ -55,7 +55,16 @@ public interface TezRawKeyValueIterator {
    * @throws IOException
    */
   boolean next() throws IOException;
-  
+
+  /**
+   * Returns true if any items are left in the iterator.
+   *
+   * @return <code>true</code> if a call to next will succeed
+   *         <code>false</code> otherwise.
+   * @throws IOException
+   */
+  boolean hasNext() throws IOException;
+
   /** 
    * Closes the iterator so that the underlying streams can be closed.
    * 

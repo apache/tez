@@ -1122,6 +1122,12 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       this.end = end;
       current = start - 1;
     }
+
+    @Override
+    public boolean hasNext() throws IOException {
+        return (current + 1) < end;
+    }
+
     public boolean next() throws IOException {
       return ++current < end;
     }

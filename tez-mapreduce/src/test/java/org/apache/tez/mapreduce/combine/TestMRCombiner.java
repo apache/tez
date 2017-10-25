@@ -152,7 +152,16 @@ public class TestMRCombiner {
 
     @Override
     public boolean next() throws IOException {
-      if (i++ < keys.length - 1) {
+      boolean hasNext = hasNext();
+      if (hasNext) {
+        i += 1;
+      }
+
+      return hasNext;
+    }
+
+    public boolean hasNext() throws IOException {
+      if (i < (keys.length -  1)) {
         return true;
       }
       return false;
