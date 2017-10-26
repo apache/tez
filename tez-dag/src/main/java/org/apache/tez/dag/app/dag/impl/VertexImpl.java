@@ -231,6 +231,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   // must be a linked map for ordering
   volatile LinkedHashMap<TezTaskID, Task> tasks = new LinkedHashMap<TezTaskID, Task>();
   private Object fullCountersLock = new Object();
+  private TezCounters counters = new TezCounters();
   private TezCounters fullCounters = null;
   private TezCounters cachedCounters = null;
   private long cachedCountersTimestamp = 0;
@@ -1189,6 +1190,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
 
       TezCounters counters = new TezCounters();
+      counters.incrAllCounters(this.counters);
       return incrTaskCounters(counters, tasks.values());
 
     } finally {
@@ -1217,13 +1219,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
 
       TezCounters counters = new TezCounters();
+      counters.incrAllCounters(this.counters);
       cachedCounters = incrTaskCounters(counters, tasks.values());
       return cachedCounters;
     } finally {
       readLock.unlock();
     }
   }
-  
+
+  @Override
+  public void addCounters(final TezCounters tezCounters) {
+    counters.incrAllCounters(tezCounters);
+  }
+
   @Override
   public int getMaxTaskConcurrency() {
     return vertexConf.getInt(TezConfiguration.TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY, 
@@ -3308,6 +3316,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Private
   public void constructFinalFullcounters() {
     this.fullCounters = new TezCounters();
+    this.fullCounters.incrAllCounters(counters);
     this.vertexStats = new VertexStats();
 
     for (Task t : this.tasks.values()) {

@@ -19,6 +19,7 @@ package org.apache.tez.mapreduce;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.records.TezDAGID;
@@ -117,6 +118,11 @@ public class TezTestUtils {
     @Override
     public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
       throw new UnsupportedOperationException("getVertexNumTasks not implemented in this mock");
+    }
+
+    @Override
+    public void addCounters(TezCounters tezCounters) {
+      throw new UnsupportedOperationException("addCounters not implemented in this mock");
     }
 
     @Override

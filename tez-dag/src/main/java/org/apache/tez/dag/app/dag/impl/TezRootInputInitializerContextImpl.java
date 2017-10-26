@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
@@ -119,4 +120,8 @@ public class TezRootInputInitializerContextImpl implements
     manager.registerForVertexUpdates(vertexName, input.getName(), stateSet);
   }
 
+  @Override
+  public void addCounters(final TezCounters tezCounters) {
+    vertex.addCounters(tezCounters);
+  }
 }

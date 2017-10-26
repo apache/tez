@@ -26,6 +26,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
@@ -117,4 +118,10 @@ public interface InputInitializerContext {
    */
   void registerForVertexStateUpdates(String vertexName, @Nullable Set<VertexState> stateSet);
 
+  /**
+   * Add custom counters
+   *
+   * @param tezCounters counters to add
+   */
+  void addCounters(TezCounters tezCounters);
 }
