@@ -112,17 +112,22 @@ public class TestFairShuffleVertexManager
 
   @Test(timeout = 5000)
   public void testReduceSchedulingWithPartitionStats() throws Exception {
+    final int numScatherAndGatherSourceTasks = 300;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
         new HashMap<String, EdgeManagerPlugin>();
-    testSchedulingWithPartitionStats(FairRoutingType.REDUCE_PARALLELISM,
-        2, 2, newEdgeManagers);
+    long[] partitionStats = new long[]{(MB), (2 * MB), (5 * MB)};
+    testSchedulingWithPartitionStats(
+        FairRoutingType.REDUCE_PARALLELISM, numScatherAndGatherSourceTasks,
+        partitionStats, 2,2, 2, newEdgeManagers);
     EdgeManagerPluginOnDemand edgeManager =
         (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
 
     // The first destination task fetches two partitions from all source tasks.
-    // 6 == 3 source tasks * 2 merged partitions
-    Assert.assertEquals(6, edgeManager.getNumDestinationTaskPhysicalInputs(0));
-    for (int sourceTaskIndex = 0; sourceTaskIndex < 3; sourceTaskIndex++) {
+    // Thus the # of inputs == # of source tasks * 2 merged partitions
+    Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
+        edgeManager.getNumDestinationTaskPhysicalInputs(0));
+    for (int sourceTaskIndex = 0;
+        sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
@@ -144,19 +149,26 @@ public class TestFairShuffleVertexManager
 
   @Test(timeout = 5000)
   public void testFairSchedulingWithPartitionStats() throws Exception {
+    final int numScatherAndGatherSourceTasks = 300;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
         new HashMap<String, EdgeManagerPlugin>();
-    testSchedulingWithPartitionStats(FairRoutingType.FAIR_PARALLELISM,
-        3, 2, newEdgeManagers);
+    long[] partitionStats = new long[]{(MB), (2 * MB), (5 * MB)};
+
+    testSchedulingWithPartitionStats(
+        FairRoutingType.FAIR_PARALLELISM,
+        numScatherAndGatherSourceTasks, partitionStats,
+        2, 3, 2, newEdgeManagers);
 
     // Get the first edgeManager which is SCATTER_GATHER.
     EdgeManagerPluginOnDemand edgeManager =
         (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
 
     // The first destination task fetches two partitions from all source tasks.
-    // 6 == 3 source tasks * 2 merged partitions
-    Assert.assertEquals(6, edgeManager.getNumDestinationTaskPhysicalInputs(0));
-    for (int sourceTaskIndex = 0; sourceTaskIndex < 3; sourceTaskIndex++) {
+    // Thus the # of inputs == # of source tasks * 2 merged partitions
+    Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
+        edgeManager.getNumDestinationTaskPhysicalInputs(0));
+    for (int sourceTaskIndex = 0; sourceTaskIndex < numScatherAndGatherSourceTasks;
+        sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
@@ -175,9 +187,10 @@ public class TestFairShuffleVertexManager
       }
     }
 
-    // The 2nd destination task fetches one partition from the first source
-    // task.
-    Assert.assertEquals(1, edgeManager.getNumDestinationTaskPhysicalInputs(1));
+    // The 2nd destination task fetches one partition from the first half of
+    // source tasks.
+    Assert.assertEquals(numScatherAndGatherSourceTasks / 2,
+        edgeManager.getNumDestinationTaskPhysicalInputs(1));
     for (int j = 0; j < 2; j++) {
       if (j == 0) {
         EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
@@ -193,33 +206,59 @@ public class TestFairShuffleVertexManager
       }
     }
 
-    // The 3rd destination task fetches one partition from the 2nd and 3rd
-    // source task.
-    Assert.assertEquals(2, edgeManager.getNumDestinationTaskPhysicalInputs(2));
-    for (int sourceTaskIndex = 1; sourceTaskIndex < 3; sourceTaskIndex++) {
+    // The 3rd destination task fetches one partition from 2nd half of
+    // source tasks.
+    Assert.assertEquals(numScatherAndGatherSourceTasks / 2,
+        edgeManager.getNumDestinationTaskPhysicalInputs(2));
+    for (int sourceTaskIndex = numScatherAndGatherSourceTasks / 2;
+        sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 2);
           Assert.assertEquals(1, routeMetadata.getCount());
           Assert.assertEquals(2, routeMetadata.getSource());
-          Assert.assertEquals(sourceTaskIndex - 1, routeMetadata.getTarget());
+          Assert.assertEquals(
+              sourceTaskIndex - numScatherAndGatherSourceTasks / 2,
+              routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 2);
           Assert.assertEquals(1, routeMetadata.getNumEvents());
-          Assert.assertEquals(sourceTaskIndex - 1, routeMetadata.getTargetIndices()[0]);
+          Assert.assertEquals(sourceTaskIndex - numScatherAndGatherSourceTasks / 2,
+              routeMetadata.getTargetIndices()[0]);
         }
       }
     }
+  }
+
+  @Test(timeout = 500000)
+  public void testOverflow() throws Exception {
+    final int numScatherAndGatherSourceTasks = 30000;
+    final Map<String, EdgeManagerPlugin> newEdgeManagers =
+            new HashMap<String, EdgeManagerPlugin>();
+    final int firstPartitionSize = 1;
+    final int secondPartitionSize = 2;
+    final int thirdPartitionSize = 500;
+    long[] partitionStats = new long[]{(firstPartitionSize * MB),
+        (secondPartitionSize * MB), (thirdPartitionSize * MB)};
+    final int expectedDestinationTasks =
+        (firstPartitionSize + secondPartitionSize + thirdPartitionSize)
+           * numScatherAndGatherSourceTasks / 1000;
+
+    testSchedulingWithPartitionStats(
+        FairRoutingType.FAIR_PARALLELISM,
+        numScatherAndGatherSourceTasks, partitionStats, 1000,
+        expectedDestinationTasks, 3, newEdgeManagers);
   }
 
   // Create a DAG with one destination vertexes connected to 3 source vertexes.
   // There are 3 tasks for each vertex. One edge is of type SCATTER_GATHER.
   // The other edges are BROADCAST.
   private void testSchedulingWithPartitionStats(
-      FairRoutingType fairRoutingType, int expectedScheduledTasks,
-      int expectedNumDestinationConsumerTasks,
+      FairRoutingType fairRoutingType, int numTasks, long[] partitionStats,
+      int numCompletedEvents,
+      int expectedScheduledTasks, int expectedNumDestinationConsumerTasks,
       Map<String, EdgeManagerPlugin> newEdgeManagers)
       throws Exception {
     Configuration conf = new Configuration();
@@ -227,7 +266,7 @@ public class TestFairShuffleVertexManager
 
     HashMap<String, EdgeProperty> mockInputVertices = new HashMap<String, EdgeProperty>();
     String r1 = "R1";
-    final int numOfTasksInr1 = 3;
+    final int numOfTasksInr1 = numTasks;
     EdgeProperty eProp1 = EdgeProperty.create(
         EdgeProperty.DataMovementType.SCATTER_GATHER,
         EdgeProperty.DataSourceType.PERSISTED,
@@ -291,20 +330,16 @@ public class TestFairShuffleVertexManager
         manager.totalNumBipartiteSourceTasks);
     Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
 
-    //Send an event for r1.
-    manager.onSourceTaskCompleted(createTaskAttemptIdentifier(r1, 0));
     Assert.assertTrue(manager.pendingTasks.size() == numOfTasksInDestination); // no tasks scheduled
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == numOfTasksInr1);
 
-    long[] sizes = new long[]{(50 * MB), (200 * MB), (500 * MB)};
-    VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 800 * MB,
-        r1, true);
-    manager.onVertexManagerEventReceived(vmEvent); //send VM event
 
-    //stats from another task
-    sizes = new long[]{(60 * MB), (300 * MB), (600 * MB)};
-    vmEvent = getVertexManagerEvent(sizes, 1200 * MB, r1, true);
-    manager.onVertexManagerEventReceived(vmEvent); //send VM event
+    for (int i = 0; i < numCompletedEvents; i++) {
+      VertexManagerEvent vmEvent = getVertexManagerEvent(partitionStats, 0,
+          r1, true);
+      manager.onSourceTaskCompleted(vmEvent.getProducerAttemptIdentifier());
+      manager.onVertexManagerEventReceived(vmEvent); //send VM event
+    }
 
     //Send an event for m2.
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(m2, 0));

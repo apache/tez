@@ -210,7 +210,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     //{5,9,12,18} in bitmap
     final long MB = 1024l * 1024l;
     long[] sizes = new long[]{(0l), (1 * MB), (964 * MB), (48 * MB)};
-    VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex", false);
+    VertexManagerEvent vmEvent = getVertexManagerEvent(sizes, 0, "Vertex", false);
 
     manager = createManager(conf, mockContext, 0.01f, 0.75f);
     manager.onVertexStarted(emptyCompletions);
@@ -239,7 +239,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertEquals(10, manager.getCurrentlyKnownStatsAtIndex(3)); //10 MB bucket
 
     // Testing for detailed partition stats
-    vmEvent = getVertexManagerEvent(sizes, 1L, "Vertex", true);
+    vmEvent = getVertexManagerEvent(sizes, 0, "Vertex", true);
 
     manager = createManager(conf, mockContext, 0.01f, 0.75f);
     manager.onVertexStarted(emptyCompletions);
