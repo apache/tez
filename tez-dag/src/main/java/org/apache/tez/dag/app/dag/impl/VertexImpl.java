@@ -4061,11 +4061,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       SingleArcTransition<VertexImpl, VertexEvent> {
     @Override
     public void transition(VertexImpl vertex, VertexEvent event) {
-      LOG.error("Invalid event " + event.getType() + " on Vertex "
-          + vertex.getLogIdentifier());
-      vertex.eventHandler.handle(new DAGEventDiagnosticsUpdate(
-          vertex.getDAGId(), "Invalid event " + event.getType()
-          + " on Vertex " + vertex.getLogIdentifier()));
+      String msg = "Invalid event on Vertex " + vertex.getLogIdentifier();
+      LOG.error(msg);
+      vertex.eventHandler.handle(new DAGEventDiagnosticsUpdate(vertex.getDAGId(), msg));
       vertex.setFinishTime();
       vertex.trySetTerminationCause(VertexTerminationCause.INTERNAL_ERROR);
       vertex.cancelCommits();
