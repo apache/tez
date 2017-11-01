@@ -1411,9 +1411,9 @@ em-table@0.11.3:
   optionalDependencies:
     phantomjs-prebuilt "2.1.13"
 
-em-tgraph@0.0.10:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/em-tgraph/-/em-tgraph-0.0.10.tgz#8b82a9a1853e4bfd615ff1a9d810435302b0db29"
+em-tgraph@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/em-tgraph/-/em-tgraph-0.0.14.tgz#4d48b911760f85dec41904e4056ec52542391cc1"
   dependencies:
     ember-cli-htmlbars "^1.0.1"
     ember-cli-less "^1.4.0"
