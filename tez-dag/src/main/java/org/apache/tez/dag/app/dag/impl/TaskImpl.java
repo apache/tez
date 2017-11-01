@@ -1248,12 +1248,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
-      if (task.leafVertex) {
-        LOG.error("Unexpected event for task of leaf vertex " + event.getType() + ", taskId: "
-            + task.getTaskId());
-        task.internalError(event.getType());
-      }
-
       TaskEventTAFailed castEvent = (TaskEventTAFailed) event;
       TezTaskAttemptID failedAttemptId = castEvent.getTaskAttemptID();
       TaskAttempt failedAttempt = task.getAttempt(failedAttemptId);
@@ -1277,7 +1271,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.taskAttemptStatus.put(failedAttemptId.getId(), true);
         return TaskStateInternal.SUCCEEDED;
       }
-      
+
+      if (task.leafVertex) {
+        LOG.error("Unexpected event for task of leaf vertex " + event.getType() + ", taskId: "
+            + task.getTaskId());
+        task.internalError(event.getType());
+      }
       Preconditions.checkState(castEvent.getCausalEvent() != null);
       TaskAttemptEventOutputFailed destinationEvent = 
           (TaskAttemptEventOutputFailed) castEvent.getCausalEvent();
