@@ -1122,10 +1122,10 @@ public class PipelinedSorter extends ExternalSorter {
     public boolean next() {
       // caveat: since we use this as a comparable in the merger 
       if(kvindex == maxindex) return false;
-      if(kvindex % 100 == 0) {
-          progress.set((kvindex-maxindex) / (float)maxindex);
-      }
       kvindex += 1;
+      if(kvindex % 100 == 0) {
+        progress.set(1 - ((maxindex - kvindex) / (float) maxindex));
+      }
       return true;
     }
 
