@@ -29,8 +29,10 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.VertexStatistics;
+import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
 import com.google.common.base.Preconditions;
@@ -268,6 +270,17 @@ public interface VertexManagerPluginContext {
    *          task to which events need to be sent.
    */
   public void addRootInputEvents(String inputName, Collection<InputDataInformationEvent> events);
+
+  /**
+   * Allows a VertexManagerPlugin to send events of custom payload to processor
+   * of a specific task of managed vertex
+   *
+   * It's up to user to make sure taskId is valid
+   *
+   * @param events events to be sent
+   * @param taskId id of a task of managed vertex
+   */
+  public void sendEventToProcessor(Collection<CustomProcessorEvent> events, int taskId);
   
   @Deprecated
   /**

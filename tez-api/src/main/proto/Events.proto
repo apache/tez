@@ -69,3 +69,8 @@ message RootInputInitializerEventProto {
   optional string target_input_name = 2;
   optional bytes user_payload = 3;
 }
+
+message CustomProcessorEventProto {
+  optional bytes user_payload = 1;
+  required int32 version = 2;
+}

@@ -167,6 +167,7 @@ import org.apache.tez.runtime.api.OutputStatistics;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
@@ -3884,6 +3885,17 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
       EventMetaData sourceMeta = tezEvent.getSourceInfo();
       switch(tezEvent.getEventType()) {
+      case CUSTOM_PROCESSOR_EVENT:
+        {
+          // set version as app attempt id
+          ((CustomProcessorEvent) tezEvent.getEvent()).setVersion(
+            appContext.getApplicationAttemptId().getAttemptId());
+          // route event to task
+          EventMetaData destinationMeta = tezEvent.getDestinationInfo();
+          Task targetTask = getTask(destinationMeta.getTaskAttemptID().getTaskID());
+          targetTask.registerTezEvent(tezEvent);
+        }
+        break;
       case INPUT_FAILED_EVENT:
       case DATA_MOVEMENT_EVENT:
       case COMPOSITE_DATA_MOVEMENT_EVENT:

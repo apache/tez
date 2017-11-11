@@ -36,6 +36,9 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
+import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.impl.GroupInputSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -272,6 +275,29 @@ public class VertexManager {
       // Recovery handling is taken care of by the Vertex.
     }
 
+    @Override
+    public void sendEventToProcessor(Collection<CustomProcessorEvent> events, int taskId) {
+      checkAndThrowIfDone();
+      Preconditions.checkArgument(taskId >= 0 && taskId < managedVertex.getTotalTasks(),
+        "Invalid taskId " + taskId + "; " + "There are " + managedVertex.getTotalTasks()
+          + " tasks in total.");
+
+      if (events != null && events.size() > 0) {
+        List<TezEvent> tezEvents = new ArrayList<>();
+        for (CustomProcessorEvent event : events) {
+          TezEvent tezEvent = new TezEvent(event, null);
+          // use dummy task attempt id since this is not an task attempt specific event and task
+          // attempt id won't be used anyway
+          EventMetaData destinationMeta = new EventMetaData(EventProducerConsumerType.PROCESSOR,
+            managedVertex.getName(), managedVertex.getName(),
+            TezTaskAttemptID.getInstance(managedVertex.getTask(taskId).getTaskId(), -1));
+          tezEvent.setDestinationInfo(destinationMeta);
+          tezEvents.add(tezEvent);
+        }
+        appContext.getEventHandler().handle(
+          new VertexEventRouteEvent(managedVertex.getVertexId(), tezEvents));
+      }
+    }
 
     @Override
     public synchronized void setVertexLocationHint(VertexLocationHint locationHint) {

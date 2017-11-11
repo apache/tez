@@ -30,6 +30,7 @@ import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
@@ -57,6 +58,8 @@ import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 
+import static org.apache.tez.runtime.api.events.EventProtos.*;
+
 public class TezEvent implements Writable {
 
   private EventType eventType;
@@ -82,6 +85,8 @@ public class TezEvent implements Writable {
     this.setSourceInfo(sourceInfo);
     if (event instanceof DataMovementEvent) {
       eventType = EventType.DATA_MOVEMENT_EVENT;
+    } else if (event instanceof CustomProcessorEvent) {
+      eventType = EventType.CUSTOM_PROCESSOR_EVENT;
     } else if (event instanceof CompositeDataMovementEvent) {
       eventType = EventType.COMPOSITE_DATA_MOVEMENT_EVENT;
     } else if (event instanceof CompositeRoutedDataMovementEvent) {
@@ -157,6 +162,11 @@ public class TezEvent implements Writable {
     } else {
       AbstractMessage message;
       switch (eventType) {
+      case CUSTOM_PROCESSOR_EVENT:
+        message =
+            ProtoConverters.convertCustomProcessorEventToProto(
+                (CustomProcessorEvent) event);
+        break;
       case DATA_MOVEMENT_EVENT:
         message =
             ProtoConverters.convertDataMovementEventToProto(
@@ -260,6 +270,11 @@ public class TezEvent implements Writable {
       }
       input = CodedInputStream.newInstance(eventBytes, startOffset, eventBytesLen);
       switch (eventType) {
+      case CUSTOM_PROCESSOR_EVENT:
+        CustomProcessorEventProto cpProto =
+            CustomProcessorEventProto.parseFrom(input);
+        event = ProtoConverters.convertCustomProcessorEventFromProto(cpProto);
+        break;
       case DATA_MOVEMENT_EVENT:
         DataMovementEventProto dmProto =
             DataMovementEventProto.parseFrom(input);

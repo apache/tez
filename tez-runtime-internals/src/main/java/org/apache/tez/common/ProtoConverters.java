@@ -21,6 +21,7 @@ package org.apache.tez.common;
 import com.google.protobuf.ByteString;
 
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
@@ -30,6 +31,23 @@ import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 
 public class ProtoConverters {
+
+  public static EventProtos.CustomProcessorEventProto convertCustomProcessorEventToProto(
+    CustomProcessorEvent event) {
+    EventProtos.CustomProcessorEventProto.Builder builder =
+        EventProtos.CustomProcessorEventProto.newBuilder();
+    if (event.getPayload() != null) {
+      builder.setUserPayload(ByteString.copyFrom(event.getPayload()));
+    }
+    builder.setVersion(event.getVersion());
+    return builder.build();
+  }
+
+  public static CustomProcessorEvent convertCustomProcessorEventFromProto(
+    EventProtos.CustomProcessorEventProto proto) {
+    return CustomProcessorEvent.create(proto.getUserPayload() != null ?
+      proto.getUserPayload().asReadOnlyByteBuffer() : null, proto.getVersion());
+  }
 
   public static EventProtos.DataMovementEventProto convertDataMovementEventToProto(
       DataMovementEvent event) {
