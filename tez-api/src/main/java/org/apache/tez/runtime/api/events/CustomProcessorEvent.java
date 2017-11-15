@@ -51,7 +51,7 @@ public class CustomProcessorEvent extends Event {
   }
 
   public ByteBuffer getPayload() {
-    return payload;
+    return payload.asReadOnlyBuffer();
   }
 
   @Private
