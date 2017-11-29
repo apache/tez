@@ -278,7 +278,15 @@ public class TestVertexManager {
     verify(mockHandler, times(1)).handle(requestCaptor.capture());
     CustomProcessorEvent cpe =
       (CustomProcessorEvent)(requestCaptor.getValue().getEvents().get(0).getEvent());
-    assertArrayEquals(payload, cpe.getPayload().array());
+
+    // should be able to get payload any times
+    for (int i = 0; i < 2; i++) {
+      ByteBuffer payloadBuffer = cpe.getPayload();
+      assertEquals(payload.length, payloadBuffer.remaining());
+      for (byte aPayload : payload) {
+        assertEquals(aPayload, payloadBuffer.get());
+      }
+    }
   }
 
   public static class CustomVertexManager extends VertexManagerPlugin {
