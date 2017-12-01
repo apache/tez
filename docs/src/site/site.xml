@@ -94,7 +94,7 @@
     </head>
 
     <breadcrumbs>
-      <item name="Apache Tez&trade;" href="http://tez.apache.org/"/>
+      <item name="Apache TEZ&reg;" href="http://tez.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Getting Started">
@@ -120,7 +120,7 @@
       <item name="Tez Wiki" href="https://cwiki.apache.org/confluence/display/TEZ"/>
     </menu>
 
-    <menu name="Download Apache Tez&trade; Releases">
+    <menu name="Download Apache TEZ&reg; Releases">
       <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
       <item name="0.5.4" href="./releases/apache-tez-0-5-4.html"/>
       <item name="0.6.2" href="./releases/apache-tez-0-6-2.html"/>

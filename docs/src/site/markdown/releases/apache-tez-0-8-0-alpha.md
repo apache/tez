@@ -15,9 +15,9 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez&trade; 0.8.0-alpha</title></head>
+<head><title>Apache TEZ&reg; 0.8.0-alpha</title></head>
 
-Apache Tez&trade; 0.8.0-alpha
+Apache TEZ&reg; 0.8.0-alpha
 ----------------------
 
 - [Download Release Artifacts](http://archive.apache.org/dist/tez/0.8.0-alpha/)

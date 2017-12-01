@@ -15,9 +15,9 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez&trade; 0.5.3</title></head>
+<head><title>Apache TEZ&reg; 0.5.3</title></head>
 
-Apache Tez&trade; 0.5.3
+Apache TEZ&reg; 0.5.3
 ----------------
 
 - [Download Release Artifacts](http://archive.apache.org/dist/tez/0.5.3/)

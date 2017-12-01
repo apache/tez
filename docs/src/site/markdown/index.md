@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>Welcome to Apache Tez&trade;</title></head>
+<head><title>Welcome to Apache TEZ&reg;</title></head>
 
 Introduction
 ------------
 
-The Apache Tez&trade; project is aimed at building an application framework
+The Apache TEZ&reg; project is aimed at building an application framework
 which allows for a complex directed-acyclic-graph of tasks for processing
 data. It is currently built atop
 [Apache Hadoop YARN](http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html).

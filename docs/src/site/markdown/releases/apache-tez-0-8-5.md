@@ -15,9 +15,9 @@
    limitations under the License.
 -->
 
-<head><title>Apache Tez&trade; 0.8.5</title></head>
+<head><title>Apache TEZ&reg; 0.8.5</title></head>
 
-Apache Tez&trade; 0.8.5
+Apache TEZ&reg; 0.8.5
 ----------------------
 
 - [Download Release Artifacts](http://www.apache.org/dyn/closer.lua/tez/0.8.5/)
