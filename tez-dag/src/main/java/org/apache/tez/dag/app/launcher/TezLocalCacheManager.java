@@ -31,7 +31,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -90,15 +92,20 @@ public class TezLocalCacheManager {
           throw new IllegalArgumentException("Resource type PATTERN not supported.");
         }
 
-        // submit task to download the object
-        java.nio.file.Path downloadDir = Files.createTempDirectory(tempDir, resourceName);
-        Path dest = new Path(downloadDir.toAbsolutePath().toString());
-        FSDownload downloader = new FSDownload(fileContext, ugi, conf, dest, resource);
-        Future<Path> downloadedPath = threadPool.submit(downloader);
-
         // linkPath is the path we want to symlink the file/directory into
         Path linkPath = new Path(cwd, entry.getKey());
-        resourceInfo.put(resource, new ResourceInfo(downloadedPath, linkPath));
+
+        if (resourceInfo.containsKey(resource)) {
+            // We've already downloaded this resource and just need to add another link.
+            resourceInfo.get(resource).linkPaths.add(linkPath);
+        } else {
+          // submit task to download the object
+          java.nio.file.Path downloadDir = Files.createTempDirectory(tempDir, resourceName);
+          Path dest = new Path(downloadDir.toAbsolutePath().toString());
+          FSDownload downloader = new FSDownload(fileContext, ugi, conf, dest, resource);
+          Future<Path> downloadedPath = threadPool.submit(downloader);
+          resourceInfo.put(resource, new ResourceInfo(downloadedPath, linkPath));
+        }
       }
 
       // Link each file
@@ -106,20 +113,21 @@ public class TezLocalCacheManager {
         LocalResource resource = entry.getKey();
         ResourceInfo resourceMeta = entry.getValue();
 
-        Path linkPath = resourceMeta.linkPath;
-        Path targetPath;
+        for (Path linkPath : resourceMeta.linkPaths) {
+          Path targetPath;
 
-        try {
-          // this blocks on the download completing
-          targetPath = resourceMeta.downloadPath.get();
-        } catch (InterruptedException | ExecutionException e) {
-          throw new IOException(e);
-        }
+          try {
+            // this blocks on the download completing
+            targetPath = resourceMeta.downloadPath.get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new IOException(e);
+          }
 
-        if (createSymlink(targetPath, linkPath)) {
-          LOG.info("Localized file: {} as {}", resource, linkPath);
-        } else {
-          LOG.warn("Failed to create symlink: {} <- {}", targetPath, linkPath);
+          if (createSymlink(targetPath, linkPath)) {
+            LOG.info("Localized file: {} as {}", resource, linkPath);
+          } else {
+            LOG.warn("Failed to create symlink: {} <- {}", targetPath, linkPath);
+          }
         }
       }
     } finally {
@@ -136,8 +144,10 @@ public class TezLocalCacheManager {
    */
   public void cleanup() throws IOException {
     for (ResourceInfo info : resourceInfo.values()) {
-      if (fileContext.util().exists(info.linkPath)) {
-        fileContext.delete(info.linkPath, true);
+      for (Path linkPath : info.linkPaths) {
+        if (fileContext.util().exists(linkPath)) {
+          fileContext.delete(linkPath, true);
+        }
       }
     }
 
@@ -174,11 +184,11 @@ public class TezLocalCacheManager {
    */
   private static class ResourceInfo {
     final Future<Path> downloadPath;
-    final Path linkPath;
+    final Set<Path> linkPaths = new HashSet<>();
 
     public ResourceInfo(Future<Path> downloadPath, Path linkPath) {
       this.downloadPath = downloadPath;
-      this.linkPath = linkPath;
+      this.linkPaths.add(linkPath);
     }
   }
 }
