@@ -19,6 +19,7 @@
 
 Releases
 ------------
+-   [Apache TEZ&reg; 0.9.1](./apache-tez-0-9-1.html) (Jan 04, 2018)
 -   [Apache TEZ&reg; 0.9.0](./apache-tez-0-9-0.html) (Jul 27, 2017)
 -   [Apache TEZ&reg; 0.8.5](./apache-tez-0-8-5.html) (Mar 13, 2017)
 -   [Apache TEZ&reg; 0.8.4](./apache-tez-0-8-4.html) (Jul 08, 2016)
