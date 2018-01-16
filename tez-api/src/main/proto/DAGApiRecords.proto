@@ -227,6 +227,7 @@ message ProgressProto {
   optional int32 killedTaskCount = 5;
   optional int32 failedTaskAttemptCount = 6;
   optional int32 killedTaskAttemptCount = 7;
+  optional int32 rejectedTaskAttemptCount = 8;
 }
 
 enum VertexStatusStateProto {

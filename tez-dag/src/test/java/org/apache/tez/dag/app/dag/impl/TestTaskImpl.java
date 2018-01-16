@@ -40,6 +40,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventStartedRemotely;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSubmitted;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
@@ -104,7 +105,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestTaskImpl {
-
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskImpl.class);
 
   private int taskCounter = 0;
@@ -185,7 +185,7 @@ public class TestTaskImpl {
     Vertex vertex = mock(Vertex.class);
     doReturn(new VertexImpl.VertexConfigImpl(conf)).when(vertex).getVertexConfig();
     eventHandler = new TestEventHandler();
-    
+
     mockTask = new MockTaskImpl(vertexId, partition,
         eventHandler, conf, taskCommunicatorManagerInterface, clock,
         taskHeartbeatHandler, appContext, leafVertex,
@@ -506,6 +506,23 @@ public class TestTaskImpl {
     killRunningTaskAttempt(mockTask.getLastAttempt().getID());
     // last killed attempt should be causal TA of next attempt
     Assert.assertEquals(lastTAId, mockTask.getLastAttempt().getSchedulingCausalTA());
+  }
+
+  @Test(timeout = 5000)
+  /**
+   * Kill running attempt
+   * {@link TaskState#RUNNING}->{@link TaskState#RUNNING}
+   */
+  public void testKillTaskAttemptServiceBusy() {
+    LOG.info("--- START: testKillTaskAttemptServiceBusy ---");
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    mockTask.handle(createTaskTAKilledEvent(
+        mockTask.getLastAttempt().getID(), new ServiceBusyEvent()));
+    assertTaskRunningState();
+    verify(mockTask.getVertex(), times(0)).incrementKilledTaskAttemptCount();
+    verify(mockTask.getVertex(), times(1)).incrementRejectedTaskAttemptCount();
   }
 
   /**
@@ -1386,4 +1403,16 @@ public class TestTaskImpl {
     }
   }
 
+  public class ServiceBusyEvent extends TezAbstractEvent<TaskAttemptEventType>
+     implements TaskAttemptEventTerminationCauseEvent {
+    public ServiceBusyEvent() {
+      super(TaskAttemptEventType.TA_KILLED);
+    }
+
+    @Override
+    public TaskAttemptTerminationCause getTerminationCause() {
+      return TaskAttemptTerminationCause.SERVICE_BUSY;
+    }
+  }
 }
+

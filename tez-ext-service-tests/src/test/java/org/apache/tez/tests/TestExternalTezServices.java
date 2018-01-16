@@ -200,7 +200,7 @@ public class TestExternalTezServices {
     DAGStatus dagStatus = dagClient.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     assertEquals(1, dagStatus.getDAGProgress().getFailedTaskAttemptCount());
-    assertEquals(1, dagStatus.getDAGProgress().getKilledTaskAttemptCount());
+    assertEquals(1, dagStatus.getDAGProgress().getRejectedTaskAttemptCount());
 
   }
 

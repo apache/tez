@@ -676,6 +676,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   AtomicInteger failedTaskAttemptCount = new AtomicInteger(0);
   @VisibleForTesting
   AtomicInteger killedTaskAttemptCount = new AtomicInteger(0);
+  AtomicInteger rejectedTaskAttemptCount = new AtomicInteger(0);
 
   @VisibleForTesting
   long initTimeRequested; // Time at which INIT request was received.
@@ -1429,6 +1430,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       progress.setKilledTaskCount(killedTaskCount);
       progress.setFailedTaskAttemptCount(failedTaskAttemptCount.get());
       progress.setKilledTaskAttemptCount(killedTaskAttemptCount.get());
+      progress.setRejectedTaskAttemptCount(rejectedTaskAttemptCount.get());
       return progress;
     } finally {
       this.readLock.unlock();
@@ -1551,6 +1553,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
 
   @Override
+  public void incrementRejectedTaskAttemptCount() {
+    this.rejectedTaskAttemptCount.incrementAndGet();
+  }
+
+  @Override
   public int getFailedTaskAttemptCount() {
     return this.failedTaskAttemptCount.get();
   }
@@ -1558,6 +1565,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public int getKilledTaskAttemptCount() {
     return this.killedTaskAttemptCount.get();
+  }
+
+  @Override
+  public int getRejectedTaskAttemptCount() {
+    return this.rejectedTaskAttemptCount.get();
   }
 
   private void setTaskLocationHints(VertexLocationHint vertexLocationHint) {

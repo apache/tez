@@ -1413,7 +1413,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.sendEvent(createDAGCounterUpdateEventTAFinished(ta,
           helper.getTaskAttemptState()));
       // Send out events to the Task - indicating TaskAttemptTermination(F/K)
-      ta.sendEvent(helper.getTaskEvent(ta.attemptId,  event));
+      ta.sendEvent(helper.getTaskEvent(ta.attemptId, event));
     }
   }
 

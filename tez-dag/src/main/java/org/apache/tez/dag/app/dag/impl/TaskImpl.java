@@ -75,8 +75,10 @@ import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventAttemptKilled;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventKillRequest;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
+import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
+import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
@@ -1145,7 +1147,21 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
           TaskAttemptStateInternal.KILLED);
       // we KillWaitAttemptCompletedTransitionready have a spare
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
-      task.getVertex().incrementKilledTaskAttemptCount();
+
+      boolean isRejection = false;
+      if (event instanceof TaskEventTAKilled) {
+        TaskEventTAKilled killEvent = (TaskEventTAKilled) event;
+        if (killEvent.getCausalEvent() instanceof TaskAttemptEventTerminationCauseEvent) {
+          TaskAttemptEventTerminationCauseEvent cause =
+              (TaskAttemptEventTerminationCauseEvent)killEvent.getCausalEvent();
+          isRejection = cause.getTerminationCause() == TaskAttemptTerminationCause.SERVICE_BUSY;
+        }
+      }
+      if (isRejection) { // TODO: remove as part of TEZ-3881.
+        task.getVertex().incrementRejectedTaskAttemptCount();
+      } else {
+        task.getVertex().incrementKilledTaskAttemptCount();
+      }
       if (task.shouldScheduleNewAttempt()) {
         task.addAndScheduleAttempt(castEvent.getTaskAttemptID());
       }

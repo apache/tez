@@ -867,6 +867,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     int totalKilledTaskCount = 0;
     int totalFailedTaskAttemptCount = 0;
     int totalKilledTaskAttemptCount = 0;
+    int totalRejectedTaskAttemptCount = 0;
     readLock.lock();
     try {
       for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
@@ -879,6 +880,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         totalKilledTaskCount += progress.getKilledTaskCount();
         totalFailedTaskAttemptCount += progress.getFailedTaskAttemptCount();
         totalKilledTaskAttemptCount += progress.getKilledTaskAttemptCount();
+        totalRejectedTaskAttemptCount += progress.getRejectedTaskAttemptCount();
       }
       ProgressBuilder dagProgress = new ProgressBuilder();
       dagProgress.setTotalTaskCount(totalTaskCount);
@@ -888,6 +890,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dagProgress.setKilledTaskCount(totalKilledTaskCount);
       dagProgress.setFailedTaskAttemptCount(totalFailedTaskAttemptCount);
       dagProgress.setKilledTaskAttemptCount(totalKilledTaskAttemptCount);
+      dagProgress.setRejectedTaskAttemptCount(totalRejectedTaskAttemptCount);
       status.setState(getState());
       status.setDiagnostics(diagnostics);
       status.setDAGProgress(dagProgress);
@@ -942,6 +945,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     int totalKilledTaskCount = 0;
     int totalFailedTaskAttemptCount = 0;
     int totalKilledTaskAttemptCount = 0;
+    int totalRejectedTaskAttemptCount = 0;
     readLock.lock();
     try {
       for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
@@ -953,6 +957,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         totalKilledTaskCount += progress.getKilledTaskCount();
         totalFailedTaskAttemptCount += progress.getFailedTaskAttemptCount();
         totalKilledTaskAttemptCount += progress.getKilledTaskAttemptCount();
+        totalRejectedTaskAttemptCount += progress.getRejectedTaskAttemptCount();
       }
       ProgressBuilder dagProgress = new ProgressBuilder();
       dagProgress.setTotalTaskCount(totalTaskCount);
@@ -962,6 +967,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dagProgress.setKilledTaskCount(totalKilledTaskCount);
       dagProgress.setFailedTaskAttemptCount(totalFailedTaskAttemptCount);
       dagProgress.setKilledTaskAttemptCount(totalKilledTaskAttemptCount);
+      dagProgress.setRejectedTaskAttemptCount(totalRejectedTaskAttemptCount);
       return dagProgress;
     } finally {
       readLock.unlock();
