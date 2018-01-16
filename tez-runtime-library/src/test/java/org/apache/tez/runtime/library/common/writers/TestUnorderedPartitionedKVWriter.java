@@ -54,6 +54,7 @@ import com.google.protobuf.ByteString;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter.SpillInfo;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.roaringbitmap.RoaringBitmap;
@@ -1238,11 +1239,19 @@ public class TestUnorderedPartitionedKVWriter {
     Path outputFilePath = kvWriter.finalOutPath;
     Path spillFilePath = kvWriter.finalIndexPath;
 
-    if (numRecordsWritten > 0) {
-      assertTrue(localFs.exists(outputFilePath));
-      assertTrue(localFs.exists(spillFilePath));
-    } else {
+    if (numRecordsWritten <= 0) {
       return;
+    }
+
+    assertTrue(localFs.exists(outputFilePath));
+    assertTrue(localFs.exists(spillFilePath));
+
+    // verify no intermediate spill files have been left around
+    synchronized (kvWriter.spillInfoList) {
+      for (SpillInfo spill : kvWriter.spillInfoList) {
+        assertFalse("lingering intermediate spill file " + spill.outPath,
+            localFs.exists(spill.outPath));
+      }
     }
 
     // Special case for 0 records.
