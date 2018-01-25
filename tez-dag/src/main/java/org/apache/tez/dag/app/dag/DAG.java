@@ -68,7 +68,6 @@ public interface DAG extends DagInfo {
   Map<TezVertexID,Vertex> getVertices();
   Vertex getVertex(TezVertexID vertexId);
   List<String> getDiagnostics();
-  int getTotalVertices();
   int getSuccessfulVertices();
   float getProgress();
   float getCompletedTaskProgress();

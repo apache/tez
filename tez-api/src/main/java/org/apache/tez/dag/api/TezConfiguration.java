@@ -680,6 +680,15 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT =
       "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrder";
 
+  /**
+   * String value. The class to be used for the YARN task scheduler. Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_YARN_SCHEDULER_CLASS = TEZ_AM_PREFIX + "yarn.scheduler.class";
+  public static final String TEZ_AM_YARN_SCHEDULER_CLASS_DEFAULT =
+      "org.apache.tez.dag.app.rm.YarnTaskSchedulerService";
+
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")

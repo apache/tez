@@ -93,6 +93,11 @@
   </Match>
 
   <Match>
+    <Class name="org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler$PreemptOrderComparator"/>
+    <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE"/>
+  </Match>
+
+  <Match>
     <Class name="org.apache.tez.dag.app.launcher.ContainerLauncherManager" />
     <Method name="handle" params="org.apache.tez.dag.app.rm.ContainerLauncherEvent" returns="void" />
     <Bug pattern="BC_UNCONFIRMED_CAST" />

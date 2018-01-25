@@ -366,6 +366,11 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
+    public int getVertexIndexForTask(Object task) {
+      return real.getVertexIndexForTask(task);
+    }
+
+    @Override
     public void preemptContainer(ContainerId cId) {
       invocations++;
       real.preemptContainer(cId);

@@ -16,6 +16,8 @@ package org.apache.tez.serviceplugins.api;
 
 import org.apache.hadoop.security.Credentials;
 
+import java.util.BitSet;
+
 public interface DagInfo {
 
   /**
@@ -35,4 +37,8 @@ public interface DagInfo {
    * @return the credentials for the dag.
    */
   Credentials getCredentials();
+
+  int getTotalVertices();
+
+  BitSet getVertexDescendants(int vertexIndex);
 }
