@@ -51,9 +51,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter.SpillInfo;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
@@ -510,6 +512,10 @@ public class TestUnorderedPartitionedKVWriter {
     if (numRecordsWritten > 0) {
       assertTrue(localFs.exists(outputFilePath));
       assertTrue(localFs.exists(spillFilePath));
+      assertEquals("Incorrect output permissions", (short)0640,
+          localFs.getFileStatus(outputFilePath).getPermission().toShort());
+      assertEquals("Incorrect index permissions", (short)0640,
+          localFs.getFileStatus(spillFilePath).getPermission().toShort());
     } else {
       return;
     }
@@ -794,8 +800,14 @@ public class TestUnorderedPartitionedKVWriter {
     if (numRecordsWritten > 0) {
       int numSpills = kvWriter.numSpills.get();
       for (int i = 0; i < numSpills; i++) {
-        assertTrue(localFs.exists(taskOutput.getSpillFileForWrite(i, 10)));
-        assertTrue(localFs.exists(taskOutput.getSpillIndexFileForWrite(i, 10)));
+        Path outputFile = taskOutput.getSpillFileForWrite(i, 10);
+        Path indexFile = taskOutput.getSpillIndexFileForWrite(i, 10);
+        assertTrue(localFs.exists(outputFile));
+        assertTrue(localFs.exists(indexFile));
+        assertEquals("Incorrect output permissions", (short)0640,
+            localFs.getFileStatus(outputFile).getPermission().toShort());
+        assertEquals("Incorrect index permissions", (short)0640,
+            localFs.getFileStatus(indexFile).getPermission().toShort());
       }
     } else {
       return;
@@ -1042,6 +1054,13 @@ public class TestUnorderedPartitionedKVWriter {
         assertEquals(2, matcher.groupCount());
         assertEquals(uniqueId, matcher.group(1));
         assertTrue("spill id should be present in path component", matcher.group(2) != null);
+        Path outputPath = new Path(outputContext.getWorkDirs()[0],
+            "output/" + eventProto.getPathComponent() + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+        Path indexPath = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+        assertEquals("Incorrect output permissions", (short)0640,
+            localFs.getFileStatus(outputPath).getPermission().toShort());
+        assertEquals("Incorrect index permissions", (short)0640,
+            localFs.getFileStatus(indexPath).getPermission().toShort());
       } else {
         assertEquals(0, eventProto.getSpillId());
         if (outputRecordsCounter.getValue() > 0) {
@@ -1341,6 +1360,7 @@ public class TestUnorderedPartitionedKVWriter {
       boolean shouldCompress, int maxSingleBufferSizeBytes,
       Class<? extends Partitioner> partitionerClass) {
     Configuration conf = new Configuration(false);
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "077");
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, keyClass.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, valClass.getName());

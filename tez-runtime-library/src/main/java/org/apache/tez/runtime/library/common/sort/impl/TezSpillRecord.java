@@ -30,11 +30,13 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.PureJavaCrc32;
 import org.apache.tez.runtime.library.common.Constants;
 
 public class TezSpillRecord {
+  public static final FsPermission SPILL_FILE_PERMS = new FsPermission((short) 0640);
 
   /** Backing store */
   private final ByteBuffer buf;
@@ -139,6 +141,9 @@ public class TezSpillRecord {
         chk.close();
       } else {
         out.close();
+      }
+      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(job)))) {
+        rfs.setPermission(loc, SPILL_FILE_PERMS);
       }
     }
   }

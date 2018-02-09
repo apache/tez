@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.library.common.sort.impl.dflt;
 
+import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.tez.runtime.library.common.Constants;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -42,6 +44,7 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -84,16 +87,19 @@ import org.mockito.stubbing.Answer;
 
 public class TestDefaultSorter {
 
-  private Configuration conf;
   private static final int PORT = 80;
   private static final String UniqueID = "UUID";
 
   private static FileSystem localFs = null;
   private static Path workingDir = null;
 
+  private Configuration conf;
+  private LocalDirAllocator dirAllocator;
+
   @Before
   public void setup() throws IOException {
     conf = new Configuration();
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "077");
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.LEGACY.name()); // DefaultSorter
     conf.set("fs.defaultFS", "file:///");
     localFs = FileSystem.getLocal(conf);
@@ -108,6 +114,7 @@ public class TestDefaultSorter {
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
         HashPartitioner.class.getName());
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
+    dirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
   }
 
   @AfterClass
@@ -272,6 +279,8 @@ public class TestDefaultSorter {
     } catch(IOException ioe) {
       fail(ioe.getMessage());
     }
+
+    verifyOutputPermissions(context.getUniqueIdentifier());
   }
 
   @Test(timeout = 30000)
@@ -396,6 +405,7 @@ public class TestDefaultSorter {
       assertTrue(sorter.getNumSpills() == numKeys);
     }
     verifyCounters(sorter, context);
+    verifyOutputPermissions(context.getUniqueIdentifier());
     if (sorter.indexCacheList.size() != 0) {
       for (int i = 0; i < sorter.getNumSpills(); i++) {
         TezSpillRecord record = sorter.indexCacheList.get(i);
@@ -482,6 +492,7 @@ public class TestDefaultSorter {
         ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
             .DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
         assertTrue(shufflePayload.getPathComponent().equalsIgnoreCase(UniqueID + "_0"));
+        verifyOutputPermissions(shufflePayload.getPathComponent());
       }
     }
 
@@ -513,11 +524,23 @@ public class TestDefaultSorter {
         ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
             .DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
         assertTrue(shufflePayload.getPathComponent().equalsIgnoreCase(UniqueID + "_" + spillIndex));
+        verifyOutputPermissions(shufflePayload.getPathComponent());
         spillIndex++;
       }
     }
     assertTrue(spillIndex == spillCount);
     verifyCounters(sorter, context);
+  }
+
+  private void verifyOutputPermissions(String spillId) throws IOException {
+    String subpath = Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR + "/" + spillId
+        + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
+    Path outputPath = dirAllocator.getLocalPathToRead(subpath, conf);
+    Path indexPath = dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
+    Assert.assertEquals("Incorrect output permissions", (short)0640,
+        localFs.getFileStatus(outputPath).getPermission().toShort());
+    Assert.assertEquals("Incorrect index permissions", (short)0640,
+        localFs.getFileStatus(indexPath).getPermission().toShort());
   }
 
   private void verifyCounters(DefaultSorter sorter, OutputContext context) {

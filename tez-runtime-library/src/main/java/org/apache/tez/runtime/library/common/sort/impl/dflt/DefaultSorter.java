@@ -32,6 +32,7 @@ import java.util.zip.Deflater;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
@@ -62,6 +63,8 @@ import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 
 import com.google.common.base.Preconditions;
+
+import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.SPILL_FILE_PERMS;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public final class DefaultSorter extends ExternalSorter implements IndexedSortable {
@@ -893,6 +896,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
+      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
+        rfs.setPermission(filename, SPILL_FILE_PERMS);
+      }
 
       int spindex = mstart;
       final InMemValBytes value = createInMemValBytes();
@@ -1000,6 +1006,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
+      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
+        rfs.setPermission(filename, SPILL_FILE_PERMS);
+      }
 
       // we don't run the combiner for a single record
       for (int i = 0; i < partitions; ++i) {
@@ -1273,6 +1282,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
 
     //The output stream for the final single output file
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
+    if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
+      rfs.setPermission(finalOutputFile, SPILL_FILE_PERMS);
+    }
 
     if (numSpills == 0) {
       // TODO Change event generation to say there is no data rather than generating a dummy file
