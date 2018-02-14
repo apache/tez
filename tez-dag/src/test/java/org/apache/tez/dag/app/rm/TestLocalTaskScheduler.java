@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.rm;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
@@ -57,11 +57,11 @@ public class TestLocalTaskScheduler {
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
     HashMap<Object, Container> taskAllocations = new LinkedHashMap<Object, Container>();
-    PriorityBlockingQueue<TaskRequest> taskRequestQueue = new PriorityBlockingQueue<TaskRequest>();
+    LinkedBlockingQueue<TaskRequest> clientRequestQueue = new LinkedBlockingQueue<>();
 
     // Object under test
     AsyncDelegateRequestHandler requestHandler =
-      new AsyncDelegateRequestHandler(taskRequestQueue,
+      new AsyncDelegateRequestHandler(clientRequestQueue,
           containerFactory,
           taskAllocations,
           mockContext,
@@ -71,17 +71,18 @@ public class TestLocalTaskScheduler {
     for (int i = 0; i < MAX_TASKS; i++) {
       Priority priority = Priority.newInstance(20);
       requestHandler.addAllocateTaskRequest(new Long(i), null, priority, null);
-      requestHandler.processRequest();
+      requestHandler.dispatchRequest();
+      requestHandler.allocateTask();
     }
 
     // Only MAX_TASKS number of tasks should have been allocated
     Assert.assertEquals("Wrong number of allocate tasks", MAX_TASKS, taskAllocations.size());
-    Assert.assertTrue("Another allocation should not fit", requestHandler.shouldWait());
+    Assert.assertTrue("Another allocation should not fit", !requestHandler.shouldProcess());
 
     // Deallocate down to zero
     for (int i = 0; i < MAX_TASKS; i++) {
       requestHandler.addDeallocateTaskRequest(new Long(i));
-      requestHandler.processRequest();
+      requestHandler.dispatchRequest();
     }
 
     // All allocated tasks should have been removed

@@ -19,8 +19,8 @@
 package org.apache.tez.dag.app.rm;
 
 import java.io.IOException;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,7 +51,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   private static final Logger LOG = LoggerFactory.getLogger(LocalTaskSchedulerService.class);
 
   final ContainerSignatureMatcher containerSignatureMatcher;
-  final PriorityBlockingQueue<TaskRequest> taskRequestQueue;
+  final LinkedBlockingQueue<TaskRequest> taskRequestQueue;
   final Configuration conf;
   AsyncDelegateRequestHandler taskRequestHandler;
   Thread asyncDelegateRequestThread;
@@ -62,7 +62,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
   public LocalTaskSchedulerService(TaskSchedulerContext taskSchedulerContext) {
     super(taskSchedulerContext);
-    taskRequestQueue = new PriorityBlockingQueue<TaskRequest>();
+    taskRequestQueue = new LinkedBlockingQueue<>();
     taskAllocations = new LinkedHashMap<Object, Container>();
     this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
     this.containerSignatureMatcher = taskSchedulerContext.getContainerSignatureMatcher();
@@ -313,29 +313,31 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   }
 
   static class AsyncDelegateRequestHandler implements Runnable {
-    final BlockingQueue<TaskRequest> taskRequestQueue;
+    final LinkedBlockingQueue<TaskRequest> clientRequestQueue;
+    final PriorityBlockingQueue<AllocateTaskRequest> taskRequestQueue;
     final LocalContainerFactory localContainerFactory;
     final HashMap<Object, Container> taskAllocations;
     final TaskSchedulerContext taskSchedulerContext;
     final int MAX_TASKS;
 
-    AsyncDelegateRequestHandler(BlockingQueue<TaskRequest> taskRequestQueue,
+    AsyncDelegateRequestHandler(LinkedBlockingQueue<TaskRequest> clientRequestQueue,
         LocalContainerFactory localContainerFactory,
         HashMap<Object, Container> taskAllocations,
         TaskSchedulerContext taskSchedulerContext,
         Configuration conf) {
-      this.taskRequestQueue = taskRequestQueue;
+      this.clientRequestQueue = clientRequestQueue;
       this.localContainerFactory = localContainerFactory;
       this.taskAllocations = taskAllocations;
       this.taskSchedulerContext = taskSchedulerContext;
       this.MAX_TASKS = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
           TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
+      this.taskRequestQueue = new PriorityBlockingQueue<>();
     }
 
     public void addAllocateTaskRequest(Object task, Resource capability, Priority priority,
         Object clientCookie) {
       try {
-        taskRequestQueue.put(new AllocateTaskRequest(task, capability, priority, clientCookie));
+        clientRequestQueue.put(new AllocateTaskRequest(task, capability, priority, clientCookie));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
@@ -343,57 +345,54 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
     public boolean addDeallocateTaskRequest(Object task) {
       try {
-        taskRequestQueue.put(new DeallocateTaskRequest(task));
+        clientRequestQueue.put(new DeallocateTaskRequest(task));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-      }
-      synchronized(taskRequestQueue) {
-        taskRequestQueue.notify();
       }
       return true;
     }
 
-    boolean shouldWait() {
-      return taskAllocations.size() >= MAX_TASKS;
+    boolean shouldProcess() {
+      return !taskRequestQueue.isEmpty() && taskAllocations.size() < MAX_TASKS;
     }
 
     @Override
     public void run() {
-      while(!Thread.currentThread().isInterrupted()) {
-        synchronized(taskRequestQueue) {
-          try {
-            if (shouldWait()) {
-              taskRequestQueue.wait();
-            }
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          }
+      while (!Thread.currentThread().isInterrupted()) {
+        dispatchRequest();
+        while (shouldProcess()) {
+          allocateTask();
         }
-        processRequest();
       }
     }
 
-    void processRequest() {
-        try {
-          TaskRequest request = taskRequestQueue.take();
-          if (request instanceof AllocateTaskRequest) {
-            allocateTask((AllocateTaskRequest)request);
-          }
-          else if (request instanceof DeallocateTaskRequest) {
-            deallocateTask((DeallocateTaskRequest)request);
-          }
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        } catch (NullPointerException e) {
-          LOG.warn("Task request was badly constructed");
+    void dispatchRequest() {
+      try {
+        TaskRequest request = clientRequestQueue.take();
+        if (request instanceof AllocateTaskRequest) {
+          taskRequestQueue.put((AllocateTaskRequest)request);
         }
+        else if (request instanceof DeallocateTaskRequest) {
+          deallocateTask((DeallocateTaskRequest)request);
+        }
+        else {
+          LOG.error("Unknown task request message: " + request);
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
 
-    void allocateTask(AllocateTaskRequest request) {
-      Container container = localContainerFactory.createContainer(request.capability,
-          request.priority);
-      taskAllocations.put(request.task, container);
-      taskSchedulerContext.taskAllocated(request.task, request.clientCookie, container);
+    void allocateTask() {
+      try {
+        AllocateTaskRequest request = taskRequestQueue.take();
+        Container container = localContainerFactory.createContainer(request.capability,
+            request.priority);
+        taskAllocations.put(request.task, container);
+        taskSchedulerContext.taskAllocated(request.task, request.clientCookie, container);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
 
     void deallocateTask(DeallocateTaskRequest request) {
@@ -403,13 +402,13 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       }
       else {
         boolean deallocationBeforeAllocation = false;
-        Iterator<TaskRequest> iter = taskRequestQueue.iterator();
+        Iterator<AllocateTaskRequest> iter = taskRequestQueue.iterator();
         while (iter.hasNext()) {
           TaskRequest taskRequest = iter.next();
-          if (taskRequest instanceof AllocateTaskRequest && taskRequest.task.equals(request.task)) {
+          if (taskRequest.task.equals(request.task)) {
             iter.remove();
             deallocationBeforeAllocation = true;
-            LOG.info("deallcation happen before allocation for task:" + request.task);
+            LOG.info("Deallocation request before allocation for task:" + request.task);
             break;
           }
         }

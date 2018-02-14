@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import java.util.HashMap;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -91,6 +91,9 @@ public class TestLocalTaskSchedulerService {
     taskSchedulerService.initialize();
     taskSchedulerService.start();
 
+    // create a task that fills the task allocation queue
+    Task dummy_task = mock(Task.class);
+    taskSchedulerService.allocateTask(dummy_task, Resource.newInstance(1024, 1), null, null, Priority.newInstance(1), null, null);
     Task task = mock(Task.class);
     taskSchedulerService.allocateTask(task, Resource.newInstance(1024, 1), null, null, Priority.newInstance(1), null, null);
     taskSchedulerService.deallocateTask(task, false, null, null);
@@ -98,10 +101,10 @@ public class TestLocalTaskSchedulerService {
     taskSchedulerService.startRequestHandlerThread();
 
     MockAsyncDelegateRequestHandler requestHandler = taskSchedulerService.getRequestHandler();
-    requestHandler.drainRequest(1);
+    requestHandler.drainRequest(3);
     assertEquals(1, requestHandler.deallocateCount);
     // The corresponding AllocateTaskRequest will be removed, so won't been processed.
-    assertEquals(0, requestHandler.allocateCount);
+    assertEquals(1, requestHandler.allocateCount);
     taskSchedulerService.shutdown();
   }
 
@@ -170,10 +173,10 @@ public class TestLocalTaskSchedulerService {
 
       public int allocateCount = 0;
       public int deallocateCount = 0;
-      public int processedCount =0;
+      public int dispatchCount = 0;
 
       MockAsyncDelegateRequestHandler(
-          BlockingQueue<TaskRequest> taskRequestQueue,
+          LinkedBlockingQueue<TaskRequest> taskRequestQueue,
           LocalContainerFactory localContainerFactory,
           HashMap<Object, Container> taskAllocations,
           TaskSchedulerContext appClientDelegate, Configuration conf) {
@@ -182,13 +185,19 @@ public class TestLocalTaskSchedulerService {
       }
 
       @Override
-      void processRequest() {
-        super.processRequest();
-        processedCount ++;
+      void dispatchRequest() {
+        super.dispatchRequest();
+        dispatchCount++;
+      }
+
+      @Override
+      void allocateTask() {
+        super.allocateTask();
+        allocateCount++;
       }
 
       public void drainRequest(int count) {
-        while(processedCount != count || !taskRequestQueue.isEmpty()) {
+        while(dispatchCount != count || !clientRequestQueue.isEmpty()) {
           try {
             Thread.sleep(100);
           } catch (InterruptedException e) {
@@ -198,15 +207,9 @@ public class TestLocalTaskSchedulerService {
       }
 
       @Override
-      void allocateTask(AllocateTaskRequest request) {
-        super.allocateTask(request);
-        allocateCount ++;
-      }
-
-      @Override
       void deallocateTask(DeallocateTaskRequest request) {
         super.deallocateTask(request);
-        deallocateCount ++;
+        deallocateCount++;
       }
     }
   }
