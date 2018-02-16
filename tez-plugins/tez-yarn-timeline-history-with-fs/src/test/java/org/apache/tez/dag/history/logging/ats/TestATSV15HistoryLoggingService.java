@@ -228,7 +228,8 @@ public class TestATSV15HistoryLoggingService {
       .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
 
     // All calls made with session domain id.
-    verify(historyACLPolicyManager, times(5)).updateTimelineEntityDomain(any(), eq("session-id"));
+    // NOTE: Expect 6 invocations for 5 history events because DAG_SUBMITTED becomes two separate timeline events.
+    verify(historyACLPolicyManager, times(6)).updateTimelineEntityDomain(any(), eq("session-id"));
     assertTrue(entityLog.size() > 0);
 
     service.stop();
