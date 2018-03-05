@@ -19,6 +19,9 @@
 package org.apache.tez.dag.app.rm;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -29,6 +32,7 @@ import java.util.LinkedHashMap;
 import com.google.common.primitives.Ints;
 
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.slf4j.Logger;
@@ -51,19 +55,19 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   private static final Logger LOG = LoggerFactory.getLogger(LocalTaskSchedulerService.class);
 
   final ContainerSignatureMatcher containerSignatureMatcher;
-  final LinkedBlockingQueue<TaskRequest> taskRequestQueue;
+  final LinkedBlockingQueue<SchedulerRequest> taskRequestQueue;
   final Configuration conf;
   AsyncDelegateRequestHandler taskRequestHandler;
   Thread asyncDelegateRequestThread;
 
-  final HashMap<Object, Container> taskAllocations;
+  final HashMap<Object, AllocatedTask> taskAllocations;
   final String appTrackingUrl;
   final long customContainerAppId;
 
   public LocalTaskSchedulerService(TaskSchedulerContext taskSchedulerContext) {
     super(taskSchedulerContext);
     taskRequestQueue = new LinkedBlockingQueue<>();
-    taskAllocations = new LinkedHashMap<Object, Container>();
+    taskAllocations = new LinkedHashMap<>();
     this.appTrackingUrl = taskSchedulerContext.getAppTrackingUrl();
     this.containerSignatureMatcher = taskSchedulerContext.getContainerSignatureMatcher();
     this.customContainerAppId = taskSchedulerContext.getCustomClusterIdentifier();
@@ -98,6 +102,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
   @Override
   public void dagComplete() {
+    taskRequestHandler.dagComplete();
   }
 
   @Override
@@ -129,7 +134,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     // in local mode every task is already container level local
     taskRequestHandler.addAllocateTaskRequest(task, capability, priority, clientCookie);
   }
-  
+
   @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded, TaskAttemptEndReason endReason, String diagnostics) {
     return taskRequestHandler.addDeallocateTaskRequest(task);
@@ -137,6 +142,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
   @Override
   public Object deallocateContainer(ContainerId containerId) {
+    taskRequestHandler.addDeallocateContainerRequest(containerId);
     return null;
   }
 
@@ -212,20 +218,14 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     }
   }
 
-  static class TaskRequest implements Comparable<TaskRequest> {
-    // Higher prority than Priority.UNDEFINED
-    static final int HIGHEST_PRIORITY = -2;
-    Object task;
-    Priority priority;
+  static class SchedulerRequest {
+  }
 
-    public TaskRequest(Object task, Priority priority) {
+  static class TaskRequest extends SchedulerRequest {
+    final Object task;
+
+    public TaskRequest(Object task) {
       this.task = task;
-      this.priority = priority;
-    }
-
-    @Override
-    public int compareTo(TaskRequest request) {
-      return request.priority.compareTo(this.priority);
     }
 
     @Override
@@ -239,9 +239,6 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
       TaskRequest that = (TaskRequest) o;
 
-      if (priority != null ? !priority.equals(that.priority) : that.priority != null) {
-        return false;
-      }
       if (task != null ? !task.equals(that.task) : that.task != null) {
         return false;
       }
@@ -251,23 +248,29 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
     @Override
     public int hashCode() {
-      int result = 1;
-      result = 7841 * result + (task != null ? task.hashCode() : 0);
-      result = 7841 * result + (priority != null ? priority.hashCode() : 0);
-      return result;
+      return 7841 + (task != null ? task.hashCode() : 0);
     }
 
   }
 
-  static class AllocateTaskRequest extends TaskRequest {
-    Resource capability;
-    Object clientCookie;
+  static class AllocateTaskRequest extends TaskRequest implements Comparable<AllocateTaskRequest> {
+    final Priority priority;
+    final Resource capability;
+    final Object clientCookie;
+    final int vertexIndex;
 
-    public AllocateTaskRequest(Object task, Resource capability, Priority priority,
-        Object clientCookie) {
-      super(task, priority);
+    public AllocateTaskRequest(Object task, int vertexIndex, Resource capability, Priority priority,
+                               Object clientCookie) {
+      super(task);
+      this.priority = priority;
       this.capability = capability;
       this.clientCookie = clientCookie;
+      this.vertexIndex = vertexIndex;
+    }
+
+    @Override
+    public int compareTo(AllocateTaskRequest request) {
+      return request.priority.compareTo(this.priority);
     }
 
     @Override
@@ -284,6 +287,10 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
       AllocateTaskRequest that = (AllocateTaskRequest) o;
 
+      if (priority != null ? !priority.equals(that.priority) : that.priority != null) {
+        return false;
+      }
+
       if (capability != null ? !capability.equals(that.capability) : that.capability != null) {
         return false;
       }
@@ -298,6 +305,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     @Override
     public int hashCode() {
       int result = super.hashCode();
+      result = 12329 * result + (priority != null ? priority.hashCode() : 0);
       result = 12329 * result + (capability != null ? capability.hashCode() : 0);
       result = 12329 * result + (clientCookie != null ? clientCookie.hashCode() : 0);
       return result;
@@ -305,24 +313,43 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   }
 
   static class DeallocateTaskRequest extends TaskRequest {
-    static final Priority DEALLOCATE_PRIORITY = Priority.newInstance(HIGHEST_PRIORITY);
 
     public DeallocateTaskRequest(Object task) {
-      super(task, DEALLOCATE_PRIORITY);
+      super(task);
+    }
+  }
+
+  static class DeallocateContainerRequest extends SchedulerRequest {
+    final ContainerId containerId;
+
+    public DeallocateContainerRequest(ContainerId containerId) {
+      this.containerId = containerId;
+    }
+  }
+
+  static class AllocatedTask {
+    final AllocateTaskRequest request;
+    final Container container;
+
+    AllocatedTask(AllocateTaskRequest request, Container container) {
+      this.request = request;
+      this.container = container;
     }
   }
 
   static class AsyncDelegateRequestHandler implements Runnable {
-    final LinkedBlockingQueue<TaskRequest> clientRequestQueue;
+    final LinkedBlockingQueue<SchedulerRequest> clientRequestQueue;
     final PriorityBlockingQueue<AllocateTaskRequest> taskRequestQueue;
     final LocalContainerFactory localContainerFactory;
-    final HashMap<Object, Container> taskAllocations;
+    final HashMap<Object, AllocatedTask> taskAllocations;
     final TaskSchedulerContext taskSchedulerContext;
+    private final Object descendantsLock = new Object();
+    private ArrayList<BitSet> vertexDescendants = null;
     final int MAX_TASKS;
 
-    AsyncDelegateRequestHandler(LinkedBlockingQueue<TaskRequest> clientRequestQueue,
+    AsyncDelegateRequestHandler(LinkedBlockingQueue<SchedulerRequest> clientRequestQueue,
         LocalContainerFactory localContainerFactory,
-        HashMap<Object, Container> taskAllocations,
+        HashMap<Object, AllocatedTask> taskAllocations,
         TaskSchedulerContext taskSchedulerContext,
         Configuration conf) {
       this.clientRequestQueue = clientRequestQueue;
@@ -334,10 +361,33 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       this.taskRequestQueue = new PriorityBlockingQueue<>();
     }
 
+    void dagComplete() {
+      synchronized (descendantsLock) {
+        vertexDescendants = null;
+      }
+    }
+    private void ensureVertexDescendants() {
+      synchronized (descendantsLock) {
+        if (vertexDescendants == null) {
+          DagInfo info = taskSchedulerContext.getCurrentDagInfo();
+          if (info == null) {
+            throw new IllegalStateException("Scheduling tasks but no current DAG info?");
+          }
+          int numVertices = info.getTotalVertices();
+          ArrayList<BitSet> descendants = new ArrayList<>(numVertices);
+          for (int i = 0; i < numVertices; ++i) {
+            descendants.add(info.getVertexDescendants(i));
+          }
+          vertexDescendants = descendants;
+        }
+      }
+    }
+
     public void addAllocateTaskRequest(Object task, Resource capability, Priority priority,
         Object clientCookie) {
       try {
-        clientRequestQueue.put(new AllocateTaskRequest(task, capability, priority, clientCookie));
+        int vertexIndex = taskSchedulerContext.getVertexIndexForTask(task);
+        clientRequestQueue.put(new AllocateTaskRequest(task, vertexIndex, capability, priority, clientCookie));
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
@@ -352,8 +402,20 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       return true;
     }
 
+    public void addDeallocateContainerRequest(ContainerId containerId) {
+      try {
+        clientRequestQueue.put(new DeallocateContainerRequest(containerId));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
     boolean shouldProcess() {
       return !taskRequestQueue.isEmpty() && taskAllocations.size() < MAX_TASKS;
+    }
+
+    boolean shouldPreempt() {
+      return !taskRequestQueue.isEmpty() && taskAllocations.size() >= MAX_TASKS;
     }
 
     @Override
@@ -368,12 +430,18 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
     void dispatchRequest() {
       try {
-        TaskRequest request = clientRequestQueue.take();
+        SchedulerRequest request = clientRequestQueue.take();
         if (request instanceof AllocateTaskRequest) {
           taskRequestQueue.put((AllocateTaskRequest)request);
+          if (shouldPreempt()) {
+            maybePreempt((AllocateTaskRequest) request);
+          }
         }
         else if (request instanceof DeallocateTaskRequest) {
           deallocateTask((DeallocateTaskRequest)request);
+        }
+        else if (request instanceof DeallocateContainerRequest) {
+          preemptTask((DeallocateContainerRequest)request);
         }
         else {
           LOG.error("Unknown task request message: " + request);
@@ -383,12 +451,29 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       }
     }
 
+    void maybePreempt(AllocateTaskRequest request) {
+      Priority priority = request.priority;
+      for (Map.Entry<Object, AllocatedTask> entry : taskAllocations.entrySet()) {
+        AllocatedTask allocatedTask = entry.getValue();
+        Container container = allocatedTask.container;
+        if (priority.compareTo(allocatedTask.container.getPriority()) > 0) {
+          Object task = entry.getKey();
+          ensureVertexDescendants();
+          if (vertexDescendants.get(request.vertexIndex).get(allocatedTask.request.vertexIndex)) {
+            LOG.info("Preempting task/container for task/priority:"  + task + "/" + container
+                + " for " + request.task + "/" + priority);
+            taskSchedulerContext.preemptContainer(allocatedTask.container.getId());
+          }
+        }
+      }
+    }
+
     void allocateTask() {
       try {
         AllocateTaskRequest request = taskRequestQueue.take();
         Container container = localContainerFactory.createContainer(request.capability,
             request.priority);
-        taskAllocations.put(request.task, container);
+        taskAllocations.put(request.task, new AllocatedTask(request, container));
         taskSchedulerContext.taskAllocated(request.task, request.clientCookie, container);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -396,24 +481,34 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     }
 
     void deallocateTask(DeallocateTaskRequest request) {
-      Container container = taskAllocations.remove(request.task);
-      if (container != null) {
-        taskSchedulerContext.containerBeingReleased(container.getId());
+      AllocatedTask allocatedTask = taskAllocations.remove(request.task);
+      if (allocatedTask != null) {
+        taskSchedulerContext.containerBeingReleased(allocatedTask.container.getId());
       }
       else {
-        boolean deallocationBeforeAllocation = false;
         Iterator<AllocateTaskRequest> iter = taskRequestQueue.iterator();
         while (iter.hasNext()) {
           TaskRequest taskRequest = iter.next();
           if (taskRequest.task.equals(request.task)) {
             iter.remove();
-            deallocationBeforeAllocation = true;
             LOG.info("Deallocation request before allocation for task:" + request.task);
             break;
           }
         }
-        if (!deallocationBeforeAllocation) {
-          throw new TezUncheckedException("Unable to find and remove task " + request.task + " from task allocations");
+      }
+    }
+
+    void preemptTask(DeallocateContainerRequest request) {
+      LOG.info("Trying to preempt: " + request.containerId);
+      Iterator<Map.Entry<Object, AllocatedTask>> entries = taskAllocations.entrySet().iterator();
+      while (entries.hasNext()) {
+        Map.Entry<Object, AllocatedTask> entry = entries.next();
+        Container container = entry.getValue().container;
+        if (container.getId().equals(request.containerId)) {
+          entries.remove();
+          Object task = entry.getKey();
+          LOG.info("Preempting task/container:" + task + "/" + container);
+          taskSchedulerContext.containerBeingReleased(container.getId());
         }
       }
     }

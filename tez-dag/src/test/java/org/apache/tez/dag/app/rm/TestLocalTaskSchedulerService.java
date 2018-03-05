@@ -18,20 +18,25 @@
 
 package org.apache.tez.dag.app.rm;
 
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.rm.TestLocalTaskSchedulerService.MockLocalTaskSchedulerSerivce.MockAsyncDelegateRequestHandler;
+import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -138,6 +143,82 @@ public class TestLocalTaskSchedulerService {
     taskSchedulerService.shutdown();
   }
 
+  @Test
+  public void preemptDescendantsOnly() {
+
+    final int MAX_TASKS = 2;
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS, MAX_TASKS);
+
+    ApplicationId appId = ApplicationId.newInstance(2000, 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+    Long parentTask1 = new Long(1);
+    Long parentTask2 = new Long(2);
+    Long childTask1 = new Long(3);
+    Long grandchildTask1 = new Long(4);
+
+    TaskSchedulerContext
+        mockContext = TestTaskSchedulerHelpers.setupMockTaskSchedulerContext("", 0, "", true,
+        appAttemptId, 1000l, null, tezConf);
+    when(mockContext.getVertexIndexForTask(parentTask1)).thenReturn(0);
+    when(mockContext.getVertexIndexForTask(parentTask2)).thenReturn(0);
+    when(mockContext.getVertexIndexForTask(childTask1)).thenReturn(1);
+    when(mockContext.getVertexIndexForTask(grandchildTask1)).thenReturn(2);
+
+    DagInfo mockDagInfo = mock(DagInfo.class);
+    when(mockDagInfo.getTotalVertices()).thenReturn(3);
+    BitSet vertex1Descendants = new BitSet();
+    vertex1Descendants.set(1);
+    vertex1Descendants.set(2);
+    BitSet vertex2Descendants = new BitSet();
+    vertex2Descendants.set(2);
+    BitSet vertex3Descendants = new BitSet();
+    when(mockDagInfo.getVertexDescendants(0)).thenReturn(vertex1Descendants);
+    when(mockDagInfo.getVertexDescendants(1)).thenReturn(vertex2Descendants);
+    when(mockDagInfo.getVertexDescendants(2)).thenReturn(vertex3Descendants);
+    when(mockContext.getCurrentDagInfo()).thenReturn(mockDagInfo);
+
+    Priority priority1 = Priority.newInstance(1);
+    Priority priority2 = Priority.newInstance(2);
+    Priority priority3 = Priority.newInstance(3);
+    Priority priority4 = Priority.newInstance(4);
+    Resource resource = Resource.newInstance(1024, 1);
+
+    MockLocalTaskSchedulerSerivce taskSchedulerService = new MockLocalTaskSchedulerSerivce(mockContext);
+
+    // The mock context need to send a deallocate container request to the scheduler service
+    Answer<Void> answer = new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) {
+        ContainerId containerId = invocation.getArgumentAt(0, ContainerId.class);
+        taskSchedulerService.deallocateContainer(containerId);
+        return null;
+      }
+    };
+    doAnswer(answer).when(mockContext).preemptContainer(any(ContainerId.class));
+
+    taskSchedulerService.initialize();
+    taskSchedulerService.start();
+    taskSchedulerService.startRequestHandlerThread();
+
+    MockAsyncDelegateRequestHandler requestHandler = taskSchedulerService.getRequestHandler();
+    taskSchedulerService.allocateTask(parentTask1, resource, null, null, priority1, null, null);
+    taskSchedulerService.allocateTask(childTask1, resource, null, null, priority3, null, null);
+    taskSchedulerService.allocateTask(grandchildTask1, resource, null, null, priority4, null, null);
+    requestHandler.drainRequest(3);
+
+    // We should not preempt if we have not reached max task allocations
+    Assert.assertEquals("Wrong number of allocate tasks", MAX_TASKS, requestHandler.allocateCount);
+    Assert.assertTrue("Another allocation should not fit", !requestHandler.shouldProcess());
+
+    // Next task allocation should preempt
+    taskSchedulerService.allocateTask(parentTask2, Resource.newInstance(1024, 1), null, null, priority2, null, null);
+    requestHandler.drainRequest(5);
+
+    // All allocated tasks should have been removed
+    Assert.assertEquals("Wrong number of preempted tasks", 1, requestHandler.preemptCount);
+  }
+
   static class MockLocalTaskSchedulerSerivce extends LocalTaskSchedulerService {
 
     private MockAsyncDelegateRequestHandler requestHandler;
@@ -173,12 +254,13 @@ public class TestLocalTaskSchedulerService {
 
       public int allocateCount = 0;
       public int deallocateCount = 0;
+      public int preemptCount = 0;
       public int dispatchCount = 0;
 
       MockAsyncDelegateRequestHandler(
-          LinkedBlockingQueue<TaskRequest> taskRequestQueue,
+          LinkedBlockingQueue<SchedulerRequest> taskRequestQueue,
           LocalContainerFactory localContainerFactory,
-          HashMap<Object, Container> taskAllocations,
+          HashMap<Object, AllocatedTask> taskAllocations,
           TaskSchedulerContext appClientDelegate, Configuration conf) {
         super(taskRequestQueue, localContainerFactory, taskAllocations,
             appClientDelegate, conf);
@@ -210,6 +292,12 @@ public class TestLocalTaskSchedulerService {
       void deallocateTask(DeallocateTaskRequest request) {
         super.deallocateTask(request);
         deallocateCount++;
+      }
+
+      @Override
+      void preemptTask(DeallocateContainerRequest request) {
+        super.preemptTask(request);
+        preemptCount++;
       }
     }
   }

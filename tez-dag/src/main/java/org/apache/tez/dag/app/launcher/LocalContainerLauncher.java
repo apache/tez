@@ -94,9 +94,9 @@ public class LocalContainerLauncher extends DagContainerLauncher {
   int shufflePort = TezRuntimeUtils.INVALID_PORT;
   private DeletionTracker deletionTracker;
 
-  private final ConcurrentHashMap<ContainerId, RunningTaskCallback>
+  private final ConcurrentHashMap<ContainerId, ListenableFuture<?>>
       runningContainers =
-      new ConcurrentHashMap<ContainerId, RunningTaskCallback>();
+      new ConcurrentHashMap<>();
 
   private final ConcurrentHashMap<ContainerId, TezLocalCacheManager>
           cacheManagers = new ConcurrentHashMap<>();
@@ -281,7 +281,7 @@ public class LocalContainerLauncher extends DagContainerLauncher {
       ListenableFuture<TezChild.ContainerExecutionResult> runningTaskFuture =
           taskExecutorService.submit(createSubTask(tezChild, event.getContainerId()));
       RunningTaskCallback callback = new RunningTaskCallback(event.getContainerId());
-      runningContainers.put(event.getContainerId(), callback);
+      runningContainers.put(event.getContainerId(), runningTaskFuture);
       Futures.addCallback(runningTaskFuture, callback, callbackExecutor);
       if (deletionTracker != null) {
         deletionTracker.addNodeShufflePort(event.getNodeId(), shufflePort);
@@ -293,19 +293,16 @@ public class LocalContainerLauncher extends DagContainerLauncher {
 
   private void stop(ContainerStopRequest event) {
     // A stop_request will come in when a task completes and reports back or a preemption decision
-    // is made. Currently the LocalTaskScheduler does not support preemption. Also preemption
-    // will not work in local mode till Tez supports task preemption instead of container preemption.
-    RunningTaskCallback callback =
+    // is made.
+    ListenableFuture future =
         runningContainers.get(event.getContainerId());
-    if (callback == null) {
+    if (future == null) {
       LOG.info("Ignoring stop request for containerId: " + event.getContainerId());
     } else {
       LOG.info(
-          "Ignoring stop request for containerId {}. Relying on regular task shutdown for it to end",
+          "Stopping containerId: {}",
           event.getContainerId());
-      // Allow the tezChild thread to run it's course. It'll receive a shutdown request from the
-      // AM eventually since the task and container will be unregistered.
-      // This will need to be fixed once interrupting tasks is supported.
+      future.cancel(true);
     }
     // Send this event to maintain regular control flow. This isn't of much use though.
     getContext().containerStopRequested(event.getContainerId());

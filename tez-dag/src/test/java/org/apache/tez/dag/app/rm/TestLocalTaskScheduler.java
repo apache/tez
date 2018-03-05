@@ -29,13 +29,13 @@ import org.junit.Test;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.Priority;
 
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AllocatedTask;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AsyncDelegateRequestHandler;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory;
-import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.TaskRequest;
+import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.SchedulerRequest;
 
 public class TestLocalTaskScheduler {
 
@@ -56,8 +56,8 @@ public class TestLocalTaskScheduler {
 
     LocalContainerFactory containerFactory = new LocalContainerFactory(appAttemptId, 1000);
 
-    HashMap<Object, Container> taskAllocations = new LinkedHashMap<Object, Container>();
-    LinkedBlockingQueue<TaskRequest> clientRequestQueue = new LinkedBlockingQueue<>();
+    HashMap<Object, AllocatedTask> taskAllocations = new LinkedHashMap<>();
+    LinkedBlockingQueue<SchedulerRequest> clientRequestQueue = new LinkedBlockingQueue<>();
 
     // Object under test
     AsyncDelegateRequestHandler requestHandler =
