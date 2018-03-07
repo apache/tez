@@ -168,12 +168,12 @@ public class TestTezClient {
   
   @Test (timeout = 5000)
   public void testTezclientApp() throws Exception {
-    testTezClient(false);
+    testTezClient(false, true);
   }
   
   @Test (timeout = 5000)
   public void testTezclientSession() throws Exception {
-    testTezClient(true);
+    testTezClient(true, true);
   }
 
   @Test (timeout = 5000)
@@ -238,8 +238,51 @@ public class TestTezClient {
       assertTrue(request.hasAdditionalAmResources());
     }
   }
+
+  @Test (timeout = 5000)
+  public void testGetClient() throws Exception {
+    /* BEGIN first TezClient usage without calling stop() */
+    TezClientForTest client = testTezClient(true, false);
+    /* END first TezClient usage without calling stop() */
+
+    /* BEGIN reuse of AM from new TezClient */
+    ArgumentCaptor<ApplicationSubmissionContext> captor = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+            .thenReturn(YarnApplicationState.RUNNING);
+
+    //Reuse existing appId from first TezClient
+    ApplicationId existingAppId = client.mockAppId;
+    TezClientForTest client2 = configureAndCreateTezClient(null, true,
+            client.amConfig.getTezConfiguration());
+    String mockLR1Name = "LR1";
+    Map<String, LocalResource> lrDAG = Collections.singletonMap(mockLR1Name, LocalResource
+            .newInstance(URL.newInstance("file", "localhost", 0, "/test1"), LocalResourceType.FILE,
+                    LocalResourceVisibility.PUBLIC, 1, 1));
+    Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
+            Resource.newInstance(1, 1));
+    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+
+    //Bind TezClient to existing app and submit a dag
+    DAGClient dagClient = client2.getClient(existingAppId).submitDAG(dag);
+
+    assertTrue(dagClient.getExecutionContext().contains(existingAppId.toString()));
+    assertEquals(dagClient.getSessionIdentifierString(), existingAppId.toString());
+
+    // Validate request for new AM is not submitted to RM */
+    verify(client2.mockYarnClient, times(0)).submitApplication(captor.capture());
+
+    // Validate dag submission from second TezClient as normal */
+    verify(client2.sessionAmProxy, times(1)).submitDAG((RpcController)any(), (SubmitDAGRequestProto) any());
+
+    // Validate stop from new TezClient as normal */
+    client2.stop();
+    verify(client2.sessionAmProxy, times(1)).shutdownSession((RpcController) any(),
+            (ShutdownSessionRequestProto) any());
+    verify(client2.mockYarnClient, times(1)).stop();
+    /* END reuse of AM from new TezClient */
+  }
   
-  public void testTezClient(boolean isSession) throws Exception {
+  public TezClientForTest testTezClient(boolean isSession, boolean shouldStop) throws Exception {
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
@@ -343,13 +386,16 @@ public class TestTezClient {
       assertTrue(context.getAMContainerSpec().getLocalResources().containsKey(
           lrName2));
     }
-    
-    client.stop();
-    if (isSession) {
-      verify(client.sessionAmProxy, times(1)).shutdownSession((RpcController) any(),
-          (ShutdownSessionRequestProto) any());
+
+    if(shouldStop) {
+      client.stop();
+      if (isSession) {
+        verify(client.sessionAmProxy, times(1)).shutdownSession((RpcController) any(),
+                (ShutdownSessionRequestProto) any());
+      }
+      verify(client.mockYarnClient, times(1)).stop();
     }
-    verify(client.mockYarnClient, times(1)).stop();
+    return client;
   }
 
   @Test (timeout=5000)

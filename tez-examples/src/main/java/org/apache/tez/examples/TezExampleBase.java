@@ -63,11 +63,16 @@ public abstract class TezExampleBase extends Configured implements Tool {
   protected static final String LOCAL_MODE = "local";
   protected static final String COUNTER_LOG = "counter";
   protected static final String GENERATE_SPLIT_IN_CLIENT = "generateSplitInClient";
+  protected static final String LEAVE_AM_RUNNING = "leaveAmRunning";
+  protected static final String RECONNECT_APP_ID = "reconnectAppId";
+
 
   private boolean disableSplitGrouping = false;
   private boolean isLocalMode = false;
   private boolean isCountersLog = false;
   private boolean generateSplitInClient = false;
+  private boolean leaveAmRunning = false;
+  private String reconnectAppId;
   private HadoopShim hadoopShim;
 
   protected boolean isCountersLog() {
@@ -88,6 +93,8 @@ public abstract class TezExampleBase extends Configured implements Tool {
     options.addOption(DISABLE_SPLIT_GROUPING, false , "disable split grouping");
     options.addOption(COUNTER_LOG, false , "print counter log");
     options.addOption(GENERATE_SPLIT_IN_CLIENT, false, "whether generate split in client");
+    options.addOption(LEAVE_AM_RUNNING, false, "whether client should stop session");
+    options.addOption(RECONNECT_APP_ID, true, "appId for client reconnect");
     return options;
   }
 
@@ -107,6 +114,12 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
     if (optionParser.getCommandLine().hasOption(GENERATE_SPLIT_IN_CLIENT)) {
       generateSplitInClient = true;
+    }
+    if (optionParser.getCommandLine().hasOption(LEAVE_AM_RUNNING)) {
+      leaveAmRunning = true;
+    }
+    if (optionParser.getCommandLine().hasOption(RECONNECT_APP_ID)) {
+        reconnectAppId = optionParser.getCommandLine().getOptionValue(RECONNECT_APP_ID);
     }
     hadoopShim = new HadoopShimsLoader(conf).getHadoopShim();
 
@@ -231,15 +244,20 @@ public abstract class TezExampleBase extends Configured implements Tool {
     try {
       return runJob(otherArgs, tezConf, tezClientInternal);
     } finally {
-      if (ownTezClient && tezClientInternal != null) {
+      if (ownTezClient && tezClientInternal != null && !leaveAmRunning) {
         tezClientInternal.stop();
       }
     }
   }
 
   private TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
-    TezClient tezClient = TezClient.create(getClass().getSimpleName(), tezConf);
-    tezClient.start();
+    TezClient tezClient = TezClient.create("TezExampleApplication", tezConf);
+    if(reconnectAppId != null) {
+      ApplicationId appId = TezClient.appIdfromString(reconnectAppId);
+      tezClient.getClient(appId);
+    } else {
+      tezClient.start();
+    }
     return tezClient;
   }
 
@@ -265,6 +283,8 @@ public abstract class TezExampleBase extends Configured implements Tool {
         + " enable split grouping without this option.");
     ps.println("-" + COUNTER_LOG + "\t\t to print counters information");
     ps.println("-" + GENERATE_SPLIT_IN_CLIENT + "\t\tgenerate input split in client");
+    ps.println("-" + LEAVE_AM_RUNNING + "\t\twhether client should stop session");
+    ps.println("-" + RECONNECT_APP_ID + "\t\tappId for client reconnect");
     ps.println();
     ps.println("The Tez example extra options usage syntax is ");
     ps.println("example_name [extra_options] [example_parameters]");

@@ -109,6 +109,9 @@ import com.google.protobuf.ServiceException;
 public class TezClient {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
+
+  private static final String appIdStrPrefix = "application";
+  private static final String APPLICATION_ID_PREFIX = appIdStrPrefix + '_';
   
   @VisibleForTesting
   static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
@@ -377,39 +380,13 @@ public class TezClient {
    */
   public synchronized void start() throws TezException, IOException {
     amConfig.setYarnConfiguration(new YarnConfiguration(amConfig.getTezConfiguration()));
-
-    frameworkClient = createFrameworkClient();
-    frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
-    frameworkClient.start();
-
-    if (this.amConfig.getTezConfiguration().getBoolean(
-        TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED,
-        TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT)) {
-      String javaOptsCheckerClassName = this.amConfig.getTezConfiguration().get(
-          TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS, "");
-      if (!javaOptsCheckerClassName.isEmpty()) {
-        try {
-          javaOptsChecker = ReflectionUtils.createClazzInstance(javaOptsCheckerClassName);
-        } catch (Exception e) {
-          LOG.warn("Failed to initialize configured Java Opts Checker"
-              + " (" + TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS
-              + ") , checkerClass=" + javaOptsCheckerClassName
-              + ". Disabling checker.", e);
-          javaOptsChecker = null;
-        }
-      } else {
-        javaOptsChecker = new JavaOptsChecker();
-      }
-
-    }
-
+    startFrameworkClient();
+    setupJavaOptsChecker();
 
     if (isSession) {
       LOG.info("Session mode. Starting session.");
       TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
           amConfig.getTezConfiguration());
-  
-      Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
   
       clientTimeout = amConfig.getTezConfiguration().getInt(
           TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
@@ -420,23 +397,7 @@ public class TezClient {
           sessionAppId = createApplication();
         }
   
-        // Add session token for shuffle
-        TezClientUtils.createSessionToken(sessionAppId.toString(),
-            jobTokenSecretManager, sessionCredentials);
-  
-        ApplicationSubmissionContext appContext =
-            TezClientUtils.createApplicationSubmissionContext(
-                sessionAppId,
-                null, clientName, amConfig,
-                tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo,
-                servicePluginsDescriptor, javaOptsChecker);
-  
-        // Set Tez Sessions to not retry on AM crashes if recovery is disabled
-        if (!amConfig.getTezConfiguration().getBoolean(
-            TezConfiguration.DAG_RECOVERY_ENABLED,
-            TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
-          appContext.setMaxAppAttempts(1);
-        }  
+        ApplicationSubmissionContext appContext = setupApplicationContext();
         frameworkClient.submitApplication(appContext);
         ApplicationReport appReport = frameworkClient.getApplicationReport(sessionAppId);
         LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
@@ -445,31 +406,136 @@ public class TezClient {
         throw new TezException(e);
       }
 
-      long amClientKeepAliveTimeoutIntervalMillis =
-          TezCommonUtils.getAMClientHeartBeatTimeoutMillis(amConfig.getTezConfiguration());
-      // Poll at minimum of 1 second interval
-      long pollPeriod = TezCommonUtils.
-          getAMClientHeartBeatPollIntervalMillis(amConfig.getTezConfiguration(),
-              amClientKeepAliveTimeoutIntervalMillis, 10);
+      startClientHeartbeat();
+      this.stagingFs = FileSystem.get(amConfig.getTezConfiguration());
+    }
+  }
 
-      boolean isLocal = amConfig.getTezConfiguration().getBoolean(
-          TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
-      if (!isLocal && amClientKeepAliveTimeoutIntervalMillis > 0) {
-        amKeepAliveService = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true).setNameFormat("AMKeepAliveThread #%d").build());
-        amKeepAliveService.scheduleWithFixedDelay(new Runnable() {
+  public synchronized TezClient getClient(String appIdStr) throws IOException, TezException {
+    return getClient(appIdfromString(appIdStr));
+  }
 
-          private DAGClientAMProtocolBlockingPB proxy;
+  /**
+   * Alternative to start() that explicitly sets sessionAppId and doesn't start a new AM.
+   * The caller of getClient is responsible for initializing the new TezClient with a
+   * Configuration compatible with the existing AM. It is expected the caller has cached the
+   * original Configuration (e.g. in Zookeeper).
+   *
+   * In contrast to "start", no resources are localized. It is the responsibility of the caller to
+   * ensure that existing localized resources and staging dirs are still valid.
+   *
+   * @param appId
+   * @return 'this' just as a convenience for fluent style chaining
+   */
+  public synchronized TezClient getClient(ApplicationId appId) throws TezException, IOException {
+    sessionAppId = appId;
+    amConfig.setYarnConfiguration(new YarnConfiguration(amConfig.getTezConfiguration()));
+    startFrameworkClient();
+    setupJavaOptsChecker();
 
-          @Override
-          public void run() {
-            proxy = sendAMHeartbeat(proxy);
-          }
-        }, pollPeriod, pollPeriod, TimeUnit.MILLISECONDS);
+    if (!isSession) {
+      String msg = "Must be in session mode to bind TezClient to existing AM";
+      LOG.error(msg);
+      throw new IllegalStateException(msg);
+    }
+
+    LOG.info("Session mode. Reconnecting to session: " + sessionAppId.toString());
+
+    clientTimeout = amConfig.getTezConfiguration().getInt(
+            TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
+            TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
+
+    try {
+      setupApplicationContext();
+      ApplicationReport appReport = frameworkClient.getApplicationReport(sessionAppId);
+      LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
+      sessionStarted.set(true);
+    } catch (YarnException e) {
+      throw new TezException(e);
+    }
+
+    startClientHeartbeat();
+    this.stagingFs = FileSystem.get(amConfig.getTezConfiguration());
+    return this;
+  }
+
+  private void startFrameworkClient() {
+    frameworkClient = createFrameworkClient();
+    frameworkClient.init(amConfig.getTezConfiguration(), amConfig.getYarnConfiguration());
+    frameworkClient.start();
+  }
+
+  private ApplicationSubmissionContext setupApplicationContext() throws IOException, YarnException {
+    TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
+            amConfig.getTezConfiguration());
+
+    Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
+    // Add session token for shuffle
+    TezClientUtils.createSessionToken(sessionAppId.toString(),
+            jobTokenSecretManager, sessionCredentials);
+
+    ApplicationSubmissionContext appContext =
+            TezClientUtils.createApplicationSubmissionContext(
+                    sessionAppId,
+                    null, clientName, amConfig,
+                    tezJarResources, sessionCredentials, usingTezArchiveDeploy, apiVersionInfo,
+                    servicePluginsDescriptor, javaOptsChecker);
+
+    // Set Tez Sessions to not retry on AM crashes if recovery is disabled
+    if (!amConfig.getTezConfiguration().getBoolean(
+            TezConfiguration.DAG_RECOVERY_ENABLED,
+            TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT)) {
+      appContext.setMaxAppAttempts(1);
+    }
+    return appContext;
+  }
+
+  private void setupJavaOptsChecker() {
+    if (this.amConfig.getTezConfiguration().getBoolean(
+            TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED,
+            TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT)) {
+      String javaOptsCheckerClassName = this.amConfig.getTezConfiguration().get(
+              TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS, "");
+      if (!javaOptsCheckerClassName.isEmpty()) {
+        try {
+          javaOptsChecker = ReflectionUtils.createClazzInstance(javaOptsCheckerClassName);
+        } catch (Exception e) {
+          LOG.warn("Failed to initialize configured Java Opts Checker"
+                  + " (" + TezConfiguration.TEZ_CLIENT_JAVA_OPTS_CHECKER_CLASS
+                  + ") , checkerClass=" + javaOptsCheckerClassName
+                  + ". Disabling checker.", e);
+          javaOptsChecker = null;
+        }
+      } else {
+        javaOptsChecker = new JavaOptsChecker();
       }
 
-      this.stagingFs = FileSystem.get(amConfig.getTezConfiguration());
+    }
+  }
+
+  private void startClientHeartbeat() {
+    long amClientKeepAliveTimeoutIntervalMillis =
+            TezCommonUtils.getAMClientHeartBeatTimeoutMillis(amConfig.getTezConfiguration());
+    // Poll at minimum of 1 second interval
+    long pollPeriod = TezCommonUtils.
+            getAMClientHeartBeatPollIntervalMillis(amConfig.getTezConfiguration(),
+                    amClientKeepAliveTimeoutIntervalMillis, 10);
+
+    boolean isLocal = amConfig.getTezConfiguration().getBoolean(
+            TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
+    if (!isLocal && amClientKeepAliveTimeoutIntervalMillis > 0) {
+      amKeepAliveService = Executors.newSingleThreadScheduledExecutor(
+              new ThreadFactoryBuilder()
+                      .setDaemon(true).setNameFormat("AMKeepAliveThread #%d").build());
+      amKeepAliveService.scheduleWithFixedDelay(new Runnable() {
+
+        private DAGClientAMProtocolBlockingPB proxy;
+
+        @Override
+        public void run() {
+          proxy = sendAMHeartbeat(proxy);
+        }
+      }, pollPeriod, pollPeriod, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -1209,6 +1275,34 @@ public class TezClient {
     public TezClient build() {
       return new TezClient(name, tezConf, isSession, localResourceMap, credentials,
           servicePluginsDescriptor);
+    }
+  }
+
+  //Copied this helper method from 
+  //org.apache.hadoop.yarn.api.records.ApplicationId in Hadoop 2.8+
+  //to simplify implementation on 2.7.x
+  @Public
+  @Unstable
+  public static ApplicationId appIdfromString(String appIdStr) {
+    if (!appIdStr.startsWith(APPLICATION_ID_PREFIX)) {
+      throw new IllegalArgumentException("Invalid ApplicationId prefix: "
+              + appIdStr + ". The valid ApplicationId should start with prefix "
+              + appIdStrPrefix);
+    }
+    try {
+      int pos1 = APPLICATION_ID_PREFIX.length() - 1;
+      int pos2 = appIdStr.indexOf('_', pos1 + 1);
+      if (pos2 < 0) {
+        throw new IllegalArgumentException("Invalid ApplicationId: "
+                + appIdStr);
+      }
+      long rmId = Long.parseLong(appIdStr.substring(pos1 + 1, pos2));
+      int appId = Integer.parseInt(appIdStr.substring(pos2 + 1));
+      ApplicationId applicationId = ApplicationId.newInstance(rmId, appId);
+      return applicationId;
+    } catch (NumberFormatException n) {
+      throw new IllegalArgumentException("Invalid ApplicationId: "
+              + appIdStr, n);
     }
   }
 }

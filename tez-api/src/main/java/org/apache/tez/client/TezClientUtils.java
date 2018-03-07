@@ -575,16 +575,19 @@ public class TezClientUtils {
     }
 
     // emit conf as PB file
-    ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
-        servicePluginsDescriptor);
+    // don't overwrite existing conf, needed for TezClient.getClient() so existing containers have stable resource fingerprints
+    if(!binaryConfPath.getFileSystem(tezConf).exists(binaryConfPath)) {
+      ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
+              servicePluginsDescriptor);
 
-    FSDataOutputStream amConfPBOutBinaryStream = null;
-    try {
-      amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
-      finalConfProto.writeTo(amConfPBOutBinaryStream);
-    } finally {
-      if(amConfPBOutBinaryStream != null){
-        amConfPBOutBinaryStream.close();
+      FSDataOutputStream amConfPBOutBinaryStream = null;
+      try {
+        amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
+        finalConfProto.writeTo(amConfPBOutBinaryStream);
+      } finally {
+        if (amConfPBOutBinaryStream != null) {
+          amConfPBOutBinaryStream.close();
+        }
       }
     }
 
