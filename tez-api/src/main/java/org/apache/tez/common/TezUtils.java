@@ -134,16 +134,8 @@ public class TezUtils {
 
 
   private static void writeConfInPB(OutputStream dos, Configuration conf) throws IOException {
-    DAGProtos.ConfigurationProto.Builder confProtoBuilder = DAGProtos.ConfigurationProto
-        .newBuilder();
-    Iterator<Map.Entry<String, String>> iter = conf.iterator();
-    while (iter.hasNext()) {
-      Map.Entry<String, String> entry = iter.next();
-      DAGProtos.PlanKeyValuePair.Builder kvp = DAGProtos.PlanKeyValuePair.newBuilder();
-      kvp.setKey(entry.getKey());
-      kvp.setValue(entry.getValue());
-      confProtoBuilder.addConfKeyValues(kvp);
-    }
+    DAGProtos.ConfigurationProto.Builder confProtoBuilder = DAGProtos.ConfigurationProto.newBuilder();
+    populateConfProtoFromEntries(conf, confProtoBuilder);
     DAGProtos.ConfigurationProto confProto = confProtoBuilder.build();
     confProto.writeTo(dos);
   }
@@ -167,7 +159,13 @@ public class TezUtils {
         Iterator<Entry<String, String>> iter = conf.iterator();
         while (iter.hasNext()) {
           Entry<String, String> entry = iter.next();
-          confJson.put(entry.getKey(), conf.get(entry.getKey()));
+          String key = entry.getKey();
+          String val = conf.get(entry.getKey());
+          if(val != null) {
+            confJson.put(key, val);
+          } else {
+            LOG.debug("null value in Configuration after replacement for key={}. Skipping.", key);
+          }
         }
         jsonObject.put(ATSConstants.CONFIG, confJson);
       }
@@ -179,6 +177,24 @@ public class TezUtils {
 
   public static String convertToHistoryText(Configuration conf) {
     return convertToHistoryText(null, conf);
+  }
+
+
+  /* Copy each Map.Entry with non-null value to DAGProtos.ConfigurationProto */
+  public static void populateConfProtoFromEntries(Iterable<Map.Entry<String, String>> params,
+                                              DAGProtos.ConfigurationProto.Builder confBuilder) {
+    for(Map.Entry<String, String> entry : params) {
+      String key = entry.getKey();
+      String val = entry.getValue();
+      if(val != null) {
+        DAGProtos.PlanKeyValuePair.Builder kvp = DAGProtos.PlanKeyValuePair.newBuilder();
+        kvp.setKey(key);
+        kvp.setValue(val);
+        confBuilder.addConfKeyValues(kvp);
+      } else {
+        LOG.debug("null value for key={}. Skipping.", key);
+      }
+    }
   }
 
 }

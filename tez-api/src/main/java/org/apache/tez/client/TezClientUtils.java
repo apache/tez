@@ -807,10 +807,16 @@ public class TezClientUtils {
     assert amConf != null;
     ConfigurationProto.Builder builder = ConfigurationProto.newBuilder();
     for (Entry<String, String> entry : amConf) {
-      PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-      kvp.setKey(entry.getKey());
-      kvp.setValue(amConf.get(entry.getKey()));
-      builder.addConfKeyValues(kvp);
+      String key = entry.getKey();
+      String val = amConf.get(key);
+      if(val != null) {
+        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+        kvp.setKey(key);
+        kvp.setValue(val);
+        builder.addConfKeyValues(kvp);
+      } else {
+        LOG.debug("null value in Configuration after replacement for key={}. Skipping.", key);
+      }
     }
 
     AMPluginDescriptorProto pluginDescriptorProto =

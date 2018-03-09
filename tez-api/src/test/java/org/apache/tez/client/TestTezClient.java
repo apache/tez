@@ -90,6 +90,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRespo
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezAppMasterStatusProto;
+import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -926,5 +927,17 @@ public class TestTezClient {
       .thenReturn(YarnApplicationState.FAILED);
     Thread.sleep(3 * amHeartBeatTimeoutSecs * 1000);
     assertTrue(client.getAMKeepAliveService().isTerminated());
+  }
+
+  //See TEZ-3874
+  @Test(timeout = 5000)
+  public void testYarnZkDeprecatedConf() {
+    Configuration conf = new Configuration(false);
+    String val = "hostname:2181";
+    conf.set("yarn.resourcemanager.zk-address", val);
+
+    ConfigurationProto confProto = null;
+    //Test that Exception is not thrown by createFinalConfProtoForApp
+    TezClientUtils.createFinalConfProtoForApp(conf, null);
   }
 }

@@ -20,14 +20,19 @@ package org.apache.tez.common;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.Assert;
@@ -228,6 +233,16 @@ public class TestTezUtils {
     Assert.assertEquals("user1", confObject.getString("user"));
     Assert.assertEquals(location, confObject.getString("location"));
 
+  }
+
+  @Test(timeout = 5000)
+  public void testPopulateConfProtoFromEntries() {
+      Map<String, String> map = new HashMap<>();
+      map.put("nonNullKey", "value");
+      map.put("nullKey", null);
+      DAGProtos.ConfigurationProto.Builder confBuilder = DAGProtos.ConfigurationProto.newBuilder();
+      TezUtils.populateConfProtoFromEntries(map.entrySet(), confBuilder);
+      assertEquals(confBuilder.getConfKeyValuesList().size(), 1);
   }
 
 }
