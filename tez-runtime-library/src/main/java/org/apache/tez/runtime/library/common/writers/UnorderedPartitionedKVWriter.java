@@ -590,6 +590,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         this.spillPathDetails = getSpillPathDetails(false, -1, spillNumber);
         this.spillIndex = spillPathDetails.spillIndex;
       }
+      LOG.info("Writing spill " + spillNumber + " to " + spillPathDetails.outputFilePath.toString());
       FSDataOutputStream out = rfs.create(spillPathDetails.outputFilePath);
       if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
         rfs.setPermission(spillPathDetails.outputFilePath, SPILL_FILE_PERMS);

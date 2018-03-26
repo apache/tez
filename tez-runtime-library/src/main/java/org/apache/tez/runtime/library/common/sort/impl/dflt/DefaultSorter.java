@@ -977,7 +977,8 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         totalIndexCacheMemory +=
           spillRec.size() * MAP_OUTPUT_INDEX_RECORD_LENGTH;
       }
-      LOG.info(outputContext.getDestinationVertexName() + ": " + "Finished spill " + numSpills);
+      LOG.info(outputContext.getDestinationVertexName() + ": " + "Finished spill " + numSpills
+      + " at " + filename.toString());
       ++numSpills;
       if (!isFinalMergeEnabled()) {
         numShuffleChunks.setValue(numSpills);
