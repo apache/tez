@@ -5769,6 +5769,38 @@ public class TestVertexImpl {
     }
   }
 
+  @Test(timeout = 10000)
+  public void testVertexNoTasksTerminated() {
+    TezVertexID vId = null;
+    try {
+      TezDAGID invalidDagId = TezDAGID.getInstance(
+          dagId.getApplicationId(), 1000);
+      vId = TezVertexID.getInstance(invalidDagId, 1);
+      VertexPlan vPlan = invalidDagPlan.getVertex(0);
+      EventHandler mockEventHandler = mock(EventHandler.class);
+      VertexImpl v = new VertexImpl(vId, vPlan, vPlan.getName(), conf,
+          mockEventHandler, taskCommunicatorManagerInterface,
+          clock, thh, true, appContext, vertexLocationHint, null, taskSpecificLaunchCmdOption,
+          updateTracker, new Configuration(false));
+      v.setInputVertices(new HashMap());
+      vertexIdMap.put(vId, v);
+      vertices.put(v.getName(), v);
+      v.handle(new VertexEvent(vId, VertexEventType.V_INIT));
+      Assert.assertEquals(VertexState.INITED, v.getState());
+      v.handle(new VertexEvent(vId, VertexEventType.V_START));
+      Assert.assertEquals(VertexState.RUNNING, v.getState());
+      v.handle(new VertexEventTermination(vId, VertexTerminationCause.OTHER_VERTEX_FAILURE));
+      Assert.assertEquals(VertexState.TERMINATING, v.getState());
+      v.handle(new VertexEvent(vId, VertexEventType.V_COMPLETED));
+      Assert.assertEquals(VertexState.KILLED, v.getState());
+      Assert.assertTrue(1.0f == v.getCompletedTaskProgress());
+    } finally {
+      if (vId != null) {
+        vertexIdMap.remove(vId);
+      }
+    }
+  }
+
   @SuppressWarnings("rawtypes")
   private static class VertexImplWithRunningInputInitializer extends VertexImpl {
 
