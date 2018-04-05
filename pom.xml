@@ -39,7 +39,7 @@
     <clover.license>${user.home}/clover.license</clover.license>
     <hadoop.version>2.7.0</hadoop.version>
     <jetty.version>9.3.22.v20171030</jetty.version>
-    <netty.version>3.10.5.Final</netty.version>
+    <netty.version>3.6.2.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <javac.version>1.8</javac.version>
     <slf4j.version>1.7.10</slf4j.version>
