@@ -38,7 +38,6 @@ GREP=${GREP:-grep}
 PATCH=${PATCH:-patch}
 DIFF=${DIFF:-diff}
 JIRACLI=${JIRA:-jira}
-CURL=${CURL:-curl}
 FINDBUGS_HOME=${FINDBUGS_HOME}
 
 ###############################################################################
@@ -703,24 +702,10 @@ $comment"
     echo "======================================================================"
     echo ""
     echo ""
-
-    # RESTify the comment
-    jsoncomment=$(echo "$comment" \
-      | ${SED} -e 's,\\,\\\\,g' \
-        -e 's,\",\\\",g' \
-        -e 's,$,\\r\\n,g' \
-      | tr -d '\n')
-    jsoncomment='{"body":"'"$jsoncomment"'"}'
-
     ### Update Jira with a comment
-    ${CURL} -X POST \
-      -H "Accept: application/json" \
-      -H "Content-Type: application/json" \
-      -u "tezqa:${JIRA_PASSWD}" \
-      -d "$jsoncomment" \
-      --silent --location \
-      "https://issues.apache.org/jira/rest/api/2/issue/${defect}/comment" \
-      >/dev/null
+    export USER=hudson
+    $JIRACLI -s https://issues.apache.org/jira -a addcomment -u tezqa -p $JIRA_PASSWD --comment "$comment" --issue $defect
+    $JIRACLI -s https://issues.apache.org/jira -a logout -u tezqa -p $JIRA_PASSWD
   fi
 }
 
