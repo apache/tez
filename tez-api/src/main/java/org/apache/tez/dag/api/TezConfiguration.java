@@ -1439,6 +1439,27 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS_DEFAULT = 10;
 
   /**
+   * String value. The base directory into which history data will be written when proto history
+   * logging service is used for {@link TezConfiguration#TEZ_HISTORY_LOGGING_SERVICE_CLASS}.
+   * If this is not set, then logging is disabled for ProtoHistoryLoggingService.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_HISTORY_LOGGING_PROTO_BASE_DIR =
+      TEZ_PREFIX + "history.logging.proto-base-dir";
+
+  /**
+   * Long value. The amount of time in seconds to wait to ensure all events for a day is synced
+   * to disk. This should be maximum time variation b/w machines + maximum time to sync file
+   * content and metadata.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS =
+      TEZ_PREFIX + "history.logging.proto-sync-window-secs";
+  public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
+
+  /**
    * Int value. Time, in milliseconds, to wait while flushing YARN ATS data during shutdown.
    * Expert level setting.
    */

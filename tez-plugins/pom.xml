@@ -35,6 +35,7 @@
         </property>
       </activation>
       <modules>
+        <module>tez-protobuf-history-plugin</module>
         <module>tez-yarn-timeline-history</module>
         <module>tez-yarn-timeline-history-with-acls</module>
         <module>tez-history-parser</module>
@@ -47,6 +48,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>tez-protobuf-history-plugin</module>
         <module>tez-yarn-timeline-history</module>
         <module>tez-yarn-timeline-history-with-acls</module>
         <module>tez-yarn-timeline-cache-plugin</module>

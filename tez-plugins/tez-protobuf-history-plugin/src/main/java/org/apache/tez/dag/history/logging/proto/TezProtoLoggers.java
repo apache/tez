@@ -1,0 +1,64 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p/>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p/>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.tez.dag.history.logging.proto;
+
+import java.io.IOException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.history.logging.proto.HistoryLoggerProtos.HistoryEventProto;
+import org.apache.tez.dag.history.logging.proto.HistoryLoggerProtos.ManifestEntryProto;
+
+/**
+ * Helper class to create the logger for tez, we would use this to read the events outside
+ * tez and hence isolating the configuration and the paths in this.
+ */
+public class TezProtoLoggers {
+  private DatePartitionedLogger<HistoryEventProto> appEventsLogger;
+  private DatePartitionedLogger<HistoryEventProto> dagEventsLogger;
+  private DatePartitionedLogger<ManifestEntryProto> manifestEventsLogger;
+
+  public boolean setup(Configuration conf, Clock clock) throws IOException {
+    String logDir = conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR);
+    if (logDir == null) {
+      return false;
+    }
+    appEventsLogger = new DatePartitionedLogger<>(HistoryEventProto.PARSER,
+        new Path(logDir, "app_data"), conf, clock);
+    dagEventsLogger = new DatePartitionedLogger<>(HistoryEventProto.PARSER,
+        new Path(logDir, "dag_data"), conf, clock);
+    manifestEventsLogger = new DatePartitionedLogger<>(ManifestEntryProto.PARSER,
+        new Path(logDir, "dag_meta"), conf, clock);
+    return true;
+  }
+
+  public DatePartitionedLogger<HistoryEventProto> getAppEventsLogger() {
+    return appEventsLogger;
+  }
+
+  public DatePartitionedLogger<HistoryEventProto> getDagEventsLogger() {
+    return dagEventsLogger;
+  }
+
+  public DatePartitionedLogger<ManifestEntryProto> getManifestEventsLogger() {
+    return manifestEventsLogger;
+  }
+}
