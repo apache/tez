@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -111,6 +112,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventStartDag;
+import org.apache.tez.dag.app.dag.event.DAGEventCommitCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventType;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexCompleted;
 import org.apache.tez.dag.app.dag.event.DAGEventVertexReRunning;
@@ -140,6 +142,7 @@ import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.apache.tez.state.StateMachineTez;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1927,6 +1930,51 @@ public class TestDAGImpl {
     }
 
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
+  }
+
+  @Test (timeout = 5000L)
+  @SuppressWarnings("unchecked")
+  public void testDAGHang() throws Exception {
+    conf.setBoolean(
+        TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
+        false);
+    dag = Mockito.spy(new DAGImpl(dagId, conf, dagPlan,
+        dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
+        fsTokens, clock, "user", thh, appContext));
+    StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl> spyStateMachine =
+        Mockito.spy(new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
+            dag.stateMachineFactory.make(dag), dag));
+    when(dag.getStateMachine()).thenReturn(spyStateMachine);
+    dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
+    doReturn(dag).when(appContext).getCurrentDAG();
+    DAGImpl.OutputKey outputKey = Mockito.mock(DAGImpl.OutputKey.class);
+    ListenableFuture future = Mockito.mock(ListenableFuture.class);
+    dag.commitFutures.put(outputKey, future);
+    initDAG(dag);
+    startDAG(dag);
+    dispatcher.await();
+
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 0), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 1), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 2), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 3), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 4), VertexState.SUCCEEDED));
+    dispatcher.getEventHandler().handle(new DAGEventVertexCompleted(
+        TezVertexID.getInstance(dagId, 5), VertexState.SUCCEEDED));
+    dispatcher.await();
+    Assert.assertEquals(DAGState.COMMITTING, dag.getState());
+    DAGEventCommitCompleted dagEvent = new DAGEventCommitCompleted(
+        dagId, outputKey, false , new RuntimeException("test"));
+    doThrow(new RuntimeException("test")).when(
+        dag).logJobHistoryUnsuccesfulEvent(any(DAGState.class), any(TezCounters.class));
+    dag.handle(dagEvent);
+    dispatcher.await();
+    Assert.assertTrue("DAG did not terminate!", dag.getInternalState() == DAGState.FAILED);
   }
 
   @Test(timeout = 5000)

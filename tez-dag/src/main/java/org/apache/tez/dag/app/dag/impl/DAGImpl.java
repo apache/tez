@@ -1388,41 +1388,44 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   private DAGState finished(DAGState finalState) {
-    if (finishTime == 0) {
-      setFinishTime();
-    }
-    entityUpdateTracker.stop();
-
-    boolean recoveryError = false;
-
-    // update cpu time counters before finishing the dag
-    updateCpuCounters();
-    TezCounters counters = null;
+    boolean dagError = false;
     try {
-      counters = getAllCounters();
-    } catch (LimitExceededException e) {
-      addDiagnostic("Counters limit exceeded: " + e.getMessage());
-      finalState = DAGState.FAILED;
-    }
-
-    try {
-      if (finalState == DAGState.SUCCEEDED) {
-        logJobHistoryFinishedEvent(counters);
-      } else {
-        logJobHistoryUnsuccesfulEvent(finalState, counters);
+      if (finishTime == 0) {
+        setFinishTime();
       }
-    } catch (IOException e) {
-      LOG.warn("Failed to persist recovery event for DAG completion"
-          + ", dagId=" + dagId
-          + ", finalState=" + finalState);
-      recoveryError = true;
-    }
+      entityUpdateTracker.stop();
 
-    if (finalState != DAGState.SUCCEEDED) {
-      abortOutputs();
-    }
+      // update cpu time counters before finishing the dag
+      updateCpuCounters();
+      TezCounters counters = null;
+      try {
+        counters = getAllCounters();
+      } catch (LimitExceededException e) {
+        addDiagnostic("Counters limit exceeded: " + e.getMessage());
+        finalState = DAGState.FAILED;
+      }
 
-    if (recoveryError) {
+      try {
+        if (finalState == DAGState.SUCCEEDED) {
+          logJobHistoryFinishedEvent(counters);
+        } else {
+          logJobHistoryUnsuccesfulEvent(finalState, counters);
+        }
+      } catch (IOException e) {
+        LOG.warn("Failed to persist recovery event for DAG completion"
+            + ", dagId=" + dagId
+            + ", finalState=" + finalState, e);
+        dagError = true;
+      }
+
+      if (finalState != DAGState.SUCCEEDED) {
+        abortOutputs();
+      }
+    } catch (Exception e) {
+      dagError = true;
+      LOG.warn("Encountered exception while DAG finish", e);
+    }
+    if (dagError) {
       eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), DAGState.ERROR));
     } else {
       eventHandler.handle(new DAGAppMasterEventDAGFinished(getID(), finalState));
