@@ -19,9 +19,9 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.VersionInfo;
@@ -67,12 +67,12 @@ public class AppLaunchedEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
     throw new UnsupportedOperationException("Not a recovery event");
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     throw new UnsupportedOperationException("Not a recovery event");
   }
 

@@ -19,9 +19,9 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -76,13 +76,13 @@ public class DAGRecoveredEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
     throw new UnsupportedOperationException("Invalid operation for eventType "
         + getEventType().name());
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     throw new UnsupportedOperationException("Invalid operation for eventType "
         + getEventType().name());
   }

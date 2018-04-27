@@ -19,12 +19,12 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -151,14 +151,13 @@ public class VertexInitializedEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
-    toProto().writeDelimitedTo(outputStream);
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
+    outputStream.writeMessageNoTag(toProto());
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
-    RecoveryProtos.VertexInitializedProto proto =
-        RecoveryProtos.VertexInitializedProto.parseDelimitedFrom(inputStream);
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
+    VertexInitializedProto proto = inputStream.readMessage(VertexInitializedProto.PARSER, null);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

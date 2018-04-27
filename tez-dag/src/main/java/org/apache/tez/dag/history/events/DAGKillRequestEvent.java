@@ -18,14 +18,16 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
+import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGKillRequestProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
 
@@ -60,12 +62,12 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
-    toProto().writeDelimitedTo(outputStream);
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
+    outputStream.writeMessageNoTag(toProto());
   }
 
-  public RecoveryProtos.DAGKillRequestProto toProto() {
-    return RecoveryProtos.DAGKillRequestProto.newBuilder()
+  public DAGKillRequestProto toProto() {
+    return DAGKillRequestProto.newBuilder()
         .setDagId(dagID.toString())
         .setKillRequestTime(killRequestTime)
         .setIsSessionStopped(isSessionStopped)
@@ -73,9 +75,8 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
-    RecoveryProtos.DAGKillRequestProto proto =
-        RecoveryProtos.DAGKillRequestProto.parseDelimitedFrom(inputStream);
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
+    DAGKillRequestProto proto = inputStream.readMessage(DAGKillRequestProto.PARSER, null);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

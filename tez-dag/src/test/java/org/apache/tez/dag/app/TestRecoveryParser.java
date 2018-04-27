@@ -20,12 +20,15 @@ package org.apache.tez.dag.app;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.google.common.collect.Sets;
+import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -36,6 +39,8 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
+import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -59,6 +64,7 @@ import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
 import org.apache.tez.dag.history.events.VertexCommitStartedEvent;
+import org.apache.tez.dag.history.events.VertexConfigurationDoneEvent;
 import org.apache.tez.dag.history.events.VertexFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitFinishedEvent;
 import org.apache.tez.dag.history.events.VertexGroupCommitStartedEvent;
@@ -91,6 +97,8 @@ public class TestRecoveryParser {
   private Path recoveryPath;
   private DAGAppMaster mockAppMaster;
   private DAGImpl mockDAGImpl;
+  // Protobuf message limit is 64 MB by default
+  private static final int PROTOBUF_DEFAULT_SIZE_LIMIT = 64 << 20;
 
   @Before
   public void setUp() throws IllegalArgumentException, IOException {
@@ -105,7 +113,6 @@ public class TestRecoveryParser {
     mockDAGImpl = mock(DAGImpl.class);
     when(mockAppMaster.createDAG(any(DAGPlan.class), any(TezDAGID.class))).thenReturn(mockDAGImpl);
     parser = new RecoveryParser(mockAppMaster, localFS, recoveryPath, 3);
-    LogManager.getRootLogger().setLevel(Level.DEBUG);
   }
 
   private DAGSummaryData createDAGSummaryData(TezDAGID dagId, boolean completed) {
@@ -267,7 +274,7 @@ public class TestRecoveryParser {
             null, "user", new Configuration(), null, null)));
     // wait until DAGSubmittedEvent is handled in the RecoveryEventHandling thread
     rService.await();
-    rService.outputStreamMap.get(dagID).writeUTF("INVALID_DATA");
+    rService.outputStreamMap.get(dagID).write("INVALID_DATA".getBytes("UTF-8"));
     rService.stop();
 
     // write data in attempt_2
@@ -278,7 +285,7 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     rService.await();
-    rService.outputStreamMap.get(dagID).writeUTF("INVALID_DATA");
+    rService.outputStreamMap.get(dagID).write("INVALID_DATA".getBytes("UTF-8"));
     rService.stop();
 
     // corrupted last records will be skipped but the whole recovery logs will be read
@@ -616,6 +623,75 @@ public class TestRecoveryParser {
     assertTrue(dagData.nonRecoverable);
     assertTrue(dagData.reason.contains("Vertex has been committed as member of vertex group"
               + ", but its full recovery events are not seen"));
+  }
+
+  @Test(timeout=20000)
+  public void testRecoveryLargeEventData() throws IOException {
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    AppContext appContext = mock(AppContext.class);
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getClock()).thenReturn(new SystemClock());
+    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getApplicationID()).thenReturn(appId);
+
+    RecoveryService rService = new RecoveryService(appContext);
+    Configuration conf = new Configuration();
+    conf.setBoolean(RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED, true);
+    rService.init(conf);
+    rService.start();
+
+    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    // DAG  DAGSubmittedEvent -> DAGInitializedEvent -> DAGStartedEvent
+    rService.handle(new DAGHistoryEvent(dagID,
+        new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
+            null, "user", new Configuration(), null, null)));
+    DAGInitializedEvent dagInitedEvent = new DAGInitializedEvent(dagID, 100L,
+        "user", "dagName", null);
+    DAGStartedEvent dagStartedEvent = new DAGStartedEvent(dagID, 0L, "user", "dagName");
+    rService.handle(new DAGHistoryEvent(dagID, dagInitedEvent));
+    rService.handle(new DAGHistoryEvent(dagID, dagStartedEvent));
+
+    // Create a Recovery event larger than 64 MB to verify default max protobuf size
+    ArrayList<TaskLocationHint> taskLocationHints = new ArrayList<>(100000);
+    TaskLocationHint taskLocationHint = TaskLocationHint.createTaskLocationHint(
+        Sets.newHashSet("aaaaaaaaaaaaaaa.aaaaaaaaaaaaaaa.aaaaaaaaaaaaaaa",
+            "bbbbbbbbbbbbbbb.bbbbbbbbbbbbbbb.bbbbbbbbbbbbbbb",
+            "ccccccccccccccc.ccccccccccccccc.ccccccccccccccc",
+            "ddddddddddddddd.ddddddddddddddd.ddddddddddddddd",
+            "eeeeeeeeeeeeeee.eeeeeeeeeeeeeee.eeeeeeeeeeeeeee",
+            "fffffffffffffff.fffffffffffffff.fffffffffffffff",
+            "ggggggggggggggg.ggggggggggggggg.ggggggggggggggg",
+            "hhhhhhhhhhhhhhh.hhhhhhhhhhhhhhh.hhhhhhhhhhhhhhh",
+            "iiiiiiiiiiiiiii.iiiiiiiiiiiiiii.iiiiiiiiiiiiiii",
+            "jjjjjjjjjjjjjjj.jjjjjjjjjjjjjjj.jjjjjjjjjjjjjjj",
+            "kkkkkkkkkkkkkkk.kkkkkkkkkkkkkkk.kkkkkkkkkkkkkkk",
+            "lllllllllllllll.lllllllllllllll.lllllllllllllll",
+            "mmmmmmmmmmmmmmm.mmmmmmmmmmmmmmm.mmmmmmmmmmmmmmm",
+            "nnnnnnnnnnnnnnn.nnnnnnnnnnnnnnn.nnnnnnnnnnnnnnn"),
+        Sets.newHashSet("rack1", "rack2", "rack3"));
+    for (int i = 0; i < 100000; i++) {
+      taskLocationHints.add(taskLocationHint);
+    }
+
+    TezVertexID v0Id = TezVertexID.getInstance(dagID, 0);
+    VertexLocationHint vertexLocationHint = VertexLocationHint.create(taskLocationHints);
+    VertexConfigurationDoneEvent vertexConfigurationDoneEvent = new VertexConfigurationDoneEvent(
+        v0Id, 0, 100000, vertexLocationHint, null, null, false);
+    // Verify large protobuf message
+    assertTrue(vertexConfigurationDoneEvent.toProto().getSerializedSize() > PROTOBUF_DEFAULT_SIZE_LIMIT );
+    rService.handle(new DAGHistoryEvent(dagID, vertexConfigurationDoneEvent));
+    rService.stop();
+
+    DAGRecoveryData dagData = parser.parseRecoveryData();
+    VertexRecoveryData v0data = dagData.getVertexRecoveryData(v0Id);
+    assertNotNull("Vertex Recovery Data should be non-null", v0data);
+    VertexConfigurationDoneEvent parsedVertexConfigurationDoneEvent = v0data.getVertexConfigurationDoneEvent();
+    assertNotNull("Vertex Configuration Done Event should be non-null", parsedVertexConfigurationDoneEvent);
+    VertexLocationHint parsedVertexLocationHint = parsedVertexConfigurationDoneEvent.getVertexLocationHint();
+    assertNotNull("Vertex Location Hint should be non-null", parsedVertexLocationHint);
+    assertEquals(parsedVertexLocationHint.getTaskLocationHints().size(), 100000);
   }
 
   @Test(timeout=5000)

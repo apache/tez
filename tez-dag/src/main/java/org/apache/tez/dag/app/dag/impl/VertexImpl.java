@@ -42,6 +42,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nullable;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -63,7 +65,6 @@ import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -2695,9 +2696,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
       NonSyncByteArrayOutputStream out = new NonSyncByteArrayOutputStream();
       try {
-        reconfigureDoneEvent.toProtoStream(out);
+        CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(out);
+        reconfigureDoneEvent.toProtoStream(codedOutputStream);
+        codedOutputStream.flush();
       } catch (IOException e) {
-        throw new TezUncheckedException("Unable to deserilize VertexReconfigureDoneEvent");
+        throw new TezUncheckedException("Unable to deserialize VertexReconfigureDoneEvent");
       }
       this.vertexManager = new VertexManager(
           VertexManagerPluginDescriptor.create(NoOpVertexManager.class.getName())
@@ -4589,7 +4592,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         LOG.debug("initialize NoOpVertexManager");
       }
       configurationDoneEvent = new VertexConfigurationDoneEvent();
-      configurationDoneEvent.fromProtoStream(new NonSyncByteArrayInputStream(getContext().getUserPayload().deepCopyAsArray()));
+      configurationDoneEvent.fromProtoStream(CodedInputStream.newInstance(getContext().getUserPayload().deepCopyAsArray()));
       String vertexName = getContext().getVertexName();
       if (getContext().getVertexNumTasks(vertexName) == -1) {
         Preconditions.checkArgument(configurationDoneEvent.isSetParallelismCalled(), "SetParallelism must be called "
