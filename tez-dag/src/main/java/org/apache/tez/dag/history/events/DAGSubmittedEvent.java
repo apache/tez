@@ -19,11 +19,10 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -127,13 +126,13 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
   }
 
   @Override
-  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
-    outputStream.writeMessageNoTag(toProto());
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
   }
 
   @Override
-  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, null);
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    DAGSubmittedProto proto = DAGSubmittedProto.parseDelimitedFrom(inputStream);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

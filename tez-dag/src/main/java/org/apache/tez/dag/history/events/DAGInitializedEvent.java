@@ -19,16 +19,15 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
-import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGInitializedProto;
 
 public class DAGInitializedEvent implements HistoryEvent {
 
@@ -84,13 +83,14 @@ public class DAGInitializedEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
-    outputStream.writeMessageNoTag(toProto());
+  public void toProtoStream(OutputStream outputStream) throws IOException {
+    toProto().writeDelimitedTo(outputStream);
   }
 
   @Override
-  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGInitializedProto proto = inputStream.readMessage(DAGInitializedProto.PARSER, null);
+  public void fromProtoStream(InputStream inputStream) throws IOException {
+    RecoveryProtos.DAGInitializedProto proto =
+        RecoveryProtos.DAGInitializedProto.parseDelimitedFrom(inputStream);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

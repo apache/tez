@@ -24,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
@@ -224,16 +222,15 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
 
     private String encodeHistoryEvent(HistoryEvent event) throws IOException {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
-      CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(out);
-      event.toProtoStream(codedOutputStream);
-      codedOutputStream.flush();
+      event.toProtoStream(out);
       return event.getClass().getName() + ","
           + Base64.encodeBase64String(out.toByteArray());
     }
 
     private HistoryEvent decodeHistoryEvent(String eventClass, String base64)
         throws IOException {
-      CodedInputStream in = CodedInputStream.newInstance(Base64.decodeBase64(base64));
+      ByteArrayInputStream in = new ByteArrayInputStream(
+          Base64.decodeBase64(base64));
       try {
         HistoryEvent event = ReflectionUtils.createClazzInstance(eventClass);
         event.fromProtoStream(in);
