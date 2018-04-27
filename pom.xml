@@ -778,7 +778,7 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-enforce-plugin</artifactId>
+          <artifactId>maven-enforcer-plugin</artifactId>
           <version>1.4</version>
         </plugin>
         <plugin>
