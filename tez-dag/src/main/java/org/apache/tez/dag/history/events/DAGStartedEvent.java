@@ -19,9 +19,9 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -74,13 +74,13 @@ public class DAGStartedEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
-    toProto().writeDelimitedTo(outputStream);
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
+    outputStream.writeMessageNoTag(toProto());
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
-    DAGStartedProto proto = DAGStartedProto.parseDelimitedFrom(inputStream);
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
+    DAGStartedProto proto = inputStream.readMessage(DAGStartedProto.PARSER, null);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

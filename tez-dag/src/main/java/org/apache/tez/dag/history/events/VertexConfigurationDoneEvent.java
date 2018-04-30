@@ -18,12 +18,12 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -155,13 +155,13 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
-    toProto().writeDelimitedTo(outputStream);
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
+    outputStream.writeMessageNoTag(toProto());
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
-    VertexConfigurationDoneProto proto = VertexConfigurationDoneProto.parseDelimitedFrom(inputStream);
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
+    VertexConfigurationDoneProto proto = inputStream.readMessage(VertexConfigurationDoneProto.PARSER, null);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

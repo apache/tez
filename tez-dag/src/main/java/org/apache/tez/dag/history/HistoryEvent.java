@@ -18,9 +18,10 @@
 
 package org.apache.tez.dag.history;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 public interface HistoryEvent {
 
@@ -30,8 +31,8 @@ public interface HistoryEvent {
 
   public boolean isHistoryEvent();
 
-  public void toProtoStream(OutputStream outputStream) throws IOException;
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException;
 
-  public void fromProtoStream(InputStream inputStream) throws IOException;
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException;
 
 }

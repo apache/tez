@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.protobuf.CodedOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -84,8 +85,7 @@ public class RecoveryService extends AbstractService {
   private FileSystem recoveryDirFS; // FS where staging dir exists
   Path recoveryPath;
   @VisibleForTesting
-  public Map<TezDAGID, FSDataOutputStream> outputStreamMap = new
-      HashMap<TezDAGID, FSDataOutputStream>();
+  public Map<TezDAGID, RecoveryStream> outputStreamMap = new HashMap<>();
   private int bufferSize;
   @VisibleForTesting
   public FSDataOutputStream summaryStream;
@@ -100,6 +100,31 @@ public class RecoveryService extends AbstractService {
   // and processed.
   private volatile boolean drained = true;
   private Object waitForDrained = new Object();
+
+  @VisibleForTesting
+  public static class RecoveryStream {
+    private final FSDataOutputStream outputStream;
+    private final CodedOutputStream codedOutputStream;
+
+    RecoveryStream(FSDataOutputStream outputStream) {
+      this.outputStream = outputStream;
+      this.codedOutputStream = CodedOutputStream.newInstance(outputStream);
+    }
+
+    public void write(byte[] bytes) throws IOException {
+      codedOutputStream.writeRawBytes(bytes);
+    }
+
+    public void flush() throws IOException {
+      codedOutputStream.flush();
+      outputStream.hflush();
+    }
+
+    public void close() throws IOException {
+      flush();
+      outputStream.close();
+    }
+  }
 
   public RecoveryService(AppContext appContext) {
     super(RecoveryService.class.getName());
@@ -231,10 +256,9 @@ public class RecoveryService extends AbstractService {
           }
         }
       }
-      for (Entry<TezDAGID, FSDataOutputStream> entry : outputStreamMap.entrySet()) {
+      for (Entry<TezDAGID, RecoveryStream> entry : outputStreamMap.entrySet()) {
         try {
           LOG.info("Closing Output Stream for DAG " + entry.getKey());
-          entry.getValue().hflush();
           entry.getValue().close();
         } catch (IOException ioe) {
           if (!recoveryDirFS.exists(recoveryPath)) {
@@ -303,7 +327,7 @@ public class RecoveryService extends AbstractService {
     if (event.getHistoryEvent() instanceof SummaryEvent) {
       synchronized (lock) {
         if (stopped.get()) {
-          LOG.warn("Igoring event as service stopped, eventType"
+          LOG.warn("Ignoring event as service stopped, eventType"
               + event.getHistoryEvent().getEventType());
           return;
         }
@@ -429,9 +453,9 @@ public class RecoveryService extends AbstractService {
       return;
     }
 
-    if (!outputStreamMap.containsKey(dagID)) {
+    RecoveryStream recoveryStream = outputStreamMap.get(dagID);
+    if (recoveryStream == null) {
       Path dagFilePath = TezCommonUtils.getDAGRecoveryPath(recoveryPath, dagID.toString());
-      FSDataOutputStream outputStream;
       if (recoveryDirFS.exists(dagFilePath)) {
         createFatalErrorFlagDir();
         return;
@@ -440,12 +464,12 @@ public class RecoveryService extends AbstractService {
           LOG.debug("Opening DAG recovery file in create mode"
               + ", filePath=" + dagFilePath);
         }
-        outputStream = recoveryDirFS.create(dagFilePath, false, bufferSize);
+        FSDataOutputStream outputStream = recoveryDirFS.create(dagFilePath, false, bufferSize);
+        recoveryStream = new RecoveryStream(outputStream);
       }
-      outputStreamMap.put(dagID, outputStream);
+      outputStreamMap.put(dagID, recoveryStream);
     }
 
-    FSDataOutputStream outputStream = outputStreamMap.get(dagID);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Writing recovery event to output stream"
@@ -453,15 +477,15 @@ public class RecoveryService extends AbstractService {
           + ", eventType=" + eventType);
     }
     ++unflushedEventsCount;
-    outputStream.writeInt(event.getHistoryEvent().getEventType().ordinal());
-    event.getHistoryEvent().toProtoStream(outputStream);
+    recoveryStream.codedOutputStream.writeFixed32NoTag(event.getHistoryEvent().getEventType().ordinal());
+    event.getHistoryEvent().toProtoStream(recoveryStream.codedOutputStream);
     if (!EnumSet.of(HistoryEventType.DAG_SUBMITTED,
         HistoryEventType.DAG_FINISHED).contains(eventType)) {
-      maybeFlush(outputStream);
+      maybeFlush(recoveryStream);
     }
   }
 
-  private void maybeFlush(FSDataOutputStream outputStream) throws IOException {
+  private void maybeFlush(RecoveryStream recoveryStream) throws IOException {
     long currentTime = appContext.getClock().getTime();
     boolean doFlush = false;
     if (maxUnflushedEvents >=0
@@ -482,12 +506,12 @@ public class RecoveryService extends AbstractService {
     if (!doFlush) {
       return;
     }
-    doFlush(outputStream, currentTime);
+    doFlush(recoveryStream, currentTime);
   }
 
-  private void doFlush(FSDataOutputStream outputStream,
+  private void doFlush(RecoveryStream recoveryStream,
       long currentTime) throws IOException {
-    outputStream.hflush();
+    recoveryStream.flush();
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Flushing output stream"

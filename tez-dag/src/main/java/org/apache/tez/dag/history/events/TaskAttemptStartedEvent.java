@@ -19,9 +19,9 @@
 package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -91,13 +91,13 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   }
 
   @Override
-  public void toProtoStream(OutputStream outputStream) throws IOException {
-    toProto().writeDelimitedTo(outputStream);
+  public void toProtoStream(CodedOutputStream outputStream) throws IOException {
+    outputStream.writeMessageNoTag(toProto());
   }
 
   @Override
-  public void fromProtoStream(InputStream inputStream) throws IOException {
-    TaskAttemptStartedProto proto = TaskAttemptStartedProto.parseDelimitedFrom(inputStream);
+  public void fromProtoStream(CodedInputStream inputStream) throws IOException {
+    TaskAttemptStartedProto proto = inputStream.readMessage(TaskAttemptStartedProto.PARSER, null);
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

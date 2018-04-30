@@ -23,6 +23,8 @@ import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +91,9 @@ public class TestHistoryEventsProtoConversion {
   private HistoryEvent testProtoConversion(HistoryEvent event) throws IOException, TezException {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     HistoryEvent deserializedEvent = null;
-    event.toProtoStream(os);
+    CodedOutputStream codedOutputStream = CodedOutputStream.newInstance(os);
+    event.toProtoStream(codedOutputStream);
+    codedOutputStream.flush();
     os.flush();
     os.close();
     deserializedEvent = ReflectionUtils.createClazzInstance(
@@ -98,7 +102,7 @@ public class TestHistoryEventsProtoConversion {
         + ", eventType=" + event.getEventType()
         + ", bufLen=" + os.toByteArray().length);
     deserializedEvent.fromProtoStream(
-        new ByteArrayInputStream(os.toByteArray()));
+        CodedInputStream.newInstance(os.toByteArray()));
     return deserializedEvent;
   }
 

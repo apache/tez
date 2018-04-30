@@ -20,9 +20,10 @@ package org.apache.tez.dag.history.ats.acls;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Random;
 
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -32,8 +33,6 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.logging.ats.ATSV15HistoryLoggingService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -60,6 +59,8 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -288,12 +289,12 @@ public class TestATSHistoryV15 {
         }
 
         @Override
-        public void toProtoStream(OutputStream outputStream) throws IOException {
+        public void toProtoStream(CodedOutputStream outputStream) throws IOException {
 
         }
 
         @Override
-        public void fromProtoStream(InputStream inputStream) throws IOException {
+        public void fromProtoStream(CodedInputStream inputStream) throws IOException {
 
         }
       };

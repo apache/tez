@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.protobuf.CodedInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -251,11 +252,15 @@ public class RecoveryParser {
     }
   }
 
-  private static HistoryEvent getNextEvent(FSDataInputStream inputStream)
+  private static HistoryEvent getNextEvent(CodedInputStream inputStream)
       throws IOException {
+    boolean isAtEnd = inputStream.isAtEnd();
+    if (isAtEnd) {
+      return null;
+    }
     int eventTypeOrdinal = -1;
     try {
-      eventTypeOrdinal = inputStream.readInt();
+      eventTypeOrdinal = inputStream.readFixed32();
     } catch (EOFException eof) {
       return null;
     }
@@ -353,13 +358,15 @@ public class RecoveryParser {
   public static List<HistoryEvent> parseDAGRecoveryFile(FSDataInputStream inputStream)
       throws IOException {
     List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
+    CodedInputStream codedInputStream = CodedInputStream.newInstance(inputStream);
+    codedInputStream.setSizeLimit(Integer.MAX_VALUE);
     while (true) {
-      HistoryEvent historyEvent = getNextEvent(inputStream);
+      HistoryEvent historyEvent = getNextEvent(codedInputStream);
       if (historyEvent == null) {
         LOG.info("Reached end of stream");
         break;
       }
-      LOG.debug("Read HistoryEvent, eventType=" + historyEvent.getEventType() + ", event=" + historyEvent);
+      LOG.debug("Read HistoryEvent, eventType={}, event={}", historyEvent.getEventType(), historyEvent);
       historyEvents.add(historyEvent);
     }
     return historyEvents;
@@ -745,10 +752,12 @@ public class RecoveryParser {
           + ", dagRecoveryFile=" + dagRecoveryFile
           + ", len=" + fileStatus.getLen());
       FSDataInputStream dagRecoveryStream = recoveryFS.open(dagRecoveryFile, recoveryBufferSize);
+      CodedInputStream codedInputStream = CodedInputStream.newInstance(dagRecoveryStream);
+      codedInputStream.setSizeLimit(Integer.MAX_VALUE);
       while (true) {
         HistoryEvent event;
         try {
-          event = getNextEvent(dagRecoveryStream);
+          event = getNextEvent(codedInputStream);
           if (event == null) {
             LOG.info("Reached end of dag recovery stream");
             break;
