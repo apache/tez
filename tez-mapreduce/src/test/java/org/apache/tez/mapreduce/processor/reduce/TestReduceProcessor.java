@@ -117,6 +117,7 @@ public class TestReduceProcessor {
         TezTaskOutput.class);
     job.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, MRPartitioner.class.getName());
     job.setNumReduceTasks(1);
+    job.setInt(MRJobConfig.FILEOUTPUTCOMMITTER_ALGORITHM_VERSION, 1);
   }
 
   @Before
