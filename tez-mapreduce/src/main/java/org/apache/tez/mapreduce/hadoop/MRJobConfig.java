@@ -122,6 +122,8 @@ public interface MRJobConfig {
 
   public static final String CACHE_ARCHIVES_VISIBILITIES = "mapreduce.job.cache.archives.visibilities";
 
+  public static final String FILEOUTPUTCOMMITTER_ALGORITHM_VERSION = "mapreduce.fileoutputcommitter.algorithm.version";
+
   /**
    * @deprecated Symlinks are always on and cannot be disabled.
    */
