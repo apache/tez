@@ -1336,6 +1336,14 @@ public class TestDagAwareYarnTaskScheduler {
     RegisterApplicationMasterResponse getRegistrationResponse() {
       return ((MockAMRMClient) client).getRegistrationResponse();
     }
+
+    @Override
+    protected void serviceStart() {
+    }
+
+    @Override
+    protected void serviceStop() {
+    }
   }
 
   static class MockAMRMClient extends AMRMClientImpl<TaskRequest> {
