@@ -64,6 +64,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.counters.AggregateTezCounters;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -700,7 +701,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       updateCpuCounters();
       TezCounters counters = new TezCounters();
       counters.incrAllCounters(dagCounters);
-      return incrTaskCounters(counters, vertices.values());
+      return aggrTaskCounters(counters, vertices.values());
 
     } finally {
       readLock.unlock();
@@ -732,7 +733,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       updateCpuCounters();
       TezCounters counters = new TezCounters();
       counters.incrAllCounters(dagCounters);
-      return incrTaskCounters(counters, vertices.values());
+      return aggrTaskCounters(counters, vertices.values());
 
     } finally {
       readLock.unlock();
@@ -748,10 +749,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return false;
   }
 
-  public static TezCounters incrTaskCounters(
+  public static TezCounters aggrTaskCounters(
       TezCounters counters, Collection<Vertex> vertices) {
     for (Vertex vertex : vertices) {
-      counters.incrAllCounters(vertex.getAllCounters());
+      counters.aggrAllCounters(vertex.getAllCounters());
     }
     return counters;
   }
@@ -1399,7 +1400,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       updateCpuCounters();
       TezCounters counters = null;
       try {
-        counters = getAllCounters();
+        counters = constructFinalFullcounters();
       } catch (LimitExceededException e) {
         addDiagnostic("Counters limit exceeded: " + e.getMessage());
         finalState = DAGState.FAILED;
@@ -1868,17 +1869,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         // Already constructed. Just return.
         return;
       }
-      this.constructFinalFullcounters();
+      this.fullCounters = this.constructFinalFullcounters();
     }
   }
 
   @Private
-  public void constructFinalFullcounters() {
-    this.fullCounters = new TezCounters();
-    this.fullCounters.incrAllCounters(dagCounters);
+  public TezCounters constructFinalFullcounters() {
+    final AggregateTezCounters aggregateTezCounters = new AggregateTezCounters();
+    aggregateTezCounters.aggrAllCounters(dagCounters);
     for (Vertex v : this.vertices.values()) {
-      this.fullCounters.incrAllCounters(v.getAllCounters());
+      aggregateTezCounters.aggrAllCounters(v.getAllCounters());
     }
+    return aggregateTezCounters;
   }
 
   /**

@@ -45,6 +45,8 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.tez.common.counters.AggregateFrameworkCounter;
+import org.apache.tez.common.counters.AggregateTezCounterDelegate;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -457,6 +459,88 @@ public class TestMockDAGAppMaster {
     tezClient.stop();
   }
 
+  @Test
+  public void testCountersAggregation() throws Exception {
+    TezConfiguration tezconf = new TezConfiguration(defaultConf);
+    MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
+                                                null, false, false);
+    tezClient.start();
+
+    final String vAName = "A";
+    final String vBName = "B";
+    final String procCounterName = "Proc";
+    final String globalCounterName = "Global";
+    DAG dag = DAG.create("testCountersAggregation");
+    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
+    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
+    dag.addVertex(vA)
+        .addVertex(vB)
+        .addEdge(
+            Edge.create(vA, vB, EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                                                    DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+                                                    OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
+    TezCounters temp = new TezCounters();
+    temp.findCounter(new String(globalCounterName), new String(globalCounterName)).increment(1);
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutput out = new DataOutputStream(bos);
+    temp.write(out);
+    final byte[] payload = bos.toByteArray();
+
+    MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
+    MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
+    mockLauncher.startScheduling(false);
+    mockApp.countersDelegate = new CountersDelegate() {
+      int counterValue = 0;
+      @Override
+      public TezCounters getCounters(TaskSpec taskSpec) {
+        String vName = taskSpec.getVertexName();
+        TezCounters counters = new TezCounters();
+        final DataInputByteBuffer in  = new DataInputByteBuffer();
+        in.reset(ByteBuffer.wrap(payload));
+        try {
+          // this ensures that the serde code path is covered.
+          // the internal merges of counters covers the constructor code path.
+          counters.readFields(in);
+        } catch (IOException e) {
+          Assert.fail(e.getMessage());
+        }
+        counters.findCounter(vName, procCounterName).setValue(++counterValue);
+        for (OutputSpec output : taskSpec.getOutputs()) {
+          counters.findCounter(vName, output.getDestinationVertexName()).setValue(++counterValue);
+        }
+        for (InputSpec input : taskSpec.getInputs()) {
+          counters.findCounter(vName, input.getSourceVertexName()).setValue(++counterValue);
+        }
+        return counters;
+      }
+    };
+    mockApp.doSleep = false;
+    DAGClient dagClient = tezClient.submitDAG(dag);
+    mockLauncher.waitTillContainersLaunched();
+    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    mockLauncher.startScheduling(true);
+    DAGStatus status = dagClient.waitForCompletion();
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
+    TezCounters counters = dagImpl.getAllCounters();
+
+    // verify processor counters
+    VertexImpl vAImpl = (VertexImpl) dagImpl.getVertex(vAName);
+    VertexImpl vBImpl = (VertexImpl) dagImpl.getVertex(vBName);
+    TezCounters vACounters = vAImpl.getAllCounters();
+    TezCounters vBCounters = vBImpl.getAllCounters();
+
+    Assert.assertEquals(19, ((AggregateTezCounterDelegate)vACounters.findCounter(vAName, procCounterName)).getMax());
+    Assert.assertEquals(1, ((AggregateTezCounterDelegate)vACounters.findCounter(vAName, procCounterName)).getMin());
+    Assert.assertEquals(20, ((AggregateTezCounterDelegate)vACounters.findCounter(vAName, vBName)).getMax());
+    Assert.assertEquals(2, ((AggregateTezCounterDelegate)vACounters.findCounter(vAName, vBName)).getMin());
+
+    Assert.assertEquals(21, ((AggregateTezCounterDelegate)vBCounters.findCounter(vBName, procCounterName)).getMin());
+    Assert.assertEquals(21, ((AggregateTezCounterDelegate)vBCounters.findCounter(vBName, procCounterName)).getMax());
+    Assert.assertEquals(22, ((AggregateTezCounterDelegate)vBCounters.findCounter(vBName, vAName)).getMin());
+    Assert.assertEquals(22, ((AggregateTezCounterDelegate)vBCounters.findCounter(vBName, vAName)).getMax());
+
+    tezClient.stop();
+  }
 
   @Test (timeout = 10000)
   public void testBasicCounters() throws Exception {

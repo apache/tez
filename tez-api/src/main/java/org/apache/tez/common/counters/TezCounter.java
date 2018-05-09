@@ -73,6 +73,14 @@ public interface TezCounter extends Writable {
    * @param incr the value to increase this counter by
    */
   void increment(long incr);
+
+  /**
+   * Aggregate this counter with another counter
+   * @param other TezCounter to aggregate with, by default this is incr(other.getValue())
+   */
+  public default void aggregate(TezCounter other) {
+    increment(other.getValue());
+  };
  
   /**
    * Return the underlying object if this is a facade.

@@ -190,14 +190,20 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
     return n;
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public void incrAllCounters(CounterGroupBase<C> rightGroup) {
+    aggrAllCounters(rightGroup);
+  }
+
   @SuppressWarnings("rawtypes")
   @Override
-  public void incrAllCounters(CounterGroupBase<C> other) {
+  public void aggrAllCounters(CounterGroupBase<C> other) {
     if (checkNotNull(other, "other counter group")
         instanceof FrameworkCounterGroup<?, ?>) {
       for (TezCounter counter : other) {
         findCounter(((FrameworkCounter) counter).key.name())
-            .increment(counter.getValue());
+            .aggregate(counter);
       }
     }
   }

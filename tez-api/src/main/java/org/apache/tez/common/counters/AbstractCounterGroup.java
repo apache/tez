@@ -194,10 +194,15 @@ public abstract class AbstractCounterGroup<T extends TezCounter>
 
   @Override
   public void incrAllCounters(CounterGroupBase<T> rightGroup) {
+    aggrAllCounters(rightGroup);
+  }
+
+  @Override
+  public void aggrAllCounters(CounterGroupBase<T> rightGroup) {
     try {
       for (TezCounter right : rightGroup) {
         TezCounter left = findCounter(right.getName(), right.getDisplayName());
-        left.increment(right.getValue());
+        left.aggregate(right);
       }
     } catch (LimitExceededException e) {
       counters.clear();

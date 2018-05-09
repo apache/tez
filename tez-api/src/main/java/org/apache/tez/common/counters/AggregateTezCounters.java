@@ -15,34 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.tez.common.counters;
 
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Unstable;
-
-/**
- * <p><code>Counters</code> holds per job/task counters, defined either by the
- * framework or applications. Each <code>Counter</code> can be of
- * any {@link Enum} type.</p>
- *
- * <p><code>Counters</code> are bunched into {@link CounterGroup}s, each
- * comprising of counters from a particular <code>Enum</code> class.
- */
-@Public
-@Unstable
-public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
-
+public class AggregateTezCounters extends TezCounters {
+  
+  private static final GroupFactory groupFactory = new GroupFactory();
+  
+  public AggregateTezCounters() {
+    super(groupFactory);
+  }
+  
   // Mix framework group implementation into CounterGroup interface
-  private static class FrameworkGroupImpl<T extends Enum<T>>
+  private static class AggregateFrameworkGroupImpl<T extends Enum<T>>
       extends FrameworkCounterGroup<T, TezCounter> implements CounterGroup {
 
-    FrameworkGroupImpl(Class<T> cls) {
+    AggregateFrameworkGroupImpl(Class<T> cls) {
       super(cls);
     }
 
     @Override
     protected FrameworkCounter<T> newCounter(T key) {
-      return new FrameworkCounter<T>(key, getName());
+      return (new AggregateFrameworkCounter<T>(key, getName()))
+          .asFrameworkCounter();
     }
 
     @Override
@@ -53,21 +48,21 @@ public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
 
   // Mix generic group implementation into CounterGroup interface
   // and provide some mandatory group factory methods.
-  private static class GenericGroup extends AbstractCounterGroup<TezCounter>
+  private static class AggregateGenericGroup extends AbstractCounterGroup<TezCounter>
       implements CounterGroup {
 
-    GenericGroup(String name, String displayName, Limits limits) {
+    AggregateGenericGroup(String name, String displayName, Limits limits) {
       super(name, displayName, limits);
     }
 
     @Override
     protected TezCounter newCounter(String name, String displayName, long value) {
-      return new GenericCounter(name, displayName, value);
+      return new AggregateTezCounterDelegate<GenericCounter>(new GenericCounter(name, displayName, value));
     }
 
     @Override
     protected TezCounter newCounter() {
-      return new GenericCounter();
+      return new AggregateTezCounterDelegate<GenericCounter>(new GenericCounter());
     }
 
     @Override
@@ -77,12 +72,12 @@ public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
   }
 
   // Mix file system group implementation into the CounterGroup interface
-  private static class FileSystemGroup extends FileSystemCounterGroup<TezCounter>
+  private static class AggregateFileSystemGroup extends FileSystemCounterGroup<TezCounter>
       implements CounterGroup {
 
     @Override
     protected TezCounter newCounter(String scheme, FileSystemCounter key) {
-      return new FSCounter(scheme, key);
+      return new AggregateTezCounterDelegate<FSCounter>(new FSCounter(scheme, key));
     }
 
     @Override
@@ -105,7 +100,7 @@ public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
         newFrameworkGroupFactory(final Class<T> cls) {
       return new FrameworkGroupFactory<CounterGroup>() {
         @Override public CounterGroup newGroup(String name) {
-          return new FrameworkGroupImpl<T>(cls); // impl in this package
+          return new AggregateFrameworkGroupImpl<T>(cls); // impl in this package
         }
       };
     }
@@ -113,42 +108,12 @@ public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
     @Override
     protected CounterGroup newGenericGroup(String name, String displayName,
                                            Limits limits) {
-      return new GenericGroup(name, displayName, limits);
+      return new AggregateGenericGroup(name, displayName, limits);
     }
 
     @Override
     protected CounterGroup newFileSystemGroup() {
-      return new FileSystemGroup();
+      return new AggregateFileSystemGroup();
     }
-  }
-
-  private static final GroupFactory groupFactory = new GroupFactory();
-
-  /**
-   * Default constructor
-   */
-  public TezCounters() {
-    this(groupFactory);
-  }
-
-  /**
-   * Construct the Counters object from the another counters object
-   * @param <C> the type of counter
-   * @param <G> the type of counter group
-   */
-  public <C extends TezCounter, G extends CounterGroupBase<C>> TezCounters(
-      CounterGroupFactory<TezCounter, CounterGroup> customGroupFactory) {
-    super(customGroupFactory);
-  }
-
-  /**
-   * Construct the Counters object from the another counters object
-   * @param <C> the type of counter
-   * @param <G> the type of counter group
-   * @param counters the old counters object
-   */
-  public <C extends TezCounter, G extends CounterGroupBase<C>>
-  TezCounters(AbstractCounters<C, G> counters) {
-    super(counters, groupFactory);
   }
 }

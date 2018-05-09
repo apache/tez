@@ -225,12 +225,17 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
   }
 
   @Override
-  public void incrAllCounters(CounterGroupBase<C> other) {
+  public void incrAllCounters(CounterGroupBase<C> rightGroup) {
+    aggrAllCounters(rightGroup);
+  }
+
+  @Override
+  public void aggrAllCounters(CounterGroupBase<C> other) {
     if (checkNotNull(other.getUnderlyingGroup(), "other group")
         instanceof FileSystemCounterGroup<?>) {
       for (TezCounter counter : other) {
         FSCounter c = (FSCounter) ((TezCounter)counter).getUnderlyingCounter();
-        findCounter(c.scheme, c.key) .increment(counter.getValue());
+        findCounter(c.scheme, c.key) .aggregate(counter);
       }
     }
   }

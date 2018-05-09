@@ -354,13 +354,22 @@ public abstract class AbstractCounters<C extends TezCounter,
    * @param other the other Counters instance
    */
   public synchronized void incrAllCounters(AbstractCounters<C, G> other) {
+    aggrAllCounters(other);
+  }
+
+  /**
+   * Increments multiple counters by their amounts in another Counters
+   * instance.
+   * @param other the other Counters instance
+   */
+  public synchronized void aggrAllCounters(AbstractCounters<C, G> other) {
     for(G right : other) {
       String groupName = right.getName();
       G left = (isFrameworkGroup(groupName) ? fgroups : groups).get(groupName);
       if (left == null) {
         left = addGroup(groupName, right.getDisplayName());
       }
-      left.incrAllCounters(right);
+      left.aggrAllCounters(right);
     }
   }
 

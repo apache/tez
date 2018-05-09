@@ -97,8 +97,17 @@ public interface CounterGroupBase<T extends TezCounter>
    * Increment all counters by a group of counters
    * @param rightGroup  the group to be added to this group
    */
+  @Deprecated
   void incrAllCounters(CounterGroupBase<T> rightGroup);
   
+  /**
+   * Aggregate all counters by a group of counters
+   * @param rightGroup  the group to be added to this group
+   */
+  public default void aggrAllCounters(CounterGroupBase<T> rightGroup) {
+    incrAllCounters(rightGroup);
+  }
+
   @Private
   /**
    * Exposes the underlying group type if a facade.
