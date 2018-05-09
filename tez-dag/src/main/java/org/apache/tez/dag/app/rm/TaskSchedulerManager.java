@@ -420,10 +420,14 @@ public class TaskSchedulerManager extends AbstractService implements
       // Inform the Node - the task has asked to be STOPPED / has already
       // stopped.
       // AMNodeImpl blacklisting logic does not account for KILLED attempts.
-      sendEvent(new AMNodeEventTaskAttemptEnded(appContext.getAllContainers().
-          get(attemptContainerId).getContainer().getNodeId(), event.getSchedulerId(),
-          attemptContainerId,
-          attempt.getID(), event.getState() == TaskAttemptState.FAILED));
+      AMContainer amContainer = appContext.getAllContainers().get(attemptContainerId);
+      // DAG can be shutting down so protect against container cleanup race
+      if (amContainer != null) {
+        Container container = amContainer.getContainer();
+        sendEvent(new AMNodeEventTaskAttemptEnded(container.getNodeId(), event.getSchedulerId(),
+            attemptContainerId,
+            attempt.getID(), event.getState() == TaskAttemptState.FAILED));
+      }
     }
   }
 
@@ -436,9 +440,14 @@ public class TaskSchedulerManager extends AbstractService implements
     if (event.getUsedContainerId() != null) {
       sendEvent(new AMContainerEventTASucceeded(usedContainerId,
           event.getAttemptID()));
-      sendEvent(new AMNodeEventTaskAttemptSucceeded(appContext.getAllContainers().
-          get(usedContainerId).getContainer().getNodeId(), event.getSchedulerId(), usedContainerId,
-          event.getAttemptID()));
+      AMContainer amContainer = appContext.getAllContainers().get(usedContainerId);
+      // DAG can be shutting down so protect against container cleanup race
+      if (amContainer != null) {
+        Container container = amContainer.getContainer();
+        sendEvent(new AMNodeEventTaskAttemptSucceeded(container.getNodeId(), event.getSchedulerId(),
+            usedContainerId,
+            event.getAttemptID()));
+      }
     }
 
     boolean wasContainerAllocated = false;
@@ -742,10 +751,15 @@ public class TaskSchedulerManager extends AbstractService implements
     // because the deallocateTask downcall may have raced with the
     // taskAllocated() upcall
     assert task.equals(taskAttempt);
- 
-    if (appContext.getAllContainers().get(containerId).getState() == AMContainerState.ALLOCATED) {
-      sendEvent(new AMContainerEventLaunchRequest(containerId, taskAttempt.getVertexID(),
-          event.getContainerContext(), event.getLauncherId(), event.getTaskCommId()));
+
+    AMContainer amContainer = appContext.getAllContainers().get(containerId);
+    // Even though we just added this container,
+    // DAG can be shutting down so protect against container cleanup race
+    if (amContainer != null) {
+      if (amContainer.getState() == AMContainerState.ALLOCATED) {
+        sendEvent(new AMContainerEventLaunchRequest(containerId, taskAttempt.getVertexID(),
+            event.getContainerContext(), event.getLauncherId(), event.getTaskCommId()));
+      }
     }
     sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
@@ -951,7 +965,10 @@ public class TaskSchedulerManager extends AbstractService implements
     // An AMContainer instance should already exist if an attempt is being made to preempt it
     AMContainer amContainer = appContext.getAllContainers().get(containerId);
     try {
-      taskSchedulers[amContainer.getTaskSchedulerIdentifier()].deallocateContainer(containerId);
+      // DAG can be shutting down so protect against container cleanup race
+      if (amContainer != null) {
+        taskSchedulers[amContainer.getTaskSchedulerIdentifier()].deallocateContainer(containerId);
+      }
     } catch (Exception e) {
       String msg = "Error in TaskScheduler when preempting container"
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(amContainer.getTaskSchedulerIdentifier(), appContext)
