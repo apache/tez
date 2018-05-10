@@ -116,7 +116,7 @@ public class TestExceptionPropagation {
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
       dfsCluster =
-          new MiniDFSCluster.Builder(conf).numDataNodes(3).format(true)
+          new MiniDFSCluster.Builder(conf).numDataNodes(1).storagesPerDatanode(1).format(true)
               .racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
     } catch (IOException io) {
@@ -295,7 +295,6 @@ public class TestExceptionPropagation {
           appReport.getDiagnostics().trim());
     } finally {
       stopNonSessionClient();
-      Thread.sleep(10*1000);
       stopTezMiniCluster();
     }
   }
@@ -630,7 +629,6 @@ public class TestExceptionPropagation {
       output.start();
       output.getWriter();
 
-      Thread.sleep(3*1000);
       if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_ERROR) {
         throw new Error(this.exLocation.name());
       } else if (this.exLocation == ExceptionLocation.PROCESSOR_RUN_EXCEPTION) {
