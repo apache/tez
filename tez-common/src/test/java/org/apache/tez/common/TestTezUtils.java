@@ -81,11 +81,11 @@ public class TestTezUtils {
   public void testBitSetToByteArray() {
     BitSet bitSet = createBitSet(0);
     byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
-    Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
+    Assert.assertEquals(bytes.length, (bitSet.length() + 7) / 8);
 
     bitSet = createBitSet(1000);
     bytes = TezUtilsInternal.toByteArray(bitSet);
-    Assert.assertTrue(bytes.length == ((bitSet.length() / 8) + 1));
+    Assert.assertEquals(bytes.length, (bitSet.length() + 7) / 8);
   }
 
   @Test (timeout=2000)
