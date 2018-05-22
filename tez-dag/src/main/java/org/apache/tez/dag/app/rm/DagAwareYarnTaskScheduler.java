@@ -147,6 +147,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private boolean shouldReuseContainers;
   private boolean reuseRackLocal;
   private boolean reuseNonLocal;
+  private boolean reuseNewContainers;
   private long localitySchedulingDelay;
   private long idleContainerTimeoutMin;
   private long idleContainerTimeoutMax;
@@ -191,6 +192,10 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       ((!reuseRackLocal && !reuseNonLocal) || (reuseRackLocal)),
       "Re-use Rack-Local cannot be disabled if Re-use Non-Local has been"
       + " enabled");
+
+    reuseNewContainers = shouldReuseContainers && conf.getBoolean(
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED,
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED_DEFAULT);
 
     localitySchedulingDelay = conf.getLong(
       TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS,
@@ -362,7 +367,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     }
 
     for (HeldContainer hc : unassigned) {
-      if (shouldReuseContainers) {
+      if (reuseNewContainers) {
         idleTracker.add(hc);
         TaskRequest assigned = tryAssignReuseContainer(hc, appState, isSession);
         if (assigned != null) {

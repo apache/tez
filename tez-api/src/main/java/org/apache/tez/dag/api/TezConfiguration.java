@@ -1021,6 +1021,20 @@ public class TezConfiguration extends Configuration {
       TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT = false;
 
   /**
+   * Boolean value. Whether to reuse new containers that could not be immediately assigned to
+   * pending requests. If enabled then newly assigned containers that cannot be immediately
+   * allocated will be held for potential reuse as if it were a container that had just completed
+   * a task. If disabled then newly assigned containers that cannot be immediately allocated will
+   * be released.  Active only if container reuse is enabled.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED =
+      TEZ_AM_PREFIX + "container.reuse.new-containers.enabled";
+  public static final boolean
+      TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED_DEFAULT = false;
+
+  /**
    * Int value. The amount of time to wait before assigning a container to the next level
    * of locality. NODE -> RACK -> NON_LOCAL. Delay scheduling parameter. Expert level setting.
    */
