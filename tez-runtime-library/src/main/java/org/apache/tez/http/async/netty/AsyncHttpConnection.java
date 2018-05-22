@@ -31,7 +31,6 @@ import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.http.SSLFactory;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.util.StopWatch;
@@ -92,15 +91,14 @@ public class AsyncHttpConnection extends BaseHttpConnection {
            * setMaxConnections & addRequestFilter.
            */
           builder
-              .setAllowPoolingConnection(httpConnParams.isKeepAlive())
-              .setAllowSslConnectionPool(httpConnParams.isKeepAlive())
-              .setCompressionEnabled(false)
+              .setAllowPoolingConnections(httpConnParams.isKeepAlive())
+              .setAllowPoolingSslConnections(httpConnParams.isKeepAlive())
+              .setCompressionEnforced(false)
               //.setExecutorService(applicationThreadPool)
               //.addRequestFilter(new ThrottleRequestFilter())
-              .setMaximumConnectionsPerHost(1)
-              .setConnectionTimeoutInMs(httpConnParams.getConnectionTimeout())
-              .setRequestTimeoutInMs(httpConnParams.getReadTimeout())
-              .setUseRawUrl(true)
+              .setMaxConnectionsPerHost(1)
+              .setConnectTimeout(httpConnParams.getConnectionTimeout())
+              .setDisableUrlEncodingForBoundedRequests(true)
               .build();
             httpAsyncClient = new AsyncHttpClient(builder.build());
         }
