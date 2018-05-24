@@ -221,9 +221,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
                                          int priority) {
 
     ContainerInfo containerInfo = registeredContainers.get(containerId);
-    Preconditions.checkNotNull(containerInfo,
-        "Cannot register task attempt: " + taskSpec.getTaskAttemptID() + " to unknown container: " +
-            containerId);
+    Preconditions.checkNotNull(containerInfo, "Cannot register task attempt %s to unknown container %s",
+        taskSpec.getTaskAttemptID(), containerId);
     synchronized (containerInfo) {
       if (containerInfo.taskSpec != null) {
         throw new TezUncheckedException(
