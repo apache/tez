@@ -22,6 +22,8 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -122,18 +124,40 @@ public class TaskFinishedEvent implements HistoryEvent {
 
   @Override
   public String toString() {
-    return "vertexName=" + vertexName
-        + ", taskId=" + taskID
-        + ", startTime=" + startTime
-        + ", finishTime=" + finishTime
-        + ", timeTaken=" + (finishTime - startTime)
-        + ", status=" + state.name()
-        + ", successfulAttemptID=" + (successfulAttemptID == null ? "null" :
-            successfulAttemptID.toString())
-        + ", diagnostics=" + diagnostics
-        + ", counters=" + ( tezCounters == null ? "null" :
-          tezCounters.toString()
-            .replaceAll("\\n", ", ").replaceAll("\\s+", " "));
+    StringBuilder sb = new StringBuilder();
+    sb.append("vertexName=");
+    sb.append(vertexName);
+    sb.append(", taskId=");
+    sb.append(taskID);
+    sb.append(", startTime=");
+    sb.append(startTime);
+    sb.append(", finishTime=");
+    sb.append(finishTime);
+    sb.append(", timeTaken=");
+    sb.append(finishTime - startTime);
+    sb.append(", status=");
+    sb.append(state.name());
+    sb.append(", successfulAttemptID=");
+    sb.append(successfulAttemptID);
+    sb.append(", diagnostics=");
+    sb.append(diagnostics);
+    sb.append(", counters=");
+    if (tezCounters == null) {
+      sb.append("null");
+    } else {
+      sb.append("Counters: ");
+      sb.append(tezCounters.countCounters());
+      for (CounterGroup group : tezCounters) {
+        sb.append(", ");
+        sb.append(group.getDisplayName());
+        for (TezCounter counter : group) {
+          sb.append(", ");
+          sb.append(counter.getDisplayName()).append("=")
+              .append(counter.getValue());
+        }
+      }
+    }
+    return sb.toString();
   }
 
   public TezTaskID getTaskID() {
