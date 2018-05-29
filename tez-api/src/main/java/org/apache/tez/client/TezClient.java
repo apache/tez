@@ -142,7 +142,7 @@ public class TezClient {
   @VisibleForTesting
   final ServicePluginsDescriptor servicePluginsDescriptor;
   private JavaOptsChecker javaOptsChecker = null;
-
+  private DAGClient prewarmDagClient = null;
   private int preWarmDAGCounter = 0;
 
   /* max submitDAG request size through IPC; beyond this we transfer them in the same way we transfer local resource */
@@ -591,6 +591,25 @@ public class TezClient {
     }
   }
 
+  private void closePrewarmDagClient() {
+    if (prewarmDagClient == null) {
+      return;
+    }
+    try {
+       prewarmDagClient.tryKillDAG();
+       LOG.info("Waiting for prewarm DAG to shut down");
+       prewarmDagClient.waitForCompletion();
+    } catch (Exception ex) {
+       LOG.warn("Failed to shut down the prewarm DAG " + prewarmDagClient, ex);
+    }
+    try {
+      prewarmDagClient.close();
+    } catch (Exception e) {
+      LOG.warn("Failed to close prewarm DagClient " + prewarmDagClient, e);
+    }
+    prewarmDagClient = null;
+  }
+  
   private DAGClient submitDAGSession(DAG dag) throws TezException, IOException {
     Preconditions.checkState(isSession == true, 
         "submitDAG with additional resources applies to only session mode. " + 
@@ -693,6 +712,7 @@ public class TezClient {
    * @throws IOException
    */
   public synchronized void stop() throws TezException, IOException {
+    closePrewarmDagClient();
     try {
       if (amKeepAliveService != null) {
         amKeepAliveService.shutdownNow();
@@ -925,7 +945,7 @@ public class TezClient {
           "available", e);
     }
     if(isReady) {
-      submitDAG(dag);
+      prewarmDagClient = submitDAG(dag);
     } else {
       throw new SessionNotReady("Tez AM not ready, could not submit DAG");
     }
