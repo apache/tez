@@ -41,6 +41,7 @@
     <jetty.version>9.3.22.v20171030</jetty.version>
     <netty.version>3.10.5.Final</netty.version>
     <pig.version>0.13.0</pig.version>
+    <jersey.version>1.19</jersey.version>
     <javac.version>1.8</javac.version>
     <slf4j.version>1.7.10</slf4j.version>
     <enforced.java.version>[${javac.version},)</enforced.java.version>
@@ -724,12 +725,12 @@
       <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-client</artifactId>
-       <version>1.9</version>
+       <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-json</artifactId>
-        <version>1.9</version>
+        <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
