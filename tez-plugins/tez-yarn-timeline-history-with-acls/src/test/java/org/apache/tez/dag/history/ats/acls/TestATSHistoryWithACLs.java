@@ -147,7 +147,7 @@ public class TestATSHistoryWithACLs {
     ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
         .get(ClientResponse.class);
     assertEquals(200, response.getStatus());
-    assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
+    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
 
     K entity = response.getEntity(clazz);
     assertNotNull(entity);
@@ -458,7 +458,7 @@ public class TestATSHistoryWithACLs {
     ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
         .get(ClientResponse.class);
     assertEquals(200, response.getStatus());
-    assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
+    assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
     TimelineEntity entity = response.getEntity(TimelineEntity.class);
     assertEquals(entity.getEntityType(), "TEZ_DAG_ID");
     assertEquals(entity.getEvents().get(0).getEventType(), HistoryEventType.DAG_SUBMITTED.toString());
