@@ -40,7 +40,7 @@
     <profile>
       <id>hadoop28</id>
       <activation>
-        <activeByDefault>false</activeByDefault>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
         <module>job-analyzer</module>

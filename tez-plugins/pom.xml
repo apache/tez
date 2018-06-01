@@ -45,7 +45,7 @@
     <profile>
       <id>hadoop28</id>
       <activation>
-        <activeByDefault>false</activeByDefault>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
         <module>tez-protobuf-history-plugin</module>

@@ -59,7 +59,7 @@
     <profile>
       <id>hadoop27</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <dependencies>
         <dependency>
@@ -82,7 +82,7 @@
     <profile>
       <id>hadoop28</id>
       <activation>
-        <activeByDefault>false</activeByDefault>
+        <activeByDefault>true</activeByDefault>
       </activation>
       <dependencies>
         <dependency>
