@@ -29,9 +29,7 @@
     <profile>
       <id>hadoop27</id>
       <activation>
-        <property>
-          <name>!skipATS</name>
-        </property>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
         <module>job-analyzer</module>
