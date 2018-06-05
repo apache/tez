@@ -575,8 +575,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
     this.creationTime = clock.getTime();
-    //set last notified progress time to current time
-    this.lastNotifyProgressTimestamp = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
@@ -1434,6 +1432,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
       ta.nodeRackName = StringInterner.weakIntern(RackResolver.resolve(ta.containerNodeId.getHost())
           .getNetworkLocation());
+      ta.lastNotifyProgressTimestamp = ta.clock.getTime();
 
       ta.launchTime = ta.clock.getTime();
 
@@ -1585,7 +1584,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.lastNotifyProgressTimestamp = ta.clock.getTime();
       } else {
         long currTime = ta.clock.getTime();
-        if (ta.hungIntervalMax > 0 &&
+        if (ta.hungIntervalMax > 0 && ta.lastNotifyProgressTimestamp > 0 &&
             currTime - ta.lastNotifyProgressTimestamp > ta.hungIntervalMax) {
           // task is hung
           String diagnostics = "Attempt failed because it appears to make no progress for " + 
