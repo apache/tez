@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import org.apache.tez.dag.app.MockClock;
+import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
@@ -1136,6 +1138,65 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventStatusUpdate(
         taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
     assertEquals(2, taImpl.getCounters().findCounter("group", "counter").getValue());
+  }
+
+  @Test (timeout = 60000L)
+  public void testProgressAfterSubmit() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    MockEventHandler eventHandler = spy(new MockEventHandler());
+    TaskCommunicatorManagerInterface taListener = createMockTaskAttemptListener();
+
+    Configuration taskConf = new Configuration();
+    taskConf.setClass("fs.file.impl", StubbedFS.class, FileSystem.class);
+    taskConf.setBoolean("fs.file.impl.disable.cache", true);
+    taskConf.setLong(TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 50);
+
+    locationHint = TaskLocationHint.createTaskLocationHint(
+        new HashSet<String>(Arrays.asList(new String[]{"127.0.0.1"})), null);
+    Resource resource = Resource.newInstance(1024, 1);
+
+    NodeId nid = NodeId.newInstance("127.0.0.1", 0);
+    @SuppressWarnings("deprecation")
+    ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
+    Container container = mock(Container.class);
+    when(container.getId()).thenReturn(contId);
+    when(container.getNodeId()).thenReturn(nid);
+    when(container.getNodeHttpAddress()).thenReturn("localhost:0");
+
+    AMContainerMap containers = new AMContainerMap(
+        mock(ContainerHeartbeatHandler.class), mock(TaskCommunicatorManagerInterface.class),
+        new ContainerContextMatcher(), appCtx);
+    containers.addContainerIfNew(container, 0, 0, 0);
+
+    doReturn(new ClusterInfo()).when(appCtx).getClusterInfo();
+    doReturn(containers).when(appCtx).getAllContainers();
+
+    TaskHeartbeatHandler mockHeartbeatHandler = mock(TaskHeartbeatHandler.class);
+    MockClock mockClock = new MockClock();
+    TaskAttemptImpl taImpl = new MockTaskAttemptImpl(taskID, 1, eventHandler,
+        taListener, taskConf, mockClock,
+        mockHeartbeatHandler, appCtx, false,
+        resource, createFakeContainerContext(), false);
+    TezTaskAttemptID taskAttemptID = taImpl.getID();
+    ArgumentCaptor<Event> arg = ArgumentCaptor.forClass(Event.class);
+    mockClock.incrementTime(20L);
+    taImpl.handle(new TaskAttemptEventSchedule(taskAttemptID, 0, 0));
+    mockClock.incrementTime(55L);
+    taImpl.handle(new TaskAttemptEventSubmitted(taskAttemptID, contId));
+    taImpl.handle(new TaskAttemptEventStatusUpdate(
+        taskAttemptID, new TaskStatusUpdateEvent(null, 0.1f, null, false)));
+    verify(eventHandler, atLeast(1)).handle(arg.capture());
+    if (arg.getValue() instanceof  TaskAttemptEvent) {
+      taImpl.handle((TaskAttemptEvent) arg.getValue());
+    }
+    Assert.assertEquals("Task Attempt's internal state should be SUBMITTED!",
+        taImpl.getInternalState(), TaskAttemptStateInternal.SUBMITTED);
   }
 
   @Test (timeout = 5000)
