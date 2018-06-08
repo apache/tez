@@ -25,6 +25,7 @@ public enum TaskEventType {
 
   //Producer:Client, Job
   T_TERMINATE,
+  T_UPDATE_CREDENTIALS,
   
   //Producer:Job
   T_SCHEDULE,

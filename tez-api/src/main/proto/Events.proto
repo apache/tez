@@ -74,3 +74,7 @@ message CustomProcessorEventProto {
   optional bytes user_payload = 1;
   required int32 version = 2;
 }
+
+message UpdateCredentialsEventProto {
+  required bytes credentials_binary = 1;
+}

@@ -49,6 +49,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.tez.SystemEventHandler;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezCommonUtils;
@@ -113,6 +114,8 @@ public class TezChild {
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
   private final boolean updateSysCounters;
+  private final UserGroupInformation taskOwner;
+  private SystemEventHandler systemEventHandler;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -174,7 +177,7 @@ public class TezChild {
       }
     }
 
-    UserGroupInformation taskOwner = UserGroupInformation.createRemoteUser(tokenIdentifier);
+    taskOwner = UserGroupInformation.createRemoteUser(tokenIdentifier);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
 
     String auxiliaryService = defaultConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
@@ -210,6 +213,8 @@ public class TezChild {
         sendCounterInterval, maxEventsToGet, heartbeatCounter, containerIdString);
 
     UserGroupInformation childUGI = null;
+
+    systemEventHandler = new SystemEventHandler(taskOwner, ownUmbilical, childUGI);
 
     while (!executor.isTerminated() && !isShutdown.get()) {
       if (taskCount > 0) {
@@ -256,6 +261,7 @@ public class TezChild {
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
+        systemEventHandler.setTaskUGI(childUGI);
         handleNewTaskLocalResources(containerTask, childUGI);
         cleanupOnTaskChanged(containerTask);
 
@@ -264,7 +270,7 @@ public class TezChild {
             localDirs, containerTask.getTaskSpec(), appAttemptNumber,
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
             executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters,
-            hadoopShim, sharedExecutor);
+            hadoopShim, sharedExecutor, systemEventHandler);
         boolean shouldDie;
         try {
           TaskRunner2Result result = taskRunner.run();

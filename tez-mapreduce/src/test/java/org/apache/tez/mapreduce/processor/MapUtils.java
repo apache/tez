@@ -238,7 +238,7 @@ public class MapUtils {
         serviceConsumerMetadata,
         envMap,
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor);
+        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor, null);
     return task;
   }
 }

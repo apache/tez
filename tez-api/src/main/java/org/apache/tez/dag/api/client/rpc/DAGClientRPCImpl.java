@@ -23,6 +23,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.google.protobuf.ByteString;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.tez.common.RPCUtil;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -48,6 +51,7 @@ import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsDAGRequestProto;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.protobuf.ServiceException;
@@ -151,6 +155,30 @@ public class DAGClientRPCImpl extends DAGClientInternal {
             TryKillDAGRequestProto.newBuilder().setDagId(dagId).build();
         try {
           proxy.tryKillDAG(null, requestProto);
+        } catch (ServiceException e) {
+          resetProxy(e);
+        }
+      }
+    } catch (ApplicationNotFoundException e) {
+      throw new SessionNotRunning("Application already completed");
+    }
+  }
+
+  @Override
+  public void updateDAGCredentials(Credentials credentials) throws IOException, TezException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug("Update credentials for app: " + appId + " dag:" + dagId);
+    }
+    try {
+      if (createAMProxyIfNeeded()) {
+        DataOutputBuffer dob = new DataOutputBuffer();
+        credentials.writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+
+        UpdateCredentialsDAGRequestProto requestProto =
+            UpdateCredentialsDAGRequestProto.newBuilder().setCredentialsBinary(
+                ByteString.copyFrom(dob.getData())).setDagID(dagId).build();
+        try {
+          proxy.updateDAGCredentials(null, requestProto);
         } catch (ServiceException e) {
           resetProxy(e);
         }

@@ -24,13 +24,23 @@ import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.events.UpdateCredentialsEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class ProtoConverters {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ProtoConverters.class);
 
   public static EventProtos.CustomProcessorEventProto convertCustomProcessorEventToProto(
     CustomProcessorEvent event) {
@@ -166,6 +176,36 @@ public class ProtoConverters {
         InputInitializerEvent.create(proto.getTargetVertexName(), proto.getTargetInputName(),
             (proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null));
     return event;
+  }
+
+  public static EventProtos.UpdateCredentialsEventProto convertUpdateCredentialsEventToProto(
+      UpdateCredentialsEvent event) {
+    DataOutputBuffer dob = new DataOutputBuffer();
+    try {
+      event.getCredentials().writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+    } catch (IOException e) {
+      LOG.warn("Error serializing Update Credentials event. The credentials won't be updated");
+      throw new RuntimeException(e.getMessage());
+    }
+    EventProtos.UpdateCredentialsEventProto.Builder builder =
+        EventProtos.UpdateCredentialsEventProto.newBuilder().setCredentialsBinary(
+            ByteString.copyFrom(dob.getData()));
+    return builder.build();
+  }
+
+  public static UpdateCredentialsEvent convertUpdateCredentialsEventFromProto(
+      EventProtos.UpdateCredentialsEventProto proto) {
+    DataInputBuffer dib = new DataInputBuffer();
+    byte[] credentialsByte = proto.getCredentialsBinary().toByteArray();
+    dib.reset(credentialsByte, credentialsByte.length);
+    Credentials credentials = new Credentials();
+    try {
+      credentials.readTokenStorageStream(dib);
+    } catch (IOException e) {
+      LOG.warn("Error deserializing Update Credentials event. The credentials won't be updated");
+      throw new RuntimeException(e.getMessage());
+    }
+    return UpdateCredentialsEvent.create(credentials);
   }
 
 }

@@ -33,15 +33,18 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import com.google.protobuf.ByteString;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.common.RPCUtil;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.dag.api.TezConfigurationConstants;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -357,7 +360,8 @@ public class TezClient {
   public synchronized void setAppMasterCredentials(Credentials credentials) {
     Preconditions
         .checkState(!sessionStarted.get(),
-            "Credentials cannot be set after the session App Master has been started");
+            "Credentials cannot be set after the session App Master has been started."
+                + "Use updateAMCredentials or updateDAGCredentials");
     amConfig.setCredentials(credentials);
   }
 
@@ -1028,6 +1032,73 @@ public class TezClient {
         return false;
       }
     }
+  }
+
+  /**
+   * Updates the crendentials in the AM. This can be necessary for
+   * long running AMs whose credentials cannot be renewed anymore
+   * @param credentials
+   * @throws IOException
+   * @throws TezException
+   * @throws ServiceException
+   */
+  @Evolving
+  public void updateAMCredentials(Credentials credentials) throws IOException, TezException, ServiceException {
+
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+
+    DAGClientAMProtocolRPC.UpdateCredentialsAMRequestProto requestProto =
+        DAGClientAMProtocolRPC.UpdateCredentialsAMRequestProto.newBuilder().setCredentialsBinary(
+            ByteString.copyFrom(dob.getData())).build();
+
+    getAMProxy(sessionAppId).updateAMCredentials(null, requestProto);
+  }
+
+  /**
+   * Updates the credentials in the DAGs. This can be necessary for
+   * long running DAGs whose credentials cannot be renewed anymore
+   * @param dagId
+   * @param credentials
+   * @throws IOException
+   * @throws TezException
+   * @throws ServiceException
+   */
+  @Evolving
+  public void updateDAGCredentials(String dagId, Credentials credentials) throws IOException, TezException, ServiceException {
+    DataOutputBuffer dob = new DataOutputBuffer();
+    credentials.writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+
+    DAGClientAMProtocolRPC.UpdateCredentialsDAGRequestProto requestProto =
+        DAGClientAMProtocolRPC.UpdateCredentialsDAGRequestProto.newBuilder().setCredentialsBinary(
+            ByteString.copyFrom(dob.getData())).setDagID(dagId).build();
+    getAMProxy(sessionAppId).updateDAGCredentials(null, requestProto);
+  }
+
+  //TODO
+  private void updateSessionCredentials() throws IOException, TezException, ServiceException {
+    Preconditions.checkArgument(!isSession, "updateSessionCredentials"
+        + " is supposed to be only called in session mode");
+
+    Credentials sessionCredentials = new Credentials();
+
+    TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
+        amConfig.getTezConfiguration());
+
+    TezClientUtils.createSessionToken(sessionAppId.toString(),
+        jobTokenSecretManager, sessionCredentials);
+
+    DataOutputBuffer dob = new DataOutputBuffer();
+    sessionCredentials.writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+
+    DAGClientAMProtocolRPC.UpdateCredentialsSessionRequestProto requestProto =
+        DAGClientAMProtocolRPC.UpdateCredentialsSessionRequestProto.newBuilder().setCredentialsBinary(
+            ByteString.copyFrom(dob.getData())).build();
+
+    getAMProxy(sessionAppId).updateSessionCredentials(null, requestProto);
+
+    LOG.info("Session credentials updated");
+    this.sessionCredentials = sessionCredentials;
   }
 
   private void waitNonSessionTillReady() throws IOException, TezException {

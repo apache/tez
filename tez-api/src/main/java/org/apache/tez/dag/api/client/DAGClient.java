@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
 
@@ -140,4 +141,10 @@ public abstract class DAGClient implements Closeable {
   public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException, InterruptedException;
 
+  /**
+   * Update the credentials of a running DAG. This is usually done for
+   * long running DAGs which tokens would expire.
+   * @param credentials
+   */
+  public abstract void updateDAGCredentials(Credentials credentials) throws IOException, TezException;
 }

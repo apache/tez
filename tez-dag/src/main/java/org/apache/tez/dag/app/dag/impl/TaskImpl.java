@@ -39,6 +39,8 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.runtime.api.TaskFailureType;
+import org.apache.tez.runtime.api.events.UpdateCredentialsEvent;
+import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -78,6 +80,7 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventOutputFailed;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventTerminationCauseEvent;
 import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventScheduleTask;
+import org.apache.tez.dag.app.dag.event.TaskEventUpdateCredentials;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
 import org.apache.tez.dag.app.dag.event.TaskEventTAUpdate;
 import org.apache.tez.dag.app.dag.event.TaskEventTermination;
@@ -154,6 +157,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private static final SingleArcTransition<TaskImpl, TaskEvent>
      KILL_TRANSITION = new KillTransition();
   private static final SingleArcTransition<TaskImpl, TaskEvent>
+      UPDATE_CREDENTIALS_TRANSITION = new UpdateCredentialsTransition();
+  private static final SingleArcTransition<TaskImpl, TaskEvent>
       REDUNDANT_COMPLETED_TRANSITION = new AttemptRedundantCompletedTransition();
 
 
@@ -175,6 +180,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     .addTransition(TaskStateInternal.NEW, TaskStateInternal.KILLED,
         TaskEventType.T_TERMINATE,
         new KillNewTransition())
+    .addTransition(TaskStateInternal.NEW, TaskStateInternal.NEW,
+        TaskEventType.T_UPDATE_CREDENTIALS,
+        UPDATE_CREDENTIALS_TRANSITION)
 
     // Transitions from SCHEDULED state
       //when the first attempt is launched, the task state is set to RUNNING
@@ -194,6 +202,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(TaskStateInternal.RUNNING, TaskStateInternal.SUCCEEDED),
         TaskEventType.T_ATTEMPT_SUCCEEDED,
         new AttemptSucceededTransition())
+    .addTransition(TaskStateInternal.SCHEDULED, TaskStateInternal.SCHEDULED,
+        TaskEventType.T_UPDATE_CREDENTIALS,
+        UPDATE_CREDENTIALS_TRANSITION)
 
     // When current attempt fails/killed and new attempt launched then
     // TODO Task should go back to SCHEDULED state TEZ-495
@@ -218,6 +229,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         KILL_TRANSITION)
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_SCHEDULE)
+    .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
+        TaskEventType.T_UPDATE_CREDENTIALS,
+        UPDATE_CREDENTIALS_TRANSITION)
 
     // Transitions from KILL_WAIT state
     .addTransition(TaskStateInternal.KILL_WAIT,
@@ -239,7 +253,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(
             TaskEventType.T_TERMINATE,
             TaskEventType.T_ATTEMPT_LAUNCHED,
-            TaskEventType.T_ADD_SPEC_ATTEMPT))
+            TaskEventType.T_ADD_SPEC_ATTEMPT,
+            TaskEventType.T_UPDATE_CREDENTIALS))
 
     // Transitions from SUCCEEDED state
     .addTransition(TaskStateInternal.SUCCEEDED, //only possible for map tasks
@@ -256,7 +271,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(
             TaskEventType.T_ADD_SPEC_ATTEMPT,
             TaskEventType.T_TERMINATE,
-            TaskEventType.T_ATTEMPT_LAUNCHED))
+            TaskEventType.T_ATTEMPT_LAUNCHED,
+            TaskEventType.T_UPDATE_CREDENTIALS))
     .addTransition(TaskStateInternal.SUCCEEDED, TaskStateInternal.SUCCEEDED,
         TaskEventType.T_SCHEDULE)
 
@@ -271,7 +287,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskEventType.T_TERMINATE,
             TaskEventType.T_SCHEDULE,
             TaskEventType.T_ADD_SPEC_ATTEMPT,
-            TaskEventType.T_ATTEMPT_LAUNCHED))
+            TaskEventType.T_ATTEMPT_LAUNCHED,
+            TaskEventType.T_UPDATE_CREDENTIALS))
 
     // Transitions from KILLED state
     // Ignorable event: T_ATTEMPT_KILLED
@@ -295,7 +312,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskEventType.T_ATTEMPT_LAUNCHED,
             TaskEventType.T_ATTEMPT_SUCCEEDED,
             TaskEventType.T_ATTEMPT_FAILED,
-            TaskEventType.T_ATTEMPT_KILLED))
+            TaskEventType.T_ATTEMPT_KILLED,
+            TaskEventType.T_UPDATE_CREDENTIALS))
 
     // create the topology tables
     .installTopology();
@@ -1444,6 +1462,22 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.killUnfinishedAttempt(attempt, "Task KILL is received. Killing attempt. Diagnostics: "
             + terminateEvent.getDiagnosticInfo(), terminateEvent.getTerminationCause());
       }
+    }
+  }
+
+  private static class UpdateCredentialsTransition
+      implements SingleArcTransition<TaskImpl, TaskEvent> {
+    @Override
+    public void transition(TaskImpl task, TaskEvent event) {
+      TaskEventUpdateCredentials ucevent = (TaskEventUpdateCredentials)event;
+      EventMetaData eventMetaDataOrigin = new EventMetaData(
+          EventMetaData.EventProducerConsumerType.SYSTEM, ucevent.getVertexName(), null, null);
+      EventMetaData eventMetaDataDestination = new EventMetaData(
+          EventMetaData.EventProducerConsumerType.SYSTEM, ucevent.getVertexName(), null, null);
+      TezEvent tezEvent = new TezEvent(
+          UpdateCredentialsEvent.create(ucevent.getCredentials()), eventMetaDataOrigin);
+      tezEvent.setDestinationInfo(eventMetaDataDestination);
+      task.registerTezEvent(tezEvent);
     }
   }
 

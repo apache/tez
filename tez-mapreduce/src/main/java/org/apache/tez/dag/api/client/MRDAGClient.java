@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.tez.dag.api.TezException;
 
@@ -105,5 +106,9 @@ public class MRDAGClient extends DAGClient {
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout) throws IOException, TezException {
     return getDAGStatus(statusOptions);
+  }
+
+  public void updateDAGCredentials(Credentials credentials) throws IOException, TezException {
+    realClient.updateDAGCredentials(credentials);
   }
 }

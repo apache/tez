@@ -90,6 +90,24 @@ message GetAMStatusResponseProto {
   required TezAppMasterStatusProto status = 1;
 }
 
+message UpdateCredentialsAMRequestProto {
+  required bytes credentials_binary = 1;
+}
+
+message UpdateCredentialsSessionRequestProto {
+  required bytes credentials_binary = 1;
+}
+
+message UpdateCredentialsDAGRequestProto {
+  required string dagID = 1;
+  required bytes credentials_binary = 2;
+}
+
+message UpdateCredentialsResponseProto {
+  // Nothing yet
+}
+
+
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
@@ -98,4 +116,7 @@ service DAGClientAMProtocol {
   rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
   rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
   rpc getAMStatus (GetAMStatusRequestProto) returns (GetAMStatusResponseProto);
+  rpc updateAMCredentials(UpdateCredentialsAMRequestProto) returns (UpdateCredentialsResponseProto);
+  rpc updateSessionCredentials(UpdateCredentialsSessionRequestProto) returns (UpdateCredentialsResponseProto);
+  rpc updateDAGCredentials(UpdateCredentialsDAGRequestProto) returns (UpdateCredentialsResponseProto);
 }

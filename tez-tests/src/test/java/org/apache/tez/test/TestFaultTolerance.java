@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -191,6 +192,10 @@ public class TestFaultTolerance {
 
     DAGClient dagClient = tezSession.submitDAG(dag);
     dagClient.waitForCompletion();
+
+    // Checking no exceptions happens here
+    dagClient.updateDAGCredentials(new Credentials());
+
     // kill the session now
     tezSession.stop();
 

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.hadoop.security.Credentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.ipc.Server;
@@ -141,6 +142,22 @@ public class DAGClientHandler {
   public synchronized String submitDAG(DAGPlan dagPlan,
       Map<String, LocalResource> additionalAmResources) throws TezException {
     return dagAppMaster.submitDAGToAppMaster(dagPlan, additionalAmResources);
+  }
+
+  public void updateAMCredentials(Credentials credentials) throws TezException {
+    LOG.info("Updating AM credentials");
+    dagAppMaster.updateAMCredentials(credentials);
+  }
+
+  public void updateSessionCredentials(Credentials credentials) throws TezException {
+    LOG.info("Updating session credentials");
+    dagAppMaster.updateSessionCredentials(credentials);
+  }
+
+  public void updateDAGCredentials(String dagIdStr, Credentials credentials) throws TezException {
+    LOG.info("Updating credentials from DAG with id: " + dagIdStr);
+    DAG dag = getDAG(dagIdStr);
+    dagAppMaster.updateDAGCredentials(credentials, dag);
   }
 
   // Only to be invoked by the DAGClient.

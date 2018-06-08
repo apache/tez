@@ -31,6 +31,7 @@ import java.util.Set;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -334,6 +335,15 @@ public class DAGClientImpl extends DAGClient {
       realClient.tryKillDAG();
     } else {
       LOG.info("TryKill for app: " + appId + " dag:" + dagId + " dag already completed.");
+    }
+  }
+
+  @Override
+  public void updateDAGCredentials(Credentials credentials) throws IOException, TezException {
+    if (!dagCompleted) {
+      realClient.updateDAGCredentials(credentials);
+    } else {
+      LOG.info("Can't update credentials for app: " + appId + " dag:" + dagId + ", dag already completed.");
     }
   }
 

@@ -27,6 +27,8 @@ import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
@@ -51,6 +53,10 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequest
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsAMRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsSessionRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsResponseProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.protobuf.RpcController;
@@ -226,4 +232,54 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     }
   }
 
+  @Override
+  public UpdateCredentialsResponseProto updateAMCredentials(RpcController controller,
+      UpdateCredentialsAMRequestProto request) throws ServiceException {
+    try {
+      Credentials credentials = verifyUserAndGetCredentials(request.getCredentialsBinary().toByteArray());
+      real.updateAMCredentials(credentials);
+      return UpdateCredentialsResponseProto.newBuilder().build();
+    } catch(TezException | IOException e) {
+      throw wrapException(e);
+    }
+}
+
+  @Override
+  public UpdateCredentialsResponseProto updateSessionCredentials(RpcController controller,
+      UpdateCredentialsSessionRequestProto request) throws ServiceException {
+    try {
+      Credentials credentials = verifyUserAndGetCredentials(request.getCredentialsBinary().toByteArray());
+      real.updateSessionCredentials(credentials);
+      return UpdateCredentialsResponseProto.newBuilder().build();
+    } catch(TezException | IOException e) {
+      throw wrapException(e);
+    }
+  }
+
+  @Override
+  public UpdateCredentialsResponseProto updateDAGCredentials(RpcController controller,
+      UpdateCredentialsDAGRequestProto request) throws ServiceException {
+    try {
+      Credentials credentials = verifyUserAndGetCredentials(request.getCredentialsBinary().toByteArray());
+      real.updateDAGCredentials(request.getDagID(), credentials);
+      return UpdateCredentialsResponseProto.newBuilder().build();
+    } catch(TezException | IOException e) {
+      throw wrapException(e);
+    }
+  }
+
+  private Credentials verifyUserAndGetCredentials(byte credentialsByte[])
+      throws TezException, IOException, ServiceException{
+    UserGroupInformation user = getRPCUser();
+    if (!real.getACLManager().checkAMModifyAccess(user)) {
+      throw new AccessControlException("User " + user + " cannot perform AM modify operation");
+    }
+    real.updateLastHeartbeatTime();
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(credentialsByte, credentialsByte.length);
+    Credentials credentials = new Credentials();
+    credentials.readTokenStorageStream(dib);
+    real.updateAMCredentials(credentials);
+    return credentials;
+  }
 }
