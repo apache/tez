@@ -86,6 +86,11 @@ public class MRDAGClient extends DAGClient {
   }
 
   @Override
+  public DAGStatus waitForCompletion(long timeMs) throws IOException, TezException, InterruptedException {
+    return realClient.waitForCompletion(timeMs);
+  }
+
+  @Override
   public DAGStatus waitForCompletionWithStatusUpdates(
       @Nullable Set<StatusGetOpts> statusGetOpts) throws IOException, TezException, InterruptedException {
     return realClient.waitForCompletionWithStatusUpdates(statusGetOpts);
