@@ -103,7 +103,7 @@ public abstract class DAGClient implements Closeable {
   public abstract void tryKillDAG() throws IOException, TezException;
 
   /**
-   * Wait for DAG to complete without printing any vertex statuses
+   * Wait forever for DAG to complete without printing any vertex statuses
    * 
    * @return Final DAG Status
    * @throws IOException
@@ -111,6 +111,17 @@ public abstract class DAGClient implements Closeable {
    * @throws InterruptedException 
    */
   public abstract DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException;
+
+  /**
+   * Wait for DAG to complete without printing any vertex statuses
+   *
+   * @param timeMs Maximum wait duration
+   * @return Final DAG Status, or null on timeout or if DAG is no longer running
+   * @throws IOException
+   * @throws TezException
+   * @throws InterruptedException
+   */
+  public abstract DAGStatus waitForCompletion(long timeMs) throws IOException, TezException, InterruptedException;
 
   /**
    * Wait for DAG to complete and periodically print *all* vertices' status.
@@ -125,4 +136,5 @@ public abstract class DAGClient implements Closeable {
    */
   public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException, InterruptedException;
+
 }

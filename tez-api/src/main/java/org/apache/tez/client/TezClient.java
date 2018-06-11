@@ -112,6 +112,7 @@ public class TezClient {
 
   private static final String appIdStrPrefix = "application";
   private static final String APPLICATION_ID_PREFIX = appIdStrPrefix + '_';
+  private static final long PREWARM_WAIT_MS = 500;
   
   @VisibleForTesting
   static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
@@ -584,23 +585,33 @@ public class TezClient {
    *           if submission timed out
    */  
   public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException {
-    if (isSession) {
-      return submitDAGSession(dag);
-    } else {
-      return submitDAGApplication(dag);
+    DAGClient result = isSession ? submitDAGSession(dag) : submitDAGApplication(dag);
+    if (result != null) {
+      closePrewarmDagClient(); // Assume the current DAG replaced the prewarm one; no need to kill.
     }
+    return result;
+  }
+
+  private void killAndClosePrewarmDagClient(long waitTimeMs) {
+    if (prewarmDagClient == null) {
+      return;
+    }
+    try {
+      prewarmDagClient.tryKillDAG();
+      if (waitTimeMs > 0) {
+        LOG.info("Waiting for prewarm DAG to shut down");
+        prewarmDagClient.waitForCompletion(waitTimeMs);
+      }
+    }
+    catch (Exception ex) {
+      LOG.warn("Failed to shut down the prewarm DAG " + prewarmDagClient, ex);
+    }
+    closePrewarmDagClient();
   }
 
   private void closePrewarmDagClient() {
     if (prewarmDagClient == null) {
       return;
-    }
-    try {
-       prewarmDagClient.tryKillDAG();
-       LOG.info("Waiting for prewarm DAG to shut down");
-       prewarmDagClient.waitForCompletion();
-    } catch (Exception ex) {
-       LOG.warn("Failed to shut down the prewarm DAG " + prewarmDagClient, ex);
     }
     try {
       prewarmDagClient.close();
@@ -705,6 +716,11 @@ public class TezClient {
         frameworkClient);
   }
 
+  @VisibleForTesting
+  protected long getPrewarmWaitTimeMs() {
+    return PREWARM_WAIT_MS;
+  }
+
   /**
    * Stop the client. This terminates the connection to the YARN cluster.
    * In session mode, this shuts down the session DAG App Master
@@ -712,7 +728,7 @@ public class TezClient {
    * @throws IOException
    */
   public synchronized void stop() throws TezException, IOException {
-    closePrewarmDagClient();
+    killAndClosePrewarmDagClient(getPrewarmWaitTimeMs());
     try {
       if (amKeepAliveService != null) {
         amKeepAliveService.shutdownNow();

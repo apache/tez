@@ -115,6 +115,7 @@ public class TestTezClient {
     YarnClient mockYarnClient;
     ApplicationId mockAppId;
     boolean callRealGetSessionAMProxy;
+    Long prewarmTimeoutMs;
 
     public TezClientForTest(String name, TezConfiguration tezConf,
         @Nullable Map<String, LocalResource> localResources,
@@ -134,6 +135,15 @@ public class TestTezClient {
         return sessionAmProxy;
       }
       return super.getAMProxy(appId);
+    }
+
+    public void setPrewarmTimeoutMs(Long prewarmTimeoutMs) {
+      this.prewarmTimeoutMs = prewarmTimeoutMs;
+    }
+
+    @Override
+    protected long getPrewarmWaitTimeMs() {
+      return prewarmTimeoutMs == null ? super.getPrewarmWaitTimeMs() : prewarmTimeoutMs;
     }
   }
   
@@ -428,6 +438,25 @@ public class TestTezClient {
     setClientToReportStoppedDags(client);
     client.stop();
   }
+
+
+  @Test (timeout=5000)
+  public void testPreWarmCloseStuck() throws Exception {
+    TezClientForTest client = configureAndCreateTezClient();
+    client.setPrewarmTimeoutMs(10L); // Don't wait too long.
+    client.start();
+
+    when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
+        .thenReturn(YarnApplicationState.RUNNING);
+    when(client.sessionAmProxy.getAMStatus((RpcController) any(), (GetAMStatusRequestProto) any()))
+        .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.READY).build());
+
+    PreWarmVertex vertex = PreWarmVertex.create("PreWarm", 1, Resource.newInstance(1, 1));
+    client.preWarm(vertex);
+    // Keep prewarm in "running" state. Client should give up waiting; if it doesn't, the test will time out.
+    client.stop();
+  }
+
 
   private void setClientToReportStoppedDags(TezClientForTest client) throws Exception {
     when(client.mockYarnClient.getApplicationReport(client.mockAppId).getYarnApplicationState())
