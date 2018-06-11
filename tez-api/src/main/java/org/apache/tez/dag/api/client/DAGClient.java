@@ -121,7 +121,10 @@ public abstract class DAGClient implements Closeable {
    * @throws TezException
    * @throws InterruptedException
    */
-  public abstract DAGStatus waitForCompletion(long timeMs) throws IOException, TezException, InterruptedException;
+  public DAGStatus waitForCompletion(long timeMs) throws IOException, TezException, InterruptedException {
+    // Make non-abstract to avoid compat issues in Hive.
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Wait for DAG to complete and periodically print *all* vertices' status.
