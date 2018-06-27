@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.Utils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
@@ -1620,6 +1621,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
     }
 
+    // This is going to override the previously generated file
+    // which didn't have the priorities
+    Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
     return DAGState.INITED;
   }
 
@@ -2380,6 +2384,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } finally {
       readLock.unlock();
     }
+  }
+
+  @Override
+  public DAGScheduler getDAGScheduler() {
+    return dagScheduler;
   }
 
   // output of either vertex or vertex group

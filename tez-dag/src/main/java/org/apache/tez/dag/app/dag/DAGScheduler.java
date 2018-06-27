@@ -89,4 +89,24 @@ public abstract class DAGScheduler {
   public abstract void scheduleTaskEx(DAGEventSchedulerUpdate event);
   
   public abstract void taskCompletedEx(DAGEventSchedulerUpdate event);
+
+  /**
+   * Get the low limit priority for a particular vertex.
+   * @param vertex to get the priority of
+   * @return the priority
+   */
+  public int getPriorityLowLimit(Vertex vertex) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Get the low hight priority for a particular vertex. Default
+   * to the low limit priority minus two.
+   * @param vertex to get the priority of
+   * @return the priority
+   */
+  public int getPriorityHighLimit(final Vertex vertex) {
+    return  getPriorityLowLimit(vertex) - 2;
+  }
+
 }
