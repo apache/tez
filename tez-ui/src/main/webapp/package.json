@@ -25,7 +25,7 @@
     "node": ">= 0.10.0"
   },
   "devDependencies": {
-    "bower": "1.7.7",
+    "bower": "1.8.4",
     "broccoli-asset-rev": "2.4.2",
     "broccoli-funnel": "1.0.1",
     "broccoli-merge-trees": "1.1.1",
