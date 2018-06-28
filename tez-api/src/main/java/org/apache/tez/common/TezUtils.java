@@ -112,11 +112,12 @@ public class TezUtils {
     Preconditions.checkNotNull(byteString, "ByteString must be specified");
     // SnappyInputStream uncompressIs = new
     // SnappyInputStream(byteString.newInput());
-    InflaterInputStream uncompressIs = new InflaterInputStream(byteString.newInput());
-    DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
-    Configuration conf = new Configuration(false);
-    readConfFromPB(confProto, conf);
-    return conf;
+    try(InflaterInputStream uncompressIs = new InflaterInputStream(byteString.newInput())) {
+      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      Configuration conf = new Configuration(false);
+      readConfFromPB(confProto, conf);
+      return conf;
+    }
   }
 
   /**
