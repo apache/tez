@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ATSConstants;
@@ -200,6 +201,14 @@ public class DAGUtils {
 
   public static Map<String,Object> convertDAGPlanToATSMap(DAGPlan dagPlan) throws IOException {
     final Inflater inflater = TezCommonUtils.newInflater();
+    try {
+      return _convertDAGPlanToATSMap(dagPlan, inflater);
+    } finally {
+      inflater.end();
+    }
+  }
+
+  private static Map<String,Object> _convertDAGPlanToATSMap(DAGPlan dagPlan, Inflater inflater) throws IOException {
     final String VERSION_KEY = "version";
     final int version = 2;
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
