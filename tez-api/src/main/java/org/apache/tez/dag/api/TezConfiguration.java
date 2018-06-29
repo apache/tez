@@ -1474,6 +1474,17 @@ public class TezConfiguration extends Configuration {
   public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
 
   /**
+   * Long value. The amount of time in seconds to wait to ensure all events for a day is synced
+   * to disk. This should be maximum time variation b/w machines + maximum time to sync file
+   * content and metadata.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_DOAS =
+      TEZ_PREFIX + "history.logging.proto-doas";
+  public static final boolean TEZ_HISTORY_LOGGING_PROTO_DOAS_DEFAULT = false;
+
+  /**
    * Int value. Time, in milliseconds, to wait while flushing YARN ATS data during shutdown.
    * Expert level setting.
    */

@@ -33,6 +33,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.yarn.util.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
@@ -43,27 +45,40 @@ import com.google.protobuf.Parser;
  * @param <T> The proto message type.
  */
 public class DatePartitionedLogger<T extends MessageLite> {
+  private static final Logger LOG = LoggerFactory.getLogger(DatePartitionedLogger.class);
   // Everyone has permission to write, but with sticky set so that delete is restricted.
   // This is required, since the path is same for all users and everyone writes into it.
   private static final FsPermission DIR_PERMISSION = FsPermission.createImmutable((short)01777);
+
+  // Since the directories have broad permissions restrict the file read access.
+  private static final FsPermission FILE_UMASK = FsPermission.createImmutable((short)0066);
 
   private final Parser<T> parser;
   private final Path basePath;
   private final Configuration conf;
   private final Clock clock;
-  private final FileSystem fileSystem;
 
   public DatePartitionedLogger(Parser<T> parser, Path baseDir, Configuration conf, Clock clock)
       throws IOException {
-    this.conf = conf;
+    this.conf = new Configuration(conf);
     this.clock = clock;
     this.parser = parser;
-    this.fileSystem = baseDir.getFileSystem(conf);
-    if (!fileSystem.exists(baseDir)) {
-      fileSystem.mkdirs(baseDir);
-      fileSystem.setPermission(baseDir, DIR_PERMISSION);
+    createDirIfNotExists(baseDir);
+    this.basePath = baseDir.getFileSystem(conf).resolvePath(baseDir);
+    FsPermission.setUMask(this.conf, FILE_UMASK);
+  }
+
+  private void createDirIfNotExists(Path path) throws IOException {
+    FileSystem fileSystem = path.getFileSystem(conf);
+    try {
+      if (!fileSystem.exists(path)) {
+        fileSystem.mkdirs(path);
+        fileSystem.setPermission(path, DIR_PERMISSION);
+      }
+    } catch (IOException e) {
+      // Ignore this exception, if there is a problem it'll fail when trying to read or write.
+      LOG.warn("Error while trying to set permission: ", e);
     }
-    this.basePath = fileSystem.resolvePath(baseDir);
   }
 
   /**
@@ -86,11 +101,12 @@ public class DatePartitionedLogger<T extends MessageLite> {
    */
   public Path getPathForDate(LocalDate date, String fileName) throws IOException {
     Path path = new Path(basePath, getDirForDate(date));
-    if (!fileSystem.exists(path)) {
-      fileSystem.mkdirs(path);
-      fileSystem.setPermission(path, DIR_PERMISSION);
-    }
+    createDirIfNotExists(path);
     return new Path(path, fileName);
+  }
+
+  public Path getPathForSubdir(String dirName, String fileName) {
+    return new Path(new Path(basePath, dirName), fileName);
   }
 
   /**
@@ -116,6 +132,7 @@ public class DatePartitionedLogger<T extends MessageLite> {
   public String getNextDirectory(String currentDir) throws IOException {
     // Fast check, if the next day directory exists return it.
     String nextDate = getDirForDate(getDateFromDir(currentDir).plusDays(1));
+    FileSystem fileSystem = basePath.getFileSystem(conf);
     if (fileSystem.exists(new Path(basePath, nextDate))) {
       return nextDate;
     }
@@ -135,10 +152,11 @@ public class DatePartitionedLogger<T extends MessageLite> {
    * Returns new or changed files in the given directory. The offsets are used to find
    * changed files.
    */
-  public List<Path> scanForChangedFiles(String subDir, Map<String, Long> currentOffsets)
+  public List<FileStatus> scanForChangedFiles(String subDir, Map<String, Long> currentOffsets)
       throws IOException {
     Path dirPath = new Path(basePath, subDir);
-    List<Path> newFiles = new ArrayList<>();
+    FileSystem fileSystem = basePath.getFileSystem(conf);
+    List<FileStatus> newFiles = new ArrayList<>();
     if (!fileSystem.exists(dirPath)) {
       return newFiles;
     }
@@ -147,7 +165,7 @@ public class DatePartitionedLogger<T extends MessageLite> {
       Long offset = currentOffsets.get(fileName);
       // If the offset was never added or offset < fileSize.
       if (offset == null || offset < status.getLen()) {
-        newFiles.add(new Path(dirPath, fileName));
+        newFiles.add(status);
       }
     }
     return newFiles;
