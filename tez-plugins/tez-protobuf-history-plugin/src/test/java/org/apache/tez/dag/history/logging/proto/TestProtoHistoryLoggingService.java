@@ -21,6 +21,7 @@ package org.apache.tez.dag.history.logging.proto;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -86,14 +87,18 @@ public class TestProtoHistoryLoggingService {
 
     // Verify dag events are logged.
     DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
-    Path dagFilePath = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId.toString());
+    Path dagFilePath = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId.toString() + "_" + 1);
     ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(dagFilePath);
     HistoryEventProto evt = reader.readEvent();
     int ind = 1;
     while (evt != null) {
       Assert.assertEquals(protos.get(ind), evt);
       ind++;
-      evt = reader.readEvent();
+      try {
+        evt = reader.readEvent();
+      } catch (EOFException e) {
+        evt = null;
+      }
     }
     reader.close();
 

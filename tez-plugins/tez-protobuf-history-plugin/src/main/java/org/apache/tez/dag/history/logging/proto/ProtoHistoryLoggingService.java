@@ -19,6 +19,7 @@
 package org.apache.tez.dag.history.logging.proto;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -49,13 +50,15 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
   private boolean loggingDisabled = false;
 
   private final LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
-      new LinkedBlockingQueue<DAGHistoryEvent>(10000);
+      new LinkedBlockingQueue<>(10000);
   private Thread eventHandlingThread;
   private final AtomicBoolean stopped = new AtomicBoolean(false);
 
   private TezProtoLoggers loggers;
   private ProtoMessageWriter<HistoryEventProto> appEventsWriter;
   private ProtoMessageWriter<HistoryEventProto> dagEventsWriter;
+  private ProtoMessageWriter<ManifestEntryProto> manifestEventsWriter;
+  private LocalDate manifestDate;
   private TezDAGID currentDagId;
   private long dagSubmittedEventOffset = -1;
 
@@ -101,6 +104,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
     eventHandlingThread.join();
     IOUtils.closeQuietly(appEventsWriter);
     IOUtils.closeQuietly(dagEventsWriter);
+    IOUtils.closeQuietly(manifestEventsWriter);
     LOG.info("Stopped ProtoHistoryLoggingService");
   }
 
@@ -161,7 +165,8 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       } else if (type == HistoryEventType.DAG_SUBMITTED) {
         finishCurrentDag(null);
         currentDagId = dagId;
-        dagEventsWriter = loggers.getDagEventsLogger().getWriter(dagId.toString());
+        dagEventsWriter = loggers.getDagEventsLogger().getWriter(dagId.toString()
+            + "_" + appContext.getApplicationAttemptId().getAttemptId());
         dagSubmittedEventOffset = dagEventsWriter.getOffset();
         dagEventsWriter.writeProto(converter.convert(historyEvent));
       } else if (dagEventsWriter != null) {
@@ -174,16 +179,21 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
     if (dagEventsWriter == null) {
       return;
     }
-    ProtoMessageWriter<ManifestEntryProto> writer = null;
     try {
       long finishEventOffset = -1;
       if (event != null) {
         finishEventOffset = dagEventsWriter.getOffset();
         dagEventsWriter.writeProto(converter.convert(event));
       }
-      // Do not cache this writer, it should be created at the time of writing
-      writer = loggers.getManifestEventsLogger()
-          .getWriter(appContext.getApplicationAttemptId().toString());
+      DatePartitionedLogger<ManifestEntryProto> manifestLogger = loggers.getManifestEventsLogger();
+      if (manifestDate == null || !manifestDate.equals(manifestLogger.getNow().toLocalDate())) {
+        // The day has changed write to a new file.
+        IOUtils.closeQuietly(manifestEventsWriter);
+        manifestEventsWriter = manifestLogger.getWriter(
+            appContext.getApplicationAttemptId().toString());
+        manifestDate = manifestLogger.getDateFromDir(
+            manifestEventsWriter.getPath().getParent().getName());
+      }
       ManifestEntryProto.Builder entry = ManifestEntryProto.newBuilder()
           .setDagId(currentDagId.toString())
           .setAppId(currentDagId.getApplicationId().toString())
@@ -196,13 +206,13 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       if (event != null) {
         entry.setDagId(event.getDagID().toString());
       }
-      writer.writeProto(entry.build());
+      manifestEventsWriter.writeProto(entry.build());
+      manifestEventsWriter.hflush();
       appEventsWriter.hflush();
     } finally {
       // On an error, cleanup everything this will ensure, we do not use one dag's writer
       // into another dag.
       IOUtils.closeQuietly(dagEventsWriter);
-      IOUtils.closeQuietly(writer);
       dagEventsWriter = null;
       currentDagId = null;
       dagSubmittedEventOffset = -1;

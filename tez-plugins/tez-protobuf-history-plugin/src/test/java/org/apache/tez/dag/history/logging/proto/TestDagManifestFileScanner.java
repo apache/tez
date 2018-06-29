@@ -20,6 +20,9 @@ package org.apache.tez.dag.history.logging.proto;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -43,12 +46,14 @@ public class TestDagManifestFileScanner {
     clock = new MockClock();
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR, basePath);
+    // LocalFileSystem does not implement truncate.
+    conf.set("fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem");
     TezProtoLoggers loggers = new TezProtoLoggers();
     loggers.setup(conf, clock);
     manifestLogger = loggers.getManifestEventsLogger();
   }
 
-  @Test
+  @Test(timeout=5000)
   public void testNormal() throws Exception {
     clock.setTime(0); // 0th day.
     createManifestEvents(0, 8);
@@ -85,6 +90,37 @@ public class TestDagManifestFileScanner {
     // Not able to test append since the LocalFileSystem does not implement append.
   }
 
+  private Path deleteFilePath = null;
+  @Test(timeout=5000)
+  public void testError() throws Exception {
+    clock.setTime(0); // 0th day.
+    createManifestEvents(0, 4);
+    corruptFiles();
+    clock.setTime((24 * 60 * 60 + 1) * 1000); // 1 day 1 sec.
+    createManifestEvents(24 * 3600, 1);
+
+    DagManifesFileScanner scanner = new DagManifesFileScanner(manifestLogger);
+    Assert.assertNotNull(scanner.getNext());
+    deleteFilePath.getFileSystem(manifestLogger.getConfig()).delete(deleteFilePath, false);
+    // 4 files - 1 file deleted - 1 truncated - 1 corrupted => 1 remains.
+    Assert.assertNull(scanner.getNext());
+
+    // Save offset for later use.
+    String offset = scanner.getOffset();
+
+    // Move time outside the window, it should skip files with error and give more data for
+    // next day.
+    clock.setTime((24 * 60 * 60 + 61) * 1000); // 1 day 61 sec.
+    Assert.assertNotNull(scanner.getNext());
+    Assert.assertNull(scanner.getNext());
+
+    // Reset the offset
+    scanner.setOffset(offset);
+    Assert.assertNotNull(scanner.getNext());
+    Assert.assertNull(scanner.getNext());
+    scanner.close();
+  }
+
   private void createManifestEvents(long time, int numEvents) throws IOException {
     for (int i = 0; i < numEvents; ++i) {
       ApplicationId appId = ApplicationId.newInstance(1000l, i);
@@ -100,6 +136,33 @@ public class TestDagManifestFileScanner {
       ProtoMessageWriter<ManifestEntryProto> writer = manifestLogger.getWriter(appId.toString());
       writer.writeProto(proto);
       writer.close();
+    }
+  }
+
+  private void corruptFiles() throws IOException {
+    int op = 0;
+    Configuration conf = manifestLogger.getConfig();
+    Path base = new Path(
+        conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR) + "/dag_meta");
+    FileSystem fs = base.getFileSystem(conf);
+    for (FileStatus status : fs.listStatus(base)) {
+      if (status.isDirectory()) {
+        for (FileStatus file : fs.listStatus(status.getPath())) {
+          if (!file.getPath().getName().startsWith("application_")) {
+            continue;
+          }
+          switch (op) {
+            case 0:
+            case 1:
+              fs.truncate(file.getPath(), op == 1 ? 0 : file.getLen() - 20);
+              break;
+            case 3:
+              deleteFilePath = file.getPath();
+              break;
+          }
+          op++;
+        }
+      }
     }
   }
 
