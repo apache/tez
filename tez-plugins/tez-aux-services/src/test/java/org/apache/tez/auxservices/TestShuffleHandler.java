@@ -111,7 +111,7 @@ public class TestShuffleHandler {
         }
         @Override
         protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                 String jobId,
+                                                 Range reduceRange, String jobId,
                                                  String user)
             throws IOException {
           // Do nothing.
@@ -236,7 +236,7 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   String jobId,
+                                                   Range reduceRange, String jobId,
                                                    String user)
               throws IOException {
             return null;
@@ -346,7 +346,7 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   String jobId, String user)
+                                                   Range reduceRange, String jobId, String user)
               throws IOException {
             return null;
           }
@@ -568,7 +568,7 @@ public class TestShuffleHandler {
         return new Shuffle(conf) {
           @Override
           protected MapOutputInfo getMapOutputInfo(String dagId, String mapId,
-                                                   String jobId,
+                                                   Range reduceRange, String jobId,
                                                    String user)
               throws IOException {
             // Do nothing.
