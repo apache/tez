@@ -394,8 +394,9 @@ public class TezCommonUtils {
   @Private
   public static byte[] decompressByteStringToByteArray(ByteString byteString, Inflater inflater) throws IOException {
     inflater.reset();
-    return IOUtils.toByteArray(new InflaterInputStream(byteString.newInput(), inflater));
-
+    try (InflaterInputStream inflaterInputStream = new InflaterInputStream(byteString.newInput(), inflater)) {
+      return IOUtils.toByteArray(inflaterInputStream);
+    }
   }
 
   public static String getCredentialsInfo(Credentials credentials, String identifier) {
