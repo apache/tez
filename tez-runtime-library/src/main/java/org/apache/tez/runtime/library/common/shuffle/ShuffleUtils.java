@@ -125,7 +125,7 @@ public class ShuffleUtils {
         LOG.debug("Read " + shuffleData.length + " bytes from input for "
             + identifier);
       }
-    } catch (InternalError | IOException e) {
+    } catch (InternalError | Exception e) {
       // Close the streams
       LOG.info("Failed to read data to memory for " + identifier + ". len=" + compressedLength +
           ", decomp=" + decompressedLength + ". ExceptionMessage=" + e.getMessage());
@@ -135,9 +135,12 @@ public class ShuffleUtils {
         // on decompression failures. Catching and re-throwing as IOException
         // to allow fetch failure logic to be processed.
         throw new IOException(e);
+      } else if (e instanceof IOException) {
+        throw e;
+      } else {
+        // Re-throw as an IOException
+        throw new IOException(e);
       }
-      // Re-throw
-      throw e;
     }
   }
   
