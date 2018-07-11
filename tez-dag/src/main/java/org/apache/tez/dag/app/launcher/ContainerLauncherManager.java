@@ -122,17 +122,22 @@ public class ContainerLauncherManager extends AbstractService
       String workingDirectory,
       int containerLauncherIndex,
       boolean isPureLocalMode) throws TezException {
+    ContainerLauncher containerLauncher;
     if (containerLauncherDescriptor.getEntityName().equals(
         TezConstants.getTezYarnServicePluginName())) {
-      return createYarnContainerLauncher(containerLauncherContext);
+      containerLauncher = createYarnContainerLauncher(containerLauncherContext);
     } else if (containerLauncherDescriptor.getEntityName()
         .equals(TezConstants.getTezUberServicePluginName())) {
-      return createUberContainerLauncher(containerLauncherContext, context,
-          taskCommunicatorManagerInterface,
-          workingDirectory, isPureLocalMode);
+      containerLauncher = createUberContainerLauncher(containerLauncherContext,
+          context, taskCommunicatorManagerInterface, workingDirectory,
+          isPureLocalMode);
     } else {
-      return createCustomContainerLauncher(containerLauncherContext, containerLauncherDescriptor);
+      containerLauncher = createCustomContainerLauncher(
+          containerLauncherContext, containerLauncherDescriptor);
     }
+    containerLauncher.setInterPluginCommunicator(
+        appContext.getInterPluginCommunicator());
+    return containerLauncher;
   }
 
   @VisibleForTesting

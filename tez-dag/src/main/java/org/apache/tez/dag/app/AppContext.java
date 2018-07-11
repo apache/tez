@@ -25,12 +25,12 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
+import org.apache.tez.common.plugin.InterPluginCommunicator;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
@@ -125,6 +125,14 @@ public interface AppContext {
   boolean isAMInCompletionState();
 
   Credentials getAppCredentials();
+
+  /**
+   * Method to get the {@link InterPluginCommunicator}
+   * in the context.
+   * @return inter plugin communicator to share
+   * objects between plugins.
+   */
+  InterPluginCommunicator getInterPluginCommunicator();
 
   public Integer getTaskCommunicatorIdentifier(String name);
   public Integer getTaskScheduerIdentifier(String name);

@@ -23,7 +23,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.tez.common.ServicePluginLifecycle;
+import org.apache.tez.common.plugin.ServicePluginAware;
 
 /**
  * This class represents the API for a custom TaskScheduler which can be run within the Tez AM.
@@ -35,7 +35,7 @@ import org.apache.tez.common.ServicePluginLifecycle;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class TaskScheduler implements ServicePluginLifecycle {
+public abstract class TaskScheduler extends ServicePluginAware {
 
   // TODO TEZ-2003 (post) TEZ-2668
   // - Should setRegister / unregister be part of APIs when not YARN specific ?

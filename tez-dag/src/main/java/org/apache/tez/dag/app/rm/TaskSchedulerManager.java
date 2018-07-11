@@ -573,13 +573,18 @@ public class TaskSchedulerManager extends AbstractService implements
             customAppIdIdentifier, host, port, taskSchedulerDescriptor.getUserPayload());
     TaskSchedulerContext wrappedContext = wrapTaskSchedulerContext(rawContext);
     String schedulerName = taskSchedulerDescriptor.getEntityName();
+    TaskScheduler taskScheduler;
     if (schedulerName.equals(TezConstants.getTezYarnServicePluginName())) {
-      return createYarnTaskScheduler(wrappedContext, schedulerId);
+      taskScheduler = createYarnTaskScheduler(wrappedContext, schedulerId);
     } else if (schedulerName.equals(TezConstants.getTezUberServicePluginName())) {
-      return createUberTaskScheduler(wrappedContext, schedulerId);
+      taskScheduler = createUberTaskScheduler(wrappedContext, schedulerId);
     } else {
-      return createCustomTaskScheduler(wrappedContext, taskSchedulerDescriptor, schedulerId);
+      taskScheduler = createCustomTaskScheduler(wrappedContext,
+          taskSchedulerDescriptor, schedulerId);
     }
+    taskScheduler.setInterPluginCommunicator(
+        appContext.getInterPluginCommunicator());
+    return taskScheduler;
   }
 
   @VisibleForTesting

@@ -16,7 +16,7 @@ package org.apache.tez.serviceplugins.api;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.tez.common.ServicePluginLifecycle;
+import org.apache.tez.common.plugin.ServicePluginAware;
 
 /**
  * Plugin to allow custom container launchers to be written to launch containers on different types
@@ -25,7 +25,7 @@ import org.apache.tez.common.ServicePluginLifecycle;
 
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
-public abstract class ContainerLauncher implements ServicePluginLifecycle {
+public abstract class ContainerLauncher extends ServicePluginAware {
 
   private final ContainerLauncherContext containerLauncherContext;
 
