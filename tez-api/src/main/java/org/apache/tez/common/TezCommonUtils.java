@@ -388,7 +388,12 @@ public class TezCommonUtils {
 
   @Private
   public static byte[] decompressByteStringToByteArray(ByteString byteString) throws IOException {
-    return decompressByteStringToByteArray(byteString, newInflater());
+    Inflater inflater = newInflater();
+    try {
+      return decompressByteStringToByteArray(byteString, inflater);
+    } finally {
+      inflater.end();
+    }
   }
 
   @Private
