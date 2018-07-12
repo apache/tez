@@ -137,7 +137,7 @@ public class DAGUtils {
   }
 
   public static Map<String,Object> convertCountersToATSMap(TezCounters counters) {
-    Map<String,Object> object = new LinkedHashMap<String, Object>();
+    Map<String, Object> object = new LinkedHashMap<String, Object>();
     if (counters == null) {
         return object;
       }
@@ -187,8 +187,24 @@ public class DAGUtils {
     return dagInfo;
   }
 
-  public static Map<String,Object> convertDAGPlanToATSMap(DAGPlan dagPlan) throws IOException {
+  public static Map<String, Object> convertDAGPlanToATSMap(final DAGPlan
+      dagPlan) throws IOException {
     final Inflater inflater = TezCommonUtils.newInflater();
+    try {
+      return convertDAGPlanToATSMap(dagPlan, inflater);
+    } finally {
+      inflater.end();
+    }
+  }
+
+  /**
+   * Auxiliary method to convert dagPlan to ATS Map.
+   * @param dagPlan dag plan.
+   * @param inflater inflater. This method shouldn't end it.
+   * @return ATS MAP
+   */
+  private static Map<String, Object> convertDAGPlanToATSMap(DAGPlan dagPlan,
+      final Inflater inflater) {
     final String VERSION_KEY = "version";
     final int version = 2;
     Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
