@@ -1399,9 +1399,9 @@ public class ShuffleHandler extends AuxiliaryService {
         DataOutputBuffer dob = new DataOutputBuffer();
         header.write(dob);
         // Free the memory needed to store the spill and index records
-        outputInfo.finish();
         ch.write(wrappedBuffer(dob.getData(), 0, dob.getLength()));
       }
+      outputInfo.finish();
 
       final long rangeOffset = firstIndex.getStartOffset();
       final long rangePartLength = lastIndex.getStartOffset() + lastIndex.getPartLength() - firstIndex.getStartOffset();
