@@ -1296,6 +1296,12 @@
           <scope>runtime</scope>
           <version>${hadoop.version}</version>
         </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-azure-datalake</artifactId>
+          <scope>runtime</scope>
+          <version>${hadoop.version}</version>
+        </dependency>
       </dependencies>
     </profile>
   </profiles>
