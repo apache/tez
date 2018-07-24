@@ -735,7 +735,7 @@ public class DagTypeConverters {
     if (payload == null) {
       return null;
     }
-    return payload.getPayload();
+    return payload.getRawPayload();
   }
 
   public static VertexExecutionContextProto convertToProto(
