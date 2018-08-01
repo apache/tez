@@ -37,7 +37,7 @@
   <properties>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <clover.license>${user.home}/clover.license</clover.license>
-    <hadoop.version>3.0.2</hadoop.version>
+    <hadoop.version>3.0.3</hadoop.version>
     <jetty.version>9.3.22.v20171030</jetty.version>
     <netty.version>3.10.5.Final</netty.version>
     <pig.version>0.13.0</pig.version>
@@ -1293,6 +1293,12 @@
         <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-azure</artifactId>
+          <scope>runtime</scope>
+          <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-azure-datalake</artifactId>
           <scope>runtime</scope>
           <version>${hadoop.version}</version>
         </dependency>

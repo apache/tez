@@ -85,8 +85,7 @@ public class LegacySpeculator {
   // in progress.
   private static final long MAX_WAITTING_TIME_FOR_HEARTBEAT = 9 * 1000;
 
-
-  private final Set<TezTaskID> mayHaveSpeculated = new HashSet<TezTaskID>();
+  private final Set<TezTaskID> waitingToSpeculate = new HashSet<TezTaskID>();
 
   private Vertex vertex;
   private TaskRuntimeEstimator estimator;
@@ -229,24 +228,44 @@ public class LegacySpeculator {
     if (task.getState() == TaskState.SUCCEEDED) {
       return NOT_RUNNING;
     }
-    
-    if (!mayHaveSpeculated.contains(taskID) && !shouldUseTimeout) {
-      acceptableRuntime = estimator.thresholdRuntime(taskID);
-      if (acceptableRuntime == Long.MAX_VALUE) {
-        return ON_SCHEDULE;
+
+    int numberRunningAttempts = 0;
+
+    for (TaskAttempt taskAttempt : attempts.values()) {
+      TaskAttemptState taskAttemptState = taskAttempt.getState();
+      if (taskAttemptState == TaskAttemptState.RUNNING
+          || taskAttemptState == TaskAttemptState.STARTING) {
+        if (++numberRunningAttempts > 1) {
+          waitingToSpeculate.remove(taskID);
+          return ALREADY_SPECULATING;
+        }
+      }
+    }
+
+    // If we are here, there's at most one task attempt.
+    if (numberRunningAttempts == 0) {
+      return NOT_RUNNING;
+    }
+
+    if ((numberRunningAttempts == 1) && waitingToSpeculate.contains(taskID)) {
+      return ALREADY_SPECULATING;
+    }
+    else {
+      if (!shouldUseTimeout) {
+        acceptableRuntime = estimator.thresholdRuntime(taskID);
+        if (acceptableRuntime == Long.MAX_VALUE) {
+          return ON_SCHEDULE;
+        }
       }
     }
 
     TezTaskAttemptID runningTaskAttemptID = null;
 
-    int numberRunningAttempts = 0;
-
     for (TaskAttempt taskAttempt : attempts.values()) {
-      if (taskAttempt.getState() == TaskAttemptState.RUNNING
-          || taskAttempt.getState() == TaskAttemptState.STARTING) {
-        if (++numberRunningAttempts > 1) {
-          return ALREADY_SPECULATING;
-        }
+      TaskAttemptState taskAttemptState = taskAttempt.getState();
+      if (taskAttemptState == TaskAttemptState.RUNNING
+          || taskAttemptState == TaskAttemptState.STARTING) {
+
         runningTaskAttemptID = taskAttempt.getID();
 
         long taskAttemptStartTime
@@ -311,13 +330,6 @@ public class LegacySpeculator {
       }
     }
 
-    // If we are here, there's at most one task attempt.
-    if (numberRunningAttempts == 0) {
-      return NOT_RUNNING;
-    }
-
-
-
     if ((acceptableRuntime == Long.MIN_VALUE) && !shouldUseTimeout) {
       acceptableRuntime = estimator.thresholdRuntime(taskID);
       if (acceptableRuntime == Long.MAX_VALUE) {
@@ -332,7 +344,7 @@ public class LegacySpeculator {
   protected void addSpeculativeAttempt(TezTaskID taskID) {
     LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating " + taskID);
     vertex.scheduleSpeculativeTask(taskID);
-    mayHaveSpeculated.add(taskID);
+    waitingToSpeculate.add(taskID);
   }
 
   private int maybeScheduleASpeculation() {

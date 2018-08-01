@@ -20,6 +20,7 @@ package org.apache.tez.common;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,7 @@ public class TezUtils {
    * @throws java.io.IOException
    */
   public static UserPayload createUserPayloadFromConf(Configuration conf) throws IOException {
-    return UserPayload.create(createByteStringFromConf(conf).asReadOnlyByteBuffer());
+    return UserPayload.create(ByteBuffer.wrap(createByteStringFromConf(conf).toByteArray()));
   }
 
   /**

@@ -63,6 +63,17 @@ public final class UserPayload {
   }
 
   /**
+   * Return the payload as a ByteBuffer.
+   * @return ByteBuffer.
+   */
+  @Nullable
+  public ByteBuffer getRawPayload() {
+    // Note: Several bits of serialization, including deepCopyAsArray depend on a new instance of the
+    // ByteBuffer being returned, since they modify it. If changing this code to return the same
+    // ByteBuffer - deepCopyAsArray and TezEntityDescriptor need to be looked at.
+    return payload == EMPTY_BYTE ? null : payload.duplicate();
+  }
+  /**
    * Return the payload as a read-only ByteBuffer.
    * @return read-only ByteBuffer.
    */

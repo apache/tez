@@ -28,6 +28,7 @@ import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.common.io.Files;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -66,6 +67,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -75,13 +77,21 @@ import com.google.common.collect.Lists;
 
 public class TestMROutput {
 
+  static File tmpDir;
+
+  @BeforeClass
+  public static void setupClass () {
+    tmpDir = Files.createTempDir();
+    tmpDir.deleteOnExit();
+  }
+
   @Test(timeout = 5000)
   public void testNewAPI_TextOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     DataSinkDescriptor dataSink = MROutput
-        .createConfigBuilder(conf, TextOutputFormat.class, outputPath)
+        .createConfigBuilder(conf, TextOutputFormat.class,
+            tmpDir.getPath())
         .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
@@ -101,11 +111,12 @@ public class TestMROutput {
 
   @Test(timeout = 5000)
   public void testOldAPI_TextOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     DataSinkDescriptor dataSink = MROutput
-        .createConfigBuilder(conf, org.apache.hadoop.mapred.TextOutputFormat.class, outputPath)
+        .createConfigBuilder(conf,
+            org.apache.hadoop.mapred.TextOutputFormat.class,
+            tmpDir.getPath())
         .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
@@ -125,12 +136,12 @@ public class TestMROutput {
 
   @Test(timeout = 5000)
   public void testNewAPI_SequenceFileOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
     conf.setOutputValueClass(Text.class);
     DataSinkDescriptor dataSink = MROutput
-        .createConfigBuilder(conf, SequenceFileOutputFormat.class, outputPath)
+        .createConfigBuilder(conf, SequenceFileOutputFormat.class,
+            tmpDir.getPath())
         .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
@@ -149,12 +160,13 @@ public class TestMROutput {
 
   @Test(timeout = 5000)
   public void testOldAPI_SequenceFileOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
     conf.setOutputValueClass(Text.class);
     DataSinkDescriptor dataSink = MROutput
-        .createConfigBuilder(conf, org.apache.hadoop.mapred.SequenceFileOutputFormat.class, outputPath)
+        .createConfigBuilder(conf,
+            org.apache.hadoop.mapred.SequenceFileOutputFormat.class,
+            tmpDir.getPath())
         .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
@@ -175,11 +187,11 @@ public class TestMROutput {
   // set while creating recordWriters
   @Test(timeout = 5000)
   public void testNewAPI_WorkOutputPathOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     DataSinkDescriptor dataSink = MROutput
-      .createConfigBuilder(conf, NewAPI_WorkOutputPathReadingOutputFormat.class, outputPath)
+      .createConfigBuilder(conf, NewAPI_WorkOutputPathReadingOutputFormat.class,
+          tmpDir.getPath())
       .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
@@ -201,11 +213,11 @@ public class TestMROutput {
   // set while creating recordWriters
   @Test(timeout = 5000)
   public void testOldAPI_WorkOutputPathOutputFormat() throws Exception {
-    String outputPath = "/tmp/output";
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     DataSinkDescriptor dataSink = MROutput
-      .createConfigBuilder(conf, OldAPI_WorkOutputPathReadingOutputFormat.class, outputPath)
+      .createConfigBuilder(conf, OldAPI_WorkOutputPathReadingOutputFormat.class,
+          tmpDir.getPath())
       .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
