@@ -128,7 +128,7 @@ public class DAGClientServer extends AbstractService {
       BlockingService blockingService, String portRangeConfig) throws IOException {
     RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
-        .setInstance(blockingService).setBindAddress(addr.getHostName())
+        .setInstance(blockingService).setBindAddress(addr.getHostString())
         .setPort(addr.getPort()).setNumHandlers(numHandlers).setVerbose(false)
         .setPortRangeConfig(portRangeConfig).setSecretManager(secretManager)
         .build();
