@@ -29,18 +29,11 @@ import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
+
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
-import org.apache.tez.runtime.api.events.EventProtos;
-import org.apache.tez.runtime.api.events.EventProtos.CompositeEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.CompositeRoutedDataMovementEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
@@ -49,7 +42,17 @@ import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.events.UpdateCredentialsEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
+
+import org.apache.tez.runtime.api.events.EventProtos;
+import org.apache.tez.runtime.api.events.EventProtos.CompositeEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.CompositeRoutedDataMovementEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptCompletedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptFailedEventProto;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttemptKilledEventProto;
@@ -109,6 +112,8 @@ public class TezEvent implements Writable {
       eventType = EventType.ROOT_INPUT_DATA_INFORMATION_EVENT;
     } else if (event instanceof InputInitializerEvent) {
       eventType = EventType.ROOT_INPUT_INITIALIZER_EVENT;
+    } else if (event instanceof UpdateCredentialsEvent) {
+      eventType = EventType.UPDATE_CREDENTIALS_EVENT;
     } else {
       throw new TezUncheckedException("Unknown event, event="
           + event.getClass().getName());
@@ -223,6 +228,9 @@ public class TezEvent implements Writable {
         message = ProtoConverters
             .convertRootInputInitializerEventToProto((InputInitializerEvent) event);
         break;
+      case UPDATE_CREDENTIALS_EVENT:
+        message = ProtoConverters.convertUpdateCredentialsEventToProto((UpdateCredentialsEvent) event);
+        break;
       default:
         throw new TezUncheckedException("Unknown TezEvent"
            + ", type=" + eventType);
@@ -325,6 +333,10 @@ public class TezEvent implements Writable {
       case ROOT_INPUT_INITIALIZER_EVENT:
         EventProtos.RootInputInitializerEventProto riiProto = EventProtos.RootInputInitializerEventProto.parseFrom(input);
         event = ProtoConverters.convertRootInputInitializerEventFromProto(riiProto);
+        break;
+      case UPDATE_CREDENTIALS_EVENT:
+        EventProtos.UpdateCredentialsEventProto ucProto = EventProtos.UpdateCredentialsEventProto.parseFrom(input);
+        event = ProtoConverters.convertUpdateCredentialsEventFromProto(ucProto);
         break;
       default:
         // RootInputUpdatePayload event not wrapped in a TezEvent.

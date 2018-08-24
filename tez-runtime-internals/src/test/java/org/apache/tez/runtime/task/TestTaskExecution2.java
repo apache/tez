@@ -794,7 +794,7 @@ public class TestTaskExecution2 {
           HashMultimap.<String, String>create(), taskReporter,
           executor, null, "", new ExecutionContextImpl("localhost"),
           Runtime.getRuntime().maxMemory(), updateSysCounters, new DefaultHadoopShim(),
-          sharedExecutor);
+          sharedExecutor, null);
     }
 
     return taskRunner;
@@ -824,7 +824,7 @@ public class TestTaskExecution2 {
       super(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
           serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry, pid,
           executionContext, memAvailable, updateSysCounters, new DefaultHadoopShim(),
-          sharedExecutor);
+          sharedExecutor, null);
     }
 
 

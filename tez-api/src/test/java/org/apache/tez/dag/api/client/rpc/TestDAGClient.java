@@ -32,6 +32,9 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
+import com.google.protobuf.ByteString;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -51,6 +54,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResp
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.UpdateCredentialsDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
@@ -255,6 +259,21 @@ public class TestDAGClient {
     dagClient.tryKillDAG();
     verify(mockProxy, times(1)).tryKillDAG(null, TryKillDAGRequestProto.newBuilder()
         .setDagId(dagIdStr).build());
+  }
+
+  @Test(timeout = 5000)
+  public void testUpdateDAGCredentials() throws Exception {
+    Credentials credentials = new Credentials();
+    dagClient.updateDAGCredentials(credentials);
+    DataOutputBuffer dob = new DataOutputBuffer();
+
+    credentials.writeTokenStorageToStream(dob, Credentials.SerializedFormat.PROTOBUF);
+
+    UpdateCredentialsDAGRequestProto requestProto =
+        UpdateCredentialsDAGRequestProto.newBuilder().setCredentialsBinary(
+            ByteString.copyFrom(dob.getData())).setDagID(dagIdStr).build();
+
+    verify(mockProxy, times(1)).updateDAGCredentials(null, requestProto);
   }
   
   @Test(timeout = 5000)

@@ -229,7 +229,7 @@ public class TestOnFileUnorderedKVOutput {
     when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
     task = new LogicalIOProcessorRuntimeTask(mockSpec, appAttemptNumber, new Configuration(),
         new String[]{"/"}, tezUmbilical, null, null, null, null, "", null, 1024, false,
-        new DefaultHadoopShim(), sharedExecutor);
+        new DefaultHadoopShim(), sharedExecutor, null);
 
     LogicalIOProcessorRuntimeTask runtimeTask = spy(task);
     

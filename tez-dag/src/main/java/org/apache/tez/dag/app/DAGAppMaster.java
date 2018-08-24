@@ -57,6 +57,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -157,6 +158,7 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
+import org.apache.tez.dag.app.dag.event.TaskEventUpdateCredentials;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
@@ -197,6 +199,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * The Tez DAG Application Master.
@@ -289,8 +292,8 @@ public class DAGAppMaster extends AbstractService {
   private DAGClientHandler clientHandler;
 
   private DAG currentDAG;
-  private final Credentials amCredentials;
-  private final UserGroupInformation appMasterUgi;
+  private Credentials amCredentials;
+  private UserGroupInformation appMasterUgi;
 
   private AtomicBoolean sessionStopped = new AtomicBoolean(false);
   private final Object idleStateLock = new Object();
@@ -1418,7 +1421,35 @@ public class DAGAppMaster extends AbstractService {
     }
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, message));
   }
-  
+
+  public void updateAMCredentials(Credentials credentials) throws TezException {
+    this.amCredentials.addAll(credentials);
+    this.appMasterUgi.addCredentials(amCredentials);
+    removeARRMToken(this.amCredentials);
+  }
+
+  public void updateDAGCredentials(Credentials credentials, DAG dag) throws TezException {
+    dag.getVertices().values().stream().
+        flatMap(v -> v.getTasks().values().stream()).collect(Collectors.toCollection(ArrayList::new)).
+        forEach(task -> dispatcher.getEventHandler().handle(new TaskEventUpdateCredentials(
+            task.getTaskId(), credentials, task.getVertex().getName())));
+  }
+
+  //TODO
+  public void updateSessionCredentials(Credentials credentials) throws TezException {
+    sessionToken =
+        TokenCache.getSessionToken(credentials);
+    if (sessionToken == null) {
+      throw new TezException("Could not find session token in AM Credentials");
+    }
+
+    String appId = appAttemptID.getApplicationId().toString();
+    jobTokenSecretManager.removeTokenForJob(appId);
+    jobTokenSecretManager.addTokenForJob(appId, sessionToken);
+
+    throw new UnsupportedOperationException();
+  }
+
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
       DAG dag, Map<String, LocalResource> additionalResources) throws TezException {
     if (additionalResources == null) {
@@ -2637,6 +2668,11 @@ public class DAGAppMaster extends AbstractService {
     sendEvent(startDagEvent);
   }
 
+  private static void removeARRMToken(Credentials credentials) {
+    credentials.getAllTokens().removeIf(token ->
+        token.getKind().equals(AMRMTokenIdentifier.KIND_NAME));
+  }
+
   public static void initAndStartAppMaster(final DAGAppMaster appMaster,
       final Configuration conf) throws IOException,
       InterruptedException {
@@ -2648,13 +2684,7 @@ public class DAGAppMaster extends AbstractService {
     Limits.setConfiguration(conf);
 
     // Now remove the AM->RM token so tasks don't have it
-    Iterator<Token<?>> iter = appMaster.amCredentials.getAllTokens().iterator();
-    while (iter.hasNext()) {
-      Token<?> token = iter.next();
-      if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
-        iter.remove();
-      }
-    }
+    removeARRMToken(appMaster.amCredentials);
 
     appMaster.appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override

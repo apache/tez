@@ -438,6 +438,26 @@ public class TezClientUtils {
     return dagCredentials;
   }
 
+  @Private
+  @VisibleForTesting
+  public static Credentials createAMCredentials(ApplicationId appId,
+      AMConfiguration amConfig, Credentials sessionCreds, Path binaryConfPath) throws IOException {
+    // Setup required Credentials for the AM launch. DAG specific credentials
+    // are handled separately.
+    Credentials amLaunchCredentials = new Credentials();
+    if (amConfig.getCredentials() != null) {
+      amLaunchCredentials.addAll(amConfig.getCredentials());
+    }
+    // Add Staging dir creds to the list of session credentials.
+    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath},
+        amConfig.getTezConfiguration());
+
+    // Add session specific credentials to the AM credentials.
+    amLaunchCredentials.mergeAll(sessionCreds);
+
+    return amLaunchCredentials;
+  }
+
   /**
    * Create an ApplicationSubmissionContext to launch a Tez AM
    * @param appId Application Id
@@ -483,24 +503,11 @@ public class TezClientUtils {
       LOG.debug("AppMaster capability = " + capability);
     }
 
-    // Setup required Credentials for the AM launch. DAG specific credentials
-    // are handled separately.
-    ByteBuffer securityTokens = null;
-    // Setup security tokens
-    Credentials amLaunchCredentials = new Credentials();
-    if (amConfig.getCredentials() != null) {
-      amLaunchCredentials.addAll(amConfig.getCredentials());
-    }
-
-    // Add Staging dir creds to the list of session credentials.
-    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
-
-    // Add session specific credentials to the AM credentials.
-    amLaunchCredentials.mergeAll(sessionCreds);
-
+    Credentials amLaunchCredentials = createAMCredentials(appId, amConfig, sessionCreds,
+        binaryConfPath);
     DataOutputBuffer dob = new DataOutputBuffer();
     amLaunchCredentials.writeTokenStorageToStream(dob);
-    securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+    ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
     // Setup the command to run the AM
     List<String> vargs = new ArrayList<String>(8);

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezAppMasterStatus;
@@ -34,42 +35,53 @@ import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.records.TezDAGID;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.internal.util.collections.Sets;
 
 
 public class TestDAGClientHandler {
-  
-  @Test(timeout = 5000)
-  public void testDAGClientHandler() throws TezException {
+
+  DAG mockDAG;
+  DAGClientHandler dagClientHandler;
+  DAGStatusBuilder mockDagStatusBuilder;
+  DAGAppMaster mockDagAM;
+  VertexStatusBuilder mockVertexStatusBuilder;
+  String dagIdStr = "dag_9999_0001_1";
+
+  @Before
+  public void setUp() {
 
     TezDAGID mockTezDAGId = mock(TezDAGID.class);
     when(mockTezDAGId.getId()).thenReturn(1);
-    when(mockTezDAGId.toString()).thenReturn("dag_9999_0001_1");
+    when(mockTezDAGId.toString()).thenReturn(dagIdStr);
 
-    DAG mockDAG = mock(DAG.class);
+    mockDAG = mock(DAG.class);
     when(mockDAG.getID()).thenReturn(mockTezDAGId);
-    DAGStatusBuilder mockDagStatusBuilder = mock(DAGStatusBuilder.class);
+    mockDagStatusBuilder = mock(DAGStatusBuilder.class);
     when(mockDAG.getDAGStatus(anySetOf(StatusGetOpts.class))).thenReturn(
         mockDagStatusBuilder);
-    VertexStatusBuilder mockVertexStatusBuilder =
+    mockVertexStatusBuilder =
         mock(VertexStatusBuilder.class);
     when(mockDAG.getVertexStatus(anyString(), anySetOf(StatusGetOpts.class)))
         .thenReturn(mockVertexStatusBuilder);
 
-    DAGAppMaster mockDagAM = mock(DAGAppMaster.class);
+    mockDagAM = mock(DAGAppMaster.class);
     when(mockDagAM.getState()).thenReturn(DAGAppMasterState.RUNNING);
     AppContext mockAppContext = mock(AppContext.class);
     when(mockDagAM.getContext()).thenReturn(mockAppContext);
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(mockDAG);
     when(mockAppContext.getClock()).thenReturn(new SystemClock());
 
-    DAGClientHandler dagClientHandler = new DAGClientHandler(mockDagAM);
+    dagClientHandler = new DAGClientHandler(mockDagAM);
+  }
 
+  @Test(timeout = 5000)
+  public void testDAGClientHandler() throws TezException {
     // getAllDAGs()
     assertEquals(1, dagClientHandler.getAllDAGs().size());
-    assertEquals("dag_9999_0001_1", dagClientHandler.getAllDAGs().get(0));
+    assertEquals(dagIdStr, dagClientHandler.getAllDAGs().get(0));
 
     // getDAGStatus
     try {
@@ -78,7 +90,7 @@ public class TestDAGClientHandler {
     } catch (TezException e) {
       assertTrue(e.getMessage().contains("Unknown dagId"));
     }
-    DAGStatus dagStatus = dagClientHandler.getDAGStatus("dag_9999_0001_1", 
+    DAGStatus dagStatus = dagClientHandler.getDAGStatus(dagIdStr,
         Sets.newSet(StatusGetOpts.GET_COUNTERS));
     assertEquals(mockDagStatusBuilder, dagStatus);
 
@@ -89,7 +101,7 @@ public class TestDAGClientHandler {
     } catch (TezException e) {
       assertTrue(e.getMessage().contains("Unknown dagId"));
     }
-    VertexStatus vertexStatus = dagClientHandler.getVertexStatus("dag_9999_0001_1", "v1",
+    VertexStatus vertexStatus = dagClientHandler.getVertexStatus(dagIdStr, "v1",
         Sets.newSet(StatusGetOpts.GET_COUNTERS));
     assertEquals(mockVertexStatusBuilder, vertexStatus);
     
@@ -112,13 +124,13 @@ public class TestDAGClientHandler {
     }catch(TezException e){
       assertTrue(e.getMessage().contains("Unknown dagId"));
     }
-    dagClientHandler.tryKillDAG("dag_9999_0001_1");
+    dagClientHandler.tryKillDAG(dagIdStr);
     ArgumentCaptor<DAG> eventCaptor = ArgumentCaptor.forClass(DAG.class);
     verify(mockDagAM, times(1)).tryKillDAG(eventCaptor.capture(),
         contains("Sending client kill from"));
     assertEquals(1, eventCaptor.getAllValues().size());
     assertTrue(eventCaptor.getAllValues().get(0) instanceof DAG);
-    assertEquals("dag_9999_0001_1",  ((DAG)eventCaptor.getAllValues().get(0)).getID().toString());
+    assertEquals(dagIdStr,  ((DAG)eventCaptor.getAllValues().get(0)).getID().toString());
 
     // submitDAG
     DAGPlan dagPlan = DAGPlan.getDefaultInstance();
@@ -130,5 +142,18 @@ public class TestDAGClientHandler {
     dagClientHandler.shutdownAM();
     verify(mockDagAM).shutdownTezAM(contains("Received message to shutdown AM from"));
   }
-  
+
+  @Test(timeout = 5000)
+  public void testUpdateDAGCredentials() throws TezException{
+    Credentials credentials = new Credentials();
+    dagClientHandler.updateDAGCredentials(dagIdStr, credentials);
+    verify(mockDagAM).updateDAGCredentials(credentials, mockDAG);
+  }
+
+  @Test(timeout = 5000)
+  public void testUpdateAMCredentials() throws TezException{
+    Credentials credentials = new Credentials();
+    dagClientHandler.updateAMCredentials(credentials);
+    verify(mockDagAM).updateAMCredentials(credentials);
+  }
 }

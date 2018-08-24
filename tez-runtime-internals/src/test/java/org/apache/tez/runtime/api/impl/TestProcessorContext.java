@@ -66,7 +66,7 @@ public class TestProcessorContext {
     TezSharedExecutor sharedExecutor = new TezSharedExecutor(conf);
     LogicalIOProcessorRuntimeTask runtimeTask = new LogicalIOProcessorRuntimeTask(mockSpec, 1, conf,
         new String[]{"/"}, tezUmbilical, null, null, null, null, "", null, 1024, false,
-        new DefaultHadoopShim(), sharedExecutor);
+        new DefaultHadoopShim(), sharedExecutor, null);
     LogicalIOProcessorRuntimeTask mockTask = spy(runtimeTask);
     Map<String, ByteBuffer> serviceConsumerMetadata = Maps.newHashMap();
     Map<String, String> auxServiceEnv = Maps.newHashMap();

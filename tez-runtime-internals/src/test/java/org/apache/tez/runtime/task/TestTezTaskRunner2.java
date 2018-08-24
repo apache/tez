@@ -55,7 +55,7 @@ public class TestTezTaskRunner2 {
     TezExecutors sharedExecutor = new TezSharedExecutor(conf);
     TezTaskRunner2 taskRunner2 = new TezTaskRunner2(conf, mock(UserGroupInformation.class),
         localDirs, taskSpec, 1, null, null, null, mock(TaskReporter.class), null, null, "pid",
-        null, 1000, false, new DefaultHadoopShim(), sharedExecutor);
+        null, 1000, false, new DefaultHadoopShim(), sharedExecutor, null);
 
     Assert.assertEquals("global1", taskRunner2.task.getTaskConf().get("global"));
     Assert.assertEquals("task1", taskRunner2.task.getTaskConf().get("global_override"));

@@ -461,7 +461,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           request.getAppAttemptNumber(),
           serviceConsumerMetadata, envMap, startedInputsMap, taskReporter, executor, objectRegistry,
           pid,
-          executionContext, memoryAvailable, false, new DefaultHadoopShim(), sharedExecutor);
+          executionContext, memoryAvailable, false, new DefaultHadoopShim(), sharedExecutor, null);
 
       boolean shouldDie;
       try {

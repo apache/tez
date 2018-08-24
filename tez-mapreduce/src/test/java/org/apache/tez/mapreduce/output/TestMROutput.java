@@ -277,7 +277,7 @@ public class TestMROutput {
         null,
         new HashMap<String, String>(),
         HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
-        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor);
+        Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor, null);
   }
 
   public static class TestOutputCommitter extends OutputCommitter {

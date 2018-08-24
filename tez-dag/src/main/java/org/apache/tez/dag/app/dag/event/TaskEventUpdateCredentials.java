@@ -16,21 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.impl;
+package org.apache.tez.dag.app.dag.event;
 
-public enum EventType {
-  TASK_ATTEMPT_COMPLETED_EVENT,
-  TASK_ATTEMPT_FAILED_EVENT,
-  TASK_ATTEMPT_KILLED_EVENT,
-  DATA_MOVEMENT_EVENT,
-  INPUT_READ_ERROR_EVENT,
-  INPUT_FAILED_EVENT,
-  TASK_STATUS_UPDATE_EVENT,
-  VERTEX_MANAGER_EVENT,
-  ROOT_INPUT_DATA_INFORMATION_EVENT,
-  COMPOSITE_DATA_MOVEMENT_EVENT,
-  ROOT_INPUT_INITIALIZER_EVENT,
-  COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT,
-  CUSTOM_PROCESSOR_EVENT,
-  UPDATE_CREDENTIALS_EVENT,
+import org.apache.hadoop.security.Credentials;
+import org.apache.tez.dag.records.TezTaskID;
+
+public class TaskEventUpdateCredentials extends TaskEvent {
+  private final Credentials credentials;
+  private final String vertexName;
+
+  public TaskEventUpdateCredentials(TezTaskID taskId, Credentials credentials, String vertexName) {
+    super(taskId, TaskEventType.T_UPDATE_CREDENTIALS);
+    this.credentials = credentials;
+    this.vertexName = vertexName;
+  }
+
+  public Credentials getCredentials() {
+    return credentials;
+  }
+
+  public String getVertexName() {
+    return vertexName;
+  }
 }

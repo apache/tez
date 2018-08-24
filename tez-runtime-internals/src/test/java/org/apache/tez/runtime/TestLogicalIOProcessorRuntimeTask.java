@@ -93,7 +93,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     LogicalIOProcessorRuntimeTask lio1 = new LogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
-        new DefaultHadoopShim(), sharedExecutor);
+        new DefaultHadoopShim(), sharedExecutor, null);
 
     try {
       lio1.initialize();
@@ -124,7 +124,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     LogicalIOProcessorRuntimeTask lio2 = new LogicalIOProcessorRuntimeTask(task2, 0, tezConf, null,
         umbilical, serviceConsumerMetadata, new HashMap<String, String>(), startedInputsMap, null,
         "", new ExecutionContextImpl("localhost"), Runtime.getRuntime().maxMemory(), true,
-        new DefaultHadoopShim(), sharedExecutor);
+        new DefaultHadoopShim(), sharedExecutor, null);
     try {
       lio2.initialize();
       lio2.run();

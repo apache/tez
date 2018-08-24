@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.SystemEventHandler;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.TaskContext;
@@ -160,6 +161,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final boolean initializeProcessorFirst;
   private final boolean initializeProcessorIOSerially;
   private final TezExecutors sharedExecutor;
+  private final SystemEventHandler systemEventHandler;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
@@ -167,7 +169,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       Multimap<String, String> startedInputsMap, ObjectRegistry objectRegistry,
       String pid, ExecutionContext ExecutionContext, long memAvailable,
       boolean updateSysCounters, HadoopShim hadoopShim,
-      TezExecutors sharedExecutor) throws IOException {
+      TezExecutors sharedExecutor, SystemEventHandler systemEventHandler) throws IOException {
     // Note: If adding any fields here, make sure they're cleaned up in the cleanupContext method.
     // TODO Remove jobToken from here post TEZ-421
     super(taskSpec, tezConf, tezUmbilical, pid, updateSysCounters);
@@ -221,6 +223,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.maxEventBacklog = tezConf.getInt(TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG,
         TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT);
     this.sharedExecutor = sharedExecutor;
+    this.systemEventHandler = systemEventHandler;
   }
 
   /**
@@ -749,7 +752,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         processor.handleEvents(Collections.singletonList(e.getEvent()));
         break;
       case SYSTEM:
-        LOG.warn("Trying to send a System event in a Task: " + e);
+        if (systemEventHandler != null) {
+          systemEventHandler.handleEvents(e);
+        } else {
+          LOG.warn("Received system event but the systemEventHandler is not set");
+        }
         break;
       }
     } catch (Throwable t) {

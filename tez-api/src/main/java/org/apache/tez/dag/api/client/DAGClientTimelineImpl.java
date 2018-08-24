@@ -195,6 +195,13 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     throw new TezException("tryKillDAG is unsupported for DAGClientTimelineImpl");
   }
 
+  // TODO implement this
+  @Override
+  public void updateDAGCredentials(org.apache.hadoop.security.Credentials credentials)
+      throws IOException, TezException {
+    throw new TezException("updateDAGCredentials is unsupported for DAGClientTimelineImpl");
+  }
+
   @Override
   public DAGStatus waitForCompletion() throws IOException, TezException, InterruptedException {
     return getDAGStatus(null);

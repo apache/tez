@@ -35,6 +35,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.SystemEventHandler;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.TezException;
@@ -108,6 +109,8 @@ public class TezTaskRunner2 {
   // when this task is finished.
   private final TezSharedExecutor localExecutor;
 
+  private final SystemEventHandler systemEventHandler;
+
   @Deprecated
   public TezTaskRunner2(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
       TaskSpec taskSpec, int appAttemptNumber,
@@ -120,7 +123,7 @@ public class TezTaskRunner2 {
       boolean updateSysCounters, HadoopShim hadoopShim) throws IOException {
     this(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
         serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry,
-        pid, executionContext, memAvailable, updateSysCounters, hadoopShim, null);
+        pid, executionContext, memAvailable, updateSysCounters, hadoopShim, null, null);
   }
 
   public TezTaskRunner2(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
@@ -132,7 +135,7 @@ public class TezTaskRunner2 {
                         ObjectRegistry objectRegistry, String pid,
                         ExecutionContext executionContext, long memAvailable,
                         boolean updateSysCounters, HadoopShim hadoopShim,
-                        TezExecutors sharedExecutor) throws
+                        TezExecutors sharedExecutor, SystemEventHandler systemEventHandler) throws
       IOException {
     this.ugi = ugi;
     this.taskReporter = taskReporter;
@@ -151,7 +154,8 @@ public class TezTaskRunner2 {
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
         objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim,
-        sharedExecutor == null ? localExecutor : sharedExecutor);
+        sharedExecutor == null ? localExecutor : sharedExecutor, systemEventHandler);
+    this.systemEventHandler = systemEventHandler;
   }
 
   /**

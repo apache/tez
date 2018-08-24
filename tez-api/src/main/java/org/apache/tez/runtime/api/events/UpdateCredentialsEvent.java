@@ -16,21 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.impl;
 
-public enum EventType {
-  TASK_ATTEMPT_COMPLETED_EVENT,
-  TASK_ATTEMPT_FAILED_EVENT,
-  TASK_ATTEMPT_KILLED_EVENT,
-  DATA_MOVEMENT_EVENT,
-  INPUT_READ_ERROR_EVENT,
-  INPUT_FAILED_EVENT,
-  TASK_STATUS_UPDATE_EVENT,
-  VERTEX_MANAGER_EVENT,
-  ROOT_INPUT_DATA_INFORMATION_EVENT,
-  COMPOSITE_DATA_MOVEMENT_EVENT,
-  ROOT_INPUT_INITIALIZER_EVENT,
-  COMPOSITE_ROUTED_DATA_MOVEMENT_EVENT,
-  CUSTOM_PROCESSOR_EVENT,
-  UPDATE_CREDENTIALS_EVENT,
+package org.apache.tez.runtime.api.events;
+
+import org.apache.hadoop.security.Credentials;
+import org.apache.tez.runtime.api.Event;
+
+public class UpdateCredentialsEvent extends Event {
+  private final Credentials credentials;
+
+  private UpdateCredentialsEvent(Credentials credentials) {
+    this.credentials = credentials;
+  }
+
+  public static UpdateCredentialsEvent create(Credentials credentials) {
+    return new UpdateCredentialsEvent(credentials);
+  }
+
+  public Credentials getCredentials() {
+    return credentials;
+  }
 }
