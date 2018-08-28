@@ -55,8 +55,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -66,6 +64,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.Utils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
@@ -131,7 +130,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.client.DAGClientHandler;
 import org.apache.tez.dag.api.client.DAGClientServer;
-import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
@@ -179,7 +177,6 @@ import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -226,8 +223,6 @@ public class DAGAppMaster extends AbstractService {
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
   private static final Joiner PATH_JOINER = Joiner.on('/');
-
-  private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
   @VisibleForTesting
   static final String INVALID_SESSION_ERR_MSG = "Initial application attempt in session mode failed. "
@@ -1038,82 +1033,11 @@ public class DAGAppMaster extends AbstractService {
       LOG.warn("Failed to generate json for DAG", e);
     }
 
-    generateDAGVizFile(dagId, dagPB, logDirs);
+    Utils.generateDAGVizFile(newDag, dagPB, logDirs, newDag.getDAGScheduler());
     writePBTextFile(newDag);
     return newDag;
   } // end createDag()
 
-  String getShortClassName(String className) {
-    int pos = className.lastIndexOf(".");
-    if (pos != -1 && pos < className.length()-1) {
-      return className.substring(pos+1);
-    }
-    return className;
-  }
-
-
-  private String sanitizeLabelForViz(String label) {
-    Matcher m = sanitizeLabelPattern.matcher(label);
-    return m.replaceAll("_");
-  }
-
-  private void generateDAGVizFile(TezDAGID dagId, DAGPlan dagPB, String[] logDirs) {
-    Graph graph = new Graph(sanitizeLabelForViz(dagPB.getName()));
-
-    for (VertexPlan v : dagPB.getVertexList()) {
-      String nodeLabel = sanitizeLabelForViz(v.getName())
-          + "[" + getShortClassName(v.getProcessorDescriptor().getClassName() + "]");
-      Graph.Node n = graph.newNode(sanitizeLabelForViz(v.getName()), nodeLabel);
-      for (DAGProtos.RootInputLeafOutputProto input : v.getInputsList()) {
-        Graph.Node inputNode = graph.getNode(sanitizeLabelForViz(v.getName())
-            + "_" + sanitizeLabelForViz(input.getName()));
-        inputNode.setLabel(sanitizeLabelForViz(v.getName())
-            + "[" + sanitizeLabelForViz(input.getName()) + "]");
-        inputNode.setShape("box");
-        inputNode.addEdge(n, "Input"
-            + " [inputClass=" + getShortClassName(input.getIODescriptor().getClassName())
-            + ", initializer=" + getShortClassName(input.getControllerDescriptor().getClassName()) + "]");
-      }
-      for (DAGProtos.RootInputLeafOutputProto output : v.getOutputsList()) {
-        Graph.Node outputNode = graph.getNode(sanitizeLabelForViz(v.getName())
-            + "_" + sanitizeLabelForViz(output.getName()));
-        outputNode.setLabel(sanitizeLabelForViz(v.getName())
-            + "[" + sanitizeLabelForViz(output.getName()) + "]");
-        outputNode.setShape("box");
-        n.addEdge(outputNode, "Output"
-            + " [outputClass=" + getShortClassName(output.getIODescriptor().getClassName())
-            + ", committer=" + getShortClassName(output.getControllerDescriptor().getClassName()) + "]");
-      }
-    }
-
-    for (DAGProtos.EdgePlan e : dagPB.getEdgeList()) {
-
-      Graph.Node n = graph.getNode(sanitizeLabelForViz(e.getInputVertexName()));
-      n.addEdge(graph.getNode(sanitizeLabelForViz(e.getOutputVertexName())),
-          "["
-          + "input=" + getShortClassName(e.getEdgeSource().getClassName())
-          + ", output=" + getShortClassName(e.getEdgeDestination().getClassName())
-          + ", dataMovement=" + e.getDataMovementType().name().trim()
-          + ", schedulingType=" + e.getSchedulingType().name().trim() + "]");
-    }
-
-    String outputFile = "";
-    if (logDirs != null && logDirs.length != 0) {
-      outputFile += logDirs[0];
-      outputFile += File.separator;
-    }
-    outputFile += dagId.toString() + ".dot";
-
-    try {
-      LOG.info("Generating DAG graphviz file"
-          + ", dagId=" + dagId.toString()
-          + ", filePath=" + outputFile);
-      graph.save(outputFile);
-    } catch (Exception e) {
-      LOG.warn("Error occurred when trying to save graph structure"
-          + " for dag " + dagId.toString(), e);
-    }
-  }
 
   private void writePBTextFile(DAG dag) {
     if (dag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,

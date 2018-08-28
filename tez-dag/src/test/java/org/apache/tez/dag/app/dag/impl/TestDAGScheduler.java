@@ -58,14 +58,19 @@ public class TestDAGScheduler {
     TaskAttempt mockAttempt = mock(TaskAttempt.class);
     when(mockDag.getVertex((TezVertexID) any())).thenReturn(mockVertex);
     when(mockDag.getTotalVertices()).thenReturn(4);
-    when(mockVertex.getDistanceFromRoot()).thenReturn(0).thenReturn(1)
-        .thenReturn(2);
+    when(mockVertex.getDistanceFromRoot())
+        .thenReturn(0).thenReturn(0)
+        .thenReturn(1).thenReturn(1)
+        .thenReturn(2).thenReturn(2);
     TezVertexID vId0 = TezVertexID.fromString("vertex_1436907267600_195589_1_00");
     TezVertexID vId1 = TezVertexID.fromString("vertex_1436907267600_195589_1_01");
     TezVertexID vId2 = TezVertexID.fromString("vertex_1436907267600_195589_1_02");
     TezVertexID vId3 = TezVertexID.fromString("vertex_1436907267600_195589_1_03");
-    when(mockVertex.getVertexId()).thenReturn(vId0).thenReturn(vId1)
-        .thenReturn(vId2).thenReturn(vId3);
+    when(mockVertex.getVertexId())
+        .thenReturn(vId0).thenReturn(vId0)
+        .thenReturn(vId1).thenReturn(vId1)
+        .thenReturn(vId2).thenReturn(vId2)
+        .thenReturn(vId3).thenReturn(vId3);
     
     DAGEventSchedulerUpdate event = new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt);    

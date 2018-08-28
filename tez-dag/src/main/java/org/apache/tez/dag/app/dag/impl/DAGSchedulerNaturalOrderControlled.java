@@ -76,11 +76,10 @@ public class DAGSchedulerNaturalOrderControlled extends DAGScheduler {
   public void scheduleTaskEx(DAGEventSchedulerUpdate event) {
     TaskAttempt attempt = event.getAttempt();
     Vertex vertex = dag.getVertex(attempt.getVertexID());
-    int vertexDistanceFromRoot = vertex.getDistanceFromRoot();
 
     // natural priority. Handles failures and retries.
-    int priorityLowLimit = ((vertexDistanceFromRoot + 1) * dag.getTotalVertices() * 3) + (vertex.getVertexId().getId() * 3);
-    int priorityHighLimit = priorityLowLimit - 2;
+    int priorityLowLimit = getPriorityLowLimit(dag, vertex);
+    int priorityHighLimit = getPriorityHighLimit(dag, vertex);
 
     TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
         attempt.getID(), priorityLowLimit, priorityHighLimit);
