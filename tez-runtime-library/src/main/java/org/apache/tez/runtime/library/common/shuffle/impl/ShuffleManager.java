@@ -325,6 +325,9 @@ public class ShuffleManager implements FetcherCallback {
               && numCompletedInputs.get() < numInputs) {
             inputContext.notifyProgress();
             boolean ret = wakeLoop.await(1000, TimeUnit.MILLISECONDS);
+            if (isShutdown.get()) {
+              break;
+            }
           }
         } finally {
           lock.unlock();
