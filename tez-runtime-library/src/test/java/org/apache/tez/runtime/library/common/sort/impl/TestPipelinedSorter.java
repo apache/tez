@@ -59,12 +59,14 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -402,12 +404,15 @@ public class TestPipelinedSorter {
         initialAvailableMem);
 
     //Write 100 keys each of size 10
-    writeData(sorter, 10000, 100);
+    writeData(sorter, 10000, 100, false);
+    sorter.flush();
+    List<Event> events = sorter.close();
 
     //final merge is disabled. Final output file would not be populated in this case.
     assertTrue(sorter.finalOutputFile == null);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
-    verify(outputContext, times(1)).sendEvents(anyListOf(Event.class));
+    verify(outputContext, times(0)).sendEvents(any());
+    assertTrue(events.size() > 0);
   }
 
   @Test

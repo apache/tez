@@ -181,12 +181,12 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   @Override
   public synchronized List<Event> close() throws IOException {
-    List<Event> returnEvents = null;
+    List<Event> returnEvents = Lists.newLinkedList();
     if (sorter != null) {
       sorter.flush();
-      sorter.close();
+      returnEvents.addAll(sorter.close());
       this.endTime = System.nanoTime();
-      returnEvents = generateEvents();
+      returnEvents.addAll(generateEvents());
       sorter = null;
     } else {
       LOG.warn(getContext().getDestinationVertexName() +
