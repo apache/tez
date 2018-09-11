@@ -42,7 +42,8 @@ All of the volunteers who are contributing time, code, documentation, or resourc
 
 The project's Committers are responsible for the project's technical management. All committers have write access to the project's source repositories. Committers may cast binding votes on any technical discussion regarding the project.
 
-Committer access is by invitation only and must be approved by lazy consensus of the active PMC members. A Committer may request removal of their commit privileges by their own declaration. A committer will be considered "emeritus/inactive" by not contributing in any form to the project for over 1 year. An emeritus committer may request reinstatement of commit access from the PMC. Such reinstatement is subject to lazy consensus of active PMC members.
+
+Committer access is by invitation only and must be approved by lazy consensus of the active PMC members. A Committer may request removal of their commit privileges by their own declaration.
 
 Commit access can be revoked by a unanimous vote of all the active PMC members (except the committer in question if they are also a PMC member).
 
@@ -61,7 +62,7 @@ The Project Management Committee (PMC) for Apache Tez was created by a resolutio
    - Nominating new PMC members and committers
    - Maintaining these bylaws and other guidelines of the project
 
-Membership of the PMC is by invitation only and must be approved by a lazy consensus of active PMC members. A PMC member is considered "emeritus/inactive" by not contributing in any form to the project for over one year. An emeritus PMC member may request reinstatement to the PMC. Such reinstatement is subject to lazy consensus of active PMC members. A PMC member may resign their membership from the PMC by their own declaration. Membership of the PMC can be revoked by an unanimous vote of all the active PMC members other than the member in question.
+Membership of the PMC is by invitation only and must be approved by a lazy consensus of active PMC members. A PMC member may resign their membership from the PMC by their own declaration. Membership of the PMC can also be revoked via a Board resolution.
 
 The chair of the PMC is appointed by the ASF board. The chair is an office holder of the Apache Software Foundation (Vice President, Apache Tez) and has primary responsibility to the board for the management of the projects within the scope of the Tez PMC. The chair reports to the board quarterly on developments within the Tez project. The PMC may consider the position of PMC chair annually, and if supported by a successful vote to change the PMC chair, may recommend a new chair to the board. Ultimately, however, it is the board's responsibility who it chooses to appoint as the PMC chair.
 
