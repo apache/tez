@@ -1797,9 +1797,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
       boolean crossTimeDeadline = readErrorTimespanSec >= MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
 
-      float failureFraction = ((float) attempt.uniquefailedOutputReports.size())
-          / outputFailedEvent.getConsumerTaskNumber();
-
+      int runningTasks = attempt.appContext.getCurrentDAG().getVertex(
+          failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
+      float failureFraction = runningTasks > 0 ? ((float) attempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =
           (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION);
       boolean withinOutputFailureLimits =
