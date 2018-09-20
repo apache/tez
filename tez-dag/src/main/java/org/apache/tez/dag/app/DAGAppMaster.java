@@ -1271,7 +1271,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public float getProgress() {
-    if (isSession && state.equals(DAGAppMasterState.IDLE)) {
+    if (isSession && getState().equals(DAGAppMasterState.IDLE)) {
       return 0.0f;
     }
     if(currentDAG != null) {
