@@ -804,17 +804,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     try {
       float progress = 0.0f;
       for (Vertex v : getVertices().values()) {
-        float vertexProgress = v.getProgress();
-        if (vertexProgress >= 0.0f && vertexProgress <= 1.0f) {
-          progress += vertexProgress;
-        }
+        progress += v.getProgress();
       }
-      float dagProgress = progress / getTotalVertices();
-      if (dagProgress >= 0.0f && progress <= 1.0f) {
-        return dagProgress;
-      } else {
-        return 0.0f;
-      }
+      return progress / getTotalVertices();
     } finally {
       this.readLock.unlock();
     }
