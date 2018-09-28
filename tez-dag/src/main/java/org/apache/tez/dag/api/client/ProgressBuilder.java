@@ -45,6 +45,7 @@ public class ProgressBuilder extends Progress {
 
   public void setFailedTaskCount(int count) {
     getBuilder().setFailedTaskCount(count);
+    // Test yetus
   }
 
   public void setKilledTaskCount(int count) {
