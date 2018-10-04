@@ -20,19 +20,22 @@ package org.apache.tez.dag.app.rm.node;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 
 public class AMNodeEventTaskAttemptEnded extends AMNodeEvent {
 
   private final boolean failed;
   private final ContainerId containerId;
   private final TezTaskAttemptID taskAttemptId;
+  private final TaskAttemptEndReason taskAttemptEndReason;
   
   public AMNodeEventTaskAttemptEnded(NodeId nodeId, int sourceId, ContainerId containerId,
-      TezTaskAttemptID taskAttemptId, boolean failed) {
+      TezTaskAttemptID taskAttemptId, boolean failed, TaskAttemptEndReason taskAttemptEndReason) {
     super(nodeId, sourceId, AMNodeEventType.N_TA_ENDED);
     this.failed = failed;
     this.containerId = containerId;
     this.taskAttemptId = taskAttemptId;
+    this.taskAttemptEndReason = taskAttemptEndReason;
   }
 
   public boolean failed() {
@@ -49,5 +52,9 @@ public class AMNodeEventTaskAttemptEnded extends AMNodeEvent {
   
   public TezTaskAttemptID getTaskAttemptId() {
     return this.taskAttemptId;
+  }
+
+  public TaskAttemptEndReason getTaskAttemptEndReason() {
+    return this.taskAttemptEndReason;
   }
 }

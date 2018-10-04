@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.Utils;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
@@ -426,7 +427,8 @@ public class TaskSchedulerManager extends AbstractService implements
         Container container = amContainer.getContainer();
         sendEvent(new AMNodeEventTaskAttemptEnded(container.getNodeId(), event.getSchedulerId(),
             attemptContainerId,
-            attempt.getID(), event.getState() == TaskAttemptState.FAILED));
+            attempt.getID(), event.getState() == TaskAttemptState.FAILED,
+            event.getTaskAttemptEndReason()));
       }
     }
   }
