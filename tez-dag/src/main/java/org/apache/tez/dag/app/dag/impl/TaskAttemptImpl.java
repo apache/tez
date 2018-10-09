@@ -214,9 +214,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   Set<String> taskRacks = new HashSet<String>();
 
   private Map<TezTaskAttemptID, Long> uniquefailedOutputReports = Maps.newHashMap();
-  private static double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION;
-  private static int MAX_ALLOWED_OUTPUT_FAILURES;
-  private static int MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
 
   protected final boolean isRescheduled;
   private final Resource taskResource;
@@ -548,18 +545,6 @@ public class TaskAttemptImpl implements TaskAttempt,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
       TezTaskAttemptID schedulingCausalTA) {
 
-    // TODO: Move these configs over to Vertex.VertexConfig
-    MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
-
-    MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
-    
-    MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC = conf.getInt(
-        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
-        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -1793,17 +1778,24 @@ public class TaskAttemptImpl implements TaskAttempt,
         attempt.uniquefailedOutputReports.put(failedDestTaId, time);
         firstErrReportTime = time;
       }
-      
+
+      int maxAllowedOutputFailures = attempt.getVertex().getVertexConfig()
+          .getMaxAllowedOutputFailures();
+      int maxAllowedTimeForTaskReadErrorSec = attempt.getVertex()
+          .getVertexConfig().getMaxAllowedTimeForTaskReadErrorSec();
+      double maxAllowedOutputFailuresFraction = attempt.getVertex()
+          .getVertexConfig().getMaxAllowedOutputFailuresFraction();
+
       int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
-      boolean crossTimeDeadline = readErrorTimespanSec >= MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
+      boolean crossTimeDeadline = readErrorTimespanSec >= maxAllowedTimeForTaskReadErrorSec;
 
       int runningTasks = attempt.appContext.getCurrentDAG().getVertex(
           failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
       float failureFraction = runningTasks > 0 ? ((float) attempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =
-          (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION);
+          (failureFraction <= maxAllowedOutputFailuresFraction);
       boolean withinOutputFailureLimits =
-          (attempt.uniquefailedOutputReports.size() < MAX_ALLOWED_OUTPUT_FAILURES);
+          (attempt.uniquefailedOutputReports.size() < maxAllowedOutputFailures);
 
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
@@ -1813,10 +1805,12 @@ public class TaskAttemptImpl implements TaskAttempt,
       }
       String message = attempt.getID() + " being failed for too many output errors. "
           + "failureFraction=" + failureFraction
-          + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION=" + MAX_ALLOWED_OUTPUT_FAILURES_FRACTION
+          + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION="
+          + maxAllowedOutputFailuresFraction
           + ", uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size()
-          + ", MAX_ALLOWED_OUTPUT_FAILURES=" + MAX_ALLOWED_OUTPUT_FAILURES
-          + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC=" + MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC
+          + ", MAX_ALLOWED_OUTPUT_FAILURES=" + maxAllowedOutputFailures
+          + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC="
+          + maxAllowedTimeForTaskReadErrorSec
           + ", readErrorTimespan=" + readErrorTimespanSec;
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
