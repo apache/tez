@@ -4690,6 +4690,19 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     private final boolean taskRescheduleHigherPriority;
     private final boolean taskRescheduleRelaxedLocality;
 
+    /**
+     * See tez.task.max.allowed.output.failures.fraction.
+     */
+    private final double maxAllowedOutputFailuresFraction;
+    /**
+     * See tez.task.max.allowed.output.failures.
+     */
+    private final int maxAllowedOutputFailures;
+    /**
+     * See tez.am.max.allowed.time-sec.for-read-error.
+     */
+    private final int maxAllowedTimeForTaskReadErrorSec;
+
     public VertexConfigImpl(Configuration conf) {
       this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
           TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
@@ -4699,6 +4712,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.taskRescheduleRelaxedLocality =
           conf.getBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY,
               TezConfiguration.TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT);
+
+      this.maxAllowedOutputFailures = conf.getInt(TezConfiguration
+          .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
+          .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
+
+      this.maxAllowedOutputFailuresFraction = conf.getDouble(TezConfiguration
+          .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
+          .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
+
+      this.maxAllowedTimeForTaskReadErrorSec = conf.getInt(
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
     }
 
     @Override
@@ -4714,6 +4739,27 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     @Override
     public boolean getTaskRescheduleRelaxedLocality() {
       return taskRescheduleRelaxedLocality;
+    }
+
+    /**
+     * @return maxAllowedOutputFailures.
+     */
+    @Override public int getMaxAllowedOutputFailures() {
+      return maxAllowedOutputFailures;
+    }
+
+    /**
+     * @return maxAllowedOutputFailuresFraction.
+     */
+    @Override public double getMaxAllowedOutputFailuresFraction() {
+      return maxAllowedOutputFailuresFraction;
+    }
+
+    /**
+     * @return maxAllowedTimeForTaskReadErrorSec.
+     */
+    @Override public int getMaxAllowedTimeForTaskReadErrorSec() {
+      return maxAllowedTimeForTaskReadErrorSec;
     }
   }
 }
