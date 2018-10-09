@@ -160,13 +160,18 @@ public class TestTaskAttempt {
     when(appCtx.getContainerLauncherName(anyInt())).thenReturn(
         TezConstants.getTezYarnServicePluginName());
 
-    mockVertex = mock(Vertex.class);
-    when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
-    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(vertexConf));
+    createMockVertex(vertexConf);
 
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
     LogManager.getRootLogger().setLevel(Level.DEBUG);
+  }
+
+  private void createMockVertex(Configuration conf) {
+    mockVertex = mock(Vertex.class);
+    when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
+    when(mockVertex.getVertexConfig()).thenReturn(
+        new VertexImpl.VertexConfigImpl(conf));
   }
 
   @Test(timeout = 5000)
@@ -1919,7 +1924,11 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(
         arg.capture());
 
-    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 1);
+    Configuration newVertexConf = new Configuration(vertexConf);
+    newVertexConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES,
+        1);
+    createMockVertex(newVertexConf);
+
     TezTaskID taskID2 = TezTaskID.getInstance(vertexID, 2);
     MockTaskAttemptImpl taImpl2 = new MockTaskAttemptImpl(taskID2, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
@@ -1953,8 +1962,15 @@ public class TestTaskAttempt {
 
     Clock mockClock = mock(Clock.class); 
     int readErrorTimespanSec = 1;
-    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 10);
-    taskConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, readErrorTimespanSec);
+
+    newVertexConf = new Configuration(vertexConf);
+    newVertexConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES,
+        10);
+    newVertexConf.setInt(
+        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
+        readErrorTimespanSec);
+    createMockVertex(newVertexConf);
+
     TezTaskID taskID3 = TezTaskID.getInstance(vertexID, 3);
     MockTaskAttemptImpl taImpl3 = new MockTaskAttemptImpl(taskID3, 1, eventHandler,
         taListener, taskConf, mockClock,
