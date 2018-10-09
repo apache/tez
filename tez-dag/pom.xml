@@ -31,6 +31,7 @@
     org.apache.tez.dag.app.rm.container.AMContainerImpl</tez.dag.state.classes>
     <tez.graphviz.title>Tez</tez.graphviz.title>
     <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
+    <test.tmp.dir>${project.build.directory}/dagviz</test.tmp.dir>
   </properties>
   <artifactId>tez-dag</artifactId>
 
@@ -185,6 +186,33 @@
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-sources</id>
+            <phase>generate-sources</phase>
+            <configuration>
+              <tasks>
+                <delete dir="${test.tmp.dir}" />
+                <mkdir dir="${test.tmp.dir}" />
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <environmentVariables>
+            <LOG_DIRS>${test.tmp.dir}</LOG_DIRS>
+          </environmentVariables>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.hadoop</groupId>
