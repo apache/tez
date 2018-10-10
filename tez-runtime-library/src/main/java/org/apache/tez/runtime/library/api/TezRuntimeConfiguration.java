@@ -238,6 +238,15 @@ public class TezRuntimeConfiguration {
       "shuffle.fetch.failures.limit";
   public static final int TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT_DEFAULT = 5;
 
+  /**
+   * Specifies in milliseconds the maximum delay a penalized host can have before being retried,
+   * defaults to 10 minutes.
+   */
+  @ConfigurationProperty(type = "integer")
+  public static final String TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS = TEZ_RUNTIME_PREFIX +
+      "shuffle.host.penalty.time.limit";
+  public static final int TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS_DEFAULT = 600000;
+
   @Private
   @Unstable
   @ConfigurationProperty(type = "integer")
@@ -609,6 +618,7 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT);
     tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS);
 
     defaultConf.addResource("core-default.xml");
     defaultConf.addResource("core-site.xml");
