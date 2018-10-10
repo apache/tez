@@ -60,7 +60,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,6 +244,7 @@ class ShuffleScheduler {
   private final boolean compositeFetch;
 
   private volatile Thread shuffleSchedulerThread = null;
+  private final int maxPenaltyTime;
 
   private long totalBytesShuffledTillNow = 0;
   private final DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
@@ -417,6 +417,8 @@ class ShuffleScheduler {
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
+    this.maxPenaltyTime = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS_DEFAULT);
 
     pipelinedShuffleInfoEventsMap = Maps.newConcurrentMap();
     LOG.info("ShuffleScheduler running for sourceVertex: "
@@ -831,7 +833,8 @@ class ShuffleScheduler {
 
     long delay = (long) (INITIAL_PENALTY *
         Math.pow(PENALTY_GROWTH_RATE, failures));
-    penalties.add(new Penalty(host, delay));
+    long penaltyDelay = Math.min(delay, maxPenaltyTime);
+    penalties.add(new Penalty(host, penaltyDelay));
   }
 
   private int getFailureCount(InputAttemptIdentifier srcAttempt) {
@@ -1149,7 +1152,12 @@ class ShuffleScheduler {
       String path, int reduceId) {
     return pathToIdentifierMap.get(new PathPartition(path, reduceId));
   }
-  
+
+  @VisibleForTesting
+  DelayQueue<Penalty> getPenalties() {
+    return penalties;
+  }
+
   private synchronized boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
     boolean isInputFinished = false;
     if (id instanceof CompositeInputAttemptIdentifier) {
@@ -1281,7 +1289,7 @@ class ShuffleScheduler {
   /**
    * A structure that records the penalty for a host.
    */
-  private static class Penalty implements Delayed {
+  static class Penalty implements Delayed {
     MapHost host;
     private long endTime;
     
