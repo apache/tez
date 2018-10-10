@@ -59,6 +59,7 @@ public class TestShuffleHandlerJobs {
   @BeforeClass
   public static void setup() throws IOException {
     try {
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, "target/build/test/data");
       conf.setInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, 1);
       conf.setInt(YarnConfiguration.NM_CONTAINER_MGR_THREAD_COUNT, 22);
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(NUM_DNS)
