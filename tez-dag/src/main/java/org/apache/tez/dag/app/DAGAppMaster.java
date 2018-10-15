@@ -71,6 +71,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
@@ -298,7 +299,7 @@ public class DAGAppMaster extends AbstractService {
   private Path currentRecoveryDataDir;
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
-  
+
   private ExecutorService rawExecutor;
   private ListeningExecutorService execService;
 
@@ -330,7 +331,7 @@ public class DAGAppMaster extends AbstractService {
   private String clientVersion;
   private boolean versionMismatch = false;
   private String versionMismatchDiagnostics;
-  
+
   private ResourceCalculatorProcessTree cpuPlugin;
   private GcTimeUpdater gcPlugin;
 
@@ -385,7 +386,7 @@ public class DAGAppMaster extends AbstractService {
     return PATH_JOINER.join(nodeHttpAddress, "node", "containerlogs",
         containerId, user);
   }
-  
+
   private void initResourceCalculatorPlugins() {
     Class<? extends ResourceCalculatorProcessTree> clazz = amConf.getClass(
         TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS,
@@ -400,10 +401,10 @@ public class DAGAppMaster extends AbstractService {
       pid = processName.split("@")[0];
     }
     cpuPlugin = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, amConf);
-    
+
     gcPlugin = new GcTimeUpdater(null);
   }
-  
+
   private long getAMCPUTime() {
     if (cpuPlugin != null) {
       cpuPlugin.updateProcessTree();
@@ -557,14 +558,14 @@ public class DAGAppMaster extends AbstractService {
       dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
       dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDispatcher());
     } else {
-      int concurrency = conf.getInt(TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY, 
+      int concurrency = conf.getInt(TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY,
           TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY_DEFAULT);
       AsyncDispatcherConcurrent sharedDispatcher = dispatcher.registerAndCreateDispatcher(
           TaskEventType.class, new TaskEventDispatcher(), "TaskAndAttemptEventThread", concurrency);
       dispatcher.registerWithExistingDispatcher(TaskAttemptEventType.class,
           new TaskAttemptEventDispatcher(), sharedDispatcher);
     }
-    
+
     // register other delegating dispatchers
     dispatcher.registerAndCreateDispatcher(SpeculatorEventType.class, new SpeculatorEventHandler(),
         "Speculator");
@@ -661,7 +662,7 @@ public class DAGAppMaster extends AbstractService {
   protected ContainerSignatureMatcher createContainerSignatureMatcher() {
     return new ContainerContextMatcher();
   }
-  
+
   @VisibleForTesting
   protected AsyncDispatcher createDispatcher() {
     return new AsyncDispatcher("Central");
@@ -680,7 +681,7 @@ public class DAGAppMaster extends AbstractService {
       System.exit(0);
     }
   }
-  
+
   @VisibleForTesting
   protected TaskSchedulerManager getTaskSchedulerManager() {
     return taskSchedulerManager;
@@ -1342,7 +1343,7 @@ public class DAGAppMaster extends AbstractService {
     }
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, message));
   }
-  
+
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
       DAG dag, Map<String, LocalResource> additionalResources) throws TezException {
     if (additionalResources == null) {
@@ -1494,7 +1495,7 @@ public class DAGAppMaster extends AbstractService {
     public DAG getCurrentDAG() {
       return dag;
     }
-    
+
     @Override
     public ListeningExecutorService getExecService() {
       return execService;
@@ -1695,7 +1696,7 @@ public class DAGAppMaster extends AbstractService {
     public long getCumulativeCPUTime() {
       return getAMCPUTime();
     }
-    
+
     @Override
     public long getCumulativeGCTime() {
       return getAMGCTime();
@@ -1928,7 +1929,7 @@ public class DAGAppMaster extends AbstractService {
     }
     return null;
   }
-  
+
   @Override
   public synchronized void serviceStart() throws Exception {
 
@@ -1971,8 +1972,19 @@ public class DAGAppMaster extends AbstractService {
       return;
     }
 
+    DAGPlan dagPlan = null;
     if (!isSession) {
       LOG.info("In Non-Session mode.");
+      dagPlan = readDAGPlanFile();
+      if (hasConcurrentEdge(dagPlan)) {
+        // Currently a DAG with concurrent edge is deemed unrecoverable
+        // (run from scratch) on AM failover. Proper AM failover for DAG with
+        // concurrent edge is pending TEZ-4017
+        if (recoveredDAGData != null) {
+          LOG.warn("Ignoring recoveredDAGData for a recovered DAG with concurrent edge.");
+          recoveredDAGData = null;
+        }
+      }
     } else {
       LOG.info("In Session mode. Waiting for DAG over RPC");
       this.state = DAGAppMasterState.IDLE;
@@ -2053,7 +2065,8 @@ public class DAGAppMaster extends AbstractService {
       if (!isSession) {
         // No dag recovered - in non-session, just restart the original DAG
         dagCounter.set(0);
-        startDAG();
+        assert(dagPlan != null);
+        startDAG(dagPlan, null);
       }
     }
 
@@ -2181,7 +2194,7 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(TaskEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
+      int eventDagIndex =
           event.getTaskID().getVertexID().getDAGId().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
@@ -2192,7 +2205,7 @@ public class DAGAppMaster extends AbstractService {
       ((EventHandler<TaskEvent>)task).handle(event);
     }
   }
-  
+
   private class SpeculatorEventHandler implements EventHandler<SpeculatorEvent> {
     @Override
     public void handle(SpeculatorEvent event) {
@@ -2211,7 +2224,7 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(TaskAttemptEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
+      int eventDagIndex =
           event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
@@ -2230,12 +2243,12 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(VertexEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
+      int eventDagIndex =
           event.getVertexId().getDAGId().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
-      
+
       Vertex vertex =
           dag.getVertex(event.getVertexId());
       ((EventHandler<VertexEvent>) vertex).handle(event);
@@ -2440,23 +2453,30 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private void startDAG() throws IOException, TezException {
-    FileInputStream dagPBBinaryStream = null;
-    try {
-      DAGPlan dagPlan = null;
+  private boolean hasConcurrentEdge(DAGPlan dagPlan) {
+    boolean hasConcurrentEdge = false;
+    for (DAGProtos.EdgePlan edge : dagPlan.getEdgeList()) {
+      if (DAGProtos.PlanEdgeSchedulingType.CONCURRENT.equals(edge.getSchedulingType())) {
+        return true;
+      }
+    }
+    return hasConcurrentEdge;
+  }
 
+  private DAGPlan readDAGPlanFile() throws IOException, TezException {
+    FileInputStream dagPBBinaryStream = null;
+    DAGPlan dagPlan = null;
+    try {
       // Read the protobuf DAG
       dagPBBinaryStream = new FileInputStream(new File(workingDirectory,
           TezConstants.TEZ_PB_PLAN_BINARY_NAME));
       dagPlan = DAGPlan.parseFrom(dagPBBinaryStream);
-
-      startDAG(dagPlan, null);
-
     } finally {
       if (dagPBBinaryStream != null) {
         dagPBBinaryStream.close();
       }
     }
+    return dagPlan;
   }
 
   private void startDAG(DAGPlan dagPlan, Map<String, LocalResource> additionalAMResources)
