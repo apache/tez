@@ -20,7 +20,9 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -35,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -57,6 +60,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
+import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
@@ -67,8 +71,10 @@ import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -214,6 +220,64 @@ public class TestShuffleManager {
     verify(inputContext, atLeast(3)).notifyProgress();
   }
 
+  @Test (timeout = 200000)
+  public void testFetchFailed() throws Exception {
+    InputContext inputContext = createInputContext();
+    final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
+    Thread schedulerGetHostThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          shuffleManager.run();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    InputAttemptIdentifier inputAttemptIdentifier
+        = new InputAttemptIdentifier(1, 1);
+
+    schedulerGetHostThread.start();
+    Thread.sleep(1000);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+    Thread.sleep(1000);
+
+    ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+    verify(inputContext, times(1))
+        .sendEvents(captor.capture());
+    Assert.assertEquals("Size was: " + captor.getAllValues().size(),
+        captor.getAllValues().size(), 1);
+    List<Event> capturedList = captor.getAllValues().get(0);
+    Assert.assertEquals("Size was: " + capturedList.size(),
+        capturedList.size(), 1);
+    InputReadErrorEvent inputEvent = (InputReadErrorEvent)capturedList.get(0);
+    Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
+        inputEvent.getNumFailures(), 1);
+
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+
+    Thread.sleep(1000);
+    verify(inputContext, times(1)).sendEvents(any());
+
+    // Wait more than five seconds for the batch to go out
+    Thread.sleep(5000);
+    captor = ArgumentCaptor.forClass(List.class);
+    verify(inputContext, times(2))
+        .sendEvents(captor.capture());
+    Assert.assertEquals("Size was: " + captor.getAllValues().size(),
+        captor.getAllValues().size(), 2);
+    capturedList = captor.getAllValues().get(1);
+    Assert.assertEquals("Size was: " + capturedList.size(),
+        capturedList.size(), 1);
+    inputEvent = (InputReadErrorEvent)capturedList.get(0);
+    Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
+        inputEvent.getNumFailures(), 2);
+
+
+    schedulerGetHostThread.interrupt();
+  }
+
   private ShuffleManagerForTest createShuffleManager(
       InputContext inputContext, int expectedNumOfPhysicalInputs)
           throws IOException {
@@ -222,6 +286,8 @@ public class TestShuffleManager {
     doReturn(outDirs).when(inputContext).getWorkDirs();
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS,
         inputContext.getWorkDirs());
+    // 5 seconds
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT, 5000);
 
     DataOutputBuffer out = new DataOutputBuffer();
     Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(new JobTokenIdentifier(),
