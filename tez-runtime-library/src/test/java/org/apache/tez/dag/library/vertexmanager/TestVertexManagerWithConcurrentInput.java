@@ -109,6 +109,10 @@ public class TestVertexManagerWithConcurrentInput {
     manager.onVertexStarted(Collections.singletonList(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
+<<<<<<< HEAD
     Assert.assertEquals(0, manager.completedUpstreamTasks);
+=======
+    Assert.assertEquals(0, manager.completedUpstreamTasks );
+>>>>>>> 5c7557140d816d5c1ca3ae89484c62c62391f856
   }
 }
