@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.apache.tez.dag.api.EdgeProperty.SchedulingType.CONCURRENT;
 
 public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
+
   private static final Logger LOG = LoggerFactory.getLogger(VertexManagerWithConcurrentInput.class);
 
   private final Map<String, Boolean> srcVerticesConfigured = Maps.newConcurrentMap();
@@ -124,6 +125,7 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
     LOG.info("Received configured notification: " + state + " for vertex: "
         + fromVertex + " in vertex: " + this.vertexName);
     srcVerticesConfigured.put(fromVertex, true);
+
     // check for source vertices completely configured
     boolean checkAllSrcVerticesConfigured = true;
     for (Map.Entry<String, Boolean> entry : srcVerticesConfigured.entrySet()) {
