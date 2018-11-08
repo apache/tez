@@ -54,7 +54,7 @@ public class TestVertexManagerWithConcurrentInput {
   }
 
   @Test(timeout = 5000)
-  public void testBasicScatterGather() throws Exception {
+  public void testBasicVertexWithConcurrentInput() throws Exception {
     HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";

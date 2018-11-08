@@ -28,6 +28,7 @@ import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
@@ -54,12 +55,12 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
 
   private final Map<String, Boolean> srcVerticesConfigured = Maps.newConcurrentMap();
   private int managedTasks;
-  private boolean tasksScheduled = false;
+  private AtomicBoolean tasksScheduled = new AtomicBoolean(false);
   private AtomicBoolean onVertexStartedDone = new AtomicBoolean(false);
   private Configuration vertexConfig;
   private String vertexName;
   private ConcurrentEdgeTriggerType edgeTriggerType;
-  private boolean allSrcVerticesConfigured;
+  private volatile boolean allSrcVerticesConfigured;
 
   int completedUpstreamTasks;
 
@@ -69,8 +70,11 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
 
   @Override
   public void initialize() {
-    if (getContext().getUserPayload() == null) {
-      throw new TezUncheckedException("user payload cannot be null for VertexManagerWithConcurrentInput");
+    UserPayload userPayload = getContext().getUserPayload();
+    if (userPayload == null || userPayload.getPayload() == null ||
+        userPayload.getPayload().limit() == 0) {
+      throw new TezUncheckedException("Could not initialize VertexManagerWithConcurrentInput"
+          + " from provided user payload");
     }
     managedTasks = getContext().getVertexNumTasks(getContext().getVertexName());
     Map<String, EdgeProperty> edges = getContext().getInputVertexEdgeProperties();
@@ -161,7 +165,7 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
       // vertex not started yet
       return;
     }
-    if (tasksScheduled) {
+    if (tasksScheduled.get()) {
       // already scheduled
       return;
     }
@@ -170,7 +174,7 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
       return;
     }
 
-    tasksScheduled = true;
+    tasksScheduled.getAndSet(true);
     List<VertexManagerPluginContext.ScheduleTaskRequest> tasksToStart = Lists.newArrayListWithCapacity(managedTasks);
     for (int i = 0; i < managedTasks; ++i) {
       tasksToStart.add(VertexManagerPluginContext.ScheduleTaskRequest.create(i, null));

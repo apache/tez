@@ -113,13 +113,14 @@ public class EdgeProperty {
    */
   public enum ConcurrentEdgeTriggerType {
     /**
-     * trigger downstream vertex tasks scheduling upon upstream vertex being configured
-     * this effectively schedules both vertices connected via a concurrent edge
+     * trigger tasks scheduling for downstream vertex(es) upon upstream being configured
+     * this effectively simultaneously schedules downstream and upstream vertices
+     * connected on both ends of a concurrent edge.
      */
     SOURCE_VERTEX_CONFIGURED,
 
     /**
-     * trigger downstream vertex tasks scheduling by "running" event(s) of upstream tasks
+     * trigger tasks scheduling for downstream vertex(es) by "running" event(s) of upstream tasks
      * this will be fully supported with TEZ-3999
      */
     SOURCE_TASK_STARTED

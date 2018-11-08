@@ -410,8 +410,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LAUNCH_ENV_DEFAULT = "";
 
   /**
-   * String value. Describes the timing of scheduling downstream vertex tasks
-   * when the vertex has a concurrent input edge.
+   * String value. In the presence of concurrent input edge to a vertex, this describes
+   * the timing of scheduling downstream vertex tasks. It may be closely related to the
+   * type of event that will contribute to a scheduling decision.
    */
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty
