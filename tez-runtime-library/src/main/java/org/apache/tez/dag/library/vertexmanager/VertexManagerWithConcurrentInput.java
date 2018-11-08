@@ -174,7 +174,7 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
       return;
     }
 
-    tasksScheduled.getAndSet(true);
+    tasksScheduled.compareAndSet(false, true);
     List<VertexManagerPluginContext.ScheduleTaskRequest> tasksToStart = Lists.newArrayListWithCapacity(managedTasks);
     for (int i = 0; i < managedTasks; ++i) {
       tasksToStart.add(VertexManagerPluginContext.ScheduleTaskRequest.create(i, null));
