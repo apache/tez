@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
@@ -107,13 +106,13 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
   }
 
   @Override
-  public void onVertexStarted(List<TaskAttemptIdentifier> completions) {
+  public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions) {
     onVertexStartedDone.set(true);
     scheduleTasks();
   }
 
   @Override
-  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
+  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
     VertexState state = stateUpdate.getVertexState();
     String fromVertex = stateUpdate.getVertexName();
     if (!srcVerticesConfigured.containsKey(fromVertex)) {
@@ -146,7 +145,7 @@ public class VertexManagerWithConcurrentInput extends VertexManagerPlugin {
   }
 
   @Override
-  public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
+  public synchronized void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
     completedUpstreamTasks ++;
     LOG.info("Source task attempt {} completion received at vertex {}", attempt, this.vertexName);
   }
