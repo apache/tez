@@ -670,7 +670,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   }
 
   public static long getInitialMemoryRequirement(Configuration conf, long maxAvailableTaskMemory) {
-    int initialMemRequestMb = conf.getInt(
+    long initialMemRequestMb = conf.getInt(
         TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB,
         TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB_DEFAULT);
     Preconditions.checkArgument(initialMemRequestMb != 0,

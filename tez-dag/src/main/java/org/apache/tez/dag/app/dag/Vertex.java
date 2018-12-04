@@ -213,6 +213,19 @@ public interface Vertex extends Comparable<Vertex> {
     int getMaxFailedTaskAttempts();
     boolean getTaskRescheduleHigherPriority();
     boolean getTaskRescheduleRelaxedLocality();
+
+    /**
+     * @return tez.task.max.allowed.output.failures.
+     */
+    int getMaxAllowedOutputFailures();
+    /**
+     * @return tez.task.max.allowed.output.failures.fraction.
+     */
+    double getMaxAllowedOutputFailuresFraction();
+    /**
+     * @return tez.am.max.allowed.time-sec.for-read-error.
+     */
+    int getMaxAllowedTimeForTaskReadErrorSec();
   }
 
   void incrementRejectedTaskAttemptCount();

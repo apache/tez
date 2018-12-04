@@ -14,12 +14,18 @@
 
 package org.apache.tez.dag.app;
 
+import org.apache.hadoop.yarn.util.MonotonicClock;
+import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.records.TezVertexID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
@@ -29,8 +35,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -385,6 +393,81 @@ public class TestDAGAppMaster {
   @Test
   public void testDagCredentialsWithMerge() throws Exception {
     testDagCredentials(true);
+  }
+
+  @Test
+  public void testBadProgress() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CREDENTIALS_MERGE, true);
+    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.toString());
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
+
+    // create some sample AM credentials
+    Credentials amCreds = new Credentials();
+    JobTokenSecretManager jtsm = new JobTokenSecretManager();
+    JobTokenIdentifier identifier = new JobTokenIdentifier(
+        new Text(appId.toString()));
+    Token<JobTokenIdentifier> sessionToken =
+        new Token<JobTokenIdentifier>(identifier, jtsm);
+    sessionToken.setService(identifier.getJobId());
+    TokenCache.setSessionToken(sessionToken, amCreds);
+    TestTokenSecretManager ttsm = new TestTokenSecretManager();
+    Text tokenAlias1 = new Text("alias1");
+    Token<TestTokenIdentifier> amToken1 = new Token<TestTokenIdentifier>(
+        new TestTokenIdentifier(new Text("amtoken1")), ttsm);
+    amCreds.addToken(tokenAlias1, amToken1);
+
+    FileSystem fs = FileSystem.getLocal(conf);
+    FSDataOutputStream sessionJarsPBOutStream =
+        TezCommonUtils.createFileForAM(fs, new Path(TEST_DIR.toString(),
+            TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+    DAGProtos.PlanLocalResourcesProto.getDefaultInstance()
+        .writeDelimitedTo(sessionJarsPBOutStream);
+    sessionJarsPBOutStream.close();
+    DAGAppMaster am = spy(new DAGAppMaster(attemptId,
+        ContainerId.newContainerId(attemptId, 1),
+        "127.0.0.1", 0, 0, new MonotonicClock(), 1, true,
+        TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
+        new String[] {TEST_DIR.toString()},
+        new TezApiVersionInfo().getVersion(), amCreds,
+        "someuser", null));
+    when(am.getState()).thenReturn(DAGAppMasterState.RUNNING);
+    am.init(conf);
+    am.start();
+    Credentials dagCreds = new Credentials();
+    Token<TestTokenIdentifier> dagToken1 = new Token<TestTokenIdentifier>(
+        new TestTokenIdentifier(new Text("dagtoken1")), ttsm);
+    dagCreds.addToken(tokenAlias1, dagToken1);
+    Text tokenAlias3 = new Text("alias3");
+    Token<TestTokenIdentifier> dagToken2 = new Token<TestTokenIdentifier>(
+        new TestTokenIdentifier(new Text("dagtoken2")), ttsm);
+    dagCreds.addToken(tokenAlias3, dagToken2);
+    TezDAGID dagId = TezDAGID.getInstance(appId, 1);
+    DAGPlan dagPlan = DAGPlan.newBuilder()
+        .setName("somedag")
+        .setCredentialsBinary(
+            DagTypeConverters.convertCredentialsToProto(dagCreds))
+        .build();
+    DAGImpl dag = spy(am.createDAG(dagPlan, dagId));
+    am.setCurrentDAG(dag);
+    when(dag.getState()).thenReturn(DAGState.RUNNING);
+    Map<TezVertexID, Vertex> map = new HashMap<TezVertexID, Vertex>();
+    TezVertexID mockVertexID = mock(TezVertexID.class);
+    Vertex mockVertex = mock(Vertex.class);
+    when(mockVertex.getProgress()).thenReturn(Float.NaN);
+    map.put(mockVertexID, mockVertex);
+    when(dag.getVertices()).thenReturn(map);
+    when(dag.getTotalVertices()).thenReturn(1);
+    Assert.assertEquals("Progress was NaN and should be reported as 0",
+        0, am.getProgress(), 0);
+    when(mockVertex.getProgress()).thenReturn(-10f);
+    Assert.assertEquals("Progress was negative and should be reported as 0",
+        0, am.getProgress(), 0);
+    when(mockVertex.getProgress()).thenReturn(10f);
+    Assert.assertEquals("Progress was greater than 1 and should be reported as 0",
+        0, am.getProgress(), 0);
   }
 
   @SuppressWarnings("deprecation")

@@ -380,29 +380,42 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
           "Can only run while in RUNNING state. Current: " + this.state);
       this.state.set(State.CLOSED);
 
+
+      List<List<Event>> allCloseInputEvents = Lists.newArrayList();
       // Close the Inputs.
       for (InputSpec inputSpec : inputSpecs) {
         String srcVertexName = inputSpec.getSourceVertexName();
         initializedInputs.remove(srcVertexName);
         List<Event> closeInputEvents = ((InputFrameworkInterface)inputsMap.get(srcVertexName)).close();
-        sendTaskGeneratedEvents(closeInputEvents,
-            EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
-            srcVertexName, taskSpec.getTaskAttemptID());
+        allCloseInputEvents.add(closeInputEvents);
       }
 
+      List<List<Event>> allCloseOutputEvents = Lists.newArrayList();
       // Close the Outputs.
       for (OutputSpec outputSpec : outputSpecs) {
         String destVertexName = outputSpec.getDestinationVertexName();
         initializedOutputs.remove(destVertexName);
         List<Event> closeOutputEvents = ((LogicalOutputFrameworkInterface)outputsMap.get(destVertexName)).close();
-        sendTaskGeneratedEvents(closeOutputEvents,
-            EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
-            destVertexName, taskSpec.getTaskAttemptID());
+        allCloseOutputEvents.add(closeOutputEvents);
       }
 
       // Close the Processor.
       processorClosed = true;
       processor.close();
+
+      for (int i = 0; i < allCloseInputEvents.size(); i++) {
+        String srcVertexName = inputSpecs.get(i).getSourceVertexName();
+        sendTaskGeneratedEvents(allCloseInputEvents.get(i),
+            EventProducerConsumerType.INPUT, taskSpec.getVertexName(),
+            srcVertexName, taskSpec.getTaskAttemptID());
+      }
+
+      for (int i = 0; i < allCloseOutputEvents.size(); i++) {
+        String destVertexName = outputSpecs.get(i).getDestinationVertexName();
+        sendTaskGeneratedEvents(allCloseOutputEvents.get(i),
+            EventProducerConsumerType.OUTPUT, taskSpec.getVertexName(),
+            destVertexName, taskSpec.getTaskAttemptID());
+      }
 
     } finally {
       setTaskDone();

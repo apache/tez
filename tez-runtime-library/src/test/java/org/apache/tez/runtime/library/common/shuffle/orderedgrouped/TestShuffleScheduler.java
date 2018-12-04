@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
@@ -55,6 +56,7 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -953,6 +955,54 @@ public class TestShuffleScheduler {
     }
   }
 
+  @Test (timeout = 120000)
+  public void testPenalties() throws Exception {
+    InputContext inputContext = createTezInputContext();
+    Configuration conf = new TezConfiguration();
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS, 20000);
+    int numInputs = 10;
+    Shuffle shuffle = mock(Shuffle.class);
+    MergeManager mergeManager = mock(MergeManager.class);
+
+    final ShuffleSchedulerForTest scheduler =
+        new ShuffleSchedulerForTest(inputContext, conf, numInputs, shuffle, mergeManager,
+            mergeManager,
+            System.currentTimeMillis(), null, false, 0, "srcName");
+
+    ExecutorService executor = Executors.newFixedThreadPool(1);
+
+    Future<Void> executorFuture = executor.submit(new Callable<Void>() {
+      @Override
+      public Void call() throws Exception {
+        scheduler.start();
+        return null;
+      }
+    });
+
+    InputAttemptIdentifier[] identifiers = new InputAttemptIdentifier[numInputs];
+
+    for (int i = 0; i < numInputs; i++) {
+      CompositeInputAttemptIdentifier inputAttemptIdentifier =
+          new CompositeInputAttemptIdentifier(i, 0, "attempt_", 1);
+      scheduler.addKnownMapOutput("host" + i, 10000, 1, inputAttemptIdentifier);
+      identifiers[i] = inputAttemptIdentifier;
+    }
+
+    MapHost[] mapHosts = new MapHost[numInputs];
+    int count = 0;
+    for (MapHost mh : scheduler.mapLocations.values()) {
+      mapHosts[count++] = mh;
+    }
+
+    for (int i = 0; i < 10; i++) {
+      scheduler.copyFailed(identifiers[0], mapHosts[0], false, false, false);
+    }
+    ShuffleScheduler.Penalty[] penaltyArray = new ShuffleScheduler.Penalty[scheduler.getPenalties().size()];
+    scheduler.getPenalties().toArray(penaltyArray);
+    for (int i = 0; i < penaltyArray.length; i++) {
+      Assert.assertTrue(penaltyArray[i].getDelay(TimeUnit.MILLISECONDS) <= 20000);
+    }
+  }
 
   private InputContext createTezInputContext() throws IOException {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);

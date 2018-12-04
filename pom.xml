@@ -19,7 +19,7 @@
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
   <packaging>pom</packaging>
-  <version>0.10.0-SNAPSHOT</version>
+  <version>0.10.1-SNAPSHOT</version>
   <name>tez</name>
 
   <licenses>
@@ -38,7 +38,7 @@
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <clover.license>${user.home}/clover.license</clover.license>
     <hadoop.version>3.0.3</hadoop.version>
-    <jetty.version>9.3.22.v20171030</jetty.version>
+    <jetty.version>9.3.24.v20180605</jetty.version>
     <netty.version>3.10.5.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <jersey.version>1.19</jersey.version>
@@ -61,6 +61,7 @@
     <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
     <javadoc-maven-plugin.version>2.10.4</javadoc-maven-plugin.version>
     <shade-maven-plugin.version>2.4.3</shade-maven-plugin.version>
+    <dependency-check-maven.version>1.3.6</dependency-check-maven.version>
   </properties>
   <scm>
     <connection>${scm.url}</connection>
@@ -889,7 +890,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.14.1</version>
+          <version>3.0.0-M1</version>
           <configuration>
             <forkCount>1</forkCount>
             <reuseForks>false</reuseForks>
@@ -904,6 +905,11 @@
               <tez.hadoop.version>${hadoop.version}</tez.hadoop.version>
             </systemPropertyVariables>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>${dependency-check-maven.version}</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -1005,6 +1011,14 @@
           <groupId>ro.isdc.wro4j</groupId>
           <artifactId>wro4j-maven-plugin</artifactId>
           <version>1.7.9</version>
+            <dependencies>
+              <!-- TODO: Remove this dependency after upgrading wro4j-maven-plugin to 1.8.1 or later. -->
+              <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>2.18.0</version>
+              </dependency>
+            </dependencies>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -1065,6 +1079,17 @@
           <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
         </configuration>
       </plugin>
+      <plugin>
+       <!-- OWASP's dependency-check plugin will scan the third party
+            dependencies of this project for known CVEs (security
+            vulnerabilities against them). It will produce a report
+            in target/dependency-check-report.html. To invoke, run
+            'mvn dependency-check:aggregate'
+       -->
+       <groupId>org.owasp</groupId>
+       <artifactId>dependency-check-maven</artifactId>
+       <version>${dependency-check-maven.version}</version>
+     </plugin>
    </plugins>
   </build>
 

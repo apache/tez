@@ -21,11 +21,14 @@ package org.apache.tez.runtime.library.common.sort.impl;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
@@ -68,11 +71,12 @@ public abstract class ExternalSorter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalSorter.class);
 
-  public void close() throws IOException {
+  public List<Event> close() throws IOException {
     spillFileIndexPaths.clear();
     spillFilePaths.clear();
     reportStatistics();
     outputContext.notifyProgress();
+    return Collections.emptyList();
   }
 
   public abstract void flush() throws IOException;

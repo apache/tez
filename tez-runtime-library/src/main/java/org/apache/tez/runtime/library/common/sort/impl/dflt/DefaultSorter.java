@@ -753,10 +753,10 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   }
 
   @Override
-  public void close() throws IOException {
-    super.close();
+  public List<Event> close() throws IOException {
     kvbuffer = null;
     kvmeta = null;
+    return super.close();
   }
 
   boolean isClosed() {

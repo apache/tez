@@ -47,7 +47,10 @@ public class ProgressHelper {
         if (inputs != null && inputs.size() != 0) {
           for (LogicalInput input : inputs.values()) {
             if (input instanceof AbstractLogicalInput) {
-              progSum += ((AbstractLogicalInput) input).getProgress();
+              float inputProgress = ((AbstractLogicalInput) input).getProgress();
+              if (inputProgress >= 0.0f && inputProgress <= 1.0f) {
+                progSum += inputProgress;
+              }
             }
           }
           progress = (1.0f) * progSum / inputs.size();

@@ -123,6 +123,11 @@ public class PipelinedSorter extends ExternalSorter {
   private final Deflater deflater;
   private final String auxiliaryService;
 
+  /**
+   * Store the events to be send in close.
+   */
+  private final List<Event> finalEvents;
+
   // TODO Set additional countesr - total bytes written, spills etc.
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
@@ -236,6 +241,7 @@ public class PipelinedSorter extends ExternalSorter {
     keySerializer.open(span.out);
     minSpillsForCombine = this.conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_COMBINE_MIN_SPILLS, 3);
     deflater = TezCommonUtils.newBestCompressionDeflater();
+    finalEvents = Lists.newLinkedList();
   }
 
   ByteBuffer allocateSpace() {
@@ -695,8 +701,6 @@ public class PipelinedSorter extends ExternalSorter {
       }
 
       if (!isFinalMergeEnabled()) {
-        //Generate events for all spills
-        List<Event> events = Lists.newLinkedList();
 
         //For pipelined shuffle, previous events are already sent. Just generate the last event alone
         int startIndex = (pipelinedShuffle) ? (numSpills - 1) : 0;
@@ -705,13 +709,12 @@ public class PipelinedSorter extends ExternalSorter {
         for (int i = startIndex; i < endIndex; i++) {
           boolean isLastEvent = (i == numSpills - 1);
           String pathComponent = (outputContext.getUniqueIdentifier() + "_" + i);
-          ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), isLastEvent,
+          ShuffleUtils.generateEventOnSpill(finalEvents, isFinalMergeEnabled(), isLastEvent,
               outputContext, i, indexCacheList.get(i), partitions,
               sendEmptyPartitionDetails, pathComponent, partitionStats,
               reportDetailedPartitionStats(), auxiliaryService, deflater);
           LOG.info(outputContext.getDestinationVertexName() + ": Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + i);
         }
-        outputContext.sendEvents(events);
         return;
       }
 
@@ -848,6 +851,16 @@ public class PipelinedSorter extends ExternalSorter {
       Thread.currentThread().interrupt();
       throw new IOInterruptedException("Interrupted while closing Output", ie);
     }
+  }
+
+  /**
+   * Close and send events.
+   * @return events to be returned by the edge.
+   * @throws IOException parent can throw this.
+   */
+  public final List<Event> close() throws IOException {
+    super.close();
+    return finalEvents;
   }
 
 
