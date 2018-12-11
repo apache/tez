@@ -74,6 +74,8 @@ public enum TaskCounter {
   MERGED_MAP_OUTPUTS,
   GC_TIME_MILLIS,
   CPU_MILLISECONDS,
+  /** Wall clock time taken by the task initialization and execution. */
+  WALL_CLOCK_MILLISECONDS,
   PHYSICAL_MEMORY_BYTES,
   VIRTUAL_MEMORY_BYTES,
   COMMITTED_HEAP_BYTES,

@@ -38,5 +38,7 @@ public enum DAGCounter {
   NUM_UBER_SUBTASKS,
   NUM_FAILED_UBERTASKS,
   AM_CPU_MILLISECONDS,
+  /** Wall clock time taken by all the tasks. */
+  WALL_CLOCK_MILLIS,
   AM_GC_TIME_MILLIS
 }
