@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.Arrays;
 import java.util.Map.Entry;
 
 import com.google.common.base.Strings;
@@ -136,7 +137,7 @@ public class TezClientUtils {
     FileSystem fs = p.getFileSystem(conf);
     p = fs.resolvePath(p.makeQualified(fs.getUri(),
         fs.getWorkingDirectory()));
-    FileSystem targetFS = p.getFileSystem(conf); 
+    FileSystem targetFS = p.getFileSystem(conf);
     if (targetFS.isDirectory(p)) {
       return targetFS.listStatus(p);
     } else {
@@ -164,7 +165,7 @@ public class TezClientUtils {
     boolean usingTezArchive = false;
 
     if (conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)){
-      LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" + 
+      LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" +
             TezConfiguration.TEZ_IGNORE_LIB_URIS + "' is set to true");
     } else {
       // Add tez jars to local resource
@@ -495,6 +496,8 @@ public class TezClientUtils {
     // Add Staging dir creds to the list of session credentials.
     TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
 
+    populateTokenCache(conf,sessionCreds);
+
     // Add session specific credentials to the AM credentials.
     amLaunchCredentials.mergeAll(sessionCreds);
 
@@ -575,19 +578,16 @@ public class TezClientUtils {
     }
 
     // emit conf as PB file
-    // don't overwrite existing conf, needed for TezClient.getClient() so existing containers have stable resource fingerprints
-    if(!binaryConfPath.getFileSystem(tezConf).exists(binaryConfPath)) {
-      ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
-              servicePluginsDescriptor);
+    ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
+        servicePluginsDescriptor);
 
-      FSDataOutputStream amConfPBOutBinaryStream = null;
-      try {
-        amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
-        finalConfProto.writeTo(amConfPBOutBinaryStream);
-      } finally {
-        if (amConfPBOutBinaryStream != null) {
-          amConfPBOutBinaryStream.close();
-        }
+    FSDataOutputStream amConfPBOutBinaryStream = null;
+    try {
+      amConfPBOutBinaryStream = TezCommonUtils.createFileForAM(fs, binaryConfPath);
+      finalConfProto.writeTo(amConfPBOutBinaryStream);
+    } finally {
+      if(amConfPBOutBinaryStream != null){
+        amConfPBOutBinaryStream.close();
       }
     }
 
@@ -609,7 +609,7 @@ public class TezClientUtils {
       if (amLocalResources != null && !amLocalResources.isEmpty()) {
         amResourceProto = DagTypeConverters.convertFromLocalResources(amLocalResources);
       } else {
-        amResourceProto = DAGProtos.PlanLocalResourcesProto.getDefaultInstance(); 
+        amResourceProto = DAGProtos.PlanLocalResourcesProto.getDefaultInstance();
       }
       amResourceProto.writeDelimitedTo(sessionJarsPBOutStream);
     } finally {
@@ -716,7 +716,23 @@ public class TezClientUtils {
     return appContext;
 
   }
-  
+
+  //get secret keys and tokens and store them into TokenCache
+  private static void populateTokenCache(TezConfiguration conf, Credentials credentials)
+          throws IOException{
+    // add the delegation tokens from configuration
+    String [] nameNodes = conf.getStrings(TezConfiguration.TEZ_JOB_NAMENODES);
+    LOG.debug("adding the following namenodes' delegation tokens:" +
+            Arrays.toString(nameNodes));
+    if(nameNodes != null) {
+      Path [] ps = new Path[nameNodes.length];
+      for(int i = 0; i< nameNodes.length; i++) {
+        ps[i] = new Path(nameNodes[i]);
+      }
+      TokenCache.obtainTokensForFileSystems(credentials, ps, conf);
+    }
+  }
+
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor,
@@ -807,16 +823,10 @@ public class TezClientUtils {
     assert amConf != null;
     ConfigurationProto.Builder builder = ConfigurationProto.newBuilder();
     for (Entry<String, String> entry : amConf) {
-      String key = entry.getKey();
-      String val = amConf.get(key);
-      if(val != null) {
-        PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
-        kvp.setKey(key);
-        kvp.setValue(val);
-        builder.addConfKeyValues(kvp);
-      } else {
-        LOG.debug("null value in Configuration after replacement for key={}. Skipping.", key);
-      }
+      PlanKeyValuePair.Builder kvp = PlanKeyValuePair.newBuilder();
+      kvp.setKey(entry.getKey());
+      kvp.setValue(amConf.get(entry.getKey()));
+      builder.addConfKeyValues(kvp);
     }
 
     AMPluginDescriptorProto pluginDescriptorProto =
