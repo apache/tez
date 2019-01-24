@@ -130,6 +130,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_PREFIX = TEZ_PREFIX + "am.";
   @Private
   public static final String TEZ_TASK_PREFIX = TEZ_PREFIX + "task.";
+  @Private
+  public static final String TEZ_JOB_NAMENODES = "mapreduce.job.hdfs-servers";
 
   /**
    * Boolean value. If true then Tez will try to automatically delete temporary job

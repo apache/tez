@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
@@ -495,6 +496,8 @@ public class TezClientUtils {
     // Add Staging dir creds to the list of session credentials.
     TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
 
+    populateTokenCache(conf,sessionCreds);
+
     // Add session specific credentials to the AM credentials.
     amLaunchCredentials.mergeAll(sessionCreds);
 
@@ -716,7 +719,23 @@ public class TezClientUtils {
     return appContext;
 
   }
-  
+ 
+    //get secret keys and tokens and store them into TokenCache
+  private static void populateTokenCache(TezConfiguration conf, Credentials credentials)
+          throws IOException{
+    // add the delegation tokens from configuration
+    String [] nameNodes = conf.getStrings(TezConfiguration.TEZ_JOB_NAMENODES);
+    LOG.debug("adding the following namenodes' delegation tokens:" +
+            Arrays.toString(nameNodes));
+    if(nameNodes != null) {
+      Path [] ps = new Path[nameNodes.length];
+      for(int i = 0; i < nameNodes.length; i++) {
+        ps[i] = new Path(nameNodes[i]);
+      }
+      TokenCache.obtainTokensForFileSystems(credentials, ps, conf);
+    }
+  }
+
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor,
