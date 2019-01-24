@@ -1899,12 +1899,12 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     // scheduled due to outstanding requests from higher priority predecessor vertices.
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     BitSet createVertexBlockedSet() {
-      BitSet blocked = new BitSet();
+      BitSet blocked = new BitSet(vertexDescendants.size());
       Entry<Priority, RequestPriorityStats> entry = priorityStats.lastEntry();
       if (entry != null) {
         RequestPriorityStats stats = entry.getValue();
         blocked.or(stats.allowedVertices);
-        blocked.flip(0, blocked.length());
+        blocked.flip(0, blocked.size());
         blocked.or(stats.descendants);
       }
       return blocked;

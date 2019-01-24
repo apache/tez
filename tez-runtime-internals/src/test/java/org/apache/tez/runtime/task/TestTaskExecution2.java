@@ -675,8 +675,8 @@ public class TestTaskExecution2 {
 
     // If Target <=0, assert counter count is exactly 0
     if (minTaskCounterCount <= 0) {
-      assertEquals(0, numTaskCounters);
-      assertEquals(0, numFsCounters);
+      assertEquals(tezCounters.toString(), 0, numTaskCounters);
+      assertEquals(tezCounters.toString(), 0, numFsCounters);
     } else {
       assertTrue(numTaskCounters >= minTaskCounterCount);
       assertTrue(numFsCounters >= minFsCounterCount);
