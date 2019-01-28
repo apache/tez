@@ -25,6 +25,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -45,6 +46,8 @@ import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AppLaunchedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
+import org.apache.tez.dag.history.events.DAGInitializedEvent;
+import org.apache.tez.dag.history.events.DAGStartedEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
@@ -72,7 +75,7 @@ public class TestProtoHistoryLoggingService {
 
   @Test
   public void testService() throws Exception {
-    ProtoHistoryLoggingService service = createService();
+    ProtoHistoryLoggingService service = createService(false);
     service.start();
     TezDAGID dagId = TezDAGID.getInstance(appId, 0);
     List<HistoryEventProto> protos = new ArrayList<>();
@@ -87,19 +90,9 @@ public class TestProtoHistoryLoggingService {
 
     // Verify dag events are logged.
     DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
-    Path dagFilePath = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId.toString() + "_" + 1);
+    Path dagFilePath = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId + "_1");
     ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(dagFilePath);
-    HistoryEventProto evt = reader.readEvent();
-    int ind = 1;
-    while (evt != null) {
-      Assert.assertEquals(protos.get(ind), evt);
-      ind++;
-      try {
-        evt = reader.readEvent();
-      } catch (EOFException e) {
-        evt = null;
-      }
-    }
+    assertEventsRead(reader, protos, 1, protos.size());
     reader.close();
 
     // Verify app events are logged.
@@ -108,7 +101,7 @@ public class TestProtoHistoryLoggingService {
     ProtoMessageReader<HistoryEventProto> appReader = appLogger.getReader(appFilePath);
     long appOffset = appReader.getOffset();
     Assert.assertEquals(protos.get(0), appReader.readEvent());
-    reader.close();
+    appReader.close();
 
     // Verify manifest events are logged.
     DatePartitionedLogger<ManifestEntryProto> manifestLogger = loggers.getManifestEventsLogger();
@@ -125,7 +118,7 @@ public class TestProtoHistoryLoggingService {
     // Verify offsets in manifest logger.
     reader = dagLogger.getReader(new Path(manifest.getDagFilePath()));
     reader.setOffset(manifest.getDagSubmittedEventOffset());
-    evt = reader.readEvent();
+    HistoryEventProto evt = reader.readEvent();
     Assert.assertNotNull(evt);
     Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
 
@@ -133,10 +126,96 @@ public class TestProtoHistoryLoggingService {
     evt = reader.readEvent();
     Assert.assertNotNull(evt);
     Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
+    reader.close();
 
     // Verify manifest file scanner.
     DagManifesFileScanner scanner = new DagManifesFileScanner(manifestLogger);
     Assert.assertEquals(manifest, scanner.getNext());
+    Assert.assertNull(scanner.getNext());
+    scanner.close();
+  }
+
+  @Test
+  public void testServiceSplitEvents() throws Exception {
+    ProtoHistoryLoggingService service = createService(true);
+    service.start();
+    TezDAGID dagId = TezDAGID.getInstance(appId, 0);
+    List<HistoryEventProto> protos = new ArrayList<>();
+    for (DAGHistoryEvent event : makeHistoryEvents(dagId, service)) {
+      protos.add(new HistoryEventProtoConverter().convert(event.getHistoryEvent()));
+      service.handle(event);
+    }
+    service.stop();
+
+    TezProtoLoggers loggers = new TezProtoLoggers();
+    Assert.assertTrue(loggers.setup(service.getConfig(), clock));
+
+    // Verify dag events are logged.
+    DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
+    Path dagFilePath1 = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId + "_1");
+    Path dagFilePath2 = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId + "_1" +
+        ProtoHistoryLoggingService.SPLIT_DAG_EVENTS_FILE_SUFFIX);
+
+    try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(dagFilePath1)) {
+      assertEventsRead(reader, protos, 1, 1 + 3);
+    }
+
+    try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(dagFilePath2)) {
+      assertEventsRead(reader, protos, 4, protos.size());
+    }
+
+    // Verify app events are logged.
+    DatePartitionedLogger<HistoryEventProto> appLogger = loggers.getAppEventsLogger();
+    Path appFilePath = appLogger.getPathForDate(LocalDate.ofEpochDay(0), attemptId.toString());
+    ProtoMessageReader<HistoryEventProto> appReader = appLogger.getReader(appFilePath);
+    long appOffset = appReader.getOffset();
+    Assert.assertEquals(protos.get(0), appReader.readEvent());
+    appReader.close();
+
+    // Verify manifest events are logged.
+    DatePartitionedLogger<ManifestEntryProto> manifestLogger = loggers.getManifestEventsLogger();
+    DagManifesFileScanner scanner = new DagManifesFileScanner(manifestLogger);
+    Path manifestFilePath = manifestLogger.getPathForDate(
+        LocalDate.ofEpochDay(0), attemptId.toString());
+    ProtoMessageReader<ManifestEntryProto> manifestReader = manifestLogger.getReader(
+        manifestFilePath);
+    ManifestEntryProto manifest = manifestReader.readEvent();
+    Assert.assertEquals(manifest, scanner.getNext());
+    Assert.assertEquals(appId.toString(), manifest.getAppId());
+    Assert.assertEquals(dagId.toString(), manifest.getDagId());
+    Assert.assertEquals(dagFilePath1.toString(), manifest.getDagFilePath());
+    Assert.assertEquals(appFilePath.toString(), manifest.getAppFilePath());
+    Assert.assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
+    Assert.assertEquals(-1, manifest.getDagFinishedEventOffset());
+
+    HistoryEventProto evt = null;
+    // Verify offsets in manifest logger.
+    try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(
+        new Path(manifest.getDagFilePath()))) {
+      reader.setOffset(manifest.getDagSubmittedEventOffset());
+      evt = reader.readEvent();
+      Assert.assertNotNull(evt);
+      Assert.assertEquals(HistoryEventType.DAG_SUBMITTED.name(), evt.getEventType());
+    }
+
+    manifest = manifestReader.readEvent();
+    Assert.assertEquals(manifest, scanner.getNext());
+    Assert.assertEquals(appId.toString(), manifest.getAppId());
+    Assert.assertEquals(dagId.toString(), manifest.getDagId());
+    Assert.assertEquals(dagFilePath2.toString(), manifest.getDagFilePath());
+    Assert.assertEquals(appFilePath.toString(), manifest.getAppFilePath());
+    Assert.assertEquals(appOffset, manifest.getAppLaunchedEventOffset());
+    Assert.assertEquals(-1, manifest.getDagSubmittedEventOffset());
+
+    try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(
+        new Path(manifest.getDagFilePath()))) {
+      reader.setOffset(manifest.getDagFinishedEventOffset());
+      evt = reader.readEvent();
+      Assert.assertNotNull(evt);
+      Assert.assertEquals(HistoryEventType.DAG_FINISHED.name(), evt.getEventType());
+    }
+
+    // Verify manifest file scanner.
     Assert.assertNull(scanner.getNext());
     scanner.close();
   }
@@ -152,6 +231,11 @@ public class TestProtoHistoryLoggingService {
         new VersionInfo("component", "1.1.0", "rev1", "20120101", "git.apache.org") {})));
     historyEvents.add(new DAGHistoryEvent(dagId, new DAGSubmittedEvent(dagId, time,
         DAGPlan.getDefaultInstance(), attemptId, null, user, conf, null, "default")));
+    historyEvents.add(new DAGHistoryEvent(dagId, new DAGInitializedEvent(dagId, time + 1, user,
+        "test_dag", Collections.emptyMap())));
+    historyEvents.add(new DAGHistoryEvent(dagId, new DAGStartedEvent(dagId, time + 2, user,
+        "test_dag")));
+
     TezVertexID vertexID = TezVertexID.getInstance(dagId, 1);
     historyEvents.add(new DAGHistoryEvent(dagId, new VertexStartedEvent(vertexID, time, time)));
     TezTaskID tezTaskID = TezTaskID.getInstance(vertexID, 1);
@@ -181,7 +265,7 @@ public class TestProtoHistoryLoggingService {
     }
   }
 
-  private ProtoHistoryLoggingService createService() throws IOException {
+  private ProtoHistoryLoggingService createService(boolean splitEvents) throws IOException {
     ProtoHistoryLoggingService service = new ProtoHistoryLoggingService();
     clock = new FixedClock(0); // Start time is always first day, easier to write tests.
     AppContext appContext = mock(AppContext.class);
@@ -194,7 +278,26 @@ public class TestProtoHistoryLoggingService {
     Configuration conf = new Configuration(false);
     String basePath = tempFolder.newFolder().getAbsolutePath();
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR, basePath);
+    conf.setBoolean(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START, splitEvents);
     service.init(conf);
     return service;
+  }
+
+  private void assertEventsRead(ProtoMessageReader<HistoryEventProto> reader,
+      List<HistoryEventProto> protos, int start, int finish) throws Exception {
+    for (int i = start; i < finish; ++i) {
+      try {
+        HistoryEventProto evt = reader.readEvent();
+        Assert.assertEquals(protos.get(i), evt);
+      } catch (EOFException e) {
+        Assert.fail("Unexpected eof");
+      }
+    }
+    try {
+      HistoryEventProto evt = reader.readEvent();
+      Assert.assertNull(evt);
+    } catch (EOFException e) {
+      // Expected.
+    }
   }
 }
