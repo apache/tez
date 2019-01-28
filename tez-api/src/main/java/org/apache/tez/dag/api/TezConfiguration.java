@@ -26,17 +26,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tez.common.annotation.ConfigurationClass;
-import org.apache.tez.common.annotation.ConfigurationProperty;
-import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.annotation.ConfigurationClass;
+import org.apache.tez.common.annotation.ConfigurationProperty;
+import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -56,7 +56,7 @@ public class TezConfiguration extends Configuration {
 
   private final static Logger LOG = LoggerFactory.getLogger(TezConfiguration.class);
 
-  private static Map<String, Scope> PropertyScope = new HashMap<String, Scope>();
+  private static Map<String, Scope> PropertyScope = new HashMap<>();
 
   static {
     Configuration.addDeprecation("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX);
@@ -1486,6 +1486,17 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS =
       TEZ_PREFIX + "history.logging.proto-sync-window-secs";
   public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
+
+  /**
+   * Boolean value. Set this to true, if the underlying file system does not support flush (Ex: s3).
+   * The dag submitted, initialized and started events are written into a file and closed. The rest
+   * of the events are written into another file.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START =
+      TEZ_PREFIX + "history.logging.split-dag-start";
+  public static final boolean TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START_DEFAULT = false;
 
   /**
    * Long value. The amount of time in seconds to wait to ensure all events for a day is synced
