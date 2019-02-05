@@ -213,7 +213,8 @@ public class TestMockDAGAppMaster {
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
     TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
     TaskAttempt killedTa = dagImpl.getVertex(vA.getName()).getTask(0).getAttempt(killedTaId);
-    Assert.assertEquals(TaskAttemptState.KILLED, killedTa.getState());
+    //Refer to TEZ-3950
+    Assert.assertTrue(killedTa.getState().equals(TaskAttemptState.KILLED) || killedTa.getState().equals(TaskAttemptState.FAILED));
     tezClient.stop();
   }
 
