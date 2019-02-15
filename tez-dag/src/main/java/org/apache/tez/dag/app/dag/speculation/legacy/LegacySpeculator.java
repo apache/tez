@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,12 +63,12 @@ public class LegacySpeculator {
   private static final long NOT_RUNNING = Long.MIN_VALUE + 4;
   private static final long TOO_LATE_TO_SPECULATE = Long.MIN_VALUE + 5;
 
-  private static final long SOONEST_RETRY_AFTER_NO_SPECULATE = 1000L * 1L;
-  private static final long SOONEST_RETRY_AFTER_SPECULATE = 1000L * 15L;
+  private final long soonestRetryAfterNoSpeculate;
+  private final long soonestRetryAfterSpeculate;
 
-  private static final double PROPORTION_RUNNING_TASKS_SPECULATABLE = 0.1;
-  private static final double PROPORTION_TOTAL_TASKS_SPECULATABLE = 0.01;
-  private static final int  MINIMUM_ALLOWED_SPECULATIVE_TASKS = 10;
+  private final double proportionRunningTasksSpeculatable;
+  private final double proportionTotalTasksSpeculatable;
+  private final int  minimumAllowedSpeculativeTasks;
   private static final int VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION = 1;
 
   private static final Logger LOG = LoggerFactory.getLogger(LegacySpeculator.class);
@@ -92,6 +93,21 @@ public class LegacySpeculator {
   private final long taskTimeout;
   private final Clock clock;
   private long nextSpeculateTime = Long.MIN_VALUE;
+
+  @VisibleForTesting
+  public int getMinimumAllowedSpeculativeTasks() { return minimumAllowedSpeculativeTasks;}
+
+  @VisibleForTesting
+  public double getProportionTotalTasksSpeculatable() { return proportionTotalTasksSpeculatable;}
+
+  @VisibleForTesting
+  public double getProportionRunningTasksSpeculatable() { return proportionRunningTasksSpeculatable;}
+
+  @VisibleForTesting
+  public long getSoonestRetryAfterNoSpeculate() { return soonestRetryAfterNoSpeculate;}
+
+  @VisibleForTesting
+  public long getSoonestRetryAfterSpeculate() { return soonestRetryAfterSpeculate;}
 
   public LegacySpeculator(Configuration conf, AppContext context, Vertex vertex) {
     this(conf, context.getClock(), vertex);
@@ -120,6 +136,21 @@ public class LegacySpeculator {
     taskTimeout = conf.getLong(
             TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
             TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT);
+    soonestRetryAfterNoSpeculate = conf.getLong(
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE,
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE_DEFAULT);
+    soonestRetryAfterSpeculate = conf.getLong(
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE,
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE_DEFAULT);
+    proportionRunningTasksSpeculatable = conf.getDouble(
+            TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE,
+            TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE_DEFAULT);
+    proportionTotalTasksSpeculatable = conf.getDouble(
+            TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE,
+            TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE_DEFAULT);
+    minimumAllowedSpeculativeTasks = conf.getInt(
+            TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS,
+            TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS_DEFAULT);
   }
 
 /*   *************************************************************    */
@@ -133,8 +164,8 @@ public class LegacySpeculator {
     
     int speculations = maybeScheduleASpeculation();
     long mininumRecomp
-        = speculations > 0 ? SOONEST_RETRY_AFTER_SPECULATE
-                           : SOONEST_RETRY_AFTER_NO_SPECULATE;
+        = speculations > 0 ? soonestRetryAfterSpeculate
+                           : soonestRetryAfterNoSpeculate;
 
     long wait = Math.max(mininumRecomp,
           clock.getTime() - now);
@@ -358,8 +389,8 @@ public class LegacySpeculator {
     Map<TezTaskID, Task> tasks = vertex.getTasks();
 
     int numberAllowedSpeculativeTasks
-        = (int) Math.max(MINIMUM_ALLOWED_SPECULATIVE_TASKS,
-                         PROPORTION_TOTAL_TASKS_SPECULATABLE * tasks.size());
+        = (int) Math.max(minimumAllowedSpeculativeTasks,
+                         proportionTotalTasksSpeculatable * tasks.size());
 
     TezTaskID bestTaskID = null;
     long bestSpeculationValue = -1L;
@@ -388,7 +419,7 @@ public class LegacySpeculator {
     }
     numberAllowedSpeculativeTasks
         = (int) Math.max(numberAllowedSpeculativeTasks,
-                         PROPORTION_RUNNING_TASKS_SPECULATABLE * numberRunningTasks);
+                         proportionRunningTasksSpeculatable * numberRunningTasks);
 
     // If we found a speculation target, fire it off
     if (bestTaskID != null
