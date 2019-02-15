@@ -4762,4 +4762,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       return maxAllowedTimeForTaskReadErrorSec;
     }
   }
+
+  @VisibleForTesting
+  public LegacySpeculator getSpeculator() { return speculator; }
 }

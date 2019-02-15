@@ -161,6 +161,16 @@ public class DeprecatedKeys {
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAP_OUTPUT_COMPRESS_CODEC, TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
 
     registerMRToRuntimeKeyTranslation(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST, TezConfiguration.TEZ_USER_CLASSPATH_FIRST);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.RETRY_AFTER_NO_SPECULATE, TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.RETRY_AFTER_SPECULATE, TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.SPECULATIVECAP_RUNNING_TASKS, TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.SPECULATIVECAP_TOTAL_TASKS, TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE);
+
+    registerMRToRuntimeKeyTranslation(MRJobConfig.MINIMUM_ALLOWED_TASKS, TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS);
   }
   
   private static void addDeprecatedKeys() {
