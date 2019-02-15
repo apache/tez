@@ -44,6 +44,8 @@ import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
+import org.apache.tez.dag.app.dag.impl.VertexImpl;
+import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -148,6 +150,13 @@ public class TestSpeculation {
   }
 
   public void testBasicSpeculation(boolean withProgress) throws Exception {
+
+    defaultConf.setInt(TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS, 20);
+    defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE, 0.2);
+    defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE, 0.25);
+    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 2000);
+    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE, 10000);
+
     DAG dag = DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
@@ -185,6 +194,14 @@ public class TestSpeculation {
       Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
     }
+
+    LegacySpeculator speculator = ((VertexImpl) dagImpl.getVertex(vA.getName())).getSpeculator();
+    Assert.assertEquals(20, speculator.getMinimumAllowedSpeculativeTasks());
+    Assert.assertEquals(.2, speculator.getProportionTotalTasksSpeculatable(), 0);
+    Assert.assertEquals(.25, speculator.getProportionRunningTasksSpeculatable(), 0);
+    Assert.assertEquals(2000, speculator.getSoonestRetryAfterNoSpeculate());
+    Assert.assertEquals(10000, speculator.getSoonestRetryAfterSpeculate());
+
     tezClient.stop();
   }
   
