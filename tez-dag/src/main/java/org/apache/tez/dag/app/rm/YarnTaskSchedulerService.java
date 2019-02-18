@@ -63,6 +63,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.common.ContainerSignatureMatcher;
@@ -121,7 +122,6 @@ public class YarnTaskSchedulerService extends TaskScheduler
   
   Set<NodeId> blacklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
-  
   Resource totalResources = Resource.newInstance(0, 0);
   Resource allocatedResources = Resource.newInstance(0, 0);
   long numHeartbeats = 0;
@@ -1784,9 +1784,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
       Container container = entry.getValue();
       // check for blacklisted nodes. There may be race conditions between
       // setting blacklist and receiving allocations
-      if (blacklistedNodes.contains(container.getNodeId())) {
-        CookieContainerRequest request = entry.getKey();
-        Object task = getTask(request);
+      CookieContainerRequest request = entry.getKey();
+      Object task = getTask(request);
+      if (blacklistedNodes.contains(container.getNodeId())
+          || task instanceof TaskAttempt && ((TaskAttempt) task).getUnhealthyNodesHistory().contains(container.getNodeId())) {
         LOG.info("Container: " + container.getId() + 
             " allocated on blacklisted node: " + container.getNodeId() + 
             " for task: " + task);

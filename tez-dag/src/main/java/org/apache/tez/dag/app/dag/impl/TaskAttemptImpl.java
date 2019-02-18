@@ -228,6 +228,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final boolean leafVertex;
   
   private TezTaskAttemptID creationCausalTA;
+  private Set<NodeId> unhealthyNodesHistory;
   private long creationTime;
   private long scheduledTime;
 
@@ -540,7 +541,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
     this(attemptId, eventHandler, taskCommunicatorManagerInterface, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        vertex, locationHint, taskSpec, null);
+        vertex, locationHint, taskSpec, null, null);
   }
 
   @SuppressWarnings("rawtypes")
@@ -550,7 +551,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
-      TezTaskAttemptID schedulingCausalTA) {
+      TezTaskAttemptID schedulingCausalTA, Set<NodeId> unhealthyNodesHistory) {
 
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -566,6 +567,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.locationHint = locationHint;
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
+    this.unhealthyNodesHistory = unhealthyNodesHistory;
     this.creationTime = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
@@ -606,6 +608,11 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   public TezTaskAttemptID getSchedulingCausalTA() {
     return creationCausalTA;
+  }
+
+  @Override
+  public Set<NodeId> getUnhealthyNodesHistory() {
+    return unhealthyNodesHistory;
   }
 
   @Override

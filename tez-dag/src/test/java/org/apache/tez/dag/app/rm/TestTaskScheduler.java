@@ -60,6 +60,7 @@ import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientAsyncForTest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientForTest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AlwaysMatchesContainerMatcher;
@@ -345,6 +346,23 @@ public class TestTaskScheduler {
     verify(mockRMClient, times(8)).addContainerRequest(
         (CookieContainerRequest) any());
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
+
+    // test speculative node adjustment
+    String speculativeNode = "host8";
+    NodeId speculativeNodeId = mock(NodeId.class);
+    when(speculativeNodeId.getHost()).thenReturn(speculativeNode);
+    TaskAttempt mockTask5 = mock(TaskAttempt.class);
+    when(mockTask5.getUnhealthyNodesHistory()).thenReturn(Sets.newHashSet(speculativeNodeId));
+    Object mockCookie5 = new Object();
+    scheduler.allocateTask(mockTask5, mockCapability, hosts, racks,
+        mockPriority, null, mockCookie5);
+    drainableAppCallback.drain();
+    // no new allocation
+    verify(mockApp, times(4)).taskAllocated(any(), any(), (Container) any());
+    // verify container released
+    verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
+    // verify request added back
+    verify(mockRMClient, times(9)).addContainerRequest(requestCaptor.capture());
 
     List<NodeReport> mockUpdatedNodes = mock(List.class);
     scheduler.onNodesUpdated(mockUpdatedNodes);
