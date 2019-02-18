@@ -29,8 +29,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -93,7 +91,7 @@ public class AMNodeImpl implements AMNode {
       .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
           AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
       .addTransition(AMNodeState.ACTIVE,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED, AMNodeState.UNRELIABLE),
+          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
           AMNodeEventType.N_TA_ENDED, new TaskAttemptFailedTransition())
       .addTransition(AMNodeState.ACTIVE, AMNodeState.UNHEALTHY,
           AMNodeEventType.N_TURNED_UNHEALTHY,
@@ -181,31 +179,6 @@ public class AMNodeImpl implements AMNode {
           AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
           AMNodeEventType.N_TURNED_UNHEALTHY, new GenericErrorTransition())
-
-      // Transitions from UNRELIABLE state.
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.UNRELIABLE,
-          AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedWhileUnreliableTransition())
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.UNRELIABLE,
-          AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
-      .addTransition(AMNodeState.UNRELIABLE,
-          EnumSet.of(AMNodeState.UNRELIABLE, AMNodeState.BLACKLISTED),
-          AMNodeEventType.N_TA_ENDED, new TaskAttemptFailedTransition())
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_TURNED_UNHEALTHY,
-          new NodeTurnedUnhealthyTransition())
-      .addTransition(AMNodeState.UNRELIABLE,
-          EnumSet.of(AMNodeState.UNRELIABLE, AMNodeState.BLACKLISTED),
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingDisabledTransition())
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.UNRELIABLE,
-          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
-      .addTransition(AMNodeState.UNRELIABLE, AMNodeState.UNRELIABLE,
-          AMNodeEventType.N_TURNED_HEALTHY,
-          new GenericErrorTransition())
 
         .installTopology();
 
@@ -300,14 +273,6 @@ public class AMNodeImpl implements AMNode {
     sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true, schedulerId));
   }
 
-  private boolean categorizedAsUnreliable(TaskAttemptEndReason reason) {
-    return TaskAttemptEndReason.INTERNAL_SHUFFLE_FAILED.equals(reason);
-  }
-
-  private boolean causedByExternalFailure(TaskAttemptEndReason reason) {
-    return TaskAttemptEndReason.EXTERNAL_SHUFFLE_FAILED.equals(reason);
-  }
-
   @SuppressWarnings("unchecked")
   private void sendEvent(Event<?> event) {
     this.eventHandler.handle(event);
@@ -346,29 +311,21 @@ public class AMNodeImpl implements AMNode {
       if (event.failed()) {
         // ignore duplicate attempt ids
         if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
-          if (!node.causedByExternalFailure(event.getTaskAttemptEndReason())) {
-            // new failed container on node
-            node.numFailedTAs++;
-            if (node.categorizedAsUnreliable(event.getTaskAttemptEndReason())) {
-              // check blacklisting count threshold
-              if (node.registerBadNodeAndShouldBlacklist()) {
-                LOG.info("Attempt: " + event.getTaskAttemptId() + " output read error. node: "
-                    + node.getNodeId() + " turn to unreliable state");
-                node.sendEvent(new AMSchedulerEventNodeBlacklistUpdate(node.getNodeId(), true, node.schedulerId));
-                return AMNodeState.UNRELIABLE;
-              }
-            } else if (node.qualifiesForBlacklisting()) {
-              if (node.registerBadNodeAndShouldBlacklist()) {
-                LOG.info("Too many task attempt failures. " +
-                    "Blacklisting node: " + node.getNodeId());
-                node.blacklistSelf();
-                return AMNodeState.BLACKLISTED;
-              }
+          // new failed container on node
+          node.numFailedTAs++;
+          if (node.qualifiesForBlacklisting()) {
+            if (node.registerBadNodeAndShouldBlacklist()) {
+              LOG.info("Too many task attempt failures. " +
+                  "Blacklisting node: " + node.getNodeId());
+              node.blacklistSelf();
+              return AMNodeState.BLACKLISTED;
+            } else {
+              // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
             }
           }
         }
       }
-      return node.getState();
+      return AMNodeState.ACTIVE;
     }
   }
 
@@ -404,9 +361,6 @@ public class AMNodeImpl implements AMNode {
           // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
         }
       }
-      if (AMNodeState.UNRELIABLE.equals(node.getState())) {
-        return AMNodeState.UNRELIABLE;
-      }
       return AMNodeState.ACTIVE;
     }
   }
@@ -439,16 +393,6 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  protected static class ContainerAllocatedWhileUnreliableTransition implements
-      SingleArcTransition<AMNodeImpl, AMNodeEvent> {
-    @Override
-    public void transition(AMNodeImpl node, AMNodeEvent nEvent) {
-      AMNodeEventContainerAllocated event = (AMNodeEventContainerAllocated) nEvent;
-      node.sendEvent(new AMContainerEvent(event.getContainerId(),
-          AMContainerEventType.C_STOP_REQUEST));
-    }
-  }
-
   protected static class TaskAttemptSucceededWhileBlacklistedTransition
       implements MultipleArcTransition<AMNodeImpl, AMNodeEvent, AMNodeState> {
     @Override
@@ -466,14 +410,7 @@ public class AMNodeImpl implements AMNode {
     public void transition(AMNodeImpl node, AMNodeEvent nEvent) {
       AMNodeEventTaskAttemptEnded event = (AMNodeEventTaskAttemptEnded) nEvent;
       if (event.failed())
-        // ignore duplicate attempt ids
-        if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
-          // Attempt failure can be caused by external error, such as lost of upstream node's output.
-          // In such cases, failed TA should not be counted as negative factor against current node.
-          if (!node.causedByExternalFailure(event.getTaskAttemptEndReason())) {
-            node.numFailedTAs++;
-          }
-        }
+        node.numFailedTAs++;
     }
   }
 

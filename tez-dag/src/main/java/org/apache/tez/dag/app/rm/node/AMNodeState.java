@@ -23,5 +23,4 @@ public enum AMNodeState {
   FORCED_ACTIVE,
   BLACKLISTED,
   UNHEALTHY,
-  UNRELIABLE
 }

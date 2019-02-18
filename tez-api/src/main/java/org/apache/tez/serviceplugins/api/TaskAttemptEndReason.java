@@ -28,7 +28,5 @@ public enum TaskAttemptEndReason {
   APPLICATION_ERROR, // An error in the AM caused by user code
   FRAMEWORK_ERROR, // An error in the AM - likely a bug.
   CONTAINER_EXITED,
-  INTERNAL_SHUFFLE_FAILED, //Failed because the node caused shuffle error
-  EXTERNAL_SHUFFLE_FAILED, //Failed due to external shuffle error
   OTHER // Unknown reason
 }

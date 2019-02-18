@@ -320,10 +320,6 @@ public class TezUtilsInternal {
         return TaskAttemptEndReason.NODE_FAILED;
       case CONTAINER_EXITED:
         return TaskAttemptEndReason.CONTAINER_EXITED;
-      case INPUT_READ_ERROR:
-        return TaskAttemptEndReason.EXTERNAL_SHUFFLE_FAILED;
-      case OUTPUT_LOST:
-        return TaskAttemptEndReason.INTERNAL_SHUFFLE_FAILED;
       case INTERRUPTED_BY_SYSTEM:
       case INTERRUPTED_BY_USER:
       case UNKNOWN_ERROR:
@@ -332,7 +328,9 @@ public class TezUtilsInternal {
       case TERMINATED_INEFFECTIVE_SPECULATION:
       case TERMINATED_EFFECTIVE_SPECULATION:
       case TERMINATED_ORPHANED:
+      case INPUT_READ_ERROR:
       case OUTPUT_WRITE_ERROR:
+      case OUTPUT_LOST:
       case TASK_HEARTBEAT_ERROR:
       case CONTAINER_LAUNCH_FAILED:
 
