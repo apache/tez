@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -37,6 +39,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
@@ -148,6 +151,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
   private final Map<Integer, Boolean> taskAttemptStatus = new HashMap<Integer,Boolean>();
+
+  private final Set<NodeId> unhealthyNodesHistory = new HashSet<>();
 
   private static final SingleArcTransition<TaskImpl , TaskEvent>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
@@ -744,7 +749,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return new TaskAttemptImpl(attemptId, eventHandler,
         taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
         (failedAttempts > 0), taskResource, containerContext, leafVertex, getVertex(),
-        locationHint, taskSpec, schedulingCausalTA);
+        locationHint, taskSpec, schedulingCausalTA, unhealthyNodesHistory);
   }
 
   @Override
@@ -1009,14 +1014,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
       task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
-      TezTaskAttemptID earliestUnfinishedAttempt = null;
+      TaskAttempt earliestUnfinishedAttempt = null;
       for (TaskAttempt ta : task.attempts.values()) {
         // find the oldest running attempt
         if (!ta.isFinished()) {
-          earliestUnfinishedAttempt = ta.getID();
+          earliestUnfinishedAttempt = ta;
         }
       }
-      task.addAndScheduleAttempt(earliestUnfinishedAttempt);
+      NodeId nodeId = earliestUnfinishedAttempt.getNodeId();
+      task.unhealthyNodesHistory.add(nodeId);
+      LOG.info("A long-tailed attempt {} was running on node {}, adding it to the task's unhealthy node history.",
+          nodeId, earliestUnfinishedAttempt.getID());
+      task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
     }
   }
 

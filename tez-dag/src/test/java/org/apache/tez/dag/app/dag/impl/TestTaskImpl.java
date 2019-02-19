@@ -1366,7 +1366,7 @@ public class TestTaskImpl {
         Resource resource, ContainerContext containerContext, TezTaskAttemptID schedCausalTA) {
       super(attemptId, eventHandler, tal, conf, clock, thh,
           appContext, isRescheduled, resource, containerContext, false, null,
-          locationHint, mockTaskSpec, schedCausalTA);
+          locationHint, mockTaskSpec, schedCausalTA, null);
     }
 
     @Override
