@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
@@ -567,8 +568,9 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    * @param container the container assigned to the task
    */
   private void informAppAboutAssignment(TaskRequest request, Container container) {
-    if (blacklistedNodes.contains(container.getNodeId())) {
-      Object task = request.getTask();
+    Object task = request.getTask();
+    if (blacklistedNodes.contains(container.getNodeId())
+        || task instanceof TaskAttempt && ((TaskAttempt) task).getUnhealthyNodesHistory().contains(container.getNodeId())) {
       LOG.info("Container {} allocated for task {} on blacklisted node {}",
           container.getId(), container.getNodeId(), task);
       deallocateContainer(container.getId());
