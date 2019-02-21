@@ -1019,12 +1019,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // find the oldest running attempt
         if (!ta.isFinished()) {
           earliestUnfinishedAttempt = ta;
+          task.unhealthyNodesHistory.add(ta.getNodeId());
+          LOG.info("A long-tailed attempt " + ta.getID()
+                  + " was running on node " + ta.getNodeId()
+                  + ", adding it to the task's unhealthy node history.");
         }
       }
-      NodeId nodeId = earliestUnfinishedAttempt.getNodeId();
-      task.unhealthyNodesHistory.add(nodeId);
-      LOG.info("A long-tailed attempt {} was running on node {}, adding it to the task's unhealthy node history.",
-          nodeId, earliestUnfinishedAttempt.getID());
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
     }
   }
