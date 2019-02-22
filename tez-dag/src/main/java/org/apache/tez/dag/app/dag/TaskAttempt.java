@@ -137,5 +137,8 @@ public interface TaskAttempt {
    */
   long getFinishTime();
 
-  Set<NodeId> getUnhealthyNodesHistory();
+  /**
+   * @return the set of nodes on which sibling attempts were running on.
+   */
+  Set<NodeId> getNodesWithSiblingRunningAttempts();
 }

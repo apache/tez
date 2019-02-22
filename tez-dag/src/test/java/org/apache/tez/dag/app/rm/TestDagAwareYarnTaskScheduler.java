@@ -350,7 +350,7 @@ public class TestDagAwareYarnTaskScheduler {
     NodeId speculativeNodeId = mock(NodeId.class);
     when(speculativeNodeId.getHost()).thenReturn(speculativeNode);
     TaskAttempt mockTask5 = mock(TaskAttempt.class);
-    when(mockTask5.getUnhealthyNodesHistory()).thenReturn(Sets.newHashSet(speculativeNodeId));
+    when(mockTask5.getNodesWithSiblingRunningAttempts()).thenReturn(Sets.newHashSet(speculativeNodeId));
     Object mockCookie5 = new Object();
     scheduler.allocateTask(mockTask5, mockCapability, hosts, racks,
         mockPriority, null, mockCookie5);

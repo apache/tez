@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -152,7 +152,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
   private final Map<Integer, Boolean> taskAttemptStatus = new HashMap<Integer,Boolean>();
 
-  private final Set<NodeId> unhealthyNodesHistory = new HashSet<>();
+  private final Set<NodeId> nodesWithRunningAttempts = Collections
+      .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
 
   private static final SingleArcTransition<TaskImpl , TaskEvent>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
@@ -749,7 +750,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return new TaskAttemptImpl(attemptId, eventHandler,
         taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
         (failedAttempts > 0), taskResource, containerContext, leafVertex, getVertex(),
-        locationHint, taskSpec, schedulingCausalTA, unhealthyNodesHistory);
+        locationHint, taskSpec, schedulingCausalTA, nodesWithRunningAttempts);
   }
 
   @Override
@@ -1019,10 +1020,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // find the oldest running attempt
         if (!ta.isFinished()) {
           earliestUnfinishedAttempt = ta;
-          task.unhealthyNodesHistory.add(ta.getNodeId());
-          LOG.info("A long-tailed attempt " + ta.getID()
-                  + " was running on node " + ta.getNodeId()
-                  + ", adding it to the task's unhealthy node history.");
+          task.nodesWithRunningAttempts.add(ta.getNodeId());
         }
       }
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());

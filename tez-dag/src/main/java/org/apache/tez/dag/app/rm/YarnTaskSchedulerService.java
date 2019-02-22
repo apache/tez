@@ -1534,6 +1534,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
   private boolean canAssignTaskToContainer(
       CookieContainerRequest cookieContainerRequest, Container container) {
     HeldContainer heldContainer = heldContainers.get(container.getId());
+    Object task = getTask(cookieContainerRequest);
+    if (task instanceof TaskAttempt
+        && ((TaskAttempt) task).getNodesWithSiblingRunningAttempts().contains(container.getNodeId())) {
+      return false;
+    }
     if (heldContainer == null || heldContainer.isNew()) { // New container.
       return true;
     } else {
@@ -1787,8 +1792,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       // setting blacklist and receiving allocations
       CookieContainerRequest request = entry.getKey();
       Object task = getTask(request);
-      if (blacklistedNodes.contains(container.getNodeId())
-          || task instanceof TaskAttempt && ((TaskAttempt) task).getUnhealthyNodesHistory().contains(container.getNodeId())) {
+      if (blacklistedNodes.contains(container.getNodeId())) {
         LOG.info("Container: " + container.getId() + 
             " allocated on blacklisted node: " + container.getNodeId() + 
             " for task: " + task);

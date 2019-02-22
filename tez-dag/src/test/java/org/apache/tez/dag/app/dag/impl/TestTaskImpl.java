@@ -1401,6 +1401,11 @@ public class TestTaskImpl {
     public ContainerId getAssignedContainerID() {
       return mockContainerId;
     }
+
+    @Override
+    public NodeId getNodeId() {
+      return mockNodeId;
+    }
   }
 
   public class ServiceBusyEvent extends TezAbstractEvent<TaskAttemptEventType>

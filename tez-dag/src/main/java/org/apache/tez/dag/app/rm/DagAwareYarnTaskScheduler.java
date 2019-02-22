@@ -399,6 +399,9 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       for (Collection<TaskRequest> requests : results) {
         if (!requests.isEmpty()) {
           TaskRequest request = requests.iterator().next();
+          if (maybeChangeNode(request, hc.getContainer().getNodeId())) {
+            continue;
+          }
           assignContainer(request, hc, location);
           assignments.add(new Assignment(request, hc.getContainer()));
           return;
@@ -516,6 +519,9 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         if (requestTracker.isRequestBlocked(request)) {
           LOG.debug("Cannot assign task {} to container {} since vertex {} is a descendant of pending tasks",
               request.getTask(), hc.getId(), request.getVertexIndex());
+        } else if (maybeChangeNode(request, hc.getContainer().getNodeId())) {
+          LOG.debug("Cannot assign task {} to container {} since node {} is running sibling attempts",
+              request.getTask(), hc.getId(), request.getVertexIndex());
         } else {
           assignContainer(request, hc, hc.getId());
           return request;
@@ -544,8 +550,10 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
         Object signature = hc.getSignature();
         if (signature == null || signatureMatcher.isSuperSet(signature, request.getContainerSignature())) {
-          assignContainer(request, hc, matchLocation);
-          return request;
+          if (!maybeChangeNode(request, hc.getContainer().getNodeId())) {
+            assignContainer(request, hc, matchLocation);
+            return request;
+          }
         }
       }
     }
@@ -568,9 +576,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    * @param container the container assigned to the task
    */
   private void informAppAboutAssignment(TaskRequest request, Container container) {
-    Object task = request.getTask();
-    if (blacklistedNodes.contains(container.getNodeId())
-        || task instanceof TaskAttempt && ((TaskAttempt) task).getUnhealthyNodesHistory().contains(container.getNodeId())) {
+    if (blacklistedNodes.contains(container.getNodeId())) {
+      Object task = request.getTask();
       LOG.info("Container {} allocated for task {} on blacklisted node {}",
           container.getId(), container.getNodeId(), task);
       deallocateContainer(container.getId());
@@ -1052,7 +1059,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     ContainerId affinity = request.getAffinity();
     if (affinity != null) {
       HeldContainer hc = heldContainers.get(affinity);
-      if (hc != null && hc.isAssignable()) {
+      if (hc != null && hc.isAssignable() && !maybeChangeNode(request, hc.getContainer().getNodeId())) {
         assignContainer(request, hc, affinity);
         return hc;
       }
@@ -1101,12 +1108,13 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         if (eligibleStates.contains(hc.getState())) {
           Object csig = hc.getSignature();
           if (csig == null || signatureMatcher.isSuperSet(csig, request.getContainerSignature())) {
+            boolean needToChangeNode = maybeChangeNode(request, hc.getContainer().getNodeId());
             int numAffinities = hc.getNumAffinities();
-            if (numAffinities == 0) {
+            if (numAffinities == 0 && !needToChangeNode) {
               bestMatch = hc;
               break;
             }
-            if (bestMatch == null || numAffinities < bestMatch.getNumAffinities()) {
+            if ((bestMatch == null || numAffinities < bestMatch.getNumAffinities()) && !needToChangeNode) {
               bestMatch = hc;
             }
           } else {
@@ -1119,6 +1127,18 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       assignContainer(request, bestMatch, location);
     }
     return bestMatch;
+  }
+
+  private boolean maybeChangeNode(TaskRequest request, NodeId nodeId) {
+    Object task = request.getTask();
+    if (task instanceof TaskAttempt) {
+      Set<NodeId> nodesWithSiblingRunningAttempts = ((TaskAttempt) task).getNodesWithSiblingRunningAttempts();
+      if (nodesWithSiblingRunningAttempts != null
+          && nodesWithSiblingRunningAttempts.contains(nodeId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

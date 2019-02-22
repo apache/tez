@@ -228,7 +228,12 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final boolean leafVertex;
   
   private TezTaskAttemptID creationCausalTA;
-  private Set<NodeId> unhealthyNodesHistory;
+  // Record the set of nodes on which sibling attempts were running on, at the time of
+  // this attempt being scheduled. This set is empty for original task attempt, and
+  // non-empty when current task attempt is a speculative one, in which case scheduler
+  // should try to schedule the speculative attempt on to a node other than the one(s)
+  // recorded in this set.
+  private Set<NodeId> nodesWithSiblingRunningAttempts;
   private long creationTime;
   private long scheduledTime;
 
@@ -551,7 +556,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
       Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
-      TezTaskAttemptID schedulingCausalTA, Set<NodeId> unhealthyNodesHistory) {
+      TezTaskAttemptID schedulingCausalTA, Set<NodeId> nodesWithSiblingRunningAttempts) {
 
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -567,7 +572,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.locationHint = locationHint;
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
-    this.unhealthyNodesHistory = unhealthyNodesHistory;
+    this.nodesWithSiblingRunningAttempts = nodesWithSiblingRunningAttempts;
     this.creationTime = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
@@ -611,8 +616,8 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @Override
-  public Set<NodeId> getUnhealthyNodesHistory() {
-    return unhealthyNodesHistory;
+  public Set<NodeId> getNodesWithSiblingRunningAttempts() {
+    return nodesWithSiblingRunningAttempts;
   }
 
   @Override
