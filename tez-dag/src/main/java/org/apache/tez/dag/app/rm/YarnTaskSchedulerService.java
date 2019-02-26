@@ -63,6 +63,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.common.ContainerSignatureMatcher;
@@ -118,7 +119,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       new HashMap<ContainerId, HeldContainer>();
   
   Set<Priority> priorityHasAffinity = Sets.newHashSet();
-  
+
   Set<NodeId> blacklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
   
@@ -1533,6 +1534,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
   private boolean canAssignTaskToContainer(
       CookieContainerRequest cookieContainerRequest, Container container) {
     HeldContainer heldContainer = heldContainers.get(container.getId());
+    Object task = getTask(cookieContainerRequest);
+    if (task instanceof TaskAttempt
+        && ((TaskAttempt) task).getNodesWithSiblingRunningAttempts().contains(container.getNodeId())) {
+      return false;
+    }
     if (heldContainer == null || heldContainer.isNew()) { // New container.
       return true;
     } else {
@@ -1784,9 +1790,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
       Container container = entry.getValue();
       // check for blacklisted nodes. There may be race conditions between
       // setting blacklist and receiving allocations
+      CookieContainerRequest request = entry.getKey();
+      Object task = getTask(request);
       if (blacklistedNodes.contains(container.getNodeId())) {
-        CookieContainerRequest request = entry.getKey();
-        Object task = getTask(request);
         LOG.info("Container: " + container.getId() + 
             " allocated on blacklisted node: " + container.getNodeId() + 
             " for task: " + task);
