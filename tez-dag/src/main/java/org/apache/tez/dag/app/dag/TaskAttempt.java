@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.yarn.api.records.Container;
@@ -136,4 +137,8 @@ public interface TaskAttempt {
    */
   long getFinishTime();
 
+  /**
+   * @return the set of nodes on which sibling attempts were running on.
+   */
+  Set<NodeId> getNodesWithSiblingRunningAttempts();
 }

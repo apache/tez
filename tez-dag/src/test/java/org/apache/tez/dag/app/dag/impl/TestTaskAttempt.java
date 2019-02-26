@@ -2194,7 +2194,7 @@ public class TestTaskAttempt {
           eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
           isRescheduled, resource, containerContext, leafVertex, mockVertex,
-          locationHint, null, null);
+          locationHint, null, null, null);
     }
     
     boolean inputFailedReported = false;
