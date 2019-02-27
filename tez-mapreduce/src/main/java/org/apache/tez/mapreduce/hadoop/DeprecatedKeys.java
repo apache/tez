@@ -88,6 +88,10 @@ public class DeprecatedKeys {
         TezConfiguration.TEZ_APPLICATION_TAGS);
     mrParamToDAGParamMap.put(MRJobConfig.MAPREDUCE_JOB_USER_CLASSPATH_FIRST,
         TezConfiguration.TEZ_USER_CLASSPATH_FIRST);
+    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAMENODES,
+            TezConfiguration.TEZ_JOB_FS_SERVERS);
+    mrParamToDAGParamMap.put(MRJobConfig.JOB_NAMENODES_TOKEN_RENEWAL_EXCLUDE,
+            TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
   }
 
   // TODO TEZAM4 Sometime, make sure this gets loaded by default. Instead of the current initialization in MRAppMaster, TezChild.
