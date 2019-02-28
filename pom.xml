@@ -79,6 +79,10 @@
       <name>${distMgmtSnapshotsName}</name>
       <url>${distMgmtSnapshotsUrl}</url>
     </snapshotRepository>
+    <site>
+      <id>tez.apache.org</id>
+      <url>scp://tez.apache.org</url>
+    </site>
   </distributionManagement>
 
   <repositories>
