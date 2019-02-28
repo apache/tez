@@ -103,7 +103,7 @@ public class TokenCache {
   }
 
   static boolean isTokenRenewalExcluded(FileSystem fs, Configuration conf) {
-    String [] nns =
+    String[] nns =
             conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
     if (nns != null) {
       String host = fs.getUri().getHost();
