@@ -113,6 +113,11 @@ public class TestTokenCache {
     conf.setBoolean("fs.test.impl.disable.cache", true);
     TokenCache.obtainTokensForFileSystemsInternal(creds, paths, conf);
     verify(TestFileSystem.fs, times(paths.length + 1)).addDelegationTokens(renewer, creds);
+
+    // Excluded filesystem tokens should not be obtained.
+    conf.set("tez.job.fs-servers.token-renewal.exclude", "dir");
+    TokenCache.obtainTokensForFileSystemsInternal(creds, paths, conf);
+    verify(TestFileSystem.fs, times(paths.length + 1)).addDelegationTokens(renewer, creds);
   }
 
   private Path[] makePaths(int count, String prefix) throws Exception {
@@ -127,7 +132,7 @@ public class TestTokenCache {
     static final FileSystem fs = mock(FileSystem.class);
     static {
       try {
-        when(fs.getUri()).thenReturn(new URI("test:///"));
+        when(fs.getUri()).thenReturn(new URI("test://dir"));
       } catch (URISyntaxException e) {
         throw new RuntimeException(e);
       }
