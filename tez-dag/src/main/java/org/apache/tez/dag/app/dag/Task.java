@@ -21,7 +21,9 @@ package org.apache.tez.dag.app.dag;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
@@ -73,4 +75,10 @@ public interface Task {
   long getFirstAttemptStartTime();
 
   long getFinishTime();
+
+  /**
+   * @return set of nodes on which previous attempts were running on, at the time
+   * of latest attempt being scheduled.
+   */
+  Set<NodeId> getNodesWithRunningAttempts();
 }
