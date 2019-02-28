@@ -115,7 +115,7 @@ public class TestTokenCache {
     verify(TestFileSystem.fs, times(paths.length + 1)).addDelegationTokens(renewer, creds);
 
     // Excluded filesystem tokens should not be obtained.
-    conf.set("tez.job.fs-servers.token-renewal.exclude","dir");
+    conf.set("tez.job.fs-servers.token-renewal.exclude", "dir");
     TokenCache.obtainTokensForFileSystemsInternal(creds, paths, conf);
     verify(TestFileSystem.fs, times(paths.length + 1)).addDelegationTokens(renewer, creds);
   }
