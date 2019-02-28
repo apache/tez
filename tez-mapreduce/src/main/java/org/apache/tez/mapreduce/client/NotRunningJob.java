@@ -64,8 +64,6 @@ import org.apache.hadoop.mapreduce.v2.api.records.TaskState;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 
@@ -85,6 +83,8 @@ public class NotRunningJob implements MRClientProtocol {
         .newRecordInstance(ApplicationAttemptId.class);
 
     ApplicationReport report = recordFactory.newRecordInstance(ApplicationReport.class);
+    report.setApplicationId(unknownAppId);
+    report.setCurrentApplicationAttemptId(unknownAttemptId);
     report.setUser("N/A");
     report.setName("N/A");
     report.setDiagnostics("N/A");
