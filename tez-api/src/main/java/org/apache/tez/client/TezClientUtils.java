@@ -496,7 +496,7 @@ public class TezClientUtils {
     // Add Staging dir creds to the list of session credentials.
     TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
 
-    populateTokenCache(conf,sessionCreds);
+    populateTokenCache(conf, sessionCreds);
 
     // Add session specific credentials to the AM credentials.
     amLaunchCredentials.mergeAll(sessionCreds);
@@ -724,11 +724,11 @@ public class TezClientUtils {
   private static void populateTokenCache(TezConfiguration conf, Credentials credentials)
           throws IOException{
     // add the delegation tokens from configuration
-    String [] nameNodes = conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS);
+    String[] nameNodes = conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS);
     LOG.debug("adding the following namenodes' delegation tokens:" +
             Arrays.toString(nameNodes));
     if(nameNodes != null) {
-      Path [] ps = new Path[nameNodes.length];
+      Path[] ps = new Path[nameNodes.length];
       for(int i = 0; i < nameNodes.length; i++) {
         ps[i] = new Path(nameNodes[i]);
       }
