@@ -52,8 +52,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       new HistoryEventProtoConverter();
   private boolean loggingDisabled = false;
 
-  private final LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
-      new LinkedBlockingQueue<>(10000);
+  private LinkedBlockingQueue<DAGHistoryEvent> eventQueue;
   private Thread eventHandlingThread;
   private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -81,7 +80,11 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
         TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
     splitDagStartEvents = conf.getBoolean(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START,
         TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START_DEFAULT);
-    LOG.info("Inited ProtoHistoryLoggingService");
+    final int queueSize = conf.getInt(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE,
+        TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE_DEFAULT);
+    eventQueue = new LinkedBlockingQueue<>(queueSize);
+    LOG.info("Inited ProtoHistoryLoggingService. loggingDisabled: {} splitDagStartEvents: {} queueSize: {}",
+        loggingDisabled, splitDagStartEvents, queueSize);
   }
 
   @Override
