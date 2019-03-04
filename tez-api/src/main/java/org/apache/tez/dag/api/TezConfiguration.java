@@ -1526,6 +1526,16 @@ public class TezConfiguration extends Configuration {
   public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
 
   /**
+   * Int value. Maximum queue size for proto history event logger.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE =
+      TEZ_PREFIX + "history.logging.queue.size";
+  public static final int TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE_DEFAULT = 100000;
+
+
+  /**
    * Boolean value. Set this to true, if the underlying file system does not support flush (Ex: s3).
    * The dag submitted, initialized and started events are written into a file and closed. The rest
    * of the events are written into another file.
