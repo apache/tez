@@ -54,7 +54,7 @@
     <protobuf.version>2.5.0</protobuf.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <scm.url>scm:git:https://git-wip-us.apache.org/repos/asf/tez.git</scm.url>
+    <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <build.time>${maven.build.timestamp}</build.time>
     <frontend-maven-plugin.version>1.4</frontend-maven-plugin.version>
     <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
@@ -959,7 +959,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.4</version>
+          <version>3.7.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -1029,7 +1029,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>2.7</version>
+          <version>3.0.0</version>
           <configuration>
             <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
           </configuration>

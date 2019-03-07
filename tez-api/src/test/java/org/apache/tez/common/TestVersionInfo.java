@@ -29,7 +29,7 @@ public class TestVersionInfo {
   final String version = "0.6.0-SNAPSHOT";
   final String revision = "d523db65804a5742ce50824e6fcfb8a04d184c0d";
   final String buildTime = "20141024-1052";
-  final String scmUrl = "scm:git:https://git-wip-us.apache.org/repos/asf/tez.git";
+  final String scmUrl = "scm:git:https://gitbox.apache.org/repos/asf/tez.git";
 
   @Test(timeout = 5000)
   public void testTest1File() {

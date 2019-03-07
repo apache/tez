@@ -133,7 +133,7 @@
 
     <menu name="Contribute">
       <item name="JIRA" href="https://issues.apache.org/jira/browse/TEZ" />
-      <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/tez.git" />
+      <item name="Git (Read/Write)" href="https://gitbox.apache.org/repos/asf/tez.git" alt="Use git clone https://gitbox.apache.org/repos/asf/tez.git" />
       <item name="Git (Read-only)" href="git://git.apache.org/tez.git" alt="Use git clone git://git.apache.org/tez.git" />
       <item name="How to Contribute" href="https://cwiki.apache.org/confluence/display/TEZ/How+to+Contribute+to+Tez" alt="Detailed guide on how to contribute to Tez" />
     </menu>
