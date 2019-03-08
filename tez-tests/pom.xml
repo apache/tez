@@ -24,6 +24,10 @@
   </parent>
   <artifactId>tez-tests</artifactId>
 
+  <properties>
+    <test.tmp.dir>${project.build.directory}/dagviz</test.tmp.dir>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
@@ -129,6 +133,33 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-sources</id>
+            <phase>generate-sources</phase>
+            <configuration>
+              <tasks>
+                <delete dir="${test.tmp.dir}" />
+                <mkdir dir="${test.tmp.dir}" />
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <environmentVariables>
+            <LOG_DIRS>${test.tmp.dir}</LOG_DIRS>
+          </environmentVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
