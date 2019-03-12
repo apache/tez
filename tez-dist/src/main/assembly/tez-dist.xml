@@ -36,6 +36,7 @@
             <excludes>
               <exclude>*:*:test-jar</exclude>
               <exclude>org.apache.tez:*</exclude>
+              <exclude>jline:jline</exclude>
             </excludes>
           </dependencySet>
         </dependencySets>
