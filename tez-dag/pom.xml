@@ -31,7 +31,7 @@
     org.apache.tez.dag.app.rm.container.AMContainerImpl</tez.dag.state.classes>
     <tez.graphviz.title>Tez</tez.graphviz.title>
     <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
-    <test.tmp.dir>${project.build.directory}/dagviz</test.tmp.dir>
+    <test.log.dir>${project.build.directory}/logs</test.log.dir>
   </properties>
   <artifactId>tez-dag</artifactId>
 
@@ -195,8 +195,8 @@
             <phase>generate-sources</phase>
             <configuration>
               <tasks>
-                <delete dir="${test.tmp.dir}" />
-                <mkdir dir="${test.tmp.dir}" />
+                <delete dir="${test.log.dir}" />
+                <mkdir dir="${test.log.dir}" />
               </tasks>
             </configuration>
             <goals>
@@ -210,7 +210,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <environmentVariables>
-            <LOG_DIRS>${test.tmp.dir}</LOG_DIRS>
+            <LOG_DIRS>${test.log.dir}</LOG_DIRS>
           </environmentVariables>
         </configuration>
       </plugin>

@@ -25,6 +25,10 @@
 
   <artifactId>tez-ext-service-tests</artifactId>
 
+  <properties>
+    <test.log.dir>${project.build.directory}/logs</test.log.dir>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.netty</groupId>
@@ -126,6 +130,33 @@
       </resource>
     </resources>
     <plugins>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>generate-sources</id>
+            <phase>generate-sources</phase>
+            <configuration>
+              <tasks>
+                <delete dir="${test.log.dir}" />
+                <mkdir dir="${test.log.dir}" />
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <environmentVariables>
+            <LOG_DIRS>${test.log.dir}</LOG_DIRS>
+          </environmentVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
