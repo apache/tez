@@ -25,7 +25,7 @@
   <artifactId>tez-tests</artifactId>
 
   <properties>
-    <test.tmp.dir>${project.build.directory}/dagviz</test.tmp.dir>
+    <test.log.dir>${project.build.directory}/logs</test.log.dir>
   </properties>
 
   <dependencies>
@@ -141,8 +141,8 @@
             <phase>generate-sources</phase>
             <configuration>
               <tasks>
-                <delete dir="${test.tmp.dir}" />
-                <mkdir dir="${test.tmp.dir}" />
+                <delete dir="${test.log.dir}" />
+                <mkdir dir="${test.log.dir}" />
               </tasks>
             </configuration>
             <goals>
@@ -156,7 +156,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <environmentVariables>
-            <LOG_DIRS>${test.tmp.dir}</LOG_DIRS>
+            <LOG_DIRS>${test.log.dir}</LOG_DIRS>
           </environmentVariables>
         </configuration>
       </plugin>
