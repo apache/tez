@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitbox.apache.org/repos/asf/tez.git"
+    "url": "https://git-wip-us.apache.org/repos/asf/tez.git"
   },
   "engines": {
     "node": ">= 0.10.0"
