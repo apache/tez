@@ -18,44 +18,41 @@
 
 package org.apache.tez.common;
 
-import java.io.IOException;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class TestVersionInfo {
 
-  final String version = "0.6.0-SNAPSHOT";
-  final String revision = "d523db65804a5742ce50824e6fcfb8a04d184c0d";
-  final String buildTime = "20141024-1052";
-  final String scmUrl = "scm:git:https://git-wip-us.apache.org/repos/asf/tez.git";
+  private static final String VERSION = "0.6.0-SNAPSHOT";
+  private static final String REVISION = "d523db65804a5742ce50824e6fcfb8a04d184c0d";
+  private static final String BUILD_TIME = "20141024-1052";
+  private static final String SCM_URL = "scm:git:https://gitbox.apache.org/repos/asf/tez.git";
 
   @Test(timeout = 5000)
   public void testTest1File() {
     VersionInfo versionInfo = new VersionInfo("test1");
-    Assert.assertEquals(version, versionInfo.getVersion());
-    Assert.assertEquals(revision, versionInfo.getRevision());
-    Assert.assertEquals(buildTime, versionInfo.getBuildTime());
-    Assert.assertEquals(scmUrl, versionInfo.getSCMURL());
+    Assert.assertEquals(VERSION, versionInfo.getVersion());
+    Assert.assertEquals(REVISION, versionInfo.getRevision());
+    Assert.assertEquals(BUILD_TIME, versionInfo.getBuildTime());
+    Assert.assertEquals(SCM_URL, versionInfo.getSCMURL());
   }
 
   @Test(timeout = 5000)
   public void testTest2File() {
     VersionInfo versionInfo = new VersionInfo("test2");
-    Assert.assertEquals(version, versionInfo.getVersion());
-    Assert.assertEquals(revision, versionInfo.getRevision());
-    Assert.assertEquals(buildTime, versionInfo.getBuildTime());
+    Assert.assertEquals(VERSION, versionInfo.getVersion());
+    Assert.assertEquals(REVISION, versionInfo.getRevision());
+    Assert.assertEquals(BUILD_TIME, versionInfo.getBuildTime());
     Assert.assertEquals(VersionInfo.UNKNOWN, versionInfo.getSCMURL());
   }
 
   @Test(timeout = 5000)
   public void testTest3File() {
     VersionInfo versionInfo = new VersionInfo("test3");
-    Assert.assertEquals(version, versionInfo.getVersion());
-    Assert.assertEquals(revision, versionInfo.getRevision());
+    Assert.assertEquals(VERSION, versionInfo.getVersion());
+    Assert.assertEquals(REVISION, versionInfo.getRevision());
     Assert.assertEquals("", versionInfo.getBuildTime());
-    Assert.assertEquals(scmUrl, versionInfo.getSCMURL());
+    Assert.assertEquals(SCM_URL, versionInfo.getSCMURL());
   }
 
   @Test(timeout = 5000)
