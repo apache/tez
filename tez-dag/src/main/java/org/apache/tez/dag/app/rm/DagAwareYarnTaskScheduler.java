@@ -1132,7 +1132,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private boolean maybeChangeNode(TaskRequest request, NodeId nodeId) {
     Object task = request.getTask();
     if (task instanceof TaskAttempt) {
-      Set<NodeId> nodesWithSiblingRunningAttempts = ((TaskAttempt) task).getNodesWithSiblingRunningAttempts();
+      Set<NodeId> nodesWithSiblingRunningAttempts = ((TaskAttempt) task).getTask().getNodesWithRunningAttempts();
       if (nodesWithSiblingRunningAttempts != null
           && nodesWithSiblingRunningAttempts.contains(nodeId)) {
         return true;

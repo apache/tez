@@ -77,6 +77,7 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
@@ -198,6 +199,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
   
   private final Vertex vertex;
+  private final Task task;
   private final TaskLocationHint locationHint;
   private final TaskSpec taskSpec;
 
@@ -228,12 +230,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   private final boolean leafVertex;
   
   private TezTaskAttemptID creationCausalTA;
-  // Record the set of nodes on which sibling attempts were running on, at the time of
-  // this attempt being scheduled. This set is empty for original task attempt, and
-  // non-empty when current task attempt is a speculative one, in which case scheduler
-  // should try to schedule the speculative attempt on to a node other than the one(s)
-  // recorded in this set.
-  private Set<NodeId> nodesWithSiblingRunningAttempts;
   private long creationTime;
   private long scheduledTime;
 
@@ -543,10 +539,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec) {
     this(attemptId, eventHandler, taskCommunicatorManagerInterface, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        vertex, locationHint, taskSpec, null, null);
+        task, locationHint, taskSpec, null);
   }
 
   @SuppressWarnings("rawtypes")
@@ -555,8 +551,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
-      TezTaskAttemptID schedulingCausalTA, Set<NodeId> nodesWithSiblingRunningAttempts) {
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec,
+      TezTaskAttemptID schedulingCausalTA) {
 
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -568,11 +564,11 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.vertex = vertex;
+    this.vertex = task.getVertex();
+    this.task = task;
     this.locationHint = locationHint;
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
-    this.nodesWithSiblingRunningAttempts = nodesWithSiblingRunningAttempts;
     this.creationTime = clock.getTime();
 
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
@@ -613,11 +609,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   
   public TezTaskAttemptID getSchedulingCausalTA() {
     return creationCausalTA;
-  }
-
-  @Override
-  public Set<NodeId> getNodesWithSiblingRunningAttempts() {
-    return nodesWithSiblingRunningAttempts;
   }
 
   @Override
@@ -866,7 +857,12 @@ public class TaskAttemptImpl implements TaskAttempt,
       readLock.unlock();
     }
   }
-  
+
+  @Override
+  public Task getTask() {
+    return task;
+  }
+
   Vertex getVertex() {
     return vertex;
   }

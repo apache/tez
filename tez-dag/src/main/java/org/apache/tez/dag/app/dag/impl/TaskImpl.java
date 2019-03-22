@@ -152,6 +152,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
   private final Map<Integer, Boolean> taskAttemptStatus = new HashMap<Integer,Boolean>();
 
+  // The set of nodes with active running attempts at the time of the latest attempt for
+  // this task was scheduled. This set is empty when scheduling original task attempt, and
+  // non-empty scheduling a speculative attempt, in which case scheduler should avoid
+  // scheduling the speculative attempt onto node(s) recorded in this set.
   private final Set<NodeId> nodesWithRunningAttempts = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
 
@@ -584,6 +588,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
+  @Override
+  public Set<NodeId> getNodesWithRunningAttempts() {
+    return nodesWithRunningAttempts;
+  }
+
   @VisibleForTesting
   public TaskStateInternal getInternalState() {
     readLock.lock();
@@ -749,8 +758,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         baseTaskSpec.getTaskConf());
     return new TaskAttemptImpl(attemptId, eventHandler,
         taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
-        (failedAttempts > 0), taskResource, containerContext, leafVertex, getVertex(),
-        locationHint, taskSpec, schedulingCausalTA, nodesWithRunningAttempts);
+        (failedAttempts > 0), taskResource, containerContext, leafVertex, this,
+        locationHint, taskSpec, schedulingCausalTA);
   }
 
   @Override
