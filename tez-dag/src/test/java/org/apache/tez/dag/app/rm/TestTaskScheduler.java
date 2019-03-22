@@ -60,6 +60,7 @@ import org.apache.hadoop.yarn.api.records.ResourceRequest;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientAsyncForTest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientForTest;
@@ -360,7 +361,9 @@ public class TestTaskScheduler {
     NodeId speculativeNodeId = mock(NodeId.class);
     when(speculativeNodeId.getHost()).thenReturn(speculativeNode);
     TaskAttempt mockTask5 = mock(TaskAttempt.class);
-    when(mockTask5.getNodesWithSiblingRunningAttempts()).thenReturn(Sets.newHashSet(speculativeNodeId));
+    Task task = mock(Task.class);
+    when(mockTask5.getTask()).thenReturn(task);
+    when(task.getNodesWithRunningAttempts()).thenReturn(Sets.newHashSet(speculativeNodeId));
     Object mockCookie5 = new Object();
     scheduler.allocateTask(mockTask5, mockCapability, hosts, racks,
         mockPriority, null, mockCookie5);

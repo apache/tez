@@ -1536,7 +1536,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
     HeldContainer heldContainer = heldContainers.get(container.getId());
     Object task = getTask(cookieContainerRequest);
     if (task instanceof TaskAttempt
-        && ((TaskAttempt) task).getNodesWithSiblingRunningAttempts().contains(container.getNodeId())) {
+        && ((TaskAttempt) task).getTask() != null
+        && ((TaskAttempt) task).getTask().getNodesWithRunningAttempts().contains(container.getNodeId())) {
       return false;
     }
     if (heldContainer == null || heldContainer.isNew()) { // New container.
@@ -1790,9 +1791,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
       Container container = entry.getValue();
       // check for blacklisted nodes. There may be race conditions between
       // setting blacklist and receiving allocations
-      CookieContainerRequest request = entry.getKey();
-      Object task = getTask(request);
       if (blacklistedNodes.contains(container.getNodeId())) {
+        CookieContainerRequest request = entry.getKey();
+        Object task = getTask(request);
         LOG.info("Container: " + container.getId() + 
             " allocated on blacklisted node: " + container.getNodeId() + 
             " for task: " + task);
