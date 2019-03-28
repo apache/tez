@@ -1264,6 +1264,10 @@ public class TestUnorderedPartitionedKVWriter {
 
     assertTrue(localFs.exists(outputFilePath));
     assertTrue(localFs.exists(spillFilePath));
+    assertEquals("Incorrect output permissions", (short)0640,
+        localFs.getFileStatus(outputFilePath).getPermission().toShort());
+    assertEquals("Incorrect index permissions", (short)0640,
+        localFs.getFileStatus(spillFilePath).getPermission().toShort());
 
     // verify no intermediate spill files have been left around
     synchronized (kvWriter.spillInfoList) {
