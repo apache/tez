@@ -1365,7 +1365,7 @@ public class TestTaskImpl {
         boolean isRescheduled,
         Resource resource, ContainerContext containerContext, TezTaskAttemptID schedCausalTA) {
       super(attemptId, eventHandler, tal, conf, clock, thh,
-          appContext, isRescheduled, resource, containerContext, false, null,
+          appContext, isRescheduled, resource, containerContext, false, mockTask,
           locationHint, mockTaskSpec, schedCausalTA);
     }
 
@@ -1400,6 +1400,11 @@ public class TestTaskImpl {
     @Override
     public ContainerId getAssignedContainerID() {
       return mockContainerId;
+    }
+
+    @Override
+    public NodeId getNodeId() {
+      return mockNodeId;
     }
   }
 

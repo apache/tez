@@ -77,6 +77,7 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
@@ -198,6 +199,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
   
   private final Vertex vertex;
+  private final Task task;
   private final TaskLocationHint locationHint;
   private final TaskSpec taskSpec;
 
@@ -537,10 +539,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec) {
     this(attemptId, eventHandler, taskCommunicatorManagerInterface, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        vertex, locationHint, taskSpec, null);
+        task, locationHint, taskSpec, null);
   }
 
   @SuppressWarnings("rawtypes")
@@ -549,7 +551,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec,
       TezTaskAttemptID schedulingCausalTA) {
 
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -562,7 +564,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.vertex = vertex;
+    this.vertex = task.getVertex();
+    this.task = task;
     this.locationHint = locationHint;
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
@@ -854,7 +857,12 @@ public class TaskAttemptImpl implements TaskAttempt,
       readLock.unlock();
     }
   }
-  
+
+  @Override
+  public Task getTask() {
+    return task;
+  }
+
   Vertex getVertex() {
     return vertex;
   }

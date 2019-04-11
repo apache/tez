@@ -61,8 +61,7 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
 
     SubmitWorkRequestProto.Builder baseBuilder = SubmitWorkRequestProto.newBuilder();
 
-    // TODO Avoid reading this from the environment
-    baseBuilder.setUser(System.getenv(ApplicationConstants.Environment.USER.name()));
+    baseBuilder.setUser(System.getProperty("user.name"));
     baseBuilder.setApplicationIdString(
         taskCommunicatorContext.getApplicationAttemptId().getApplicationId().toString());
     baseBuilder

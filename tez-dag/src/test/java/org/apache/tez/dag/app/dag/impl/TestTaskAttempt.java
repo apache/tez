@@ -83,6 +83,7 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
@@ -145,6 +146,7 @@ public class TestTaskAttempt {
   TezConfiguration vertexConf = new TezConfiguration();
   TaskLocationHint locationHint;
   Vertex mockVertex;
+  Task mockTask;
   ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
       .setContainerLauncherName(TezConstants.getTezYarnServicePluginName());
 
@@ -161,6 +163,8 @@ public class TestTaskAttempt {
         TezConstants.getTezYarnServicePluginName());
 
     createMockVertex(vertexConf);
+    mockTask = mock(Task.class);
+    when(mockTask.getVertex()).thenReturn(mockVertex);
 
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
@@ -2193,7 +2197,7 @@ public class TestTaskAttempt {
       super(TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber),
           eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex, mockVertex,
+          isRescheduled, resource, containerContext, leafVertex, mockTask,
           locationHint, null, null);
     }
     

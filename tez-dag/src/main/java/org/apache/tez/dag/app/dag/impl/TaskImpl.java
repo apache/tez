@@ -26,6 +26,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -37,6 +39,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
@@ -148,6 +151,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   // track the status of TaskAttempt (true mean completed, false mean uncompleted)
   private final Map<Integer, Boolean> taskAttemptStatus = new HashMap<Integer,Boolean>();
+
+  // The set of nodes with active running attempts at the time of the latest attempt for
+  // this task was scheduled. This set is empty when scheduling original task attempt, and
+  // non-empty scheduling a speculative attempt, in which case scheduler should avoid
+  // scheduling the speculative attempt onto node(s) recorded in this set.
+  private final Set<NodeId> nodesWithRunningAttempts = Collections
+      .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
 
   private static final SingleArcTransition<TaskImpl , TaskEvent>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
@@ -578,6 +588,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
+  @Override
+  public Set<NodeId> getNodesWithRunningAttempts() {
+    return nodesWithRunningAttempts;
+  }
+
   @VisibleForTesting
   public TaskStateInternal getInternalState() {
     readLock.lock();
@@ -743,7 +758,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         baseTaskSpec.getTaskConf());
     return new TaskAttemptImpl(attemptId, eventHandler,
         taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
-        (failedAttempts > 0), taskResource, containerContext, leafVertex, getVertex(),
+        (failedAttempts > 0), taskResource, containerContext, leafVertex, this,
         locationHint, taskSpec, schedulingCausalTA);
   }
 
@@ -1009,14 +1024,15 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
       task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
-      TezTaskAttemptID earliestUnfinishedAttempt = null;
+      TaskAttempt earliestUnfinishedAttempt = null;
       for (TaskAttempt ta : task.attempts.values()) {
         // find the oldest running attempt
         if (!ta.isFinished()) {
-          earliestUnfinishedAttempt = ta.getID();
+          earliestUnfinishedAttempt = ta;
+          task.nodesWithRunningAttempts.add(ta.getNodeId());
         }
       }
-      task.addAndScheduleAttempt(earliestUnfinishedAttempt);
+      task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
     }
   }
 

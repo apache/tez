@@ -94,7 +94,7 @@
     </head>
 
     <breadcrumbs>
-      <item name="Apache TEZ&reg;" href="http://tez.apache.org/"/>
+      <item name="Apache TEZ&#174;" href="http://tez.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Getting Started">
@@ -120,7 +120,7 @@
       <item name="Tez Wiki" href="https://cwiki.apache.org/confluence/display/TEZ"/>
     </menu>
 
-    <menu name="Download Apache TEZ&reg; Releases">
+    <menu name="Download Apache TEZ&#174; Releases">
       <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
       <item name="0.5.4" href="./releases/apache-tez-0-5-4.html"/>
       <item name="0.6.2" href="./releases/apache-tez-0-6-2.html"/>
@@ -128,12 +128,13 @@
       <item name="0.8.5" href="./releases/apache-tez-0-8-5.html"/>
       <item name="0.9.0" href="./releases/apache-tez-0-9-0.html"/>
       <item name="0.9.1" href="./releases/apache-tez-0-9-1.html"/>
+      <item name="0.9.2" href="./releases/apache-tez-0-9-2.html"/>
       <item name="All Releases" href="./releases/index.html"/>
     </menu>
 
     <menu name="Contribute">
       <item name="JIRA" href="https://issues.apache.org/jira/browse/TEZ" />
-      <item name="Git (Read/Write)" href="https://git-wip-us.apache.org/repos/asf/tez.git" alt="Use git clone https://git-wip-us.apache.org/repos/asf/tez.git" />
+      <item name="Git (Read/Write)" href="https://gitbox.apache.org/repos/asf/tez.git" alt="Use git clone https://gitbox.apache.org/repos/asf/tez.git" />
       <item name="Git (Read-only)" href="git://git.apache.org/tez.git" alt="Use git clone git://git.apache.org/tez.git" />
       <item name="How to Contribute" href="https://cwiki.apache.org/confluence/display/TEZ/How+to+Contribute+to+Tez" alt="Detailed guide on how to contribute to Tez" />
     </menu>

@@ -26,17 +26,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tez.common.annotation.ConfigurationClass;
-import org.apache.tez.common.annotation.ConfigurationProperty;
-import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.annotation.ConfigurationClass;
+import org.apache.tez.common.annotation.ConfigurationProperty;
+import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -56,7 +56,7 @@ public class TezConfiguration extends Configuration {
 
   private final static Logger LOG = LoggerFactory.getLogger(TezConfiguration.class);
 
-  private static Map<String, Scope> PropertyScope = new HashMap<String, Scope>();
+  private static Map<String, Scope> PropertyScope = new HashMap<>();
 
   static {
     Configuration.addDeprecation("tez.am.counters.max.keys", TezConfiguration.TEZ_COUNTERS_MAX);
@@ -550,6 +550,58 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT =
                                      TEZ_AM_PREFIX + "legacy.speculative.single.task.vertex.timeout";
   public static final long TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT = -1;
+
+  /**
+   * Long value. Specifies amount of time (in ms) that needs to elapse to do the next round of
+   * speculation if there is no task speculated in this round.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE =
+          TEZ_AM_PREFIX + "soonest.retry.after.no.speculate";
+  public static final long TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE_DEFAULT = 1000L * 1L;
+
+  /**
+   * Long value. Specifies amount of time (in ms) that needs to elapse to do the next round of
+   * speculation if there are tasks speculated in this round.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE=
+          TEZ_AM_PREFIX + "soonest.retry.after.speculate";
+  public static final long TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE_DEFAULT = 1000L * 15L;
+
+  /**
+   * Double value. The max percent (0-1) of running tasks that can be speculatively re-executed at any time.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="double")
+  public static final String TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE =
+          TEZ_AM_PREFIX + "proportion.running.tasks.speculatable";
+  public static final double TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE_DEFAULT = 0.1;
+
+  /**
+   * Double value. The max percent (0-1) of all tasks that can be speculatively re-executed at any time.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="double")
+  public static final String TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE =
+          TEZ_AM_PREFIX + "proportion.total.tasks.speculatable";
+  public static final double TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE_DEFAULT = 0.01;
+
+  /**
+   * Integer value. The minimum allowed tasks that can be speculatively re-executed at any time.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS =
+          TEZ_AM_PREFIX + "minimum.allowed.speculative.tasks";
+  public static final int TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS_DEFAULT = 10;
 
   /**
    * Int value. Upper limit on the number of threads user to launch containers in the app
@@ -1488,6 +1540,27 @@ public class TezConfiguration extends Configuration {
   public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
 
   /**
+   * Int value. Maximum queue size for proto history event logger.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE =
+      TEZ_PREFIX + "history.logging.queue.size";
+  public static final int TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE_DEFAULT = 100000;
+
+
+  /**
+   * Boolean value. Set this to true, if the underlying file system does not support flush (Ex: s3).
+   * The dag submitted, initialized and started events are written into a file and closed. The rest
+   * of the events are written into another file.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START =
+      TEZ_PREFIX + "history.logging.split-dag-start";
+  public static final boolean TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START_DEFAULT = false;
+
+  /**
    * Long value. The amount of time in seconds to wait to ensure all events for a day is synced
    * to disk. This should be maximum time variation b/w machines + maximum time to sync file
    * content and metadata.
@@ -1946,5 +2019,19 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   public static final String TEZ_SHARED_EXECUTOR_MAX_THREADS = "tez.shared-executor.max-threads";
   public static final int TEZ_SHARED_EXECUTOR_MAX_THREADS_DEFAULT = -1;
+
+  /**
+   *  Acquire all FileSystems info. e.g., all namenodes info of HDFS federation cluster.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_JOB_FS_SERVERS = "tez.job.fs-servers";
+
+  /**
+   *  Skip delegation token renewal for specified FileSystems.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE = "tez.job.fs-servers.token-renewal.exclude";
 
 }

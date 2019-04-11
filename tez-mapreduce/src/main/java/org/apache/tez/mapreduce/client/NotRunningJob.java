@@ -64,8 +64,6 @@ import org.apache.hadoop.mapreduce.v2.api.records.TaskState;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 
@@ -84,11 +82,16 @@ public class NotRunningJob implements MRClientProtocol {
     ApplicationAttemptId unknownAttemptId = recordFactory
         .newRecordInstance(ApplicationAttemptId.class);
 
-    // Setting AppState to NEW and finalStatus to UNDEFINED as they are never
-    // used for a non running job
-    return ApplicationReport.newInstance(unknownAppId, unknownAttemptId, "N/A",
-        "N/A", "N/A", "N/A", 0, null, YarnApplicationState.NEW, "N/A", "N/A",
-        0, 0, FinalApplicationStatus.UNDEFINED, null, "N/A", 0.0f, "TEZ_MRR", null);
+    ApplicationReport report = recordFactory.newRecordInstance(ApplicationReport.class);
+    report.setApplicationId(unknownAppId);
+    report.setCurrentApplicationAttemptId(unknownAttemptId);
+    report.setUser("N/A");
+    report.setName("N/A");
+    report.setDiagnostics("N/A");
+    report.setTrackingUrl("N/A");
+    report.setStartTime(0);
+    report.setFinishTime(0);
+    return report;
   }
 
   NotRunningJob(ApplicationReport applicationReport, JobState jobState) {

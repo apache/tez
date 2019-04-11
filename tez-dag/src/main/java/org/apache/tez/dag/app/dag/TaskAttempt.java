@@ -71,7 +71,8 @@ public interface TaskAttempt {
   TezTaskID getTaskID();
   TezVertexID getVertexID();
   TezDAGID getDAGID();
-  
+
+  Task getTask();
   TaskAttemptReport getReport();
   List<String> getDiagnostics();
   TaskAttemptTerminationCause getTerminationCause();
@@ -135,5 +136,4 @@ public interface TaskAttempt {
    *  yet, returns 0.
    */
   long getFinishTime();
-
 }
