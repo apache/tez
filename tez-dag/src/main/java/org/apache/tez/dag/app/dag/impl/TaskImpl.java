@@ -1021,7 +1021,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (!ta.isFinished()) {
           earliestUnfinishedAttempt = ta;
           task.nodesWithRunningAttempts.add(ta.getNodeId());
+        } else {
+          if (TaskAttemptState.SUCCEEDED.equals(ta.getState())) {
+            LOG.info("Ignore speculation scheduling for task {} since it has succeeded with attempt {}.",
+                task.getTaskId(), ta.getID());
+            return;
+          }
         }
+      }
+      if (earliestUnfinishedAttempt == null) {
+        // no running (or SUCCEEDED) task attempt at this moment, no need to schedule speculative attempt either
+        LOG.info("Ignore speculation scheduling since there is no running attempt on task {}.", task.getTaskId());
+        return;
       }
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
     }

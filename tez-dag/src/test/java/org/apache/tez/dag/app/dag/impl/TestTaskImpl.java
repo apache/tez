@@ -982,6 +982,23 @@ public class TestTaskImpl {
     Assert.assertEquals(mockDestId, newAttempt.getSchedulingCausalTA());
   }
 
+  @Test(timeout = 20000)
+  public void testIgnoreSpeculation() {
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    MockTaskAttemptImpl firstAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(firstAttempt.getID());
+    // Have the first task succeed
+    updateAttemptState(firstAttempt, TaskAttemptState.SUCCEEDED);
+    firstAttempt.handle(new TaskAttemptEvent(firstAttempt.getID(), TaskAttemptEventType.TA_DONE));
+
+    // Ignore speculation
+    mockTask.handle(createTaskTAAddSpecAttempt(firstAttempt.getID()));
+    MockTaskAttemptImpl specAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(specAttempt.getID());
+    assertEquals(1, mockTask.getAttemptList().size());
+  }
+
   @SuppressWarnings("rawtypes")
   @Test
   public void testSucceededAttemptStatusWithRetroActiveFailures() throws InterruptedException {
