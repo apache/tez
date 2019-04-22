@@ -983,16 +983,16 @@ public class TestTaskImpl {
   }
 
   @Test(timeout = 20000)
-  public void testIgnoreSpeculation() {
+  public void testIgnoreSpeculationOnSuccessfulOriginalAttempt() {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
     MockTaskAttemptImpl firstAttempt = mockTask.getLastAttempt();
     launchTaskAttempt(firstAttempt.getID());
-    // Have the first task succeed
+    // Mock success of the first task attempt
     updateAttemptState(firstAttempt, TaskAttemptState.SUCCEEDED);
     firstAttempt.handle(new TaskAttemptEvent(firstAttempt.getID(), TaskAttemptEventType.TA_DONE));
 
-    // Ignore speculation
+    // Verify the speculation scheduling is ignored and no speculative attempt was added to the task
     mockTask.handle(createTaskTAAddSpecAttempt(firstAttempt.getID()));
     MockTaskAttemptImpl specAttempt = mockTask.getLastAttempt();
     launchTaskAttempt(specAttempt.getID());
