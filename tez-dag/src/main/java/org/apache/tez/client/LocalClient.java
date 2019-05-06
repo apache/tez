@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -50,7 +51,6 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClientHandler;
-import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.DAGAppMaster;
@@ -83,7 +83,6 @@ public class LocalClient extends FrameworkClient {
   @Override
   public void init(TezConfiguration tezConf, YarnConfiguration yarnConf) {
     this.conf = tezConf;
-    tezConf.set("fs.defaultFS", "file:///");
     // Tez libs already in the client's classpath
     this.conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     this.conf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, localModeDAGSchedulerClassName);
@@ -286,19 +285,34 @@ public class LocalClient extends FrameworkClient {
         try {
           ApplicationId appId = appContext.getApplicationId();
 
-          // Set up working directory for DAGAppMaster
+          // Set up working directory for DAGAppMaster.
+          // The staging directory may be on the default file system, which may or may not
+          // be the local FS. For example, when using testing Hive against a pseudo-distributed
+          // cluster, it's useful for the default FS to be HDFS. Hive then puts its scratch
+          // directories on HDFS, and sets the Tez staging directory to be the session's
+          // scratch directory.
+          //
+          // To handle this case, we need to copy over the staging data back onto the
+          // local file system, where the rest of the Tez Child code expects it.
+          //
+          // NOTE: we base the local working directory path off of the staging path, even
+          // though it might be on a different file system. Typically they're both in a
+          // path starting with /tmp, but in the future we may want to use a different
+          // temp directory locally.
           Path staging = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString());
-          Path userDir = TezCommonUtils.getTezSystemStagingPath(conf, appId.toString()+"_wd");
+          FileSystem stagingFs = staging.getFileSystem(conf);
+
+          FileSystem localFs = FileSystem.getLocal(conf);
+          Path userDir = localFs.makeQualified(new Path(staging.toUri().getPath() + "_wd"));
           LOG.info("Using working directory: " + userDir.toUri().getPath());
 
-          FileSystem fs = FileSystem.get(conf);
           // copy data from staging directory to working directory to simulate the resource localizing
-          FileUtil.copy(fs, staging, fs, userDir, false, conf);
+          FileUtil.copy(stagingFs, staging, localFs, userDir, false, conf);
           // Prepare Environment
           Path logDir = new Path(userDir, "localmode-log-dir");
           Path localDir = new Path(userDir, "localmode-local-dir");
-          fs.mkdirs(logDir);
-          fs.mkdirs(localDir);
+          localFs.mkdirs(logDir);
+          localFs.mkdirs(localDir);
 
           UserGroupInformation.setConfiguration(conf);
           // Add session specific credentials to the AM credentials.
@@ -357,30 +371,11 @@ public class LocalClient extends FrameworkClient {
 
     // Read in additional information about external services
     AMPluginDescriptorProto amPluginDescriptorProto =
-        getPluginDescriptorInfo(conf, applicationAttemptId.getApplicationId().toString());
-
+        TezUtilsInternal.readUserSpecifiedTezConfiguration(userDir)
+            .getAmPluginDescriptor();
 
     return new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
         new SystemClock(), appSubmitTime, isSession, userDir, localDirs, logDirs,
         versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto);
   }
-
-  private AMPluginDescriptorProto getPluginDescriptorInfo(Configuration conf,
-                                                          String applicationIdString) throws
-      IOException {
-    Path tezSysStagingPath = TezCommonUtils
-        .getTezSystemStagingPath(conf, applicationIdString);
-    // Remove the filesystem qualifier.
-    String unqualifiedPath = tezSysStagingPath.toUri().getPath();
-
-    DAGProtos.ConfigurationProto confProto =
-        TezUtilsInternal
-            .readUserSpecifiedTezConfiguration(unqualifiedPath);
-    AMPluginDescriptorProto amPluginDescriptorProto = null;
-    if (confProto.hasAmPluginDescriptor()) {
-      amPluginDescriptorProto = confProto.getAmPluginDescriptor();
-    }
-    return amPluginDescriptorProto;
-  }
-
 }
