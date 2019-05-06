@@ -71,10 +71,20 @@ public class TezUtilsInternal {
 
   public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
       IOException {
-    File confPBFile = new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME);
-    try (FileInputStream fis = new FileInputStream(confPBFile)) {
-      return ConfigurationProto.parseFrom(fis);
+    FileInputStream confPBBinaryStream = null;
+    ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+    try {
+      confPBBinaryStream =
+          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
+      confProtoBuilder.mergeFrom(confPBBinaryStream);
+    } finally {
+      if (confPBBinaryStream != null) {
+        confPBBinaryStream.close();
+      }
     }
+
+    ConfigurationProto confProto = confProtoBuilder.build();
+    return confProto;
   }
 
   public static void addUserSpecifiedTezConfiguration(Configuration conf,
@@ -85,6 +95,31 @@ public class TezUtilsInternal {
       }
     }
   }
+//
+//  public static void addUserSpecifiedTezConfiguration(String baseDir, Configuration conf) throws
+//      IOException {
+//    FileInputStream confPBBinaryStream = null;
+//    ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
+//    try {
+//      confPBBinaryStream =
+//          new FileInputStream(new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME));
+//      confProtoBuilder.mergeFrom(confPBBinaryStream);
+//    } finally {
+//      if (confPBBinaryStream != null) {
+//        confPBBinaryStream.close();
+//      }
+//    }
+//
+//    ConfigurationProto confProto = confProtoBuilder.build();
+//
+//    List<PlanKeyValuePair> kvPairList = confProto.getConfKeyValuesList();
+//    if (kvPairList != null && !kvPairList.isEmpty()) {
+//      for (PlanKeyValuePair kvPair : kvPairList) {
+//        conf.set(kvPair.getKey(), kvPair.getValue());
+//      }
+//    }
+//  }
+
 
   public static byte[] compressBytes(byte[] inBytes) throws IOException {
     StopWatch sw = new StopWatch().start();

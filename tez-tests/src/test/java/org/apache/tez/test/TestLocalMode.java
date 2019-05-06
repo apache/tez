@@ -20,16 +20,12 @@ package org.apache.tez.test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -47,73 +43,23 @@ import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.*;
 
-@RunWith(Parameterized.class)
 public class TestLocalMode {
 
   private static final File TEST_DIR = new File(
       System.getProperty("test.build.data",
           System.getProperty("java.io.tmpdir")), "TestLocalMode-tez-localmode");
 
-  private static MiniDFSCluster dfsCluster;
-  private static FileSystem remoteFs;
-
-  @Parameterized.Parameter
-  public boolean useDfs;
-
-  @Parameterized.Parameters(name = "useDFS:{0}")
-  public static Collection<Object[]> params() {
-    return Arrays.asList(new Object[][]{{ false }, { true }});
-  }
-
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    try {
-      Configuration conf = new Configuration();
-      dfsCluster =
-          new MiniDFSCluster.Builder(conf).numDataNodes(3).format(true)
-              .racks(null).build();
-      remoteFs = dfsCluster.getFileSystem();
-    } catch (IOException io) {
-      throw new RuntimeException("problem starting mini dfs cluster", io);
-    }
-  }
-
-  @AfterClass
-  public static void afterClass() throws InterruptedException {
-    if (dfsCluster != null) {
-      try {
-        dfsCluster.shutdown();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  private TezConfiguration createConf() {
-    TezConfiguration conf = new TezConfiguration();
-    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
-    if (useDfs) {
-      conf.set("fs.defaultFS", remoteFs.getUri().toString());
-    } else {
-      conf.set("fs.defaultFS", "file:///");
-    }
-    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
-    return conf;
-  }
-
   @Test(timeout = 30000)
   public void testMultipleClientsWithSession() throws TezException, InterruptedException,
       IOException {
-    TezConfiguration tezConf1 = createConf();
+    TezConfiguration tezConf1 = new TezConfiguration();
+    tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, true);
     tezClient1.start();
 
@@ -126,7 +72,11 @@ public class TestLocalMode {
     dagClient1.close();
     tezClient1.stop();
 
-    TezConfiguration tezConf2 = createConf();
+
+    TezConfiguration tezConf2 = new TezConfiguration();
+    tezConf2.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf2.set("fs.defaultFS", "file:///");
+    tezConf2.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, true);
     tezClient2.start();
@@ -141,7 +91,10 @@ public class TestLocalMode {
   @Test(timeout = 10000)
   public void testMultipleClientsWithoutSession() throws TezException, InterruptedException,
       IOException {
-    TezConfiguration tezConf1 = createConf();
+    TezConfiguration tezConf1 = new TezConfiguration();
+    tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
@@ -155,7 +108,10 @@ public class TestLocalMode {
     tezClient1.stop();
 
 
-    TezConfiguration tezConf2 = createConf();
+    TezConfiguration tezConf2 = new TezConfiguration();
+    tezConf2.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf2.set("fs.defaultFS", "file:///");
+    tezConf2.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, false);
     tezClient2.start();
@@ -170,7 +126,10 @@ public class TestLocalMode {
   @Test(timeout = 20000)
   public void testNoSysExitOnSuccessfulDAG() throws TezException, InterruptedException,
       IOException {
-    TezConfiguration tezConf1 = createConf();
+    TezConfiguration tezConf1 = new TezConfiguration();
+    tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
@@ -191,7 +150,10 @@ public class TestLocalMode {
   @Test(timeout = 20000)
   public void testNoSysExitOnFailinglDAG() throws TezException, InterruptedException,
       IOException {
-    TezConfiguration tezConf1 = createConf();
+    TezConfiguration tezConf1 = new TezConfiguration();
+    tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
@@ -249,7 +211,10 @@ public class TestLocalMode {
     String[] outputPaths =  new String[dags];
     DAGClient[] dagClients = new DAGClient[dags];
 
-    TezConfiguration tezConf = createConf();
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    tezConf.set("fs.defaultFS", "file:///");
+    tezConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     TezClient tezClient = TezClient.create("testMultiDAGOnSession", tezConf, true);
     tezClient.start();
 
