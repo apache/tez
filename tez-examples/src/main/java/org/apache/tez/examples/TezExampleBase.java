@@ -276,7 +276,8 @@ public abstract class TezExampleBase extends Configured implements Tool {
 
   protected void printExtraOptionsUsage(PrintStream ps) {
     ps.println("Tez example extra options supported are");
-    ps.println("-" + LOCAL_MODE + "\t\trun it in tez local mode, "
+    // TODO TEZ-1348 make it able to access dfs in tez local mode
+    ps.println("-" + LOCAL_MODE + "\t\trun it in tez local mode, currently it can only access local file system in tez local mode,"
         + " run it in distributed mode without this option");
     ps.println("-" + DISABLE_SPLIT_GROUPING + "\t\t disable split grouping for MRInput,"
         + " enable split grouping without this option.");
