@@ -261,7 +261,7 @@ The Apache TEZ binary distribution bundles the following files under the CDDL Li
 
   - jersey-client-*.jar
   - jersey-json-*.jar
-  - servlet-api-*.jar
+  - javax.servlet-api-*.jar
 
 The full text of the license is available in LICENSE-CDDLv1.1-GPLv2_withCPE.
 
