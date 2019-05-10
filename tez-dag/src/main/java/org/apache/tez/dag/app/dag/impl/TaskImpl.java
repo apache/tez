@@ -1044,7 +1044,8 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         return;
       }
       if (task.commitAttempt != null) {
-        LOG.info("Ignore speculation scheduling since there is commitAttempt on task {}.", task.commitAttempt);
+        LOG.info("Ignore speculation scheduling for task {} since commit has started with commitAttempt {}.",
+            task.getTaskId(), task.commitAttempt);
         return;
       }
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
