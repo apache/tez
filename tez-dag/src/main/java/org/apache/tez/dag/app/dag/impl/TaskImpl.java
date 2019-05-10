@@ -1027,7 +1027,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       TaskAttempt earliestUnfinishedAttempt = null;
       for (TaskAttempt ta : task.attempts.values()) {
         // find the oldest running attempt
-        if (!ta.isFinished() && task.commitAttempt == null) {
+        if (!ta.isFinished()) {
           earliestUnfinishedAttempt = ta;
           task.nodesWithRunningAttempts.add(ta.getNodeId());
         } else {
@@ -1041,6 +1041,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (earliestUnfinishedAttempt == null) {
         // no running (or SUCCEEDED) task attempt at this moment, no need to schedule speculative attempt either
         LOG.info("Ignore speculation scheduling since there is no running attempt on task {}.", task.getTaskId());
+        return;
+      }
+      if (task.commitAttempt != null) {
+        LOG.info("Ignore speculation scheduling since there is commitAttempt on task {}.", task.commitAttempt);
         return;
       }
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
