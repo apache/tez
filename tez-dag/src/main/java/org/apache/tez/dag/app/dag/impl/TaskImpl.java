@@ -1027,7 +1027,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       TaskAttempt earliestUnfinishedAttempt = null;
       for (TaskAttempt ta : task.attempts.values()) {
         // find the oldest running attempt
-        if (!ta.isFinished()) {
+        if (!ta.isFinished() && task.commitAttempt == null) {
           earliestUnfinishedAttempt = ta;
           task.nodesWithRunningAttempts.add(ta.getNodeId());
         } else {
