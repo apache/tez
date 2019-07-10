@@ -1336,6 +1336,12 @@
       <dependencies>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-cloud-storage</artifactId>
+          <scope>runtime</scope>
+          <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-aws</artifactId>
           <scope>runtime</scope>
           <version>${hadoop.version}</version>
@@ -1348,6 +1354,12 @@
       </activation>
       <id>azure</id>
       <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-cloud-storage</artifactId>
+          <scope>runtime</scope>
+          <version>${hadoop.version}</version>
+        </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
           <artifactId>hadoop-azure</artifactId>
