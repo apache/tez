@@ -79,21 +79,8 @@ public class TezCommonUtils {
    * @return Fully qualified staging directory
    */
   public static Path getTezBaseStagingPath(Configuration conf) {
-    String stagingDirStr = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
-        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
-    Path baseStagingDir;
-    try {
-      Path p = new Path(stagingDirStr);
-      FileSystem fs = p.getFileSystem(conf);
-      if (!fs.exists(p)) {
-        mkDirForAM(fs, p);
-        LOG.info("Stage directory " + p + " doesn't exist and is created");
-      }
-      baseStagingDir = fs.resolvePath(p);
-    } catch (IOException e) {
-      throw new TezUncheckedException(e);
-    }
-    return baseStagingDir;
+    return new Path(conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT));
   }
 
   /**
