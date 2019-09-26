@@ -220,5 +220,13 @@ public enum TaskCounter {
    *
    * Represented in milliseconds
    */
-  LAST_EVENT_RECEIVED
+  LAST_EVENT_RECEIVED,
+
+
+  /**
+   * The size of the data that is transmitted via event.
+   *
+   * Represented in number of bytes
+   */
+  DATA_VIA_EVENT_SIZE
 }
