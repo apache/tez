@@ -38,7 +38,7 @@ public class IFileOutputStream extends FilterOutputStream {
   /**
    * The output stream to be checksummed.
    */
-  private final DataChecksum sum;
+  private DataChecksum sum;
   private byte[] barray;
   private byte[] buffer;
   private int offset;
@@ -57,6 +57,14 @@ public class IFileOutputStream extends FilterOutputStream {
     barray = new byte[sum.getChecksumSize()];
     buffer = new byte[4096];
     offset = 0;
+  }
+
+  DataChecksum getDataCheckSum() {
+    return sum;
+  }
+
+  void setDataCheckSum(DataChecksum sum) {
+    this.sum = sum;
   }
 
   @Override

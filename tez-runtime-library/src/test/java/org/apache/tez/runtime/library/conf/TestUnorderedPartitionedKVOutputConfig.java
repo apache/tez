@@ -83,6 +83,10 @@ public class TestUnorderedPartitionedKVOutputConfig {
             .setAdditionalConfiguration("fs.shouldExist", "fs")
             .setAdditionalConfiguration("test.key.1", "key1")
             .setAdditionalConfiguration(TezRuntimeConfiguration
+                .TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED, "true")
+            .setAdditionalConfiguration(TezRuntimeConfiguration
+                .TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE, "5120")
+            .setAdditionalConfiguration(TezRuntimeConfiguration
                 .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, "true")
             .setAdditionalConfiguration(TezRuntimeConfiguration
                 .TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, "false")
@@ -121,6 +125,10 @@ public class TestUnorderedPartitionedKVOutputConfig {
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT));
     assertEquals(2222,
         conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
+    assertEquals(true,
+            conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED, false));
+    assertEquals(5120,
+            conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE, 512));
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
