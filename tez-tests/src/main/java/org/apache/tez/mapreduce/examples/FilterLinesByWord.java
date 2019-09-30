@@ -124,7 +124,12 @@ public class FilterLinesByWord extends Configured implements Tool {
     String filterWord = otherArgs[2];
 
     FileSystem fs = FileSystem.get(conf);
-    if (fs.exists(new Path(outputPath))) {
+
+    Path outputPathAsPath = new Path(outputPath);
+    FileSystem outputFs = outputPathAsPath.getFileSystem(conf);
+    outputPathAsPath = outputFs.resolvePath(outputPathAsPath
+        .makeQualified(outputFs.getUri(), outputFs.getWorkingDirectory()));
+    if (outputFs.exists(outputPathAsPath)) {
       System.err.println("Output directory : " + outputPath + " already exists");
       return 2;
     }

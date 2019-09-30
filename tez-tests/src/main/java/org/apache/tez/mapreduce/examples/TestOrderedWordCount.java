@@ -18,7 +18,6 @@
 
 package org.apache.tez.mapreduce.examples;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -441,8 +440,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     HadoopShim hadoopShim = new HadoopShimsLoader(tezConf).getHadoopShim();
     TestOrderedWordCount instance = new TestOrderedWordCount();
 
-    FileSystem fs = FileSystem.get(conf);
-
     String stagingDirStr =  conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
             TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + 
             Long.toString(System.currentTimeMillis());
@@ -498,7 +495,11 @@ public class TestOrderedWordCount extends Configured implements Tool {
         String inputPath = inputPaths.get(dagIndex-1);
         String outputPath = outputPaths.get(dagIndex-1);
 
-        if (fs.exists(new Path(outputPath))) {
+        Path outputPathAsPath = new Path(outputPath);
+        FileSystem fs = outputPathAsPath.getFileSystem(conf);
+        outputPathAsPath = fs.resolvePath(outputPathAsPath
+            .makeQualified(fs.getUri(), fs.getWorkingDirectory()));
+        if (fs.exists(outputPathAsPath)) {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");
         }
