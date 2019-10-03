@@ -264,8 +264,7 @@ public class UnionExample {
     try {
         Path outputPathAsPath = new Path(outputPath);
       FileSystem outputFs = outputPathAsPath.getFileSystem(tezConf);
-      outputPathAsPath = outputFs.resolvePath(outputPathAsPath
-          .makeQualified(outputFs.getUri(), outputFs.getWorkingDirectory()));
+      outputPathAsPath = outputFs.makeQualified(outputPathAsPath);
         if (outputFs.exists(outputPathAsPath)) {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");

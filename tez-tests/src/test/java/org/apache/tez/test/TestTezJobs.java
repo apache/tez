@@ -138,7 +138,6 @@ public class TestTezJobs {
 
     if (mrrTezCluster == null) {
       mrrTezCluster = new MiniTezCluster(TestTezJobs.class.getName(), 1, 1, 1);
-      Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       mrrTezCluster.init(conf);
@@ -163,7 +162,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
-    hashJoinExample.setConf(mrrTezCluster.getConfig());
+    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     Path inPath1 = new Path("/tmp/hashJoin/inPath1");
     Path inPath2 = new Path("/tmp/hashJoin/inPath2");
@@ -219,7 +218,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testHashJoinExampleDisableSplitGrouping() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
-    hashJoinExample.setConf(conf);
+    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath2");
@@ -431,7 +430,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
-    sortMergeJoinExample.setConf(conf);
+    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");

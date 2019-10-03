@@ -497,8 +497,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
         Path outputPathAsPath = new Path(outputPath);
         FileSystem fs = outputPathAsPath.getFileSystem(conf);
-        outputPathAsPath = fs.resolvePath(outputPathAsPath
-            .makeQualified(fs.getUri(), fs.getWorkingDirectory()));
+        outputPathAsPath = fs.makeQualified(outputPathAsPath);
         if (fs.exists(outputPathAsPath)) {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");

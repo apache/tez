@@ -281,8 +281,7 @@ public class JoinDataGen extends TezExampleBase {
 
   private int checkOutputDirectory(Configuration conf, Path path) throws IOException {
     FileSystem fs = path.getFileSystem(conf);
-    path = fs
-        .resolvePath(path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
+    path = fs.makeQualified(path);
     if (fs.exists(path)) {
       System.err.println("Output directory: " + path + " already exists");
       return 2;
