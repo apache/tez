@@ -228,5 +228,5 @@ public enum TaskCounter {
    *
    * Represented in number of bytes
    */
-  DATA_VIA_EVENT_SIZE
+  DATA_VIA_EVENT_BYTES
 }
