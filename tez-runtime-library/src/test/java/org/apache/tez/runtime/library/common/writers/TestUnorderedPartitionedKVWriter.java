@@ -35,6 +35,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -264,7 +265,7 @@ public class TestUnorderedPartitionedKVWriter {
   @Test(timeout = 10000)
   public void testMultipleSpillsWithSmallBuffer() throws IOException, InterruptedException {
     // numBuffers is much higher than available threads.
-    baseTest(200, 10, null, shouldCompress, 512, 0, 9600);
+    baseTest(200, 10, null, shouldCompress, 512, 0, 9600, false);
   }
 
   @Test(timeout = 10000)
@@ -280,7 +281,9 @@ public class TestUnorderedPartitionedKVWriter {
   @Test(timeout = 10000)
   public void testNoRecords_SinglePartition() throws IOException, InterruptedException {
     // skipBuffers
-    baseTest(0, 1, null, shouldCompress, -1, 0);
+    baseTest(0, 1, null, shouldCompress, -1, 0, 2048, false);
+    // Check with data via events
+    baseTest(0, 1, null, shouldCompress, -1, 0, 2048, true);
   }
 
   @Test(timeout = 10000)
@@ -488,6 +491,7 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals(numPartitions, cdme.getCount());
     DataMovementEventPayloadProto eventProto = DataMovementEventPayloadProto.parseFrom(
         ByteString.copyFrom(cdme.getUserPayload()));
+    assertFalse(eventProto.hasData());
     BitSet emptyPartitionBits = null;
     if (partitionsWithData.cardinality() != numPartitions) {
       assertTrue(eventProto.hasEmptyPartitions());
@@ -1095,12 +1099,12 @@ public class TestUnorderedPartitionedKVWriter {
       boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent)
       throws IOException, InterruptedException {
     baseTest(numRecords, numPartitions, skippedPartitions, shouldCompress,
-        maxSingleBufferSizeBytes, bufferMergePercent, 2048);
+        maxSingleBufferSizeBytes, bufferMergePercent, 2048, false);
   }
 
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
       boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent, int
-      availableMemory)
+      availableMemory, boolean dataViaEventEnabled)
           throws IOException, InterruptedException {
     PartitionerForTest partitioner = new PartitionerForTest();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
@@ -1189,7 +1193,7 @@ public class TestUnorderedPartitionedKVWriter {
     long fileOutputBytes = fileOutputBytesCounter.getValue();
     if (numRecordsWritten > 0) {
       assertTrue(fileOutputBytes > 0);
-      if (!shouldCompress) {
+      if ((!shouldCompress) && (!dataViaEventEnabled)) {
         assertTrue(fileOutputBytes > outputRecordBytesCounter.getValue());
       }
     } else {
@@ -1262,37 +1266,53 @@ public class TestUnorderedPartitionedKVWriter {
       return;
     }
 
+    boolean isInMem= eventProto.getData().hasData();
     assertTrue(localFs.exists(outputFilePath));
-    assertTrue(localFs.exists(spillFilePath));
-    assertEquals("Incorrect output permissions", (short)0640,
-        localFs.getFileStatus(outputFilePath).getPermission().toShort());
-    assertEquals("Incorrect index permissions", (short)0640,
-        localFs.getFileStatus(spillFilePath).getPermission().toShort());
+    assertEquals("Incorrect output permissions", (short) 0640,
+            localFs.getFileStatus(outputFilePath).getPermission().toShort());
+    if( !isInMem ) {
+      assertTrue(localFs.exists(spillFilePath));
+      assertEquals("Incorrect index permissions", (short) 0640,
+              localFs.getFileStatus(spillFilePath).getPermission().toShort());
 
-    // verify no intermediate spill files have been left around
-    synchronized (kvWriter.spillInfoList) {
-      for (SpillInfo spill : kvWriter.spillInfoList) {
-        assertFalse("lingering intermediate spill file " + spill.outPath,
-            localFs.exists(spill.outPath));
+      // verify no intermediate spill files have been left around
+      synchronized (kvWriter.spillInfoList) {
+        for (SpillInfo spill : kvWriter.spillInfoList) {
+          assertFalse("lingering intermediate spill file " + spill.outPath,
+                  localFs.exists(spill.outPath));
+        }
       }
     }
 
     // Special case for 0 records.
-    TezSpillRecord spillRecord = new TezSpillRecord(spillFilePath, conf);
     DataInputBuffer keyBuffer = new DataInputBuffer();
     DataInputBuffer valBuffer = new DataInputBuffer();
     IntWritable keyDeser = new IntWritable();
     LongWritable valDeser = new LongWritable();
     for (int i = 0; i < numOutputs; i++) {
-      TezIndexRecord indexRecord = spillRecord.getIndex(i);
-      if (skippedPartitions != null && skippedPartitions.contains(i)) {
-        assertFalse("The Index Record for partition " + i + " should not have any data", indexRecord.hasData());
-        continue;
+      IFile.Reader reader = null;
+      InputStream inStream;
+      if (isInMem) {
+        // Read from in memory payload
+        int dataLoadSize = eventProto.getData().getData().size();
+        inStream = new ByteArrayInputStream(eventProto.getData().getData().toByteArray());
+        reader = new IFile.Reader(inStream, dataLoadSize, codec, null,
+                null, false, 0, -1);
+      } else {
+        TezSpillRecord spillRecord = new TezSpillRecord(spillFilePath, conf);
+        TezIndexRecord indexRecord = spillRecord.getIndex(i);
+        if (skippedPartitions != null && skippedPartitions.contains(i)) {
+          assertFalse("The Index Record for partition " + i + " should not have any data", indexRecord.hasData());
+          continue;
+        }
+
+        FSDataInputStream tmpStream = FileSystem.getLocal(conf).open(outputFilePath);
+        tmpStream.seek(indexRecord.getStartOffset());
+        inStream = tmpStream;
+        reader = new IFile.Reader(tmpStream, indexRecord.getPartLength(), codec, null,
+                null, false, 0, -1);
       }
-      FSDataInputStream inStream = FileSystem.getLocal(conf).open(outputFilePath);
-      inStream.seek(indexRecord.getStartOffset());
-      IFile.Reader reader = new IFile.Reader(inStream, indexRecord.getPartLength(), codec, null,
-          null, false, 0, -1);
+
       while (reader.nextRawKey(keyBuffer)) {
         reader.nextRawValue(valBuffer);
         keyDeser.readFields(keyBuffer);
