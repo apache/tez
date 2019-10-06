@@ -262,7 +262,10 @@ public class UnionExample {
     DAGClient dagClient = null;
 
     try {
-        if (fs.exists(new Path(outputPath))) {
+        Path outputPathAsPath = new Path(outputPath);
+      FileSystem outputFs = outputPathAsPath.getFileSystem(tezConf);
+      outputPathAsPath = outputFs.makeQualified(outputPathAsPath);
+        if (outputFs.exists(outputPathAsPath)) {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");
         }

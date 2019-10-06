@@ -105,7 +105,8 @@ public class SortMergeJoinExample extends TezExampleBase {
     Path outputPath = new Path(outputDir);
 
     // Verify output path existence
-    FileSystem fs = FileSystem.get(tezConf);
+    FileSystem fs = outputPath.getFileSystem(tezConf);
+    outputPath = fs.makeQualified(outputPath);
     if (fs.exists(outputPath)) {
       System.err.println("Output directory: " + outputDir + " already exists");
       return 3;
