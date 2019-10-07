@@ -488,7 +488,7 @@ public class TezRuntimeConfiguration {
   public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED =
           TEZ_RUNTIME_PREFIX + "transfer.data-via-events.enabled";
   @Private
-  public static final boolean TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED_DEFAULT = true;
+  public static final boolean TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED_DEFAULT = false;
 
   @Private
   public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE =
