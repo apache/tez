@@ -43,7 +43,11 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.runtime.library.common.shuffle.DiskFetchedInput;
+import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -166,6 +170,9 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
   private void processDataMovementEvent(DataMovementEvent dme, DataMovementEventPayloadProto shufflePayload, BitSet emptyPartitionsBitSet) throws IOException {
     int srcIndex = dme.getSourceIndex();
+
+    String hostIdentifier = shufflePayload.getHost() + ":" + shufflePayload.getPort();
+
     if (LOG.isDebugEnabled()) {
       LOG.debug("DME srcIdx: " + srcIndex + ", targetIndex: " + dme.getTargetIndex()
           + ", attemptNum: " + dme.getVersion() + ", payload: " + ShuffleUtils
@@ -189,7 +196,47 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
     CompositeInputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(),
         shufflePayload, (useSharedInputs && srcIndex == 0));
 
-    shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(), srcAttemptIdentifier, srcIndex);
+    if (shufflePayload.hasData()) {
+      DataProto dataProto = shufflePayload.getData();
+
+      FetchedInput fetchedInput =
+          inputAllocator.allocate(dataProto.getRawLength(),
+              dataProto.getCompressedLength(), srcAttemptIdentifier);
+      moveDataToFetchedInput(dataProto, fetchedInput, hostIdentifier);
+      shuffleManager.addCompletedInputWithData(srcAttemptIdentifier, fetchedInput);
+
+      LOG.debug("Payload via DME : " + srcAttemptIdentifier);
+    } else {
+      shuffleManager.addKnownInput(shufflePayload.getHost(), shufflePayload.getPort(),
+              srcAttemptIdentifier, srcIndex);
+    }
+  }
+
+  private void moveDataToFetchedInput(DataProto dataProto,
+      FetchedInput fetchedInput, String hostIdentifier) throws IOException {
+    switch (fetchedInput.getType()) {
+    case DISK:
+      ShuffleUtils
+          .shuffleToDisk(((DiskFetchedInput) fetchedInput).getOutputStream(),
+              hostIdentifier, dataProto.getData().newInput(),
+              dataProto.getCompressedLength(),
+              dataProto.getUncompressedLength(), LOG,
+              fetchedInput.getInputAttemptIdentifier(), ifileReadAhead,
+              ifileReadAheadLength, true);
+      break;
+    case MEMORY:
+      ShuffleUtils
+          .shuffleToMemory(((MemoryFetchedInput) fetchedInput).getBytes(),
+              dataProto.getData().newInput(), dataProto.getRawLength(),
+              dataProto.getCompressedLength(),
+              codec, ifileReadAhead, ifileReadAheadLength, LOG,
+              fetchedInput.getInputAttemptIdentifier());
+      break;
+    case WAIT:
+    default:
+      throw new TezUncheckedException("Unexpected type: "
+          + fetchedInput.getType());
+    }
   }
 
   private void processCompositeRoutedDataMovementEvent(CompositeRoutedDataMovementEvent crdme, DataMovementEventPayloadProto shufflePayload, BitSet emptyPartitionsBitSet) throws IOException {
