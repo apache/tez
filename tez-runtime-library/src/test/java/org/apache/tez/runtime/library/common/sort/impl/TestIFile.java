@@ -587,7 +587,6 @@ public class TestIFile {
 
     // Read output content to memory
     FSDataInputStream inStream = localFs.open(outputPath);
-    System.out.println("Raw: " + writer.getRawLength() + ", compressed: " + writer.getCompressedLength());
     byte[] bytes = new byte[(int) writer.getRawLength()];
 
     IFile.Reader.readToMemory(bytes, inStream,
