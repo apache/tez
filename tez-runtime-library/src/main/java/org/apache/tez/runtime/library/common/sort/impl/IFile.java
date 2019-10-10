@@ -23,6 +23,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -96,7 +97,6 @@ public class IFile {
     // For lazy creation of file
     private TezTaskOutput taskOutput;
     private int totalSize;
-    private int cacheSize;
 
     @VisibleForTesting
     private Path outputPath;
@@ -132,8 +132,7 @@ public class IFile {
       this.cacheStream = (BoundedByteArrayOutputStream) this.rawOut.getWrappedStream();
       this.taskOutput = taskOutput;
       this.bufferFull = (cacheStream == null);
-      this.cacheSize = (cacheStream == null) ? 0 :
-          Math.max(getBaseCacheSize(), cacheStream.available());
+      this.totalSize = getBaseCacheSize();
       this.fileCodec = codec;
     }
 
@@ -143,8 +142,12 @@ public class IFile {
      * @return size of the base cache needed
      */
     static int getBaseCacheSize() {
-      return (checksumSize + (2 * WritableUtils.getVIntSize(EOF_MARKER))
-          + HEADER.length);
+      return (HEADER.length + checksumSize
+          + (2 * WritableUtils.getVIntSize(EOF_MARKER)));
+    }
+
+    boolean shouldWriteToDisk() {
+      return totalSize >= cacheStream.getLimit();
     }
 
     /**
@@ -183,25 +186,12 @@ public class IFile {
       if (outputPath == null) {
         outputPath = taskOutput.getOutputFileForWrite();
       }
-      LOG.info("Creating file " + outputPath);
+      LOG.info("Switching from mem stream to disk stream. File: " + outputPath);
       FSDataOutputStream newRawOut = fs.create(outputPath);
       this.rawOut = newRawOut;
+      this.ownOutputStream = true;
 
-      this.checksumOut = new IFileOutputStream(this.rawOut);
-      if (fileCodec != null) {
-        this.compressor = CodecPool.getCompressor(fileCodec);
-        if (this.compressor != null) {
-          this.compressor.reset();
-          this.compressOutput = true;
-          this.compressedOut = fileCodec.createOutputStream(checksumOut, compressor);
-          this.out = new FSDataOutputStream(this.compressedOut, null);
-        } else {
-          LOG.warn("Could not obtain compressor from CodecPool");
-          this.out = new FSDataOutputStream(checksumOut, null);
-        }
-      } else {
-        this.out = new FSDataOutputStream(checksumOut, null);
-      }
+      setupOutputStream(fileCodec);
 
       // Write header to file
       headerWritten = false;
@@ -216,21 +206,6 @@ public class IFile {
       bout.reset();
     }
 
-    @Override
-    public void close() throws IOException {
-      try {
-        super.close();
-      } finally {
-        if (this.rawOut != null) {
-          this.rawOut.close();
-        }
-      }
-    }
-
-    boolean shouldWriteToDisk() {
-      return totalSize >= (cacheSize - (checksumSize +
-          (2 * WritableUtils.getVIntSize(EOF_MARKER))));
-    }
 
     @Override
     protected void writeKVPair(byte[] keyData, int keyPos, int keyLength,
@@ -275,11 +250,9 @@ public class IFile {
      *
      * @return if data is not flushed to disk, it returns in-mem contents
      */
-    public byte[] getData() {
+    public ByteBuffer getData() {
       if (!isDataFlushedToDisk()) {
-        byte[] buf = new byte[cacheStream.size()];
-        System.arraycopy(cacheStream.getBuffer(), 0, buf, 0, cacheStream.size());
-        return buf;
+        return ByteBuffer.wrap(cacheStream.getBuffer(), 0, cacheStream.size());
       }
       return null;
     }
@@ -367,9 +340,28 @@ public class IFile {
       this.rawOut = outputStream;
       this.writtenRecordsCounter = writesCounter;
       this.serializedUncompressedBytes = serializedBytesCounter;
-      this.checksumOut = new IFileOutputStream(outputStream);
       this.start = this.rawOut.getPos();
       this.rle = rle;
+
+      setupOutputStream(codec);
+
+      writeHeader(outputStream);
+
+      if (keyClass != null) {
+        this.closeSerializers = true;
+        SerializationFactory serializationFactory =
+          new SerializationFactory(conf);
+        this.keySerializer = serializationFactory.getSerializer(keyClass);
+        this.keySerializer.open(buffer);
+        this.valueSerializer = serializationFactory.getSerializer(valueClass);
+        this.valueSerializer.open(buffer);
+      } else {
+        this.closeSerializers = false;
+      }
+    }
+
+    void setupOutputStream(CompressionCodec codec) throws IOException {
+      this.checksumOut = new IFileOutputStream(this.rawOut);
       if (codec != null) {
         this.compressor = CodecPool.getCompressor(codec);
         if (this.compressor != null) {
@@ -383,19 +375,6 @@ public class IFile {
         }
       } else {
         this.out = new FSDataOutputStream(checksumOut,null);
-      }
-      writeHeader(outputStream);
-
-      if (keyClass != null) {
-        this.closeSerializers = true;
-        SerializationFactory serializationFactory =
-          new SerializationFactory(conf);
-        this.keySerializer = serializationFactory.getSerializer(keyClass);
-        this.keySerializer.open(buffer);
-        this.valueSerializer = serializationFactory.getSerializer(valueClass);
-        this.valueSerializer.open(buffer);
-      } else {
-        this.closeSerializers = false;
       }
     }
 

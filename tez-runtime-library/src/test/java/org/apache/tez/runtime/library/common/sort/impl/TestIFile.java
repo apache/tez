@@ -1,4 +1,4 @@
-tez-runtime-library/src/test/java/org/apache/tez/runtime/library/common/sort/impl/TestIFile.java /**
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import com.google.protobuf.ByteString;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.junit.Assert;
@@ -527,7 +528,8 @@ public class TestIFile {
     writer.close();
 
     byte[] bytes = new byte[(int) writer.getRawLength()];
-    IFile.Reader.readToMemory(bytes, new ByteArrayInputStream(writer.getData()),
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
         (int) writer.getCompressedLength(), codec, false, -1);
     readUsingInMemoryReader(bytes, data);
   }
@@ -549,7 +551,8 @@ public class TestIFile {
     assertFalse("Data should have been flushed to disk", writer.isDataFlushedToDisk());
 
     byte[] bytes = new byte[(int) writer.getRawLength()];
-    IFile.Reader.readToMemory(bytes, new ByteArrayInputStream(writer.getData()),
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
         (int) writer.getCompressedLength(), codec, false, -1);
 
     readUsingInMemoryReader(bytes, data);
@@ -613,7 +616,7 @@ public class TestIFile {
     byte[] bytes = new byte[(int) writer.getRawLength()];
 
     IFile.Reader.readToMemory(bytes,
-        new ByteArrayInputStream(writer.getData()),
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
         (int) writer.getCompressedLength(), codec, false, -1);
 
     readUsingInMemoryReader(bytes, data);

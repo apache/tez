@@ -720,14 +720,14 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
             && (writer.getCompressedLength() <= dataViaEventsMaxSize);
   }
 
-  private byte[] readDataForDME() throws IOException {
+  private ByteBuffer readDataForDME() throws IOException {
     if (this.useCachedStream) {
       return ((IFile.FileBackedInMemIFileWriter) writer).getData();
     } else {
       try (FSDataInputStream inStream = rfs.open(finalOutPath)) {
         byte[] buf = new byte[(int) writer.getCompressedLength()];
         IOUtils.readFully(inStream, buf, 0, (int) writer.getCompressedLength());
-        return buf;
+        return ByteBuffer.wrap(buf);
       }
     }
   }
