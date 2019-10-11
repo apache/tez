@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,6 +59,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.tez.common.TezClassLoader;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -131,9 +131,9 @@ public class TestTezClientUtils {
   /**
    *
    */
-  @Test (timeout=10000)
+  @Test (timeout=20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectory() throws Exception {
-    URL[] cp = ((URLClassLoader)ClassLoader.getSystemClassLoader()).getURLs();
+    URL[] cp = TezClassLoader.getInstance().getURLs();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
@@ -171,7 +171,7 @@ public class TestTezClientUtils {
    */
   @Test (timeout=5000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnored() throws Exception {
-    URL[] cp = ((URLClassLoader)ClassLoader.getSystemClassLoader()).getURLs();
+    URL[] cp = TezClassLoader.getInstance().getURLs();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
@@ -190,9 +190,9 @@ public class TestTezClientUtils {
    * 
    * @throws Exception
    */
-  @Test (timeout=5000)
+  @Test (timeout=20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnoredSetToFalse() throws Exception {
-    URL[] cp = ((URLClassLoader)ClassLoader.getSystemClassLoader()).getURLs();
+    URL[] cp = TezClassLoader.getInstance().getURLs();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
@@ -204,6 +204,7 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
     Assert.assertFalse(TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap));
+
     assertFalse(localizedMap.isEmpty());
   }
 

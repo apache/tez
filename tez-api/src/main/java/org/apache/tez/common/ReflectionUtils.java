@@ -122,9 +122,9 @@ public class ReflectionUtils {
 
   @Private
   public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) {
-    URLClassLoader sysLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
+    ClassLoader sysLoader = getSystemClassLoader();
     if (sysClassLoaderMethod == null) {
-      Class<?> sysClass = URLClassLoader.class;
+      Class<?> sysClass = TezClassLoader.class;
       Method method;
       try {
         method = sysClass.getDeclaredMethod("addURL", parameters);
@@ -147,5 +147,9 @@ public class ReflectionUtils {
         throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
       }
     }
+  }
+
+  public static ClassLoader getSystemClassLoader() {
+    return TezClassLoader.getInstance();
   }
 }
