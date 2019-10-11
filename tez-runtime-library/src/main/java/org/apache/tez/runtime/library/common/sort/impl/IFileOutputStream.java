@@ -59,6 +59,10 @@ public class IFileOutputStream extends FilterOutputStream {
     offset = 0;
   }
 
+  public static int getCheckSumSize() {
+    return DataChecksum.Type.CRC32.size;
+  }
+
   @Override
   public void close() throws IOException {
     if (closed) {

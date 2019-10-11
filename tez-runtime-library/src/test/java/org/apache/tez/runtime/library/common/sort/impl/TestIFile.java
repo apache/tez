@@ -29,6 +29,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
+import com.google.protobuf.ByteString;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,6 +86,7 @@ public class TestIFile {
           new Path(System.getProperty("test.build.data", "/tmp")), TestIFile.class.getName())
           .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
       LOG.info("Using workDir: " + workDir);
+      defaultConf.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -498,6 +502,126 @@ public class TestIFile {
 
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
   }
+
+  @Test(timeout = 5000)
+  // Basic test
+  public void testFileBackedInMemIFileWriter() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    List<IntWritable> values = new ArrayList<>();
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(defaultConf, localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        200);
+
+    writer.appendKeyValues(data.get(0).getKey(), values.iterator());
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+    data.add(new KVPair(lastKey, lastVal));
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 5000)
+  // Basic test
+  public void testFileBackedInMemIFileWriterWithSmallBuffer() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(defaultConf, localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        2);
+
+    // empty ifile
+    writer.close();
+
+    // Buffer should have self adjusted. So for this empty file, it shouldn't
+    // hit disk.
+    assertFalse("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 20000)
+  // Test file spill over scenario
+  public void testFileBackedInMemIFileWriter_withSpill() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    List<IntWritable> values = new ArrayList<>();
+
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    // Setting cache limit to 20. Actual data would be around 43 bytes, so it would spill over.
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(defaultConf, localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        20);
+    writer.setOutputPath(outputPath);
+
+    writer.appendKeyValues(data.get(0).getKey(), values.iterator());
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+
+    data.add(new KVPair(lastKey, lastVal));
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    assertTrue("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+
+    // Read output content to memory
+    FSDataInputStream inStream = localFs.open(outputPath);
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+
+    IFile.Reader.readToMemory(bytes, inStream,
+        (int) writer.getCompressedLength(), codec, false, -1);
+    inStream.close();
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 5000)
+  // Test empty file case
+  public void testEmptyFileBackedInMemIFileWriter() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    TezTaskOutputFiles
+        tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(defaultConf, localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        100);
+
+    // empty ifile
+    writer.close();
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
 
   @Test(timeout = 5000)
   //Test appendKeyValues feature

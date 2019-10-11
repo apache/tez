@@ -23,11 +23,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -70,6 +73,195 @@ public class IFile {
 
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
   private static final String REQ_BUFFER_SIZE_TOO_LARGE = "Size of data %d is greater than the max allowed of %d";
+
+  /**
+   * IFileWriter which stores data in memory for specified limit, beyond
+   * which it falls back to file based writer. It creates files lazily on
+   * need basis and avoids any disk hit (in cases, where data fits entirely in mem).
+   * <p>
+   * This class should not make any changes to IFile logic and should just flip streams
+   * from mem to disk on need basis.
+   *
+   * During write, it verifies whether uncompressed payload can fit in memory. If so, it would
+   * store in buffer. Otherwise, it falls back to file based writer. Note that data stored
+   * internally would be in compressed format (if codec is provided). However, for easier
+   * comparison and spill over, uncompressed payload check is done. This is
+   * done intentionally, as it is not possible to know compressed data length
+   * upfront.
+   */
+  public static class FileBackedInMemIFileWriter extends Writer {
+
+    private FileSystem fs;
+    private boolean bufferFull;
+
+    // For lazy creation of file
+    private TezTaskOutput taskOutput;
+    private int totalSize;
+
+    @VisibleForTesting
+    private Path outputPath;
+    private CompressionCodec fileCodec;
+    private BoundedByteArrayOutputStream cacheStream;
+
+    private static final int checksumSize = IFileOutputStream.getCheckSumSize();
+
+    /**
+     * Note that we do not allow compression in in-mem stream.
+     * When spilled over to file, compression gets enabled.
+     *
+     * @param conf
+     * @param fs
+     * @param taskOutput
+     * @param keyClass
+     * @param valueClass
+     * @param codec
+     * @param writesCounter
+     * @param serializedBytesCounter
+     * @param cacheSize
+     * @throws IOException
+     */
+    public FileBackedInMemIFileWriter(Configuration conf, FileSystem fs,
+        TezTaskOutput taskOutput, Class keyClass, Class valueClass,
+        CompressionCodec codec,
+        TezCounter writesCounter,
+        TezCounter serializedBytesCounter,
+        int cacheSize) throws IOException {
+      super(conf, new FSDataOutputStream(createBoundedBuffer(cacheSize), null),
+          keyClass, valueClass, null, writesCounter, serializedBytesCounter);
+      this.fs = fs;
+      this.cacheStream = (BoundedByteArrayOutputStream) this.rawOut.getWrappedStream();
+      this.taskOutput = taskOutput;
+      this.bufferFull = (cacheStream == null);
+      this.totalSize = getBaseCacheSize();
+      this.fileCodec = codec;
+    }
+
+    /**
+     * For basic cache size checks: header + checksum + EOF marker
+     *
+     * @return size of the base cache needed
+     */
+    static int getBaseCacheSize() {
+      return (HEADER.length + checksumSize
+          + (2 * WritableUtils.getVIntSize(EOF_MARKER)));
+    }
+
+    boolean shouldWriteToDisk() {
+      return totalSize >= cacheStream.getLimit();
+    }
+
+    /**
+     * Create in mem stream. In it is too small, adjust it's size
+     *
+     * @param size
+     * @return in memory stream
+     */
+    public static BoundedByteArrayOutputStream createBoundedBuffer(int size) {
+      int resize = Math.max(getBaseCacheSize(), size);
+      return new BoundedByteArrayOutputStream(resize);
+    }
+
+    /**
+     * Flip over from memory to file based writer.
+     *
+     * 1. Content format: HEADER + real data + CHECKSUM. Checksum is for real
+     * data.
+     * 2. Before flipping, close checksum stream, so that checksum is written
+     * out.
+     * 3. Create relevant file based writer.
+     * 4. Write header and then real data.
+     *
+     * @throws IOException
+     */
+    private void resetToFileBasedWriter() throws IOException {
+      // Close out stream, so that data checksums are written.
+      // Buf contents = HEADER + real data + CHECKSUM
+      this.out.close();
+
+      // Get the buffer which contains data in memory
+      BoundedByteArrayOutputStream bout =
+          (BoundedByteArrayOutputStream) this.rawOut.getWrappedStream();
+
+      // Create new file based writer
+      if (outputPath == null) {
+        outputPath = taskOutput.getOutputFileForWrite();
+      }
+      LOG.info("Switching from mem stream to disk stream. File: " + outputPath);
+      FSDataOutputStream newRawOut = fs.create(outputPath);
+      this.rawOut = newRawOut;
+      this.ownOutputStream = true;
+
+      setupOutputStream(fileCodec);
+
+      // Write header to file
+      headerWritten = false;
+      writeHeader(newRawOut);
+
+      // write real data
+      int sPos = HEADER.length;
+      int len = (bout.size() - checksumSize - HEADER.length);
+      this.out.write(bout.getBuffer(), sPos, len);
+
+      bufferFull = true;
+      bout.reset();
+    }
+
+
+    @Override
+    protected void writeKVPair(byte[] keyData, int keyPos, int keyLength,
+        byte[] valueData, int valPos, int valueLength) throws IOException {
+      if (!bufferFull) {
+        // Compute actual payload size: write RLE marker, length info and then entire data.
+        totalSize += ((prevKey == REPEAT_KEY) ? V_END_MARKER_SIZE : 0)
+            + WritableUtils.getVIntSize(keyLength) + keyLength
+            + WritableUtils.getVIntSize(valueLength) + valueLength;
+
+        if (shouldWriteToDisk()) {
+          resetToFileBasedWriter();
+        }
+      }
+      super.writeKVPair(keyData, keyPos, keyLength, valueData, valPos, valueLength);
+    }
+
+    @Override
+    protected void writeValue(byte[] data, int offset, int length) throws IOException {
+      if (!bufferFull) {
+        totalSize += ((prevKey != REPEAT_KEY) ? RLE_MARKER_SIZE : 0)
+            + WritableUtils.getVIntSize(length) + length;
+
+        if (shouldWriteToDisk()) {
+          resetToFileBasedWriter();
+        }
+      }
+      super.writeValue(data, offset, length);
+    }
+
+    /**
+     * Check if data was flushed to disk.
+     *
+     * @return whether data is flushed to disk ot not
+     */
+    public boolean isDataFlushedToDisk() {
+      return bufferFull;
+    }
+
+    /**
+     * Get cached data if any
+     *
+     * @return if data is not flushed to disk, it returns in-mem contents
+     */
+    public ByteBuffer getData() {
+      if (!isDataFlushedToDisk()) {
+        return ByteBuffer.wrap(cacheStream.getBuffer(), 0, cacheStream.size());
+      }
+      return null;
+    }
+
+    @VisibleForTesting
+    void setOutputPath(Path outputPath) {
+      this.outputPath = outputPath;
+    }
+  }
 
   /**
    * <code>IFile.Writer</code> to write out intermediate map-outputs.
@@ -148,9 +340,28 @@ public class IFile {
       this.rawOut = outputStream;
       this.writtenRecordsCounter = writesCounter;
       this.serializedUncompressedBytes = serializedBytesCounter;
-      this.checksumOut = new IFileOutputStream(outputStream);
       this.start = this.rawOut.getPos();
       this.rle = rle;
+
+      setupOutputStream(codec);
+
+      writeHeader(outputStream);
+
+      if (keyClass != null) {
+        this.closeSerializers = true;
+        SerializationFactory serializationFactory =
+          new SerializationFactory(conf);
+        this.keySerializer = serializationFactory.getSerializer(keyClass);
+        this.keySerializer.open(buffer);
+        this.valueSerializer = serializationFactory.getSerializer(valueClass);
+        this.valueSerializer.open(buffer);
+      } else {
+        this.closeSerializers = false;
+      }
+    }
+
+    void setupOutputStream(CompressionCodec codec) throws IOException {
+      this.checksumOut = new IFileOutputStream(this.rawOut);
       if (codec != null) {
         this.compressor = CodecPool.getCompressor(codec);
         if (this.compressor != null) {
@@ -164,19 +375,6 @@ public class IFile {
         }
       } else {
         this.out = new FSDataOutputStream(checksumOut,null);
-      }
-      writeHeader(outputStream);
-
-      if (keyClass != null) {
-        this.closeSerializers = true;
-        SerializationFactory serializationFactory =
-          new SerializationFactory(conf);
-        this.keySerializer = serializationFactory.getSerializer(keyClass);
-        this.keySerializer.open(buffer);
-        this.valueSerializer = serializationFactory.getSerializer(valueClass);
-        this.valueSerializer.open(buffer);
-      } else {
-        this.closeSerializers = false;
       }
     }
 

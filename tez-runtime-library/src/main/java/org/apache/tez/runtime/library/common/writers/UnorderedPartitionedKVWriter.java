@@ -196,6 +196,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
   private List<WrappedBuffer> filledBuffers = new ArrayList<>();
 
+  // When enabled, uses in-mem ifile writer
+  private final boolean useCachedStream;
+
   public UnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf,
       int numOutputs, long availableMemoryBytes) throws IOException {
     super(outputContext, conf, numOutputs);
@@ -222,6 +225,13 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     this.dataViaEventsMaxSize = conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE,
             TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT);
+
+    boolean useCachedStreamConfig = conf.getBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE,
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE_DEFAULT);
+
+    this.useCachedStream = useCachedStreamConfig && (this.dataViaEventsEnabled && (numPartitions == 1)
+        && !pipelinedShuffle);
 
     if (availableMemoryBytes == 0) {
       Preconditions.checkArgument(((numPartitions == 1) && !pipelinedShuffle), "availableMemory "
@@ -287,10 +297,16 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     if (numPartitions == 1 && !pipelinedShuffle) {
       //special case, where in only one partition is available.
-      finalOutPath = outputFileHandler.getOutputFileForWrite();
       skipBuffers = true;
-      writer = new IFile.Writer(conf, rfs, finalOutPath, keyClass, valClass,
-          codec, outputRecordsCounter, outputRecordBytesCounter);
+      if (this.useCachedStream) {
+        writer = new IFile.FileBackedInMemIFileWriter(conf, rfs, outputFileHandler, keyClass,
+            valClass, codec, outputRecordsCounter, outputRecordBytesCounter,
+            dataViaEventsMaxSize);
+      } else {
+        finalOutPath = outputFileHandler.getOutputFileForWrite();
+        writer = new IFile.Writer(conf, rfs, finalOutPath, keyClass, valClass,
+            codec, outputRecordsCounter, outputRecordBytesCounter);
+      }
       if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
         rfs.setPermission(finalOutPath, SPILL_FILE_PERMS);
       }
@@ -311,6 +327,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         + ", reportPartitionStats=" + reportPartitionStats
         + ", dataViaEventsEnabled=" + dataViaEventsEnabled
         + ", dataViaEventsMaxSize=" + dataViaEventsMaxSize
+        + ", useCachedStreamConfig=" + useCachedStreamConfig
+        + ", useCachedStream=" + useCachedStream
     );
   }
 
@@ -702,14 +720,16 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
             && (writer.getCompressedLength() <= dataViaEventsMaxSize);
   }
 
-  private byte[] readDataForDME() throws IOException {
-    // TODO: Not introducing a caching layer in IFile yet.
-    byte[] buf = null;
-    try (FSDataInputStream inStream = rfs.open(finalOutPath)) {
-        buf = new byte[(int) writer.getCompressedLength()];
+  private ByteBuffer readDataForDME() throws IOException {
+    if (this.useCachedStream) {
+      return ((IFile.FileBackedInMemIFileWriter) writer).getData();
+    } else {
+      try (FSDataInputStream inStream = rfs.open(finalOutPath)) {
+        byte[] buf = new byte[(int) writer.getCompressedLength()];
         IOUtils.readFully(inStream, buf, 0, (int) writer.getCompressedLength());
+        return ByteBuffer.wrap(buf);
+      }
     }
-    return buf;
   }
 
   @Override
