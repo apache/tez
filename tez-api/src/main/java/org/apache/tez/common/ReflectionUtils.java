@@ -149,7 +149,7 @@ public class ReflectionUtils {
     }
   }
 
-  public static ClassLoader getSystemClassLoader() {
+  private static ClassLoader getSystemClassLoader() {
     return TezClassLoader.getInstance();
   }
 }
