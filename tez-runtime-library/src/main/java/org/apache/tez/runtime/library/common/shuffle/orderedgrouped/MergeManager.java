@@ -314,6 +314,16 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       this.onDiskMerger = new OnDiskMerger(this);
   }
 
+  void setupParentThread(Thread shuffleSchedulerThread) {
+    LOG.info("Setting merger's parent thread to "
+        + shuffleSchedulerThread.getName());
+    if (this.memToMemMerger != null) {
+      memToMemMerger.setParentThread(shuffleSchedulerThread);
+    }
+    this.inMemoryMerger.setParentThread(shuffleSchedulerThread);;
+    this.onDiskMerger.setParentThread(shuffleSchedulerThread);
+  }
+
   @Private
   void configureAndStart() {
     if (this.memToMemMerger != null) {
@@ -714,7 +724,8 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
                                             int mergeFactor) {
       super(manager, mergeFactor, exceptionReporter);
       setName("MemToMemMerger [" + TezUtilsInternal
-          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
+          .cleanVertexName(inputContext.getSourceVertexName())
+          + "_" + inputContext.getUniqueIdentifier() + "]");
       setDaemon(true);
     }
 
@@ -831,8 +842,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
     public InMemoryMerger(MergeManager manager) {
       super(manager, Integer.MAX_VALUE, exceptionReporter);
-      setName("MemtoDiskMerger [" + TezUtilsInternal
-          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("MemtoDiskMerger [" +  TezUtilsInternal
+          .cleanVertexName(inputContext.getSourceVertexName())
+          + "_" + inputContext.getUniqueIdentifier()  + "]");
       setDaemon(true);
     }
     
@@ -952,8 +964,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
     public OnDiskMerger(MergeManager manager) {
       super(manager, ioSortFactor, exceptionReporter);
-      setName("DiskToDiskMerger [" + TezUtilsInternal
-          .cleanVertexName(inputContext.getSourceVertexName()) + "]");
+      setName("DiskToDiskMerger [" +  TezUtilsInternal
+          .cleanVertexName(inputContext.getSourceVertexName())
+          + "_" + inputContext.getUniqueIdentifier() + "]");
       setDaemon(true);
     }
     

@@ -440,6 +440,7 @@ class ShuffleScheduler {
 
   public void start() throws Exception {
     shuffleSchedulerThread = Thread.currentThread();
+    mergeManager.setupParentThread(shuffleSchedulerThread);
     ShuffleSchedulerCallable schedulerCallable = new ShuffleSchedulerCallable();
     schedulerCallable.call();
   }
