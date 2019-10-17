@@ -178,7 +178,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   Path finalOutPath;
 
   //for single partition cases (e.g UnorderedKVOutput)
-  private final IFile.Writer writer;
+  @VisibleForTesting
+  final IFile.Writer writer;
   @VisibleForTesting
   final boolean skipBuffers;
 
@@ -306,9 +307,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         finalOutPath = outputFileHandler.getOutputFileForWrite();
         writer = new IFile.Writer(conf, rfs, finalOutPath, keyClass, valClass,
             codec, outputRecordsCounter, outputRecordBytesCounter);
-      }
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(finalOutPath, SPILL_FILE_PERMS);
+        if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
+          rfs.setPermission(finalOutPath, SPILL_FILE_PERMS);
+        }
       }
     } else {
       skipBuffers = false;
@@ -715,18 +716,37 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     return reqBytes;
   }
 
-  private boolean canSendDataOverDME() {
+  private boolean canSendDataOverDME() throws IOException {
+    if (dataViaEventsEnabled
+        && this.useCachedStream
+        && this.finalOutPath == null) {
+
+      // It is possible that in-mem writer spilled over to disk. Need to use
+      // that path as finalOutPath and set its permission.
+
+      if (((IFile.FileBackedInMemIFileWriter) writer).isDataFlushedToDisk()) {
+        this.finalOutPath =
+            ((IFile.FileBackedInMemIFileWriter) writer).getOutputPath();
+        if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
+          rfs.setPermission(finalOutPath, SPILL_FILE_PERMS);
+        }
+        additionalSpillBytesWritternCounter.increment(writer.getCompressedLength());
+      }
+    }
+
     return (writer != null) && (dataViaEventsEnabled)
             && (writer.getCompressedLength() <= dataViaEventsMaxSize);
   }
 
   private ByteBuffer readDataForDME() throws IOException {
-    if (this.useCachedStream) {
+    if (this.useCachedStream
+        && !((IFile.FileBackedInMemIFileWriter) writer).isDataFlushedToDisk()) {
       return ((IFile.FileBackedInMemIFileWriter) writer).getData();
     } else {
       try (FSDataInputStream inStream = rfs.open(finalOutPath)) {
         byte[] buf = new byte[(int) writer.getCompressedLength()];
         IOUtils.readFully(inStream, buf, 0, (int) writer.getCompressedLength());
+        additionalSpillBytesReadCounter.increment(writer.getCompressedLength());
         return ByteBuffer.wrap(buf);
       }
     }
