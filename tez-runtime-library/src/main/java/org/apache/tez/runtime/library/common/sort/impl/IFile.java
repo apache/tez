@@ -98,7 +98,6 @@ public class IFile {
     private TezTaskOutput taskOutput;
     private int totalSize;
 
-    @VisibleForTesting
     private Path outputPath;
     private CompressionCodec fileCodec;
     private BoundedByteArrayOutputStream cacheStream;
@@ -260,6 +259,10 @@ public class IFile {
     @VisibleForTesting
     void setOutputPath(Path outputPath) {
       this.outputPath = outputPath;
+    }
+
+    public Path getOutputPath() {
+      return this.outputPath;
     }
   }
 

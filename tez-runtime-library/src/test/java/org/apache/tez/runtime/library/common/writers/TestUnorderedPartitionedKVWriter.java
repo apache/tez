@@ -296,6 +296,10 @@ public class TestUnorderedPartitionedKVWriter {
     baseTest(10, 1, null, shouldCompress, -1, 0);
   }
 
+  @Test(timeout = 10000)
+  public void testSpill_SinglePartition() throws IOException, InterruptedException {
+    baseTest(1000, 1, null, shouldCompress, -1, 0, 2048, true);
+  }
 
   @Test(timeout = 10000)
   public void testRandomText() throws IOException, InterruptedException {
@@ -1120,6 +1124,9 @@ public class TestUnorderedPartitionedKVWriter {
     conf.setInt(
         TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT,
         bufferMergePercent);
+    conf.setBoolean(
+        TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED,
+        dataViaEventEnabled);
 
     CompressionCodec codec = null;
     if (shouldCompress) {
@@ -1199,7 +1206,10 @@ public class TestUnorderedPartitionedKVWriter {
     } else {
       assertEquals(0, fileOutputBytes);
     }
-    assertEquals(recordsPerBuffer * numExpectedSpills, spilledRecordsCounter.getValue());
+    if (!dataViaEventEnabled) {
+      assertEquals(recordsPerBuffer * numExpectedSpills,
+          spilledRecordsCounter.getValue());
+    }
     long additionalSpillBytesWritten = additionalSpillBytesWritternCounter.getValue();
     long additionalSpillBytesRead = additionalSpillBytesReadCounter.getValue();
     if (numExpectedSpills == 0) {
@@ -1207,13 +1217,24 @@ public class TestUnorderedPartitionedKVWriter {
       assertEquals(0, additionalSpillBytesRead);
     } else {
       assertTrue(additionalSpillBytesWritten > 0);
-      assertTrue(additionalSpillBytesRead > 0);
-      if (!shouldCompress) {
-        assertTrue(additionalSpillBytesWritten > (recordsPerBuffer * numExpectedSpills * sizePerRecord));
-        assertTrue(additionalSpillBytesRead > (recordsPerBuffer * numExpectedSpills * sizePerRecord));
+      if (!dataViaEventEnabled) {
+        assertTrue(additionalSpillBytesRead > 0);
+        if (!shouldCompress) {
+          assertTrue(additionalSpillBytesWritten >
+              (recordsPerBuffer * numExpectedSpills * sizePerRecord));
+          assertTrue(additionalSpillBytesRead >
+              (recordsPerBuffer * numExpectedSpills * sizePerRecord));
+        }
+      } else {
+        if (kvWriter.writer.getCompressedLength() >
+            TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT) {
+          assertTrue(additionalSpillBytesWritten > 0);
+        }
       }
     }
-    assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
+    if (!dataViaEventEnabled) {
+      assertEquals(additionalSpillBytesWritten, additionalSpillBytesRead);
+    }
     // due to multiple threads, buffers could be merged in chunks in scheduleSpill.
     assertTrue(numExpectedSpills >= numAdditionalSpillsCounter.getValue());
 
