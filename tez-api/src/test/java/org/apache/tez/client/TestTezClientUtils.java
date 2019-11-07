@@ -204,7 +204,6 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     Map<String, LocalResource> localizedMap = new HashMap<String, LocalResource>();
     Assert.assertFalse(TezClientUtils.setupTezJarsLocalResources(conf, credentials, localizedMap));
-
     assertFalse(localizedMap.isEmpty());
   }
 
