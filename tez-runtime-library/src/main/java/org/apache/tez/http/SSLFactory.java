@@ -85,13 +85,13 @@ public class SSLFactory implements ConnectionConfigurator {
     this.mode = mode;
     requireClientCert = conf.getBoolean(SSL_REQUIRE_CLIENT_CERT_KEY,
         DEFAULT_SSL_REQUIRE_CLIENT_CERT);
-    Configuration sslConf = readSSLConfiguration(mode);
+    // Rest of ssl configs are pre-populated in incoming conf payload
+    conf.setBoolean(SSL_REQUIRE_CLIENT_CERT_KEY, requireClientCert);
 
     Class<? extends KeyStoresFactory> klass
         = conf.getClass(KEYSTORES_FACTORY_CLASS_KEY,
         FileBasedKeyStoresFactory.class, KeyStoresFactory.class);
-    keystoresFactory = ReflectionUtils.newInstance(klass, sslConf);
-
+    keystoresFactory = ReflectionUtils.newInstance(klass, conf);
     enabledProtocols = conf.getStrings(SSL_ENABLED_PROTOCOLS, DEFAULT_SSL_ENABLED_PROTOCOLS);
   }
 
