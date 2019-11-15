@@ -96,11 +96,13 @@ public class TezLocalCacheManager {
         Path linkPath = new Path(cwd, entry.getKey());
 
         if (resourceInfo.containsKey(resource)) {
-            // We've already downloaded this resource and just need to add another link.
-            resourceInfo.get(resource).linkPaths.add(linkPath);
+          // We've already downloaded this resource and just need to add another link.
+          resourceInfo.get(resource).getLinkPaths().add(linkPath);
         } else {
           // submit task to download the object
-          java.nio.file.Path downloadDir = Files.createTempDirectory(tempDir, resourceName);
+          java.nio.file.Path fp = Paths.get(resourceName).getFileName();
+          String prefix = fp == null ? "" : fp.toString(); // The null case is unexpected, but FindBugs complains
+          java.nio.file.Path downloadDir = Files.createTempDirectory(tempDir, prefix);
           Path dest = new Path(downloadDir.toAbsolutePath().toString());
           FSDownload downloader = new FSDownload(fileContext, ugi, conf, dest, resource);
           Future<Path> downloadedPath = threadPool.submit(downloader);
@@ -113,12 +115,12 @@ public class TezLocalCacheManager {
         LocalResource resource = entry.getKey();
         ResourceInfo resourceMeta = entry.getValue();
 
-        for (Path linkPath : resourceMeta.linkPaths) {
+        for (Path linkPath : resourceMeta.getLinkPaths()) {
           Path targetPath;
 
           try {
             // this blocks on the download completing
-            targetPath = resourceMeta.downloadPath.get();
+            targetPath = resourceMeta.getDownloadPath().get();
           } catch (InterruptedException | ExecutionException e) {
             throw new IOException(e);
           }
@@ -144,7 +146,7 @@ public class TezLocalCacheManager {
    */
   public void cleanup() throws IOException {
     for (ResourceInfo info : resourceInfo.values()) {
-      for (Path linkPath : info.linkPaths) {
+      for (Path linkPath : info.getLinkPaths()) {
         if (fileContext.util().exists(linkPath)) {
           fileContext.delete(linkPath, true);
         }
@@ -172,23 +174,31 @@ public class TezLocalCacheManager {
       try {
         Files.createSymbolicLink(Paths.get(linkPath), Paths.get(targetPath));
         return true;
-      } catch (UnsupportedOperationException e) {
-        LOG.warn("Unable to create symlink {} <- {}: UnsupportedOperationException", target, link);
+      } catch (UnsupportedOperationException | IOException e) {
+        LOG.warn("Unable to create symlink {} <- {}: {}", target, link, e);
         return false;
       }
     }
   }
 
   /**
-   * Wrapper to keep track of download path and link path
+   * Wrapper to keep track of download path and link path.
    */
   private static class ResourceInfo {
-    final Future<Path> downloadPath;
-    final Set<Path> linkPaths = new HashSet<>();
+    private final Future<Path> downloadPath;
+    private final Set<Path> linkPaths = new HashSet<>();
 
-    public ResourceInfo(Future<Path> downloadPath, Path linkPath) {
+    ResourceInfo(Future<Path> downloadPath, Path linkPath) {
       this.downloadPath = downloadPath;
-      this.linkPaths.add(linkPath);
+      this.getLinkPaths().add(linkPath);
+    }
+
+    Future<Path> getDownloadPath() {
+      return downloadPath;
+    }
+
+    Set<Path> getLinkPaths() {
+      return linkPaths;
     }
   }
 }
