@@ -213,7 +213,7 @@
           <minimize>true</minimize>
           <targetGroups>tez-ui,vendor</targetGroups>
           <destinationFolder>${basedir}/target/minified-resources/assets</destinationFolder>
-          <contextFolder>${webappDir}/dist/assets</contextFolder>
+          <contextFolder>${basedir}/src/main/webapp/dist/assets</contextFolder>
           <wroFile>${basedir}/src/main/webapp/WEB-INF/wro.xml</wroFile>
         </configuration>
       </plugin>
