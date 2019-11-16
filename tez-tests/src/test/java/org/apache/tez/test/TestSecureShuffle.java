@@ -18,6 +18,7 @@
 
 package org.apache.tez.test;
 
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedWriter;
@@ -132,6 +133,9 @@ public class TestSecureShuffle {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
 
     conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
+
+    String sslConf = conf.get(SSL_CLIENT_CONF_KEY, "ssl-client.xml");
+    conf.addResource(sslConf);
 
     miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName() + "-" +
         (enableSSLInCluster ? "withssl" : "withoutssl"), 1, 1, 1);

@@ -668,10 +668,11 @@ public class TezRuntimeConfiguration {
     }
 
     // Do NOT need all prefixes from the following list. Only specific ones are allowed
-    // "hadoop.", "hadoop.security", "io.", "fs.", "ipc.", "net.", "file.", "dfs.", "ha.", "s3.", "nfs3.", "rpc."
+    // "hadoop.", "hadoop.security", "io.", "fs.", "ipc.", "net.", "file.", "dfs.", "ha.", "s3.", "nfs3.", "rpc.", "ssl."
     allowedPrefixes.add("io.");
     allowedPrefixes.add("file.");
     allowedPrefixes.add("fs.");
+    allowedPrefixes.add("ssl.");
 
     umnodifiableTezRuntimeKeySet = Collections.unmodifiableSet(tezRuntimeKeys);
     unmodifiableOtherKeySet = Collections.unmodifiableSet(otherKeys);
