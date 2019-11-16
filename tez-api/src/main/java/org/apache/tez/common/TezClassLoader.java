@@ -16,16 +16,23 @@ package org.apache.tez.common;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 
 public class TezClassLoader extends URLClassLoader {
-  private static final TezClassLoader INSTANCE;
+  private static TezClassLoader INSTANCE;
 
   static {
-    ClassLoader sysLoader = TezClassLoader.class.getClassLoader();
-    INSTANCE = new TezClassLoader(
-        sysLoader instanceof URLClassLoader ? ((URLClassLoader) sysLoader).getURLs() : extractClassPathEntries(),
-        sysLoader);
+    INSTANCE = AccessController.doPrivileged(new PrivilegedAction<TezClassLoader>() {
+      ClassLoader sysLoader = TezClassLoader.class.getClassLoader();
+
+      public TezClassLoader run() {
+        return new TezClassLoader(
+            sysLoader instanceof URLClassLoader ? ((URLClassLoader) sysLoader).getURLs() : extractClassPathEntries(),
+            sysLoader);
+      }
+    });
   }
 
   public TezClassLoader(URL[] urls, ClassLoader classLoader) {
