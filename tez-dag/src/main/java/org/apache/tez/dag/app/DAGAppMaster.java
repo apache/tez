@@ -115,6 +115,7 @@ import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.AsyncDispatcher;
 import org.apache.tez.common.AsyncDispatcherConcurrent;
 import org.apache.tez.common.GcTimeUpdater;
+import org.apache.tez.common.TezClassLoader;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -1479,7 +1480,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private static Path findLocalFileForResource(String fileName) {
-    URL localResource = ClassLoader.getSystemClassLoader().getResource(fileName);
+    URL localResource = TezClassLoader.getInstance().getResource(fileName);
     if (localResource == null) return null;
     return new Path(localResource.getPath());
   }
