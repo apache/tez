@@ -44,7 +44,6 @@ import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
-import org.apache.tez.dag.app.dag.impl.VertexImpl;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
@@ -78,7 +77,7 @@ public class TestSpeculation {
       throw new RuntimeException("init failure", e);
     }
   }
-  
+
   MockTezClient createTezSession() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
@@ -109,11 +108,12 @@ public class TestSpeculation {
     confToExpected.put(Long.MAX_VALUE >> 1, 1); // Really long time to speculate
     confToExpected.put(100L, 2);
     confToExpected.put(-1L, 1); // Don't speculate
-
+    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 50);
     for(Map.Entry<Long, Integer> entry : confToExpected.entrySet()) {
       defaultConf.setLong(
               TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
               entry.getKey());
+
       DAG dag = DAG.create("test");
       Vertex vA = Vertex.create("A",
               ProcessorDescriptor.create("Proc.class"),
@@ -154,15 +154,14 @@ public class TestSpeculation {
     defaultConf.setInt(TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS, 20);
     defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE, 0.2);
     defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE, 0.25);
-    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 2000);
-    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE, 10000);
+    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 25);
+    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE, 50);
 
     DAG dag = DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
-    
     DAGClient dagClient = tezClient.submitDAG(dag);
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
@@ -195,12 +194,13 @@ public class TestSpeculation {
           .getValue());
     }
 
-    LegacySpeculator speculator = ((VertexImpl) dagImpl.getVertex(vA.getName())).getSpeculator();
+    LegacySpeculator speculator =
+        (LegacySpeculator)(dagImpl.getVertex(vA.getName())).getSpeculator();
     Assert.assertEquals(20, speculator.getMinimumAllowedSpeculativeTasks());
     Assert.assertEquals(.2, speculator.getProportionTotalTasksSpeculatable(), 0);
     Assert.assertEquals(.25, speculator.getProportionRunningTasksSpeculatable(), 0);
-    Assert.assertEquals(2000, speculator.getSoonestRetryAfterNoSpeculate());
-    Assert.assertEquals(10000, speculator.getSoonestRetryAfterSpeculate());
+    Assert.assertEquals(25, speculator.getSoonestRetryAfterNoSpeculate());
+    Assert.assertEquals(50, speculator.getSoonestRetryAfterSpeculate());
 
     tezClient.stop();
   }
@@ -214,15 +214,18 @@ public class TestSpeculation {
   public void testBasicSpeculationWithoutProgress() throws Exception {
     testBasicSpeculation(false);
   }
-  
-  @Test (timeout=10000)
+
+  @Test (timeout=100000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
     DAG dag = DAG.create("test");
     String vNameNoSpec = "A";
     String vNameSpec = "B";
+    String speculatorSleepTime = "50";
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
     Vertex vB = Vertex.create(vNameSpec, ProcessorDescriptor.create("Proc.class"), 5);
     vA.setConf(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, "false");
+    vB.setConf(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE,
+        speculatorSleepTime);
     dag.addVertex(vA);
     dag.addVertex(vB);
     // min/max src fraction is set to 1. So vertices will run sequentially
@@ -233,14 +236,14 @@ public class TestSpeculation {
                 InputDescriptor.create("I"))));
 
     MockTezClient tezClient = createTezSession();
-    
+
     DAGClient dagClient = tezClient.submitDAG(dag);
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = dagImpl.getVertex(vNameSpec).getVertexId();
     TezVertexID vertexIdNoSpec = dagImpl.getVertex(vNameNoSpec).getVertexId();
     // original attempt is killed and speculative one is successful
-    TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0),
-        0);
+    TezTaskAttemptID killedTaId =
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
     TezTaskAttemptID noSpecTaId = TezTaskAttemptID
         .getInstance(TezTaskID.getInstance(vertexIdNoSpec, 0), 0);
 
@@ -249,15 +252,23 @@ public class TestSpeculation {
     mockLauncher.setStatusUpdatesForTask(noSpecTaId, 100);
 
     mockLauncher.startScheduling(true);
-    dagClient.waitForCompletion();
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     org.apache.tez.dag.app.dag.Vertex vSpec = dagImpl.getVertex(vertexId);
     org.apache.tez.dag.app.dag.Vertex vNoSpec = dagImpl.getVertex(vertexIdNoSpec);
+    // Wait enough time to give chance for the speculator to trigger
+    // speculation on VB.
+    // This would fail because of JUnit time out.
+    do {
+      Thread.sleep(100);
+    } while (vSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
+        .getValue() <= 0);
+    dagClient.waitForCompletion();
     // speculation for vA but not for vB
-    Assert.assertTrue(vSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-        .getValue() > 0);
-    Assert.assertEquals(0, vNoSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
-        .getValue());
+    Assert.assertTrue("Num Speculations is not higher than 0",
+        vSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
+            .getValue() > 0);
+    Assert.assertEquals(0,
+        vNoSpec.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
+            .getValue());
 
     tezClient.stop();
   }

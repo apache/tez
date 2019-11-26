@@ -757,6 +757,8 @@ public class DAGAppMaster extends AbstractService {
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
       System.err.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
       System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
+      // Stop vertex services if any
+      stopVertexServices(currentDAG);
       if (!isSession) {
         LOG.info("Not a session, AM will unregister as DAG has completed");
         this.taskSchedulerManager.setShouldUnregisterFlag();
@@ -1293,7 +1295,6 @@ public class DAGAppMaster extends AbstractService {
       throw new SessionNotRunning("AM unable to accept new DAG submissions."
           + " In the process of shutting down");
     }
-
     // dag is in cleanup when dag state is completed but AM state is still RUNNING
     synchronized (idleStateLock) {
       while (currentDAG != null && currentDAG.isComplete() && state == DAGAppMasterState.RUNNING) {
@@ -1840,7 +1841,7 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  void startServices(){
+  void startServices() {
     try {
       Throwable firstError = null;
       List<ServiceThread> threads = new ArrayList<ServiceThread>();
@@ -1888,12 +1889,16 @@ public class DAGAppMaster extends AbstractService {
   }
 
   void stopServices() {
+    Exception firstException = null;
     // stop in reverse order of start
+    if (currentDAG != null) {
+      stopVertexServices(currentDAG);
+    }
     List<Service> serviceList = new ArrayList<Service>(services.size());
     for (ServiceWithDependency sd : services.values()) {
       serviceList.add(sd.service);
     }
-    Exception firstException = null;
+
     for (int i = services.size() - 1; i >= 0; i--) {
       Service service = serviceList.get(i);
       if (LOG.isDebugEnabled()) {
@@ -1933,7 +1938,6 @@ public class DAGAppMaster extends AbstractService {
 
   @Override
   public synchronized void serviceStart() throws Exception {
-
     //start all the components
     startServices();
     super.serviceStart();
@@ -2060,6 +2064,9 @@ public class DAGAppMaster extends AbstractService {
         DAGEventRecoverEvent recoverDAGEvent = new DAGEventRecoverEvent(
             recoveredDAGData.recoveredDAG.getID(), recoveredDAGData);
         dagEventDispatcher.handle(recoverDAGEvent);
+        // If we reach here, then we have recoverable DAG and we need to
+        // reinitialize the vertex services including speculators.
+        startVertexServices(currentDAG);
         this.state = DAGAppMasterState.RUNNING;
       }
     } else {
@@ -2543,6 +2550,18 @@ public class DAGAppMaster extends AbstractService {
     this.state = DAGAppMasterState.RUNNING;
   }
 
+  private void startVertexServices(DAG dag) {
+    for (Vertex v : dag.getVertices().values()) {
+      v.startServices();
+    }
+  }
+
+  void stopVertexServices(DAG dag) {
+    for (Vertex v: dag.getVertices().values()) {
+      v.stopServices();
+    }
+  }
+
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
       throws TezException {
     currentDAG = dag;
@@ -2574,7 +2593,8 @@ public class DAGAppMaster extends AbstractService {
     // This is a synchronous call, not an event through dispatcher. We want
     // job-init to be done completely here.
     dagEventDispatcher.handle(initDagEvent);
-
+    // Start the vertex services
+    startVertexServices(dag);
     // All components have started, start the job.
     /** create a job-start event to get this ball rolling */
     DAGEvent startDagEvent = new DAGEventStartDag(currentDAG.getID(), additionalUrlsForClasspath);
