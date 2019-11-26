@@ -517,7 +517,15 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_SPECULATION_ENABLED_DEFAULT = false;
   
   /**
-   * Float value. Specifies how many standard deviations away from the mean task execution time 
+   * Class used to estimate task resource needs.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_AM_SPECULATION_ESTIMATOR_CLASS =
+          TEZ_AM_PREFIX + "speculation.estimator.class";
+
+  /**
+   * Float value. Specifies how many standard deviations away from the mean task execution time
    * should be considered as an outlier/slow task.
    */
   @Unstable
