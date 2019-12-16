@@ -24,6 +24,8 @@
       <useAllReactorProjects>true</useAllReactorProjects>
       <excludes>
         <exclude>org.apache.tez:tez-aux-services</exclude>
+        <exclude>org.apache.tez:tez-ext-service-tests</exclude>
+        <exclude>org.apache.tez:tez-ui</exclude>
       </excludes>
       <binaries>
         <outputDirectory>/</outputDirectory>
