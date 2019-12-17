@@ -23,6 +23,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
@@ -62,6 +63,9 @@ public class MRTaskReporter
   }
 
   public void setProgress(float progress) {
+    // Validate that the progress is within the valid range. This guarantees
+    // that reporter and processorContext gets the same value.
+    progress = ProgressHelper.processProgress(progress);
     reporter.setProgress(progress);
     if (isProcessorContext) {
       ((ProcessorContext)context).setProgress(progress);

@@ -464,9 +464,15 @@ public class TestDAGAppMaster {
     when(mockVertex.getProgress()).thenReturn(-10f);
     Assert.assertEquals("Progress was negative and should be reported as 0",
         0, am.getProgress(), 0);
+    when(mockVertex.getProgress()).thenReturn(1.0000567f);
+    Assert.assertEquals(
+        "Progress was greater than 1 by a small float precision "
+            + "1.0000567 and should be reported as 1",
+        1.0f, am.getProgress(), 0.0f);
     when(mockVertex.getProgress()).thenReturn(10f);
-    Assert.assertEquals("Progress was greater than 1 and should be reported as 0",
-        0, am.getProgress(), 0);
+    Assert.assertEquals(
+        "Progress was greater than 1 and should be reported as 1",
+        1.0f, am.getProgress(), 0.0f);
   }
 
   @SuppressWarnings("deprecation")
