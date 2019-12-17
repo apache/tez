@@ -1029,7 +1029,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // find the oldest running attempt
         if (!ta.isFinished()) {
           earliestUnfinishedAttempt = ta;
-          task.nodesWithRunningAttempts.add(ta.getNodeId());
+          if (ta.getNodeId() != null) {
+            task.nodesWithRunningAttempts.add(ta.getNodeId());
+          }
         } else {
           if (TaskAttemptState.SUCCEEDED.equals(ta.getState())) {
             LOG.info("Ignore speculation scheduling for task {} since it has succeeded with attempt {}.",
