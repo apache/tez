@@ -887,6 +887,45 @@ public class TestTaskImpl {
     assertEquals(2, mockTask.getAttemptList().size());
   }
 
+  @Test
+  public void testKilledBeforeSpeculatedSucceeded() {
+    conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
+    Vertex vertex = mock(Vertex.class);
+    doReturn(new VertexImpl.VertexConfigImpl(conf)).when(vertex).getVertexConfig();
+    mockTask = new MockTaskImpl(vertexId, partition,
+        eventHandler, conf, taskCommunicatorManagerInterface, clock,
+        taskHeartbeatHandler, appContext, leafVertex,
+        taskResource, containerContext, vertex);
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId);
+    MockTaskAttemptImpl firstAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(firstAttempt.getID());
+    updateAttemptState(firstAttempt, TaskAttemptState.RUNNING);
+
+    mockTask.handle(createTaskTAKilledEvent(firstAttempt.getID()));
+    assertEquals(TaskStateInternal.RUNNING, mockTask.getInternalState());
+
+    // We need to manually override the current node id
+    // to induce NPE in the state machine transition
+    // simulating killed before speculated scenario
+    NodeId nodeId = mockNodeId;
+    mockNodeId = null;
+
+    // Add a speculative task attempt
+    mockTask.handle(createTaskTAAddSpecAttempt(mockTask.getLastAttempt().getID()));
+    mockNodeId = nodeId;
+    MockTaskAttemptImpl specAttempt = mockTask.getLastAttempt();
+    launchTaskAttempt(specAttempt.getID());
+    updateAttemptState(specAttempt, TaskAttemptState.RUNNING);
+    assertEquals(3, mockTask.getAttemptList().size());
+
+    // Now succeed the speculative attempt
+    updateAttemptState(specAttempt, TaskAttemptState.SUCCEEDED);
+    mockTask.handle(createTaskTASucceededEvent(specAttempt.getID()));
+    assertEquals(TaskState.SUCCEEDED, mockTask.getState());
+    assertEquals(3, mockTask.getAttemptList().size());
+  }
+
   @Test(timeout = 20000)
   public void testKilledAttemptUpdatesDAGScheduler() {
     TezTaskID taskId = getNewTaskID();
