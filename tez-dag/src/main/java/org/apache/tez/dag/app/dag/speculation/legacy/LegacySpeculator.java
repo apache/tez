@@ -34,6 +34,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.ServiceOperations;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -529,6 +530,12 @@ public class LegacySpeculator extends AbstractService {
     }
 
     public void setProgress(float progress) {
+      if (LOG.isDebugEnabled()) {
+        if (!ProgressHelper.isProgressWithinRange(progress)) {
+          LOG.debug("Progress update: speculator received progress in invalid "
+              + "range={}", progress);
+        }
+      }
       this.progress = progress;
     }
 

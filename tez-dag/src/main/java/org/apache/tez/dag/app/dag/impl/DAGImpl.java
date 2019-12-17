@@ -43,6 +43,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.Utils;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
@@ -804,19 +805,30 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public float getProgress() {
     this.readLock.lock();
     try {
-      float progress = 0.0f;
+      float accProg = 0.0f;
+      float dagProgress = 0.0f;
+      int verticesCount = getVertices().size();
       for (Vertex v : getVertices().values()) {
         float vertexProgress = v.getProgress();
-        if (vertexProgress >= 0.0f && vertexProgress <= 1.0f) {
-          progress += vertexProgress;
+        if (LOG.isDebugEnabled()) {
+          if (!ProgressHelper.isProgressWithinRange(vertexProgress)) {
+            LOG.debug("progress update: Vertex progress is invalid range"
+                + "; v={}, progress={}", v.getName(), vertexProgress);
+          }
+        }
+        accProg += ProgressHelper.processProgress(vertexProgress);
+      }
+      if (LOG.isDebugEnabled()) {
+        if (verticesCount == 0) {
+          LOG.debug("progress update: DAGImpl getProgress() returns 0.0f: "
+              + "vertices count is 0");
         }
       }
-      float dagProgress = progress / getTotalVertices();
-      if (dagProgress >= 0.0f && progress <= 1.0f) {
-        return dagProgress;
-      } else {
-        return 0.0f;
+      if (verticesCount > 0) {
+        dagProgress =
+            ProgressHelper.processProgress(accProg / verticesCount);
       }
+      return dagProgress;
     } finally {
       this.readLock.unlock();
     }

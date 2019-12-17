@@ -64,6 +64,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.AggregateTezCounters;
@@ -1572,20 +1573,31 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   List<EventInfo> getOnDemandRouteEvents() {
     return onDemandRouteEvents;
   }
-  
+
+  /**
+   * Updates the progress value in the vertex.
+   * This should be called only when the vertex is running state.
+   * No need to acquire the lock since this is nested inside
+   * {@link #getProgress() getProgress} method.
+   */
   private void computeProgress() {
-    this.readLock.lock();
-    try {
-      float progress = 0f;
-      for (Task task : this.tasks.values()) {
-        progress += (task.getProgress());
+
+    float accProg = 0.0f;
+    int tasksCount = this.tasks.size();
+    for (Task task : this.tasks.values()) {
+      float taskProg = task.getProgress();
+      if (LOG.isDebugEnabled()) {
+        if (!ProgressHelper.isProgressWithinRange(taskProg)) {
+          LOG.debug("progress update: vertex={}, task={} incorrect; range={}",
+              getName(), task.getTaskId().toString(), taskProg);
+        }
       }
-      if (this.numTasks != 0) {
-        progress /= this.numTasks;
-      }
-      this.progress = progress;
-    } finally {
-      this.readLock.unlock();
+      accProg += ProgressHelper.processProgress(taskProg);
+    }
+    // tasksCount is 0, do not reset the current progress.
+    if (tasksCount > 0) {
+      // force the progress to be below within the range
+      progress = ProgressHelper.processProgress(accProg / tasksCount);
     }
   }
 
