@@ -195,6 +195,7 @@ def main(argv):
 			svg.text(marginRight+xdomain(percentX), y+marginTop+12, "%d%% (%0.1fs)" % (int(fraction*100), (percentX - dag.start)/1000.0), style="font-size:12px; text-anchor: middle")
 	out.write(svg.flush())
 	out.close()
+	print("Output svg is written into: " + str(out))
 
 if __name__ == "__main__":
 	sys.exit(main(sys.argv[1:]))
