@@ -490,8 +490,8 @@ public class MRInput extends MRInputBase {
               getContext());
         }
       } else {
-        TaskSplitMetaInfo[] allMetaInfo = MRInputUtils.readSplits(jobConf);
-        TaskSplitMetaInfo thisTaskMetaInfo = allMetaInfo[getContext().getTaskIndex()];
+        TaskSplitMetaInfo thisTaskMetaInfo = MRInputUtils.getSplits(jobConf,
+            getContext().getTaskIndex());
         TaskSplitIndex splitMetaInfo = new TaskSplitIndex(thisTaskMetaInfo.getSplitLocation(),
             thisTaskMetaInfo.getStartOffset());
         long splitLength = -1;
