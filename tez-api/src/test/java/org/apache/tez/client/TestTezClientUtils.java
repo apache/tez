@@ -46,8 +46,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -890,5 +892,29 @@ public class TestTezClientUtils {
 
   }
 
+  @Test
+  public void testSessionCredentialsMergedBeforeAmConfigCredentials() throws Exception {
+    TezConfiguration conf = new TezConfiguration();
+    Text tokenType = new Text("TEST_TOKEN_TYPE");
+    Text tokenKind = new Text("TEST_TOKEN_KIND");
+    Text tokenService = new Text("TEST_TOKEN_SERVICE");
 
+    Credentials amConfigCredentials = new Credentials();
+    amConfigCredentials.addToken(tokenType,
+        new Token<>("id1".getBytes(), null, tokenKind, tokenService));
+
+    Credentials sessionCredentials = new Credentials();
+    Token<TokenIdentifier> sessionToken =
+        new Token<>("id2".getBytes(), null, tokenKind, tokenService);
+    sessionCredentials.addToken(tokenType, sessionToken);
+
+    AMConfiguration amConfig = new AMConfiguration(conf, null, amConfigCredentials);
+
+    Credentials amLaunchCredentials =
+        TezClientUtils.prepareAmLaunchCredentials(amConfig, sessionCredentials, conf, null);
+
+    // if there is another token in am conf creds of the same token type,
+    // session token should be applied while creating ContainerLaunchContext
+    Assert.assertEquals(sessionToken, amLaunchCredentials.getToken(tokenType));
+  }
 }
