@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Objects;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
@@ -73,7 +74,7 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanVertexType;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -128,7 +129,7 @@ public class DAG {
    * @return {@link DAG}
    */
   public synchronized DAG addTaskLocalFiles(Map<String, LocalResource> localFiles) {
-    Preconditions.checkNotNull(localFiles);
+    Objects.requireNonNull(localFiles);
     TezCommonUtils.addAdditionalLocalResources(localFiles, commonTaskLocalFiles, "DAG " + getName());
     return this;
   }
@@ -178,7 +179,7 @@ public class DAG {
    */
   @Deprecated
   public synchronized DAG setDAGInfo(String dagInfo) {
-    Preconditions.checkNotNull(dagInfo);
+    Objects.requireNonNull(dagInfo);
     this.dagInfo = dagInfo;
     return this;
   }
@@ -190,7 +191,7 @@ public class DAG {
    * @return {@link DAG}
    */
   public synchronized DAG setCallerContext(CallerContext callerContext) {
-    Preconditions.checkNotNull(callerContext);
+    Objects.requireNonNull(callerContext);
     this.callerContext = callerContext;
     return this;
   }
@@ -257,7 +258,7 @@ public class DAG {
    * @return {@link DAG}
    */
   public synchronized DAG addURIsForCredentials(Collection<URI> uris) {
-    Preconditions.checkNotNull(uris, "URIs cannot be null");
+    Objects.requireNonNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
   }

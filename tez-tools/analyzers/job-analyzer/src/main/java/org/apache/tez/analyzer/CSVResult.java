@@ -19,7 +19,7 @@
 package org.apache.tez.analyzer;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;

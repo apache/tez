@@ -34,7 +34,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * An InputFormat that provides a generic grouping around the splits

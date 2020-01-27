@@ -17,7 +17,7 @@
  */
 package org.apache.tez.history.parser;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.tez.dag.api.TezException;

@@ -35,7 +35,7 @@ import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Object with API's to interact with the Tez execution engine

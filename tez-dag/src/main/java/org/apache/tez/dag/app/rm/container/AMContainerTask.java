@@ -19,8 +19,8 @@
 package org.apache.tez.dag.app.rm.container;
 
 import java.util.Map;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -35,7 +35,7 @@ public class AMContainerTask {
   public AMContainerTask(TaskSpec tezTask,
                          Map<String, LocalResource> additionalResources, Credentials credentials,
                          boolean credentialsChanged, int priority) {
-    Preconditions.checkNotNull(tezTask, "TaskSpec cannot be null");
+    Objects.requireNonNull(tezTask, "TaskSpec cannot be null");
     this.tezTask = tezTask;
     this.additionalResources = additionalResources;
     this.credentials = credentials;

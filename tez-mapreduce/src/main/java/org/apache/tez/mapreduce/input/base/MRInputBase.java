@@ -18,7 +18,7 @@
 
 package org.apache.tez.mapreduce.input.base;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;

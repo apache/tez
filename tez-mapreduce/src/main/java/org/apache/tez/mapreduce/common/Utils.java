@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.common;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -30,8 +31,6 @@ import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
-
-import com.google.common.base.Preconditions;
 
 @Private
 public class Utils {
@@ -59,7 +58,7 @@ public class Utils {
   }
 
   public static Counter getMRCounter(TezCounter tezCounter) {
-    Preconditions.checkNotNull(tezCounter);
+    Objects.requireNonNull(tezCounter);
     return new MRCounters.MRCounter(tezCounter);
   }
   

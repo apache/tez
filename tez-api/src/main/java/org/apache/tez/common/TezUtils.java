@@ -28,8 +28,8 @@ import java.util.Map.Entry;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
@@ -75,7 +75,7 @@ public class TezUtils {
    * @throws java.io.IOException
    */
   public static ByteString createByteStringFromConf(Configuration conf) throws IOException {
-    Preconditions.checkNotNull(conf, "Configuration must be specified");
+    Objects.requireNonNull(conf, "Configuration must be specified");
     ByteString.Output os = ByteString.newOutput();
     DeflaterOutputStream compressOs = new DeflaterOutputStream(os,
         new Deflater(Deflater.BEST_SPEED));
@@ -110,7 +110,7 @@ public class TezUtils {
    * @throws java.io.IOException
    */
   public static Configuration createConfFromByteString(ByteString byteString) throws IOException {
-    Preconditions.checkNotNull(byteString, "ByteString must be specified");
+    Objects.requireNonNull(byteString, "ByteString must be specified");
     // SnappyInputStream uncompressIs = new
     // SnappyInputStream(byteString.newInput());
     try(InflaterInputStream uncompressIs = new InflaterInputStream(byteString.newInput())) {

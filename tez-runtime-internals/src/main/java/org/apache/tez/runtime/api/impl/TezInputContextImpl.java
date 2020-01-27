@@ -18,15 +18,12 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import com.google.common.base.Preconditions;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -102,10 +99,10 @@ public class TezInputContextImpl extends TezTaskContextImpl
         taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
         objectRegistry, ExecutionContext, memAvailable, sharedExecutor);
-    checkNotNull(inputIndex, "inputIndex is null");
-    checkNotNull(sourceVertexName, "sourceVertexName is null");
-    checkNotNull(inputs, "input map is null");
-    checkNotNull(inputReadyTracker, "inputReadyTracker is null");
+    Objects.requireNonNull(inputIndex, "inputIndex is null");
+    Objects.requireNonNull(sourceVertexName, "sourceVertexName is null");
+    Objects.requireNonNull(inputs, "input map is null");
+    Objects.requireNonNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.inputIndex = inputIndex;
     this.sourceVertexName = sourceVertexName;
@@ -131,7 +128,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
 
   @Override
   public void sendEvents(List<Event> events) {
-    Preconditions.checkNotNull(events, "events are null");
+    Objects.requireNonNull(events, "events are null");
     List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
     for (Event e : events) {
       TezEvent tEvt = new TezEvent(e, sourceInfo);

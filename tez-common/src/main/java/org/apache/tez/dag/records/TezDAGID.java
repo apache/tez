@@ -25,7 +25,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
 /**

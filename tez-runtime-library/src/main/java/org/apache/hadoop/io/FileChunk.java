@@ -18,7 +18,8 @@
 
 package org.apache.hadoop.io;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -40,7 +41,7 @@ public class FileChunk implements Comparable<FileChunk> {
     this.isLocalFile = isLocalFile;
     this.identifier = identifier;
     if (isLocalFile) {
-      Preconditions.checkNotNull(identifier);
+      Objects.requireNonNull(identifier);
     }
   }
 

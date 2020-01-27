@@ -69,7 +69,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.common.ContainerSignatureMatcher;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;

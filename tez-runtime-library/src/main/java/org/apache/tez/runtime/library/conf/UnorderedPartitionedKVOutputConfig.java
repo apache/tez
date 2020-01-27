@@ -24,9 +24,10 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -183,9 +184,9 @@ public class UnorderedPartitionedKVOutputConfig {
     Builder(String keyClassName, String valueClassName, String partitionerClassName,
                    Map<String, String> partitionerConf) {
       this();
-      Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
-      Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
-      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
+      Objects.requireNonNull(keyClassName, "Key class name cannot be null");
+      Objects.requireNonNull(valueClassName, "Value class name cannot be null");
+      Objects.requireNonNull(partitionerClassName, "Partitioner class name cannot be null");
       setKeyClassName(keyClassName);
       setValueClassName(valueClassName);
       setPartitioner(partitionerClassName, partitionerConf);
@@ -202,21 +203,21 @@ public class UnorderedPartitionedKVOutputConfig {
 
     @InterfaceAudience.Private
     Builder setKeyClassName(String keyClassName) {
-      Preconditions.checkNotNull(keyClassName, "Key class name cannot be null");
+      Objects.requireNonNull(keyClassName, "Key class name cannot be null");
       this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, keyClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setValueClassName(String valueClassName) {
-      Preconditions.checkNotNull(valueClassName, "Value class name cannot be null");
+      Objects.requireNonNull(valueClassName, "Value class name cannot be null");
       this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, valueClassName);
       return this;
     }
 
     @InterfaceAudience.Private
     Builder setPartitioner(String partitionerClassName, Map<String, String> partitionerConf) {
-      Preconditions.checkNotNull(partitionerClassName, "Partitioner class name cannot be null");
+      Objects.requireNonNull(partitionerClassName, "Partitioner class name cannot be null");
       this.conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS, partitionerClassName);
       if (partitionerConf != null) {
         // Merging the confs for now. Change to be specific in the future.
@@ -236,7 +237,7 @@ public class UnorderedPartitionedKVOutputConfig {
     @SuppressWarnings("unchecked")
     @Override
     public Builder setAdditionalConfiguration(String key, String value) {
-      Preconditions.checkNotNull(key, "Key cannot be null");
+      Objects.requireNonNull(key, "Key cannot be null");
       if (ConfigUtils.doesKeyQualify(key,
           Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()),
@@ -253,7 +254,7 @@ public class UnorderedPartitionedKVOutputConfig {
     @SuppressWarnings("unchecked")
     @Override
     public Builder setAdditionalConfiguration(Map<String, String> confMap) {
-      Preconditions.checkNotNull(confMap, "ConfMap cannot be null");
+      Objects.requireNonNull(confMap, "ConfMap cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(confMap,
           Lists.newArrayList(UnorderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());

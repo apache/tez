@@ -17,12 +17,13 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -73,11 +74,11 @@ public class TaskSpec implements Writable {
       ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
       @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
-    checkNotNull(dagName, "dagName is null");
-    checkNotNull(vertexName, "vertexName is null");
-    checkNotNull(processorDescriptor, "processorDescriptor is null");
-    checkNotNull(inputSpecList, "inputSpecList is null");
-    checkNotNull(outputSpecList, "outputSpecList is null");
+    Objects.requireNonNull(dagName, "dagName is null");
+    Objects.requireNonNull(vertexName, "vertexName is null");
+    Objects.requireNonNull(processorDescriptor, "processorDescriptor is null");
+    Objects.requireNonNull(inputSpecList, "inputSpecList is null");
+    Objects.requireNonNull(outputSpecList, "outputSpecList is null");
     this.taskAttemptId = null;
     this.dagName = StringInterner.weakIntern(dagName);
     this.vertexName = StringInterner.weakIntern(vertexName);
@@ -105,12 +106,12 @@ public class TaskSpec implements Writable {
       ProcessorDescriptor processorDescriptor,
       List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
       @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
-    checkNotNull(taskAttemptID, "taskAttemptID is null");
-    checkNotNull(dagName, "dagName is null");
-    checkNotNull(vertexName, "vertexName is null");
-    checkNotNull(processorDescriptor, "processorDescriptor is null");
-    checkNotNull(inputSpecList, "inputSpecList is null");
-    checkNotNull(outputSpecList, "outputSpecList is null");
+    Objects.requireNonNull(taskAttemptID, "taskAttemptID is null");
+    Objects.requireNonNull(dagName, "dagName is null");
+    Objects.requireNonNull(vertexName, "vertexName is null");
+    Objects.requireNonNull(processorDescriptor, "processorDescriptor is null");
+    Objects.requireNonNull(inputSpecList, "inputSpecList is null");
+    Objects.requireNonNull(outputSpecList, "outputSpecList is null");
     this.taskAttemptId = taskAttemptID;
     this.dagName = StringInterner.weakIntern(dagName);
     this.vertexName = StringInterner.weakIntern(vertexName);

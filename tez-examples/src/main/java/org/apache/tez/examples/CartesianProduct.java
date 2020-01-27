@@ -17,7 +17,7 @@
  */
 package org.apache.tez.examples;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;

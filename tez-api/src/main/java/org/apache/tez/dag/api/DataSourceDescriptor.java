@@ -24,6 +24,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -34,7 +35,6 @@ import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 /**
@@ -157,7 +157,7 @@ public class DataSourceDescriptor {
   * @return this
   */
   public synchronized DataSourceDescriptor addURIsForCredentials(Collection<URI> uris) {
-    Preconditions.checkNotNull(uris, "URIs cannot be null");
+    Objects.requireNonNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
   }

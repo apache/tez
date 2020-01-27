@@ -54,7 +54,7 @@ import org.apache.tez.runtime.library.common.ValuesIterator;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.Shuffle;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 
 /**

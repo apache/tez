@@ -18,7 +18,8 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.TaskFailureType;
@@ -44,7 +45,7 @@ public class TaskAttemptEventAttemptFailed extends TaskAttemptEvent
                                        TaskAttemptEventType type, TaskFailureType taskFailureType, String diagnostics, TaskAttemptTerminationCause errorCause,
                                        boolean isFromRecovery) {
     super(id, type);
-    Preconditions.checkNotNull(taskFailureType, "FailureType must be set for a FAILED task attempt");
+    Objects.requireNonNull(taskFailureType, "FailureType must be set for a FAILED task attempt");
     this.diagnostics = diagnostics;
     this.errorCause = errorCause;
     this.taskFailureType = taskFailureType;

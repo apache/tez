@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,7 @@ import org.apache.tez.runtime.api.TaskContext;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 
 // Not calling this a MemoryManager explicitly. Not yet anyway.
@@ -175,9 +176,9 @@ public class MemoryDistributor {
   private long registerRequest(long requestSize, MemoryUpdateCallback callback,
       TaskContext entityContext, EntityDescriptor<?> descriptor) {
     Preconditions.checkArgument(requestSize >= 0);
-    Preconditions.checkNotNull(callback);
-    Preconditions.checkNotNull(entityContext);
-    Preconditions.checkNotNull(descriptor);
+    Objects.requireNonNull(callback);
+    Objects.requireNonNull(entityContext);
+    Objects.requireNonNull(descriptor);
     if (!dupSet.add(entityContext)) {
       throw new TezUncheckedException(
           "A single entity can only make one call to request resources for now");
@@ -207,7 +208,7 @@ public class MemoryDistributor {
   }
 
   private void validateAllocations(Iterable<Long> allocations, int numRequestors) {
-    Preconditions.checkNotNull(allocations);
+    Objects.requireNonNull(allocations);
     long totalAllocated = 0l;
     int numAllocations = 0;
     for (Long l : allocations) {

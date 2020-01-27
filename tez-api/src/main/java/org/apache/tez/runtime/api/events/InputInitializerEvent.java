@@ -21,8 +21,7 @@
 package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
-
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -53,8 +52,8 @@ public class InputInitializerEvent extends Event {
 
   private InputInitializerEvent(String targetVertexName, String targetInputName,
                                 ByteBuffer eventPayload) {
-    Preconditions.checkNotNull(targetVertexName, "TargetVertexName cannot be null");
-    Preconditions.checkNotNull(targetInputName, "TargetInputName cannot be null");
+    Objects.requireNonNull(targetVertexName, "TargetVertexName cannot be null");
+    Objects.requireNonNull(targetInputName, "TargetInputName cannot be null");
     this.targetVertexName = targetVertexName;
     this.targetInputName = targetInputName;
     this.eventPayload = eventPayload;

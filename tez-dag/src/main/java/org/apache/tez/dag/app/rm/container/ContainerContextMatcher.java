@@ -21,18 +21,19 @@ package org.apache.tez.dag.app.rm.container;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.app.ContainerContext;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.ContainerSignatureMatcher;
 
 public class ContainerContextMatcher implements ContainerSignatureMatcher {
 
   private void checkArguments(Object cs1, Object cs2) {
-    Preconditions.checkNotNull(cs1, "Arguments cannot be null");
-    Preconditions.checkNotNull(cs2, "Arguments cannot be null");
+    Objects.requireNonNull(cs1, "Arguments cannot be null");
+    Objects.requireNonNull(cs2, "Arguments cannot be null");
     Preconditions.checkArgument(cs1 instanceof ContainerContext
         && cs2 instanceof ContainerContext,
         "Container context can only compare instances of "
@@ -62,8 +63,8 @@ public class ContainerContextMatcher implements ContainerSignatureMatcher {
   @Override
   public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
       Map<String, LocalResource> lr2) {
-    Preconditions.checkNotNull(lr1);
-    Preconditions.checkNotNull(lr2);
+    Objects.requireNonNull(lr1);
+    Objects.requireNonNull(lr2);
 
     Map<String, LocalResource> c2LocalResources = new HashMap<String, LocalResource>(lr2);
     for (Entry<String, LocalResource> c1LocalResource : lr1.entrySet()) {

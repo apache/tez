@@ -34,8 +34,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -175,7 +176,7 @@ public class RootInputInitializerManager {
       InputInitializerEvent event = (InputInitializerEvent)tezEvent.getEvent();
       Preconditions.checkState(vertex.getName().equals(event.getTargetVertexName()),
           "Received event for incorrect vertex");
-      Preconditions.checkNotNull(event.getTargetInputName(), "target input name must be set");
+      Objects.requireNonNull(event.getTargetInputName(), "target input name must be set");
       InitializerWrapper initializer = initializerMap.get(event.getTargetInputName());
       Preconditions.checkState(initializer != null,
           "Received event for unknown input : " + event.getTargetInputName());
@@ -220,8 +221,8 @@ public class RootInputInitializerManager {
 
   public void registerForVertexUpdates(String vertexName, String inputName,
                                        @Nullable Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
-    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
-    Preconditions.checkNotNull(inputName, "InputName cannot be null");
+    Objects.requireNonNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Objects.requireNonNull(inputName, "InputName cannot be null");
     InitializerWrapper initializer = initializerMap.get(inputName);
     if (initializer == null) {
       pendingVertexRegistrations.put(inputName, new VertexUpdateRegistrationHolder(vertexName, stateSet));

@@ -18,13 +18,14 @@
 
 package org.apache.tez.common.counters;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
@@ -193,7 +194,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
   @SuppressWarnings("rawtypes")
   @Override
   public void incrAllCounters(CounterGroupBase<C> other) {
-    if (checkNotNull(other, "other counter group")
+    if (Objects.requireNonNull(other, "other counter group")
         instanceof FrameworkCounterGroup<?, ?>) {
       for (TezCounter counter : other) {
         findCounter(((FrameworkCounter) counter).key.name())

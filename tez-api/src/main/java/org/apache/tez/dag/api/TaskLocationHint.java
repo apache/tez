@@ -20,12 +20,13 @@ package org.apache.tez.dag.api;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Describes the placements hints for tasks.
@@ -67,7 +68,7 @@ public class TaskLocationHint {
   private TaskBasedLocationAffinity affinitizedTask;
 
   private TaskLocationHint(String vertexName, int taskIndex) {
-    Preconditions.checkNotNull(vertexName);
+    Objects.requireNonNull(vertexName);
     Preconditions.checkArgument(taskIndex >= 0);
     this.affinitizedTask = new TaskBasedLocationAffinity(vertexName, taskIndex);
   }

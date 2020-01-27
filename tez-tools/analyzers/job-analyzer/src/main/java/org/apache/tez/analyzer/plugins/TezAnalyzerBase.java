@@ -39,7 +39,7 @@ import org.apache.tez.history.parser.ATSFileParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

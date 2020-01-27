@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -46,7 +47,7 @@ import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
@@ -79,16 +80,16 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
       ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
-    checkNotNull(conf, "conf is null");
-    checkNotNull(dagName, "dagName is null");
-    checkNotNull(taskVertexName, "taskVertexName is null");
-    checkNotNull(taskAttemptID, "taskAttemptId is null");
-    checkNotNull(counters, "counters is null");
-    checkNotNull(runtimeTask, "runtimeTask is null");
-    checkNotNull(auxServiceEnv, "auxServiceEnv is null");
-    checkNotNull(memDist, "memDist is null");
-    checkNotNull(descriptor, "descriptor is null");
-    checkNotNull(sharedExecutor, "sharedExecutor is null");
+    Objects.requireNonNull(conf, "conf is null");
+    Objects.requireNonNull(dagName, "dagName is null");
+    Objects.requireNonNull(taskVertexName, "taskVertexName is null");
+    Objects.requireNonNull(taskAttemptID, "taskAttemptId is null");
+    Objects.requireNonNull(counters, "counters is null");
+    Objects.requireNonNull(runtimeTask, "runtimeTask is null");
+    Objects.requireNonNull(auxServiceEnv, "auxServiceEnv is null");
+    Objects.requireNonNull(memDist, "memDist is null");
+    Objects.requireNonNull(descriptor, "descriptor is null");
+    Objects.requireNonNull(sharedExecutor, "sharedExecutor is null");
     this.dagName = dagName;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
@@ -193,7 +194,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   @Nullable
   @Override
   public ByteBuffer getServiceProviderMetaData(String serviceName) {
-    Preconditions.checkNotNull(serviceName, "serviceName is null");
+    Objects.requireNonNull(serviceName, "serviceName is null");
     return AuxiliaryServiceHelper.getServiceDataFromEnv(
         serviceName, auxServiceEnv);
   }
@@ -225,7 +226,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   protected void signalFailure(TaskFailureType taskFailureType, Throwable t,
                                String message, EventMetaData sourceInfo) {
-    Preconditions.checkNotNull(taskFailureType, "TaskFailureType must be specified");
+    Objects.requireNonNull(taskFailureType, "TaskFailureType must be specified");
     runtimeTask.setFrameworkCounters();
     runtimeTask.registerError();
     tezUmbilical.signalFailure(taskAttemptID, taskFailureType, t, message, sourceInfo);

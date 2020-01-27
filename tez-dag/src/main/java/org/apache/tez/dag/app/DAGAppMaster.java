@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,6 +57,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Objects;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -193,7 +194,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -1533,7 +1534,7 @@ public class DAGAppMaster extends AbstractService {
     private volatile String queueName;
 
     public RunningAppContext(Configuration config) {
-      checkNotNull(config, "config is null");
+      Objects.requireNonNull(config, "config is null");
       this.conf = config;
       this.eventHandler = dispatcher.getEventHandler();
     }
@@ -1759,7 +1760,7 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public void setDAG(DAG dag) {
-      Preconditions.checkNotNull(dag, "dag is null");
+      Objects.requireNonNull(dag, "dag is null");
       try {
         wLock.lock();
         this.dag = dag;

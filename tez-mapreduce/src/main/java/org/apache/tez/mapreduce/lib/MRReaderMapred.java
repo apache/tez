@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +35,6 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.InputContext;
-
-import com.google.common.base.Preconditions;
 
 public class MRReaderMapred extends MRReader {
 
@@ -153,7 +152,7 @@ public class MRReaderMapred extends MRReader {
   }
 
   private void setupOldRecordReader() throws IOException {
-    Preconditions.checkNotNull(inputSplit, "Input split hasn't yet been setup");
+    Objects.requireNonNull(inputSplit, "Input split hasn't yet been setup");
     recordReader = inputFormat.getRecordReader(inputSplit, this.jobConf, new MRReporter(
         tezCounters, inputSplit));
     setIncrementalConfigParams(inputSplit);

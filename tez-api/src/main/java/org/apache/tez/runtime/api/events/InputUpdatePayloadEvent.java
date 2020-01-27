@@ -19,13 +19,12 @@
 package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Events used by {@link InputInitializer} implementations to update the
@@ -41,7 +40,7 @@ public class InputUpdatePayloadEvent extends Event {
   private final ByteBuffer userPayload;
 
   private InputUpdatePayloadEvent(ByteBuffer userPayload) {
-    Preconditions.checkNotNull(userPayload);
+    Objects.requireNonNull(userPayload);
     this.userPayload = userPayload;
   }
 

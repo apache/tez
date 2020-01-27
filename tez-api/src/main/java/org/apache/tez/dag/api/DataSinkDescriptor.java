@@ -21,13 +21,13 @@ package org.apache.tez.dag.api;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.security.Credentials;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 /**
@@ -121,7 +121,7 @@ public class DataSinkDescriptor {
   * @return this
   */
   public synchronized DataSinkDescriptor addURIsForCredentials(Collection<URI> uris) {
-    Preconditions.checkNotNull(uris, "URIs cannot be null");
+    Objects.requireNonNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
   }
