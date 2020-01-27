@@ -47,7 +47,7 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Simple example to perform WordCount using Tez API's. WordCount is the 

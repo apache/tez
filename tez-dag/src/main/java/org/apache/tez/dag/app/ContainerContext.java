@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -32,8 +33,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.tez.dag.app.dag.Vertex;
-
-import com.google.common.base.Preconditions;
 
 public class ContainerContext {
 
@@ -49,11 +48,11 @@ public class ContainerContext {
 
   public ContainerContext(Map<String, LocalResource> localResources,
       Credentials credentials, Map<String, String> environment, String javaOpts) {
-    Preconditions.checkNotNull(localResources,
+    Objects.requireNonNull(localResources,
         "localResources should not be null");
-    Preconditions.checkNotNull(credentials, "credentials should not be null");
-    Preconditions.checkNotNull(environment, "environment should not be null");
-    Preconditions.checkNotNull(javaOpts, "javaOpts should not be null");
+    Objects.requireNonNull(credentials, "credentials should not be null");
+    Objects.requireNonNull(environment, "environment should not be null");
+    Objects.requireNonNull(javaOpts, "javaOpts should not be null");
     this.localResources = localResources;
     this.credentials = credentials;
     this.environment = environment;
@@ -64,11 +63,11 @@ public class ContainerContext {
   public ContainerContext(Map<String, LocalResource> localResources,
       Credentials credentials, Map<String, String> environment, String javaOpts,
       @Nullable Vertex vertex) {
-    Preconditions.checkNotNull(localResources,
+    Objects.requireNonNull(localResources,
         "localResources should not be null");
-    Preconditions.checkNotNull(credentials, "credentials should not be null");
-    Preconditions.checkNotNull(environment, "environment should not be null");
-    Preconditions.checkNotNull(javaOpts, "javaOpts should not be null");
+    Objects.requireNonNull(credentials, "credentials should not be null");
+    Objects.requireNonNull(environment, "environment should not be null");
+    Objects.requireNonNull(javaOpts, "javaOpts should not be null");
     this.localResources = localResources;
     this.credentials = credentials;
     this.environment = environment;
@@ -97,7 +96,7 @@ public class ContainerContext {
    *         container context.
    */
   public boolean isSuperSet(ContainerContext otherContext) {
-    Preconditions.checkNotNull(otherContext, "otherContext should not null");
+    Objects.requireNonNull(otherContext, "otherContext should not null");
     // Assumptions:
     // Credentials are the same for all containers belonging to a DAG.
     // Matching can be added if containers are used across DAGs

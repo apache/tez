@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;

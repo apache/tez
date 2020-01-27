@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;

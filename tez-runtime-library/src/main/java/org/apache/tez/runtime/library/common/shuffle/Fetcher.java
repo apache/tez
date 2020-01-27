@@ -67,7 +67,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single

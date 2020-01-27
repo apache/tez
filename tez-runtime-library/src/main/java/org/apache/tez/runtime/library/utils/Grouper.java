@@ -17,7 +17,7 @@
  */
 package org.apache.tez.runtime.library.utils;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * This grouper group specified number of items into specified number of groups.

@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -92,7 +93,7 @@ import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 
 public class TaskSchedulerManager extends AbstractService implements
@@ -483,7 +484,7 @@ public class TaskSchedulerManager extends AbstractService implements
       TaskBasedLocationAffinity taskAffinity = locationHint.getAffinitizedTask();
       if (taskAffinity != null) {
         Vertex vertex = appContext.getCurrentDAG().getVertex(taskAffinity.getVertexName());
-        Preconditions.checkNotNull(vertex, "Invalid vertex in task based affinity " + taskAffinity 
+        Objects.requireNonNull(vertex, "Invalid vertex in task based affinity " + taskAffinity
             + " for attempt: " + taskAttempt.getID());
         int taskIndex = taskAffinity.getTaskIndex(); 
         Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(), 
@@ -491,7 +492,8 @@ public class TaskSchedulerManager extends AbstractService implements
             + " for attempt: " + taskAttempt.getID());
         TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
         if (affinityAttempt != null) {
-          Preconditions.checkNotNull(affinityAttempt.getAssignedContainerID(), affinityAttempt.getID());
+          Objects.requireNonNull(affinityAttempt.getAssignedContainerID(),
+              affinityAttempt.getID() == null ? null : affinityAttempt.getID().toString());
           try {
             taskSchedulers[event.getSchedulerId()].allocateTask(taskAttempt,
                 event.getCapability(),

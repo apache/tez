@@ -18,16 +18,13 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import com.google.common.base.Preconditions;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -69,7 +66,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
         runtimeTask.addAndGetTezCounter(vertexName), runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor, objectRegistry, ExecutionContext, memAvailable,
         sharedExecutor);
-    checkNotNull(inputReadyTracker, "inputReadyTracker is null");
+    Objects.requireNonNull(inputReadyTracker, "inputReadyTracker is null");
     this.userPayload = userPayload;
     this.sourceInfo = new EventMetaData(EventProducerConsumerType.PROCESSOR,
         taskVertexName, "", taskAttemptID);
@@ -78,7 +75,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public void sendEvents(List<Event> events) {
-    Preconditions.checkNotNull(events, "events are null");
+    Objects.requireNonNull(events, "events are null");
     List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
     for (Event e : events) {
       TezEvent tEvt = new TezEvent(e, sourceInfo);

@@ -19,7 +19,7 @@
 package org.apache.tez.dag.app.rm;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.math3.random.RandomDataGenerator;

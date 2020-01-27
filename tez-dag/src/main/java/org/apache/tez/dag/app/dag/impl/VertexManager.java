@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -77,7 +78,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -302,7 +303,7 @@ public class VertexManager {
     @Override
     public synchronized void setVertexLocationHint(VertexLocationHint locationHint) {
       checkAndThrowIfDone();
-      Preconditions.checkNotNull(locationHint, "locationHint is null");
+      Objects.requireNonNull(locationHint, "locationHint is null");
       managedVertex.setVertexLocationHint(locationHint);
     }
 
@@ -410,10 +411,10 @@ public class VertexManager {
 
   public VertexManager(VertexManagerPluginDescriptor pluginDesc, UserGroupInformation dagUgi,
       Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) throws TezException {
-    checkNotNull(pluginDesc, "pluginDesc is null");
-    checkNotNull(managedVertex, "managedVertex is null");
-    checkNotNull(appContext, "appContext is null");
-    checkNotNull(stateChangeNotifier, "notifier is null");
+    Objects.requireNonNull(pluginDesc, "pluginDesc is null");
+    Objects.requireNonNull(managedVertex, "managedVertex is null");
+    Objects.requireNonNull(appContext, "appContext is null");
+    Objects.requireNonNull(stateChangeNotifier, "notifier is null");
     this.pluginDesc = pluginDesc;
     this.dagUgi = dagUgi;
     this.managedVertex = managedVertex;

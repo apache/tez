@@ -25,9 +25,9 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -268,7 +268,7 @@ public class StateChangeNotifier {
 
   public void registerForTaskSuccessUpdates(String vertexName, TaskStateUpdateListener listener) {
     TezVertexID vertexId = validateAndGetVertexId(vertexName);
-    Preconditions.checkNotNull(listener, "listener cannot be null");
+    Objects.requireNonNull(listener, "listener cannot be null");
     taskWriteLock.lock();
     try {
       taskListeners.put(vertexId, listener);
@@ -279,7 +279,7 @@ public class StateChangeNotifier {
 
   public void unregisterForTaskSuccessUpdates(String vertexName, TaskStateUpdateListener listener) {
     TezVertexID vertexId = validateAndGetVertexId(vertexName);
-    Preconditions.checkNotNull(listener, "listener cannot be null");
+    Objects.requireNonNull(listener, "listener cannot be null");
     taskWriteLock.lock();
     try {
       taskListeners.remove(vertexId, listener);
@@ -303,9 +303,9 @@ public class StateChangeNotifier {
 
 
   private TezVertexID validateAndGetVertexId(String vertexName) {
-    Preconditions.checkNotNull(vertexName, "VertexName cannot be null");
+    Objects.requireNonNull(vertexName, "VertexName cannot be null");
     Vertex vertex = dag.getVertex(vertexName);
-    Preconditions.checkNotNull(vertex, "Vertex does not exist: " + vertexName);
+    Objects.requireNonNull(vertex, "Vertex does not exist: " + vertexName);
     return vertex.getVertexId();
   }
 

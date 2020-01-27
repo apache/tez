@@ -73,7 +73,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 @SuppressWarnings("rawtypes")
 public class AMContainerImpl implements AMContainer {

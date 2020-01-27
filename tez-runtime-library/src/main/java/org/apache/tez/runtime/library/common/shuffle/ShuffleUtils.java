@@ -35,7 +35,7 @@ import java.util.zip.Deflater;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 

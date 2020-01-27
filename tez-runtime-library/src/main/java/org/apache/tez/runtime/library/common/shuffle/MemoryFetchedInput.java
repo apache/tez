@@ -25,7 +25,7 @@ import org.apache.hadoop.io.BoundedByteArrayOutputStream;
 import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class MemoryFetchedInput extends FetchedInput {
 

@@ -33,7 +33,7 @@ import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Iterates values while keys match in sorted input.

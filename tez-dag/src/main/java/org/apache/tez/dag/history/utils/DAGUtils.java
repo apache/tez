@@ -54,7 +54,7 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class DAGUtils {
 

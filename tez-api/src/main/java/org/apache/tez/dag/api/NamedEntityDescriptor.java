@@ -18,7 +18,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 
 @SuppressWarnings("unchecked")

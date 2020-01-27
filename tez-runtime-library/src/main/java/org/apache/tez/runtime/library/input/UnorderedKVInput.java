@@ -54,7 +54,7 @@ import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleInputEventHandl
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
 import org.apache.tez.runtime.library.common.shuffle.impl.SimpleFetchedInputAllocator;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * {@link UnorderedKVInput} provides unordered key value input by

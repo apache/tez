@@ -25,8 +25,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
 
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ public class TezUtils {
    * @throws java.io.IOException
    */
   public static ByteString createByteStringFromConf(Configuration conf) throws IOException {
-    Preconditions.checkNotNull(conf, "Configuration must be specified");
+    Objects.requireNonNull(conf, "Configuration must be specified");
     ByteString.Output os = ByteString.newOutput();
     SnappyOutputStream compressOs = new SnappyOutputStream(os);
     try {
@@ -108,7 +108,7 @@ public class TezUtils {
    * @throws java.io.IOException
    */
   public static Configuration createConfFromByteString(ByteString byteString) throws IOException {
-    Preconditions.checkNotNull(byteString, "ByteString must be specified");
+    Objects.requireNonNull(byteString, "ByteString must be specified");
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput());) {
       DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
       Configuration conf = new Configuration(false);

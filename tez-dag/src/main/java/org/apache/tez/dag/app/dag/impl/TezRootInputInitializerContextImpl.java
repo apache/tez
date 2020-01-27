@@ -18,9 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.util.Set;
+import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
@@ -50,10 +51,10 @@ public class TezRootInputInitializerContextImpl implements
       RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input,
       Vertex vertex, AppContext appContext,
       RootInputInitializerManager manager) {
-    checkNotNull(input, "input is null");
-    checkNotNull(vertex, "vertex is null");
-    checkNotNull(appContext, "appContext is null");
-    checkNotNull(manager, "initializerManager is null");
+    Objects.requireNonNull(input, "input is null");
+    Objects.requireNonNull(vertex, "vertex is null");
+    Objects.requireNonNull(appContext, "appContext is null");
+    Objects.requireNonNull(manager, "initializerManager is null");
     this.input = input;
     this.vertex = vertex;
     this.appContext = appContext;

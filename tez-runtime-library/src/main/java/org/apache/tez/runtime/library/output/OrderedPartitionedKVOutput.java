@@ -53,7 +53,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * {@link OrderedPartitionedKVOutput} is an {@link AbstractLogicalOutput} which sorts
