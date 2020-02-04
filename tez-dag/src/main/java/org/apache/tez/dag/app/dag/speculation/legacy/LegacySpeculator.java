@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.service.ServiceOperations;
 import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
@@ -100,10 +99,9 @@ public class LegacySpeculator extends AbstractService {
   private TaskRuntimeEstimator estimator;
   private final long taskTimeout;
   private final Clock clock;
-  private long nextSpeculateTime = Long.MIN_VALUE;
   private Thread speculationBackgroundThread = null;
   private volatile boolean stopped = false;
-  /* Allow the speculator to wait on a blockingQueue in case we use it for event notification */
+  /** Allow the speculator to wait on a blockingQueue in case we use it for event notification. */
   private BlockingQueue<Object> scanControl = new LinkedBlockingQueue<Object>();
 
   @VisibleForTesting
@@ -132,9 +130,8 @@ public class LegacySpeculator extends AbstractService {
   static private TaskRuntimeEstimator getEstimator
       (Configuration conf, Vertex vertex) {
     TaskRuntimeEstimator estimator;
-    // "tez.am.speculation.estimator.class"
     Class<? extends TaskRuntimeEstimator> estimatorClass =
-        conf.getClass(TezConfiguration.TEZ_AM_SPECULATION_ESTIMATOR_CLASS,
+        conf.getClass(TezConfiguration.TEZ_AM_TASK_ESTIMATOR_CLASS,
             LegacyTaskRuntimeEstimator.class,
             TaskRuntimeEstimator.class);
     try {
@@ -236,6 +233,16 @@ public class LegacySpeculator extends AbstractService {
     }
   }
 
+  // This interface is intended to be used only for test cases.
+  public void scanForSpeculationsForTesting() {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("We got asked to run a debug speculation scan.");
+      LOG.debug("There are {} speculative events stacked already.", scanControl.size());
+    }
+    scanControl.add(new Object());
+    Thread.yield();
+  }
+
   public Runnable createThread() {
     return new Runnable() {
       @Override
@@ -267,8 +274,9 @@ public class LegacySpeculator extends AbstractService {
   public void notifyAttemptStarted(TezTaskAttemptID taId, long timestamp) {
     estimator.enrollAttempt(taId, timestamp);    
   }
-  
-  public void notifyAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState reportedState,
+
+  public void notifyAttemptStatusUpdate(TezTaskAttemptID taId,
+      TaskAttemptState reportedState,
       long timestamp) {
     statusUpdate(taId, reportedState, timestamp);
   }
@@ -293,12 +301,10 @@ public class LegacySpeculator extends AbstractService {
 
     estimator.updateAttempt(attemptID, reportedState, timestamp);
 
-    //if (stateString.equals(TaskAttemptState.RUNNING.name())) {
     if (reportedState == TaskAttemptState.RUNNING) {
       runningTasks.putIfAbsent(taskID, Boolean.TRUE);
     } else {
       runningTasks.remove(taskID, Boolean.TRUE);
-      //if (!stateString.equals(TaskAttemptState.STARTING.name())) {
       if (reportedState == TaskAttemptState.STARTING) {
         runningTaskAttemptStatistics.remove(attemptID);
       }
@@ -356,7 +362,7 @@ public class LegacySpeculator extends AbstractService {
       }
     }
 
-    TezTaskAttemptID runningTaskAttemptID = null;
+    TezTaskAttemptID runningTaskAttemptID;
     int numberRunningAttempts = 0;
 
     for (TaskAttempt taskAttempt : attempts.values()) {
@@ -387,7 +393,8 @@ public class LegacySpeculator extends AbstractService {
             return ON_SCHEDULE;
           }
         } else {
-          long estimatedRunTime = estimator.estimatedRuntime(runningTaskAttemptID);
+          long estimatedRunTime = estimator
+              .estimatedRuntime(runningTaskAttemptID);
 
           long estimatedEndTime = estimatedRunTime + taskAttemptStartTime;
 
@@ -399,12 +406,15 @@ public class LegacySpeculator extends AbstractService {
                   runningTaskAttemptStatistics.get(runningTaskAttemptID);
           if (data == null) {
             runningTaskAttemptStatistics.put(runningTaskAttemptID,
-                    new TaskAttemptHistoryStatistics(estimatedRunTime, progress, now));
+                new TaskAttemptHistoryStatistics(estimatedRunTime, progress,
+                    now));
           } else {
             if (estimatedRunTime == data.getEstimatedRunTime()
                     && progress == data.getProgress()) {
               // Previous stats are same as same stats
-              if (data.notHeartbeatedInAWhile(now)) {
+              if (data.notHeartbeatedInAWhile(now)
+                  || estimator
+                  .hasStagnatedProgress(runningTaskAttemptID, now)) {
                 // Stats have stagnated for a while, simulate heart-beat.
                 // Now simulate the heart-beat
                 statusUpdate(taskAttempt.getID(), taskAttempt.getState(),
@@ -448,7 +458,8 @@ public class LegacySpeculator extends AbstractService {
 
   // Add attempt to a given Task.
   protected void addSpeculativeAttempt(TezTaskID taskID) {
-    LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating " + taskID);
+    LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating "
+        + taskID);
     vertex.scheduleSpeculativeTask(taskID);
     mayHaveSpeculated.add(taskID);
   }

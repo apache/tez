@@ -30,6 +30,7 @@ import org.apache.tez.common.annotation.ConfigurationClass;
 import org.apache.tez.common.annotation.ConfigurationProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -517,14 +518,6 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_SPECULATION_ENABLED_DEFAULT = false;
   
   /**
-   * Class used to estimate task resource needs.
-   */
-  @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty
-  public static final String TEZ_AM_SPECULATION_ESTIMATOR_CLASS =
-          TEZ_AM_PREFIX + "speculation.estimator.class";
-
-  /**
    * Float value. Specifies how many standard deviations away from the mean task execution time
    * should be considered as an outlier/slow task.
    */
@@ -545,6 +538,10 @@ public class TezConfiguration extends Configuration {
                                      TEZ_AM_PREFIX + "legacy.speculative.single.task.vertex.timeout";
   public static final long TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT = -1;
 
+  @Private
+  public static final String TEZ_SPECULATOR_PREFIX = TEZ_AM_PREFIX + "speculator.";
+  @Private
+  public static final String TEZ_ESTIMATOR_PREFIX = TEZ_AM_PREFIX + "task.estimator.";
   /**
    * Long value. Specifies amount of time (in ms) that needs to elapse to do the next round of
    * speculation if there is no task speculated in this round.
@@ -566,6 +563,52 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE=
           TEZ_AM_PREFIX + "soonest.retry.after.speculate";
   public static final long TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE_DEFAULT = 1000L * 15L;
+
+  /** The class that should be used for speculative execution calculations. */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_AM_SPECULATOR_CLASS =
+      TEZ_SPECULATOR_PREFIX + "class";
+  /** The class that should be used for task runtime estimation. */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_AM_TASK_ESTIMATOR_CLASS =
+      TEZ_ESTIMATOR_PREFIX + "class";
+  /**
+   * Long value. Specifies amount of time (in ms) of the lambda value in the
+   * smoothing function of the task estimator
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_LAMBDA_MS =
+      TEZ_ESTIMATOR_PREFIX + "exponential.lambda.ms";
+  public static final long TEZ_AM_ESTIMATOR_EXPONENTIAL_LAMBDA_MS_DEFAULT =
+      TimeUnit.SECONDS.toMillis(120);
+
+  /**
+   * The window length in the simple exponential smoothing that considers the
+   * task attempt is stagnated.
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_STAGNATED_MS =
+      TEZ_ESTIMATOR_PREFIX + "exponential.stagnated.ms";
+  public static final long TEZ_AM_ESTIMATOR_EXPONENTIAL_STAGNATED_MS_DEFAULT =
+      TimeUnit.SECONDS.toMillis(360);
+
+  /**
+   * The number of initial readings that the estimator ignores before giving a
+   * prediction. At the beginning the smooth estimator won't be accurate in
+   * prediction
+   */
+  @Unstable
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_SKIP_INITIALS =
+      TEZ_ESTIMATOR_PREFIX + "exponential.skip.initials";
+  public static final int TEZ_AM_ESTIMATOR_EXPONENTIAL_SKIP_INITIALS_DEFAULT = 24;
 
   /**
    * Double value. The max percent (0-1) of running tasks that can be speculatively re-executed at any time.
