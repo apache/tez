@@ -35,13 +35,11 @@ import org.apache.tez.dag.records.TezTaskID;
 /**
  * Base class that uses the attempt runtime estimations from a derived class
  * and uses it to determine outliers based on deviating beyond the mean
- * estimated runtime by some threshold
+ * estimated runtime by some threshold.
  */
 abstract class StartEndTimesBase implements TaskRuntimeEstimator {
-  static final float MINIMUM_COMPLETE_PROPORTION_TO_SPECULATE
-      = 0.05F;
-  static final int MINIMUM_COMPLETE_NUMBER_TO_SPECULATE
-      = 1;
+  static final float MINIMUM_COMPLETE_PROPORTION_TO_SPECULATE = 0.05F;
+  static final int MINIMUM_COMPLETE_NUMBER_TO_SPECULATE = 1;
 
   protected Vertex vertex;
 
@@ -50,56 +48,58 @@ abstract class StartEndTimesBase implements TaskRuntimeEstimator {
 
   protected final DataStatistics taskStatistics = new DataStatistics();
 
-  private float slowTaskRelativeTresholds;
+  private float slowTaskRelativeThresholds;
 
   protected final Set<Task> doneTasks = new HashSet<Task>();
 
   @Override
-  public void enrollAttempt(TezTaskAttemptID id, long timestamp) {
+  public void enrollAttempt(final TezTaskAttemptID id, final long timestamp) {
     startTimes.put(id, timestamp);
   }
 
   @Override
-  public long attemptEnrolledTime(TezTaskAttemptID attemptID) {
+  public long attemptEnrolledTime(final TezTaskAttemptID attemptID) {
     Long result = startTimes.get(attemptID);
 
     return result == null ? Long.MAX_VALUE : result;
   }
 
   @Override
-  public void contextualize(Configuration conf, Vertex vertex) {
-    slowTaskRelativeTresholds = conf.getFloat(
+  public void contextualize(final Configuration conf, final Vertex vertexP) {
+    slowTaskRelativeThresholds = conf.getFloat(
         TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SLOWTASK_THRESHOLD, 1.0f);
-    this.vertex = vertex;
+    this.vertex = vertexP;
   }
 
-  protected DataStatistics dataStatisticsForTask(TezTaskID taskID) {
+  protected DataStatistics dataStatisticsForTask(final TezTaskID taskID) {
     return taskStatistics;
   }
 
   @Override
-  public long thresholdRuntime(TezTaskID taskID) {
+  public long thresholdRuntime(final TezTaskID taskID) {
     int completedTasks = vertex.getCompletedTasks();
 
     int totalTasks = vertex.getTotalTasks();
-    
+
     if (completedTasks < MINIMUM_COMPLETE_NUMBER_TO_SPECULATE
-        || (((float)completedTasks) / totalTasks)
-              < MINIMUM_COMPLETE_PROPORTION_TO_SPECULATE ) {
+        || (((float) completedTasks) / totalTasks)
+        < MINIMUM_COMPLETE_PROPORTION_TO_SPECULATE) {
       return Long.MAX_VALUE;
     }
-    
-    long result = (long)taskStatistics.outlier(slowTaskRelativeTresholds);
+
+    long result = (long) taskStatistics.outlier(slowTaskRelativeThresholds);
     return result;
   }
 
   @Override
   public long newAttemptEstimatedRuntime() {
-    return (long)taskStatistics.mean();
+    return (long) taskStatistics.mean();
   }
 
   @Override
-  public void updateAttempt(TezTaskAttemptID attemptID, TaskAttemptState state, long timestamp) {
+  public void updateAttempt(final TezTaskAttemptID attemptID,
+      final TaskAttemptState state,
+      final long timestamp) {
 
     Task task = vertex.getTask(attemptID.getTaskID());
 
@@ -109,7 +109,7 @@ abstract class StartEndTimesBase implements TaskRuntimeEstimator {
 
     Long boxedStart = startTimes.get(attemptID);
     long start = boxedStart == null ? Long.MIN_VALUE : boxedStart;
-    
+
     TaskAttempt taskAttempt = task.getAttempt(attemptID);
 
     if (taskAttempt.getState() == TaskAttemptState.SUCCEEDED) {

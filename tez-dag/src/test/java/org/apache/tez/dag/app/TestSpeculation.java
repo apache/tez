@@ -19,10 +19,15 @@
 package org.apache.tez.dag.app;
 
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -45,39 +50,196 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
+import org.apache.tez.dag.app.dag.speculation.legacy.LegacyTaskRuntimeEstimator;
+import org.apache.tez.dag.app.dag.speculation.legacy.SimpleExponentialTaskRuntimeEstimator;
+import org.apache.tez.dag.app.dag.speculation.legacy.TaskRuntimeEstimator;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * test speculation behavior given the list of estimator classes.
+ */
+@RunWith(Parameterized.class)
 public class TestSpeculation {
-  static Configuration defaultConf;
-  static FileSystem localFs;
-  
+  private final static Logger LOG = LoggerFactory.getLogger(TezConfiguration.class);
+
+  private static final String ASSERT_SPECULATIONS_COUNT_MSG =
+      "Number of attempts after Speculation should be two";
+  private static final String UNIT_EXCEPTION_MESSAGE =
+      "test timed out after";
+  private static final int ASSERT_SPECULATIONS_COUNT_RETRIES = 3;
+  private Configuration defaultConf;
+  private FileSystem localFs;
+
+  /**
+   * The Mock app.
+   */
   MockDAGAppMaster mockApp;
+
+  /**
+   * The Mock launcher.
+   */
   MockContainerLauncher mockLauncher;
-  
-  static {
+
+  /**
+   * The interface Retry.
+   */
+  @Retention(RetentionPolicy.RUNTIME)
+  public @interface Retry {}
+
+  /**
+   * The type Retry rule.
+   */
+  class RetryRule implements TestRule {
+
+    private AtomicInteger retryCount;
+
+    /**
+     * Instantiates a new Retry rule.
+     *
+     * @param retries the retries
+     */
+    RetryRule(int retries) {
+      super();
+      this.retryCount = new AtomicInteger(retries);
+    }
+
+    @Override
+    public Statement apply(final Statement base,
+        final Description description) {
+      return new Statement() {
+        @Override
+        public void evaluate() throws Throwable {
+          Throwable caughtThrowable = null;
+
+          while (retryCount.getAndDecrement() > 0) {
+            try {
+              base.evaluate();
+              return;
+            } catch (Throwable t) {
+              caughtThrowable = t;
+              if (retryCount.get() > 0 &&
+                  description.getAnnotation(Retry.class) != null) {
+                if (!((t instanceof AssertionError && t.getMessage()
+                    .contains(ASSERT_SPECULATIONS_COUNT_MSG))
+                    || (t instanceof Exception && t.getMessage()
+                    .contains(UNIT_EXCEPTION_MESSAGE)))) {
+                  throw caughtThrowable;
+                }
+                LOG.warn("{} : Failed. Retries remaining: ",
+                    description.getDisplayName(),
+                    retryCount.toString());
+              } else {
+                throw caughtThrowable;
+              }
+            }
+          }
+        }
+      };
+    }
+  }
+
+  /**
+   * The Rule.
+   */
+  @Rule
+  public RetryRule rule = new RetryRule(ASSERT_SPECULATIONS_COUNT_RETRIES);
+
+  /**
+   * Sets default conf.
+   */
+  @Before
+  public void setDefaultConf() {
     try {
       defaultConf = new Configuration(false);
       defaultConf.set("fs.defaultFS", "file:///");
       defaultConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
       defaultConf.setBoolean(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, true);
-      defaultConf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, 1);
-      defaultConf.setFloat(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, 1);
+      defaultConf.setFloat(
+          ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, 1);
+      defaultConf.setFloat(
+          ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, 1);
       localFs = FileSystem.getLocal(defaultConf);
-      String stagingDir = "target" + Path.SEPARATOR + TestSpeculation.class.getName() + "-tmpDir";
+      String stagingDir =
+          "target" + Path.SEPARATOR + TestSpeculation.class.getName()
+              + "-tmpDir";
       defaultConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDir);
+      defaultConf.setClass(TezConfiguration.TEZ_AM_TASK_ESTIMATOR_CLASS,
+          estimatorClass,
+          TaskRuntimeEstimator.class);
+      defaultConf.setInt(TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS, 20);
+      defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE, 0.2);
+      defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE, 0.25);
+      defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 25);
+      defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE, 50);
+      defaultConf.setInt(TezConfiguration.TEZ_AM_ESTIMATOR_EXPONENTIAL_SKIP_INITIALS, 2);
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
   }
 
+  /**
+   * Tear down.
+   */
+  @After
+  public void tearDown() {
+    defaultConf = null;
+    try {
+      localFs.close();
+      mockLauncher.shutdown();
+      mockApp.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Gets test parameters.
+   *
+   * @return the test parameters
+   */
+  @Parameterized.Parameters(name = "{index}: TaskEstimator(EstimatorClass {0})")
+  public static Collection<Object[]> getTestParameters() {
+    return Arrays.asList(new Object[][]{
+        {SimpleExponentialTaskRuntimeEstimator.class},
+        {LegacyTaskRuntimeEstimator.class}
+    });
+  }
+
+  private Class<? extends TaskRuntimeEstimator> estimatorClass;
+
+  /**
+   * Instantiates a new Test speculation.
+   *
+   * @param estimatorKlass the estimator klass
+   */
+  public TestSpeculation(Class<? extends TaskRuntimeEstimator>  estimatorKlass) {
+    this.estimatorClass = estimatorKlass;
+  }
+
+  /**
+   * Create tez session mock tez client.
+   *
+   * @return the mock tez client
+   * @throws Exception the exception
+   */
   MockTezClient createTezSession() throws Exception {
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
     AtomicBoolean mockAppLauncherGoFlag = new AtomicBoolean(false);
@@ -87,8 +249,16 @@ public class TestSpeculation {
     syncWithMockAppLauncher(false, mockAppLauncherGoFlag, tezClient);
     return tezClient;
   }
-  
-  void syncWithMockAppLauncher(boolean allowScheduling, AtomicBoolean mockAppLauncherGoFlag, 
+
+  /**
+   * Sync with mock app launcher.
+   *
+   * @param allowScheduling the allow scheduling
+   * @param mockAppLauncherGoFlag the mock app launcher go flag
+   * @param tezClient the tez client
+   * @throws Exception the exception
+   */
+  void syncWithMockAppLauncher(boolean allowScheduling, AtomicBoolean mockAppLauncherGoFlag,
       MockTezClient tezClient) throws Exception {
     synchronized (mockAppLauncherGoFlag) {
       while (!mockAppLauncherGoFlag.get()) {
@@ -101,6 +271,12 @@ public class TestSpeculation {
     }     
   }
 
+  /**
+   * Test single task speculation.
+   *
+   * @throws Exception the exception
+   */
+  @Retry
   @Test (timeout = 10000)
   public void testSingleTaskSpeculation() throws Exception {
     // Map<Timeout conf value, expected number of tasks>
@@ -126,9 +302,10 @@ public class TestSpeculation {
       DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
       TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
       // original attempt is killed and speculative one is successful
-      TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
-      TezTaskAttemptID successTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
-
+      TezTaskAttemptID killedTaId =
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
+      TezTaskAttemptID successTaId =
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
       Thread.sleep(200);
       // cause speculation trigger
       mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
@@ -149,16 +326,16 @@ public class TestSpeculation {
     }
   }
 
+  /**
+   * Test basic speculation.
+   *
+   * @param withProgress the with progress
+   * @throws Exception the exception
+   */
   public void testBasicSpeculation(boolean withProgress) throws Exception {
-
-    defaultConf.setInt(TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS, 20);
-    defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE, 0.2);
-    defaultConf.setDouble(TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE, 0.25);
-    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 25);
-    defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE, 50);
-
     DAG dag = DAG.create("test");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
+    Vertex vA = Vertex.create("A",
+        ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
@@ -166,8 +343,10 @@ public class TestSpeculation {
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
     // original attempt is killed and speculative one is successful
-    TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
-    TezTaskAttemptID successTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
+    TezTaskAttemptID killedTaId =
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
+    TezTaskAttemptID successTaId =
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
 
     mockLauncher.updateProgress(withProgress);
     // cause speculation trigger
@@ -175,9 +354,11 @@ public class TestSpeculation {
 
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
+    Assert.assertEquals(DAGStatus.State.SUCCEEDED,
+        dagClient.getDAGStatus(null).getState());
     Task task = dagImpl.getTask(killedTaId.getTaskID());
-    Assert.assertEquals(2, task.getAttempts().size());
+    Assert.assertEquals(ASSERT_SPECULATIONS_COUNT_MSG, 2,
+        task.getAttempts().size());
     Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
@@ -204,18 +385,36 @@ public class TestSpeculation {
 
     tezClient.stop();
   }
-  
+
+  /**
+   * Test basic speculation with progress.
+   *
+   * @throws Exception the exception
+   */
+  @Retry
   @Test (timeout=10000)
   public void testBasicSpeculationWithProgress() throws Exception {
     testBasicSpeculation(true);
   }
 
+  /**
+   * Test basic speculation without progress.
+   *
+   * @throws Exception the exception
+   */
+  @Retry
   @Test (timeout=10000)
   public void testBasicSpeculationWithoutProgress() throws Exception {
     testBasicSpeculation(false);
   }
 
-  @Test (timeout=100000)
+  /**
+   * Test basic speculation per vertex conf.
+   *
+   * @throws Exception the exception
+   */
+  @Retry
+  @Test (timeout=10000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
     DAG dag = DAG.create("test");
     String vNameNoSpec = "A";
@@ -224,8 +423,6 @@ public class TestSpeculation {
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
     Vertex vB = Vertex.create(vNameSpec, ProcessorDescriptor.create("Proc.class"), 5);
     vA.setConf(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, "false");
-    vB.setConf(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE,
-        speculatorSleepTime);
     dag.addVertex(vA);
     dag.addVertex(vB);
     // min/max src fraction is set to 1. So vertices will run sequentially
@@ -273,6 +470,12 @@ public class TestSpeculation {
     tezClient.stop();
   }
 
+  /**
+   * Test basic speculation not useful.
+   *
+   * @throws Exception the exception
+   */
+  @Retry
   @Test (timeout=10000)
   public void testBasicSpeculationNotUseful() throws Exception {
     DAG dag = DAG.create("test");
@@ -310,5 +513,4 @@ public class TestSpeculation {
         .getValue());
     tezClient.stop();
   }
-
 }
