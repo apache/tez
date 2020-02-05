@@ -34,7 +34,7 @@
 
     <packageManagerScript>node/yarn/dist/bin/yarn.js</packageManagerScript>
 
-    <bower-allow-root>--allow-root=false</bower-allow-root>
+    <allow-root-build>--allow-root=false</allow-root-build>
 
     <skipTests>false</skipTests>
   </properties>
@@ -75,15 +75,15 @@
       </build>
     </profile>
     <profile>
-      <id>bowerSuperUser</id>
+      <id>allowRootBuild</id>
       <activation>
         <property>
-          <name>bower.allow.root</name>
+          <name>allow.root.build</name>
           <value>true</value>
         </property>
       </activation>
       <properties>
-        <bower-allow-root>--allow-root=true</bower-allow-root>
+        <allow-root-build>--allow-root=true</allow-root-build>
       </properties>
     </profile>
   </profiles>
@@ -158,7 +158,7 @@
             <phase>generate-resources</phase>
             <id>bower install</id>
             <configuration>
-              <arguments>install ${bower-allow-root}</arguments>
+              <arguments>install ${allow-root-build}</arguments>
             </configuration>
             <goals>
               <goal>bower</goal>
