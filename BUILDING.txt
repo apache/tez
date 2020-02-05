@@ -52,6 +52,7 @@ Build options:
  * Use -Dclover.license to specify the path to the clover license file
  * Use -Dhadoop.version to specify the version of hadoop to build tez against
  * Use -Dprotoc.path to specify the path to protoc
+ * Use -Dallow.root.build to root build tez-ui components
  
 Tests options:
 
