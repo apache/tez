@@ -57,7 +57,7 @@ public class TestTezCommonUtils {
     LOG.info("Starting mini clusters");
     try {
       conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
-      dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).format(true).racks(null)
+      dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(3).format(true).racks(null)
           .build();
       remoteFs = dfsCluster.getFileSystem();
       RESOLVED_STAGE_DIR = remoteFs.getUri() + STAGE_DIR;
@@ -80,23 +80,19 @@ public class TestTezCommonUtils {
   }
 
   // Testing base staging dir
-  @Test
+  @Test(timeout = 5000)
   public void testTezBaseStagingPath() throws Exception {
     Configuration localConf = new Configuration();
     // Check if default works with localFS
     localConf.unset(TezConfiguration.TEZ_AM_STAGING_DIR);
     localConf.set("fs.defaultFS", "file:///");
     Path stageDir = TezCommonUtils.getTezBaseStagingPath(localConf);
-    TezCommonUtils.mkDirForAM(stageDir.getFileSystem(localConf), stageDir);
-    Path resolveStageDir = stageDir.getFileSystem(localConf).resolvePath(stageDir);
-    Assert.assertEquals(resolveStageDir.toString(), "file:" + TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
+    Assert.assertEquals(stageDir.toString(), "file:" + TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
 
     // check if user set something, indeed works
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGE_DIR);
     stageDir = TezCommonUtils.getTezBaseStagingPath(conf);
-    TezCommonUtils.mkDirForAM(stageDir.getFileSystem(conf), stageDir);
-    resolveStageDir = stageDir.getFileSystem(conf).resolvePath(stageDir);
-    Assert.assertEquals(resolveStageDir.toString(), RESOLVED_STAGE_DIR);
+    Assert.assertEquals(stageDir.toString(), RESOLVED_STAGE_DIR);
   }
 
   // Testing System staging dir if createed
@@ -115,8 +111,7 @@ public class TestTezCommonUtils {
     }
     Assert.assertFalse(fs.exists(stagePath));
     Path stageDir = TezCommonUtils.createTezSystemStagingPath(conf, strAppId);
-    Path resolveStageDir = stageDir.getFileSystem(conf).resolvePath(stageDir);
-    Assert.assertEquals(resolveStageDir.toString(), expectedStageDir);
+    Assert.assertEquals(stageDir.toString(), expectedStageDir);
     Assert.assertTrue(fs.exists(stagePath));
   }
 
@@ -127,9 +122,7 @@ public class TestTezCommonUtils {
     Path stageDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
     String expectedStageDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId;
-    TezCommonUtils.mkDirForAM(stageDir.getFileSystem(conf), stageDir);
-    Path resolvedStageDir = stageDir.getFileSystem(conf).resolvePath(stageDir);
-    Assert.assertEquals(resolvedStageDir.toString(), expectedStageDir);
+    Assert.assertEquals(stageDir.toString(), expectedStageDir);
   }
 
   // Testing conf staging dir
@@ -141,9 +134,7 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_BINARY_CONF_NAME;
-    TezCommonUtils.mkDirForAM(confStageDir.getFileSystem(conf), confStageDir);
-    Path resolvedConfStageDir = confStageDir.getFileSystem(conf).resolvePath(confStageDir);
-    Assert.assertEquals(resolvedConfStageDir.toString(), expectedDir);
+    Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing session jars staging dir
@@ -155,9 +146,7 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME;
-    TezCommonUtils.mkDirForAM(confStageDir.getFileSystem(conf), confStageDir);
-    Path resolvedConfStageDir = confStageDir.getFileSystem(conf).resolvePath(confStageDir);
-    Assert.assertEquals(resolvedConfStageDir.toString(), expectedDir);
+    Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing bin plan staging dir
@@ -169,9 +158,7 @@ public class TestTezCommonUtils {
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + TezConstants.TEZ_PB_PLAN_BINARY_NAME;
-    TezCommonUtils.mkDirForAM(confStageDir.getFileSystem(conf), confStageDir);
-    Path resolvedConfStageDir = confStageDir.getFileSystem(conf).resolvePath(confStageDir);
-    Assert.assertEquals(resolvedConfStageDir.toString(), expectedDir);
+    Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing text plan staging dir
@@ -180,15 +167,12 @@ public class TestTezCommonUtils {
     String strAppId = "testAppId";
     String dagPBName = "testDagPBName";
     Path tezSysStagingPath = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
-    TezCommonUtils.mkDirForAM(tezSysStagingPath.getFileSystem(conf), tezSysStagingPath);
     Path confStageDir =
         TezCommonUtils.getTezTextPlanStagingPath(tezSysStagingPath, strAppId, dagPBName);
     String expectedDir = RESOLVED_STAGE_DIR + Path.SEPARATOR
         + TezCommonUtils.TEZ_SYSTEM_SUB_DIR + Path.SEPARATOR + strAppId + Path.SEPARATOR
         + strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
-    TezCommonUtils.createFileForAM(confStageDir.getFileSystem(conf), confStageDir);
-    Path resolvedConfStageDir = confStageDir.getFileSystem(conf).resolvePath(confStageDir);
-    Assert.assertEquals(resolvedConfStageDir.toString(), expectedDir);
+    Assert.assertEquals(confStageDir.toString(), expectedDir);
   }
 
   // Testing recovery path staging dir

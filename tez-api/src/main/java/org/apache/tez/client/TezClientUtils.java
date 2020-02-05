@@ -19,7 +19,6 @@
 package org.apache.tez.client;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -122,6 +121,31 @@ public class TezClientUtils {
   private static Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
+  private static FileStatus[] getLRFileStatus(String fileName, Configuration conf) throws
+      IOException {
+    URI uri;
+    try {
+      uri = new URI(fileName);
+    } catch (URISyntaxException e) {
+      String message = "Invalid URI defined in configuration for"
+          + " location of TEZ jars. providedURI=" + fileName;
+      LOG.error(message);
+      throw new TezUncheckedException(message, e);
+    }
+
+    Path p = new Path(uri);
+    FileSystem fs = p.getFileSystem(conf);
+    p = fs.resolvePath(p.makeQualified(fs.getUri(),
+        fs.getWorkingDirectory()));
+    FileSystem targetFS = p.getFileSystem(conf); 
+    if (targetFS.isDirectory(p)) {
+      return targetFS.listStatus(p);
+    } else {
+      FileStatus fStatus = targetFS.getFileStatus(p);
+      return new FileStatus[]{fStatus};
+    }
+  }
+
   /**
    * Setup LocalResource map for Tez jars based on provided Configuration
    * 
@@ -193,16 +217,8 @@ public class TezClientUtils {
       }
       Path p = new Path(u);
       FileSystem remoteFS = p.getFileSystem(conf);
-      FileStatus targetStatus = remoteFS.getFileLinkStatus(p);
-      p = targetStatus.getPath();
-
-      FileStatus[] fileStatuses;
-      FileSystem targetFS = p.getFileSystem(conf);
-      if (targetStatus.isDirectory()) {
-        fileStatuses = targetFS.listStatus(p);
-      } else {
-        fileStatuses = new FileStatus[]{targetStatus};
-      }
+      p = remoteFS.resolvePath(p.makeQualified(remoteFS.getUri(),
+          remoteFS.getWorkingDirectory()));
 
       LocalResourceType type = null;
 
@@ -215,6 +231,8 @@ public class TezClientUtils {
         } else {
           type = LocalResourceType.FILE;
         }
+
+      FileStatus [] fileStatuses = getLRFileStatus(configUri, conf);
 
       for (FileStatus fStatus : fileStatuses) {
         String linkName;
@@ -311,16 +329,13 @@ public class TezClientUtils {
       Path stagingArea)
       throws IOException {
     FileSystem fs = stagingArea.getFileSystem(conf);
+    String realUser;
+    String currentUser;
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
-    String realUser = ugi.getShortUserName();
-    String currentUser = UserGroupInformation.getCurrentUser().getShortUserName();
-    FileStatus fsStatus = null;
-    try {
-      fsStatus = fs.getFileStatus(stagingArea);
-    } catch (FileNotFoundException e) {
-      TezCommonUtils.mkDirForAM(fs, stagingArea);
-    }
-    if (fsStatus != null) {
+    realUser = ugi.getShortUserName();
+    currentUser = UserGroupInformation.getCurrentUser().getShortUserName();
+    if (fs.exists(stagingArea)) {
+      FileStatus fsStatus = fs.getFileStatus(stagingArea);
       String owner = fsStatus.getOwner();
       if (!(owner.equals(currentUser) || owner.equals(realUser))) {
         throw new IOException("The ownership on the staging directory "
@@ -335,6 +350,8 @@ public class TezClientUtils {
             + TezCommonUtils.TEZ_AM_DIR_PERMISSION);
         fs.setPermission(stagingArea, TezCommonUtils.TEZ_AM_DIR_PERMISSION);
       }
+    } else {
+      TezCommonUtils.mkDirForAM(fs, stagingArea);
     }
     return fs;
   }
