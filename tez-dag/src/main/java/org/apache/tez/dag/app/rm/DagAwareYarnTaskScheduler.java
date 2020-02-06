@@ -1543,7 +1543,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     long getIdleExpirationTimestamp(long now) {
       if (idleExpirationTimestamp == 0) {
         if (idleContainerTimeoutMin > 0) {
-          idleExpirationTimestamp = now + random.nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax);
+          idleExpirationTimestamp = now + (idleContainerTimeoutMin == idleContainerTimeoutMax ? idleContainerTimeoutMin
+            : random.nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax));
         } else {
           idleExpirationTimestamp = Long.MAX_VALUE;
         }
