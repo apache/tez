@@ -1530,6 +1530,26 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).removeContainerRequest(reqv0t0);
   }
 
+  @Test
+  public void testMinMaxContainerIdleMillisAreEqual() throws Exception {
+    AMRMClientAsyncWrapperForTest mockRMClient = new AMRMClientAsyncWrapperForTest();
+    Configuration conf = new Configuration();
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 10000);
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 10000);
+
+    TaskSchedulerContext mockApp = setupMockTaskSchedulerContext("host", 0, "url", conf);
+    TaskSchedulerContextDrainable drainableAppCallback = createDrainableContext(mockApp);
+    MockClock clock = new MockClock(1000);
+    NewTaskSchedulerForTest scheduler = new NewTaskSchedulerForTest(drainableAppCallback, mockRMClient, clock);
+    scheduler.initialize();
+
+    NodeId host1 = NodeId.newInstance("host1", 1);
+    Container container1 = Container.newInstance(null, host1, null, null, null, null);
+    HeldContainer heldContainer = scheduler.new HeldContainer(container1);
+    long now = clock.getTime();
+    assertEquals(now + 10000, heldContainer.getIdleExpirationTimestamp(now));
+  }
+
   static class AMRMClientAsyncWrapperForTest extends AMRMClientAsyncWrapper {
     AMRMClientAsyncWrapperForTest() {
       super(new MockAMRMClient(), 10000, null);
