@@ -71,6 +71,7 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezClassLoader;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TaskCounter;
@@ -833,6 +834,7 @@ public class TestMRRJobsDAGApi {
           .getConfigurationBytes());
 
       try {
+        Thread.currentThread().setContextClassLoader(TezClassLoader.getInstance());
         ReflectionUtils.getClazz(RELOCALIZATION_TEST_CLASS_NAME);
         LOG.info("Class found");
         FileSystem fs = FileSystem.get(conf);
