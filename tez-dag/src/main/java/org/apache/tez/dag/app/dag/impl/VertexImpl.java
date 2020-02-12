@@ -64,6 +64,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.ATSConstants;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -2258,7 +2259,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         };
         ListenableFuture<Void> commitFuture = 
             vertex.getAppContext().getExecService().submit(commitCallableEvent);
-        Futures.addCallback(commitFuture, commitCallableEvent.getCallback());
+        Futures.addCallback(commitFuture, commitCallableEvent.getCallback(), GuavaShim.directExecutor());
         vertex.commitFutures.put(outputName, commitFuture);
       }
     }

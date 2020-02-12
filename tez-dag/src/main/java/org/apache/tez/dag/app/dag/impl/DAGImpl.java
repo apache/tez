@@ -42,6 +42,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
@@ -1140,7 +1141,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
       for (Map.Entry<OutputKey,CallableEvent> entry : commitEvents.entrySet()) {
         ListenableFuture<Void> commitFuture = appContext.getExecService().submit(entry.getValue());
-        Futures.addCallback(commitFuture, entry.getValue().getCallback());
+        Futures.addCallback(commitFuture, entry.getValue().getCallback(), GuavaShim.directExecutor());
         commitFutures.put(entry.getKey(), commitFuture);
       }
     }
@@ -2150,7 +2151,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                 };
               };
               ListenableFuture<Void> groupCommitFuture = appContext.getExecService().submit(groupCommitCallableEvent);
-              Futures.addCallback(groupCommitFuture, groupCommitCallableEvent.getCallback());
+              Futures.addCallback(groupCommitFuture, groupCommitCallableEvent.getCallback(),
+                  GuavaShim.directExecutor());
               commitFutures.put(outputKey, groupCommitFuture);
             }
           }

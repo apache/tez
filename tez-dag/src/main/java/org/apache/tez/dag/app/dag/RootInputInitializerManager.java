@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -138,7 +139,7 @@ public class RootInputInitializerManager {
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi, appContext));
-      Futures.addCallback(future, createInputInitializerCallback(initializerWrapper));
+      Futures.addCallback(future, createInputInitializerCallback(initializerWrapper), GuavaShim.directExecutor());
     }
   }
 
