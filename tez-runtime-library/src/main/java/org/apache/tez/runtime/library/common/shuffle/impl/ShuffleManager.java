@@ -63,6 +63,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.CallableWithNdc;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -346,7 +347,7 @@ public class ShuffleManager implements FetcherCallback {
     }
 
     ListenableFuture<Void> runShuffleFuture = schedulerExecutor.submit(schedulerCallable);
-    Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback());
+    Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback(), GuavaShim.directExecutor());
     // Shutdown this executor once this task, and the callback complete.
     schedulerExecutor.shutdown();
   }
@@ -460,7 +461,7 @@ public class ShuffleManager implements FetcherCallback {
                 }
                 ListenableFuture<FetchResult> future = fetcherExecutor
                     .submit(fetcher);
-                Futures.addCallback(future, new FetchFutureCallback(fetcher));
+                Futures.addCallback(future, new FetchFutureCallback(fetcher), GuavaShim.directExecutor());
                 if (++count >= maxFetchersToRun) {
                   break;
                 }
