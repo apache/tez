@@ -304,7 +304,7 @@ public class AMNodeImpl implements AMNode {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       AMNodeEventTaskAttemptEnded event = (AMNodeEventTaskAttemptEnded) nEvent;
-      LOG.info("Attempt " + (event.failed() ? "failed" : "killed") + "on node: " + node.getNodeId()
+      LOG.info("Attempt " + (event.failed() ? "failed" : "killed") + " on node: " + node.getNodeId()
           + " TA: " + event.getTaskAttemptId()
           + ", container: " + event.getContainerId() + ", numFailedTAs: "
           + node.numFailedTAs);
