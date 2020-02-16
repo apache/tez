@@ -513,4 +513,9 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       }
     }
   }
+
+  @Override
+  public int getHeldContainersCount() {
+    return 0;
+  }
 }

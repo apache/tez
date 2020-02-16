@@ -84,6 +84,20 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
                      Object appCookie,
                      Container container);
 
+  /**
+   * Indicate to the framework that a container is being allocated.
+   *
+   * @param container the actual container
+   */
+  void containerAllocated(Container container);
+
+  /**
+   * Indicate to the framework that a container is being reused:
+   * there is a task assigned to an already used container.
+   *
+   * @param container the actual container
+   */
+  void containerReused(Container container);
 
   /**
    * Indicate to the framework that a container has completed. This is typically used by sources

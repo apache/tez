@@ -99,4 +99,9 @@ public class TezTestServiceTaskSchedulerServiceWithErrors extends TaskScheduler 
   @Override
   public void dagComplete() {
   }
+
+  @Override
+  public int getHeldContainersCount() {
+    return 0;
+  }
 }

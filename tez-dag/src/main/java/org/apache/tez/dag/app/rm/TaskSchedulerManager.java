@@ -746,7 +746,7 @@ public class TaskSchedulerManager extends AbstractService implements
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), schedulerId, container.getId()));
     }
-
+    appContext.getCurrentDAG().addUsedContainer(containerId);
 
     TaskAttempt taskAttempt = event.getTaskAttempt();
     // TODO - perhaps check if the task still needs this container
@@ -936,7 +936,7 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   public void dagCompleted() {
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       try {
         taskSchedulers[i].dagComplete();
       } catch (Exception e) {
@@ -949,6 +949,14 @@ public class TaskSchedulerManager extends AbstractService implements
                 msg, e));
       }
     }
+  }
+
+  public int getHeldContainersCount() {
+    int count = 0;
+    for (TaskSchedulerWrapper taskScheduler : taskSchedulers) {
+      count += taskScheduler.getTaskScheduler().getHeldContainersCount();
+    }
+    return count;
   }
 
   public void dagSubmitted() {
@@ -1083,5 +1091,4 @@ public class TaskSchedulerManager extends AbstractService implements
   public TaskScheduler getTaskScheduler(int taskSchedulerIndex) {
     return taskSchedulers[taskSchedulerIndex].getTaskScheduler();
   }
-
 }

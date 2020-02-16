@@ -71,6 +71,16 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   }
 
   @Override
+  public void containerAllocated(Container container) {
+    executorService.submit(new ContainerAllocatedCallable(real, container));
+  }
+
+  @Override
+  public void containerReused(Container container) {
+    executorService.submit(new ContainerReusedCallable(real, container));
+  }
+
+  @Override
   public void containerCompleted(Object taskLastAllocated,
       ContainerStatus containerStatus) {
     executorService.submit(new ContainerCompletedCallable(real,
@@ -222,6 +232,38 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     @Override
     public Void call() throws Exception {
       app.taskAllocated(task, appCookie, container);
+      return null;
+    }
+  }
+
+  static class ContainerAllocatedCallable extends TaskSchedulerContextCallbackBase
+      implements Callable<Void> {
+    private final Container container;
+
+    ContainerAllocatedCallable(TaskSchedulerContext app, Container container) {
+      super(app);
+      this.container = container;
+    }
+
+    @Override
+    public Void call() throws Exception {
+      app.containerAllocated(container);
+      return null;
+    }
+  }
+
+  static class ContainerReusedCallable extends TaskSchedulerContextCallbackBase
+      implements Callable<Void> {
+    private final Container container;
+
+    ContainerReusedCallable(TaskSchedulerContext app, Container container) {
+      super(app);
+      this.container = container;
+    }
+
+    @Override
+    public Void call() throws Exception {
+      app.containerReused(container);
       return null;
     }
   }

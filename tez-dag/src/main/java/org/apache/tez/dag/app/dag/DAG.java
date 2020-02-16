@@ -23,8 +23,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGStatusBuilder;
@@ -102,4 +104,18 @@ public interface DAG extends DagInfo {
    */
   @Nullable DAGScheduler getDAGScheduler();
 
+  void incrementDagCounter(DAGCounter counter, int incrValue);
+  void setDagCounter(DAGCounter counter, int setValue);
+  void addUsedContainer(ContainerId containerId);
+
+  /**
+   * Called by the DAGAppMaster when the DAG is started normally or in the event of recovery.
+   */
+  void onStart();
+
+  /**
+   * Called by the DAGAppMaster when the DAG is finished, or there is a currentDAG on AM stop.
+   * The implementation of this method should be idempontent.
+   */
+  void onFinish();
 }

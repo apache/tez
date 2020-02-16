@@ -61,6 +61,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -248,6 +249,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       new CommitCompletedTransition();
 
   private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+  private final Set<ContainerId> containersUsedByCurrentDAG = new HashSet<>();
 
   protected static final
     StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
@@ -1441,6 +1443,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     dagCounters.findCounter(DAGCounter.AM_GC_TIME_MILLIS).setValue(totalDAGGCTime);
   }
   
+  @Override
+  public void incrementDagCounter(DAGCounter counter, int incrValue) {
+    dagCounters.findCounter(counter).increment(incrValue);
+  }
+
+  @Override
+  public void setDagCounter(DAGCounter counter, int setValue) {
+    dagCounters.findCounter(counter).setValue(setValue);
+  }
+
   private DAGState finished(DAGState finalState) {
     boolean dagError = false;
     try {
@@ -2541,5 +2553,37 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public DAGImpl setLogDirs(String[] logDirs) {
     this.logDirs = logDirs;
     return this;
+  }
+
+  @Override
+  public void onStart() {
+    startVertexServices();
+  }
+
+  @Override
+  public void onFinish() {
+    stopVertexServices();
+    handleUsedContainersOnDagFinish();
+  }
+
+  private void startVertexServices() {
+    for (Vertex v : getVertices().values()) {
+      v.startServices();
+    }
+  }
+
+  void stopVertexServices() {
+    for (Vertex v : getVertices().values()) {
+      v.stopServices();
+    }
+  }
+
+  @Override
+  public void addUsedContainer(ContainerId containerId) {
+    containersUsedByCurrentDAG.add(containerId);
+  }
+
+  private void handleUsedContainersOnDagFinish() {
+    setDagCounter(DAGCounter.TOTAL_CONTAINERS_USED, containersUsedByCurrentDAG.size());
   }
 }
