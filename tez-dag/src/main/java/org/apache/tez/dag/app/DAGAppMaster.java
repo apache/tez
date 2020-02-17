@@ -374,7 +374,7 @@ public class DAGAppMaster extends AbstractService {
 
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
         + ", versionInfo=" + dagVersionInfo.toString());
-
+    TezCommonUtils.logCredentials(LOG, this.appMasterUgi.getCredentials(), "am");
   }
 
   // Pull this WebAppUtils function into Tez until YARN-4186
@@ -1020,7 +1020,7 @@ public class DAGAppMaster extends AbstractService {
 
     // TODO Does this move to the client in case of work-preserving recovery.
     TokenCache.setSessionToken(sessionToken, dagCredentials);
-
+    TezCommonUtils.logCredentials(LOG, dagCredentials, "newDag");
     // create single dag
     DAGImpl newDag =
         new DAGImpl(dagId, amConf, dagPB, dispatcher.getEventHandler(),

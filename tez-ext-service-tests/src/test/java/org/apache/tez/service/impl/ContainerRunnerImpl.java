@@ -266,6 +266,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     // TODO Unregistering does not happen at the moment, since there's no signals on when an app completes.
     LOG.info("Registering request with the ShuffleHandler for containerId {}", request.getContainerIdString());
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
+    TezCommonUtils.logCredentials(LOG, credentials, "taskCallable");
     TaskRunnerCallable callable = new TaskRunnerCallable(request, new Configuration(getConfig()),
         new ExecutionContextImpl(localAddress.get().getHostName()), env, localDirs,
         workingDir, credentials, memoryPerExecutor, sharedExecutor);
@@ -457,6 +458,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           new AtomicLong(0),
           request.getContainerIdString());
 
+      TezCommonUtils.logCredentials(LOG, taskUgi.getCredentials(), "taskUgi");
       taskRunner = new TezTaskRunner2(conf, taskUgi, localDirs,
           ProtoConverters.getTaskSpecfromProto(request.getTaskSpec()),
           request.getAppAttemptNumber(),

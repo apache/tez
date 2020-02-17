@@ -198,6 +198,7 @@ public class TezChild {
       this.umbilical = umbilical;
       ownUmbilical = false;
     }
+    TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -237,6 +238,7 @@ public class TezChild {
           shutdown();
         }
       }
+      TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
         shutdown();
@@ -256,6 +258,7 @@ public class TezChild {
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
+        TezCommonUtils.logCredentials(LOG, childUGI.getCredentials(), "taskChildUGI");
         handleNewTaskLocalResources(containerTask, childUGI);
         cleanupOnTaskChanged(containerTask);
 

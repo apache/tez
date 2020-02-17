@@ -22,10 +22,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
@@ -405,20 +405,21 @@ public class TezCommonUtils {
   }
 
   public static String getCredentialsInfo(Credentials credentials, String identifier) {
+    if (credentials == null) {
+      return "Credentials: #" + identifier + "Tokens=null";
+    }
+
     StringBuilder sb = new StringBuilder();
     sb.append("Credentials: #" + identifier + "Tokens=").append(credentials.numberOfTokens());
     if (credentials.numberOfTokens() > 0) {
       sb.append(", Services=");
-      Iterator<Token<?>> tokenItr = credentials.getAllTokens().iterator();
-      if (tokenItr.hasNext()) {
-        Token token = tokenItr.next();
-        sb.append(token.getService()).append("(").append(token.getKind()).append(")");
+      sb.append(credentials.getAllTokens().stream()
+          .map(t -> String.format("%s(%s)", t.getService(), t.getKind()))
+          .collect(Collectors.joining(",")));
 
-      }
-      while(tokenItr.hasNext()) {
-        Token token = tokenItr.next();
-        sb.append(",").append(token.getService()).append("(").append(token.getKind()).append(")");
-      }
+      sb.append(", TokenDetails=");
+      sb.append(credentials.getAllTokens().stream().map(Token::toString)
+          .collect(Collectors.joining(",")));
     }
     return sb.toString();
   }
