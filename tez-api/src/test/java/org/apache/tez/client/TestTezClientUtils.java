@@ -83,6 +83,8 @@ import org.junit.Test;
 public class TestTezClientUtils {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezClientUtils.class.getName() + "-tmpDir";
+  private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestTezClientUtils.class.getName()).getAbsoluteFile();
   /**
    * 
    */
@@ -330,6 +332,7 @@ public class TestTezClientUtils {
   // ApplicationSubmissionContext
   public void testAppSubmissionContextForPriority() throws Exception {
     TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
     int testpriority = 999;
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
@@ -380,6 +383,7 @@ public class TestTezClientUtils {
   public void testSessionTokenInAmClc() throws IOException, YarnException {
 
     TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     DAG dag = DAG.create("testdag");
@@ -417,6 +421,7 @@ public class TestTezClientUtils {
 
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "WARN");
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
@@ -457,6 +462,7 @@ public class TestTezClientUtils {
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.set(TezConfiguration.TEZ_AM_LOG_LEVEL,
         "WARN;org.apache.hadoop.ipc=DEBUG;org.apache.hadoop.security=DEBUG");
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();

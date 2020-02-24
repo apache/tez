@@ -18,6 +18,7 @@
 
 package org.apache.tez.common;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -43,6 +44,9 @@ import org.junit.Test;
 
 public class TestTezCommonUtils {
   private static final String STAGE_DIR = "/tmp/mystage";
+
+  private static final File LOCAL_STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestTezCommonUtils.class.getSimpleName()).getAbsoluteFile();
   private static String RESOLVED_STAGE_DIR;
   private static Configuration conf = new Configuration();;
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
@@ -84,10 +88,10 @@ public class TestTezCommonUtils {
   public void testTezBaseStagingPath() throws Exception {
     Configuration localConf = new Configuration();
     // Check if default works with localFS
-    localConf.unset(TezConfiguration.TEZ_AM_STAGING_DIR);
+    localConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, LOCAL_STAGING_DIR.getAbsolutePath());
     localConf.set("fs.defaultFS", "file:///");
     Path stageDir = TezCommonUtils.getTezBaseStagingPath(localConf);
-    Assert.assertEquals(stageDir.toString(), "file:" + TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT);
+    Assert.assertEquals("file:" + LOCAL_STAGING_DIR, stageDir.toString());
 
     // check if user set something, indeed works
     conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGE_DIR);
