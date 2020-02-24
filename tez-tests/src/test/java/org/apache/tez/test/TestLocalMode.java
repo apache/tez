@@ -61,9 +61,8 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class TestLocalMode {
 
-  private static final File TEST_DIR = new File(
-      System.getProperty("test.build.data",
-          System.getProperty("java.io.tmpdir")), "TestLocalMode-tez-localmode");
+  private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestLocalMode.class.getName());
 
   private static MiniDFSCluster dfsCluster;
   private static FileSystem remoteFs;
@@ -111,6 +110,7 @@ public class TestLocalMode {
     } else {
       conf.set("fs.defaultFS", "file:///");
     }
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     return conf;
   }
@@ -261,9 +261,9 @@ public class TestLocalMode {
     //create inputs and outputs
     FileSystem fs = FileSystem.get(tezConf);
     for(int i = 0; i < dags; i++) {
-      inputPaths[i] = new Path(TEST_DIR.getAbsolutePath(),"in-"+i).toString();
+      inputPaths[i] = new Path(STAGING_DIR.getAbsolutePath(), "in-" + i).toString();
       createInputFile(fs, inputPaths[i]);
-      outputPaths[i] = new Path(TEST_DIR.getAbsolutePath(),"out-"+i).toString();
+      outputPaths[i] = new Path(STAGING_DIR.getAbsolutePath(), "out-" + i).toString();
     }
 
     //start testing

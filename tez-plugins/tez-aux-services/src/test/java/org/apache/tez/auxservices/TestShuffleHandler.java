@@ -102,6 +102,9 @@ import org.slf4j.LoggerFactory;
 public class TestShuffleHandler {
   static final long MiB = 1024 * 1024;
   private static final Logger LOG = LoggerFactory.getLogger(TestShuffleHandler.class);
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestShuffleHandler.class.getName()).getAbsoluteFile();
+  private static final String HADOOP_TMP_DIR = "hadoop.tmp.dir";
   class MockShuffleHandler extends org.apache.tez.auxservices.ShuffleHandler {
     @Override
     protected Shuffle getShuffle(final Configuration conf) {
@@ -230,6 +233,7 @@ public class TestShuffleHandler {
   public void testClientClosesConnection() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
       @Override
@@ -335,6 +339,7 @@ public class TestShuffleHandler {
   public void testKeepAlive() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
@@ -484,6 +489,7 @@ public class TestShuffleHandler {
   @Test
   public void testSocketKeepAlive() throws Exception {
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
@@ -527,6 +533,7 @@ public class TestShuffleHandler {
   public void testIncompatibleShuffleVersion() throws Exception {
     final int failureNum = 3;
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     ShuffleHandler shuffleHandler = new ShuffleHandler();
     shuffleHandler.init(conf);
@@ -561,6 +568,7 @@ public class TestShuffleHandler {
   public void testMaxConnections() throws Exception {
 
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
@@ -665,6 +673,7 @@ public class TestShuffleHandler {
   @Test(timeout = 10000)
   public void testRangedFetch() throws IOException {
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -766,6 +775,7 @@ public class TestShuffleHandler {
     // This will run only in NativeIO is enabled as SecureIOUtils need it
     assumeTrue(NativeIO.isAvailable());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -899,6 +909,7 @@ public class TestShuffleHandler {
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
@@ -966,6 +977,7 @@ public class TestShuffleHandler {
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
@@ -1072,6 +1084,7 @@ public class TestShuffleHandler {
   public void testGetMapOutputInfo() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -1176,6 +1189,7 @@ public class TestShuffleHandler {
   public void testDagDelete() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -1286,6 +1300,7 @@ public class TestShuffleHandler {
 
     final ShuffleHandler sh = new MockShuffleHandler();
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     // The Shuffle handler port associated with the service is bound to but not used.
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     sh.init(conf);

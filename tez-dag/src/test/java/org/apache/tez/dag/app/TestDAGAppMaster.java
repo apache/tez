@@ -93,15 +93,13 @@ public class TestDAGAppMaster {
   private static final String CL_NAME = "CL";
   private static final String TC_NAME = "TC";
   private static final String CLASS_SUFFIX = "_CLASS";
-  private static final File TEST_DIR = new File(
-      System.getProperty("test.build.data",
-          System.getProperty("java.io.tmpdir")),
-          TestDAGAppMaster.class.getSimpleName()).getAbsoluteFile();
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestDAGAppMaster.class.getName()).getAbsoluteFile();
 
   @Before
   public void setup() {
     FileUtil.fullyDelete(TEST_DIR);
-    TEST_DIR.mkdir();
+    TEST_DIR.mkdirs();
   }
 
   @After
@@ -648,9 +646,10 @@ public class TestDAGAppMaster {
       return creds;
     }
 
-    private static void stubSessionResources() throws IOException {
-      FileOutputStream out = new FileOutputStream(
-          new File(TEST_DIR, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+    private static void stubSessionResources(Configuration conf) throws IOException {
+      File file = new File(TEST_DIR, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME);
+      conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.getAbsolutePath());
+      FileOutputStream out = new FileOutputStream(file);
       PlanLocalResourcesProto planProto = PlanLocalResourcesProto.getDefaultInstance();
       planProto.writeDelimitedTo(out);
       out.close();
@@ -658,7 +657,7 @@ public class TestDAGAppMaster {
 
     @Override
     public synchronized void serviceInit(Configuration conf) throws Exception {
-      stubSessionResources();
+      stubSessionResources(conf);
       conf.setBoolean(TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE, false);
       super.serviceInit(conf);
     }

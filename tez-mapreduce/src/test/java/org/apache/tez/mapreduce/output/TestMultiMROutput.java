@@ -39,10 +39,13 @@ import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 
 
 public class TestMultiMROutput {
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestMultiMROutput.class.getName()).getAbsoluteFile();
 
   @Test(timeout = 5000)
   public void testNewAPI_TextOutputFormat() throws Exception {
@@ -176,7 +179,7 @@ public class TestMultiMROutput {
   private MultiMROutput createMROutputs(Class outputFormat,
       boolean isMapper, boolean useLazyOutputFormat)
           throws InterruptedException, IOException {
-    String outputPath = "/tmp/output";
+    String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, isMapper);
     conf.setOutputKeyClass(Text.class);

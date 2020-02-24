@@ -98,6 +98,7 @@ public class TestATSHistoryV15 {
             1, 1, 1, true);
         Configuration conf = new Configuration();
         conf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, true);
+        conf.set(YarnConfiguration.TIMELINE_SERVICE_LEVELDB_PATH, TEST_ROOT_DIR);
         conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
         conf.setInt("yarn.nodemanager.delete.debug-delay-sec", 20000);
         atsActivePath = new Path("/tmp/ats/active/" + random.nextInt(100000));
