@@ -72,6 +72,6 @@ an aggregated yarn log file to separate files into a hierarchical folder structu
 
 To use the tool, run e.g.
 
-`tez-log-splitter.sh application_1576254620247_0010`  (app log is fetched from yarn)
-`tez-log-splitter.sh ~/path/to/application_1576254620247_0010.log`  (...when app log is already on your computer)
+`tez-log-splitter.sh application_1576254620247_0010`  (app log is fetched from yarn)  
+`tez-log-splitter.sh ~/path/to/application_1576254620247_0010.log`  (...when app log is already on your computer)  
 `tez-log-splitter.sh ~/path/to/application_1576254620247_0010.log.gz`  (...when app log is already on your computer in gz)
