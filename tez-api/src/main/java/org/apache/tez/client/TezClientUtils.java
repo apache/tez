@@ -713,6 +713,15 @@ public class TezClientUtils {
     // Setup security tokens
     Credentials amLaunchCredentials = new Credentials();
 
+    // Add SimpleHistoryLoggingService logDir creds to the list of session credentials
+    // If it is on HDFS
+    String simpleHistoryLogDir = conf.get(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR);
+    if (simpleHistoryLogDir != null && !simpleHistoryLogDir.isEmpty()) {
+      Path simpleHistoryLogDirPath = new Path(simpleHistoryLogDir);
+      TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] { simpleHistoryLogDirPath },
+          conf);
+    }
+
     // Add Staging dir creds to the list of session credentials.
     TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] {binaryConfPath }, conf);
 
