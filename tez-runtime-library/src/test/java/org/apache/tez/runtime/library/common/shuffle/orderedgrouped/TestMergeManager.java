@@ -757,9 +757,9 @@ public class TestMergeManager {
     assertEquals(m2Path.toString().length(), m3Path.toString().length());
 
     // Ensure the filenames are used correctly - based on the first file given to the merger.
-    String m1Prefix = m1Path.toString().substring(0, m1Path.toString().indexOf("."));
-    String m2Prefix = m2Path.toString().substring(0, m2Path.toString().indexOf("."));
-    String m3Prefix = m3Path.toString().substring(0, m3Path.toString().indexOf("."));
+    String m1Prefix = m1Path.toString().substring(0, m1Path.toString().lastIndexOf('.'));
+    String m2Prefix = m2Path.toString().substring(0, m2Path.toString().lastIndexOf('.'));
+    String m3Prefix = m3Path.toString().substring(0, m3Path.toString().lastIndexOf('.'));
 
     assertEquals(m1Prefix, m2Prefix);
     assertNotEquals(m1Prefix, m3Prefix);
