@@ -542,8 +542,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         }
       } else {
         InputAttemptIdentifier firstAttempt = attempts.iterator().next();
-        LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
-            + " Informing ShuffleManager: ", e);
+        LOG.warn(String.format(
+            "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
+            localHostname, host, port, firstAttempt), e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
             new InputAttemptIdentifier[] { firstAttempt }, false);
       }
@@ -1008,8 +1009,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           return new InputAttemptIdentifier[] { srcAttemptId };
         }
       }
-      LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host,
-          ioe);
+      LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + " (to "
+          + localHostname + ")", ioe);
 
       // Cleanup the fetchedInput
       cleanupFetchedInput(fetchedInput);
@@ -1049,7 +1050,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
       LOG.warn("Shuffle output from " + srcAttemptId +
-          " failed, retry it.");
+          " failed (to "+ localHostname +"), retry it.");
       //retry connecting to the host
       return true;
     } else {
