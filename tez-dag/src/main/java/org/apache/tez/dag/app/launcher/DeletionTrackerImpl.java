@@ -104,9 +104,9 @@ public class DeletionTrackerImpl extends DeletionTracker {
       LOG.warn("Unable to find the shuffle port for shuffle data deletion of failed task attempt.");
       return;
     }
-    Integer shufflePort = nodeIdShufflePortMap.get(nodeId);
     BaseHttpConnection httpConnection = null;
     try {
+      int shufflePort = nodeIdShufflePortMap.get(nodeId);
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerTaskAttemptFailed(
           nodeId.getHost(), shufflePort,
           attemptID.getTaskID().getVertexID().getDAGId().getApplicationId().toString(),
