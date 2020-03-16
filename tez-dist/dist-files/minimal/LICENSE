@@ -234,7 +234,6 @@ license:
   - hadoop-shim-*.jar
   - async-http-client-*.jar
   - commons-cli-*.jar
-  - commons-collections-*.jar
   - commons-io-*.jar 
   - commons-math3-*.jar
   - commons-codec-*.jar

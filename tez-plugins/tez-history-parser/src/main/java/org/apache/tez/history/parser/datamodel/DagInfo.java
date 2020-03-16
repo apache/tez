@@ -28,8 +28,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
-import org.apache.commons.collections.BidiMap;
-import org.apache.commons.collections.bidimap.DualHashBidiMap;
+import org.apache.commons.collections4.BidiMap;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
@@ -71,7 +71,7 @@ public class DagInfo extends BaseInfo {
   private CallerContext callerContext;
 
   //VertexID --> VertexName & vice versa
-  private final BidiMap vertexNameIDMapping;
+  private final BidiMap<String, String> vertexNameIDMapping;
 
   //edgeId to EdgeInfo mapping
   private final Map<Integer, EdgeInfo> edgeInfoMap;
@@ -89,7 +89,7 @@ public class DagInfo extends BaseInfo {
     super(jsonObject);
 
     vertexNameMap = Maps.newHashMap();
-    vertexNameIDMapping = new DualHashBidiMap();
+    vertexNameIDMapping = new DualHashBidiMap<>();
     edgeInfoMap = Maps.newHashMap();
     basicVertexInfoMap = Maps.newHashMap();
     containerMapping = LinkedHashMultimap.create();
@@ -607,7 +607,7 @@ public class DagInfo extends BaseInfo {
     return Multimaps.unmodifiableMultimap(containerMapping);
   }
 
-  public final Map getVertexNameIDMapping() {
+  public final Map<String, String> getVertexNameIDMapping() {
     return vertexNameIDMapping;
   }
 
