@@ -842,7 +842,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty(type="boolean")
   public static final String TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE = TEZ_AM_PREFIX
       + "task.attempt.cleanup.on.failure";
-  public static final boolean TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT = true;
+  public static final boolean TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT = false;
 
   /** Int value. The amount of memory in MB to be used by tasks. This applies to all tasks across
    * all vertices. Setting it to the same value for all tasks is helpful for container reuse and

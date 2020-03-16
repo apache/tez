@@ -145,6 +145,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   final StateChangeNotifier stateChangeNotifier;
 
   private final TaskRecoveryData recoveryData;
+
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   static final ArrayList<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);

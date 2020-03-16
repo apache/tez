@@ -183,6 +183,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
@@ -2769,8 +2770,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
-    boolean cleanUpFailedTaskAttempt = org.apache.tez.runtime.library.common.shuffle.ShuffleUtils
-        .isTezShuffleHandler(amConf)
+    boolean cleanUpFailedTaskAttempt = ShuffleUtils.isTezShuffleHandler(amConf)
         && amConf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
         TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
     if (cleanUpFailedTaskAttempt) {

@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -887,7 +886,7 @@ public class ShuffleHandler extends AuxiliaryService {
     private static final int EXPIRE_AFTER_ACCESS_MINUTES = 5;
     private static final int ALLOWED_CONCURRENCY = 16;
     private final Configuration conf;
-    private final org.apache.tez.auxservices.IndexCache indexCache;
+    private final IndexCache indexCache;
     private final LocalDirAllocator lDirAlloc =
       new LocalDirAllocator(YarnConfiguration.NM_LOCAL_DIRS);
     private int port;
