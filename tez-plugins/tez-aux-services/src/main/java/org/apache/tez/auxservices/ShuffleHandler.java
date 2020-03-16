@@ -18,6 +18,7 @@
 
 package org.apache.tez.auxservices;
 
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.util.DiskChecker;
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
@@ -57,6 +58,7 @@ import javax.crypto.SecretKey;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
@@ -1137,13 +1139,22 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       if (taskAttemptFailedQ != null && !taskAttemptFailedQ.isEmpty() && taskAttemptFailedQ.get(0).contains("delete")
           && taskAttemptIdQ != null && !taskAttemptIdQ.isEmpty()) {
-        String base = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0))) + taskAttemptIdQ.get(0);
+        String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           FileContext lfc = FileContext.getLocalFSFileContext();
-          Path taskAttemptPath = lDirAlloc.getLocalPathToRead(base, conf);
-          lfc.delete(taskAttemptPath, true);
+          for (Path dagPath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+            RemoteIterator<FileStatus> status = lfc.listStatus(dagPath);
+            while (status.hasNext()) {
+              FileStatus fileStatus = status.next();
+              Path attemptPath = fileStatus.getPath();
+              if (attemptPath.getName().startsWith(taskAttemptIdQ.get(0))) {
+                boolean retDelete = lfc.delete(attemptPath, true);
+                LOG.info("Deleting directory : " + attemptPath + " returned " + retDelete);
+              }
+            }
+          }
         } catch (IOException e) {
-          LOG.warn("Encountered exception during task attempt delete "+ e);
+          LOG.warn("Encountered exception during dag delete "+ e);
         }
         evt.getChannel().write(new DefaultHttpResponse(HTTP_1_1, OK));
         evt.getChannel().close();
