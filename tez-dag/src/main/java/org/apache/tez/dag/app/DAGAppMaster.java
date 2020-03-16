@@ -65,6 +65,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.Utils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
@@ -2767,4 +2768,13 @@ public class DAGAppMaster extends AbstractService {
     return sb.toString();
   }
 
+  public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
+    boolean cleanUpFailedTaskAttempt = org.apache.tez.runtime.library.common.shuffle.ShuffleUtils
+        .isTezShuffleHandler(amConf)
+        && amConf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
+        TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
+    if (cleanUpFailedTaskAttempt) {
+      getContainerLauncherManager().taskAttemptFailed(attemptID, jobTokenSecretManager, nodeId);
+    }
+  }
 }

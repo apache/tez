@@ -189,6 +189,25 @@ public class TezRuntimeUtils {
     return new URL(sb.toString());
   }
 
+  public static URL constructBaseURIForShuffleHandlerTaskAttemptFailed(
+      String host, int port, String appId, int dagIdentifier, String taskIndentifier, boolean sslShuffle)
+      throws MalformedURLException {
+    final String http_protocol = (sslShuffle) ? "https://" : "http://";
+    StringBuilder sb = new StringBuilder(http_protocol);
+    sb.append(host);
+    sb.append(":");
+    sb.append(port);
+    sb.append("/");
+    sb.append("mapOutput?taskAction=delete");
+    sb.append("&job=");
+    sb.append(appId.replace("application", "job"));
+    sb.append("&dag=");
+    sb.append(String.valueOf(dagIdentifier));
+    sb.append("&taskattempt=");
+    sb.append(String.valueOf(taskIndentifier));
+    return new URL(sb.toString());
+  }
+
   public static HttpConnectionParams getHttpConnectionParams(Configuration conf) {
     int connectionTimeout =
         conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT,

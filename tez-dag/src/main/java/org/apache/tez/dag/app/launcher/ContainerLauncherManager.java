@@ -22,6 +22,7 @@ import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.Utils;
@@ -35,6 +36,7 @@ import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
@@ -197,6 +199,12 @@ public class ContainerLauncherManager extends AbstractService
   public void dagComplete(TezDAGID dag, JobTokenSecretManager secretManager) {
     for (int i = 0 ; i < containerLaunchers.length ; i++) {
       containerLaunchers[i].dagComplete(dag, secretManager);
+    }
+  }
+
+  public void taskAttemptFailed(TezTaskAttemptID attemptID, JobTokenSecretManager secretManager, NodeId nodeId) {
+    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+      containerLaunchers[i].taskAttemptFailed(attemptID, secretManager, nodeId);
     }
   }
 

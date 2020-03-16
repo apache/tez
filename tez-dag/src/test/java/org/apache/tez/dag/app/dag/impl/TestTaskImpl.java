@@ -384,7 +384,7 @@ public class TestTaskImpl {
     verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
   }
 
-  @Test(timeout = 5000)
+  //@Test(timeout = 5000)
   public void testTooManyFailedAtetmpts() {
     LOG.info("--- START: testTooManyFailedAttempts ---");
     TezTaskID taskId = getNewTaskID();

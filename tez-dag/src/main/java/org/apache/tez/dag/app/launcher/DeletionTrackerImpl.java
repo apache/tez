@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.launcher;
 
 
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,9 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,5 +95,31 @@ public class DeletionTrackerImpl extends DeletionTracker {
       dagCleanupService = null;
     }
     nodeIdShufflePortMap = null;
+  }
+
+  @Override
+  public void taskAttemptFailed(TezTaskAttemptID attemptID, JobTokenSecretManager secretManager, NodeId nodeId) {
+    super.taskAttemptFailed(attemptID, secretManager, nodeId);
+    if (nodeIdShufflePortMap == null) {
+      //TODO ADD LOG
+      return;
+    }
+    Integer shufflePort = null;
+    shufflePort = nodeIdShufflePortMap.get(nodeId);
+    URL baseURL = null;
+    try {
+      baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerTaskAttemptFailed(
+          nodeId.getHost(), shufflePort,
+          attemptID.getTaskID().getVertexID().getDAGId().getApplicationId().toString(),
+          attemptID.getTaskID().getVertexID().getDAGId().getId(), attemptID.toString(), false);
+      BaseHttpConnection httpConnection = TezRuntimeUtils.getHttpConnection(
+          true, baseURL, TezRuntimeUtils.getHttpConnectionParams(conf),
+          "TaskAttemptFailedDelete", secretManager);
+      httpConnection.connect();
+      httpConnection.getInputStream();
+    } catch (Exception e) {
+      LOG.warn("Could not setup HTTP Connection to the node " + nodeId.getHost() +
+      " for shuffle data deletion of failed task attempt. ", e);
+    }
   }
 }

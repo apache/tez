@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -144,7 +145,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   final StateChangeNotifier stateChangeNotifier;
 
   private final TaskRecoveryData recoveryData;
-
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   static final ArrayList<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);
@@ -1247,6 +1247,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.commitAttempt = null;
       }
       // The attempt would have informed the scheduler about it's failure
+
+      // Delete the intermediate shuffle data for failed task attempt
+      NodeId nodeId = task.getAttempt(castEvent.getTaskAttemptID()).getAssignedContainer().getNodeId();
+      task.appContext.getAppMaster().taskAttemptFailed(castEvent.getTaskAttemptID(), nodeId);
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
       if (task.failedAttempts < task.maxFailedAttempts &&
