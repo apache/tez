@@ -1250,8 +1250,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // The attempt would have informed the scheduler about it's failure
 
       // Delete the intermediate shuffle data for failed task attempt
-      NodeId nodeId = task.getAttempt(castEvent.getTaskAttemptID()).getAssignedContainer().getNodeId();
-      task.appContext.getAppMaster().taskAttemptFailed(castEvent.getTaskAttemptID(), nodeId);
+      TaskAttempt taskAttempt = task.getAttempt(castEvent.getTaskAttemptID());
+      if (taskAttempt.getAssignedContainer() != null) {
+        NodeId nodeId = taskAttempt.getAssignedContainer().getNodeId();
+        task.appContext.getAppMaster().taskAttemptFailed(castEvent.getTaskAttemptID(), nodeId);
+      }
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
       if (task.failedAttempts < task.maxFailedAttempts &&
