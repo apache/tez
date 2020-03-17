@@ -49,7 +49,8 @@ public class ContainerLauncherWrapper {
     }
   }
 
-  public void taskAttemptFailed(TezTaskAttemptID attemptID, JobTokenSecretManager jobTokenSecretManager, NodeId nodeId) {
+  public void taskAttemptFailed(TezTaskAttemptID attemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
     if (real instanceof TezContainerLauncherImpl) {
       ((TezContainerLauncherImpl) real).taskAttemptFailed(attemptID, jobTokenSecretManager, nodeId);
     } else if (real instanceof LocalContainerLauncher) {

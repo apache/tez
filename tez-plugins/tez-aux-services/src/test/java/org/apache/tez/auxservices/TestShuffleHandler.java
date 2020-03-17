@@ -1328,9 +1328,9 @@ public class TestShuffleHandler {
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       String taskAttemptDirStr =
           StringUtils.join(Path.SEPARATOR,
-              new String[] { absLogDir.getAbsolutePath(),
+              new String[] {absLogDir.getAbsolutePath(),
                   ShuffleHandler.USERCACHE, user,
-                  ShuffleHandler.APPCACHE, appId.toString(),"dag_1/output/", appAttemptId});
+                  ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/", appAttemptId});
       File taskAttemptDir = new File(taskAttemptDirStr);
       Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
       conn.connect();

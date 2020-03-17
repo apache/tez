@@ -108,17 +108,16 @@ public class DeletionTrackerImpl extends DeletionTracker {
     try {
       int shufflePort = nodeIdShufflePortMap.get(nodeId);
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerTaskAttemptFailed(
-          nodeId.getHost(), shufflePort,
-          attemptID.getTaskID().getVertexID().getDAGId().getApplicationId().toString(),
+          nodeId.getHost(), shufflePort, attemptID.getTaskID().getVertexID().getDAGId().getApplicationId().toString(),
           attemptID.getTaskID().getVertexID().getDAGId().getId(), attemptID.toString(), false);
-       httpConnection = TezRuntimeUtils.getHttpConnection(
-          true, baseURL, TezRuntimeUtils.getHttpConnectionParams(conf),
-          "TaskAttemptFailedDelete", secretManager);
+
+      httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL,
+          TezRuntimeUtils.getHttpConnectionParams(conf), "TaskAttemptFailedDelete", secretManager);
       httpConnection.connect();
       httpConnection.getInputStream();
     } catch (Exception e) {
       LOG.warn("Could not setup HTTP Connection to the node " + nodeId.getHost() +
-      " for shuffle data deletion of failed task attempt. ", e);
+          "for shuffle data deletion of failed task attempt. ", e);
     } finally {
       try {
         if (httpConnection != null) {
