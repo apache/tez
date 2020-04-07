@@ -231,6 +231,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   private final AppContext appContext;
   private final DAG dag;
   private final VertexRecoveryData recoveryData;
+  private boolean isVertexInitSkipped = false;
   private List<TezEvent> initGeneratedEvents = new ArrayList<TezEvent>();
   // set it to be true when setParallelism is called(used for recovery) 
   private boolean setParallelismCalledFlag = false;
@@ -2804,6 +2805,15 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return VertexState.INITED;
   }
 
+  private boolean isVertexInitSkippedInParentVertices() {
+    for (Map.Entry<Vertex, Edge> entry : sourceVertices.entrySet()) {
+      if(!(((VertexImpl) entry.getKey()).isVertexInitSkipped())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private void assignVertexManager() throws TezException {
     // condition for skip initializing stage
     //   - VertexInputInitializerEvent is seen
@@ -2816,8 +2826,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     //        -  Why using VertexReconfigureDoneEvent
     //           -  VertexReconfigureDoneEvent represent the case that user use API reconfigureVertex
     //              VertexReconfigureDoneEvent will be logged
-    if (recoveryData != null
-        && recoveryData.shouldSkipInit()) {
+    //   - TaskStartEvent is seen in that vertex
+    //   - All the parent vertices have skipped initializing stage while recovering
+    if (recoveryData != null && recoveryData.shouldSkipInit()
+        && recoveryData.isVertexTasksStarted() && isVertexInitSkippedInParentVertices()) {
       // Replace the original VertexManager with NoOpVertexManager if the reconfiguration is done in the last AM attempt
       VertexConfigurationDoneEvent reconfigureDoneEvent = recoveryData.getVertexConfigurationDoneEvent();
       if (LOG.isInfoEnabled()) {
@@ -2837,6 +2849,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           VertexManagerPluginDescriptor.create(NoOpVertexManager.class.getName())
             .setUserPayload(UserPayload.create(ByteBuffer.wrap(out.toByteArray()))),
           dagUgi, this, appContext, stateChangeNotifier);
+      isVertexInitSkipped = true;
       return;
     }
 
@@ -4665,6 +4678,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   VertexManager getVertexManager() {
     return this.vertexManager;
   }
+
+  public boolean isVertexInitSkipped() {
+    return isVertexInitSkipped;
+  }
+
 
   private static void logLocationHints(String vertexName,
       VertexLocationHint locationHint) {

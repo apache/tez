@@ -971,6 +971,10 @@ public class RecoveryParser {
       return vertexInitedEvent != null && vertexConfigurationDoneEvent != null;
     }
 
+    public boolean isVertexTasksStarted() {
+      return taskRecoveryDataMap != null && !taskRecoveryDataMap.isEmpty();
+    }
+
     public boolean isVertexStarted() {
       return vertexStartedEvent != null;
     }
