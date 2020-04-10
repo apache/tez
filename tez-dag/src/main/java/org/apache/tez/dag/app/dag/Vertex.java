@@ -230,8 +230,13 @@ public interface Vertex extends Comparable<Vertex> {
      * @return tez.am.max.allowed.time-sec.for-read-error.
      */
     int getMaxAllowedTimeForTaskReadErrorSec();
+    /**
+     * @return tez.am.max.allowed.downstream.hosts.reporting.fetch.failure.
+     */
+    int getMaxAllowedDownstreamHostsReportingFetchFailure();
   }
 
   void incrementRejectedTaskAttemptCount();
   int getRejectedTaskAttemptCount();
+  Map<String, Set<String>> getDownstreamBlamingHosts();
 }

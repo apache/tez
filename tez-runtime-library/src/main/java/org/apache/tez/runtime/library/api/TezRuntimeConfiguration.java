@@ -414,6 +414,28 @@ public class TezRuntimeConfiguration {
   public static final float TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT_DEFAULT =
       0.90f;
 
+  /**
+   * Enables fetch failures by a configuration. Should be used for testing only.
+   */
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS =
+      TEZ_RUNTIME_PREFIX + "shuffle.fetch.testing.errors.enable";
+  public static final boolean TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS_DEFAULT = false;
+
+  /**
+   * Configures the injectable fetch failures, in a form of:
+   * maphost#probability#comma,separated,features
+   * Possible values are (fetch fails...):
+   * "*#50": from all map hosts with 50% likelihood
+   * "_first_#80": for the first ever seen map host with 80% likelihood (user doesn't want to use hostnames)
+   * "host1#100": from host1 with 100% likelihood (simulates single node failure)
+   * "host1#100#fail_only_first": as above but only for input attempts with index 0
+   */
+  @ConfigurationProperty(type = "string")
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG =
+      TEZ_RUNTIME_PREFIX + "shuffle.fetch.testing.errors.config";
+  public static final String TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG_DEFAULT = "*#50";
+
   @ConfigurationProperty(type = "float")
   public static final String TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT = TEZ_RUNTIME_PREFIX +
       "shuffle.memory.limit.percent";
@@ -543,7 +565,7 @@ public class TezRuntimeConfiguration {
 
 
   /**
-   * Share data fetched between tasks running on the same host if applicable
+   * Share data fetched between tasks running on the same host if applicable.
    */
   @ConfigurationProperty(type = "boolean")
   public static final String TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH = TEZ_RUNTIME_PREFIX
@@ -626,6 +648,8 @@ public class TezRuntimeConfiguration {
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION);
     tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG);
+    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS);
     tezRuntimeKeys.add(TEZ_RUNTIME_REPORT_PARTITION_STATS);
     tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT);
     tezRuntimeKeys.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);

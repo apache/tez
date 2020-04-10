@@ -247,7 +247,7 @@ class ShuffleScheduler {
   private final boolean checkFailedFetchSinceLastCompletion;
   private final boolean verifyDiskChecksum;
   private final boolean compositeFetch;
-
+  private final boolean enableFetcherTestingErrors;
   private volatile Thread shuffleSchedulerThread = null;
   private final int maxPenaltyTime;
 
@@ -426,6 +426,10 @@ class ShuffleScheduler {
     this.maxPenaltyTime = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS_DEFAULT);
 
+    this.enableFetcherTestingErrors =
+        conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS,
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS_DEFAULT);
+
     pipelinedShuffleInfoEventsMap = Maps.newConcurrentMap();
     LOG.info("ShuffleScheduler running for sourceVertex: "
         + inputContext.getSourceVertexName() + " with configuration: "
@@ -442,6 +446,7 @@ class ShuffleScheduler {
         + ", minReqProgressFraction=" + minReqProgressFraction
         + ", checkFailedFetchSinceLastCompletion=" + checkFailedFetchSinceLastCompletion
         + ", asyncHttp=" + asyncHttp
+        + ", enableFetcherTestingErrors=" + enableFetcherTestingErrors
     );
   }
 
@@ -884,7 +889,7 @@ class ShuffleScheduler {
                     srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber())
                 + " to jobtracker.",
             srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber(),
-            fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource()));
+            fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource(), localHostname));
 
     inputContext.sendEvents(failedEvents);
   }
@@ -1464,12 +1469,21 @@ class ShuffleScheduler {
 
   @VisibleForTesting
   FetcherOrderedGrouped constructFetcherForHost(MapHost mapHost) {
-    return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
-        exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
-        codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
-        ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
-        verifyDiskChecksum, compositeFetch);
+    if (enableFetcherTestingErrors) {
+      return new FetcherOrderedGroupedWithInjectableErrors(httpConnectionParams, ShuffleScheduler.this, allocator,
+          exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
+          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+          ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
+          connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
+          verifyDiskChecksum, compositeFetch, inputContext.getObjectRegistry());
+    } else {
+      return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
+          exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
+          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+          ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
+          connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
+          verifyDiskChecksum, compositeFetch);
+    }
   }
 
   private class FetchFutureCallback implements FutureCallback<Void> {

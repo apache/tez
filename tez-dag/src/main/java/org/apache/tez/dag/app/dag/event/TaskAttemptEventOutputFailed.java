@@ -28,9 +28,9 @@ public class TaskAttemptEventOutputFailed extends TaskAttemptEvent
   private TezEvent inputFailedEvent;
   private int consumerTaskNumber;
   
-  public TaskAttemptEventOutputFailed(TezTaskAttemptID attemptId,
+  public TaskAttemptEventOutputFailed(TezTaskAttemptID sourceTaskAttemptId,
       TezEvent tezEvent, int numConsumers) {
-    super(attemptId, TaskAttemptEventType.TA_OUTPUT_FAILED);
+    super(sourceTaskAttemptId, TaskAttemptEventType.TA_OUTPUT_FAILED);
     this.inputFailedEvent = tezEvent;
     this.consumerTaskNumber = numConsumers;
   }

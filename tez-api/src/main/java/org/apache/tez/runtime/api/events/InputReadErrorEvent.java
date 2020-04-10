@@ -62,8 +62,13 @@ public final class InputReadErrorEvent extends Event {
    */
   private final boolean isDiskErrorAtSource;
 
+  /**
+   * The localhostName of the destination task attempt.
+   */
+  private final String destinationLocalhostName;
+
   private InputReadErrorEvent(final String diagnostics, final int index, final int version,
-      final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource) {
+      final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
     super();
     this.diagnostics = diagnostics;
     this.index = index;
@@ -71,24 +76,30 @@ public final class InputReadErrorEvent extends Event {
     this.numFailures = numFailures;
     this.isLocalFetch = isLocalFetch;
     this.isDiskErrorAtSource = isDiskErrorAtSource;
+    this.destinationLocalhostName = destinationLocalhostName;
   }
 
   public static InputReadErrorEvent create(String diagnostics, int index, int version,
       boolean isLocalFetch, boolean isDiskErrorAtSource) {
-    return create(diagnostics, index, version, 1, isLocalFetch, isDiskErrorAtSource);
+    return create(diagnostics, index, version, 1, isLocalFetch, isDiskErrorAtSource, null);
   }
 
   public static InputReadErrorEvent create(String diagnostics, int index, int version) {
-    return create(diagnostics, index, version, 1, false, false);
+    return create(diagnostics, index, version, 1, false, false, null);
+  }
+
+  public static InputReadErrorEvent create(String diagnostics, int index, int version, boolean isLocalFetch,
+      boolean isDiskErrorAtSource, String destinationLocalhostName) {
+    return create(diagnostics, index, version, 1, isLocalFetch, isDiskErrorAtSource, destinationLocalhostName);
   }
 
   /**
    * Create an InputReadErrorEvent.
    */
-  public static InputReadErrorEvent create(final String diagnostics, final int index,
-      final int version, final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource) {
-    return new InputReadErrorEvent(diagnostics, index, version, numFailures, isLocalFetch,
-        isDiskErrorAtSource);
+  public static InputReadErrorEvent create(final String diagnostics, final int index, final int version,
+      final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
+    return new InputReadErrorEvent(diagnostics, index, version, numFailures, isLocalFetch, isDiskErrorAtSource,
+        destinationLocalhostName);
   }
 
   public String getDiagnostics() {
@@ -116,6 +127,10 @@ public final class InputReadErrorEvent extends Event {
 
   public boolean isDiskErrorAtSource() {
     return isDiskErrorAtSource;
+  }
+
+  public String getDestinationLocalhostName(){
+    return destinationLocalhostName;
   }
 
   @Override

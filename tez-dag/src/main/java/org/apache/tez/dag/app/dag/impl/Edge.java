@@ -374,7 +374,7 @@ public class Edge {
     if (!bufferEvents.get()) {
       switch (tezEvent.getEventType()) {
       case INPUT_READ_ERROR_EVENT:
-        InputReadErrorEvent event = (InputReadErrorEvent) tezEvent.getEvent();
+        InputReadErrorEvent inputReadErrorEvent = (InputReadErrorEvent) tezEvent.getEvent();
         TezTaskAttemptID destAttemptId = tezEvent.getSourceInfo()
             .getTaskAttemptID();
         int destTaskIndex = destAttemptId.getTaskID().getId();
@@ -383,10 +383,10 @@ public class Edge {
         try {
           if (onDemandRouting) {
             srcTaskIndex = ((EdgeManagerPluginOnDemand) edgeManager).routeInputErrorEventToSource(
-                destTaskIndex, event.getIndex());            
+                destTaskIndex, inputReadErrorEvent.getIndex());
           } else {
-            srcTaskIndex = edgeManager.routeInputErrorEventToSource(event,
-                destTaskIndex, event.getIndex());
+            srcTaskIndex = edgeManager.routeInputErrorEventToSource(inputReadErrorEvent,
+                destTaskIndex, inputReadErrorEvent.getIndex());
           }
           Preconditions.checkArgument(srcTaskIndex >= 0,
               "SourceTaskIndex should not be negative,"
@@ -414,11 +414,10 @@ public class Edge {
               " edgeManager=" + edgeManager.getClass().getName());
         }
         TezTaskID srcTaskId = srcTask.getTaskId();
-        int taskAttemptIndex = event.getVersion();
+        int srcTaskAttemptIndex = inputReadErrorEvent.getVersion();
         TezTaskAttemptID srcTaskAttemptId = TezTaskAttemptID.getInstance(srcTaskId,
-            taskAttemptIndex);
-        sendEvent(new TaskAttemptEventOutputFailed(srcTaskAttemptId,
-            tezEvent, numConsumers));
+            srcTaskAttemptIndex);
+        sendEvent(new TaskAttemptEventOutputFailed(srcTaskAttemptId, tezEvent, numConsumers));
         break;
       default:
         throw new TezUncheckedException("Unhandled tez event type: "

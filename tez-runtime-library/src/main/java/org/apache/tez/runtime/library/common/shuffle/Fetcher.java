@@ -58,6 +58,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -144,7 +145,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
-  private final int fetcherIdentifier;
+  protected final int fetcherIdentifier;
 
   // Parameters to track work.
   private List<InputAttemptIdentifier> srcAttempts;
@@ -192,7 +193,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
-  private Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
+  protected Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
       FetchedInputAllocator inputManager, ApplicationId appId, int dagIdentifier,
       JobTokenSecretManager jobTokenSecretManager, String srcNameTrimmed, Configuration conf,
       RawLocalFileSystem localFs,
@@ -527,8 +528,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
 
     try {
-      input = httpConnection.getInputStream();
-      httpConnection.validate();
+      setupConnectionInternal(host, attempts);
       //validateConnectionResponse(msgToEncode, encHash);
     } catch (IOException e) {
       // ioErrs.increment(1);
@@ -554,6 +554,13 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       return null;
     }
     return null;
+  }
+
+
+  protected void setupConnectionInternal(String host, Collection<InputAttemptIdentifier> attempts)
+      throws IOException, InterruptedException {
+    input = httpConnection.getInputStream();
+    httpConnection.validate();
   }
 
   @VisibleForTesting
@@ -1141,11 +1148,19 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
-        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
-      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
-          jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
-          lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
-          verifyDiskChecksum, compositeFetch);
+        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch,
+        boolean enableFetcherTestingErrors, ObjectRegistry objectRegistry) {
+      if (enableFetcherTestingErrors) {
+        this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, appId, dagIdentifier,
+            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+            lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
+            verifyDiskChecksum, compositeFetch, objectRegistry);
+      } else {
+        this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
+            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+            lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
+            verifyDiskChecksum, compositeFetch);
+      }
     }
 
     public FetcherBuilder setHttpConnectionParameters(HttpConnectionParams httpParams) {

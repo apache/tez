@@ -264,6 +264,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   final ServicePluginInfo servicePluginInfo;
 
+  /*
+   * For every upstream host (as map keys) contains every unique downstream hostnames that reported INPUT_READ_ERROR.
+   * This map helps to decide if there is a problem with the host that produced the map outputs. There is an assumption
+   * that if multiple downstream hosts report input errors for the same upstream host, then it's likely that the output
+   * has to be blamed and needs to rerun.
+   */
+  private final Map<String, Set<String>> downstreamBlamingHosts = Maps.newHashMap();
 
   private final float maxFailuresPercent;
   private boolean logSuccessDiagnostics = false;
@@ -4833,6 +4840,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
      * See tez.am.max.allowed.time-sec.for-read-error.
      */
     private final int maxAllowedTimeForTaskReadErrorSec;
+    /**
+     * See tez.am.max.allowed.downstream.hosts.reporting.fetch.failure.
+     */
+    private final int maxAllowedDownstreamHostsReportingFetchFailure;
 
     public VertexConfigImpl(Configuration conf) {
       this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
@@ -4857,6 +4868,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.maxAllowedTimeForTaskReadErrorSec = conf.getInt(
           TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
           TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
+
+      this.maxAllowedDownstreamHostsReportingFetchFailure = conf.getInt(
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE,
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE_DEFAULT);
     }
 
     @Override
@@ -4899,8 +4914,20 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     @Override public int getMaxAllowedTimeForTaskReadErrorSec() {
       return maxAllowedTimeForTaskReadErrorSec;
     }
+
+    /**
+     * @return maxAllowedDownstreamHostsReportingFetchFailure.
+     */
+    @Override public int getMaxAllowedDownstreamHostsReportingFetchFailure() {
+      return maxAllowedDownstreamHostsReportingFetchFailure;
+    }
   }
 
   @Override
   public AbstractService getSpeculator() { return speculator; }
+
+  @Override
+  public Map<String, Set<String>> getDownstreamBlamingHosts(){
+    return downstreamBlamingHosts;
+  }
 }
