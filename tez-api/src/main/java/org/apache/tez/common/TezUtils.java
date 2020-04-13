@@ -32,6 +32,7 @@ import java.util.Objects;
 
 import com.google.protobuf.ByteString;
 
+import com.google.protobuf.CodedInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -114,7 +115,9 @@ public class TezUtils {
     // SnappyInputStream uncompressIs = new
     // SnappyInputStream(byteString.newInput());
     try(InflaterInputStream uncompressIs = new InflaterInputStream(byteString.newInput())) {
-      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      CodedInputStream in = CodedInputStream.newInstance(uncompressIs);
+      in.setSizeLimit(Integer.MAX_VALUE);
+      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(in);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
       return conf;
