@@ -49,20 +49,23 @@ public class TezSpillRecord {
     entries = buf.asLongBuffer();
   }
 
-  public TezSpillRecord(Path indexFileName, Configuration job) throws IOException {
-    this(indexFileName, job, null);
+  public TezSpillRecord(Path indexFileName, Configuration conf) throws IOException {
+    this(indexFileName, FileSystem.getLocal(conf).getRaw());
   }
 
-  public TezSpillRecord(Path indexFileName, Configuration job, String expectedIndexOwner)
+  public TezSpillRecord(Path indexFileName, FileSystem fs) throws IOException {
+    this(indexFileName, fs, null);
+  }
+
+  public TezSpillRecord(Path indexFileName, FileSystem fs, String expectedIndexOwner)
     throws IOException {
-    this(indexFileName, job, new PureJavaCrc32(), expectedIndexOwner);
+    this(indexFileName, fs, new PureJavaCrc32(), expectedIndexOwner);
   }
 
-  public TezSpillRecord(Path indexFileName, Configuration job, Checksum crc,
+  public TezSpillRecord(Path indexFileName, FileSystem rfs, Checksum crc,
                      String expectedIndexOwner)
       throws IOException {
 
-    final FileSystem rfs = FileSystem.getLocal(job).getRaw();
     final FSDataInputStream in = rfs.open(indexFileName);
     try {
       final long length = rfs.getFileStatus(indexFileName).getLen();
@@ -117,14 +120,12 @@ public class TezSpillRecord {
   /**
    * Write this spill record to the location provided.
    */
-  public void writeToFile(Path loc, Configuration job)
-      throws IOException {
-    writeToFile(loc, job, new PureJavaCrc32());
+  public void writeToFile(Path loc, Configuration job, FileSystem fs) throws IOException {
+    writeToFile(loc, job, fs, new PureJavaCrc32());
   }
 
-  public void writeToFile(Path loc, Configuration job, Checksum crc)
+  public void writeToFile(Path loc, Configuration job, FileSystem rfs, Checksum crc)
       throws IOException {
-    final FileSystem rfs = FileSystem.getLocal(job).getRaw();
     CheckedOutputStream chk = null;
     final FSDataOutputStream out = rfs.create(loc);
     try {

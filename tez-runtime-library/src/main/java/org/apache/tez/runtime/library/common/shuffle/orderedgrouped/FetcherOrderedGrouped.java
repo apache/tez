@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TezCounter;
@@ -74,6 +75,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final ExceptionReporter exceptionReporter;
   private final int id;
   private final String logIdentifier;
+  private final RawLocalFileSystem localFs;
   private final String localShuffleHost;
   private final int localShufflePort;
   private final String applicationId;
@@ -114,6 +116,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                boolean ifileReadAhead, int ifileReadAheadLength,
                                CompressionCodec codec,
                                Configuration conf,
+                               RawLocalFileSystem localFs,
                                boolean localDiskFetchEnabled,
                                String localHostname,
                                int shufflePort,
@@ -159,6 +162,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       this.codec = null;
     }
     this.conf = conf;
+    this.localFs = localFs;
     this.localShuffleHost = localHostname;
     this.localShufflePort = shufflePort;
 
@@ -772,7 +776,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       throws IOException {
     Path indexFile = getShuffleInputFileName(pathComponent,
         Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
-    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, localFs);
     return spillRecord.getIndex(partitionId);
   }
 

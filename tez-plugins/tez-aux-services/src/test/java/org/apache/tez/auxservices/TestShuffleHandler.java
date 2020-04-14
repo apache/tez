@@ -897,7 +897,8 @@ public class TestShuffleHandler {
     TezSpillRecord tezSpillRecord = new TezSpillRecord(2);
     tezSpillRecord.putIndex(new TezIndexRecord(0, 10, 10), 0);
     tezSpillRecord.putIndex(new TezIndexRecord(10, 10, 10), 1);
-    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf, crc);
+    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf,
+        FileSystem.getLocal(conf).getRaw(), crc);
   }
 
   @Test
