@@ -65,6 +65,8 @@ import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -214,6 +216,7 @@ class ShuffleScheduler {
   private final int ifileReadAheadLength;
   private final CompressionCodec codec;
   private final Configuration conf;
+  private final RawLocalFileSystem localFs;
   private final boolean localDiskFetchEnabled;
   private final String localHostname;
   private final int shufflePort;
@@ -263,6 +266,7 @@ class ShuffleScheduler {
                           String srcNameTrimmed) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
+    this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
     this.exceptionReporter = exceptionReporter;
     this.allocator = allocator;
     this.mergeManager = mergeManager;
@@ -1464,7 +1468,7 @@ class ShuffleScheduler {
   FetcherOrderedGrouped constructFetcherForHost(MapHost mapHost) {
     return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
         exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
-        codec, conf, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+        codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
         connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
         verifyDiskChecksum, compositeFetch);

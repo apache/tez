@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
@@ -67,6 +69,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   protected ExternalSorter sorter;
   protected Configuration conf;
+  private RawLocalFileSystem localFs;
   protected MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private long startTime;
   private long endTime;
@@ -88,6 +91,8 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
   public synchronized List<Event> initialize() throws IOException {
     this.startTime = System.nanoTime();
     this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+    this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
+
     // Initializing this parametr in this conf since it is used in multiple
     // places (wherever LocalDirAllocator is used) - TezTaskOutputFiles,
     // TezMerger, etc.
@@ -205,7 +210,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
           TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
       ShuffleUtils.generateEventOnSpill(eventList, finalMergeEnabled, isLastEvent,
-          getContext(), 0, new TezSpillRecord(sorter.getFinalIndexFile(), conf),
+          getContext(), 0, new TezSpillRecord(sorter.getFinalIndexFile(), localFs),
           getNumPhysicalOutputs(), sendEmptyPartitionDetails, getContext().getUniqueIdentifier(),
           sorter.getPartitionStats(), sorter.reportDetailedPartitionStats(), auxiliaryService, deflater);
     }

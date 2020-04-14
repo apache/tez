@@ -102,6 +102,7 @@ public abstract class ExternalSorter {
   protected final Combiner combiner;
   protected final Partitioner partitioner;
   protected final Configuration conf;
+  protected final RawLocalFileSystem localFs;
   protected final FileSystem rfs;
   protected final TezTaskOutput mapOutputFile;
   protected final int partitions;
@@ -171,6 +172,7 @@ public abstract class ExternalSorter {
       long initialMemoryAvailable) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;
+    this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
     this.partitions = numOutputs;
     reportPartitionStats = ReportPartitionStats.fromString(
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,

@@ -25,6 +25,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -48,6 +50,7 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
   
   protected final OutputContext outputContext;
   protected final Configuration conf;
+  protected final RawLocalFileSystem localFs;
   protected final Partitioner partitioner;
   protected final Class keyClass;
   protected final Class valClass;
@@ -110,6 +113,11 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
   public BaseUnorderedPartitionedKVWriter(OutputContext outputContext, Configuration conf, int numOutputs) {
     this.outputContext = outputContext;
     this.conf = conf;
+    try {
+      this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     this.numPartitions = numOutputs;
     
     // k/v serialization
