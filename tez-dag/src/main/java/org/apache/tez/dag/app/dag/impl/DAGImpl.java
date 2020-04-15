@@ -1648,7 +1648,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     // This is going to override the previously generated file
     // which didn't have the priorities
-    Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
+    if (getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
+        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
+      Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
+    }
     return DAGState.INITED;
   }
 

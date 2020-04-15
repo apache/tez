@@ -1038,28 +1038,32 @@ public class DAGAppMaster extends AbstractService {
       LOG.warn("Failed to generate json for DAG", e);
     }
 
-    Utils.generateDAGVizFile(newDag, dagPB, logDirs, newDag.getDAGScheduler());
-    writePBTextFile(newDag);
+    writeDebugArtifacts(dagPB, newDag);
     return newDag;
   } // end createDag()
 
+  private void writeDebugArtifacts(DAGPlan dagPB, DAGImpl newDag) {
+    boolean debugArtifacts =
+        newDag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
+            TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT);
+    if (debugArtifacts) {
+      Utils.generateDAGVizFile(newDag, dagPB, logDirs, newDag.getDAGScheduler());
+      writePBTextFile(newDag);
+    }
+  }
 
   private void writePBTextFile(DAG dag) {
-    if (dag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
-        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
+    String logFile = logDirs[new Random().nextInt(logDirs.length)] + File.separatorChar
+        + dag.getID().toString() + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
 
-      String logFile = logDirs[new Random().nextInt(logDirs.length)] + File.separatorChar +
-          dag.getID().toString()  + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
-
-      LOG.info("Writing DAG plan to: " + logFile);
-      File outFile = new File(logFile);
-      try {
-        PrintWriter printWriter = new PrintWriter(outFile, "UTF-8");
-        printWriter.println(TezUtilsInternal.convertDagPlanToString(dag.getJobPlan()));
-        printWriter.close();
-      } catch (IOException e) {
-        LOG.warn("Failed to write TEZ_PLAN to " + outFile.toString(), e);
-      }
+    LOG.info("Writing DAG plan to: " + logFile);
+    File outFile = new File(logFile);
+    try {
+      PrintWriter printWriter = new PrintWriter(outFile, "UTF-8");
+      printWriter.println(TezUtilsInternal.convertDagPlanToString(dag.getJobPlan()));
+      printWriter.close();
+    } catch (IOException e) {
+      LOG.warn("Failed to write TEZ_PLAN to " + outFile.toString(), e);
     }
   }
 
