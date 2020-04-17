@@ -135,7 +135,9 @@
         <!-- See http://checkstyle.sf.net/config_whitespace.html -->
         <module name="EmptyForIteratorPad"/>
         <module name="MethodParamPad"/>
-        <module name="NoWhitespaceAfter"/>
+        <module name="NoWhitespaceAfter">
+          <property name="tokens" value="AT, INC, DEC, UNARY_MINUS, UNARY_PLUS, BNOT, LNOT, DOT, INDEX_OP"/>
+        </module>
         <module name="NoWhitespaceBefore"/>
         <module name="ParenPad"/>
         <module name="TypecastParenPad"/>
