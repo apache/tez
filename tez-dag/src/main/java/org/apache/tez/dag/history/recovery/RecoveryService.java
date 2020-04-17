@@ -415,10 +415,10 @@ public class RecoveryService extends AbstractService {
       if (LOG.isDebugEnabled()) {
         LOG.debug("AppId :" + appContext.getApplicationID() + " summaryPath " + summaryPath);
       }
-      if (!recoveryDirFS.exists(summaryPath)) {
-        summaryStream = recoveryDirFS.create(summaryPath, false,
-            bufferSize);
-      } else {
+      try {
+        summaryStream = recoveryDirFS.create(summaryPath, false, bufferSize);
+      } catch (IOException e) {
+        LOG.error("Error handling summary event, eventType=" + eventType, e);
         createFatalErrorFlagDir();
         return;
       }
@@ -456,16 +456,15 @@ public class RecoveryService extends AbstractService {
     RecoveryStream recoveryStream = outputStreamMap.get(dagID);
     if (recoveryStream == null) {
       Path dagFilePath = TezCommonUtils.getDAGRecoveryPath(recoveryPath, dagID.toString());
-      if (recoveryDirFS.exists(dagFilePath)) {
+
+      try {
+        FSDataOutputStream outputStream = recoveryDirFS.create(dagFilePath, false, bufferSize);
+        LOG.debug("Opened DAG recovery file in create mode, filePath={}", dagFilePath);
+        recoveryStream = new RecoveryStream(outputStream);
+      } catch (IOException ioe) {
+        LOG.error("Error handling history event, eventType=" + eventType, ioe);
         createFatalErrorFlagDir();
         return;
-      } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Opening DAG recovery file in create mode"
-              + ", filePath=" + dagFilePath);
-        }
-        FSDataOutputStream outputStream = recoveryDirFS.create(dagFilePath, false, bufferSize);
-        recoveryStream = new RecoveryStream(outputStream);
       }
       outputStreamMap.put(dagID, recoveryStream);
     }
