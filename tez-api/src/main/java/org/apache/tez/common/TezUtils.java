@@ -30,6 +30,7 @@ import java.util.Objects;
 import com.google.protobuf.ByteString;
 
 import com.google.protobuf.CodedInputStream;
+import org.apache.tez.runtime.api.TaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -117,6 +118,27 @@ public class TezUtils {
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
       return conf;
+    }
+  }
+
+  public static Configuration createConfFromBaseConfAndPayload(TaskContext context)
+      throws IOException {
+    Configuration baseConf = context.getContainerConfiguration();
+    Configuration configuration = new Configuration(baseConf);
+    UserPayload payload = context.getUserPayload();
+    ByteString byteString = ByteString.copyFrom(payload.getPayload());
+    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
+      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      readConfFromPB(confProto, configuration);
+      return configuration;
+    }
+  }
+
+  public static void addToConfFromByteString(Configuration configuration, ByteString byteString)
+      throws IOException {
+    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
+      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      readConfFromPB(confProto, configuration);
     }
   }
 

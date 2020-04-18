@@ -22,6 +22,8 @@ import java.util.BitSet;
 import java.util.List;
 
 import com.google.protobuf.ByteString;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.Event;
@@ -58,5 +60,22 @@ public class TestUnorderedPartitionedKVOutput2 {
     for (int i = 0; i < numPartitions; i++) {
       assertTrue(emptyPartionsBitSet.get(i));
     }
+  }
+
+  @Test
+  public void testConfigMerge() throws Exception {
+    Configuration userPayloadConf = new Configuration(false);
+    Configuration baseConf = new Configuration(false);
+
+    userPayloadConf.set("local-key", "local-value");
+    baseConf.set("base-key", "base-value");
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(
+        userPayloadConf, baseConf, new Path("/"));
+    UnorderedPartitionedKVOutput output =
+        new UnorderedPartitionedKVOutput(outputContext, 1);
+    output.initialize();
+    Configuration mergedConf = output.conf;
+    assertEquals("base-value", mergedConf.get("base-key"));
+    assertEquals("local-value", mergedConf.get("local-key"));
   }
 }

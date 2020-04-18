@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.UserPayload;
@@ -61,6 +62,12 @@ public interface TaskContext {
    * @return Task Attempt Number
    */
   public int getTaskAttemptNumber();
+
+  /**
+   * Get container configuration
+   * @return Container configuration
+   */
+  public Configuration getContainerConfiguration();
 
   /**
    * Get the name of the DAG

@@ -30,7 +30,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.split.TezMapReduceSplitsGrouper;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -80,8 +79,8 @@ public class MRInputAMSplitGenerator extends InputInitializer {
           + sw.now(TimeUnit.MILLISECONDS));
     }
     sw.reset().start();
-    Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
-        .getConfigurationBytes());
+    Configuration conf = new JobConf(getContext().getVertexConfiguration());
+    TezUtils.addToConfFromByteString(conf, userPayloadProto.getConfigurationBytes());
     
     sendSerializedEvents = conf.getBoolean(
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD,

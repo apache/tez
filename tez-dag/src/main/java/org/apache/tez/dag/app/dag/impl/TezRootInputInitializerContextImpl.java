@@ -23,6 +23,7 @@ package org.apache.tez.dag.app.dag.impl;
 import java.util.Set;
 import java.util.Objects;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
@@ -85,7 +86,12 @@ public class TezRootInputInitializerContextImpl implements
   public UserPayload getUserPayload() {
     return this.input.getControllerDescriptor().getUserPayload();
   }
-  
+
+  @Override
+  public Configuration getVertexConfiguration() {
+    return vertex.getConf();
+  }
+
   @Override 
   public int getNumTasks() {
     return vertex.getTotalTasks();
