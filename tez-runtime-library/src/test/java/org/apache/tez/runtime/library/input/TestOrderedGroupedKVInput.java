@@ -14,6 +14,7 @@
 
 package org.apache.tez.runtime.library.input;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -57,6 +58,34 @@ public class TestOrderedGroupedKVInput {
 
   }
 
+  @Test
+  public void testMergeConfig() throws IOException, TezException {
+    Configuration baseConf = new Configuration(false);
+    baseConf.set("base-key", "base-value");
+
+    Configuration payloadConf = new Configuration(false);
+    payloadConf.set("local-key", "local-value");
+
+    InputContext inputContext = mock(InputContext.class);
+
+    UserPayload payLoad = TezUtils.createUserPayloadFromConf(payloadConf);
+    String[] workingDirs = new String[]{"workDir1"};
+    TezCounters counters = new TezCounters();
+
+
+    doReturn(payLoad).when(inputContext).getUserPayload();
+    doReturn(workingDirs).when(inputContext).getWorkDirs();
+    doReturn(counters).when(inputContext).getCounters();
+    doReturn(baseConf).when(inputContext).getContainerConfiguration();
+
+    OrderedGroupedKVInput input = new OrderedGroupedKVInput(inputContext, 1);
+    input.initialize();
+
+    Configuration mergedConf = input.conf;
+    assertEquals("base-value", mergedConf.get("base-key"));
+    assertEquals("local-value", mergedConf.get("local-key"));
+  }
+
 
   private InputContext createMockInputContext() throws IOException {
     InputContext inputContext = mock(InputContext.class);
@@ -70,6 +99,7 @@ public class TestOrderedGroupedKVInput {
     doReturn(workingDirs).when(inputContext).getWorkDirs();
     doReturn(200 * 1024 * 1024l).when(inputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(inputContext).getCounters();
+    doReturn(new Configuration(false)).when(inputContext).getContainerConfiguration();
 
     doAnswer(new Answer() {
       @Override

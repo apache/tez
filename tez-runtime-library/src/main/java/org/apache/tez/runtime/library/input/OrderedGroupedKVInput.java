@@ -28,6 +28,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.common.Constants;
@@ -37,7 +38,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -97,7 +97,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
   @Override
   public synchronized List<Event> initialize() throws IOException {
-    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+    this.conf = TezUtils.createConfFromBaseConfAndPayload(getContext());
 
     if (this.getNumPhysicalInputs() == 0) {
       getContext().requestInitialMemory(0l, null);

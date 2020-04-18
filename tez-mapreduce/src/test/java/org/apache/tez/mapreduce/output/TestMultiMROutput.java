@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
@@ -107,6 +108,34 @@ public class TestMultiMROutput {
     }
   }
 
+  @Test
+  public void testMergeConf() throws Exception {
+    JobConf payloadConf = new JobConf();
+    payloadConf.set("local-key", "local-value");
+    DataSinkDescriptor dataSink = MultiMROutput.createConfigBuilder(
+        payloadConf, SequenceFileOutputFormat.class, "/output", false).build();
+
+    Configuration baseConf = new Configuration(false);
+    baseConf.set("base-key", "base-value");
+
+    OutputContext outputContext = mock(OutputContext.class);
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+    when(outputContext.getUserPayload()).thenReturn(dataSink.getOutputDescriptor().getUserPayload());
+    when(outputContext.getApplicationId()).thenReturn(appId);
+    when(outputContext.getTaskVertexIndex()).thenReturn(1);
+    when(outputContext.getTaskAttemptNumber()).thenReturn(1);
+    when(outputContext.getCounters()).thenReturn(new TezCounters());
+    when(outputContext.getStatisticsReporter()).thenReturn(mock(OutputStatisticsReporter.class));
+    when(outputContext.getContainerConfiguration()).thenReturn(baseConf);
+
+    MultiMROutput output = new MultiMROutput(outputContext, 2);
+    output.initialize();
+
+    Configuration mergedConf = output.jobConf;
+    assertEquals("base-value", mergedConf.get("base-key"));
+    assertEquals("local-value", mergedConf.get("local-key"));
+  }
+
   private OutputContext createMockOutputContext(UserPayload payload) {
     OutputContext outputContext = mock(OutputContext.class);
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
@@ -117,6 +146,7 @@ public class TestMultiMROutput {
     when(outputContext.getCounters()).thenReturn(new TezCounters());
     when(outputContext.getStatisticsReporter()).thenReturn(
         mock(OutputStatisticsReporter.class));
+    when(outputContext.getContainerConfiguration()).thenReturn(new Configuration(false));
     return outputContext;
   }
 
