@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
@@ -79,7 +80,8 @@ public class DAGClientImpl extends DAGClient {
   private boolean cleanupFrameworkClient;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
-      YarnConfiguration yarnConf, @Nullable FrameworkClient frameworkClient) {
+      YarnConfiguration yarnConf, @Nullable FrameworkClient frameworkClient,
+      UserGroupInformation ugi) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
@@ -99,7 +101,7 @@ public class DAGClientImpl extends DAGClient {
             TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT) &&
         DAGClientTimelineImpl.isSupported();
 
-    realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
+    realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient, ugi);
     statusPollInterval = conf.getLong(
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -204,7 +205,8 @@ public class TestDAGClient {
 
     TezConfiguration tezConf = new TezConfiguration();
     YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
-    dagClient = new DAGClientImpl(mockAppId, dagIdStr, tezConf,  yarnConf, null);
+    dagClient = new DAGClientImpl(mockAppId, dagIdStr, tezConf,  yarnConf, null,
+        UserGroupInformation.getCurrentUser());
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     realClient.appReport = mockAppReport;
     realClient.proxy = mockProxy;
@@ -410,7 +412,7 @@ public class TestDAGClient {
   }
 
   @Test(timeout = 5000)
-  public void testDagClientTimelineEnabledCondition() {
+  public void testDagClientTimelineEnabledCondition() throws IOException {
     String historyLoggingClass = "org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService";
 
     testAtsEnabled(mockAppId, dagIdStr, false, "", true, true);
@@ -422,7 +424,7 @@ public class TestDAGClient {
 
   private static void testAtsEnabled(ApplicationId appId, String dagIdStr, boolean expected,
                                      String loggingClass, boolean amHistoryLoggingEnabled,
-                                     boolean dagHistoryLoggingEnabled) {
+                                     boolean dagHistoryLoggingEnabled) throws IOException {
     TezConfiguration tezConf = new TezConfiguration();
     YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
 
@@ -441,8 +443,8 @@ public class TestDAGClient {
 
     public DAGClientRPCImplForTest(ApplicationId appId, String dagId,
                                    TezConfiguration conf,
-                                   @Nullable FrameworkClient frameworkClient) {
-      super(appId, dagId, conf, frameworkClient);
+                                   @Nullable FrameworkClient frameworkClient) throws IOException {
+      super(appId, dagId, conf, frameworkClient, UserGroupInformation.getCurrentUser());
     }
 
     void setAMProxy(DAGClientAMProtocolBlockingPB proxy) {
@@ -477,8 +479,8 @@ public class TestDAGClient {
 
     public DAGClientImplForTest(ApplicationId appId, String dagId, TezConfiguration conf,
         YarnConfiguration yarnConf,
-        @Nullable FrameworkClient frameworkClient) {
-      super(appId, dagId, conf, yarnConf, frameworkClient);
+        @Nullable FrameworkClient frameworkClient) throws IOException {
+      super(appId, dagId, conf, yarnConf, frameworkClient, UserGroupInformation.getCurrentUser());
     }
 
     private void setRealClient(DAGClientRPCImplForTest dagClientRpcImplForTest) {

@@ -919,7 +919,7 @@ public class TezClientUtils {
 
   static DAGClientAMProtocolBlockingPB getAMProxy(FrameworkClient yarnClient,
       Configuration conf,
-      ApplicationId applicationId) throws TezException, IOException {
+      ApplicationId applicationId, UserGroupInformation ugi) throws TezException, IOException {
     ApplicationReport appReport;
     try {
       appReport = yarnClient.getApplicationReport(
@@ -954,16 +954,15 @@ public class TezClientUtils {
       throw new TezException(e);
     }
     return getAMProxy(conf, appReport.getHost(),
-        appReport.getRpcPort(), appReport.getClientToAMToken());
+        appReport.getRpcPort(), appReport.getClientToAMToken(), ugi);
   }
 
   @Private
   public static DAGClientAMProtocolBlockingPB getAMProxy(final Configuration conf, String amHost,
-      int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken) throws IOException {
+      int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken,
+      UserGroupInformation userUgi) throws IOException {
 
     final InetSocketAddress serviceAddr = NetUtils.createSocketAddrForHost(amHost, amRpcPort);
-    UserGroupInformation userUgi = UserGroupInformation.createRemoteUser(UserGroupInformation
-        .getCurrentUser().getUserName());
     if (clientToAMToken != null) {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken,
           serviceAddr);

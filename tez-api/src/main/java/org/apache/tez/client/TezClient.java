@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.common.RPCUtil;
 import org.apache.tez.common.TezCommonUtils;
@@ -154,6 +155,8 @@ public class TezClient {
 
   private ScheduledExecutorService amKeepAliveService;
 
+  private final Map<String, UserGroupInformation> ugiMap;
+
   private TezClient(String name, TezConfiguration tezConf) {
     this(name, tezConf, tezConf.getBoolean(
         TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT));    
@@ -197,6 +200,7 @@ public class TezClient {
       LOG.warn("The host name of the client the tez application was submitted from was unable to be retrieved", e);
     }
 
+    this.ugiMap = new HashMap<>();
     this.amConfig = new AMConfiguration(tezConf, localResources, credentials);
     this.apiVersionInfo = new TezApiVersionInfo();
     this.servicePluginsDescriptor = servicePluginsDescriptor;
@@ -713,7 +717,13 @@ public class TezClient {
     return new DAGClientImpl(sessionAppId, dagId,
         amConfig.getTezConfiguration(),
         amConfig.getYarnConfiguration(),
-        frameworkClient);
+        frameworkClient, getUgi());
+  }
+
+  private UserGroupInformation getUgi() throws IOException {
+    String userName = UserGroupInformation.getCurrentUser().getUserName();
+    return ugiMap.computeIfAbsent(userName,
+        v -> UserGroupInformation.createRemoteUser(userName));
   }
 
   @VisibleForTesting
@@ -1058,7 +1068,7 @@ public class TezClient {
   protected DAGClientAMProtocolBlockingPB getAMProxy(ApplicationId appId)
       throws TezException, IOException {
     return TezClientUtils.getAMProxy(
-        frameworkClient, amConfig.getYarnConfiguration(), appId);
+        frameworkClient, amConfig.getYarnConfiguration(), appId, getUgi());
   }
 
   private DAGClientAMProtocolBlockingPB waitForProxy()
@@ -1137,7 +1147,7 @@ public class TezClient {
     // wait for dag in non-session mode to start running, so that we can start to getDAGStatus
     waitNonSessionTillReady();
     return getDAGClient(appId, amConfig.getTezConfiguration(), amConfig.getYarnConfiguration(),
-        frameworkClient);
+        frameworkClient, getUgi());
   }
 
   private ApplicationId createApplication() throws TezException, IOException {
@@ -1161,17 +1171,19 @@ public class TezClient {
 
   @Private
   static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf, YarnConfiguration
-      yarnConf, FrameworkClient frameworkClient)
+      yarnConf, FrameworkClient frameworkClient, UserGroupInformation ugi)
       throws IOException, TezException {
     return new DAGClientImpl(appId, getDefaultTezDAGID(appId), tezConf,
-        yarnConf, frameworkClient);
+        yarnConf, frameworkClient, ugi);
   }
 
   @Private // Used only for MapReduce compatibility code
   static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
                                 FrameworkClient frameworkClient)
       throws IOException, TezException {
-    return getDAGClient(appId, tezConf, new YarnConfiguration(tezConf), frameworkClient);
+    UserGroupInformation ugi =
+        UserGroupInformation.createRemoteUser(UserGroupInformation.getCurrentUser().getUserName());
+    return getDAGClient(appId, tezConf, new YarnConfiguration(tezConf), frameworkClient, ugi);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java
