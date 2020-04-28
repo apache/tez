@@ -35,28 +35,27 @@ public class Limits {
   private static int COUNTER_NAME_MAX;
   private static int GROUPS_MAX;
   private static int COUNTERS_MAX;
-  private static boolean initialized = false;
 
-  private static synchronized void ensureInitialized() {
-    if (initialized) {
-      return;
+  static {
+    init(new TezConfiguration());
+  }
+
+  public synchronized static void setConfiguration(Configuration conf) {
+    if (Limits.conf == null && conf != null) {
+      init(conf);
     }
-    if (conf == null) {
-      conf = new TezConfiguration();
-    }
-    GROUP_NAME_MAX =
-        conf.getInt(TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH,
-            TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT);
-    COUNTER_NAME_MAX =
-        conf.getInt(TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH,
-            TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT);
-    GROUPS_MAX =
-        conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS,
-            TezConfiguration.TEZ_COUNTERS_MAX_GROUPS_DEFAULT);
+  }
+
+  private static void init(Configuration conf) {
+    Limits.conf = conf;
+    GROUP_NAME_MAX = conf.getInt(TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH,
+        TezConfiguration.TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT);
+    COUNTER_NAME_MAX = conf.getInt(TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH,
+        TezConfiguration.TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT);
+    GROUPS_MAX = conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX_GROUPS,
+        TezConfiguration.TEZ_COUNTERS_MAX_GROUPS_DEFAULT);
     COUNTERS_MAX =
-        conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX,
-            TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT);
-    initialized = true;
+        conf.getInt(TezConfiguration.TEZ_COUNTERS_MAX, TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT);
     LOG.info("Counter limits initialized with parameters: " + " GROUP_NAME_MAX=" + GROUP_NAME_MAX
         + ", MAX_GROUPS=" + GROUPS_MAX + ", COUNTER_NAME_MAX=" + COUNTER_NAME_MAX
         + ", MAX_COUNTERS=" + COUNTERS_MAX);
@@ -70,17 +69,14 @@ public class Limits {
   }
 
   public static String filterCounterName(String name) {
-    ensureInitialized();
     return filterName(name, COUNTER_NAME_MAX);
   }
 
   public static String filterGroupName(String name) {
-    ensureInitialized();
     return filterName(name, GROUP_NAME_MAX);
   }
 
   public synchronized void checkCounters(int size) {
-    ensureInitialized();
     if (firstViolation != null) {
       throw new LimitExceededException(firstViolation);
     }
@@ -97,7 +93,6 @@ public class Limits {
   }
 
   public synchronized void checkGroups(int size) {
-    ensureInitialized();
     if (firstViolation != null) {
       throw new LimitExceededException(firstViolation);
     }
@@ -107,21 +102,10 @@ public class Limits {
     }
   }
 
-  public synchronized LimitExceededException violation() {
-    return firstViolation;
-  }
-
-  public synchronized static void setConfiguration(Configuration conf) {
-    if (Limits.conf == null && conf != null) {
-      Limits.conf = conf;
-    }
-  }
-
   @VisibleForTesting
   @InterfaceAudience.Private
   public synchronized static void reset() {
     conf = null;
-    initialized = false;
   }
 
 }
