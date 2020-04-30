@@ -44,7 +44,7 @@ import com.google.common.collect.Sets;
 
 public class TestInputReadyTracker {
 
-  private static final long SLEEP_TIME = 2000l;
+  private static final long SLEEP_TIME = 200l;
   
   @Test(timeout = 20000)
   public void testWithoutGrouping1() throws InterruptedException {
