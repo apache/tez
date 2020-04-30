@@ -616,10 +616,8 @@ public class TestFetcher {
     //Create read timeout when reading data
     doAnswer(new Answer<Void>() {
       @Override public Void answer(InvocationOnMock invocation) throws Throwable {
-        // Emulate host down for 4 seconds.
-        Thread.sleep(4000);
         doReturn(false).when(fetcher).setupConnection(any(MapHost.class), any(Collection.class));
-        // Throw IOException when fetcher tries to connect again to the same node
+        // Simulate read timeout by throwing proper exception
         throw new FetcherReadTimeoutException("creating fetcher socket read timeout exception");
       }
     }).when(fetcher).copyMapOutput(any(MapHost.class), any(DataInputStream.class), any(InputAttemptIdentifier.class));
