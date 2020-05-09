@@ -547,7 +547,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
             localHostname, host, port, firstAttempt), e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
-            new InputAttemptIdentifier[] { firstAttempt }, false);
+            new InputAttemptIdentifier[] { firstAttempt }, true);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); //reset status
