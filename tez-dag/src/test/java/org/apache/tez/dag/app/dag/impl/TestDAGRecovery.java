@@ -746,7 +746,7 @@ public class TestDAGRecovery {
         "vertex1", 0L, v1InitedTime, 
         v1NumTask, "", null, inputGeneratedTezEvents, null);
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id, 
-        0L, v1NumTask, null, null, null, true);
+        0L, v1NumTask, null, null, null, false);
     VertexRecoveryData vertexRecoveryData = new VertexRecoveryData(v1InitedEvent,
         v1ReconfigureDoneEvent, null, null, new HashMap<TezTaskID, TaskRecoveryData>(), false);
     doReturn(vertexRecoveryData).when(dagRecoveryData).getVertexRecoveryData(v1Id);
@@ -784,7 +784,7 @@ public class TestDAGRecovery {
         "vertex1", 0L, v1InitedTime,
         v1NumTask, "", null, inputGeneratedTezEvents, null);
     VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id,
-        0L, v1NumTask, null, null, null, true);
+        0L, v1NumTask, null, null, null, false);
     VertexStartedEvent v1StartedEvent = new VertexStartedEvent(v1Id, 0L, v1StartedTime);
     VertexRecoveryData vertexRecoveryData = new VertexRecoveryData(v1InitedEvent,
         v1ReconfigureDoneEvent, v1StartedEvent, null, new HashMap<TezTaskID, TaskRecoveryData>(), false);
@@ -802,6 +802,44 @@ public class TestDAGRecovery {
     assertEquals(VertexState.INITIALIZING, v1.getState());
     assertEquals(VertexState.RUNNING, v2.getState());
     assertEquals(VertexState.INITED, v3.getState());
+  }
+
+  /**
+   * RecoveryEvents:
+   *  DAG:  DAGInitedEvent -> DAGStartedEvent
+   *  V1:   VertexReconfigrationDoneEvent -> VertexInitializedEvent -> VertexStartedEvent -> setParallelismCalledFlag
+   *
+   * V1 skip initialization.
+   */
+  @Test(timeout=5000)
+  public void testVertexRecoverWithSetParallelismCalledFlag() {
+    initMockDAGRecoveryDataForVertex();
+    List<TezEvent> inputGeneratedTezEvents = new ArrayList<TezEvent>();
+    VertexInitializedEvent v1InitedEvent = new VertexInitializedEvent(v1Id,
+        "vertex1", 0L, v1InitedTime,
+        v1NumTask, "", null, inputGeneratedTezEvents, null);
+    VertexConfigurationDoneEvent v1ReconfigureDoneEvent = new VertexConfigurationDoneEvent(v1Id,
+        0L, v1NumTask, null, null, null, true);
+    VertexStartedEvent v1StartedEvent = new VertexStartedEvent(v1Id, 0L, v1StartedTime);
+    VertexRecoveryData vertexRecoveryData = new VertexRecoveryData(v1InitedEvent,
+        v1ReconfigureDoneEvent, v1StartedEvent, null, new HashMap<TezTaskID, TaskRecoveryData>(), false);
+    doReturn(vertexRecoveryData).when(dagRecoveryData).getVertexRecoveryData(v1Id);
+
+    DAGEventRecoverEvent recoveryEvent = new DAGEventRecoverEvent(dagId, dagRecoveryData);
+    dag.handle(recoveryEvent);
+    dispatcher.await();
+
+    VertexImpl v1 = (VertexImpl)dag.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl)dag.getVertex("vertex2");
+    VertexImpl v3 = (VertexImpl)dag.getVertex("vertex3");
+    assertEquals(DAGState.RUNNING, dag.getState());
+    // v1 skip initialization
+    assertEquals(VertexState.RUNNING, v1.getState());
+    assertEquals(v1InitedTime, v1.initedTime);
+    assertEquals(v1StartedTime, v1.startedTime);
+    assertEquals(v1NumTask, v1.getTotalTasks());
+    assertEquals(VertexState.RUNNING, v2.getState());
+    assertEquals(VertexState.RUNNING, v3.getState());
   }
 
   /**
