@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Objects;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
@@ -58,7 +59,8 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   private final ReentrantReadWriteLock.WriteLock dagChangedWriteLock;
   private final UserPayload userPayload;
 
-  private DAG dag;
+  @VisibleForTesting
+  DAG dag;
 
   public TaskCommunicatorContextImpl(AppContext appContext,
                                      TaskCommunicatorManager taskCommunicatorManager,

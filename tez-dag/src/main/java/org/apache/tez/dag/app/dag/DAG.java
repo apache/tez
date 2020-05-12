@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -73,8 +71,6 @@ public interface DAG extends DagInfo {
   float getCompletedTaskProgress();
   boolean isUber();
   String getUserName();
-
-  Configuration getConf();
 
   DAGPlan getJobPlan();
   DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions);
