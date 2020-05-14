@@ -327,6 +327,33 @@ public class TestAMNodeTracker {
     }
   }
 
+  @Test(timeout=10000)
+  public void testMultipleAMNodeIDs() {
+    AppContext appContext = mock(AppContext.class);
+    Configuration conf = new Configuration(false);
+    conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
+    TestEventHandler handler = new TestEventHandler();
+    AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
+    doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    AMContainerMap amContainerMap = mock(AMContainerMap.class);
+    TaskSchedulerManager taskSchedulerManager =
+      mock(TaskSchedulerManager.class);
+    dispatcher.register(AMNodeEventType.class, amNodeTracker);
+    dispatcher.register(AMContainerEventType.class, amContainerMap);
+    dispatcher.register(AMSchedulerEventType.class, taskSchedulerManager);
+    amNodeTracker.init(conf);
+    amNodeTracker.start();
+    try {
+      amNodeTracker.nodeSeen(new ExtendedNodeId(NodeId.newInstance("host", 2222), "uuid1"), 0);
+      amNodeTracker.nodeSeen(new ExtendedNodeId(NodeId.newInstance("host", 2222), "uuid1"), 0);
+      amNodeTracker.nodeSeen(new ExtendedNodeId(NodeId.newInstance("host", 2222), "uuid2"), 0);
+      amNodeTracker.nodeSeen(new ExtendedNodeId(NodeId.newInstance("host", 2222), "uuid2"), 0);
+      assertEquals(2, amNodeTracker.getNumNodes(0));
+    } finally {
+      amNodeTracker.stop();
+    }
+  }
+
   @Test(timeout = 10000L)
   public void testNodeCompletedAndCleanup() {
     AppContext appContext = mock(AppContext.class);
@@ -401,15 +428,26 @@ public class TestAMNodeTracker {
 
   @Test(timeout=10000)
   public void testNodeUnhealthyRescheduleTasksEnabled() throws Exception {
-    _testNodeUnhealthyRescheduleTasks(true);
+    _testNodeUnhealthyRescheduleTasks(true, false);
   }
 
   @Test(timeout=10000)
   public void testNodeUnhealthyRescheduleTasksDisabled() throws Exception {
-    _testNodeUnhealthyRescheduleTasks(false);
+    _testNodeUnhealthyRescheduleTasks(false, false);
   }
 
-  private void _testNodeUnhealthyRescheduleTasks(boolean rescheduleTasks) {
+
+  @Test(timeout=10000)
+  public void testNodeUnhealthyRescheduleTasksEnabledAMNode() throws Exception {
+    _testNodeUnhealthyRescheduleTasks(true, true);
+  }
+
+  @Test(timeout=10000)
+  public void testNodeUnhealthyRescheduleTasksDisabledAMNode() throws Exception {
+    _testNodeUnhealthyRescheduleTasks(false, true);
+  }
+
+  private void _testNodeUnhealthyRescheduleTasks(boolean rescheduleTasks, boolean useExtendedNodeId) {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
@@ -422,8 +460,14 @@ public class TestAMNodeTracker {
 
     // add a node
     amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1, 0));
-    NodeId nodeId = NodeId.newInstance("host1", 1234);
-    amNodeTracker.nodeSeen(nodeId, 0);
+    NodeId nodeId;
+    if (useExtendedNodeId) {
+      nodeId = new ExtendedNodeId(NodeId.newInstance("host1", 1234), "uuid2");
+      amNodeTracker.nodeSeen(nodeId, 0);
+    } else {
+      nodeId = NodeId.newInstance("host1", 1234);
+      amNodeTracker.nodeSeen(nodeId, 0);
+    }
     AMNodeImpl node = (AMNodeImpl) amNodeTracker.get(nodeId, 0);
 
     // simulate task starting on node

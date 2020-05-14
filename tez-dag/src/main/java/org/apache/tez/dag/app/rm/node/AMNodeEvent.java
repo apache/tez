@@ -25,15 +25,24 @@ public class AMNodeEvent extends AbstractEvent<AMNodeEventType> {
 
   private final NodeId nodeId;
   private final int schedulerId;
+  private ExtendedNodeId amNodeId;
 
   public AMNodeEvent(NodeId nodeId, int schedulerId, AMNodeEventType type) {
     super(type);
     this.nodeId = nodeId;
     this.schedulerId = schedulerId;
+    this.amNodeId = null;
+  }
+
+  public AMNodeEvent(ExtendedNodeId amNodeId, int schedulerId, AMNodeEventType type) {
+    super(type);
+    this.nodeId = null;
+    this.schedulerId = schedulerId;
+    this.amNodeId = amNodeId;
   }
 
   public NodeId getNodeId() {
-    return this.nodeId;
+    return amNodeId == null ? this.nodeId : this.amNodeId;
   }
 
   public int getSchedulerId() {
