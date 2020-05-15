@@ -42,6 +42,8 @@ public class VersionInfo {
   private static final String VERSION = "version";
   private static final String REVISION = "revision";
   private static final String BUILD_TIME = "buildtime";
+  private static final String BUILD_USER = "builduser";
+  private static final String BUILD_JAVA_VERSION = "buildjavaversion";
   private static final String SCM_URL = "scmurl";
 
   public static final String UNKNOWN = "Unknown";
@@ -66,13 +68,15 @@ public class VersionInfo {
 
   @VisibleForTesting
   @Private
-  protected VersionInfo(String component, String version, String revision,
-      String buildTime, String scmUrl) {
+  protected VersionInfo(String component, String version, String revision, String buildTime,
+      String scmUrl) {
     this.info = new Properties();
     this.component = component;
     info.setProperty(VERSION, version);
     info.setProperty(REVISION, revision);
     info.setProperty(BUILD_TIME, buildTime);
+    info.setProperty(BUILD_USER, System.getProperty("user.name"));
+    info.setProperty(BUILD_JAVA_VERSION, System.getProperty("java.version"));
     info.setProperty(SCM_URL, scmUrl);
   }
 
@@ -82,6 +86,14 @@ public class VersionInfo {
 
   public String getBuildTime() {
     return info.getProperty(BUILD_TIME, UNKNOWN);
+  }
+
+  public String getBuildUser() {
+    return info.getProperty(BUILD_USER, UNKNOWN);
+  }
+
+  public String getBuildJavaVersion() {
+    return info.getProperty(BUILD_JAVA_VERSION, UNKNOWN);
   }
 
   public String getRevision() {
@@ -99,6 +111,8 @@ public class VersionInfo {
         + ", revision=" + getRevision()
         + ", SCM-URL=" + getSCMURL()
         + ", buildTime=" + getBuildTime()
+        + ", buildUser=" + getBuildUser()
+        + ", buildJavaVersion=" + getBuildJavaVersion()
         + " ]";
   }
 
