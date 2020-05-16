@@ -166,6 +166,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final Lock dagStatusLock = new ReentrantLock();
   private final Condition dagStateChangedCondition = dagStatusLock.newCondition();
   private final AtomicBoolean isFinalState = new AtomicBoolean(false);
+  private final AtomicBoolean runningStatusYetToBeConsumed = new AtomicBoolean(false);
   private final Lock readLock;
   private final Lock writeLock;
   private final String dagName;
@@ -585,8 +586,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       implements OnStateChangedCallback<DAGState, DAGImpl> {
     @Override
     public void onStateChanged(DAGImpl dag, DAGState dagState) {
-      if (dagState != DAGState.RUNNING) {
+      switch(dagState) {
+      case RUNNING:
+        dag.runningStatusYetToBeConsumed.set(true);
+        break;
+      case SUCCEEDED:
+      case FAILED:
+      case KILLED:
+      case ERROR:
         dag.isFinalState.set(true);
+        break;
+      default:
+        break;
       }
       dag.dagStatusLock.lock();
       try {
@@ -948,6 +959,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       try {
         // Check within the lock to ensure we don't end up waiting after the notify has happened
         if (isFinalState.get()) {
+          break;
+        }
+        if (runningStatusYetToBeConsumed.compareAndSet(true, false)) {
+          // No need to wait further, as state just got changed to RUNNING
           break;
         }
         nanosLeft = dagStateChangedCondition.awaitNanos(timeoutNanos);
