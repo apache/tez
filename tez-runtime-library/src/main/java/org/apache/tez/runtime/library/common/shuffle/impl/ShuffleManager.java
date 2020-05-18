@@ -137,8 +137,8 @@ public class ShuffleManager implements FetcherCallback {
   /**
    * Events reporting fetcher failed.
    */
-  private final HashMap<InputReadErrorEvent, Integer> failedEvents
-      = new HashMap<>();
+  @VisibleForTesting
+  final HashMap<InputReadErrorEvent, Integer> failedEvents = new HashMap<>();
 
   private final ListeningExecutorService schedulerExecutor;
   private final RunShuffleCallable schedulerCallable;
@@ -182,6 +182,8 @@ public class ShuffleManager implements FetcherCallback {
    * Holds the time to wait for failures to batch them and send less events.
    */
   private final int maxTimeToWaitForReportMillis;
+
+  private final int maxFetchFailuresBeforeReporting;
   
   private final String srcNameTrimmed;
 
@@ -247,6 +249,9 @@ public class ShuffleManager implements FetcherCallback {
     this.maxTimeToWaitForReportMillis = conf.getInt(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT_DEFAULT);
+    this.maxFetchFailuresBeforeReporting = conf.getInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT_DEFAULT);
 
 
     this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
@@ -364,23 +369,22 @@ public class ShuffleManager implements FetcherCallback {
     @Override
     protected Void callInternal() throws Exception {
       long nextReport = 0;
+      boolean signaled = false;
       while (!isShutdown.get()) {
         try {
           reportLock.lock();
           while (failedEvents.isEmpty()) {
-            boolean signaled = reportCondition.await(maxTimeToWaitForReportMillis,
-                TimeUnit.MILLISECONDS);
+            signaled = reportCondition.await(maxTimeToWaitForReportMillis, TimeUnit.MILLISECONDS);
           }
 
           long currentTime = clock.getTime();
-          if (currentTime > nextReport) {
+          if (currentTime > nextReport || signaled) {
             if (failedEvents.size() > 0) {
-              List<Event> failedEventsToSend = Lists.newArrayListWithCapacity(
-                  failedEvents.size());
+              List<Event> failedEventsToSend = Lists.newArrayListWithCapacity(failedEvents.size());
               for (InputReadErrorEvent key : failedEvents.keySet()) {
                 failedEventsToSend.add(InputReadErrorEvent
                     .create(key.getDiagnostics(), key.getIndex(),
-                        key.getVersion(), failedEvents.get(key)));
+                        key.getVersion(), failedEvents.get(key), key.isReadError()));
               }
               inputContext.sendEvents(failedEventsToSend);
               failedEvents.clear();
@@ -925,37 +929,45 @@ public class ShuffleManager implements FetcherCallback {
   }
 
   @Override
-  public void fetchFailed(String host,
-      InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
-    // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
-    // For now, reporting immediately.
+  public void fetchFailed(String host, InputAttemptIdentifier srcAttemptIdentifier,
+                          boolean readError, boolean connectError) {
     LOG.info(srcNameTrimmed + ": " + "Fetch failed for src: " + srcAttemptIdentifier
-        + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
-        + connectFailed);
+        + "InputIdentifier: " + srcAttemptIdentifier + ", readFailed: " + readError +
+            ", connectFailed: " + connectError);
     failedShufflesCounter.increment(1);
     inputContext.notifyProgress();
     if (srcAttemptIdentifier == null) {
       reportFatalError(null, "Received fetchFailure for an unknown src (null)");
     } else {
-      InputReadErrorEvent readError = InputReadErrorEvent.create(
+      InputReadErrorEvent readErrorEvent = InputReadErrorEvent.create(
           "Fetch failure while fetching from "
               + TezRuntimeUtils.getTaskAttemptIdentifier(
               inputContext.getSourceVertexName(),
               srcAttemptIdentifier.getInputIdentifier(),
               srcAttemptIdentifier.getAttemptNumber()),
           srcAttemptIdentifier.getInputIdentifier(),
-          srcAttemptIdentifier.getAttemptNumber());
+          srcAttemptIdentifier.getAttemptNumber(), readError);
+      /**
+       * Inform AM:
+       *    - Immediately if maxTimeToWaitForReportMillis is 0
+       *    - When time exceeded SHUFFLE_BATCH_WAIT ms (batch events)
+       *    - When more than THRESHOLD readErrors occurred for a particular task_attempt
+       *    maxFetchFailuresBeforeReporting (5) (batch events)
+       */
       if (maxTimeToWaitForReportMillis > 0) {
         try {
           reportLock.lock();
-          failedEvents.merge(readError, 1, (a, b) -> a + b);
-          reportCondition.signal();
+          failedEvents.merge(readErrorEvent, 1, (a, b) -> a + b);
+          // Time-based batching is taken care by ReporterCallable thread
+          if (readError && (failedEvents.get(readErrorEvent) % maxFetchFailuresBeforeReporting) == 0) {
+            reportCondition.signal();
+          }
         } finally {
           reportLock.unlock();
         }
       } else {
         List<Event> events = Lists.newArrayListWithCapacity(1);
-        events.add(readError);
+        events.add(readErrorEvent);
         inputContext.sendEvents(events);
       }
     }

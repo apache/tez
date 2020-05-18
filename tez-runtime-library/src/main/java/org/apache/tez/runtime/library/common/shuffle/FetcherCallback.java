@@ -24,10 +24,10 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 
 public interface FetcherCallback {
 
-  public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
+  void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
       FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
       throws IOException;
   
-  public void fetchFailed(String host, InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed);
+  void fetchFailed(String host, InputAttemptIdentifier srcAttemptIdentifier, boolean readError, boolean connectFailed);
 
 }
