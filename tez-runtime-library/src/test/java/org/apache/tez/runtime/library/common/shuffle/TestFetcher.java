@@ -216,8 +216,9 @@ public class TestFetcher {
     for (int i : sucessfulAttempts) {
       verifyFetchSucceeded(callback, srcAttempts[i], conf);
     }
-    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[FIRST_FAILED_ATTEMPT_IDX]), eq(false), eq(false));
-    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[SECOND_FAILED_ATTEMPT_IDX]), eq(false), eq(false));
+    // Local disk fetches should have ReadError=true
+    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[FIRST_FAILED_ATTEMPT_IDX]), eq(true), eq(false));
+    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[SECOND_FAILED_ATTEMPT_IDX]), eq(true), eq(false));
 
     Assert.assertEquals("fetchResult host", fetchResult.getHost(), HOST);
     Assert.assertEquals("fetchResult partition", fetchResult.getPartition(), partition);
