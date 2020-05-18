@@ -1047,6 +1047,10 @@ public class TezClientUtils {
     }
 
     while (pathComponent != null) {
+      int depth = pathComponent.depth();
+      if (0 == depth) {
+        break;
+      }
       if (!fs.getFileStatus(pathComponent).getPermission().getOtherAction().implies(permission)) {
         return false;
       }
