@@ -30,6 +30,7 @@ public class Limits {
   
   private static final Logger LOG = LoggerFactory.getLogger(Limits.class);
 
+  private static final Configuration DEFAULT_CONFIGURATION = new TezConfiguration();
   private static Configuration conf = null;
   private static int GROUP_NAME_MAX;
   private static int COUNTER_NAME_MAX;
@@ -37,11 +38,12 @@ public class Limits {
   private static int COUNTERS_MAX;
 
   static {
-    init(new TezConfiguration());
+    init(DEFAULT_CONFIGURATION);
   }
 
   public synchronized static void setConfiguration(Configuration conf) {
-    if (Limits.conf == null && conf != null) {
+    // see change to reset()
+    if (Limits.conf == DEFAULT_CONFIGURATION && conf != null) {
       init(conf);
     }
   }
@@ -105,7 +107,7 @@ public class Limits {
   @VisibleForTesting
   @InterfaceAudience.Private
   public synchronized static void reset() {
-    conf = null;
+    conf = DEFAULT_CONFIGURATION;
   }
 
 }
