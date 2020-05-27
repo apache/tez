@@ -69,6 +69,7 @@ public class TestMRInput {
     doReturn(1).when(inputContext).getTaskIndex();
     doReturn(1).when(inputContext).getTaskAttemptNumber();
     doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn(new JobConf(false)).when(inputContext).getContainerConfiguration();
 
 
     MRInput mrInput = new MRInput(inputContext, 0);
@@ -120,6 +121,7 @@ public class TestMRInput {
     doReturn(TEST_ATTRIBUTES_INPUT_NAME).when(inputContext).getSourceVertexName();
     doReturn(TEST_ATTRIBUTES_APPLICATION_ID).when(inputContext).getApplicationId();
     doReturn(TEST_ATTRIBUTES_UNIQUE_IDENTIFIER).when(inputContext).getUniqueIdentifier();
+    doReturn(new Configuration(false)).when(inputContext).getContainerConfiguration();
 
 
     DataSourceDescriptor dsd = MRInput.createConfigBuilder(new Configuration(false),
@@ -145,6 +147,43 @@ public class TestMRInput {
         .findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES);
     assertEquals(counter.getValue(), TestInputSplit.length);
     assertTrue(TestInputFormat.invoked.get());
+  }
+
+  @Test(timeout = 5000)
+  public void testConfigMerge() throws Exception {
+    JobConf jobConf = new JobConf(false);
+    jobConf.set("payload-key", "payload-value");
+
+    Configuration localConfig = new Configuration(false);
+    localConfig.set("local-key", "local-value");
+
+    InputContext inputContext = mock(InputContext.class);
+
+    DataSourceDescriptor dsd = MRInput.createConfigBuilder(jobConf,
+        TestInputFormat.class).groupSplits(false).build();
+
+    doReturn(dsd.getInputDescriptor().getUserPayload()).when(inputContext).getUserPayload();
+    doReturn(TEST_ATTRIBUTES_DAG_INDEX).when(inputContext).getDagIdentifier();
+    doReturn(TEST_ATTRIBUTES_VERTEX_INDEX).when(inputContext).getTaskVertexIndex();
+    doReturn(TEST_ATTRIBUTES_TASK_INDEX).when(inputContext).getTaskIndex();
+    doReturn(TEST_ATTRIBUTES_TASK_ATTEMPT_INDEX).when(inputContext).getTaskAttemptNumber();
+    doReturn(TEST_ATTRIBUTES_INPUT_INDEX).when(inputContext).getInputIndex();
+    doReturn(TEST_ATTRIBUTES_DAG_ATTEMPT_NUMBER).when(inputContext).getDAGAttemptNumber();
+    doReturn(TEST_ATTRIBUTES_DAG_NAME).when(inputContext).getDAGName();
+    doReturn(TEST_ATTRIBUTES_VERTEX_NAME).when(inputContext).getTaskVertexName();
+    doReturn(TEST_ATTRIBUTES_INPUT_NAME).when(inputContext).getSourceVertexName();
+    doReturn(TEST_ATTRIBUTES_APPLICATION_ID).when(inputContext).getApplicationId();
+    doReturn(TEST_ATTRIBUTES_UNIQUE_IDENTIFIER).when(inputContext).getUniqueIdentifier();
+    doReturn(localConfig).when(inputContext).getContainerConfiguration();
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+
+    MRInputForTest input = new MRInputForTest(inputContext, 1);
+    input.initialize();
+
+    Configuration mergedConfig = input.getConfiguration();
+
+    assertEquals("local-value", mergedConfig.get("local-key"));
+    assertEquals("payload-value", mergedConfig.get("payload-key"));
   }
 
   /**

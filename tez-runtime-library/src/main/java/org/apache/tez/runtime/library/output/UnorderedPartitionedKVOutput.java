@@ -26,14 +26,15 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.tez.common.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
@@ -57,7 +58,8 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   private static final Logger LOG = LoggerFactory.getLogger(UnorderedPartitionedKVOutput.class);
 
-  private Configuration conf;
+  @VisibleForTesting
+  Configuration conf;
   private MemoryUpdateCallbackHandler memoryUpdateCallbackHandler;
   private UnorderedPartitionedKVWriter kvWriter;
   private final AtomicBoolean isStarted = new AtomicBoolean(false);
@@ -68,7 +70,7 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
 
   @Override
   public synchronized List<Event> initialize() throws Exception {
-    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+    this.conf = TezUtils.createConfFromBaseConfAndPayload(getContext());
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
     this.conf.setInt(TezRuntimeFrameworkConfigs.TEZ_RUNTIME_NUM_EXPECTED_PARTITIONS,
         getNumPhysicalOutputs());

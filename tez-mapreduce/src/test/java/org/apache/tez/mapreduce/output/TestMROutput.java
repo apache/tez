@@ -94,7 +94,8 @@ public class TestMROutput {
             tmpDir.getPath())
         .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
@@ -109,6 +110,27 @@ public class TestMROutput {
     assertEquals(FileOutputCommitter.class, output.committer.getClass());
   }
 
+  @Test
+  public void testMergeConfig() throws Exception {
+    String outputPath = "/tmp/output";
+    Configuration localConf = new Configuration(false);
+    localConf.set("local-key", "local-value");
+    DataSinkDescriptor dataSink = MROutput
+        .createConfigBuilder(localConf, org.apache.hadoop.mapred.TextOutputFormat.class, outputPath)
+        .build();
+
+    Configuration baseConf = new Configuration(false);
+    baseConf.set("base-key", "base-value");
+
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(), baseConf);
+    MROutput output = new MROutput(outputContext, 2);
+    output.initialize();
+
+    Configuration mergedConf = output.jobConf;
+    assertEquals("local-value", mergedConf.get("local-key"));
+    assertEquals("base-value", mergedConf.get("base-key"));
+  }
+
   @Test(timeout = 5000)
   public void testOldAPI_TextOutputFormat() throws Exception {
     Configuration conf = new Configuration();
@@ -119,7 +141,8 @@ public class TestMROutput {
             tmpDir.getPath())
         .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
@@ -144,7 +167,8 @@ public class TestMROutput {
             tmpDir.getPath())
         .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
     assertEquals(true, output.useNewApi);
@@ -169,7 +193,8 @@ public class TestMROutput {
             tmpDir.getPath())
         .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
     assertEquals(false, output.useNewApi);
@@ -194,7 +219,8 @@ public class TestMROutput {
           tmpDir.getPath())
       .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
@@ -220,7 +246,8 @@ public class TestMROutput {
           tmpDir.getPath())
       .build();
 
-    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload());
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+        new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
 
@@ -235,7 +262,7 @@ public class TestMROutput {
     assertEquals(org.apache.hadoop.mapred.FileOutputCommitter.class, output.committer.getClass());
   }
 
-  private OutputContext createMockOutputContext(UserPayload payload) {
+  private OutputContext createMockOutputContext(UserPayload payload, Configuration baseConf) {
     OutputContext outputContext = mock(OutputContext.class);
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     when(outputContext.getUserPayload()).thenReturn(payload);
@@ -243,6 +270,7 @@ public class TestMROutput {
     when(outputContext.getTaskVertexIndex()).thenReturn(1);
     when(outputContext.getTaskAttemptNumber()).thenReturn(1);
     when(outputContext.getCounters()).thenReturn(new TezCounters());
+    when(outputContext.getContainerConfiguration()).thenReturn(baseConf);
     return outputContext;
   }
   

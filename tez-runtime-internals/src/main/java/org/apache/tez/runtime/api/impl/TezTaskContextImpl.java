@@ -56,6 +56,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   protected final String taskVertexName;
   protected final TezTaskAttemptID taskAttemptID;
   private final TezCounters counters;
+  private Configuration configuration;
   private String[] workDirs;
   private String uniqueIdentifier;
   protected final LogicalIOProcessorRuntimeTask runtimeTask;
@@ -91,6 +92,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
     Objects.requireNonNull(descriptor, "descriptor is null");
     Objects.requireNonNull(sharedExecutor, "sharedExecutor is null");
     this.dagName = dagName;
+    this.configuration = conf;
     this.taskVertexName = taskVertexName;
     this.taskAttemptID = taskAttemptID;
     this.counters = counters;
@@ -133,6 +135,11 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   @Override
   public int getTaskAttemptNumber() {
     return taskAttemptID.getId();
+  }
+
+  @Override
+  public Configuration getContainerConfiguration() {
+    return configuration;
   }
 
   @Override

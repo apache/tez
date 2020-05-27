@@ -70,7 +70,8 @@ public class TestMRInputSplitDistributor {
     UserPayload userPayload =
         UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
-    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload,
+        new Configuration(false));
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();
@@ -119,7 +120,8 @@ public class TestMRInputSplitDistributor {
     UserPayload userPayload =
         UserPayload.create(payloadProto.build().toByteString().asReadOnlyByteBuffer());
 
-    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload);
+    InputInitializerContext context = new TezTestUtils.TezRootInputInitializerContextForTest(userPayload,
+        new Configuration(false));
     MRInputSplitDistributor splitDist = new MRInputSplitDistributor(context);
 
     List<Event> events = splitDist.initialize();

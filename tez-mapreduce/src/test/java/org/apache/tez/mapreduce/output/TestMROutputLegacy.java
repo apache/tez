@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -182,6 +183,7 @@ public class TestMROutputLegacy {
     when(outputContext.getTaskVertexIndex()).thenReturn(1);
     when(outputContext.getTaskAttemptNumber()).thenReturn(1);
     when(outputContext.getCounters()).thenReturn(new TezCounters());
+    when(outputContext.getContainerConfiguration()).thenReturn(new Configuration(false));
     return outputContext;
   }
 }
