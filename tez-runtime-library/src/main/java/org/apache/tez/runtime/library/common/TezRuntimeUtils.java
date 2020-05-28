@@ -26,6 +26,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 
 import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnection;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.TaskContext;
@@ -259,6 +261,23 @@ public class TezRuntimeUtils {
       return port;
     } finally {
       in.close();
+    }
+  }
+
+  public static String getBufferSizeProperty(CompressionCodec codec) {
+    switch (codec.getClass().getSimpleName().toString()) {
+    case "DefaultCodec":
+      return "io.file.buffer.size";
+    case "SnappyCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
+    case "ZStandardCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
+    case "LzoCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+    case "Lz4Codec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
+    default:
+      return null;
     }
   }
 }
