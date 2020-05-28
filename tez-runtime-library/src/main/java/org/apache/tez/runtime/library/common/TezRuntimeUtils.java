@@ -270,8 +270,6 @@ public class TezRuntimeUtils {
       return "io.file.buffer.size";
     case "SnappyCodec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
-    case "ZStandardCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
     case "LzoCodec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
     case "Lz4Codec":
