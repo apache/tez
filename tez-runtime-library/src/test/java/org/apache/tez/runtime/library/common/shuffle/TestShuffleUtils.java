@@ -3,6 +3,7 @@ package org.apache.tez.runtime.library.common.shuffle;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -10,6 +11,8 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
+import org.apache.hadoop.io.compress.CompressionOutputStream;
+import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezCommonUtils;
@@ -286,7 +289,7 @@ public class TestShuffleUtils {
     when(mockCodecStream.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new InternalError(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
-    CompressionCodec mockCodec = mock(CompressionCodec.class);
+    CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream);
@@ -308,7 +311,7 @@ public class TestShuffleUtils {
     when(mockCodecStream.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new IllegalArgumentException(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
-    CompressionCodec mockCodec = mock(CompressionCodec.class);
+    CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream);
@@ -395,5 +398,67 @@ public class TestShuffleUtils {
     }
     verify(activeLogger, times(1000)).info(anyString());
     verify(aggregateLogger, times(1)).info(anyString(), Matchers.<Object[]>anyVararg());
+  }
+
+  /**
+   * A codec class which implements CompressionCodec, Configurable for testing purposes.
+   */
+  public static class ConfigurableCodecForTest implements CompressionCodec, Configurable {
+
+    @Override
+    public Compressor createCompressor() {
+      return null;
+    }
+
+    @Override
+    public Decompressor createDecompressor() {
+      return null;
+    }
+
+    @Override
+    public CompressionInputStream createInputStream(InputStream arg0) throws IOException {
+      return null;
+    }
+
+    @Override
+    public CompressionInputStream createInputStream(InputStream arg0, Decompressor arg1)
+        throws IOException {
+      return null;
+    }
+
+    @Override
+    public CompressionOutputStream createOutputStream(OutputStream arg0) throws IOException {
+      return null;
+    }
+
+    @Override
+    public CompressionOutputStream createOutputStream(OutputStream arg0, Compressor arg1)
+        throws IOException {
+      return null;
+    }
+
+    @Override
+    public Class<? extends Compressor> getCompressorType() {
+      return null;
+    }
+
+    @Override
+    public Class<? extends Decompressor> getDecompressorType() {
+      return null;
+    }
+
+    @Override
+    public String getDefaultExtension() {
+      return null;
+    }
+
+    @Override
+    public Configuration getConf() {
+      return null;
+    }
+
+    @Override
+    public void setConf(Configuration arg0) {
+    }
   }
 }

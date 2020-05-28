@@ -18,6 +18,13 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,6 +39,7 @@ import java.util.Random;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -39,7 +47,6 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IntWritable;
@@ -48,18 +55,25 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryWriter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
+import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import com.google.protobuf.ByteString;
 
 public class TestIFile {
 
@@ -588,6 +602,26 @@ public class TestIFile {
         codec, null, null, false, 0, 1024);
     verifyData(reader, data);
     reader.close();
+  }
+
+  @Test
+  public void testInMemoryBufferSize() throws IOException {
+    // for smaller amount of data, codec buffer should be sized according to compressed data length
+    List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
+    Writer writer = writeTestFile(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    Configurable configurableCodec = (Configurable) codec;
+    Assert.assertEquals(writer.getCompressedLength(),
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+
+    // buffer size cannot grow infinitely with compressed data size
+    data = KVDataGen.generateTestDataOfKeySize(false, 20000, rnd.nextInt(100));
+    writer = writeTestFile(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    Assert.assertEquals(128*1024,
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
   }
 
   /**
