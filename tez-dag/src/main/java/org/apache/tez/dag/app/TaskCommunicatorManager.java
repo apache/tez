@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -538,7 +539,8 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @Override
   public void registerTaskAttempt(AMContainerTask amContainerTask,
-                                  ContainerId containerId, int taskCommId) {
+                                  ContainerId containerId, int taskCommId,
+                                  Object taskSchedulerInfo) {
     ContainerInfo containerInfo = registeredContainers.get(containerId);
     if (containerInfo == null) {
       throw new TezUncheckedException("Registering task attempt: "
@@ -564,7 +566,7 @@ public class TaskCommunicatorManager extends AbstractService implements
     try {
       taskCommunicators[taskCommId].registerRunningTaskAttempt(containerId, amContainerTask.getTask(),
           amContainerTask.getAdditionalResources(), amContainerTask.getCredentials(),
-          amContainerTask.haveCredentialsChanged(), amContainerTask.getPriority());
+          amContainerTask.haveCredentialsChanged(), amContainerTask.getPriority(), taskSchedulerInfo);
     } catch (Exception e) {
       String msg = "Error in TaskCommunicator when registering Task Attempt"
           + ", communicator=" + Utils.getTaskCommIdentifierString(taskCommId, context)

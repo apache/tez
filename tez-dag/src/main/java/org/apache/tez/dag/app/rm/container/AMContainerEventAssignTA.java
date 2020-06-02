@@ -33,16 +33,18 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
   private final Map<String, LocalResource> taskLocalResources;
   private final Credentials credentials;
   private final int priority;
+  private final Object taskSchedulingInfo;
 
   public AMContainerEventAssignTA(ContainerId containerId, TezTaskAttemptID attemptId,
       Object remoteTaskSpec, Map<String, LocalResource> taskLocalResources, Credentials credentials,
-      int priority) {
+      int priority, Object taskSchedulingInfo) {
     super(containerId, AMContainerEventType.C_ASSIGN_TA);
     this.attemptId = attemptId;
     this.remoteTaskSpec = (TaskSpec) remoteTaskSpec;
     this.taskLocalResources = taskLocalResources;
     this.credentials = credentials;
     this.priority = priority;
+    this.taskSchedulingInfo = taskSchedulingInfo;
   }
 
   public TaskSpec getRemoteTaskSpec() {
@@ -63,5 +65,9 @@ public class AMContainerEventAssignTA extends AMContainerEvent {
 
   public int getPriority() {
     return priority;
+  }
+
+  public Object getTaskSchedulingInfo() {
+    return taskSchedulingInfo;
   }
 }

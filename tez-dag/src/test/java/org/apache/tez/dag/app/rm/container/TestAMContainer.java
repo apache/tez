@@ -132,7 +132,7 @@ public class TestAMContainer {
     verify(wc.chh).register(wc.containerID);
     ArgumentCaptor<AMContainerTask> argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
     verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID),
-        eq(0));
+        eq(0), eq(null));
     assertEquals(1, argumentCaptor.getAllValues().size());
     assertEquals(wc.taskAttemptID, argumentCaptor.getAllValues().get(0).getTask().getTaskAttemptID());
     assertEquals(WrappedContainer.taskPriority, argumentCaptor.getAllValues().get(0).getPriority());
@@ -186,7 +186,7 @@ public class TestAMContainer {
     assertEquals(wc.taskAttemptID, wc.amContainer.getCurrentTaskAttempt());
     ArgumentCaptor<AMContainerTask> argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
     verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID),
-        eq(0));
+        eq(0), eq(null));
     assertEquals(1, argumentCaptor.getAllValues().size());
     assertEquals(wc.taskAttemptID,
         argumentCaptor.getAllValues().get(0).getTask().getTaskAttemptID());
@@ -240,7 +240,7 @@ public class TestAMContainer {
     verify(wc.chh).register(wc.containerID);
     ArgumentCaptor<AMContainerTask> argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
     verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID),
-        eq(0));
+        eq(0), eq(null));
     assertEquals(1, argumentCaptor.getAllValues().size());
     assertEquals(wc.taskAttemptID,
         argumentCaptor.getAllValues().get(0).getTask().getTaskAttemptID());
@@ -257,7 +257,7 @@ public class TestAMContainer {
     wc.verifyState(AMContainerState.RUNNING);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
     verify(wc.tal, times(2)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID),
-        eq(0));
+        eq(0), eq(null));
     assertEquals(2, argumentCaptor.getAllValues().size());
     assertEquals(taId2, argumentCaptor.getAllValues().get(1).getTask().getTaskAttemptID());
 
@@ -1070,7 +1070,7 @@ public class TestAMContainer {
     wc.containerLaunched();
     wc.assignTaskAttempt(wc.taskAttemptID);
     ArgumentCaptor<AMContainerTask> argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     AMContainerTask task1 = argumentCaptor.getAllValues().get(0);
     assertEquals(0, task1.getAdditionalResources().size());
     wc.taskAttemptSucceeded(wc.taskAttemptID);
@@ -1081,9 +1081,9 @@ public class TestAMContainer {
     additionalResources.put(rsrc3, createLocalResource(rsrc3));
 
     TezTaskAttemptID taID2 = TezTaskAttemptID.getInstance(wc.taskID, 2);
-    wc.assignTaskAttempt(taID2, additionalResources, new Credentials());
+    wc.assignTaskAttempt(taID2, additionalResources, new Credentials(), null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(2)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(2)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     AMContainerTask task2 = argumentCaptor.getAllValues().get(1);
     Map<String, LocalResource> pullTaskAdditionalResources = task2.getAdditionalResources();
     assertEquals(2, pullTaskAdditionalResources.size());
@@ -1104,9 +1104,9 @@ public class TestAMContainer {
     // Try launching another task with the same reosurces as Task2. Verify the
     // task is not asked to re-localize again.
     TezTaskAttemptID taID3 = TezTaskAttemptID.getInstance(wc.taskID, 3);
-    wc.assignTaskAttempt(taID3, new HashMap<String, LocalResource>(), new Credentials());
+    wc.assignTaskAttempt(taID3, new HashMap<String, LocalResource>(), new Credentials(), null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(3)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(3)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     AMContainerTask task3 = argumentCaptor.getAllValues().get(2);
     assertEquals(0, task3.getAdditionalResources().size());
     wc.taskAttemptSucceeded(taID3);
@@ -1157,18 +1157,18 @@ public class TestAMContainer {
 
     wc.launchContainer(new HashMap<String, LocalResource>(), containerCredentials);
     wc.containerLaunched();
-    wc.assignTaskAttempt(attempt11, LRs, dag1Credentials);
+    wc.assignTaskAttempt(attempt11, LRs, dag1Credentials, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(0);
     assertTrue(fetchedTask.haveCredentialsChanged());
     assertNotNull(fetchedTask.getCredentials());
     assertNotNull(fetchedTask.getCredentials().getToken(token1Name));
     wc.taskAttemptSucceeded(attempt11);
 
-    wc.assignTaskAttempt(attempt12, LRs, dag1Credentials);
+    wc.assignTaskAttempt(attempt12, LRs, dag1Credentials, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(2)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(2)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(1);
     assertFalse(fetchedTask.haveCredentialsChanged());
     assertNull(fetchedTask.getCredentials());
@@ -1176,17 +1176,17 @@ public class TestAMContainer {
 
     // Move to running a second DAG, with no credentials.
     wc.setNewDAGID(dagID2);
-    wc.assignTaskAttempt(attempt21, LRs, null);
+    wc.assignTaskAttempt(attempt21, LRs, null, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(3)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(3)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(2);
     assertTrue(fetchedTask.haveCredentialsChanged());
     assertNull(fetchedTask.getCredentials());
     wc.taskAttemptSucceeded(attempt21);
 
-    wc.assignTaskAttempt(attempt22, LRs, null);
+    wc.assignTaskAttempt(attempt22, LRs, null, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(4)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(4)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(3);
     assertFalse(fetchedTask.haveCredentialsChanged());
     assertNull(fetchedTask.getCredentials());
@@ -1194,9 +1194,9 @@ public class TestAMContainer {
 
     // Move to running a third DAG, with Credentials this time
     wc.setNewDAGID(dagID3);
-    wc.assignTaskAttempt(attempt31, LRs , dag3Credentials);
+    wc.assignTaskAttempt(attempt31, LRs , dag3Credentials, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(5)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(5)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(4);
     assertTrue(fetchedTask.haveCredentialsChanged());
     assertNotNull(fetchedTask.getCredentials());
@@ -1204,13 +1204,71 @@ public class TestAMContainer {
     assertNull(fetchedTask.getCredentials().getToken(token1Name));
     wc.taskAttemptSucceeded(attempt31);
 
-    wc.assignTaskAttempt(attempt32, LRs, dag1Credentials);
+    wc.assignTaskAttempt(attempt32, LRs, dag1Credentials, null);
     argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
-    verify(wc.tal, times(6)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0));
+    verify(wc.tal, times(6)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID), eq(0), eq(null));
     fetchedTask = argumentCaptor.getAllValues().get(5);
     assertFalse(fetchedTask.haveCredentialsChanged());
     assertNull(fetchedTask.getCredentials());
     wc.taskAttemptSucceeded(attempt32);
+  }
+
+  @Test (timeout=5000)
+  public void testTaskSchedulingInfo() {
+    WrappedContainer wc = new WrappedContainer();
+
+    wc.verifyState(AMContainerState.ALLOCATED);
+
+    // Launch request.
+    wc.launchContainer();
+    wc.verifyState(AMContainerState.LAUNCHING);
+    // 1 Launch request.
+    wc.verifyCountAndGetOutgoingEvents(1);
+    verify(wc.tal).registerRunningContainer(wc.containerID, 0);
+    assertNull(wc.amContainer.getCurrentTaskAttempt());
+
+    // Assign task.
+    long currTime = wc.appContext.getClock().getTime();
+    wc.assignTaskAttempt(wc.taskAttemptID, new HashMap<String, LocalResource>(), new Credentials(), "extraSchedulingInfo");
+    wc.verifyState(AMContainerState.LAUNCHING);
+    wc.verifyNoOutgoingEvents();
+    assertEquals(wc.taskAttemptID, wc.amContainer.getCurrentTaskAttempt());
+    assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() > 0);
+    assertTrue(wc.amContainer.getCurrentTaskAttemptAllocationTime() >= currTime);
+
+    // Container Launched
+    wc.containerLaunched();
+    wc.verifyState(AMContainerState.RUNNING);
+    wc.verifyNoOutgoingEvents();
+    assertEquals(wc.taskAttemptID, wc.amContainer.getCurrentTaskAttempt());
+    // Once for the previous NO_TASKS, one for the actual task.
+    verify(wc.chh).register(wc.containerID);
+    ArgumentCaptor<AMContainerTask> argumentCaptor = ArgumentCaptor.forClass(AMContainerTask.class);
+    verify(wc.tal, times(1)).registerTaskAttempt(argumentCaptor.capture(), eq(wc.containerID),
+        eq(0), eq("extraSchedulingInfo"));
+    assertEquals(1, argumentCaptor.getAllValues().size());
+    assertEquals(wc.taskAttemptID, argumentCaptor.getAllValues().get(0).getTask().getTaskAttemptID());
+    assertEquals(WrappedContainer.taskPriority, argumentCaptor.getAllValues().get(0).getPriority());
+
+    // Attempt succeeded
+    wc.taskAttemptSucceeded(wc.taskAttemptID);
+    wc.verifyState(AMContainerState.IDLE);
+    wc.verifyNoOutgoingEvents();
+    assertNull(wc.amContainer.getCurrentTaskAttempt());
+    verifyUnregisterTaskAttempt(wc.tal, wc.taskAttemptID, 0, TaskAttemptEndReason.OTHER, null);
+
+    // Container completed
+    wc.containerCompleted();
+    wc.verifyHistoryStopEvent();
+    wc.verifyState(AMContainerState.COMPLETED);
+    List<Event> outgoingEvents = wc.verifyCountAndGetOutgoingEvents(1);
+    verifyUnOrderedOutgoingEventTypes(outgoingEvents,
+        AMNodeEventType.N_CONTAINER_COMPLETED);
+    verifyUnregisterRunningContainer(wc.tal, wc.containerID, 0, ContainerEndReason.COMPLETED, null);
+    verify(wc.chh).unregister(wc.containerID);
+
+    assertEquals(1, wc.amContainer.getAllTaskAttempts().size());
+    assertFalse(wc.amContainer.isInErrorState());
   }
 
   // TODO Verify diagnostics in most of the tests.
@@ -1349,15 +1407,15 @@ public class TestAMContainer {
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID) {
-      assignTaskAttempt(taID, new HashMap<String, LocalResource>(), new Credentials());
+      assignTaskAttempt(taID, new HashMap<String, LocalResource>(), new Credentials(), null);
     }
 
     public void assignTaskAttempt(TezTaskAttemptID taID,
-        Map<String, LocalResource> additionalResources, Credentials credentials) {
+        Map<String, LocalResource> additionalResources, Credentials credentials, Object taskSchedulingInfo) {
       reset(eventHandler);
       doReturn(taID).when(taskSpec).getTaskAttemptID();
       amContainer.handle(new AMContainerEventAssignTA(containerID, taID, taskSpec,
-          additionalResources, credentials, taskPriority));
+          additionalResources, credentials, taskPriority, taskSchedulingInfo));
     }
 
     public void containerLaunched() {

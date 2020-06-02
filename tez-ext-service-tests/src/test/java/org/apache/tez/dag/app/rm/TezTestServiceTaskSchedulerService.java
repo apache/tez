@@ -45,6 +45,12 @@ import org.slf4j.LoggerFactory;
 
 public class TezTestServiceTaskSchedulerService extends TaskScheduler {
 
+  /**
+   * This key is used to instruct scheduler to pass extra information to
+   * communicator along with task allocation
+   */
+  public static final String TEST_PASS_CONTAINERID_WITH_ALLOCATION = "test.tez.pass.containerid.with.allocation";
+
   private static final Logger
       LOG = LoggerFactory.getLogger(TezTestServiceTaskSchedulerService.class);
 
@@ -53,6 +59,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   private final Random random = new Random();
   // Currently all services must be running on the same port.
   private final int containerPort;
+  private final boolean passPerTaskInfo;
 
   private final ConcurrentMap<Object, ContainerId> runningTasks =
       new ConcurrentHashMap<Object, ContainerId>();
@@ -83,6 +90,7 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
     } catch (IOException e) {
       throw new TezUncheckedException(e);
     }
+    this.passPerTaskInfo = conf.getBoolean(TEST_PASS_CONTAINERID_WITH_ALLOCATION, false);
     this.memoryPerInstance = conf
         .getInt(TezTestServiceConfConstants.TEZ_TEST_SERVICE_MEMORY_PER_INSTANCE_MB, -1);
     Preconditions.checkArgument(memoryPerInstance > 0,
@@ -166,7 +174,11 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
     Container container =
         containerFactory.createContainer(resourcePerContainer, priority, host, containerPort);
     runningTasks.put(task, container.getId());
-    getContext().taskAllocated(task, clientCookie, container);
+    if (passPerTaskInfo) {
+      getContext().taskAllocated(task, clientCookie, container, container.getId());
+    } else {
+      getContext().taskAllocated(task, clientCookie, container);
+    }
   }
 
 
@@ -177,7 +189,11 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
     Container container =
         containerFactory.createContainer(resourcePerContainer, priority, host, containerPort);
     runningTasks.put(task, container.getId());
-    getContext().taskAllocated(task, clientCookie, container);
+    if (passPerTaskInfo) {
+      getContext().taskAllocated(task, clientCookie, container, container.getId());
+    } else {
+      getContext().taskAllocated(task, clientCookie, container);
+    }
   }
 
   @Override

@@ -148,6 +148,33 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
       ServicePluginException;
 
   /**
+   * Register a task attempt to execute on a container. Communicator implementation must override
+   * this method rather than {@link #registerRunningTaskAttempt(ContainerId, TaskSpec, Map, Credentials, boolean, int)}
+   * if scheduler attaches custom info to tasks.
+   *
+   * @param containerId         the containerId on which this task needs to run
+   * @param taskSpec            the task specifications for the task to be executed
+   * @param additionalResources additional local resources which may be required to run this task
+   *                            on
+   *                            the container
+   * @param credentials         the credentials required to run this task
+   * @param credentialsChanged  whether the credentials are different from the original credentials
+   *                            associated with this container
+   * @param priority            the priority of the task being executed
+   * @param taskSchedulerInfo   task specific info created by scheduler
+   * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
+   *                               This will cause the app to shutdown.
+   */
+  public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
+      Map<String, LocalResource> additionalResources,
+      Credentials credentials,
+      boolean credentialsChanged, int priority,
+      Object taskSchedulerInfo) throws ServicePluginException {
+    registerRunningTaskAttempt(containerId, taskSpec, additionalResources, credentials, credentialsChanged,
+        priority);
+  }
+
+  /**
    * Register the completion of a task. This may be a result of preemption, the container dying,
    * the node dying, the task completing to success
    *

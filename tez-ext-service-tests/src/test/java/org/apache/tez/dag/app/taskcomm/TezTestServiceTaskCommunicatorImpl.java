@@ -29,8 +29,10 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.dag.app.rm.TezTestServiceTaskSchedulerService;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.ContainerEndReason;
+import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.dag.app.TezTaskCommunicatorImpl;
@@ -53,11 +55,21 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
   private final SubmitWorkRequestProto BASE_SUBMIT_WORK_REQUEST;
   private final ConcurrentMap<String, ByteBuffer> credentialMap;
 
+  /**
+   * This is to test if scheduler is able to pass custom info to communicator. Tez
+   * does not make use of this mechanism by default. External implementations of
+   * scheduler and communicator may make use of this feature.
+   */
+  private final boolean expectContainerIdAsExtraInfo;
+
   public TezTestServiceTaskCommunicatorImpl(
       TaskCommunicatorContext taskCommunicatorContext) {
     super(taskCommunicatorContext);
     // TODO Maybe make this configurable
     this.communicator = new TezTestServiceCommunicator(3);
+
+    this.expectContainerIdAsExtraInfo =
+        conf.getBoolean(TezTestServiceTaskSchedulerService.TEST_PASS_CONTAINERID_WITH_ALLOCATION, false);
 
     SubmitWorkRequestProto.Builder baseBuilder = SubmitWorkRequestProto.newBuilder();
 
@@ -173,6 +185,18 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
             }
           }
         });
+  }
+
+  @Override
+  public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
+      Map<String, LocalResource> additionalResources, Credentials credentials, boolean credentialsChanged, int priority,
+      Object taskSchedulerInfo) throws ServicePluginException {
+    if (expectContainerIdAsExtraInfo && !containerId.equals(taskSchedulerInfo)) {
+      throw new RuntimeException("Expected containerId " + containerId
+          + " as custom info from scheduler but got " + taskSchedulerInfo);
+    }
+    super.registerRunningTaskAttempt(containerId, taskSpec, additionalResources, credentials, credentialsChanged,
+        priority, taskSchedulerInfo);
   }
 
   @Override

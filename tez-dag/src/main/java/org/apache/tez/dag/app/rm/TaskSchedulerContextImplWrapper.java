@@ -71,6 +71,13 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   }
 
   @Override
+  public void taskAllocated(Object task, Object appCookie, Container container,
+      Object taskSchedulingInfo) {
+    executorService.submit(new TaskAllocatedCallableWithCustomInfo(real, task, appCookie,
+        container, taskSchedulingInfo));
+  }
+
+  @Override
   public void containerCompleted(Object taskLastAllocated,
       ContainerStatus containerStatus) {
     executorService.submit(new ContainerCompletedCallable(real,
@@ -222,6 +229,29 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     @Override
     public Void call() throws Exception {
       app.taskAllocated(task, appCookie, container);
+      return null;
+    }
+  }
+
+  static class TaskAllocatedCallableWithCustomInfo extends TaskSchedulerContextCallbackBase
+      implements Callable<Void> {
+    private final Object task;
+    private final Object appCookie;
+    private final Container container;
+    private final Object taskSchedulingInfo;
+
+    public TaskAllocatedCallableWithCustomInfo(TaskSchedulerContext app, Object task,
+        Object appCookie, Container container, Object taskSchedulingInfo) {
+      super(app);
+      this.task = task;
+      this.appCookie = appCookie;
+      this.container = container;
+      this.taskSchedulingInfo = taskSchedulingInfo;
+    }
+
+    @Override
+    public Void call() throws Exception {
+      app.taskAllocated(task, appCookie, container, taskSchedulingInfo);
       return null;
     }
   }

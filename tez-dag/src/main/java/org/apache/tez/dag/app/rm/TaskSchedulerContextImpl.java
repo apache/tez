@@ -16,6 +16,8 @@ package org.apache.tez.dag.app.rm;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,7 +68,12 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   // taskAllocated() upcall and deallocateTask() downcall
   @Override
   public void taskAllocated(Object task, Object appCookie, Container container) {
-    taskSchedulerManager.taskAllocated(schedulerId, task, appCookie, container);
+    taskAllocated(task, appCookie, container, null);
+  }
+
+  @Override
+  public void taskAllocated(Object task, Object appCookie, Container container, Object taskSchedulingInfo) {
+    taskSchedulerManager.taskAllocated(schedulerId, task, appCookie, container, taskSchedulingInfo);
   }
 
   @Override

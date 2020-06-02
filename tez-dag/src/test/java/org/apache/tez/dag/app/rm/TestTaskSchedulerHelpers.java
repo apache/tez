@@ -262,6 +262,12 @@ class TestTaskSchedulerHelpers {
     }
 
     @Override
+    public void taskAllocated(Object task, Object appCookie, Container container,
+        Object taskSchedulingInfo) {
+      taskAllocated(task, appCookie, container);
+    }
+
+    @Override
     public void containerCompleted(Object taskLastAllocated,
         ContainerStatus containerStatus) {
       invocations++;
