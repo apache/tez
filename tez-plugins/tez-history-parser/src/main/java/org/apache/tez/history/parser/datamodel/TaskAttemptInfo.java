@@ -405,7 +405,7 @@ public class TaskAttemptInfo extends BaseInfo {
     sb.append("container=").append(getContainer()).append(", ");
     sb.append("nodeId=").append(getNodeId()).append(", ");
     sb.append("logURL=").append(getLogURL()).append(", ");
-    sb.append("status=").append(getStatus());
+    sb.append("status=").append(getDetailedStatus());
     sb.append("]");
     return sb.toString();
   }

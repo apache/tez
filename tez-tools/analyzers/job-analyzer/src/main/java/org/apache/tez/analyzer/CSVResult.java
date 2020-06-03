@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -65,6 +67,10 @@ public class CSVResult implements Result {
     return Iterators.unmodifiableIterator(recordsList.iterator());
   }
 
+  @SuppressWarnings({ "rawtypes", "unchecked" })
+  public void sort(Comparator comparator) {
+    Collections.sort(recordsList, comparator);
+  }
 
   public void setComments(String comments) {
     this.comments = comments;

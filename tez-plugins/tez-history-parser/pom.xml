@@ -55,6 +55,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>tez-protobuf-history-plugin</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-yarn-timeline-history</artifactId>
       <scope>test</scope>
       <type>test-jar</type>

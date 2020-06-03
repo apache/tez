@@ -46,6 +46,8 @@ public class AnalyzerDriver {
           "Print spill details in a DAG");
       pgd.addClass("TaskAssignmentAnalyzer", TaskAssignmentAnalyzer.class,
           "Print task-to-node assignment details of a DAG");
+      pgd.addClass("TaskAttemptResultStatisticsAnalyzer", TaskAttemptResultStatisticsAnalyzer.class,
+          "Print vertex:node:status level details of task attempt results");
       pgd.addClass("TaskConcurrencyAnalyzer", TaskConcurrencyAnalyzer.class,
           "Print the task concurrency details in a DAG");
       pgd.addClass("VertexLevelCriticalPathAnalyzer", VertexLevelCriticalPathAnalyzer.class,
