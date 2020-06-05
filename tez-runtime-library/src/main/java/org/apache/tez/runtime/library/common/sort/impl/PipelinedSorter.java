@@ -69,7 +69,7 @@ import org.apache.tez.util.StopWatch;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.SPILL_FILE_PERMS;
+import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.ensureSpillFilePermissions;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
@@ -488,9 +488,7 @@ public class PipelinedSorter extends ExternalSorter {
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
     spillFilePaths.put(numSpills, filename);
     FSDataOutputStream out = rfs.create(filename, true, 4096);
-    if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-      rfs.setPermission(filename, SPILL_FILE_PERMS);
-    }
+    ensureSpillFilePermissions(filename, rfs);
 
     try {
       LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString() +
@@ -576,9 +574,7 @@ public class PipelinedSorter extends ExternalSorter {
         mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename, true, 4096);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(filename, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(filename, rfs);
       LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString());
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
@@ -761,9 +757,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       //The output stream for the final single output file
       FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(finalOutputFile, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(finalOutputFile, rfs);
 
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
 

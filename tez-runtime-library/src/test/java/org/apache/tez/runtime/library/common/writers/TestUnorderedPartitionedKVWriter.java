@@ -53,6 +53,7 @@ import java.util.regex.Pattern;
 
 import com.google.protobuf.ByteString;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
@@ -520,10 +521,7 @@ public class TestUnorderedPartitionedKVWriter {
     if (numRecordsWritten > 0) {
       assertTrue(localFs.exists(outputFilePath));
       assertTrue(localFs.exists(spillFilePath));
-      assertEquals("Incorrect output permissions", (short)0640,
-          localFs.getFileStatus(outputFilePath).getPermission().toShort());
-      assertEquals("Incorrect index permissions", (short)0640,
-          localFs.getFileStatus(spillFilePath).getPermission().toShort());
+      checkPermissions(outputFilePath, spillFilePath);
     } else {
       return;
     }
@@ -812,14 +810,22 @@ public class TestUnorderedPartitionedKVWriter {
         Path indexFile = taskOutput.getSpillIndexFileForWrite(i, 10);
         assertTrue(localFs.exists(outputFile));
         assertTrue(localFs.exists(indexFile));
-        assertEquals("Incorrect output permissions", (short)0640,
-            localFs.getFileStatus(outputFile).getPermission().toShort());
-        assertEquals("Incorrect index permissions", (short)0640,
-            localFs.getFileStatus(indexFile).getPermission().toShort());
+        checkPermissions(outputFile, indexFile);
       }
     } else {
       return;
     }
+  }
+
+  private void checkPermissions(Path outputFile, Path indexFile) throws IOException {
+    assertEquals("Incorrect output permissions (user)", FsAction.READ_WRITE,
+        localFs.getFileStatus(outputFile).getPermission().getUserAction());
+    assertEquals("Incorrect output permissions (group)", FsAction.READ,
+        localFs.getFileStatus(outputFile).getPermission().getGroupAction());
+    assertEquals("Incorrect index permissions (user)", FsAction.READ_WRITE,
+        localFs.getFileStatus(indexFile).getPermission().getUserAction());
+    assertEquals("Incorrect index permissions (group)", FsAction.READ,
+        localFs.getFileStatus(indexFile).getPermission().getGroupAction());
   }
 
   private void verifyEmptyPartitions(DataMovementEventPayloadProto eventProto,
@@ -1065,10 +1071,7 @@ public class TestUnorderedPartitionedKVWriter {
         Path outputPath = new Path(outputContext.getWorkDirs()[0],
             "output/" + eventProto.getPathComponent() + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
         Path indexPath = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
-        assertEquals("Incorrect output permissions", (short)0640,
-            localFs.getFileStatus(outputPath).getPermission().toShort());
-        assertEquals("Incorrect index permissions", (short)0640,
-            localFs.getFileStatus(indexPath).getPermission().toShort());
+        checkPermissions(outputPath, indexPath);
       } else {
         assertEquals(0, eventProto.getSpillId());
         if (outputRecordsCounter.getValue() > 0) {
@@ -1289,12 +1292,16 @@ public class TestUnorderedPartitionedKVWriter {
 
     boolean isInMem= eventProto.getData().hasData();
     assertTrue(localFs.exists(outputFilePath));
-    assertEquals("Incorrect output permissions", (short) 0640,
-            localFs.getFileStatus(outputFilePath).getPermission().toShort());
+    assertEquals("Incorrect output permissions (user)", FsAction.READ_WRITE,
+            localFs.getFileStatus(outputFilePath).getPermission().getUserAction());
+    assertEquals("Incorrect output permissions (group)", FsAction.READ,
+            localFs.getFileStatus(outputFilePath).getPermission().getGroupAction());
     if( !isInMem ) {
       assertTrue(localFs.exists(spillFilePath));
-      assertEquals("Incorrect index permissions", (short) 0640,
-              localFs.getFileStatus(spillFilePath).getPermission().toShort());
+      assertEquals("Incorrect index permissions (user)", FsAction.READ_WRITE,
+              localFs.getFileStatus(spillFilePath).getPermission().getUserAction());
+      assertEquals("Incorrect index permissions (group)", FsAction.READ,
+              localFs.getFileStatus(spillFilePath).getPermission().getGroupAction());
 
       // verify no intermediate spill files have been left around
       synchronized (kvWriter.spillInfoList) {
