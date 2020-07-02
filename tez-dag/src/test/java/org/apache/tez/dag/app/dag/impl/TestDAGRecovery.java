@@ -330,8 +330,10 @@ public class TestDAGRecovery {
     Mockito.doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
         Object[] args = invocation.getArguments();
-        CallableEvent e = (CallableEvent) args[0];
-        dispatcher.getEventHandler().handle(e);
+        if (args[0] instanceof CallableEvent) {
+          CallableEvent e = (CallableEvent) args[0];
+          dispatcher.getEventHandler().handle(e);
+        }
         return mockFuture;
       }
     }).when(execService).submit((Callable<Void>) any());

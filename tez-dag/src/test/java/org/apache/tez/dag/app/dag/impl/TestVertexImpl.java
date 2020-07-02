@@ -43,11 +43,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.protobuf.ByteString;
 
 import org.apache.commons.lang.StringUtils;
@@ -2421,10 +2425,10 @@ public class TestVertexImpl {
               dagConf);
         }
       } else {
-        v = new VertexImpl(vertexId, vPlan, vPlan.getName(), conf,
-            dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
-            clock, thh, true, appContext, locationHint, vertexGroups, taskSpecificLaunchCmdOption,
-            updateTracker, dagConf);
+        v = new VertexImplWithRunningInputInitializerWithExecutor(vertexId, vPlan, vPlan.getName(), conf,
+                dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
+                clock, thh, appContext, locationHint, dispatcher, customInitializer, updateTracker,
+                dagConf, vertexGroups);
       }
       vertices.put(vName, v);
       vertexIdMap.put(vertexId, v);
@@ -2528,8 +2532,10 @@ public class TestVertexImpl {
     Mockito.doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
-          CallableEvent e = (CallableEvent) args[0];
-          dispatcher.getEventHandler().handle(e);
+          if (args[0] instanceof CallableEvent) {
+            CallableEvent e = (CallableEvent) args[0];
+            dispatcher.getEventHandler().handle(e);
+          }
           return mockFuture;
       }})
     .when(execService).submit((Callable<Void>) any());
@@ -2760,12 +2766,13 @@ public class TestVertexImpl {
   }
 
   @Test(timeout=5000)
-  public void testNonExistInputInitializer() throws TezException {
+  public void testNonExistInputInitializer() throws Exception {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithNonExistInputInitializer();
     setupPostDagCreation();
     VertexImpl v1 = vertices.get("vertex1");
     v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    while (v1.getTerminationCause() == null) Thread.sleep(10);
     Assert.assertEquals(VertexState.FAILED, v1.getState());
     Assert.assertEquals(VertexTerminationCause.INIT_FAILURE, v1.getTerminationCause());
     Assert.assertTrue(StringUtils.join(v1.getDiagnostics(),"")
@@ -5843,6 +5850,43 @@ public class TestVertexImpl {
   }
 
   @SuppressWarnings("rawtypes")
+  private static class VertexImplWithRunningInputInitializerWithExecutor extends VertexImpl {
+    private RootInputInitializerManagerWithExecutor rootInputInitializerManager;
+
+    public VertexImplWithRunningInputInitializerWithExecutor(TezVertexID vertexId,
+                                                             VertexPlan vertexPlan, String vertexName,
+                                                             Configuration conf,
+                                                             EventHandler eventHandler,
+                                                             TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
+                                                             Clock clock, TaskHeartbeatHandler thh,
+                                                             AppContext appContext,
+                                                             VertexLocationHint vertexLocationHint,
+                                                             DrainDispatcher dispatcher,
+                                                             InputInitializer presetInitializer,
+                                                             StateChangeNotifier updateTracker,
+                                                             Configuration dagConf,
+                                                             Map<String, VertexGroupInfo> vertexGroups) {
+      super(vertexId, vertexPlan, vertexName, conf, eventHandler,
+              taskCommunicatorManagerInterface, clock, thh, true,
+              appContext, vertexLocationHint, vertexGroups, taskSpecificLaunchCmdOption,
+              updateTracker, dagConf);
+    }
+
+    @Override
+    protected RootInputInitializerManager createRootInputInitializerManager(
+            String dagName, String vertexName, TezVertexID vertexID,
+            EventHandler eventHandler, int numTasks, int numNodes,
+            Resource taskResource, Resource totalResource) {
+      try {
+        rootInputInitializerManager = new RootInputInitializerManagerWithExecutor(this, this.getAppContext(), stateChangeNotifier);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+      return rootInputInitializerManager;
+    }
+  }
+
+  @SuppressWarnings("rawtypes")
   private static class VertexImplWithControlledInitializerManager extends VertexImpl {
     
     private final DrainDispatcher dispatcher;
@@ -5898,8 +5942,10 @@ public class TestVertexImpl {
         IOException {
       super(vertex, appContext, UserGroupInformation.getCurrentUser(), tracker);
       this.presetInitializer = presetInitializer;
+      ExecutorService rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+              .setDaemon(true).setNameFormat("Test App Shared Pool - " + "#%d").build());
+      this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     }
-
 
     @Override
     protected InputInitializer createInitializer(
@@ -5909,6 +5955,31 @@ public class TestVertexImpl {
         ((ContextSettableInputInitialzier)presetInitializer).setContext(context);
       }
       return presetInitializer;
+    }
+
+    @Override
+    public void shutdown() {
+      super.shutdown();
+      if (executor != null) {
+        executor.shutdown();
+      }
+    }
+  }
+
+  private static class RootInputInitializerManagerWithExecutor extends RootInputInitializerManager {
+    public RootInputInitializerManagerWithExecutor(Vertex vertex, AppContext appContext, StateChangeNotifier tracker) throws IOException {
+      super(vertex, appContext, UserGroupInformation.getCurrentUser(), tracker);
+      ExecutorService rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+              .setDaemon(true).setNameFormat("Test App Shared Pool - " + "#%d").build());
+      this.executor = MoreExecutors.listeningDecorator(rawExecutor);
+    }
+
+    @Override
+    public void shutdown() {
+      super.shutdown();
+      if (executor != null) {
+        executor.shutdown();
+      }
     }
   }
 
@@ -5931,11 +6002,14 @@ public class TestVertexImpl {
       this.eventHandler = eventHandler;
       this.dispatcher = dispatcher;
       this.vertexID = vertex.getVertexId();
+      ExecutorService rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+              .setDaemon(true).setNameFormat("Test App Shared Pool - " + "#%d").build());
+      this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     }
 
     @Override
     public void runInputInitializers(
-        List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs) {
+            List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs, List<TezEvent> pendingInitializerEvents) {
       this.inputs = inputs;
     }
 
@@ -5961,10 +6035,13 @@ public class TestVertexImpl {
     @Override
     public void shutdown() {
       hasShutDown = true;
+      if (executor != null) {
+        executor.shutdown();
+      }
     }
 
     public void failInputInitialization() throws TezException {
-      super.runInputInitializers(inputs);
+      super.runInputInitializers(inputs, Collections.emptyList());
       eventHandler.handle(new VertexEventRootInputFailed(vertexID, inputs
           .get(0).getName(),
           new AMUserCodeException(Source.InputInitializer,

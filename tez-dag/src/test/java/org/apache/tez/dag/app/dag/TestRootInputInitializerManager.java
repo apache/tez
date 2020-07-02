@@ -28,8 +28,14 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -50,10 +56,27 @@ import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 public class TestRootInputInitializerManager {
+  ListeningExecutorService execService;
+
+  @Before
+  public void setUp() throws Exception {
+    ExecutorService rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+            .setDaemon(true).setNameFormat("Test App Shared Pool - " + "#%d").build());
+    execService = MoreExecutors.listeningDecorator(rawExecutor);
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if (execService != null) {
+      execService.shutdownNow();
+    }
+  }
 
   // Simple testing. No events if task doesn't succeed.
   // Also exercises path where two attempts are reported as successful via the stateChangeNotifier.
@@ -214,6 +237,7 @@ public class TestRootInputInitializerManager {
     AppContext appContext = mock(AppContext.class);
     doReturn(new DefaultHadoopShim()).when(appContext).getHadoopShim();
     doReturn(mock(EventHandler.class)).when(appContext).getEventHandler();
+    when(appContext.getExecService()).thenReturn(execService);
     UserGroupInformation dagUgi = UserGroupInformation.createRemoteUser("fakeuser");
     StateChangeNotifier stateChangeNotifier = mock(StateChangeNotifier.class);
     RootInputInitializerManager rootInputInitializerManager = new RootInputInitializerManager(vertex, appContext, dagUgi, stateChangeNotifier);
@@ -222,7 +246,7 @@ public class TestRootInputInitializerManager {
     InputInitializerDescriptor iid = InputInitializerDescriptor.create(InputInitializerForUgiTest.class.getName());
     RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> rootInput =
         new RootInputLeafOutput<>("InputName", id, iid);
-    rootInputInitializerManager.runInputInitializers(Collections.singletonList(rootInput));
+    rootInputInitializerManager.runInputInitializers(Collections.singletonList(rootInput), Collections.emptyList());
 
     InputInitializerForUgiTest.awaitInitialize();
 
