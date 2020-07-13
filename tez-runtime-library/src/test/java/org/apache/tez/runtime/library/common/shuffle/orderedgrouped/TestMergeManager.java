@@ -22,12 +22,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyChar;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +40,9 @@ import java.util.UUID;
 
 import com.google.common.collect.Sets;
 
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionOutputStream;
+import org.apache.hadoop.io.compress.Compressor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -255,6 +260,58 @@ public class TestMergeManager {
     mergeManager.waitForMemToMemMerge();
     assertEquals(data1.length + data2.length, mergeManager.getCommitMemory());
     assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
+  }
+
+  @Test
+  public void testMemoryMergeWithCodec() throws Throwable {
+    Configuration conf = new TezConfiguration(defaultConf);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM, true);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS, 2);
+
+    Path localDir = new Path(workDir, "local");
+    localFs.mkdirs(localDir);
+
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDir.toString());
+
+    FileSystem localFs = FileSystem.getLocal(conf);
+    LocalDirAllocator localDirAllocator =
+            new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
+
+    // Create a mock compressor. We will check if it is used.
+    CompressionCodec mockCodec = mock(CompressionCodec.class);
+    Compressor mockCompressor = mock(Compressor.class);
+    CompressionOutputStream mockStream = mock(CompressionOutputStream.class);
+    when(mockCodec.createCompressor()).thenReturn(mockCompressor);
+    when(mockCodec.createOutputStream(any())).thenReturn(mockStream);
+    when(mockCodec.createOutputStream(any(), any())).thenReturn(mockStream);
+
+    MergeManager mergeManager =
+            new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+                    mock(ExceptionReporter.class), 1000, mockCodec, false, -1);
+    mergeManager.configureAndStart();
+
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    InputAttemptIdentifier inputAttemptIdentifier1 = new InputAttemptIdentifier(0,0);
+    InputAttemptIdentifier inputAttemptIdentifier2 = new InputAttemptIdentifier(1,0);
+    byte[] data1 = generateDataBySize(conf, 10, inputAttemptIdentifier1);
+    byte[] data2 = generateDataBySize(conf, 20, inputAttemptIdentifier2);
+
+    MapOutput mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    MapOutput mo2 = mergeManager.reserve(inputAttemptIdentifier1, data2.length, data2.length, 0);
+
+    System.arraycopy(data1, 0, mo1.getMemory(), 0, data1.length);
+    System.arraycopy(data2, 0, mo2.getMemory(), 0, data2.length);
+
+    mo1.commit();
+    mo2.commit();
+
+    mergeManager.close(true);
+    verify(mockStream, atLeastOnce()).write(anyChar());
   }
 
   @Test(timeout = 60000l)
