@@ -18,7 +18,7 @@
 # Dockerfile for installing the necessary dependencies for building Hadoop.
 # See BUILDING.txt.
 
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 WORKDIR /root
 
@@ -55,7 +55,6 @@ RUN apt-get -q update \
         git \
         gnupg-agent \
         libbz2-dev \
-        libcurl4-openssl-dev \
         libfuse-dev \
         libprotobuf-dev \
         libprotoc-dev \
@@ -75,7 +74,6 @@ RUN apt-get -q update \
         python-wheel \
         rsync \
         software-properties-common \
-        snappy \
         sudo \
         valgrind \
         zlib1g-dev \
@@ -180,7 +178,6 @@ RUN apt-get -q update \
     && apt-get install -y --no-install-recommends nodejs npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && ln -s /usr/bin/nodejs /usr/bin/node \
     && npm install npm@latest -g \
     && npm install -g jshint
 
