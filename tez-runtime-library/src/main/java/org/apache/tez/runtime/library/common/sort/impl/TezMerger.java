@@ -536,7 +536,7 @@ public class TezMerger {
         List<Segment> segments, RawComparator comparator,
         Progressable reporter, boolean sortSegments, CompressionCodec codec,
         boolean considerFinalMergeForProgress) {
-      this(conf, fs, segments, comparator, reporter, sortSegments, null,
+      this(conf, fs, segments, comparator, reporter, sortSegments, codec,
           considerFinalMergeForProgress, true);
     }
 
