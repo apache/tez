@@ -84,6 +84,16 @@ public class TestSpeculation {
       "Number of attempts after Speculation should be two";
   private static final String UNIT_EXCEPTION_MESSAGE =
       "test timed out after";
+
+  /**
+   * {@link MockDAGAppMaster#launcherSleepTime} advances tasks every 1 millisecond.
+   * We want our test task to take at least slightly more than 1 second. This is because
+   * MockDAGAppMaster's mock clock advances clock 1 second at each tick. If we are unlucky
+   * this may cause speculator to wait 1 second between each evaluation. If we are really
+   * unlucky, our test tasks finish before speculator has a chance to evaluate and speculate
+   * them. That is why we want the tasks to take at least one second.
+   */
+  private static final int NUM_UPDATES_FOR_TEST_TASK = 1200;
   private static final int ASSERT_SPECULATIONS_COUNT_RETRIES = 3;
   private Configuration defaultConf;
   private FileSystem localFs;
@@ -277,7 +287,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout = 10000)
+  @Test (timeout = 30000)
   public void testSingleTaskSpeculation() throws Exception {
     // Map<Timeout conf value, expected number of tasks>
     Map<Long, Integer> confToExpected = new HashMap<Long, Integer>();
@@ -308,7 +318,7 @@ public class TestSpeculation {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
       Thread.sleep(200);
       // cause speculation trigger
-      mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
+      mockLauncher.setStatusUpdatesForTask(killedTaId, NUM_UPDATES_FOR_TEST_TASK);
 
       mockLauncher.startScheduling(true);
       dagClient.waitForCompletion();
@@ -350,7 +360,7 @@ public class TestSpeculation {
 
     mockLauncher.updateProgress(withProgress);
     // cause speculation trigger
-    mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
+    mockLauncher.setStatusUpdatesForTask(killedTaId, NUM_UPDATES_FOR_TEST_TASK);
 
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
@@ -392,7 +402,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=10000)
+  @Test (timeout=30000)
   public void testBasicSpeculationWithProgress() throws Exception {
     testBasicSpeculation(true);
   }
@@ -403,7 +413,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=10000)
+  @Test (timeout=30000)
   public void testBasicSpeculationWithoutProgress() throws Exception {
     testBasicSpeculation(false);
   }
@@ -414,12 +424,11 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=10000)
+  @Test (timeout=30000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
     DAG dag = DAG.create("test");
     String vNameNoSpec = "A";
     String vNameSpec = "B";
-    String speculatorSleepTime = "50";
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
     Vertex vB = Vertex.create(vNameSpec, ProcessorDescriptor.create("Proc.class"), 5);
     vA.setConf(TezConfiguration.TEZ_AM_SPECULATION_ENABLED, "false");
@@ -436,20 +445,20 @@ public class TestSpeculation {
 
     DAGClient dagClient = tezClient.submitDAG(dag);
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
-    TezVertexID vertexId = dagImpl.getVertex(vNameSpec).getVertexId();
+    TezVertexID vertexIdSpec = dagImpl.getVertex(vNameSpec).getVertexId();
     TezVertexID vertexIdNoSpec = dagImpl.getVertex(vNameNoSpec).getVertexId();
     // original attempt is killed and speculative one is successful
     TezTaskAttemptID killedTaId =
-        TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
-    TezTaskAttemptID noSpecTaId = TezTaskAttemptID
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexIdSpec, 0), 0);
+    TezTaskAttemptID successfulTaId = TezTaskAttemptID
         .getInstance(TezTaskID.getInstance(vertexIdNoSpec, 0), 0);
 
     // cause speculation trigger for both
-    mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
-    mockLauncher.setStatusUpdatesForTask(noSpecTaId, 100);
+    mockLauncher.setStatusUpdatesForTask(killedTaId, NUM_UPDATES_FOR_TEST_TASK);
+    mockLauncher.setStatusUpdatesForTask(successfulTaId, NUM_UPDATES_FOR_TEST_TASK);
 
     mockLauncher.startScheduling(true);
-    org.apache.tez.dag.app.dag.Vertex vSpec = dagImpl.getVertex(vertexId);
+    org.apache.tez.dag.app.dag.Vertex vSpec = dagImpl.getVertex(vertexIdSpec);
     org.apache.tez.dag.app.dag.Vertex vNoSpec = dagImpl.getVertex(vertexIdNoSpec);
     // Wait enough time to give chance for the speculator to trigger
     // speculation on VB.
@@ -476,7 +485,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=10000)
+  @Test (timeout=30000)
   public void testBasicSpeculationNotUseful() throws Exception {
     DAG dag = DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
@@ -491,8 +500,8 @@ public class TestSpeculation {
     TezTaskAttemptID successTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
     TezTaskAttemptID killedTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 1);
 
-    mockLauncher.setStatusUpdatesForTask(successTaId, 100);
-    mockLauncher.setStatusUpdatesForTask(killedTaId, 100);
+    mockLauncher.setStatusUpdatesForTask(successTaId, NUM_UPDATES_FOR_TEST_TASK);
+    mockLauncher.setStatusUpdatesForTask(killedTaId, NUM_UPDATES_FOR_TEST_TASK);
 
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();

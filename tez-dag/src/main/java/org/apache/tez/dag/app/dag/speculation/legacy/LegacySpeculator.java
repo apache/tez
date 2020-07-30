@@ -23,13 +23,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.hadoop.service.AbstractService;
@@ -101,8 +98,6 @@ public class LegacySpeculator extends AbstractService {
   private final Clock clock;
   private Thread speculationBackgroundThread = null;
   private volatile boolean stopped = false;
-  /** Allow the speculator to wait on a blockingQueue in case we use it for event notification. */
-  private BlockingQueue<Object> scanControl = new LinkedBlockingQueue<Object>();
 
   @VisibleForTesting
   public int getMinimumAllowedSpeculativeTasks() { return minimumAllowedSpeculativeTasks;}
@@ -233,16 +228,6 @@ public class LegacySpeculator extends AbstractService {
     }
   }
 
-  // This interface is intended to be used only for test cases.
-  public void scanForSpeculationsForTesting() {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("We got asked to run a debug speculation scan.");
-      LOG.debug("There are {} speculative events stacked already.", scanControl.size());
-    }
-    scanControl.add(new Object());
-    Thread.yield();
-  }
-
   public Runnable createThread() {
     return new Runnable() {
       @Override
@@ -256,9 +241,13 @@ public class LegacySpeculator extends AbstractService {
             long wait = Math.max(nextRecompTime, clock.getTime() - backgroundRunStartTime);
             if (speculations > 0) {
               LOG.info("We launched " + speculations
-                  + " speculations.  Waiting " + wait + " milliseconds.");
+                  + " speculations.  Waiting " + wait + " milliseconds before next evaluation.");
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Waiting {} milliseconds before next evaluation.", wait);
+              }
             }
-            Object pollResult = scanControl.poll(wait, TimeUnit.MILLISECONDS);
+            Thread.sleep(wait);
           } catch (InterruptedException ie) {
             if (!stopped) {
               LOG.warn("Speculator thread interrupted", ie);
