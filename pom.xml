@@ -64,11 +64,12 @@
     <jersey.version>1.19</jersey.version>
     <slf4j.version>1.7.30</slf4j.version>
     <protobuf.version>2.5.0</protobuf.version>
+    <roaringbitmap.version>0.7.45</roaringbitmap.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <frontend-maven-plugin.version>1.4</frontend-maven-plugin.version>
     <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
-        <maven-checkstyle-plugin.version>3.1.1</maven-checkstyle-plugin.version>
+    <maven-checkstyle-plugin.version>3.1.1</maven-checkstyle-plugin.version>
     <checkstyle.version>8.35</checkstyle.version>
     <dependency-check-maven.version>1.3.6</dependency-check-maven.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
@@ -232,7 +233,7 @@
       <dependency>
         <groupId>org.roaringbitmap</groupId>
         <artifactId>RoaringBitmap</artifactId>
-        <version>0.5.21</version>
+        <version>${roaringbitmap.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
