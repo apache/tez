@@ -627,7 +627,7 @@ public class TestDAGAppMaster {
     }
   }
 
-  private static class DAGAppMasterForTest extends DAGAppMaster {
+  public static class DAGAppMasterForTest extends DAGAppMaster {
     private DAGAppMasterShutdownHandler mockShutdown;
     private TaskSchedulerManager mockScheduler = mock(TaskSchedulerManager.class);
 
@@ -638,7 +638,7 @@ public class TestDAGAppMaster {
           new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null);
     }
 
-    private static Credentials createCredentials() {
+    public static Credentials createCredentials() {
       Credentials creds = new Credentials();
       JobTokenSecretManager jtsm = new JobTokenSecretManager();
       JobTokenIdentifier jtid = new JobTokenIdentifier(new Text());
