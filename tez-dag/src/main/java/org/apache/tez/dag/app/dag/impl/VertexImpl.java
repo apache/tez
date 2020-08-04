@@ -4828,6 +4828,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   static class VertexConfigImpl implements VertexConfig {
 
     private final int maxFailedTaskAttempts;
+    private final int maxTaskAttempts;
     private final boolean taskRescheduleHigherPriority;
     private final boolean taskRescheduleRelaxedLocality;
 
@@ -4847,6 +4848,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     public VertexConfigImpl(Configuration conf) {
       this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
           TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
+      this.maxTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_ATTEMPTS,
+          TezConfiguration.TEZ_AM_TASK_MAX_ATTEMPTS_DEFAULT);
       this.taskRescheduleHigherPriority =
           conf.getBoolean(TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY,
               TezConfiguration.TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT);
@@ -4870,6 +4873,11 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     @Override
     public int getMaxFailedTaskAttempts() {
       return maxFailedTaskAttempts;
+    }
+
+    @Override
+    public int getMaxTaskAttempts() {
+      return maxTaskAttempts;
     }
 
     @Override
