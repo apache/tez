@@ -286,10 +286,15 @@ public class TestTaskImpl {
     attempt.setState(s);
   }
 
-  private void killRunningTaskAttempt(TezTaskAttemptID attemptId) {
+  private void killRunningTaskAttempt(TezTaskAttemptID attemptId, TaskState stateToVerify) {
+    killRunningTaskAttempt(attemptId, stateToVerify, 1);
+  }
+
+  private void killRunningTaskAttempt(TezTaskAttemptID attemptId, TaskState stateToVerify,
+      int killedCountToVerify) {
     mockTask.handle(createTaskTAKilledEvent(attemptId));
-    assertTaskRunningState();
-    verify(mockTask.getVertex(), times(1)).incrementKilledTaskAttemptCount();
+    assertTaskState(stateToVerify);
+    verify(mockTask.getVertex(), times(killedCountToVerify)).incrementKilledTaskAttemptCount();
   }
 
   private void failRunningTaskAttempt(TezTaskAttemptID attemptId) {
@@ -310,21 +315,25 @@ public class TestTaskImpl {
    * {@link TaskState#NEW}
    */
   private void assertTaskNewState() {
-    assertEquals(TaskState.NEW, mockTask.getState());
+    assertTaskState(TaskState.NEW);
   }
 
   /**
    * {@link TaskState#SCHEDULED}
    */
   private void assertTaskScheduledState() {
-    assertEquals(TaskState.SCHEDULED, mockTask.getState());
+    assertTaskState(TaskState.SCHEDULED);
   }
 
   /**
    * {@link TaskState#RUNNING}
    */
   private void assertTaskRunningState() {
-    assertEquals(TaskState.RUNNING, mockTask.getState());
+    assertTaskState(TaskState.RUNNING);
+  }
+
+  private void assertTaskState(TaskState state) {
+    assertEquals(state, mockTask.getState());
   }
 
   /**
@@ -385,7 +394,7 @@ public class TestTaskImpl {
   }
 
   @Test(timeout = 5000)
-  public void testTooManyFailedAtetmpts() {
+  public void testTooManyFailedAttempts() {
     LOG.info("--- START: testTooManyFailedAttempts ---");
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId, TaskState.SCHEDULED);
@@ -403,6 +412,30 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId, TaskState.RUNNING);
     launchTaskAttempt(mockTask.getLastAttempt().getID());
     failRunningTaskAttempt(mockTask.getLastAttempt().getID(), false);
+
+    assertEquals(TaskStateInternal.FAILED, mockTask.getInternalState());
+    verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
+  }
+
+  @Test(timeout = 5000)
+  public void testTooManyAttempts() {
+    LOG.info("--- START: testTooManyAttempts ---");
+
+    conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_ATTEMPTS, 3);
+    Vertex vertex = mock(Vertex.class);
+    doReturn(new VertexImpl.VertexConfigImpl(conf)).when(vertex).getVertexConfig();
+    mockTask = new MockTaskImpl(vertexId, partition,
+        eventHandler, conf, taskCommunicatorManagerInterface, clock,
+        taskHeartbeatHandler, appContext, leafVertex,
+        taskResource, containerContext, vertex);
+
+    TezTaskID taskId = getNewTaskID();
+    scheduleTaskAttempt(taskId, TaskState.SCHEDULED); // attempt_0
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killRunningTaskAttempt(mockTask.getLastAttempt().getID(), TaskState.RUNNING, 1); // attempt_1
+
+    launchTaskAttempt(mockTask.getLastAttempt().getID());
+    killRunningTaskAttempt(mockTask.getLastAttempt().getID(), TaskState.FAILED, 2); // attempt_2 -> reached 3
 
     assertEquals(TaskStateInternal.FAILED, mockTask.getInternalState());
     verifyOutgoingEvents(eventHandler.events, VertexEventType.V_TASK_COMPLETED);
@@ -428,7 +461,7 @@ public class TestTaskImpl {
     TezTaskID taskId = getNewTaskID();
     scheduleTaskAttempt(taskId);
     launchTaskAttempt(mockTask.getLastAttempt().getID());
-    killRunningTaskAttempt(mockTask.getLastAttempt().getID());
+    killRunningTaskAttempt(mockTask.getLastAttempt().getID(), TaskState.RUNNING);
     assertEquals(TaskStateInternal.RUNNING, mockTask.getInternalState());
     killTask(taskId);
     mockTask.handle(createTaskTAKilledEvent(mockTask.getLastAttempt().getID()));
@@ -503,7 +536,7 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId);
     TezTaskAttemptID lastTAId = mockTask.getLastAttempt().getID();
     launchTaskAttempt(mockTask.getLastAttempt().getID());
-    killRunningTaskAttempt(mockTask.getLastAttempt().getID());
+    killRunningTaskAttempt(mockTask.getLastAttempt().getID(), TaskState.RUNNING);
     // last killed attempt should be causal TA of next attempt
     Assert.assertEquals(lastTAId, mockTask.getLastAttempt().getSchedulingCausalTA());
   }
