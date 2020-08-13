@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -59,7 +60,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.Records;
-import org.apache.tez.common.TezClassLoader;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
@@ -81,7 +81,7 @@ import org.junit.Test;
 public class TestTezClientUtils {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezClientUtils.class.getName() + "-tmpDir";
-  private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
+  private static final File STAGING_DIR = new File(System.getProperty("test.build.data", "target"),
       TestTezClientUtils.class.getName()).getAbsoluteFile();
   /**
    * 
@@ -130,12 +130,29 @@ public class TestTezClientUtils {
     TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
   }
 
-  /**
-   *
-   */
+  private static List<URL> getDirAndFileURL() throws MalformedURLException {
+    String[] classpaths = System.getProperty("java.class.path")
+        .split(System.getProperty("path.separator"));
+    List<URL> urls = new ArrayList<>(2);
+    File lastFile = null;
+    // Add one file and one directory.
+    for (String path : classpaths) {
+      URL url = new URL("file://" + path);
+      File file = FileUtils.toFile(url);
+      if (lastFile == null) {
+        lastFile = file;
+        urls.add(url);
+      } else if (lastFile.isDirectory() != file.isDirectory()) {
+        urls.add(url);
+        break;
+      }
+    }
+    return urls;
+  }
+
   @Test (timeout=20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectory() throws Exception {
-    URL[] cp = TezClassLoader.getInstance().getURLs();
+    List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
@@ -149,22 +166,27 @@ public class TestTezClientUtils {
         localizedMap);
     Assert.assertFalse(usingArchive);
     Set<String> resourceNames = localizedMap.keySet();
+    boolean assertedDir = false;
+    boolean assertedFile = false;
     for (URL url : cp) {
       File file = FileUtils.toFile(url);
-      if (file.isDirectory()){
+      if (file.isDirectory()) {
         String[] firList = file.list();
         for (String fileNme : firList) {
           File innerFile = new File(file, fileNme);
           if (!innerFile.isDirectory()){
             assertTrue(resourceNames.contains(innerFile.getName()));
+            assertedDir = true;
           }
           // not supporting deep hierarchies 
         }
-      }
-      else {
+      } else {
         assertTrue(resourceNames.contains(file.getName()));
+        assertedFile = true;
       }
     }
+    assertTrue(assertedDir);
+    assertTrue(assertedFile);
   }
 
   /**
@@ -173,7 +195,7 @@ public class TestTezClientUtils {
    */
   @Test (timeout=5000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnored() throws Exception {
-    URL[] cp = TezClassLoader.getInstance().getURLs();
+    List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
@@ -194,7 +216,7 @@ public class TestTezClientUtils {
    */
   @Test (timeout=20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnoredSetToFalse() throws Exception {
-    URL[] cp = TezClassLoader.getInstance().getURLs();
+    List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
     for (URL url : cp) {
       buffer.append(url.toExternalForm());
