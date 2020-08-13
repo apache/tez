@@ -190,7 +190,11 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         numDmeEventsNoData.getAndIncrement();
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
         return;
+      } else {
+        shuffleManager.updateApproximateInputRecords(shufflePayload.getNumRecord());
       }
+    } else {
+      shuffleManager.updateApproximateInputRecords(shufflePayload.getNumRecord());
     }
 
     CompositeInputAttemptIdentifier srcAttemptIdentifier = constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(),

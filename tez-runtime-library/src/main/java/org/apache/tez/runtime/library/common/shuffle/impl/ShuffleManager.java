@@ -189,6 +189,9 @@ public class ShuffleManager implements FetcherCallback {
 
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
+  private long inputRecordsFromEvents;
+  private long eventsReceived;
+  private final TezCounter approximateInputRecords;
   private final TezCounter shuffledInputsCounter;
   private final TezCounter failedShufflesCounter;
   private final TezCounter bytesShuffledCounter;
@@ -222,7 +225,8 @@ public class ShuffleManager implements FetcherCallback {
       CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
     this.inputContext = inputContext;
     this.numInputs = numInputs;
-    
+
+    this.approximateInputRecords = inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS);
     this.shuffledInputsCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
     this.failedShufflesCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
     this.bytesShuffledCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
@@ -333,6 +337,15 @@ public class ShuffleManager implements FetcherCallback {
         + "localDiskFetchEnabled=" + localDiskFetchEnabled + ", "
         + "sharedFetchEnabled=" + sharedFetchEnabled + ", "
         + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce);
+  }
+
+  public void updateApproximateInputRecords(int delta) {
+    if (delta <= 0) {
+      return;
+    }
+    inputRecordsFromEvents += delta;
+    eventsReceived++;
+    approximateInputRecords.setValue((inputRecordsFromEvents / eventsReceived) * numInputs);
   }
 
   public void run() throws IOException {

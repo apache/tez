@@ -98,7 +98,14 @@ public enum TaskCounter {
    * Used by MROutput, OnFileSortedOutput, and OnFileUnorderedKVOutput
    */
   OUTPUT_RECORDS,
-  
+
+  /**
+   * Approximate number of input records that should be processed as the event keeps arriving from
+   * inputs.
+   * //TODO: As of now supporting broadcast data only.
+   */
+  APPROXIMATE_INPUT_RECORDS,
+
   /**
    * Represent the number of large records in the output - typically, records which are
    * spilled directly

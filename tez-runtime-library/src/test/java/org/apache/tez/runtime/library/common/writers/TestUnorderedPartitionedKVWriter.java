@@ -59,6 +59,7 @@ import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter.SpillInfo;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
 import org.roaringbitmap.RoaringBitmap;
@@ -1171,6 +1172,16 @@ public class TestUnorderedPartitionedKVWriter {
 
     if (numPartitions == 1) {
       assertEquals(true, kvWriter.skipBuffers);
+
+      // VM & DME events
+      assertEquals(2, events.size());
+      Event event1 = events.get(1);
+      assertTrue(event1 instanceof CompositeDataMovementEvent);
+      CompositeDataMovementEvent dme = (CompositeDataMovementEvent) event1;
+      ByteBuffer bb = dme.getUserPayload();
+      ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload =
+          ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(bb));
+      assertEquals(kvWriter.outputRecordsCounter.getValue(), shufflePayload.getNumRecord());
     }
 
     int recordsPerBuffer = sizePerBuffer / sizePerRecordWithOverhead;
