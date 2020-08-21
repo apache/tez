@@ -113,11 +113,11 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   }
 
   @Override
-  public void blacklistNode(NodeId nodeId) {
+  public void blocklistNode(NodeId nodeId) {
   }
 
   @Override
-  public void unblacklistNode(NodeId nodeId) {
+  public void unblocklistNode(NodeId nodeId) {
   }
 
   @Override

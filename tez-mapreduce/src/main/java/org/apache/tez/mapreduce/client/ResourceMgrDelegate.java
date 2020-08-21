@@ -93,10 +93,10 @@ public class ResourceMgrDelegate {
     }
   }
 
-  public TaskTrackerInfo[] getBlacklistedTrackers() throws IOException,
+  public TaskTrackerInfo[] getBlocklistedTrackers() throws IOException,
       InterruptedException {
-    // TODO: Implement getBlacklistedTrackers
-    LOG.warn("getBlacklistedTrackers - Not implemented yet");
+    // TODO: Implement getBlocklistedTrackers
+    LOG.warn("getBlocklistedTrackers - Not implemented yet");
     return new TaskTrackerInfo[0];
   }
 

@@ -48,8 +48,8 @@ public class AMNodeTracker extends AbstractService implements
 
   // Not final since it's setup in serviceInit
   private int maxTaskFailuresPerNode;
-  private boolean nodeBlacklistingEnabled;
-  private int blacklistDisablePercent;
+  private boolean nodeBlocklistingEnabled;
+  private int blocklistDisablePercent;
   private boolean nodeUpdatesRescheduleEnabled;
 
   @SuppressWarnings("rawtypes")
@@ -65,24 +65,24 @@ public class AMNodeTracker extends AbstractService implements
     this.maxTaskFailuresPerNode = conf.getInt(
         TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 
         TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
-    this.nodeBlacklistingEnabled = conf.getBoolean(
-        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED,
-        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED_DEFAULT);
-    this.blacklistDisablePercent = conf.getInt(
-          TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD,
-          TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
+    this.nodeBlocklistingEnabled = conf.getBoolean(
+        TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED,
+        TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED_DEFAULT);
+    this.blocklistDisablePercent = conf.getInt(
+          TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD,
+          TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD_DEFAULT);
     this.nodeUpdatesRescheduleEnabled = conf.getBoolean(
           TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
           TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT);
 
-    LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
-        ", blacklistingEnabled: " + nodeBlacklistingEnabled +
+    LOG.info("blocklistDisablePercent is " + blocklistDisablePercent +
+        ", blocklistingEnabled: " + nodeBlocklistingEnabled +
         ", maxTaskFailuresPerNode: " + maxTaskFailuresPerNode +
         ", nodeUpdatesRescheduleEnabled: " + nodeUpdatesRescheduleEnabled);
 
-    if (blacklistDisablePercent < -1 || blacklistDisablePercent > 100) {
-      throw new TezUncheckedException("Invalid blacklistDisablePercent: "
-          + blacklistDisablePercent
+    if (blocklistDisablePercent < -1 || blocklistDisablePercent > 100) {
+      throw new TezUncheckedException("Invalid blocklistDisablePercent: "
+          + blocklistDisablePercent
           + ". Should be an integer between 0 and 100 or -1 to disabled");
     }
   }
@@ -93,8 +93,8 @@ public class AMNodeTracker extends AbstractService implements
   }
 
 
-  boolean registerBadNodeAndShouldBlacklist(AMNode amNode, int schedulerId) {
-    return perSourceNodeTrackers.get(schedulerId).registerBadNodeAndShouldBlacklist(amNode);
+  boolean registerBadNodeAndShouldBlocklist(AMNode amNode, int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).registerBadNodeAndShouldBlocklist(amNode);
   }
 
   public void handle(AMNodeEvent rEvent) {
@@ -104,8 +104,8 @@ public class AMNodeTracker extends AbstractService implements
       case N_CONTAINER_COMPLETED:
       case N_TA_SUCCEEDED:
       case N_TA_ENDED:
-      case N_IGNORE_BLACKLISTING_ENABLED:
-      case N_IGNORE_BLACKLISTING_DISABLED:
+      case N_IGNORE_BLOCKLISTING_ENABLED:
+      case N_IGNORE_BLOCKLISTING_DISABLED:
         // All of these will only be seen after a node has been registered.
         perSourceNodeTrackers.get(rEvent.getSchedulerId()).handle(rEvent);
         break;
@@ -136,8 +136,8 @@ public class AMNodeTracker extends AbstractService implements
 
   @Private
   @VisibleForTesting
-  public boolean isBlacklistingIgnored(int schedulerId) {
-    return perSourceNodeTrackers.get(schedulerId).isBlacklistingIgnored();
+  public boolean isBlocklistingIgnored(int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).isBlocklistingIgnored();
   }
 
   public void dagComplete(DAG dag) {
@@ -151,7 +151,7 @@ public class AMNodeTracker extends AbstractService implements
     if (nodeTracker == null) {
       nodeTracker =
           new PerSourceNodeTracker(schedulerId, eventHandler, appContext, maxTaskFailuresPerNode,
-              nodeBlacklistingEnabled, blacklistDisablePercent,
+                  nodeBlocklistingEnabled, blocklistDisablePercent,
               nodeUpdatesRescheduleEnabled);
       PerSourceNodeTracker old = perSourceNodeTrackers.putIfAbsent(schedulerId, nodeTracker);
       nodeTracker = old != null ? old : nodeTracker;

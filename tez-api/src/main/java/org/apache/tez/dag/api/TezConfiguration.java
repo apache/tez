@@ -739,25 +739,25 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT=true;
 
   /**
-   * Boolean value. Enabled blacklisting of nodes of nodes that are considered faulty. These nodes
+   * Boolean value. Enabled blocklisting of nodes of nodes that are considered faulty. These nodes
    * will not be used to execute tasks.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="boolean")
-  public static final String TEZ_AM_NODE_BLACKLISTING_ENABLED = TEZ_AM_PREFIX
-      + "node-blacklisting.enabled";
-  public static final boolean TEZ_AM_NODE_BLACKLISTING_ENABLED_DEFAULT = true;
+  public static final String TEZ_AM_NODE_BLOCKLISTING_ENABLED = TEZ_AM_PREFIX
+      + "node-blocklisting.enabled";
+  public static final boolean TEZ_AM_NODE_BLOCKLISTING_ENABLED_DEFAULT = true;
 
   /**
    * Int value. Specifies the percentage of nodes in the cluster that may be considered faulty.
-   * This limits the number of nodes that are blacklisted in an effort to minimize the effects of
+   * This limits the number of nodes that are blocklisted in an effort to minimize the effects of
    * temporary surges in failures (e.g. due to network outages).
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
-  public static final String TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD = TEZ_AM_PREFIX
-      + "node-blacklisting.ignore-threshold-node-percent";
-  public static final int TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
+  public static final String TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD = TEZ_AM_PREFIX
+      + "node-blocklisting.ignore-threshold-node-percent";
+  public static final int TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
 
   /**
    * Boolean value. Enable task rescheduling for node updates.

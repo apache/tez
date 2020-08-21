@@ -985,12 +985,12 @@ public class TestTaskSchedulerManager {
     }
 
     @Override
-    public void blacklistNode(NodeId nodeId) {
+    public void blocklistNode(NodeId nodeId) {
 
     }
 
     @Override
-    public void unblacklistNode(NodeId nodeId) {
+    public void unblocklistNode(NodeId nodeId) {
 
     }
 
@@ -1056,12 +1056,12 @@ public class TestTaskSchedulerManager {
     }
 
     @Override
-    public void blacklistNode(NodeId nodeId) throws ServicePluginException {
+    public void blocklistNode(NodeId nodeId) throws ServicePluginException {
 
     }
 
     @Override
-    public void unblacklistNode(NodeId nodeId) throws ServicePluginException {
+    public void unblocklistNode(NodeId nodeId) throws ServicePluginException {
 
     }
 

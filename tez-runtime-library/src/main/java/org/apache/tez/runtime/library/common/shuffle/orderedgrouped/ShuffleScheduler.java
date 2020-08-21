@@ -829,7 +829,7 @@ class ShuffleScheduler {
     HostPort hostPort = new HostPort(host.getHost(), host.getPort());
     // TODO TEZ-922 hostFailures isn't really used for anything apart from
     // hasFailedAcrossNodes().Factor it into error
-    // reporting / potential blacklisting of hosts.
+    // reporting / potential blocklisting of hosts.
     if (hostFailures.containsKey(hostPort)) {
       IntWritable x = hostFailures.get(hostPort);
       x.set(x.get() + 1);

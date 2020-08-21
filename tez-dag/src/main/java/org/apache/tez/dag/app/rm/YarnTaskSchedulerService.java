@@ -120,7 +120,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
   
   Set<Priority> priorityHasAffinity = Sets.newHashSet();
 
-  Set<NodeId> blacklistedNodes = Collections
+  Set<NodeId> blocklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
   
   Resource totalResources = Resource.newInstance(0, 0);
@@ -938,17 +938,17 @@ public class YarnTaskSchedulerService extends TaskScheduler
   }
 
   @Override
-  public synchronized void blacklistNode(NodeId nodeId) {
-    LOG.info("Blacklisting node: " + nodeId);
-    amRmClient.addNodeToBlacklist(nodeId);
-    blacklistedNodes.add(nodeId);
+  public synchronized void blocklistNode(NodeId nodeId) {
+    LOG.info("Blocklisting node: " + nodeId);
+    amRmClient.addNodeToBlocklist(nodeId);
+    blocklistedNodes.add(nodeId);
   }
   
   @Override
-  public synchronized void unblacklistNode(NodeId nodeId) {
-    if (blacklistedNodes.remove(nodeId)) {
-      LOG.info("UnBlacklisting node: " + nodeId);
-      amRmClient.removeNodeFromBlacklist(nodeId);
+  public synchronized void unblocklistNode(NodeId nodeId) {
+    if (blocklistedNodes.remove(nodeId)) {
+      LOG.info("UnBlocklisting node: " + nodeId);
+      amRmClient.removeNodeFromBlocklist(nodeId);
     }
   }
   
@@ -1789,18 +1789,18 @@ public class YarnTaskSchedulerService extends TaskScheduler
     for (Entry<CookieContainerRequest, Container> entry : assignedContainers
         .entrySet()) {
       Container container = entry.getValue();
-      // check for blacklisted nodes. There may be race conditions between
-      // setting blacklist and receiving allocations
-      if (blacklistedNodes.contains(container.getNodeId())) {
+      // check for blocklisted nodes. There may be race conditions between
+      // setting blocklist and receiving allocations
+      if (blocklistedNodes.contains(container.getNodeId())) {
         CookieContainerRequest request = entry.getKey();
         Object task = getTask(request);
         LOG.info("Container: " + container.getId() + 
-            " allocated on blacklisted node: " + container.getNodeId() + 
+            " allocated on blocklisted node: " + container.getNodeId() +
             " for task: " + task);
         Object deAllocTask = deallocateContainer(container.getId());
         assert deAllocTask.equals(task);
         // its ok to submit the same request again because the RM will not give us
-        // the bad/unhealthy nodes again. The nodes may become healthy/unblacklisted
+        // the bad/unhealthy nodes again. The nodes may become healthy/unblocklisted
         // and so its better to give the RM the full information.
         allocateTask(task, request.getCapability(), 
             (request.getNodes() == null ? null : 

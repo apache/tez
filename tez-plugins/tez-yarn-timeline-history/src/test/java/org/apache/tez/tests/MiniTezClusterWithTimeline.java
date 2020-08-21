@@ -97,8 +97,8 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
     conf.set(MRConfig.FRAMEWORK_NAME, MRConfig.YARN_TEZ_FRAMEWORK_NAME);
     // Use libs from cluster since no build is available
     conf.setBoolean(TezConfiguration.TEZ_USE_CLUSTER_HADOOP_LIBS, true);
-    // blacklisting disabled to prevent scheduling issues
-    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    // blocklisting disabled to prevent scheduling issues
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
     if (conf.get(MRJobConfig.MR_AM_STAGING_DIR) == null) {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
           "apps_staging_dir" + Path.SEPARATOR).getAbsolutePath());

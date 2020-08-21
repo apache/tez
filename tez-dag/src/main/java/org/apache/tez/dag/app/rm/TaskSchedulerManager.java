@@ -292,15 +292,15 @@ public class TaskSchedulerManager extends AbstractService implements
     case S_CONTAINER_DEALLOCATE:
       handleContainerDeallocate((AMSchedulerEventDeallocateContainer)sEvent);
       break;
-    case S_NODE_UNBLACKLISTED:
+    case S_NODE_UNBLOCKLISTED:
       // fall through
-    case S_NODE_BLACKLISTED:
-      handleNodeBlacklistUpdate((AMSchedulerEventNodeBlacklistUpdate)sEvent);
+    case S_NODE_BLOCKLISTED:
+      handleNodeBlocklistUpdate((AMSchedulerEventNodeBlocklistUpdate)sEvent);
       break;
     case S_NODE_UNHEALTHY:
       break;
     case S_NODE_HEALTHY:
-      // Consider changing this to work like BLACKLISTING.
+      // Consider changing this to work like BLOCKLISTING.
       break;
     default:
       break;
@@ -330,18 +330,18 @@ public class TaskSchedulerManager extends AbstractService implements
     eventHandler.handle(event);
   }
 
-  private void handleNodeBlacklistUpdate(AMSchedulerEventNodeBlacklistUpdate event) {
+  private void handleNodeBlocklistUpdate(AMSchedulerEventNodeBlocklistUpdate event) {
     boolean invalidEventType = false;
     try {
-      if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
-        taskSchedulers[event.getSchedulerId()].blacklistNode(event.getNodeId());
-      } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLACKLISTED) {
-        taskSchedulers[event.getSchedulerId()].unblacklistNode(event.getNodeId());
+      if (event.getType() == AMSchedulerEventType.S_NODE_BLOCKLISTED) {
+        taskSchedulers[event.getSchedulerId()].blocklistNode(event.getNodeId());
+      } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLOCKLISTED) {
+        taskSchedulers[event.getSchedulerId()].unblocklistNode(event.getNodeId());
       } else {
         invalidEventType = true;
       }
     } catch (Exception e) {
-      String msg = "Error in TaskScheduler for handling node blacklisting"
+      String msg = "Error in TaskScheduler for handling node blocklisting"
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext);
       LOG.error(msg, e);
@@ -420,7 +420,7 @@ public class TaskSchedulerManager extends AbstractService implements
       sendEvent(new AMContainerEventStopRequest(attemptContainerId));
       // Inform the Node - the task has asked to be STOPPED / has already
       // stopped.
-      // AMNodeImpl blacklisting logic does not account for KILLED attempts.
+      // AMNodeImpl blocklisting logic does not account for KILLED attempts.
       AMContainer amContainer = appContext.getAllContainers().get(attemptContainerId);
       // DAG can be shutting down so protect against container cleanup race
       if (amContainer != null) {

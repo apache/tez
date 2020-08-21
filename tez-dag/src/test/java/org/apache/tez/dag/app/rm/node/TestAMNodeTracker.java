@@ -43,7 +43,7 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.DrainDispatcher;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
+import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlocklistUpdate;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
@@ -176,12 +176,12 @@ public class TestAMNodeTracker {
   }
 
   @Test (timeout = 5000)
-  public void testSingleNodeNotBlacklisted() {
+  public void testSingleNodeNotBlocklisted() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
-    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, true);
-    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD, 33);
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD, 33);
 
     TestEventHandler handler = new TestEventHandler();
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
@@ -195,16 +195,16 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
-    _testSingleNodeNotBlacklisted(amNodeTracker, handler, 0);
+    _testSingleNodeNotBlocklisted(amNodeTracker, handler, 0);
   }
 
   @Test (timeout = 5000)
-  public void testSingleNodeNotBlacklistedAlternateScheduler() {
+  public void testSingleNodeNotBlocklistedAlternateScheduler() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
-    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, true);
-    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD, 33);
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD, 33);
 
     TestEventHandler handler = new TestEventHandler();
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
@@ -218,16 +218,16 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
 
-    _testSingleNodeNotBlacklisted(amNodeTracker, handler, 1);
+    _testSingleNodeNotBlocklisted(amNodeTracker, handler, 1);
   }
 
   @Test (timeout = 5000)
-  public void testSingleNodeNotBlacklistedAlternateScheduler2() {
+  public void testSingleNodeNotBlocklistedAlternateScheduler2() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
-    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, true);
-    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD, 33);
+    conf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD, 33);
 
     TestEventHandler handler = new TestEventHandler();
     AMNodeTracker amNodeTracker = new AMNodeTracker(handler, appContext);
@@ -242,18 +242,18 @@ public class TestAMNodeTracker {
     amNodeTracker.start();
 
     // Register multiple nodes from a scheduler which isn't being tested.
-    // This should not affect the blacklisting behaviour
+    // This should not affect the blocklisting behaviour
     for (int i = 0 ; i < 10 ; i++) {
       amNodeTracker.nodeSeen(NodeId.newInstance("fakenode" + i, 3333), 0);
     }
 
-    _testSingleNodeNotBlacklisted(amNodeTracker, handler, 1);
-    // No impact on blacklisting for the alternate source
-    assertFalse(amNodeTracker.isBlacklistingIgnored(0));
+    _testSingleNodeNotBlocklisted(amNodeTracker, handler, 1);
+    // No impact on blocklisting for the alternate source
+    assertFalse(amNodeTracker.isBlocklistingIgnored(0));
   }
 
   @Test(timeout=10000)
-  public void testNodeSelfBlacklist() {
+  public void testNodeSelfBlocklist() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
@@ -269,14 +269,14 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
     try {
-      _testNodeSelfBlacklist(amNodeTracker, handler, 0);
+      _testNodeSelfBlocklist(amNodeTracker, handler, 0);
     } finally {
       amNodeTracker.stop();
     }
   }
 
   @Test(timeout=10000)
-  public void testNodeSelfBlacklistAlternateScheduler1() {
+  public void testNodeSelfBlocklistAlternateScheduler1() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
@@ -292,14 +292,14 @@ public class TestAMNodeTracker {
     amNodeTracker.init(conf);
     amNodeTracker.start();
     try {
-      _testNodeSelfBlacklist(amNodeTracker, handler, 1);
+      _testNodeSelfBlocklist(amNodeTracker, handler, 1);
     } finally {
       amNodeTracker.stop();
     }
   }
 
   @Test(timeout=10000)
-  public void testNodeSelfBlacklistAlternateScheduler2() {
+  public void testNodeSelfBlocklistAlternateScheduler2() {
     AppContext appContext = mock(AppContext.class);
     Configuration conf = new Configuration(false);
     conf.setInt(TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 2);
@@ -316,12 +316,12 @@ public class TestAMNodeTracker {
     amNodeTracker.start();
     try {
       // Register multiple nodes from a scheduler which isn't being tested.
-      // This should not affect the blacklisting behaviour
+      // This should not affect the blocklisting behaviour
       for (int i = 0 ; i < 100 ; i++) {
         amNodeTracker.nodeSeen(NodeId.newInstance("fakenode" + i, 3333), 0);
       }
-      _testNodeSelfBlacklist(amNodeTracker, handler, 1);
-      assertFalse(amNodeTracker.isBlacklistingIgnored(0));
+      _testNodeSelfBlocklist(amNodeTracker, handler, 1);
+      assertFalse(amNodeTracker.isBlocklistingIgnored(0));
     } finally {
       amNodeTracker.stop();
     }
@@ -490,7 +490,7 @@ public class TestAMNodeTracker {
     amNodeTracker.stop();
   }
 
-  private void _testSingleNodeNotBlacklisted(AMNodeTracker amNodeTracker,
+  private void _testSingleNodeNotBlocklisted(AMNodeTracker amNodeTracker,
                                              TestEventHandler handler, int schedulerId) {
     amNodeTracker.handle(new AMNodeEventNodeCountUpdated(1, schedulerId));
     NodeId nodeId = NodeId.newInstance("host1", 1234);
@@ -516,14 +516,14 @@ public class TestAMNodeTracker {
     dispatcher.await();
     assertEquals(2, node.numFailedTAs);
     assertEquals(1, handler.events.size());
-    assertEquals(AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED, handler.events.get(0).getType());
+    assertEquals(AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED, handler.events.get(0).getType());
     assertEquals(AMNodeState.FORCED_ACTIVE, node.getState());
-    // Blacklisting should be ignored since the node should have been blacklisted, but has not been
+    // Blocklisting should be ignored since the node should have been blocklisted, but has not been
     // as a result of being a single node for the source
-    assertTrue(amNodeTracker.isBlacklistingIgnored(schedulerId));
+    assertTrue(amNodeTracker.isBlocklistingIgnored(schedulerId));
   }
 
-  private void _testNodeSelfBlacklist(AMNodeTracker amNodeTracker, TestEventHandler handler, int schedulerId) {
+  private void _testNodeSelfBlocklist(AMNodeTracker amNodeTracker, TestEventHandler handler, int schedulerId) {
     amNodeTracker.handle(new AMNodeEventNodeCountUpdated(4, schedulerId));
     NodeId nodeId = NodeId.newInstance("host1", 1234);
     NodeId nodeId2 = NodeId.newInstance("host2", 1234);
@@ -565,7 +565,7 @@ public class TestAMNodeTracker {
     dispatcher.await();
     assertEquals(1, node.numSuccessfulTAs);
     assertEquals(2, node.numFailedTAs);
-    assertEquals(AMNodeState.BLACKLISTED, node.getState());
+    assertEquals(AMNodeState.BLOCKLISTED, node.getState());
 
     assertEquals(4, handler.events.size());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(0).getType());
@@ -574,11 +574,11 @@ public class TestAMNodeTracker {
     assertEquals(cId2, ((AMContainerEventNodeFailed)handler.events.get(1)).getContainerId());
     assertEquals(AMContainerEventType.C_NODE_FAILED, handler.events.get(2).getType());
     assertEquals(cId3, ((AMContainerEventNodeFailed)handler.events.get(2)).getContainerId());
-    assertEquals(AMSchedulerEventType.S_NODE_BLACKLISTED, handler.events.get(3).getType());
-    assertEquals(node.getNodeId(), ((AMSchedulerEventNodeBlacklistUpdate)handler.events.get(3)).getNodeId());
+    assertEquals(AMSchedulerEventType.S_NODE_BLOCKLISTED, handler.events.get(3).getType());
+    assertEquals(node.getNodeId(), ((AMSchedulerEventNodeBlocklistUpdate)handler.events.get(3)).getNodeId());
 
 
-    // Trigger one more node failure, which should cause BLACKLISTING to be disabled
+    // Trigger one more node failure, which should cause BLOCKLISTING to be disabled
     ContainerId cId4 = mock(ContainerId.class);
     ContainerId cId5 = mock(ContainerId.class);
     TezTaskAttemptID ta4 = mock(TezTaskAttemptID.class);
@@ -600,59 +600,59 @@ public class TestAMNodeTracker {
     assertEquals(AMNodeState.FORCED_ACTIVE, node3.getState());
     assertEquals(5, handler.events.size());
 
-    // Blacklisting Disabled, the node causing this will not be blacklisted. The single node that
-    // was blacklisted will be unblacklisted.
-    int numIgnoreBlacklistingEnabledEvents = 0;
-    int numUnblacklistedEvents = 0;
+    // Blocklisting Disabled, the node causing this will not be blocklisted. The single node that
+    // was blocklisted will be unblocklisted.
+    int numIgnoreBlocklistingEnabledEvents = 0;
+    int numUnblocklistedEvents = 0;
     for (Event event : handler.events) {
-      if (event.getType() == AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED) {
-        numIgnoreBlacklistingEnabledEvents++;
-      } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLACKLISTED) {
-        numUnblacklistedEvents++;
+      if (event.getType() == AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED) {
+        numIgnoreBlocklistingEnabledEvents++;
+      } else if (event.getType() == AMSchedulerEventType.S_NODE_UNBLOCKLISTED) {
+        numUnblocklistedEvents++;
       } else {
         fail("Unexpected event of type: " + event.getType());
       }
     }
-    assertEquals(4, numIgnoreBlacklistingEnabledEvents);
-    assertEquals(1, numUnblacklistedEvents);
+    assertEquals(4, numIgnoreBlocklistingEnabledEvents);
+    assertEquals(1, numUnblocklistedEvents);
 
     // drain all previous events
     dispatcher.await();
 
 
-    // Increase the number of nodes. BLACKLISTING should be re-enabled.
-    // Node 1 and Node 2 should go into BLACKLISTED state
+    // Increase the number of nodes. BLOCKLISTING should be re-enabled.
+    // Node 1 and Node 2 should go into BLOCKLISTED state
     handler.events.clear();
     amNodeTracker.handle(new AMNodeEventNodeCountUpdated(8, schedulerId));
     dispatcher.await();
     LOG.info(("Completed waiting for dispatcher to process all pending events"));
-    assertEquals(AMNodeState.BLACKLISTED, node.getState());
-    assertEquals(AMNodeState.BLACKLISTED, node2.getState());
+    assertEquals(AMNodeState.BLOCKLISTED, node.getState());
+    assertEquals(AMNodeState.BLOCKLISTED, node2.getState());
     assertEquals(AMNodeState.ACTIVE, node3.getState());
     assertEquals(8, handler.events.size());
 
     int index = 0;
-    int numIgnoreBlacklistingDisabledEvents = 0;
-    int numBlacklistedEvents = 0;
+    int numIgnoreBlocklistingDisabledEvents = 0;
+    int numBlocklistedEvents = 0;
     int numNodeFailedEvents = 0;
     for (Event event : handler.events) {
       LOG.info("Logging event: index:" + index++
           + " type: " + event.getType());
-      if (event.getType() == AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED) {
-        numIgnoreBlacklistingDisabledEvents++;
-      } else if (event.getType() == AMSchedulerEventType.S_NODE_BLACKLISTED) {
-        numBlacklistedEvents++;
+      if (event.getType() == AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED) {
+        numIgnoreBlocklistingDisabledEvents++;
+      } else if (event.getType() == AMSchedulerEventType.S_NODE_BLOCKLISTED) {
+        numBlocklistedEvents++;
       } else if (event.getType() == AMContainerEventType.C_NODE_FAILED) {
         numNodeFailedEvents++;
-        // Node2 is now blacklisted so the container's will be informed
+        // Node2 is now blocklisted so the container's will be informed
         assertTrue(((AMContainerEventNodeFailed) event).getContainerId() == cId4 ||
             ((AMContainerEventNodeFailed) event).getContainerId() == cId5);
       } else {
         fail("Unexpected event of type: " + event.getType());
       }
     }
-    assertEquals(4, numIgnoreBlacklistingDisabledEvents);
-    assertEquals(2, numBlacklistedEvents);
+    assertEquals(4, numIgnoreBlocklistingDisabledEvents);
+    assertEquals(2, numBlocklistedEvents);
     assertEquals(2, numNodeFailedEvents);
 
     amNodeTracker.stop();

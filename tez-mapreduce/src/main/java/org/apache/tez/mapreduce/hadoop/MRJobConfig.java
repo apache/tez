@@ -423,14 +423,14 @@ public interface MRJobConfig {
   public static final String MR_AM_JOB_CLIENT_PORT_RANGE = 
     MR_AM_PREFIX + "job.client.port-range";
   
-  /** Enable blacklisting of nodes in the job.*/
-  public static final String MR_AM_JOB_NODE_BLACKLISTING_ENABLE = 
+  /** Enable blocklisting of nodes in the job.*/
+  public static final String MR_AM_JOB_NODE_BLOCKLISTING_ENABLE =
     MR_AM_PREFIX  + "job.node-blacklisting.enable";
 
-  /** Ignore blacklisting if a certain percentage of nodes have been blacklisted */
-  public static final String MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERECENT =
+  /** Ignore blocklisting if a certain percentage of nodes have been blocklisted */
+  public static final String MR_AM_IGNORE_BLOCKLISTING_BLOCKLISTED_NODE_PERECENT =
       MR_AM_PREFIX + "job.node-blacklisting.ignore-threshold-node-percent";
-  public static final int DEFAULT_MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERCENT =
+  public static final int DEFAULT_MR_AM_IGNORE_BLOCKLISTING_BLOCKLISTED_NODE_PERCENT =
       33;
   
   /** Enable job recovery.*/

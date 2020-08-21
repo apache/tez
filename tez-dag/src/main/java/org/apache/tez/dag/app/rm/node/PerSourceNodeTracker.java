@@ -34,35 +34,35 @@ public class PerSourceNodeTracker {
 
   private final int sourceId;
   private final ConcurrentHashMap<NodeId, AMNode> nodeMap;
-  private final ConcurrentHashMap<String, Set<NodeId>> blacklistMap;
+  private final ConcurrentHashMap<String, Set<NodeId>> blocklistMap;
 
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private final AppContext appContext;
 
   private final int maxTaskFailuresPerNode;
-  private final boolean nodeBlacklistingEnabled;
-  private final int blacklistDisablePercent;
+  private final boolean nodeBlocklistingEnabled;
+  private final int blocklistDisablePercent;
   private final boolean nodeUpdatesRescheduleEnabled;
 
   private int numClusterNodes;
-  float currentIgnoreBlacklistingCountThreshold = 0;
-  private boolean ignoreBlacklisting = false;
+  float currentIgnoreBlocklistingCountThreshold = 0;
+  private boolean ignoreBlocklisting = false;
 
   @SuppressWarnings("rawtypes")
   public PerSourceNodeTracker(int sourceId, EventHandler eventHandler, AppContext appContext,
-                              int maxTaskFailuresPerNode, boolean nodeBlacklistingEnabled,
-                              int blacklistDisablePercent,
+                              int maxTaskFailuresPerNode, boolean nodeBlocklistingEnabled,
+                              int blocklistDisablePercent,
                               boolean nodeUpdatesRescheduleEnabled) {
     this.sourceId = sourceId;
     this.nodeMap = new ConcurrentHashMap<>();
-    this.blacklistMap = new ConcurrentHashMap<>();
+    this.blocklistMap = new ConcurrentHashMap<>();
     this.eventHandler = eventHandler;
     this.appContext = appContext;
 
     this.maxTaskFailuresPerNode = maxTaskFailuresPerNode;
-    this.nodeBlacklistingEnabled = nodeBlacklistingEnabled;
-    this.blacklistDisablePercent = blacklistDisablePercent;
+    this.nodeBlocklistingEnabled = nodeBlocklistingEnabled;
+    this.blocklistDisablePercent = blocklistDisablePercent;
     this.nodeUpdatesRescheduleEnabled = nodeUpdatesRescheduleEnabled;
   }
 
@@ -70,7 +70,7 @@ public class PerSourceNodeTracker {
 
   public void nodeSeen(NodeId nodeId) {
     if (nodeMap.putIfAbsent(nodeId, new AMNodeImpl(nodeId, sourceId, maxTaskFailuresPerNode,
-        eventHandler, nodeBlacklistingEnabled, nodeUpdatesRescheduleEnabled,
+        eventHandler, nodeBlocklistingEnabled, nodeUpdatesRescheduleEnabled,
         appContext)) == null) {
       LOG.info("Adding new node {} to nodeTracker {}", nodeId, sourceId);
     }
@@ -92,8 +92,8 @@ public class PerSourceNodeTracker {
         AMNodeEventNodeCountUpdated event = (AMNodeEventNodeCountUpdated) rEvent;
         numClusterNodes = event.getNodeCount();
         LOG.info("Num cluster nodes = " + numClusterNodes);
-        recomputeCurrentIgnoreBlacklistingThreshold();
-        computeIgnoreBlacklisting();
+        recomputeCurrentIgnoreBlocklistingThreshold();
+        computeIgnoreBlocklisting();
         break;
       case N_TURNED_UNHEALTHY:
       case N_TURNED_HEALTHY:
@@ -112,11 +112,11 @@ public class PerSourceNodeTracker {
     }
   }
 
-  boolean registerBadNodeAndShouldBlacklist(AMNode amNode) {
-    if (nodeBlacklistingEnabled) {
-      addToBlackList(amNode.getNodeId());
-      computeIgnoreBlacklisting();
-      return !ignoreBlacklisting;
+  boolean registerBadNodeAndShouldBlocklist(AMNode amNode) {
+    if (nodeBlocklistingEnabled) {
+      addToBlockList(amNode.getNodeId());
+      computeIgnoreBlocklisting();
+      return !ignoreBlocklisting;
     } else {
       return false;
     }
@@ -124,65 +124,65 @@ public class PerSourceNodeTracker {
 
   @InterfaceAudience.Private
   @VisibleForTesting
-  public boolean isBlacklistingIgnored() {
-    return this.ignoreBlacklisting;
+  public boolean isBlocklistingIgnored() {
+    return this.ignoreBlocklisting;
   }
 
-  private void recomputeCurrentIgnoreBlacklistingThreshold() {
-    if (nodeBlacklistingEnabled && blacklistDisablePercent != -1) {
-      currentIgnoreBlacklistingCountThreshold =
-          (float) numClusterNodes * blacklistDisablePercent / 100;
+  private void recomputeCurrentIgnoreBlocklistingThreshold() {
+    if (nodeBlocklistingEnabled && blocklistDisablePercent != -1) {
+      currentIgnoreBlocklistingCountThreshold =
+          (float) numClusterNodes * blocklistDisablePercent / 100;
     }
   }
 
   // May be incorrect if there's multiple NodeManagers running on a single host.
-  // knownNodeCount is based on node managers, not hosts. blacklisting is
+  // knownNodeCount is based on node managers, not hosts. blocklisting is
   // currently based on hosts.
-  protected void computeIgnoreBlacklisting() {
+  protected void computeIgnoreBlocklisting() {
 
     boolean stateChanged = false;
 
-    if (!nodeBlacklistingEnabled || blacklistDisablePercent == -1 || blacklistMap.size() == 0) {
+    if (!nodeBlocklistingEnabled || blocklistDisablePercent == -1 || blocklistMap.size() == 0) {
       return;
     }
-    if (blacklistMap.size() >= currentIgnoreBlacklistingCountThreshold) {
-      if (ignoreBlacklisting == false) {
-        ignoreBlacklisting = true;
-        LOG.info("Ignore Blacklisting set to true. Known: " + numClusterNodes
-            + ", Blacklisted: " + blacklistMap.size());
+    if (blocklistMap.size() >= currentIgnoreBlocklistingCountThreshold) {
+      if (ignoreBlocklisting == false) {
+        ignoreBlocklisting = true;
+        LOG.info("Ignore Blocklisting set to true. Known: " + numClusterNodes
+            + ", Blocklisted: " + blocklistMap.size());
         stateChanged = true;
       }
     } else {
-      if (ignoreBlacklisting == true) {
-        ignoreBlacklisting = false;
-        LOG.info("Ignore blacklisting set to false. Known: "
-            + numClusterNodes + ", Blacklisted: " + blacklistMap.size());
+      if (ignoreBlocklisting == true) {
+        ignoreBlocklisting = false;
+        LOG.info("Ignore blocklisting set to false. Known: "
+            + numClusterNodes + ", Blocklisted: " + blocklistMap.size());
         stateChanged = true;
       }
     }
 
     if (stateChanged) {
-      sendIngoreBlacklistingStateToNodes();
+      sendIngoreBlocklistingStateToNodes();
     }
   }
 
-  private void addToBlackList(NodeId nodeId) {
+  private void addToBlockList(NodeId nodeId) {
     String host = nodeId.getHost();
 
-    if (!blacklistMap.containsKey(host)) {
-      blacklistMap.putIfAbsent(host, new HashSet<NodeId>());
+    if (!blocklistMap.containsKey(host)) {
+      blocklistMap.putIfAbsent(host, new HashSet<NodeId>());
     }
-    Set<NodeId> nodes = blacklistMap.get(host);
+    Set<NodeId> nodes = blocklistMap.get(host);
 
     if (!nodes.contains(nodeId)) {
       nodes.add(nodeId);
     }
   }
 
-  private void sendIngoreBlacklistingStateToNodes() {
+  private void sendIngoreBlocklistingStateToNodes() {
     AMNodeEventType eventType =
-        ignoreBlacklisting ? AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED
-            : AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED;
+        ignoreBlocklisting ? AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED
+            : AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED;
     for (NodeId nodeId : nodeMap.keySet()) {
       sendEvent(new AMNodeEvent(nodeId, sourceId, eventType));
     }

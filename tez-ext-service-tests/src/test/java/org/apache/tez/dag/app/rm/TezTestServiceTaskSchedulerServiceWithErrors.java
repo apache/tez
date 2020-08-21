@@ -53,12 +53,12 @@ public class TezTestServiceTaskSchedulerServiceWithErrors extends TaskScheduler 
   }
 
   @Override
-  public void blacklistNode(NodeId nodeId) {
+  public void blocklistNode(NodeId nodeId) {
     ErrorPluginConfiguration.processError(conf, getContext());
   }
 
   @Override
-  public void unblacklistNode(NodeId nodeId) {
+  public void unblocklistNode(NodeId nodeId) {
     ErrorPluginConfiguration.processError(conf, getContext());
   }
 

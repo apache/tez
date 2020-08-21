@@ -103,7 +103,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private Resource totalResources = Resource.newInstance(0, 0);
   @GuardedBy("this")
   private Resource allocatedResources = Resource.newInstance(0, 0);
-  private final Set<NodeId> blacklistedNodes = Collections.newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
+  private final Set<NodeId> blocklistedNodes = Collections.newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
   private final ContainerSignatureMatcher signatureMatcher;
   @GuardedBy("this")
   private final RequestTracker requestTracker = new RequestTracker();
@@ -576,13 +576,13 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    * @param container the container assigned to the task
    */
   private void informAppAboutAssignment(TaskRequest request, Container container) {
-    if (blacklistedNodes.contains(container.getNodeId())) {
+    if (blocklistedNodes.contains(container.getNodeId())) {
       Object task = request.getTask();
-      LOG.info("Container {} allocated for task {} on blacklisted node {}",
+      LOG.info("Container {} allocated for task {} on blocklisted node {}",
           container.getId(), container.getNodeId(), task);
       deallocateContainer(container.getId());
       // its ok to submit the same request again because the RM will not give us
-      // the bad/unhealthy nodes again. The nodes may become healthy/unblacklisted
+      // the bad/unhealthy nodes again. The nodes may become healthy/unblocklisted
       // and so its better to give the RM the full information.
       allocateTask(task, request.getCapability(),
           (request.getNodes() == null ? null :
@@ -795,16 +795,16 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   }
 
   @Override
-  public synchronized void blacklistNode(NodeId nodeId) {
-    LOG.info("Blacklisting node: {}", nodeId);
-    blacklistedNodes.add(nodeId);
+  public synchronized void blocklistNode(NodeId nodeId) {
+    LOG.info("Blocklisting node: {}", nodeId);
+    blocklistedNodes.add(nodeId);
     client.updateBlacklist(Collections.singletonList(nodeId.getHost()), null);
   }
 
   @Override
-  public synchronized void unblacklistNode(NodeId nodeId) {
-    if (blacklistedNodes.remove(nodeId)) {
-      LOG.info("Removing blacklist for node: {}", nodeId);
+  public synchronized void unblocklistNode(NodeId nodeId) {
+    if (blocklistedNodes.remove(nodeId)) {
+      LOG.info("Removing blocklist for node: {}", nodeId);
       client.updateBlacklist(null, Collections.singletonList(nodeId.getHost()));
     }
   }
@@ -1236,8 +1236,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   }
 
   @VisibleForTesting
-  int getNumBlacklistedNodes() {
-    return blacklistedNodes.size();
+  int getNumBlocklistedNodes() {
+    return blocklistedNodes.size();
   }
 
   @VisibleForTesting
@@ -1245,7 +1245,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     return sessionContainers;
   }
 
-  // Wrapper class to work around lack of blacklisting APIs in async client.
+  // Wrapper class to work around lack of blocklisting APIs in async client.
   // This can be removed once Tez requires YARN >= 2.7.0
   static class AMRMClientAsyncWrapper extends AMRMClientAsyncImpl<TaskRequest> {
     AMRMClientAsyncWrapper(AMRMClient<TaskRequest> syncClient, int intervalMs, CallbackHandler handler) {

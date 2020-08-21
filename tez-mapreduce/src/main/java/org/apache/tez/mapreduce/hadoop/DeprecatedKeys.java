@@ -59,11 +59,11 @@ public class DeprecatedKeys {
     
     mrParamToDAGParamMap.put(MRJobConfig.MAX_TASK_FAILURES_PER_TRACKER,
         TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE);
-    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_NODE_BLACKLISTING_ENABLE,
-        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED);
+    mrParamToDAGParamMap.put(MRJobConfig.MR_AM_JOB_NODE_BLOCKLISTING_ENABLE,
+        TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED);
     mrParamToDAGParamMap.put(
-        MRJobConfig.MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERECENT,
-        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD);
+        MRJobConfig.MR_AM_IGNORE_BLOCKLISTING_BLOCKLISTED_NODE_PERECENT,
+        TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_IGNORE_THRESHOLD);
 
     mrParamToDAGParamMap.put(MRJobConfig.QUEUE_NAME,
       TezConfiguration.TEZ_QUEUE_NAME);

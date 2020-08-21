@@ -32,7 +32,7 @@ public interface AMNode extends EventHandler<AMNodeEvent> {
   public List<ContainerId> getContainers();
 
   public boolean isUnhealthy();
-  public boolean isBlacklisted();
+  public boolean isBlocklisted();
   public boolean isUsable();
 
   void dagComplete(DAG dag);
