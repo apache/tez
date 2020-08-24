@@ -847,6 +847,16 @@ public class TezConfiguration extends Configuration {
 
   public static final int TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT_DEFAULT = 10;
 
+  /**
+   * Int value. Upper limit on the number of threads used by app context (vertex management and input init events).
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT =
+          TEZ_AM_PREFIX + "dag.appcontext.thread-count-limit";
+
+  public static final int TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT = 10;
+
   /** Int value. The amount of memory in MB to be used by tasks. This applies to all tasks across
    * all vertices. Setting it to the same value for all tasks is helpful for container reuse and
    * thus good for performance typically. */

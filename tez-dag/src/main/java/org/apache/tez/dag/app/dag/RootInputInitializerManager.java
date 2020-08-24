@@ -121,7 +121,7 @@ public class RootInputInitializerManager {
    * @param inputs
    * @return
    */
-  private List<InitializerWrapper> createInitializerWrappers(
+  protected List<InitializerWrapper> createInitializerWrappers(
           List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs) {
     String current = null;
     final List<InitializerWrapper> result = Collections.synchronizedList(new ArrayList<>());
@@ -161,7 +161,7 @@ public class RootInputInitializerManager {
    * @param pendingInitializerEvents
    * @param result
    */
-  private void createAndStartInitializing(List<TezEvent> pendingInitializerEvents, List<InitializerWrapper> result) {
+  protected void createAndStartInitializing(List<TezEvent> pendingInitializerEvents, List<InitializerWrapper> result) {
     handleInitializerEvents(pendingInitializerEvents);
     pendingInitializerEvents.clear();
     for (InitializerWrapper inputWrapper : result) {
