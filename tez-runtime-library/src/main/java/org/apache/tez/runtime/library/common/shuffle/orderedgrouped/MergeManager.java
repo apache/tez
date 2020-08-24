@@ -1316,10 +1316,10 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       LOG.info(finalMergeLog.toString());
     }
     // This is doing nothing but creating an iterator over the segments.
-    return TezMerger.merge(job, fs, keyClass, valueClass,
-                 finalSegments, finalSegments.size(), tmpDir,
-                 comparator, progressable, spilledRecordsCounter, null,
-                 additionalBytesRead, null);
+    return TezMerger.merge(job, fs, keyClass, valueClass, codec,
+        finalSegments, finalSegments.size(), tmpDir,
+        comparator, progressable, spilledRecordsCounter, null,
+        additionalBytesRead, null);
   }
 
 

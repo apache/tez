@@ -128,6 +128,21 @@ public class TezMerger {
                                                bytesReadCounter, mergePhase);
   }
 
+  public static TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
+      Class keyClass, Class valueClass, CompressionCodec codec,
+      List<Segment> segments,
+      int mergeFactor, Path tmpDir,
+      RawComparator comparator, Progressable reporter,
+      TezCounter readsCounter,
+      TezCounter writesCounter,
+      TezCounter bytesReadCounter,
+      Progress mergePhase) throws IOException, InterruptedException {
+    return new MergeQueue(conf, fs, segments, comparator, reporter,
+        false, codec, false, false)
+        .merge(keyClass, valueClass, mergeFactor, tmpDir,
+            readsCounter, writesCounter, bytesReadCounter, mergePhase);
+  }
+
   public static <K extends Object, V extends Object>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
       Class keyClass, Class valueClass,
