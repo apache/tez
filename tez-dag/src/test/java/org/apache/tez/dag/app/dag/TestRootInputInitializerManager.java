@@ -327,15 +327,15 @@ public class TestRootInputInitializerManager {
     List<RootInputInitializerManager.InitializerWrapper> initWrappers =
             rootInputInitializerManager.createInitializerWrappers(inlist);
 
-    int max_thread_size = conf.getInt(TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT,
+    int maxThreadSize = conf.getInt(TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT,
             TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT);
     ThreadPoolExecutor amThreadPool = am.getContext().getThreadPool();
 
-    rootInputInitializerManager.executor.submit(()
-            -> rootInputInitializerManager.createAndStartInitializing(Collections.emptyList(), initWrappers));
+    rootInputInitializerManager.executor.submit(() -> rootInputInitializerManager
+        .createAndStartInitializing(Collections.emptyList(), initWrappers));
 
     while (am.getContext().getThreadPool().getQueue().size() > 0) {
-      assertTrue(amThreadPool.getPoolSize() <= max_thread_size);
+      assertTrue(amThreadPool.getPoolSize() <= maxThreadSize);
       Thread.sleep(100);
     }
   }
