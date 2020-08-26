@@ -18,14 +18,12 @@
 
 package org.apache.tez.client;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
 
 
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -81,7 +79,7 @@ public class LocalClient extends FrameworkClient {
   }
 
   @Override
-  public void init(TezConfiguration tezConf, YarnConfiguration yarnConf) {
+  public void init(TezConfiguration tezConf) {
     this.conf = tezConf;
     // Tez libs already in the client's classpath
     this.conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);

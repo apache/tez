@@ -67,7 +67,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.LimitExceededException;
@@ -889,7 +888,7 @@ public class TestTezClient {
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
     when(yarnClient.getApplicationReport(appId1)).thenReturn(mockReport);
     TezYarnClient tezClient = new TezYarnClient(yarnClient);
-    tezClient.init(new TezConfiguration(false), new YarnConfiguration());
+    tezClient.init(new TezConfiguration(false));
     try {
       tezClient.getApplicationReport(appId1);
       fail("getApplicationReport should have thrown");

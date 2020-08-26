@@ -35,7 +35,6 @@ import java.util.Set;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -204,8 +203,7 @@ public class TestDAGClient {
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithCounters).build());
 
     TezConfiguration tezConf = new TezConfiguration();
-    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
-    dagClient = new DAGClientImpl(mockAppId, dagIdStr, tezConf,  yarnConf, null,
+    dagClient = new DAGClientImpl(mockAppId, dagIdStr, tezConf, null,
         UserGroupInformation.getCurrentUser());
     DAGClientRPCImpl realClient = (DAGClientRPCImpl)((DAGClientImpl)dagClient).getRealClient();
     realClient.appReport = mockAppReport;
@@ -342,16 +340,13 @@ public class TestDAGClient {
 
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800l);
-    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
 
-    DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf,
-        yarnConf,null);
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null);
     DAGClientRPCImplForTest dagClientRpc =
         new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
     dagClient.setRealClient(dagClientRpc);
 
     DAGStatus dagStatus;
-
 
     // Fetch from RM. AM not up yet.
     dagClientRpc.setAMProxy(null);
@@ -426,14 +421,12 @@ public class TestDAGClient {
                                      String loggingClass, boolean amHistoryLoggingEnabled,
                                      boolean dagHistoryLoggingEnabled) throws IOException {
     TezConfiguration tezConf = new TezConfiguration();
-    YarnConfiguration yarnConf = new YarnConfiguration(tezConf);
 
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, loggingClass);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED, amHistoryLoggingEnabled);
     tezConf.setBoolean(TezConfiguration.TEZ_DAG_HISTORY_LOGGING_ENABLED, dagHistoryLoggingEnabled);
 
-    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf,
-        yarnConf,null);
+    DAGClientImplForTest dagClient = new DAGClientImplForTest(appId, dagIdStr, tezConf, null);
     assertEquals(expected, dagClient.getIsATSEnabled());
   }
 
@@ -478,9 +471,8 @@ public class TestDAGClient {
     int numGetStatusViaRmInvocations = 0;
 
     public DAGClientImplForTest(ApplicationId appId, String dagId, TezConfiguration conf,
-        YarnConfiguration yarnConf,
         @Nullable FrameworkClient frameworkClient) throws IOException {
-      super(appId, dagId, conf, yarnConf, frameworkClient, UserGroupInformation.getCurrentUser());
+      super(appId, dagId, conf, frameworkClient, UserGroupInformation.getCurrentUser());
     }
 
     private void setRealClient(DAGClientRPCImplForTest dagClientRpcImplForTest) {
@@ -518,7 +510,7 @@ public class TestDAGClient {
       ServiceException {
     DAGClientAMProtocolBlockingPB mock = mock(DAGClientAMProtocolBlockingPB.class);
 
-    doAnswer(new Answer() {
+    doAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         GetDAGStatusRequestProto request = (GetDAGStatusRequestProto) invocation.getArguments()[1];
