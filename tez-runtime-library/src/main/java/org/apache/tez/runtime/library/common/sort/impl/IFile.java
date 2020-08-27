@@ -48,7 +48,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.hadoop.io.serializer.Serialization;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.tez.common.counters.TezCounter;
 
@@ -120,12 +120,12 @@ public class IFile {
     protected final boolean rle;
 
 
-    public Writer(Configuration conf, FileSystem fs, Path file,
+    public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file,
                   Class keyClass, Class valueClass,
                   CompressionCodec codec,
                   TezCounter writesCounter,
                   TezCounter serializedBytesCounter) throws IOException {
-      this(conf, fs.create(file), keyClass, valueClass, codec,
+      this(keySerialization, valSerialization, fs.create(file), keyClass, valueClass, codec,
            writesCounter, serializedBytesCounter);
       ownOutputStream = true;
     }
@@ -136,17 +136,17 @@ public class IFile {
       this.rle = rle;
     }
 
-    public Writer(Configuration conf, FSDataOutputStream outputStream,
+    public Writer(Serialization keySerialization, Serialization valSerialization, FSDataOutputStream outputStream,
         Class keyClass, Class valueClass, CompressionCodec codec, TezCounter writesCounter,
         TezCounter serializedBytesCounter) throws IOException {
-      this(conf, outputStream, keyClass, valueClass, codec, writesCounter,
+      this(keySerialization, valSerialization, outputStream, keyClass, valueClass, codec, writesCounter,
           serializedBytesCounter, false);
     }
 
-    public Writer(Configuration conf, FSDataOutputStream outputStream,
-        Class keyClass, Class valueClass,
-        CompressionCodec codec, TezCounter writesCounter, TezCounter serializedBytesCounter,
-        boolean rle) throws IOException {
+    public Writer(Serialization keySerialization, Serialization valSerialization, FSDataOutputStream outputStream,
+                  Class keyClass, Class valueClass,
+                  CompressionCodec codec, TezCounter writesCounter, TezCounter serializedBytesCounter,
+                  boolean rle) throws IOException {
       this.rawOut = outputStream;
       this.writtenRecordsCounter = writesCounter;
       this.serializedUncompressedBytes = serializedBytesCounter;
@@ -171,19 +171,17 @@ public class IFile {
 
       if (keyClass != null) {
         this.closeSerializers = true;
-        SerializationFactory serializationFactory =
-          new SerializationFactory(conf);
-        this.keySerializer = serializationFactory.getSerializer(keyClass);
+        this.keySerializer = keySerialization.getSerializer(keyClass);
         this.keySerializer.open(buffer);
-        this.valueSerializer = serializationFactory.getSerializer(valueClass);
+        this.valueSerializer = valSerialization.getSerializer(valueClass);
         this.valueSerializer.open(buffer);
       } else {
         this.closeSerializers = false;
       }
     }
 
-    public Writer(Configuration conf, FileSystem fs, Path file) throws IOException {
-      this(conf, fs, file, null, null, null, null, null);
+    public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file) throws IOException {
+      this(keySerialization, valSerialization, fs, file, null, null, null, null, null);
     }
 
     protected void writeHeader(OutputStream outputStream) throws IOException {

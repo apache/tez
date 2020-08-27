@@ -55,6 +55,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.hadoop.io.serializer.WritableSerialization;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -146,7 +147,7 @@ public class TestIFile {
   public void testWritingEmptyKeyValues() throws IOException {
     DataInputBuffer key = new DataInputBuffer();
     DataInputBuffer value = new DataInputBuffer();
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath, null, null, null,
+    IFile.Writer writer = new IFile.Writer(null, null, localFs, outputPath, null, null, null,
         null, null);
     writer.append(key, value);
     writer.append(key, value);
@@ -205,7 +206,7 @@ public class TestIFile {
 
     // Check Key length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
@@ -228,7 +229,7 @@ public class TestIFile {
 
     // Check Value length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
@@ -252,7 +253,7 @@ public class TestIFile {
 
     // Check Key length not getting doubled
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
@@ -271,7 +272,7 @@ public class TestIFile {
 
     // Check Value length not getting doubled
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
@@ -298,7 +299,7 @@ public class TestIFile {
   public void testWithRLEMarker() throws IOException {
     //Test with append(Object, Object)
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, true);
 
     Text key = new Text("key0");
@@ -324,7 +325,7 @@ public class TestIFile {
     int valueLength = 6;
     int pos = 0;
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, true);
 
     BoundedByteArrayOutputStream boundedOut = new BoundedByteArrayOutputStream(1024*1024);
@@ -467,8 +468,8 @@ public class TestIFile {
   //Test appendValue feature
   public void testAppendValue() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
 
     Text previousKey = null;
     for (KVPair kvp : data) {
@@ -498,8 +499,8 @@ public class TestIFile {
       values.add(val);
     }
 
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
     writer.append(data.get(0).getKey(), data.get(0).getvalue()); //write first KV pair
     writer.appendValues(values.subList(1, values.size()).iterator()); //add the rest here
 
@@ -526,8 +527,8 @@ public class TestIFile {
       values.add(val);
     }
 
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
     writer.appendKeyValues(data.get(0).getKey(), values.iterator());
 
     Text lastKey = new Text("key3");
@@ -544,8 +545,8 @@ public class TestIFile {
   //Test appendValue with DataInputBuffer
   public void testAppendValueWithDataInputBuffer() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
 
     final DataInputBuffer previousKey = new DataInputBuffer();
     DataInputBuffer key = new DataInputBuffer();
@@ -796,7 +797,7 @@ public class TestIFile {
   private Writer writeTestFile(boolean rle, boolean repeatKeys,
       List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
     writeTestFile(writer, repeatKeys, data);
     out.close();
@@ -829,7 +830,7 @@ public class TestIFile {
   private Writer writeTestFileUsingDataBuffer(boolean rle, boolean repeatKeys,
       List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
     writeTestFileUsingDataBuffer(writer, repeatKeys, data);
     out.close();
