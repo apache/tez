@@ -398,14 +398,14 @@ public class PipelinedSorter extends ExternalSorter {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    if (key.getClass() != keyClass) {
+    if (key.getClass() != serializationContext.getKeyClass()) {
       throw new IOException("Type mismatch in key from map: expected "
-                            + keyClass.getName() + ", received "
+                            + serializationContext.getKeyClass().getName() + ", received "
                             + key.getClass().getName());
     }
-    if (value.getClass() != valClass) {
+    if (value.getClass() != serializationContext.getValueClass()) {
       throw new IOException("Type mismatch in value from map: expected "
-                            + valClass.getName() + ", received "
+                            + serializationContext.getValueClass().getName() + ", received "
                             + value.getClass().getName());
     }
     if (partition < 0 || partition >= partitions) {
@@ -506,8 +506,9 @@ public class PipelinedSorter extends ExternalSorter {
         try {
           long segmentStart = out.getPos();
           if (!sendEmptyPartitionDetails || (i == partition)) {
-            writer = new Writer(conf, out, keyClass, valClass, codec,
-                spilledRecordsCounter, null, false);
+            writer = new Writer(serializationContext.getKeySerialization(),
+                serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+                serializationContext.getValueClass(), codec, spilledRecordsCounter, null, false);
           }
           // we need not check for combiner since its a single record
           if (i == partition) {
@@ -592,8 +593,10 @@ public class PipelinedSorter extends ExternalSorter {
         Writer writer = null;
         boolean hasNext = kvIter.hasNext();
         if (hasNext || !sendEmptyPartitionDetails) {
-          writer = new Writer(conf, out, keyClass, valClass, codec,
-              spilledRecordsCounter, null, merger.needsRLE());
+          writer = new Writer(serializationContext.getKeySerialization(),
+              serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+              serializationContext.getValueClass(), codec, spilledRecordsCounter, null,
+              merger.needsRLE());
         }
         if (combiner == null) {
           while (kvIter.next()) {
@@ -791,7 +794,7 @@ public class PipelinedSorter extends ExternalSorter {
         boolean sortSegments = segmentList.size() > mergeFactor;
         //merge
         TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
-            keyClass, valClass, codec,
+            serializationContext, codec,
             segmentList, mergeFactor,
             new Path(uniqueIdentifier),
             (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf),
@@ -803,9 +806,10 @@ public class PipelinedSorter extends ExternalSorter {
         long rawLength = 0;
         long partLength = 0;
         if (shouldWrite) {
-          Writer writer =
-              new Writer(conf, finalOut, keyClass, valClass, codec,
-                  spilledRecordsCounter, null, merger.needsRLE());
+          Writer writer = new Writer(serializationContext.getKeySerialization(),
+              serializationContext.getValSerialization(), finalOut,
+              serializationContext.getKeyClass(), serializationContext.getValueClass(), codec,
+              spilledRecordsCounter, null, merger.needsRLE());
           if (combiner == null || numSpills < minSpillsForCombine) {
             TezMerger.writeFile(kvIter, writer, progressable,
                 TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);

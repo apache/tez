@@ -44,7 +44,6 @@ import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progressable;
@@ -60,13 +59,14 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitio
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
+import org.apache.tez.runtime.library.common.serializer.SerializationContext;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 
 import org.apache.tez.common.Preconditions;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({"rawtypes"})
 public abstract class ExternalSorter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalSorter.class);
@@ -106,10 +106,9 @@ public abstract class ExternalSorter {
   protected final FileSystem rfs;
   protected final TezTaskOutput mapOutputFile;
   protected final int partitions;
-  protected final Class keyClass;
-  protected final Class valClass;
   protected final RawComparator comparator;
-  protected final SerializationFactory serializationFactory;
+
+  protected final SerializationContext serializationContext;
   protected final Serializer keySerializer;
   protected final Serializer valSerializer;
   
@@ -201,14 +200,12 @@ public abstract class ExternalSorter {
     comparator = ConfigUtils.getIntermediateOutputKeyComparator(this.conf);
 
     // k/v serialization
-    keyClass = ConfigUtils.getIntermediateOutputKeyClass(this.conf);
-    valClass = ConfigUtils.getIntermediateOutputValueClass(this.conf);
-    serializationFactory = new SerializationFactory(this.conf);
-    keySerializer = serializationFactory.getSerializer(keyClass);
-    valSerializer = serializationFactory.getSerializer(valClass);
+    this.serializationContext = new SerializationContext(this.conf);
+    keySerializer = serializationContext.getKeySerializer();
+    valSerializer = serializationContext.getValueSerializer();
     LOG.info(outputContext.getDestinationVertexName() + " using: "
         + "memoryMb=" + assignedMb
-        + ", keySerializerClass=" + keyClass
+        + ", keySerializerClass=" + serializationContext.getKeyClass()
         + ", valueSerializerClass=" + valSerializer
         + ", comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
         + ", partitioner=" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS)

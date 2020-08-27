@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.io.serializer.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -57,6 +58,8 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
   protected final Serializer keySerializer;
   protected final Serializer valSerializer;
   protected final SerializationFactory serializationFactory;
+  protected final Serialization keySerialization;
+  protected final Serialization valSerialization;
   protected final int numPartitions;
   protected final CompressionCodec codec;
   protected final TezTaskOutput outputFileHandler;
@@ -124,8 +127,10 @@ public abstract class BaseUnorderedPartitionedKVWriter extends KeyValuesWriter {
     keyClass = ConfigUtils.getIntermediateOutputKeyClass(this.conf);
     valClass = ConfigUtils.getIntermediateOutputValueClass(this.conf);
     serializationFactory = new SerializationFactory(this.conf);
-    keySerializer = serializationFactory.getSerializer(keyClass);
-    valSerializer = serializationFactory.getSerializer(valClass);
+    keySerialization = serializationFactory.getSerialization(keyClass);
+    valSerialization = serializationFactory.getSerialization(valClass);
+    keySerializer = keySerialization.getSerializer(keyClass);
+    valSerializer = valSerialization.getSerializer(valClass);
     
     outputRecordBytesCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
     outputRecordsCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);
