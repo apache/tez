@@ -18,6 +18,10 @@ import java.net.URLClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
+import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * ClassLoader to allow addition of new paths to classpath in the runtime.
  *
@@ -30,6 +34,7 @@ import java.security.PrivilegedAction;
  */
 public class TezClassLoader extends URLClassLoader {
   private static final TezClassLoader INSTANCE;
+  private static final Logger LOG = LoggerFactory.getLogger(TezClassLoader.class);
 
   static {
     INSTANCE = AccessController.doPrivileged(new PrivilegedAction<TezClassLoader>() {
@@ -41,6 +46,11 @@ public class TezClassLoader extends URLClassLoader {
 
   private TezClassLoader() {
     super(new URL[] {}, TezClassLoader.class.getClassLoader());
+
+    LOG.info(
+        "Created TezClassLoader with parent classloader: {}, thread: {}, system classloader: {}",
+        TezClassLoader.class.getClassLoader(), Thread.currentThread().getId(),
+        ClassLoader.getSystemClassLoader());
   }
 
   public void addURL(URL url) {
@@ -52,6 +62,14 @@ public class TezClassLoader extends URLClassLoader {
   }
 
   public static void setupTezClassLoader() {
+    LOG.debug(
+        "Setting up TezClassLoader: thread: {}, current thread classloader: {} system classloader: {}",
+        Thread.currentThread().getId(), Thread.currentThread().getContextClassLoader(),
+        ClassLoader.getSystemClassLoader());
     Thread.currentThread().setContextClassLoader(INSTANCE);
+  }
+
+  public static void setupForConfiguration(Configuration configuration) {
+    configuration.setClassLoader(INSTANCE);
   }
 }

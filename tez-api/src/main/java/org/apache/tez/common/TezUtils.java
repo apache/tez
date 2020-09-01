@@ -117,6 +117,7 @@ public class TezUtils {
       DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(in);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
+      TezClassLoader.setupForConfiguration(conf);
       return conf;
     }
   }
@@ -130,6 +131,7 @@ public class TezUtils {
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
       DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
       readConfFromPB(confProto, configuration);
+      TezClassLoader.setupForConfiguration(configuration);
       return configuration;
     }
   }
@@ -139,6 +141,7 @@ public class TezUtils {
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
       DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
       readConfFromPB(confProto, configuration);
+      TezClassLoader.setupForConfiguration(configuration);
     }
   }
 
