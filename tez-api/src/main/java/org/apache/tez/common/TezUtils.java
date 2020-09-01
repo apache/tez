@@ -120,6 +120,7 @@ public class TezUtils {
       DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(in);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
+      TezClassLoader.setupForConfiguration(conf);
       return conf;
     }
   }
