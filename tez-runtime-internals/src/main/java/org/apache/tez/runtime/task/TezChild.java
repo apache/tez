@@ -77,6 +77,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezClassLoader;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -480,7 +482,7 @@ public class TezChild {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
-
+    TezClassLoader.setupTezClassLoader();
     final Configuration defaultConf = new Configuration();
 
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
