@@ -5,6 +5,8 @@ Release 0.10.0: 2020-09-01
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+TEZ-4230: LocalContainerLauncher can kill task future too early, causing app hang (László Bodor reviewed by Jonathan Turner Eagles)
+TEZ-4228: TezClassLoader should be used in TezChild and for Configuration objects
 TEZ-3645: Reuse SerializationFactory while sorting, merging, and writing IFiles (Jonathan Turner Eagles reviewed by Rajesh Balamohan, Laszlo Bodor)
 TEZ-4175: Consider removing YarnConfiguration where it's possible (László Bodor reviewed by Rajesh Balamohan, Mustafa Iman, Ashutosh Chauhan)
 TEZ-4224: Add Laszlo Bodor's public key to KEYS (László Bodor reviewed by Jonathan Turner Eagles)
