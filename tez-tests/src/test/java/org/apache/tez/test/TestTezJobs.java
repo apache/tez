@@ -164,10 +164,35 @@ public class TestTezJobs {
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
     hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
-    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
-    Path inPath1 = new Path("/tmp/hashJoin/inPath1");
-    Path inPath2 = new Path("/tmp/hashJoin/inPath2");
-    Path outPath = new Path("/tmp/hashJoin/outPath");
+    runHashJoinExample(hashJoinExample);
+  }
+
+  @Test(timeout = 60000)
+  public void testHashJoinExampleWithLogPattern() throws Exception {
+    HashJoinExample hashJoinExample = new HashJoinExample();
+
+    Configuration patternConfig = new Configuration(mrrTezCluster.getConfig());
+
+    patternConfig.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "debug");
+    patternConfig.set(TezConfiguration.TEZ_TASK_LOG_LEVEL, "debug");
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM,
+        "%d{ISO8601} [%p] [%t (queryId=%X{queryId} dag=%X{dagId})] |%c{2}|: %m%n");
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK,
+        "%d{ISO8601} [%p] [%t (queryId=%X{queryId} dag=%X{dagId} task=%X{taskAttemptId})] |%c{2}|: %m%n");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "queryId");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_VALUES_FROM, "hive.query.id");
+    patternConfig.set("hive.query.id", "hello-upstream-application-12345");
+
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+  }
+
+  private void runHashJoinExample(HashJoinExample hashJoinExample) throws Exception {
+    int random = new Random(System.currentTimeMillis()).nextInt(10000);
+    Path stagingDirPath = new Path(String.format("/tmp/tez-staging-dir%d", random));
+    Path inPath1 = new Path(String.format("/tmp/hashJoin%d/inPath1", random));
+    Path inPath2 = new Path(String.format("/tmp/hashJoin%d/inPath2", random));
+    Path outPath = new Path(String.format("/tmp/hashJoin%d/outPath", random));
     remoteFs.mkdirs(inPath1);
     remoteFs.mkdirs(inPath2);
     remoteFs.mkdirs(stagingDirPath);

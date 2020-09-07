@@ -261,6 +261,42 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
   /**
+   * By this option, user can easily override the logging pattern which is applied in
+   * TezContainerLogAppender in AM, regardless of the environmental settings.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_LOG_PATTERN_LAYOUT_AM = TEZ_PREFIX + "log.pattern.layout.am";
+
+  /**
+   * By this option, user can easily override the logging pattern which is applied in
+   * TezContainerLogAppender in tasks, regardless of the environmental settings.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_LOG_PATTERN_LAYOUT_TASK = TEZ_PREFIX + "log.pattern.layout.task";
+
+  /**
+   * Comma separated list of keys, which can used for defining keys in MDC. The corresponding values
+   * will be read from Configuration, see tez.mdc.custom.keys.values.from for further details.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_MDC_CUSTOM_KEYS = TEZ_PREFIX + "mdc.custom.keys";
+  public static final String TEZ_MDC_CUSTOM_KEYS_DEFAULT = "";
+
+  /**
+   * Comma separated list of keys, which can used for defining keys in Configuration. Tez will try
+   * to fill MDC with key value pairs in a way that a key will be the nth item in
+   * tez.mdc.custom.keys and the value will be the value from a Configuration object pointed by the
+   * nth key of tez.mdc.custom.keys.values.from.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_MDC_CUSTOM_KEYS_VALUES_FROM = TEZ_MDC_CUSTOM_KEYS + ".values.from";
+  public static final String TEZ_MDC_CUSTOM_KEYS_VALUES_FROM_DEFAULT = "";
+
+  /**
    * double value. Represents ratio of unique failed outputs / number of consumer
    * tasks. When this condition or value mentioned in {@link
    * #TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES} is met, task would be declared as failed by AM.

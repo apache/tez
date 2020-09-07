@@ -49,6 +49,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.log4j.helpers.ThreadLocalMap;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezCommonUtils;
@@ -63,6 +64,7 @@ import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -71,6 +73,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
+import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,6 +128,7 @@ public class TezChild {
   private TezVertexID lastVertexID;
   private final HadoopShim hadoopShim;
   private final TezExecutors sharedExecutor;
+  private ThreadLocalMap mdcContext;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -133,6 +137,7 @@ public class TezChild {
       ExecutionContext executionContext,
       Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
       boolean updateSysCounters, HadoopShim hadoopShim) throws IOException, InterruptedException {
+    this.mdcContext = LoggingUtils.setupLog4j();
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -216,7 +221,7 @@ public class TezChild {
 
     while (!executor.isTerminated() && !isShutdown.get()) {
       if (taskCount > 0) {
-        TezUtilsInternal.updateLoggers("");
+        TezUtilsInternal.updateLoggers(defaultConf, "", LoggingUtils.getPatternForTask(defaultConf));
       }
       ListenableFuture<ContainerTask> getTaskFuture = executor.submit(containerReporter);
       boolean error = false;
@@ -240,6 +245,19 @@ public class TezChild {
           shutdown();
         }
       }
+
+      TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
+      if (containerTask.getTaskSpec().getTaskConf() != null) {
+        Configuration copy = new Configuration(defaultConf);
+        TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
+
+        LoggingUtils.initLoggingContext(mdcContext, copy,
+            attemptId.getTaskID().getVertexID().getDAGId().toString(), attemptId.toString());
+      } else {
+        LoggingUtils.initLoggingContext(mdcContext, defaultConf,
+            attemptId.getTaskID().getVertexID().getDAGId().toString(), attemptId.toString());
+      }
+
       TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
@@ -256,7 +274,8 @@ public class TezChild {
             containerTask.getTaskSpec().getTaskAttemptID().toString());
         TezUtilsInternal.setHadoopCallerContext(hadoopShim,
             containerTask.getTaskSpec().getTaskAttemptID());
-        TezUtilsInternal.updateLoggers(loggerAddend);
+        TezUtilsInternal.updateLoggers(defaultConf, loggerAddend, LoggingUtils.getPatternForTask(defaultConf));
+
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
@@ -270,6 +289,7 @@ public class TezChild {
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
             executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters,
             hadoopShim, sharedExecutor);
+
         boolean shouldDie;
         try {
           TaskRunner2Result result = taskRunner.run();

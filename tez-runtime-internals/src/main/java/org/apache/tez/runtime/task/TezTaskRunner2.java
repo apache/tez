@@ -29,6 +29,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Multimap;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -140,18 +141,22 @@ public class TezTaskRunner2 {
     this.umbilicalAndErrorHandler = new UmbilicalAndErrorHandler();
     this.hadoopShim = hadoopShim;
     this.taskConf = new Configuration(tezConf);
-    if (taskSpec.getTaskConf() != null) {
-      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        taskConf.set(entry.getKey(), entry.getValue());
-      }
-    }
+    mergeTaskSpecConfToConf(taskSpec, taskConf);
     localExecutor = sharedExecutor == null ? new TezSharedExecutor(tezConf) : null;
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
         objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim,
         sharedExecutor == null ? localExecutor : sharedExecutor);
+  }
+
+  static void mergeTaskSpecConfToConf(TaskSpec taskSpec, Configuration conf) {
+    if (taskSpec.getTaskConf() != null) {
+      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        conf.set(entry.getKey(), entry.getValue());
+      }
+    }
   }
 
   /**
