@@ -299,10 +299,11 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     if (future == null) {
       LOG.info("Ignoring stop request for containerId: " + event.getContainerId());
     } else {
-      LOG.info(
-          "Stopping containerId: {}",
-          event.getContainerId());
-      future.cancel(true);
+      LOG.info("Stopping containerId: {}, isDone: {}", event.getContainerId(),
+          future.isDone());
+      future.cancel(false);
+      LOG.debug("Stopped containerId: {}, isCancelled: {}", event.getContainerId(),
+          future.isCancelled());
     }
     // Send this event to maintain regular control flow. This isn't of much use though.
     getContext().containerStopRequested(event.getContainerId());
