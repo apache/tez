@@ -48,12 +48,18 @@ public class AnalyzerDriver {
           "Print task-to-node assignment details of a DAG");
       pgd.addClass("TaskAttemptResultStatisticsAnalyzer", TaskAttemptResultStatisticsAnalyzer.class,
           "Print vertex:node:status level details of task attempt results");
+      pgd.addClass("InputReadErrorAnalyzer", InputReadErrorAnalyzer.class,
+          "Print INPUT_READ_ERROR sources");
       pgd.addClass("TaskConcurrencyAnalyzer", TaskConcurrencyAnalyzer.class,
           "Print the task concurrency details in a DAG");
       pgd.addClass("VertexLevelCriticalPathAnalyzer", VertexLevelCriticalPathAnalyzer.class,
           "Find critical path at vertex level in a DAG");
       pgd.addClass("OneOnOneEdgeAnalyzer", OneOnOneEdgeAnalyzer.class,
           "Find out schedule misses in 1:1 edges in a DAG");
+      pgd.addClass("DagOverviewAnalyzer", DagOverviewAnalyzer.class,
+          "Print basic dag information (dag/vertex events)");
+      pgd.addClass("TaskHangAnalyzer", TaskHangAnalyzer.class,
+          "Print all vertices/tasks and their last attempts with status/duration/node");
       exitCode = pgd.run(argv);
     } catch(Throwable e){
       e.printStackTrace();

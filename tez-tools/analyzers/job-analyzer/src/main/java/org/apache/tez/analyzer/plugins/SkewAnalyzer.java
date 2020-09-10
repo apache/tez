@@ -85,14 +85,12 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private final CSVResult csvResult = new CSVResult(headers);
 
-  private final Configuration config;
-
   private final float minRatio;
   private final float maxRatio;
   private final long maxShuffleBytesPerSource;
 
   public SkewAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
     maxRatio = config.getFloat(ATTEMPT_SHUFFLE_KEY_GROUP_MAX_RATIO,
         ATTEMPT_SHUFFLE_KEY_GROUP_MAX_RATIO_DEFAULT);
     minRatio = config.getFloat(ATTEMPT_SHUFFLE_KEY_GROUP_MIN_RATIO,
@@ -305,12 +303,7 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   @Override
   public String getDescription() {
-    return "Analyzer reducer skews by mining reducer task counters";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return null;
+    return "Analyze reducer skews by mining reducer task counters";
   }
 
   public static void main(String[] args) throws Exception {

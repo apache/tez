@@ -52,12 +52,10 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
   private static final String DATA_LOCAL_RATIO = "tez.locality-analyzer.data.local.ratio";
   private static final float DATA_LOCAL_RATIO_DEFAULT = 0.5f;
 
-  private final Configuration config;
-
   private final CSVResult csvResult;
 
   public LocalityAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
     csvResult = new CSVResult(headers);
   }
 
@@ -119,7 +117,7 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
         record.add(otherTaskResult.avgHDFSBytesRead + "");
 
         String recommendation = "";
-        if (dataLocalRatio < config.getFloat(DATA_LOCAL_RATIO, DATA_LOCAL_RATIO_DEFAULT)) {
+        if (dataLocalRatio < getConf().getFloat(DATA_LOCAL_RATIO, DATA_LOCAL_RATIO_DEFAULT)) {
           recommendation = "Data locality is poor for this vertex. Try tuning "
               + TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS + ", "
               + TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED + ", "
@@ -180,10 +178,6 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   @Override public String getDescription() {
     return "Analyze for locality information (data local, rack local, off-rack)";
-  }
-
-  @Override public Configuration getConfiguration() {
-    return config;
   }
 
   /**

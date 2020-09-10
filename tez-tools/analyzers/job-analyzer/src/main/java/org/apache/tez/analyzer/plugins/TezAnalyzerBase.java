@@ -33,6 +33,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
@@ -67,7 +68,11 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
 
   private String outputDir;
   private boolean saveResults = false;
-  
+
+  public TezAnalyzerBase(Configuration config) {
+    setConf(config);
+  }
+
   @SuppressWarnings("static-access")
   private static Options buildOptions() {
     Option dagIdOption = OptionBuilder.withArgName(DAG_ID).withLongOpt(DAG_ID)

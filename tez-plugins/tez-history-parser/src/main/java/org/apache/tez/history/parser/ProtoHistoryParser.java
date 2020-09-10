@@ -98,7 +98,6 @@ public class ProtoHistoryParser extends SimpleHistoryParser {
           return message != null;
         } catch (java.io.EOFException e) {
           reader.close();
-
           if (!fileIt.hasNext()) {
             return false;
           } else {

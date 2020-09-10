@@ -128,12 +128,12 @@ public class Utils {
       JSONObject eventNode = eventNodes.optJSONObject(i);
       final String eventInfo = eventNode.optString(Constants.EVENT_INFO);
       final String eventType = eventNode.optString(Constants.EVENT_TYPE);
-      final long time = eventNode.optLong(Constants.EVENT_TIME_STAMP);
+      final long time = eventNode.optLong(Constants.EVENT_TIME_STAMP) == 0
+          ? eventNode.optLong(Constants.TIMESTAMP) : eventNode.optLong(Constants.EVENT_TIME_STAMP);
 
       Event event = new Event(eventInfo, eventType, time);
 
       eventList.add(event);
-
     }
   }
 

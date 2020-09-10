@@ -236,11 +236,14 @@ public class SimpleHistoryParser extends BaseParser {
         // time etc).
         if (dagJson == null) {
           dagJson = jsonObject;
-        } else if (dagJson.optJSONObject(ATSConstants.OTHER_INFO)
-            .optJSONObject(ATSConstants.DAG_PLAN) == null) {
-          // if DAG_PLAN is not filled already, let's try to fetch it from other
-          dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN, jsonObject
-              .getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
+        } else{
+          if (dagJson.optJSONObject(ATSConstants.OTHER_INFO)
+              .optJSONObject(ATSConstants.DAG_PLAN) == null) {
+            // if DAG_PLAN is not filled already, let's try to fetch it from other
+            dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN, jsonObject
+                .getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
+          }
+          mergeSubJSONArray(jsonObject, dagJson, Constants.EVENTS);
         }
         JSONArray relatedEntities = dagJson.optJSONArray(Constants
             .RELATED_ENTITIES);
@@ -268,6 +271,8 @@ public class SimpleHistoryParser extends BaseParser {
         }
         if (!vertexJsonMap.containsKey(vertexName)) {
           vertexJsonMap.put(vertexName, jsonObject);
+        } else {
+          mergeSubJSONArray(jsonObject, vertexJsonMap.get(vertexName), Constants.EVENTS);
         }
         populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), vertexName, vertexJsonMap);
         break;
@@ -281,6 +286,8 @@ public class SimpleHistoryParser extends BaseParser {
         }
         if (!taskJsonMap.containsKey(taskName)) {
           taskJsonMap.put(taskName, jsonObject);
+        } else {
+          mergeSubJSONArray(jsonObject, taskJsonMap.get(taskName), Constants.EVENTS);
         }
         populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskName, taskJsonMap);
         break;
@@ -294,6 +301,8 @@ public class SimpleHistoryParser extends BaseParser {
         }
         if (!attemptJsonMap.containsKey(taskAttemptName)) {
           attemptJsonMap.put(taskAttemptName, jsonObject);
+        } else {
+          mergeSubJSONArray(jsonObject, attemptJsonMap.get(taskAttemptName), Constants.EVENTS);
         }
         populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskAttemptName, attemptJsonMap);
         break;
@@ -309,6 +318,19 @@ public class SimpleHistoryParser extends BaseParser {
       LOG.error("Dag is not yet parsed. Looks like partial file.");
       throw new TezException(
           "Please provide a valid/complete history log file containing " + dagId);
+    }
+  }
+
+  private void mergeSubJSONArray(JSONObject source, JSONObject destination, String key)
+      throws JSONException {
+    if (source.optJSONArray(key) == null) {
+      source.put(key, new JSONArray());
+    }
+    if (destination.optJSONArray(key) == null) {
+      destination.put(key, new JSONArray());
+    }
+    for (int i = 0; i < source.getJSONArray(key).length(); i++) {
+      destination.getJSONArray(key).put(source.getJSONArray(key).get(i));
     }
   }
 }

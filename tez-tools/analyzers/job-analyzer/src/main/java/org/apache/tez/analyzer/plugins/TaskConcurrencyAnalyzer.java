@@ -41,11 +41,10 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
   private static final String[] headers = { "time", "vertexName", "concurrentTasksRunning" };
 
   private final CSVResult csvResult;
-  private final Configuration config;
 
   public TaskConcurrencyAnalyzer(Configuration conf) {
+    super(conf);
     this.csvResult = new CSVResult(headers);
-    this.config = conf;
   }
 
   private enum EventType {START, FINISH}
@@ -151,11 +150,6 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
   public String getDescription() {
     return "Analyze how many tasks were running in every vertex at given point in time. This "
         + "would be helpful in understanding whether any starvation was there or not.";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {
