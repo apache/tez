@@ -289,7 +289,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (!isShutDown.get()) {
         LOG.warn("copyInputs failed for tasks " + Arrays.toString(hostFetchResult.failedInputs));
         for (InputAttemptIdentifier left : hostFetchResult.failedInputs) {
-          fetcherCallback.fetchFailed(host, left, hostFetchResult.connectFailed);
+          fetcherCallback.fetchFailed(host, left, hostFetchResult.readFailed, hostFetchResult.connectFailed);
         }
       } else {
         if (isDebugEnabled) {
@@ -450,7 +450,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (lock == null) {
         // re-queue until we get a lock
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount,
-            srcAttemptsRemaining.values(), "Requeuing as we didn't get a lock"), null, false);
+            srcAttemptsRemaining.values(), "Requeuing as we didn't get a lock"), null, false, false);
       } else {
         if (findInputs() == srcAttemptsRemaining.size()) {
           // double checked after lock
@@ -476,7 +476,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       // if any exception was due to shut-down don't bother firing any more
       // requests
       return new HostFetchResult(new FetchResult(host, port, partition, partitionCount,
-          srcAttemptsRemaining.values()), null, false);
+          srcAttemptsRemaining.values()), null, false, false);
     }
     // no more caching
     return doHttpFetch();
@@ -515,7 +515,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         failedFetches = srcAttemptsRemaining.values().
             toArray(new InputAttemptIdentifier[srcAttemptsRemaining.values().size()]);
       }
-      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), failedFetches, true);
+      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), failedFetches, false, true);
     }
     if (isShutDown.get()) {
       // shutdown would have no effect if in the process of establishing the connection.
@@ -523,7 +523,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (isDebugEnabled) {
         LOG.debug("Detected fetcher has been shutdown after connection establishment. Returning");
       }
-      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null, false);
+      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null, false, false);
     }
 
     try {
@@ -547,7 +547,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
             localHostname, host, port, firstAttempt), e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
-            new InputAttemptIdentifier[] { firstAttempt }, true);
+            new InputAttemptIdentifier[] { firstAttempt }, false, true);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); //reset status
@@ -574,7 +574,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       if (isDebugEnabled) {
         LOG.debug("Detected fetcher has been shutdown after opening stream. Returning");
       }
-      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null, false);
+      return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null, false, false);
     }
     // After this point, closing the stream and connection, should cause a
     // SocketException,
@@ -595,7 +595,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
               srcAttemptsRemaining.size() + " inputs");
         }
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null,
-            false);
+                false, false);
       }
       try {
         failedInputs = fetchInputs(input, callback, inputAttemptIdentifier);
@@ -608,7 +608,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
                 srcAttemptsRemaining.size() + " inputs");
           }
           return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), null,
-              false);
+                  false, false);
         }
         // Connect again.
         connectionsWithRetryResult = setupConnection(srcAttemptsRemaining.values());
@@ -626,7 +626,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       failedInputs = null;
     }
     return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), failedInputs,
-        false);
+            false, false);
   }
 
   @VisibleForTesting
@@ -727,7 +727,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       // nothing needs to be done to requeue remaining entries
     }
     return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
-        failedFetches, false);
+        failedFetches, true, false);
   }
 
   @VisibleForTesting
@@ -771,12 +771,14 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   static class HostFetchResult {
     private final FetchResult fetchResult;
     private final InputAttemptIdentifier[] failedInputs;
+    private final boolean readFailed;
     private final boolean connectFailed;
 
     public HostFetchResult(FetchResult fetchResult, InputAttemptIdentifier[] failedInputs,
-                           boolean connectFailed) {
+                           boolean readFailed, boolean connectFailed) {
       this.fetchResult = fetchResult;
       this.failedInputs = failedInputs;
+      this.readFailed = readFailed;
       this.connectFailed = connectFailed;
     }
   }

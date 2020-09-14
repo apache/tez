@@ -51,26 +51,37 @@ public final class InputReadErrorEvent extends Event {
    */
   private final int numFailures;
 
-  private InputReadErrorEvent(final String diagnostics, final int index,
-                              final int version, final int numFailures) {
+  /**
+   * Disk read related error
+   */
+  private final boolean isReadError;
+
+  private InputReadErrorEvent(final String diagnostics, final int index, final int version,
+      final int numFailures, final boolean isReadError) {
     super();
     this.diagnostics = diagnostics;
     this.index = index;
     this.version = version;
     this.numFailures = numFailures;
+    this.isReadError = isReadError;
   }
 
   public static InputReadErrorEvent create(String diagnostics, int index,
                                            int version) {
-    return create(diagnostics, index, version, 1);
+    return create(diagnostics, index, version, 1, false);
+  }
+
+  public static InputReadErrorEvent create(String diagnostics, int index,
+                                           int version, boolean isReadError) {
+    return create(diagnostics, index, version, 1, isReadError);
   }
 
   /**
    * Create an InputReadErrorEvent.
    */
   public static InputReadErrorEvent create(final String diagnostics, final int index,
-      final int version, final int numFailures) {
-    return new InputReadErrorEvent(diagnostics, index, version, numFailures);
+      final int version, final int numFailures, final boolean isReadError) {
+    return new InputReadErrorEvent(diagnostics, index, version, numFailures, isReadError);
   }
 
   public String getDiagnostics() {
@@ -92,9 +103,16 @@ public final class InputReadErrorEvent extends Event {
     return numFailures;
   }
 
+  /**
+   * @return is its a Disk error
+   */
+  public boolean isReadError() {
+    return isReadError;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(index, version);
+    return Objects.hash(index, version, isReadError);
   }
 
   @Override
@@ -106,6 +124,7 @@ public final class InputReadErrorEvent extends Event {
       return false;
     }
     InputReadErrorEvent that = (InputReadErrorEvent) o;
-    return index == that.index && version == that.version;
+    return index == that.index && version == that.version &&
+            isReadError == that.isReadError;
   }
 }

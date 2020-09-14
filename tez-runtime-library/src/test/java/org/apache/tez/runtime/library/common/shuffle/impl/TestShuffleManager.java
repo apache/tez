@@ -19,10 +19,10 @@
 package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +54,6 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
@@ -63,12 +61,12 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher;
 import org.apache.tez.runtime.library.common.shuffle.FetchResult;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.junit.After;
 import org.junit.Assert;
@@ -238,9 +236,10 @@ public class TestShuffleManager {
         = new InputAttemptIdentifier(1, 1);
 
     schedulerGetHostThread.start();
-    Thread.sleep(1000);
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
-    Thread.sleep(1000);
+    // Wait BATCH_WAIT for event to go out
+    Thread.sleep(2500);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false, false);
+    Thread.sleep(3000);
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
     verify(inputContext, times(1))
@@ -254,10 +253,10 @@ public class TestShuffleManager {
     Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
         inputEvent.getNumFailures(), 1);
 
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false, false);
 
-    Thread.sleep(1000);
+    // Second batch still not out
     verify(inputContext, times(1)).sendEvents(any());
 
     // Wait more than five seconds for the batch to go out
@@ -276,6 +275,121 @@ public class TestShuffleManager {
 
 
     schedulerGetHostThread.interrupt();
+  }
+
+  @Test (timeout = 200000)
+  public void testFetchFailedBatching() throws Exception {
+    InputContext inputContext = createInputContext();
+    final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
+    Thread schedulerGetHostThread = new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          shuffleManager.run();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    });
+    InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(1, 1);
+
+    schedulerGetHostThread.start();
+    Thread.sleep(1000);
+
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false, false);
+    Thread.sleep(1000);
+
+    // InputErrorEvent for the same taskAttempt with No readError
+    InputReadErrorEvent plainInputErrorEvent = InputReadErrorEvent.create(
+            "Fetch failure while fetching from " +
+                    TezRuntimeUtils.getTaskAttemptIdentifier(
+                            inputContext.getSourceVertexName(),
+                            inputAttemptIdentifier.getInputIdentifier(),
+                            inputAttemptIdentifier.getAttemptNumber()),
+            inputAttemptIdentifier.getInputIdentifier(),
+            inputAttemptIdentifier.getAttemptNumber(), false
+    );
+
+    // Batch of 2 events -- make sure event batching worked
+    Assert.assertTrue(shuffleManager.failedEvents.get(plainInputErrorEvent) ==  2);
+
+    // Nothing out yet
+    verify(inputContext, times(0)).sendEvents(any());
+
+    Thread.sleep(1000);
+
+    // 4 read-related errors that should be counted separately
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+
+    Thread.sleep(1000);
+
+    // Nothing out yet
+    verify(inputContext, times(0)).sendEvents(any());
+
+    // InputErrorEvent for the same taskAttempt with ReadError
+    InputReadErrorEvent readInputErrorEvent = InputReadErrorEvent.create(
+            "Fetch failure while fetching from " +
+                    TezRuntimeUtils.getTaskAttemptIdentifier(
+                            inputContext.getSourceVertexName(),
+                            inputAttemptIdentifier.getInputIdentifier(),
+                            inputAttemptIdentifier.getAttemptNumber()),
+            inputAttemptIdentifier.getInputIdentifier(),
+            inputAttemptIdentifier.getAttemptNumber(), true
+    );
+
+    // Batch of 4 events -- make sure count is correct
+    Assert.assertTrue(shuffleManager.failedEvents.get(readInputErrorEvent) ==  4);
+
+    Thread.sleep(1100);
+    // Batch Wait-time exceeded -- make sure we sent events to AM
+    verify(inputContext, times(1)).sendEvents(any());
+
+    // 5 read-related errors that should go out without waiting BatchWait time
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, true, false);
+
+    // Make sure wait time is not exceeded
+    Thread.sleep(100);
+    verify(inputContext, times(2)).sendEvents(any());
+
+    schedulerGetHostThread.interrupt();
+  }
+
+  @Test
+  public void testInputReadErrorEventComparison() throws IOException {
+    InputContext inputContext = createInputContext();
+    InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(1, 1);
+
+    // InputErrorEvent for the same taskAttempt with No readError
+    InputReadErrorEvent plainInputErrorEvent = InputReadErrorEvent.create(
+            "Fetch failure while fetching from " +
+                    TezRuntimeUtils.getTaskAttemptIdentifier(
+                            inputContext.getSourceVertexName(),
+                            inputAttemptIdentifier.getInputIdentifier(),
+                            inputAttemptIdentifier.getAttemptNumber()),
+            inputAttemptIdentifier.getInputIdentifier(),
+            inputAttemptIdentifier.getAttemptNumber(), false
+    );
+
+    // InputErrorEvent for the same taskAttempt with ReadError
+    InputReadErrorEvent readInputErrorEvent = InputReadErrorEvent.create(
+            "Fetch failure while fetching from " +
+                    TezRuntimeUtils.getTaskAttemptIdentifier(
+                            inputContext.getSourceVertexName(),
+                            inputAttemptIdentifier.getInputIdentifier(),
+                            inputAttemptIdentifier.getAttemptNumber()),
+            inputAttemptIdentifier.getInputIdentifier(),
+            inputAttemptIdentifier.getAttemptNumber(), true
+    );
+
+    assertNotEquals(plainInputErrorEvent, readInputErrorEvent);
   }
 
   private ShuffleManagerForTest createShuffleManager(
