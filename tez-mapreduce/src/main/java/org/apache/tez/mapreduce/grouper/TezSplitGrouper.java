@@ -253,18 +253,20 @@ public abstract class TezSplitGrouper {
          * This is a workaround for systems like S3 that pass the same
          * fake hostname for all splits.
          */
-        if (!allSplitsHaveLocalhost) {
-          desiredNumSplits = newDesiredNumSplits;
-        }
 
         LOG.info("Desired splits: " + desiredNumSplits + " too large. " +
             " Desired splitLength: " + lengthPerGroup +
             " Min splitLength: " + minLengthPerGroup +
             " New desired splits: " + newDesiredNumSplits +
-            " Final desired splits: " + desiredNumSplits +
+            " Final desired splits: " + newDesiredNumSplits +
             " All splits have localhost: " + allSplitsHaveLocalhost +
             " Total length: " + totalLength +
             " Original splits: " + originalSplits.size());
+
+        if (!allSplitsHaveLocalhost) {
+          desiredNumSplits = newDesiredNumSplits;
+        }
+
       }
     }
 
