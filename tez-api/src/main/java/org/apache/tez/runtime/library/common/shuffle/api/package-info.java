@@ -16,19 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.library.common.shuffle;
+@Private
+package org.apache.tez.runtime.library.common.shuffle.api;
 
-import java.io.IOException;
-
-import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-
-public interface FetcherCallback {
-
-  public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
-      FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
-      throws IOException;
-  
-  public void fetchFailed(String host, InputAttemptFetchFailure srcAttemptFetchFailure,
-      boolean connectFailed);
-
-}
+import org.apache.hadoop.classification.InterfaceAudience.Private;

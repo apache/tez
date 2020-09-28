@@ -42,6 +42,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -72,7 +73,10 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
+import org.apache.tez.runtime.library.testutils.RuntimeTestUtils;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -241,7 +245,7 @@ public class TestFetcher {
     );
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
-    final int[] sucessfulAttemptsIndexes = { 0, 1, 3 };
+    final int[] successfulAttemptsIndexes = { 0, 1, 3 };
 
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
 
@@ -311,13 +315,17 @@ public class TestFetcher {
     spyFetcher.setupLocalDiskFetch(host);
 
     // should have exactly 3 success and 1 failure.
-    for (int i : sucessfulAttemptsIndexes) {
+    for (int i : successfulAttemptsIndexes) {
       for (int j = 0; j < host.getPartitionCount(); j++) {
         verifyCopySucceeded(scheduler, host, srcAttempts, i, j);
       }
     }
-    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
-    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
+    verify(scheduler).copyFailed(
+        eq(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0))),
+        eq(host), eq(true), eq(false));
+    verify(scheduler).copyFailed(
+        eq(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0))),
+        eq(host), eq(true), eq(false));
 
     verify(spyFetcher).putBackRemainingMapOutputs(host);
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX));
@@ -426,7 +434,7 @@ public class TestFetcher {
     );
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
-    final int[] sucessfulAttemptsIndexes = { 0, 1, 3 };
+    final int[] successfulAttemptsIndexes = { 0, 1, 3 };
 
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
     final ConcurrentMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier> pathToIdentifierMap
@@ -503,15 +511,23 @@ public class TestFetcher {
     spyFetcher.setupLocalDiskFetch(host);
 
     // should have exactly 3 success and 1 failure.
-    for (int i : sucessfulAttemptsIndexes) {
+    for (int i : successfulAttemptsIndexes) {
       for (int j = 0; j < host.getPartitionCount(); j++) {
         verifyCopySucceeded(scheduler, host, srcAttempts, i, j);
       }
     }
-    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
-    verify(scheduler).copyFailed(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(1), host, true, false, true);
-    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0), host, true, false, true);
-    verify(scheduler).copyFailed(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1), host, true, false, true);
+    verify(scheduler).copyFailed(
+        eq(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(0))),
+        eq(host), eq(true), eq(false));
+    verify(scheduler).copyFailed(
+        eq(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(1))),
+        eq(host), eq(true), eq(false));
+    verify(scheduler).copyFailed(eq(
+        InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0))),
+        eq(host), eq(true), eq(false));
+    verify(scheduler).copyFailed(eq(
+        InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1))),
+        eq(host), eq(true), eq(false));
 
     verify(spyFetcher).putBackRemainingMapOutputs(host);
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX));
@@ -630,8 +646,8 @@ public class TestFetcher {
     //setup connection should be called twice (1 for connect and another for retry)
     verify(fetcher, times(2)).setupConnection(any(MapHost.class), any(Collection.class));
     //since copyMapOutput consistently fails, it should call copyFailed once
-    verify(scheduler, times(1)).copyFailed(any(InputAttemptIdentifier.class), any(MapHost.class),
-          anyBoolean(), anyBoolean(), anyBoolean());
+    verify(scheduler, times(1)).copyFailed(any(InputAttemptFetchFailure.class), any(MapHost.class),
+          anyBoolean(), anyBoolean());
 
     verify(fetcher, times(1)).putBackRemainingMapOutputs(any(MapHost.class));
     verify(scheduler, times(3)).putBackKnownMapOutput(any(MapHost.class),
@@ -748,6 +764,32 @@ public class TestFetcher {
       String key = iterator.next().getKey();
       Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
     }
+  }
+
+  @Test
+  public void testShuffleHandlerDiskErrorOrdered()
+      throws Exception {
+    MapHost mapHost = new MapHost(HOST, PORT, 0, 1);
+    InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(0, 0, "attempt");
+
+    FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, null, null, null, null, false,
+        0, null, new TezConfiguration(), null, false, HOST, PORT, "src vertex", mapHost,
+        ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
+        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+    fetcher.remaining = new HashMap<String, InputAttemptIdentifier>();
+
+    ShuffleHeader header =
+        new ShuffleHeader(ShuffleHandlerError.DISK_ERROR_EXCEPTION.toString(), -1, -1, -1);
+    DataInputStream input = RuntimeTestUtils.shuffleHeaderToDataInput(header);
+
+    // copyMapOutput is used for remote fetch, this time it returns a fetch failure, which is fatal
+    // and should be treated as a local fetch failure
+    InputAttemptFetchFailure[] failures =
+        fetcher.copyMapOutput(mapHost, input, inputAttemptIdentifier);
+
+    Assert.assertEquals(1, failures.length);
+    Assert.assertTrue(failures[0].isDiskErrorAtSource());
+    Assert.assertFalse(failures[0].isLocalFetch());
   }
 
   private RawLocalFileSystem getRawFs(Configuration conf) {

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -37,7 +36,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +53,6 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
@@ -66,9 +63,9 @@ import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInputAllocator;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.FetchResult;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.junit.After;
 import org.junit.Assert;
@@ -234,12 +231,12 @@ public class TestShuffleManager {
         }
       }
     });
-    InputAttemptIdentifier inputAttemptIdentifier
-        = new InputAttemptIdentifier(1, 1);
+    InputAttemptFetchFailure inputAttemptFetchFailure =
+        new InputAttemptFetchFailure(new InputAttemptIdentifier(1, 1));
 
     schedulerGetHostThread.start();
     Thread.sleep(1000);
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+    shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
     Thread.sleep(1000);
 
     ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
@@ -254,8 +251,8 @@ public class TestShuffleManager {
     Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
         inputEvent.getNumFailures(), 1);
 
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
-    shuffleManager.fetchFailed("host1", inputAttemptIdentifier, false);
+    shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
+    shuffleManager.fetchFailed("host1", inputAttemptFetchFailure, false);
 
     Thread.sleep(1000);
     verify(inputContext, times(1)).sendEvents(any());

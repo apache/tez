@@ -50,7 +50,9 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Ty
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -272,7 +274,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       // On any error, faildTasks is not null and we exit
       // after putting back the remaining maps to the 
       // yet_to_be_fetched list and marking the failed tasks.
-      InputAttemptIdentifier[] failedTasks = null;
+      InputAttemptFetchFailure[] failedTasks = null;
+
       while (!remaining.isEmpty() && failedTasks == null) {
         InputAttemptIdentifier inputAttemptIdentifier =
             remaining.entrySet().iterator().next().getValue();
@@ -300,25 +303,14 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               }
               return;
             }
-            failedTasks = new InputAttemptIdentifier[] {getNextRemainingAttempt()};
+            failedTasks = new InputAttemptFetchFailure[] {
+                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
             break;
           }
         }
       }
 
-      if (failedTasks != null && failedTasks.length > 0) {
-        if (stopped) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Ignoring copyMapOutput failures for tasks: " + Arrays.toString(failedTasks) +
-                " since Fetcher has been stopped");
-          }
-        } else {
-          LOG.warn("copyMapOutput failed for tasks " + Arrays.toString(failedTasks));
-          for (InputAttemptIdentifier left : failedTasks) {
-            scheduler.copyFailed(left, host, true, false, false);
-          }
-        }
-      }
+      invokeCopyFailedForFailedTasks(host, failedTasks);
 
       cleanupCurrentConnection(false);
 
@@ -329,6 +321,23 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       }
     } finally {
       putBackRemainingMapOutputs(host);
+    }
+  }
+
+  private void invokeCopyFailedForFailedTasks(MapHost host,
+      InputAttemptFetchFailure[] failedTasks) {
+    if (failedTasks != null && failedTasks.length > 0) {
+      if (stopped) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Ignoring copyMapOutput failures for tasks: " + Arrays.toString(failedTasks)
+              + " since Fetcher has been stopped");
+        }
+      } else {
+        LOG.warn("copyMapOutput failed for tasks " + Arrays.toString(failedTasks));
+        for (InputAttemptFetchFailure left : failedTasks) {
+          scheduler.copyFailed(left, host, true, false);
+        }
+      }
     }
   }
 
@@ -380,7 +389,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       for (InputAttemptIdentifier left : remaining.values()) {
         // Need to be handling temporary glitches ..
         // Report read error to the AM to trigger source failure heuristics
-        scheduler.copyFailed(left, host, connectSucceeded, !connectSucceeded, false);
+        scheduler.copyFailed(InputAttemptFetchFailure.fromAttempt(left), host, connectSucceeded,
+            !connectSucceeded);
       }
       return false;
     }
@@ -404,7 +414,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
   }
 
-  private static InputAttemptIdentifier[] EMPTY_ATTEMPT_ID_ARRAY = new InputAttemptIdentifier[0];
+  private static final InputAttemptFetchFailure[] EMPTY_ATTEMPT_ID_ARRAY =
+      new InputAttemptFetchFailure[0];
 
   private static class MapOutputStat {
     final InputAttemptIdentifier srcAttemptId;
@@ -425,8 +436,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
   }
 
-  protected InputAttemptIdentifier[] copyMapOutput(MapHost host,
-                                DataInputStream input, InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
+  protected InputAttemptFetchFailure[] copyMapOutput(MapHost host, DataInputStream input,
+      InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;
@@ -452,7 +463,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               badIdErrs.increment(1);
               LOG.warn("Invalid map id: " + header.mapId + ", expected to start with " +
                   InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
-              return new InputAttemptIdentifier[]{getNextRemainingAttempt()};
+              if (header.mapId.startsWith(ShuffleHandlerError.DISK_ERROR_EXCEPTION.toString())) {
+                //this should be treated as local fetch failure while reporting later
+                return new InputAttemptFetchFailure[] {
+                    InputAttemptFetchFailure.fromDiskErrorAtSource(getNextRemainingAttempt()) };
+              }
+              return new InputAttemptFetchFailure[] {
+                  InputAttemptFetchFailure.fromAttempt(getNextRemainingAttempt()) };
             } else {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Already shutdown. Ignoring invalid map id error");
@@ -477,7 +494,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             LOG.warn("Invalid map id ", e);
             // Don't know which one was bad, so consider this one bad and dont read
             // the remaining because we dont know where to start reading from. YARN-1773
-            return new InputAttemptIdentifier[]{getNextRemainingAttempt()};
+            return new InputAttemptFetchFailure[] {
+                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
           } else {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Already shutdown. Ignoring invalid map id error. Exception: " +
@@ -497,7 +515,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               LOG.warn("Was expecting " + srcAttemptId + " but got null");
             }
             assert (srcAttemptId != null);
-            return new InputAttemptIdentifier[]{srcAttemptId};
+            return new InputAttemptFetchFailure[] {
+                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
           } else {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Already stopped. Ignoring verification failure.");
@@ -595,9 +614,10 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             srcAttemptId + " decomp: " +
             decompressedLength + ", " + compressedLength, ioe);
         if (srcAttemptId == null) {
-          return remaining.values().toArray(new InputAttemptIdentifier[remaining.values().size()]);
+          return InputAttemptFetchFailure.fromAttempts(remaining.values());
         } else {
-          return new InputAttemptIdentifier[]{srcAttemptId};
+          return new InputAttemptFetchFailure[] {
+              new InputAttemptFetchFailure(srcAttemptId) };
         }
       }
       LOG.warn("Failed to shuffle output of " + srcAttemptId +
@@ -605,7 +625,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
       // Inform the shuffle-scheduler
       mapOutput.abort();
-      return new InputAttemptIdentifier[] {srcAttemptId};
+      return new InputAttemptFetchFailure[] {
+          new InputAttemptFetchFailure(srcAttemptId) };
     }
     return null;
   }
@@ -734,7 +755,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             if (!stopped) {
               hasFailures = true;
               ioErrs.increment(1);
-              scheduler.copyFailed(srcAttemptId, host, true, false, true);
+              scheduler.copyFailed(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttemptId),
+                  host, true, false);
               LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
                   host.getHostIdentifier(), e);
             } else {

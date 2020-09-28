@@ -84,6 +84,7 @@ import org.apache.tez.runtime.library.common.shuffle.Fetcher;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher.FetcherBuilder;
 import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.InputHost.PartitionToInputs;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -391,9 +392,9 @@ public class ShuffleManager implements FetcherCallback {
               List<Event> failedEventsToSend = Lists.newArrayListWithCapacity(
                   failedEvents.size());
               for (InputReadErrorEvent key : failedEvents.keySet()) {
-                failedEventsToSend.add(InputReadErrorEvent
-                    .create(key.getDiagnostics(), key.getIndex(),
-                        key.getVersion(), failedEvents.get(key)));
+                failedEventsToSend.add(InputReadErrorEvent.create(key.getDiagnostics(),
+                    key.getIndex(), key.getVersion(), failedEvents.get(key), key.isLocalFetch(),
+                    key.isDiskErrorAtSource()));
               }
               inputContext.sendEvents(failedEventsToSend);
               failedEvents.clear();
@@ -939,12 +940,15 @@ public class ShuffleManager implements FetcherCallback {
 
   @Override
   public void fetchFailed(String host,
-      InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
+      InputAttemptFetchFailure inputAttemptFetchFailure, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
-    LOG.info(srcNameTrimmed + ": " + "Fetch failed for src: " + srcAttemptIdentifier
-        + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
-        + connectFailed);
+    InputAttemptIdentifier srcAttemptIdentifier = inputAttemptFetchFailure.getInputAttemptIdentifier();
+    LOG.info(
+        "{}: Fetch failed for src: {} InputIdentifier: {}, connectFailed: {}, "
+            + "local fetch: {}, remote fetch failure reported as local failure: {})",
+        srcNameTrimmed, srcAttemptIdentifier, srcAttemptIdentifier, connectFailed,
+        inputAttemptFetchFailure.isLocalFetch(), inputAttemptFetchFailure.isDiskErrorAtSource());
     failedShufflesCounter.increment(1);
     inputContext.notifyProgress();
     if (srcAttemptIdentifier == null) {
@@ -957,7 +961,9 @@ public class ShuffleManager implements FetcherCallback {
               srcAttemptIdentifier.getInputIdentifier(),
               srcAttemptIdentifier.getAttemptNumber()),
           srcAttemptIdentifier.getInputIdentifier(),
-          srcAttemptIdentifier.getAttemptNumber());
+          srcAttemptIdentifier.getAttemptNumber(),
+          inputAttemptFetchFailure.isLocalFetch(),
+          inputAttemptFetchFailure.isDiskErrorAtSource());
       if (maxTimeToWaitForReportMillis > 0) {
         try {
           reportLock.lock();

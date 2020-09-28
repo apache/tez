@@ -19,7 +19,6 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.tez.dag.app.MockClock;
-import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
@@ -83,6 +82,7 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
@@ -127,6 +127,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2152,6 +2153,52 @@ public class TestTaskAttempt {
 
     Assert.assertEquals(0, taImpl.taskAttemptStartedEventLogged);
     Assert.assertEquals(1, taImpl.taskAttemptFinishedEventLogged);
+  }
+
+  @Test
+  public void testMapTaskIsBlamedImmediatelyOnLocalFetchFailure() throws ServicePluginException {
+    // local fetch failure or disk read error at source -> turn source attempt to FAIL_IN_PROGRESS
+    testMapTaskFailingForFetchFailureType(true, true, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    testMapTaskFailingForFetchFailureType(true, false, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    testMapTaskFailingForFetchFailureType(false, true, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+
+    // remote fetch failure -> won't change current state
+    testMapTaskFailingForFetchFailureType(false, false, TaskAttemptStateInternal.NEW);
+  }
+
+  private void testMapTaskFailingForFetchFailureType(boolean isLocalFetch,
+      boolean isDiskErrorAtSource, TaskAttemptStateInternal expectedState) {
+    EventHandler eventHandler = mock(EventHandler.class);
+    TezTaskID taskID =
+        TezTaskID.getInstance(TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
+    TaskAttemptImpl sourceAttempt = new MockTaskAttemptImpl(taskID, 1, eventHandler, null,
+        new Configuration(), SystemClock.getInstance(), mock(TaskHeartbeatHandler.class), appCtx,
+        false, null, null, false);
+
+    // the original read error event, sent by reducer task
+    InputReadErrorEvent inputReadErrorEvent =
+        InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource);
+    TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
+    when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
+    when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
+    when(appCtx.getCurrentDAG()).thenReturn(mock(DAG.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)))
+        .thenReturn(mock(Vertex.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)).getRunningTasks())
+        .thenReturn(100);
+
+    EventMetaData mockMeta = mock(EventMetaData.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(destTaskAttemptId);
+    TezEvent tezEvent = new TezEvent(inputReadErrorEvent, mockMeta);
+
+    // the event is propagated to map task's event handler
+    TaskAttemptEventOutputFailed outputFailedEvent =
+        new TaskAttemptEventOutputFailed(sourceAttempt.getID(), tezEvent, 11);
+
+    Assert.assertEquals(TaskAttemptStateInternal.NEW, sourceAttempt.getInternalState());
+    TaskAttemptStateInternal resultState = new TaskAttemptImpl.OutputReportedFailedTransition()
+        .transition(sourceAttempt, outputFailedEvent);
+    Assert.assertEquals(expectedState, resultState);
   }
 
   private Event verifyEventType(List<Event> events,
