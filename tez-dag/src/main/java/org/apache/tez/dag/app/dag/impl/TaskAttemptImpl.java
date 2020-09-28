@@ -1769,6 +1769,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             + " at inputIndex " + failedInputIndexOnDestTa);
       long time = attempt.clock.getTime();
       Long firstErrReportTime = attempt.uniquefailedOutputReports.get(failedDestTaId);
+
       if (firstErrReportTime == null) {
         attempt.uniquefailedOutputReports.put(failedDestTaId, time);
         firstErrReportTime = time;
@@ -1795,7 +1796,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
       // If needed we can consider only running consumer tasks
-      if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits) {
+      if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits
+          && !(readErrorEvent.isLocalFetch() || readErrorEvent.isDiskErrorAtSource())) {
         return attempt.getInternalState();
       }
       String message = attempt.getID() + " being failed for too many output errors. "
@@ -1806,7 +1808,10 @@ public class TaskAttemptImpl implements TaskAttempt,
           + ", MAX_ALLOWED_OUTPUT_FAILURES=" + maxAllowedOutputFailures
           + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC="
           + maxAllowedTimeForTaskReadErrorSec
-          + ", readErrorTimespan=" + readErrorTimespanSec;
+          + ", readErrorTimespan=" + readErrorTimespanSec
+          + ", isLocalFetch=" + readErrorEvent.isLocalFetch()
+          + ", isDiskErrorAtSource=" + readErrorEvent.isDiskErrorAtSource();
+
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
       // send input failed event

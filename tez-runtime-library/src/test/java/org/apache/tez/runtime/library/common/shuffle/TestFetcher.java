@@ -32,6 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,10 +47,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
+import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+import org.apache.tez.runtime.library.testutils.RuntimeTestUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -79,7 +86,8 @@ public class TestFetcher {
     Fetcher fetcher = spy(builder.build());
 
     FetchResult fr = new FetchResult(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
-    Fetcher.HostFetchResult hfr = new Fetcher.HostFetchResult(fr, srcAttempts, false);
+    Fetcher.HostFetchResult hfr =
+        new Fetcher.HostFetchResult(fr, InputAttemptFetchFailure.fromAttempts(srcAttempts), false);
     doReturn(hfr).when(fetcher).setupLocalDiskFetch();
     doReturn(null).when(fetcher).doHttpFetch();
     doNothing().when(fetcher).shutdown();
@@ -151,7 +159,7 @@ public class TestFetcher {
     };
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
-    final int[] sucessfulAttempts = {0, 1, 3};
+    final int[] successfulAttempts = {0, 1, 3};
 
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, "true");
@@ -206,18 +214,24 @@ public class TestFetcher {
     doNothing().when(fetcher).shutdown();
     doNothing().when(callback).fetchSucceeded(anyString(), any(InputAttemptIdentifier.class),
         any(FetchedInput.class), anyLong(), anyLong(), anyLong());
-    doNothing().when(callback).fetchFailed(anyString(), any(InputAttemptIdentifier.class), eq(false));
+    doNothing().when(callback).fetchFailed(anyString(), any(InputAttemptFetchFailure.class), eq(false));
 
     FetchResult fetchResult = fetcher.call();
 
     verify(fetcher).setupLocalDiskFetch();
 
-    // expect 3 sucesses and 2 failures
-    for (int i : sucessfulAttempts) {
+    // expect 3 successes and 2 failures
+    for (int i : successfulAttempts) {
       verifyFetchSucceeded(callback, srcAttempts[i], conf);
     }
-    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[FIRST_FAILED_ATTEMPT_IDX]), eq(false));
-    verify(callback).fetchFailed(eq(HOST), eq(srcAttempts[SECOND_FAILED_ATTEMPT_IDX]), eq(false));
+    verify(callback).fetchFailed(eq(HOST),
+        eq(InputAttemptFetchFailure
+            .fromCompositeAttemptLocalFetchFailure(srcAttempts[FIRST_FAILED_ATTEMPT_IDX])),
+        eq(false));
+    verify(callback).fetchFailed(eq(HOST),
+        eq(InputAttemptFetchFailure
+            .fromCompositeAttemptLocalFetchFailure(srcAttempts[SECOND_FAILED_ATTEMPT_IDX])),
+        eq(false));
 
     Assert.assertEquals("fetchResult host", fetchResult.getHost(), HOST);
     Assert.assertEquals("fetchResult partition", fetchResult.getPartition(), partition);
@@ -303,5 +317,31 @@ public class TestFetcher {
       String key = iterator.next().getKey();
       Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
     }
+  }
+
+  @Test
+  public void testShuffleHandlerDiskErrorUnordered()
+      throws Exception {
+    Configuration conf = new Configuration();
+
+    InputContext inputContext = mock(InputContext.class);
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn("vertex").when(inputContext).getSourceVertexName();
+
+    Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(mock(ShuffleManager.class), null,
+        null, ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
+        false, true, false);
+    builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(new InputAttemptIdentifier(0, 0)));
+
+    Fetcher fetcher = builder.build();
+    ShuffleHeader header =
+        new ShuffleHeader(ShuffleHandlerError.DISK_ERROR_EXCEPTION.toString(), -1, -1, -1);
+    DataInputStream input = RuntimeTestUtils.shuffleHeaderToDataInput(header);
+
+    InputAttemptFetchFailure[] failures =
+        fetcher.fetchInputs(input, null, new InputAttemptIdentifier(0, 0));
+    Assert.assertEquals(1, failures.length);
+    Assert.assertTrue(failures[0].isDiskErrorAtSource());
+    Assert.assertFalse(failures[0].isLocalFetch());
   }
 }

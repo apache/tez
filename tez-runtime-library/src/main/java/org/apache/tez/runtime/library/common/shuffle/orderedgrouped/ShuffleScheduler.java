@@ -80,6 +80,7 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.HostPortPartition;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 
@@ -755,16 +756,13 @@ class ShuffleScheduler {
     }
   }
 
-  public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
-                                      MapHost host,
-                                      boolean readError,
-                                      boolean connectError,
-                                      boolean isLocalFetch) {
+  public synchronized void copyFailed(InputAttemptFetchFailure fetchFailure, MapHost host,
+      boolean readError, boolean connectError) {
     failedShuffleCounter.increment(1);
     inputContext.notifyProgress();
-    int failures = incrementAndGetFailureAttempt(srcAttempt);
+    int failures = incrementAndGetFailureAttempt(fetchFailure.getInputAttemptIdentifier());
 
-    if (!isLocalFetch) {
+    if (!fetchFailure.isLocalFetch()) {
       /**
        * Track the number of failures that has happened since last completion.
        * This gets reset on a successful copy.
@@ -789,11 +787,11 @@ class ShuffleScheduler {
 
     if (shouldInformAM) {
       //Inform AM. In case producer needs to be restarted, it is handled at AM.
-      informAM(srcAttempt);
+      informAM(fetchFailure);
     }
 
     //Restart consumer in case shuffle is not healthy
-    if (!isShuffleHealthy(srcAttempt)) {
+    if (!isShuffleHealthy(fetchFailure.getInputAttemptIdentifier())) {
       return;
     }
 
@@ -868,21 +866,24 @@ class ShuffleScheduler {
   }
 
   // Notify AM
-  private void informAM(InputAttemptIdentifier srcAttempt) {
+  private void informAM(InputAttemptFetchFailure fetchFailure) {
+    InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
     LOG.info(
-        srcNameTrimmed + ": " + "Reporting fetch failure for InputIdentifier: "
-            + srcAttempt + " taskAttemptIdentifier: " + TezRuntimeUtils
-            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier(),
-                srcAttempt.getAttemptNumber()) + " to AM.");
+        "{}: Reporting fetch failure for InputIdentifier: {} taskAttemptIdentifier: {}, "
+            + "local fetch: {}, remote fetch failure reported as local failure: {}) to AM.",
+        srcNameTrimmed, srcAttempt,
+        TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber()),
+        fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource());
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
-    failedEvents.add(InputReadErrorEvent.create(
-        "Fetch failure for " + TezRuntimeUtils
-            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier(),
-                srcAttempt.getAttemptNumber()) + " to jobtracker.",
-        srcAttempt.getInputIdentifier(),
-        srcAttempt.getAttemptNumber()));
+    failedEvents.add(
+        InputReadErrorEvent.create(
+            "Fetch failure for "
+                + TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+                    srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber())
+                + " to jobtracker.",
+            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber(),
+            fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource()));
 
     inputContext.sendEvents(failedEvents);
   }

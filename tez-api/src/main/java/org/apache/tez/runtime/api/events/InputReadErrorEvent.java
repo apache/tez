@@ -44,17 +44,30 @@ public final class InputReadErrorEvent extends Event {
    */
   private final int version;
 
+  /**
+   * Whether this input read error is caused while fetching local file.
+   */
+  private final boolean isLocalFetch;
+
+  /**
+   * Whether this input read error is caused because the fetcher detected a fatal, unrecoverable,
+   * local file read issue from the shuffle handler.
+   */
+  private final boolean isDiskErrorAtSource;
+
   private InputReadErrorEvent(String diagnostics, int index,
-                              int version) {
+                              int version, boolean isLocalFetch, boolean isDiskErrorAtSource) {
     super();
     this.diagnostics = diagnostics;
     this.index = index;
     this.version = version;
+    this.isLocalFetch = isLocalFetch;
+    this.isDiskErrorAtSource = isDiskErrorAtSource;
   }
 
   public static InputReadErrorEvent create(String diagnostics, int index,
-                                           int version) {
-    return new InputReadErrorEvent(diagnostics, index, version);
+                                           int version, boolean isLocalFetch, boolean isDiskErrorAtSource) {
+    return new InputReadErrorEvent(diagnostics, index, version, isLocalFetch, isDiskErrorAtSource);
   }
 
   public String getDiagnostics() {
@@ -67,6 +80,14 @@ public final class InputReadErrorEvent extends Event {
 
   public int getVersion() {
     return version;
+  }
+
+  public boolean isLocalFetch() {
+    return isLocalFetch;
+  }
+
+  public boolean isDiskErrorAtSource() {
+    return isDiskErrorAtSource;
   }
 
 }
