@@ -1,10 +1,11 @@
 Apache Tez Change Log
 =====================
-Release 0.10.0: 2020-09-01
+Release 0.10.0: 2020-10-15
 
 INCOMPATIBLE CHANGES
 
 ALL CHANGES:
+TEZ-4234: Compressor can cause IllegalArgumentException in Buffer.limit where limit exceeds capacity (László Bodor reviewed by Rajesh Balamohan, Jonathan Turner Eagles)
 TEZ-4230: LocalContainerLauncher can kill task future too early, causing app hang (László Bodor reviewed by Jonathan Turner Eagles)
 TEZ-4228: TezClassLoader should be used in TezChild and for Configuration objects
 TEZ-3645: Reuse SerializationFactory while sorting, merging, and writing IFiles (Jonathan Turner Eagles reviewed by Rajesh Balamohan, Laszlo Bodor)
