@@ -47,6 +47,7 @@ import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.InputStatisticsReporter;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.junit.Test;
 
@@ -147,6 +148,16 @@ public class TestMRInput {
     assertTrue(TestInputFormat.invoked.get());
   }
 
+  @Test
+  public void testMRInputCloseWithUnintializedReader() throws IOException {
+    InputContext inputContext = mock(InputContext.class);
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn(new InputStatisticsReporterImplForTest()).when(inputContext).getStatisticsReporter();
+
+    MRInput mrInput = new MRInput(inputContext, 0);
+    mrInput.close(); // shouldn't throw NPE
+  }
+
   /**
    * Test class to verify
    */
@@ -235,6 +246,17 @@ public class TestMRInput {
     @Override
     public void readFields(DataInput in) throws IOException {
 
+    }
+  }
+
+  public static class InputStatisticsReporterImplForTest implements InputStatisticsReporter {
+
+    @Override
+    public synchronized void reportDataSize(long size) {
+    }
+
+    @Override
+    public void reportItemsProcessed(long items) {
     }
   }
 }
