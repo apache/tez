@@ -50,9 +50,11 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.lz4.Lz4Compressor;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.WritableSerialization;
+import org.apache.hadoop.util.NativeCodeLoader;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -66,6 +68,7 @@ import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -729,13 +732,16 @@ public class TestIFile {
 
   @Test
   public void testInMemoryBufferSize() throws IOException {
+    Configurable configurableCodec = (Configurable) codec;
+    int originalCodecBufferSize =
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), -1);
+
     // for smaller amount of data, codec buffer should be sized according to compressed data length
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
     Writer writer = writeTestFile(false, false, data, codec);
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
-    Configurable configurableCodec = (Configurable) codec;
-    Assert.assertEquals(writer.getCompressedLength(),
+    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
         configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
 
     // buffer size cannot grow infinitely with compressed data size
@@ -743,8 +749,55 @@ public class TestIFile {
     writer = writeTestFile(false, false, data, codec);
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
-    Assert.assertEquals(128*1024,
+    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
         configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSmallDataCompression() throws IOException {
+    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+
+    tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
+    tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
+  }
+
+  private void tryWriteFileWithBufferSize(int bufferSize, String codecClassName)
+      throws IOException {
+    Configuration conf = new Configuration();
+
+    System.out.println("trying with buffer size: " + bufferSize);
+    conf.set(TezRuntimeUtils.getBufferSizeProperty(codecClassName), Integer.toString(bufferSize));
+    CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
+    CompressionCodec codecToTest =
+        codecFactory.getCodecByClassName(codecClassName);
+    List<KVPair> data = KVDataGen.generateTestDataOfKeySize(false, 1, 0);
+    writeTestFile(false, false, data, codecToTest);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testLz4CompressedDataIsLargerThanOriginal() throws IOException {
+    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+
+    // this one succeeds
+    byte[] buf = new byte[32];
+    initBufWithNumbers(buf, 24, 45, 55, 49, 54, 55, 55, 54, 49, 48, 50, 55, 49, 56, 54, 48, 57, 48);
+    Lz4Compressor comp = new Lz4Compressor(32, false);
+    comp.setInput(buf, 0, 32);
+    comp.compress(buf, 0, 32);
+
+    // adding 1 more element makes that fail
+    buf = new byte[32];
+    initBufWithNumbers(buf, 24, 45, 55, 49, 54, 55, 55, 54, 49, 48, 50, 55, 49, 56, 54, 48, 57, 48,
+        50);
+    comp = new Lz4Compressor(32, false);
+    comp.setInput(buf, 0, 32);
+    comp.compress(buf, 0, 32);
+  }
+
+  private void initBufWithNumbers(byte[] buf, int... args) {
+    for (int i = 0; i < args.length; i++) {
+      buf[i] = (byte) args[i];
+    }
   }
 
   /**

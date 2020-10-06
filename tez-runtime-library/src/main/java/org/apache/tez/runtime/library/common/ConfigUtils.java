@@ -56,33 +56,10 @@ public class ConfigUtils {
     }
     return codecClass;
   }
-  
-  public static Class<? extends CompressionCodec> getIntermediateInputCompressorClass(
-      Configuration conf, Class<DefaultCodec> defaultValue) {
-    Class<? extends CompressionCodec> codecClass = defaultValue;
-    String name = conf
-        .get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
-    if (name != null) {
-      try {
-        codecClass = conf.getClassByName(name).asSubclass(
-            CompressionCodec.class);
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException("Compression codec " + name
-            + " was not found.", e);
-      }
-    }
-    return codecClass;
-  }
-
 
   // TODO Move defaults over to a constants file.
   
   public static boolean shouldCompressIntermediateOutput(Configuration conf) {
-    return conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
-  }
-
-  public static boolean isIntermediateInputCompressed(Configuration conf) {
     return conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
   }
