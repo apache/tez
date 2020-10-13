@@ -1749,6 +1749,15 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
 
   /**
+   * String value. TezLocalCacheManager uses this folder as a root for temp and localized files.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_LOCAL_CACHE_ROOT_FOLDER = TEZ_PREFIX + "local.cache.root.folder";
+
+  public static final String TEZ_LOCAL_CACHE_ROOT_FOLDER_DEFAULT = ".";
+
+  /**
    *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
    */
   @Private

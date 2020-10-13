@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -109,5 +110,45 @@ public class TestTezLocalCacheManager {
     ret.setVisibility(LocalResourceVisibility.PRIVATE);
     ret.setTimestamp(fs.getFileStatus(p).getModificationTime());
     return ret;
+  }
+
+  @Test
+  public void testLocalizeRootDirectory() throws URISyntaxException, IOException {
+    // default directory
+    Map<String, LocalResource> resources = new HashMap<>();
+
+    LocalResource resourceOne = createFile("content-one");
+    resources.put("file-one", resourceOne);
+
+    TezLocalCacheManager manager = new TezLocalCacheManager(resources, new Configuration());
+
+    try {
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      manager.localize();
+      Assert.assertTrue(Files.exists(Paths.get("./file-one")));
+
+    } finally {
+      manager.cleanup();
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+    }
+
+    // configured directory
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_LOCAL_CACHE_ROOT_FOLDER, "target");
+    manager = new TezLocalCacheManager(resources, conf);
+
+    try {
+      // files don't exist at all
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+      manager.localize();
+      // file appears only at configured location
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      Assert.assertTrue(Files.exists(Paths.get("./target/file-one")));
+
+    } finally {
+      manager.cleanup();
+      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+    }
   }
 }
