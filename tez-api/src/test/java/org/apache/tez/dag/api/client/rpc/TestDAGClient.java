@@ -28,10 +28,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import javax.annotation.Nullable;
+
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -46,6 +50,7 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderStrategy;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
@@ -62,6 +67,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezCounterProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezCountersProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -530,5 +536,51 @@ public class TestDAGClient {
       }
     }).when(mock).getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class));
     return mock;
+  }
+
+  @Test
+  /* testing idea is borrowed from YARN-5309 */
+  public void testTimelineClientCleanup() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set("yarn.http.policy", "HTTPS_ONLY");
+
+    File testDir = new File(System.getProperty("java.io.tmpdir"));
+    String sslConfDir = KeyStoreTestUtil.getClasspathDir(TestDAGClient.class);
+    KeyStoreTestUtil.setupSSLConfig(testDir.getAbsolutePath(), sslConfDir, tezConf, false);
+
+    DAGClientTimelineImpl dagClient =
+        new DAGClientTimelineImpl(mockAppId, dagIdStr, tezConf, mock(FrameworkClient.class), 10000);
+    Field field = DAGClientTimelineImpl.class.getDeclaredField("timelineReaderStrategy");
+    field.setAccessible(true);
+    TimelineReaderStrategy strategy = (TimelineReaderStrategy) field.get(dagClient);
+    strategy.getHttpClient(); // calls SSLFactory.init
+
+    ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
+
+    while (threadGroup.getParent() != null) {
+      threadGroup = threadGroup.getParent();
+    }
+
+    Thread[] threads = new Thread[threadGroup.activeCount()];
+
+    threadGroup.enumerate(threads);
+    Thread reloaderThread = null;
+    for (Thread thread : threads) {
+      if ((thread.getName() != null) && (thread.getName().contains("Truststore reloader thread"))) {
+        reloaderThread = thread;
+      }
+    }
+    Assert.assertTrue("Reloader is not alive", reloaderThread.isAlive());
+
+    dagClient.close();
+    boolean reloaderStillAlive = true;
+    for (int i = 0; i < 10; i++) {
+      reloaderStillAlive = reloaderThread.isAlive();
+      if (!reloaderStillAlive) {
+        break;
+      }
+      Thread.sleep(1000);
+    }
+    Assert.assertFalse("Reloader is still alive", reloaderStillAlive);
   }
 }
