@@ -213,6 +213,9 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
       httpClient.destroy();
       httpClient = null;
     }
+    if (timelineReaderStrategy != null) {
+      timelineReaderStrategy.close();
+    }
   }
 
   private DAGStatusProto.Builder parseDagStatus(JSONObject jsonRoot, Set<StatusGetOpts> statusOptions)
