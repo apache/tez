@@ -198,14 +198,12 @@ public abstract class TezSplitGrouper {
       String[] locations = locationProvider.getPreferredLocations(split);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
-        allSplitsHaveLocalhost = false;
       }
       for (String location : locations ) {
         if (location == null) {
           location = emptyLocation;
-          allSplitsHaveLocalhost = false;
         }
-        if (!location.equalsIgnoreCase(localhost)) {
+        if (!location.equalsIgnoreCase(localhost) && !location.equalsIgnoreCase(emptyLocation)) {
           allSplitsHaveLocalhost = false;
         }
         distinctLocations.put(location, null);
