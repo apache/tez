@@ -234,6 +234,30 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
   }
 
+  /**
+   * Create a local output spill index file name on the same volume.
+   * The intended usage of this method is to write the index file on the same volume as the
+   * associated spill file.
+   *
+   * ${appDir}/output/${uniqueId}_${spillNumber}/file.out.index
+   * e.g.
+   * existing:
+   * application_1422270854961_0027/output/attempt_1422270854961_0027_1_00_000001_0_10003_1/file.out
+   *
+   * returnValue:
+   * application_1422270854961_0027/output/attempt_1422270854961_0027_1_00_000001_0_10003_1/file.out.index
+   *
+   * @param existing the path of the associated spill file
+   * @return path the path to write the spill index file for the specific spill file
+   */
+  @Override
+  public Path getSpillIndexFileForWriteInVolume(Path existing) {
+    Preconditions.checkArgument(existing.getParent() != null, "Parent directory can not be null");
+    Preconditions.checkArgument(
+        existing.getName().equals(Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING),
+        "The given path is not a spill file " + existing);
+    return existing.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+  }
 
   /**
    * Create a local input file name.

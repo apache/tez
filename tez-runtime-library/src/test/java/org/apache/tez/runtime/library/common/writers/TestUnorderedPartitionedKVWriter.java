@@ -19,6 +19,7 @@ package org.apache.tez.runtime.library.common.writers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -47,12 +48,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
-import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskFailureType;
@@ -67,9 +69,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -118,11 +123,12 @@ public class TestUnorderedPartitionedKVWriter {
   private static final String HOST_STRING = "localhost";
   private static final int SHUFFLE_PORT = 4000;
 
-  private static String testTmpDir = System.getProperty("test.build.data", "/tmp");
-  private static final Path TEST_ROOT_DIR = new Path(testTmpDir,
+  private static final Path TEST_ROOT_DIR = new Path(
+      System.getProperty("test.build.data", "/tmp"),
       TestUnorderedPartitionedKVWriter.class.getSimpleName());
   private static FileSystem localFs;
 
+  private List<Path> testWorkDirs;
   private boolean shouldCompress;
   private ReportPartitionStats reportPartitionStats;
   private Configuration defaultConf = new Configuration();
@@ -156,6 +162,14 @@ public class TestUnorderedPartitionedKVWriter {
     localFs = FileSystem.getLocal(new Configuration());
     localFs.delete(TEST_ROOT_DIR, true);
     localFs.mkdirs(TEST_ROOT_DIR);
+    testWorkDirs = ImmutableList.of(TEST_ROOT_DIR);
+    prepareDirectories();
+  }
+
+  private void prepareDirectories() throws IOException {
+    for (Path workDir : testWorkDirs) {
+      localFs.mkdirs(workDir);
+    }
   }
 
   @After
@@ -478,8 +492,10 @@ public class TestUnorderedPartitionedKVWriter {
     if (pipeliningEnabled || !isFinalMergeEnabled) {
       // verify spill data files and index file exist
       for (int i = 0; i < kvWriter.numSpills.get(); i++) {
-        assertTrue(localFs.exists(kvWriter.outputFileHandler.getSpillFileForWrite(i, 0)));
-        assertTrue(localFs.exists(kvWriter.outputFileHandler.getSpillIndexFileForWrite(i, 0)));
+        Path spillFile = kvWriter.outputFileHandler.getSpillFileForWrite(i, 0);
+        Path indexFile = spillFile.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+        assertTrue(localFs.exists(spillFile));
+        assertTrue(localFs.exists(indexFile));
       }
       return;
     }
@@ -808,7 +824,7 @@ public class TestUnorderedPartitionedKVWriter {
       int numSpills = kvWriter.numSpills.get();
       for (int i = 0; i < numSpills; i++) {
         Path outputFile = taskOutput.getSpillFileForWrite(i, 10);
-        Path indexFile = taskOutput.getSpillIndexFileForWrite(i, 10);
+        Path indexFile = outputFile.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
         assertTrue(localFs.exists(outputFile));
         assertTrue(localFs.exists(indexFile));
         checkPermissions(outputFile, indexFile);
@@ -895,6 +911,71 @@ public class TestUnorderedPartitionedKVWriter {
   @Test(timeout = 10000)
   public void testSkippedPartitions_WithFinalMergeDisabled() throws IOException, InterruptedException {
     baseTestWithFinalMergeDisabled(200, 10, Sets.newHashSet(2, 5), shouldCompress);
+  }
+
+  @Test(timeout = 10000)
+  public void testSpillLocations() throws IOException {
+    testWorkDirs = ImmutableList.of(
+        new Path(TEST_ROOT_DIR, "dir1"), new Path(TEST_ROOT_DIR, "dir2"));
+    prepareDirectories();
+
+    ApplicationId appId = ApplicationId.newInstance(10000000, 1);
+    TezCounters counters = new TezCounters();
+    String uniqueId = UUID.randomUUID().toString();
+    String auxiliaryService = defaultConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+        TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
+    OutputContext outputContext = createMockOutputContext(counters, appId, uniqueId, auxiliaryService);
+
+    Configuration conf = createConfiguration(outputContext, Text.class, Text.class, shouldCompress,
+        -1, HashPartitioner.class);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, false);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    String[] localDirs = testWorkDirs.stream().map(Path::toString).toArray(String[]::new);
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
+
+    Random random = new Random();
+    int numPartitions = 4;
+    int availableMemory = 512;
+    UnorderedPartitionedKVWriter kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext,
+        conf, numPartitions, availableMemory);
+
+    int sizePerBuffer = kvWriter.sizePerBuffer;
+    Text keyText = new Text();
+    Text valText = new Text();
+    for (int i = 0; i < 3; i++) {
+      String key = createRandomString(Math.abs(random.nextInt(10)));
+      String val = createRandomString(sizePerBuffer + Math.abs(random.nextInt(100)));
+      keyText.set(key);
+      valText.set(val);
+      kvWriter.write(keyText, valText);
+    }
+
+    TreeMap<String, Path> spillFiles = new TreeMap<>();
+    TreeMap<String, Path> spillIndexes = new TreeMap<>();
+    for (Path workDir : testWorkDirs) {
+      RemoteIterator<LocatedFileStatus> files = localFs.listFiles(workDir, true);
+      while (files.hasNext()) {
+        Path path = files.next().getPath();
+        if (path.getName().equals(Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING)) {
+          spillFiles.put(path.getParent().getName(), path);
+        } else {
+          spillIndexes.put(path.getParent().getName(), path);
+        }
+      }
+    }
+
+    assertEquals(3, spillFiles.size());
+    assertEquals(3, spillIndexes.size());
+    Path previousDisk = null;
+    for (String key : spillFiles.keySet()) {
+      Path spillFile = spillFiles.get(key);
+      Path spillIndex = spillIndexes.get(key);
+      assertEquals(spillIndex, spillFile.suffix(Constants.MAP_OUTPUT_INDEX_SUFFIX_STRING));
+      if (previousDisk != null) {
+        assertNotEquals(previousDisk, spillFile.getParent().getParent());
+      }
+      previousDisk = spillFile.getParent().getParent();
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -1095,8 +1176,10 @@ public class TestUnorderedPartitionedKVWriter {
     if (numRecordsWritten > 0) {
       int numSpills = kvWriter.numSpills.get();
       for (int i = 0; i < numSpills; i++) {
-        assertTrue(localFs.exists(taskOutput.getSpillFileForWrite(i, 10)));
-        assertTrue(localFs.exists(taskOutput.getSpillIndexFileForWrite(i, 10)));
+        Path spillFile = taskOutput.getSpillFileForWrite(i, 10);
+        Path indexFile = spillFile.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+        assertTrue(localFs.exists(spillFile));
+        assertTrue(localFs.exists(indexFile));
       }
     } else {
       return;
@@ -1405,8 +1488,10 @@ public class TestUnorderedPartitionedKVWriter {
       }
     }).when(outputContext).getServiceProviderMetaData(eq(auxiliaryService));
 
-    Path outDirBase = new Path(TEST_ROOT_DIR, "outDir_" + uniqueId);
-    String[] outDirs = new String[] { outDirBase.toString() };
+    String[] outDirs = testWorkDirs
+        .stream()
+        .map(workDir -> new Path(workDir, "outDir_" + uniqueId).toString())
+        .toArray(String[]::new);
     doReturn(outDirs).when(outputContext).getWorkDirs();
     return outputContext;
   }

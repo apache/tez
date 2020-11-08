@@ -488,16 +488,14 @@ public class PipelinedSorter extends ExternalSorter {
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
     // getSpillFileForWrite with size -1 as the serialized size of KV pair is still unknown
     final Path filename = mapOutputFile.getSpillFileForWrite(numSpills, -1);
-    Path indexFilename =
-        mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
-            * MAP_OUTPUT_INDEX_RECORD_LENGTH);
+    final Path indexFilename = mapOutputFile.getSpillIndexFileForWriteInVolume(filename);
     spillFilePaths.put(numSpills, filename);
     FSDataOutputStream out = rfs.create(filename, true, 4096);
     ensureSpillFilePermissions(filename, rfs);
 
     try {
-      LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString() +
-          ", indexFilename=" + indexFilename);
+      LOG.info(outputContext.getDestinationVertexName() + ": Spilling a single record to "
+          + filename.toString() + ", indexFilename=" + indexFilename);
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
           return;
@@ -572,16 +570,19 @@ public class PipelinedSorter extends ExternalSorter {
         throw new IOInterruptedException(outputContext.getDestinationVertexName() + ": Interrupted while waiting for mergers to complete", e);
       }
 
-      // create spill file
-      final long size = capacity +
-          + (partitions * APPROX_HEADER_LENGTH);
+      // create spill file and its index file
+      final long size = capacity
+          + (partitions * APPROX_HEADER_LENGTH)
+          + (partitions * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
       final Path filename =
         mapOutputFile.getSpillFileForWrite(numSpills, size);
+      final Path indexFilename = mapOutputFile.getSpillIndexFileForWriteInVolume(filename);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename, true, 4096);
       ensureSpillFilePermissions(filename, rfs);
-      LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString());
+      LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString() +
+          ", indexFilename=" + indexFilename);
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
           return false;
@@ -625,9 +626,6 @@ public class PipelinedSorter extends ExternalSorter {
         }
       }
 
-      Path indexFilename =
-        mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
-            * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       spillFileIndexPaths.put(numSpills, indexFilename);
       spillRec.writeToFile(indexFilename, conf, localFs);
       //TODO: honor cache limits

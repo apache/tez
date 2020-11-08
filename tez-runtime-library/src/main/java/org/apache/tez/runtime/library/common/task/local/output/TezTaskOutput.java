@@ -123,6 +123,16 @@ public abstract class TezTaskOutput {
       throws IOException;
 
   /**
+   * Create a local output spill index file name on the same volume.
+   * The intended usage of this method is to write the index file on the same volume as the
+   * associated spill file.
+   *
+   * @param existing the path of the associated spill file
+   * @return path the path to write the spill index file for the specific spill file
+   */
+  public abstract Path getSpillIndexFileForWriteInVolume(Path existing);
+
+  /**
    * Create a local input file name.
    *
    * @param srcIdentifier The identifier for the source
