@@ -441,6 +441,7 @@ class ShuffleScheduler {
         + ", maxStallTimeFraction=" + maxStallTimeFraction
         + ", minReqProgressFraction=" + minReqProgressFraction
         + ", checkFailedFetchSinceLastCompletion=" + checkFailedFetchSinceLastCompletion
+        + ", asyncHttp=" + asyncHttp
     );
   }
 
