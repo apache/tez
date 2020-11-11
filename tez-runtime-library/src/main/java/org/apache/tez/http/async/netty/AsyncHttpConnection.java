@@ -20,12 +20,13 @@ package org.apache.tez.http.async.netty;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.Preconditions;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.AsyncHttpClientConfig;
-import com.ning.http.client.ListenableFuture;
-import com.ning.http.client.Request;
-import com.ning.http.client.RequestBuilder;
-import com.ning.http.client.Response;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.ListenableFuture;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.RequestBuilder;
+import org.asynchttpclient.Response;
 import org.apache.commons.io.IOUtils;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
@@ -77,7 +78,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
       synchronized (AsyncHttpConnection.class) {
         if (httpAsyncClient == null) {
           LOG.info("Initializing AsyncClient (TezBodyDeferringAsyncHandler)");
-          AsyncHttpClientConfig.Builder builder = new AsyncHttpClientConfig.Builder();
+          DefaultAsyncHttpClientConfig.Builder builder = new DefaultAsyncHttpClientConfig.Builder();
           if (httpConnParams.isSslShuffle()) {
             //Configure SSL
             SSLFactory sslFactory = httpConnParams.getSslFactory();
@@ -92,17 +93,16 @@ public class AsyncHttpConnection extends BaseHttpConnection {
            * setMaxConnections & addRequestFilter.
            */
           builder
-              .setAllowPoolingConnection(httpConnParams.isKeepAlive())
-              .setAllowSslConnectionPool(httpConnParams.isKeepAlive())
-              .setCompressionEnabled(false)
+              .setKeepAlive(httpConnParams.isKeepAlive())
+              .setCompressionEnforced(false)
               //.setExecutorService(applicationThreadPool)
-              //.addRequestFilter(new ThrottleRequestFilter())
-              .setMaximumConnectionsPerHost(1)
-              .setConnectionTimeoutInMs(httpConnParams.getConnectionTimeout())
-              .setRequestTimeoutInMs(httpConnParams.getReadTimeout())
-              .setUseRawUrl(true)
+              //.addRequestFilter(new ThrottleRequestFilter(1))
+              .setMaxConnectionsPerHost(1)
+              .setConnectTimeout(httpConnParams.getConnectionTimeout())
+              .setDisableUrlEncodingForBoundRequests(true)
               .build();
-            httpAsyncClient = new AsyncHttpClient(builder.build());
+          DefaultAsyncHttpClientConfig config = builder.build();
+          httpAsyncClient = new DefaultAsyncHttpClient(config);
         }
       }
     }
@@ -210,7 +210,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
   }
 
   @VisibleForTesting
-  public void close() {
+  public void close() throws IOException {
     httpAsyncClient.close();
     httpAsyncClient = null;
   }

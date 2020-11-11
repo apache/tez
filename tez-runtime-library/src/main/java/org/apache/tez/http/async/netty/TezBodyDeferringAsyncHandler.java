@@ -17,14 +17,15 @@
  */
 package org.apache.tez.http.async.netty;
 
-import com.ning.http.client.AsyncHandler;
-import com.ning.http.client.HttpResponseBodyPart;
-import com.ning.http.client.HttpResponseHeaders;
-import com.ning.http.client.HttpResponseStatus;
-import com.ning.http.client.Response;
+import org.asynchttpclient.AsyncHandler;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
+import org.asynchttpclient.Response;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.netty.handler.codec.http.HttpHeaders;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -38,8 +39,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Same as {@link com.ning.http.client.BodyDeferringAsyncHandler} with additional checks handle
- * errors in getResponse(). Based on testing, at very high load {@link com.ning.http.client
+ * Same as {@link org.asynchttpclient.BodyDeferringAsyncHandler} with additional checks handle
+ * errors in getResponse(). Based on testing, at very high load {@link org.asynchttpclient
  * .BodyDeferringAsyncHandler} gets to hung state in getResponse() as it tries to wait
  * indefinitely for headers to arrive.  This class tries to fix the problem by waiting only for
  * the connection timeout.
@@ -92,27 +93,28 @@ class TezBodyDeferringAsyncHandler implements AsyncHandler<Response> {
     }
   }
 
-  public AsyncHandler.STATE onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
+  public AsyncHandler.State onStatusReceived(HttpResponseStatus responseStatus) throws Exception {
     responseBuilder.reset();
     responseBuilder.accumulate(responseStatus);
     statusReceived = true;
-    return AsyncHandler.STATE.CONTINUE;
+    return AsyncHandler.State.CONTINUE;
   }
 
-  public AsyncHandler.STATE onHeadersReceived(HttpResponseHeaders headers) throws Exception {
+  @Override
+  public AsyncHandler.State onHeadersReceived(HttpHeaders headers) throws Exception {
     responseBuilder.accumulate(headers);
-    return AsyncHandler.STATE.CONTINUE;
+    return AsyncHandler.State.CONTINUE;
   }
 
-  public AsyncHandler.STATE onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
+  public AsyncHandler.State onBodyPartReceived(HttpResponseBodyPart bodyPart) throws Exception {
     // body arrived, flush headers
     if (!responseSet) {
       response = responseBuilder.build();
       responseSet = true;
       headersArrived.countDown();
     }
-    bodyPart.writeTo(output);
-    return AsyncHandler.STATE.CONTINUE;
+    output.write(bodyPart.getBodyPartBytes());
+    return AsyncHandler.State.CONTINUE;
   }
 
   protected void closeOut() throws IOException {

@@ -297,7 +297,8 @@ public class ShuffleManager implements FetcherCallback {
         + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength +", "
         + "localDiskFetchEnabled=" + localDiskFetchEnabled + ", "
         + "sharedFetchEnabled=" + sharedFetchEnabled + ", "
-        + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce);
+        + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce
+        + ", asyncHttp=" + asyncHttp);
   }
 
   public void run() throws IOException {
