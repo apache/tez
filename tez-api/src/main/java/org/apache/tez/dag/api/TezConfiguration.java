@@ -2090,4 +2090,11 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE = "tez.job.fs-servers.token-renewal.exclude";
 
+  /**
+   *  Comma-separated list of properties that MRReaderMapred should return (if present) when calling for config updates.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
+
 }
