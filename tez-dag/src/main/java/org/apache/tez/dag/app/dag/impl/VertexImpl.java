@@ -4460,12 +4460,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
   @Override
   public Map<Vertex, Edge> getInputVertices() {
-    readLock.lock();
-    try {
-      return Collections.unmodifiableMap(this.sourceVertices);
-    } finally {
-      readLock.unlock();
-    }
+    return Collections.unmodifiableMap(this.sourceVertices);
   }
 
   @Override
