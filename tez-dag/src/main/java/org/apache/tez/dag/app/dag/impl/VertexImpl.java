@@ -2416,7 +2416,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
 
-  public VertexState finished(VertexState finalState,
+  VertexState finished(VertexState finalState,
       VertexTerminationCause termCause, String diag) {
     if (finishTime == 0) setFinishTime();
     if (termCause != null) {
@@ -3073,7 +3073,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         if (vertex.inputsWithInitializers != null) {
           if (vertex.recoveryData == null || !vertex.recoveryData.shouldSkipInit()) {
             LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
-            vertex.setupInputInitializerManager();
+            try {
+              vertex.setupInputInitializerManager();
+            } catch (TezException e) {
+              String msg = "Fail to create InputInitializerManager, " + ExceptionUtils.getStackTrace(e);
+              LOG.info(msg);
+              return vertex.finished(VertexState.FAILED, VertexTerminationCause.INIT_FAILURE, msg);
+            }
           }
           return VertexState.INITIALIZING;
         } else {
@@ -3106,7 +3112,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         if (vertex.inputsWithInitializers != null &&
             (vertex.recoveryData == null || !vertex.recoveryData.shouldSkipInit())) {
           LOG.info("Vertex will initialize from input initializer. " + vertex.logIdentifier);
-          vertex.setupInputInitializerManager();
+          try {
+            vertex.setupInputInitializerManager();
+          } catch (TezException e) {
+            String msg = "Fail to create InputInitializerManager, " + ExceptionUtils.getStackTrace(e);
+            LOG.error(msg);
+            return vertex.finished(VertexState.FAILED, VertexTerminationCause.INIT_FAILURE, msg);
+          }
           return VertexState.INITIALIZING;
         }
         if (!vertex.uninitializedEdges.isEmpty()) {
@@ -4243,7 +4255,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     }
   }
 
-  private void setupInputInitializerManager() {
+  private void setupInputInitializerManager() throws TezException {
     rootInputInitializerManager = createRootInputInitializerManager(
         getDAG().getName(), getName(), getVertexId(),
         eventHandler, getTotalTasks(),
@@ -4258,7 +4270,10 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     LOG.info("Starting " + inputsWithInitializers.size() + " inputInitializers for vertex " +
         logIdentifier);
     initWaitsForRootInitializers = true;
-    rootInputInitializerManager.runInputInitializers(inputList, pendingInitializerEvents);
+    rootInputInitializerManager.runInputInitializers(inputList);
+    // Send pending rootInputInitializerEvents
+    rootInputInitializerManager.handleInitializerEvents(pendingInitializerEvents);
+    pendingInitializerEvents.clear();
   }
 
   private static class VertexStateChangedCallback
