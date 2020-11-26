@@ -290,6 +290,7 @@ public class TestShuffleUtils {
         .thenThrow(new InternalError(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
     CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
+    when(((ConfigurableCodecForTest) mockCodec).getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream);
@@ -312,6 +313,7 @@ public class TestShuffleUtils {
         .thenThrow(new IllegalArgumentException(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
     CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
+    when(((ConfigurableCodecForTest) mockCodec).getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream);
@@ -327,7 +329,8 @@ public class TestShuffleUtils {
     CompressionInputStream mockCodecStream1 = mock(CompressionInputStream.class);
     when(mockCodecStream1.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new SocketTimeoutException(codecErrorMsg));
-    CompressionCodec mockCodec1 = mock(CompressionCodec.class);
+    CompressionCodec mockCodec1 = mock(ConfigurableCodecForTest.class);
+    when(((ConfigurableCodecForTest) mockCodec1).getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec1.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec1.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream1);
@@ -342,7 +345,8 @@ public class TestShuffleUtils {
     CompressionInputStream mockCodecStream2 = mock(CompressionInputStream.class);
     when(mockCodecStream2.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new InternalError(codecErrorMsg));
-    CompressionCodec mockCodec2 = mock(CompressionCodec.class);
+    CompressionCodec mockCodec2 = mock(ConfigurableCodecForTest.class);
+    when(((ConfigurableCodecForTest) mockCodec2).getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec2.createDecompressor()).thenReturn(mockDecoder);
     when(mockCodec2.createInputStream(any(InputStream.class), any(Decompressor.class)))
         .thenReturn(mockCodecStream2);

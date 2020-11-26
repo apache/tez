@@ -70,6 +70,5 @@ public class TestConfigTranslationMRToTez {
     assertEquals(LongWritable.class.getName(), ConfigUtils
         .getIntermediateInputValueClass(confVertex1).getName());
     assertTrue(ConfigUtils.shouldCompressIntermediateOutput(confVertex1));
-    assertTrue(ConfigUtils.isIntermediateInputCompressed(confVertex1));
   }
 }

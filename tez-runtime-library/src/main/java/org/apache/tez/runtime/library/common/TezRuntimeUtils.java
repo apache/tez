@@ -265,14 +265,20 @@ public class TezRuntimeUtils {
   }
 
   public static String getBufferSizeProperty(CompressionCodec codec) {
-    switch (codec.getClass().getSimpleName().toString()) {
-    case "DefaultCodec":
+    return getBufferSizeProperty(codec.getClass().getName());
+  }
+
+  public static String getBufferSizeProperty(String className) {
+    switch (className) {
+    case "org.apache.hadoop.io.compress.DefaultCodec":
       return "io.file.buffer.size";
-    case "SnappyCodec":
+    case "org.apache.hadoop.io.compress.SnappyCodec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
-    case "LzoCodec":
+    case "org.apache.hadoop.io.compress.LzoCodec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
-    case "Lz4Codec":
+    case "com.hadoop.compression.lzo.LzoCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+    case "org.apache.hadoop.io.compress.Lz4Codec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
     default:
       return null;

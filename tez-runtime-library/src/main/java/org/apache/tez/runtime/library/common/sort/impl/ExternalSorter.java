@@ -39,8 +39,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Compressor;
-import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progressable;
@@ -60,7 +58,7 @@ import org.apache.tez.runtime.library.common.serializer.SerializationContext;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
-
+import org.apache.tez.runtime.library.utils.CodecUtils;
 import org.apache.tez.common.Preconditions;
 
 @SuppressWarnings({"rawtypes"})
@@ -220,30 +218,7 @@ public abstract class ExternalSorter {
     numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
 
     // compression
-    if (ConfigUtils.shouldCompressIntermediateOutput(this.conf)) {
-      Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getIntermediateOutputCompressorClass(this.conf, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, this.conf);
-
-      if (codec != null) {
-        Class<? extends Compressor> compressorType = null;
-        Throwable cause = null;
-        try {
-          compressorType = codec.getCompressorType();
-        } catch (RuntimeException e) {
-          cause = e;
-        }
-        if (compressorType == null) {
-          String errMsg =
-              String.format("Unable to get CompressorType for codec (%s). This is most" +
-                      " likely due to missing native libraries for the codec.",
-                  conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC));
-          throw new IOException(errMsg, cause);
-        }
-      }
-    } else {
-      codec = null;
-    }
+    this.codec = CodecUtils.getCodec(conf);
 
     this.ifileReadAhead = this.conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,
