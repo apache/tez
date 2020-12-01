@@ -49,7 +49,7 @@ public class LocalDiskFetchedInput extends FetchedInput {
     this.size = compressedSize;
     this.startOffset = startOffset;
     this.inputFile = inputFile;
-    localFS = FileSystem.getLocal(conf);
+    localFS = FileSystem.getLocal(conf).getRaw();
   }
 
   @Override

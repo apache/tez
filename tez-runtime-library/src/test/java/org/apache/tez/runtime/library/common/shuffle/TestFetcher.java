@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.shuffle;
 
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -258,7 +259,7 @@ public class TestFetcher {
     LocalDiskFetchedInput f = capturedFetchedInput.getValue();
     Assert.assertEquals("success callback filename", f.getInputFile().toString(),
         SHUFFLE_INPUT_FILE_PREFIX + pathComponent);
-    Assert.assertTrue("success callback fs", f.getLocalFS() instanceof LocalFileSystem);
+    Assert.assertTrue("success callback fs", f.getLocalFS() instanceof RawLocalFileSystem);
     Assert.assertEquals("success callback filesystem", f.getStartOffset(), p * 10);
     Assert.assertEquals("success callback compressed size", f.getSize(), p * 100);
     Assert.assertEquals("success callback input id", f.getInputAttemptIdentifier(), srcAttempId.expand(0));
