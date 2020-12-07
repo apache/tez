@@ -18,33 +18,35 @@
 
 package org.apache.tez.dag.app.dag;
 
-import static org.apache.tez.dag.app.dag.VertexState.FAILED;
+import javax.annotation.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
-import javax.annotation.Nullable;
+import org.apache.tez.common.Preconditions;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -52,38 +54,38 @@ import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.event.*;
 import org.apache.tez.dag.api.event.VertexState;
-import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputFailed;
 import org.apache.tez.dag.app.dag.event.VertexEventRootInputInitialized;
 import org.apache.tez.dag.app.dag.impl.AMUserCodeException;
-import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.app.dag.impl.TezRootInputInitializerContextImpl;
-import org.apache.tez.dag.app.dag.impl.VertexImpl;
+import org.apache.tez.dag.app.dag.impl.AMUserCodeException.Source;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.InputInitializerContext;
-import org.apache.tez.runtime.api.events.InputInitializerEvent;
-import org.apache.tez.runtime.api.impl.TezEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.apache.tez.runtime.api.events.InputInitializerEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 public class RootInputInitializerManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(RootInputInitializerManager.class);
 
-  @VisibleForTesting
-  protected ListeningExecutorService executor;
+  private final ExecutorService rawExecutor;
+  private final ListeningExecutorService executor;
   @SuppressWarnings("rawtypes")
   private final EventHandler eventHandler;
   private volatile boolean isStopped = false;
@@ -94,135 +96,51 @@ public class RootInputInitializerManager {
   private final AppContext appContext;
 
   @VisibleForTesting
-  final Map<String, InitializerWrapper> initializerMap = new ConcurrentHashMap<>();
+  final Map<String, InitializerWrapper> initializerMap = new HashMap<String, InitializerWrapper>();
 
   public RootInputInitializerManager(Vertex vertex, AppContext appContext,
                                      UserGroupInformation dagUgi, StateChangeNotifier stateTracker) {
     this.appContext = appContext;
     this.vertex = vertex;
     this.eventHandler = appContext.getEventHandler();
-    this.executor = appContext.getExecService();
+    this.rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+        .setDaemon(true).setNameFormat("InputInitializer {" + this.vertex.getName() + "} #%d").build());
+    this.executor = MoreExecutors.listeningDecorator(rawExecutor);
     this.dagUgi = dagUgi;
     this.entityStateTracker = stateTracker;
   }
 
+  public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
+      inputs) throws TezException {
+    for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
 
-  public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs,
-                                   List<TezEvent> pendingInitializerEvents) {
-    List<InitializerWrapper> initWrappers = createInitializerWrappers(inputs);
-    if (!initWrappers.isEmpty()) {
-      executor.submit(() -> createAndStartInitializing(pendingInitializerEvents, initWrappers));
-    }
-  }
+      InputInitializerContext context =
+          new TezRootInputInitializerContextImpl(input, vertex, appContext, this);
 
-  /**
-   * Create input wrappers for all inputs in parallel.
-   *
-   * @param inputs
-   * @return
-   */
-  protected List<InitializerWrapper> createInitializerWrappers(
-          List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs) {
-    String current = null;
-    final List<InitializerWrapper> result = Collections.synchronizedList(new ArrayList<>());
-    try {
-      final List<Future<Void>> fResults = new ArrayList<>();
-      for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> each : inputs) {
-        current = each.getName();
-        fResults.add(executor.submit(() -> {
-          InitializerWrapper initializer = createInitializerWrapper(each);
-          initializerMap.put(each.getName(), initializer);
-          registerPendingVertex(each, initializer);
-          result.add(initializer);
-          return null;
-        }));
-      }
-      for(Future<Void> f : fResults) {
-        f.get();
-      }
-    } catch (InterruptedException | ExecutionException t) {
-      failVertex(t, current);
-    }
-    return result;
-  }
-
-  void failVertex(Throwable t, String inputName) {
-    VertexImpl vertexImpl = (VertexImpl) vertex;
-    String msg = "Fail to create InputInitializerManager, " + ExceptionUtils.getStackTrace(t);
-    LOG.info(msg);
-    vertexImpl.finished(FAILED, VertexTerminationCause.INIT_FAILURE, msg);
-    eventHandler.handle(new VertexEventRootInputFailed(vertex.getVertexId(), inputName,
-        new AMUserCodeException(AMUserCodeException.Source.InputInitializer, t)));
-  }
-
-  /**
-   * Start initializers in parallel.
-   *
-   * @param pendingInitializerEvents
-   * @param result
-   */
-  protected void createAndStartInitializing(List<TezEvent> pendingInitializerEvents, List<InitializerWrapper> result) {
-    handleInitializerEvents(pendingInitializerEvents);
-    pendingInitializerEvents.clear();
-    for (InitializerWrapper inputWrapper : result) {
-      executor.submit(() -> runInitializerAndProcessResult(inputWrapper));
-    }
-  }
-
-  private void runInitializerAndProcessResult(InitializerWrapper initializer) {
-    try {
-      List<Event> result = runInitializer(initializer);
-      LOG.info("Succeeded InputInitializer for Input: " + initializer.getInput().getName() +
-                  " on vertex " + initializer.getVertexLogIdentifier());
-      eventHandler.handle(new VertexEventRootInputInitialized(vertex.getVertexId(),
-          initializer.getInput().getName(), result));
-    } catch (Throwable t) {
-        if (t instanceof UndeclaredThrowableException) {
-          t = t.getCause();
-        }
-        LOG.info("Failed InputInitializer for Input: " + initializer.getInput().getName() +
-                    " on vertex " + initializer.getVertexLogIdentifier());
-        eventHandler.handle(new VertexEventRootInputFailed(vertex.getVertexId(), initializer.getInput().getName(),
-                    new AMUserCodeException(Source.InputInitializer,t)));
-    } finally {
-      initializer.setComplete();
-    }
-  }
-
-  private List<Event> runInitializer(InitializerWrapper initializer) throws IOException, InterruptedException {
-    return dagUgi.doAs((PrivilegedExceptionAction<List<Event>>) () -> {
-      LOG.info(
-              "Starting InputInitializer for Input: " + initializer.getInput().getName() +
-                      " on vertex " + initializer.getVertexLogIdentifier());
+      InputInitializer initializer;
       try {
-        TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(),
-                initializer.vertexId);
-        return initializer.getInitializer().initialize();
+        TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(), vertex.getVertexId());
+        initializer = createInitializer(input, context);
       } finally {
         appContext.getHadoopShim().clearHadoopCallerContext();
       }
-    });
-  }
 
-  private InitializerWrapper createInitializerWrapper(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input) throws TezException {
-    InputInitializerContext context =
-            new TezRootInputInitializerContextImpl(input, vertex, appContext, this);
-    try {
-      TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(), vertex.getVertexId());
-      InputInitializer initializer = createInitializer(input, context);
-      return new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
-    } finally {
-      appContext.getHadoopShim().clearHadoopCallerContext();
-    }
-  }
+      InitializerWrapper initializerWrapper =
+          new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
 
-  private void registerPendingVertex(RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input, InitializerWrapper initializerWrapper) {
-    // Register pending vertex update registrations
-    List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations = pendingVertexRegistrations.removeAll(input.getName());
-    if (vertexUpdateRegistrations != null) {
-      for (VertexUpdateRegistrationHolder h : vertexUpdateRegistrations) {
-        initializerWrapper.registerForVertexStateUpdates(h.vertexName, h.stateSet);
+      // Register pending vertex update registrations
+      List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations =
+          pendingVertexRegistrations.removeAll(input.getName());
+      if (vertexUpdateRegistrations != null) {
+        for (VertexUpdateRegistrationHolder h : vertexUpdateRegistrations) {
+          initializerWrapper.registerForVertexStateUpdates(h.vertexName, h.stateSet);
+        }
       }
+
+      initializerMap.put(input.getName(), initializerWrapper);
+      ListenableFuture<List<Event>> future = executor
+          .submit(new InputInitializerCallable(initializerWrapper, dagUgi, appContext));
+      Futures.addCallback(future, createInputInitializerCallback(initializerWrapper), GuavaShim.directExecutor());
     }
   }
 
@@ -316,13 +234,103 @@ public class RootInputInitializerManager {
   }
 
   @VisibleForTesting
+  protected InputInitializerCallback createInputInitializerCallback(InitializerWrapper initializer) {
+    return new InputInitializerCallback(initializer, eventHandler, vertex.getVertexId());
+  }
+
+  @VisibleForTesting
   @InterfaceAudience.Private
   public InitializerWrapper getInitializerWrapper(String inputName) {
     return initializerMap.get(inputName);
   }
 
   public void shutdown() {
-    isStopped = true;
+    if (executor != null && !isStopped) {
+      // Don't really care about what is running if an error occurs. If no error
+      // occurs, all execution is complete.
+      executor.shutdownNow();
+      isStopped = true;
+    }
+  }
+
+  private static class InputInitializerCallable implements
+      Callable<List<Event>> {
+
+    private final InitializerWrapper initializerWrapper;
+    private final UserGroupInformation ugi;
+    private final AppContext appContext;
+
+    InputInitializerCallable(InitializerWrapper initializer, UserGroupInformation ugi,
+                                    AppContext appContext) {
+      this.initializerWrapper = initializer;
+      this.ugi = ugi;
+      this.appContext = appContext;
+    }
+
+    @Override
+    public List<Event> call() throws Exception {
+      List<Event> events = ugi.doAs(new PrivilegedExceptionAction<List<Event>>() {
+        @Override
+        public List<Event> run() throws Exception {
+          LOG.info(
+              "Starting InputInitializer for Input: " + initializerWrapper.getInput().getName() +
+                  " on vertex " + initializerWrapper.getVertexLogIdentifier());
+          try {
+            TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(),
+                initializerWrapper.vertexId);
+            return initializerWrapper.getInitializer().initialize();
+          } finally {
+            appContext.getHadoopShim().clearHadoopCallerContext();
+          }
+        }
+      });
+      return events;
+    }
+  }
+
+  @SuppressWarnings("rawtypes")
+  @VisibleForTesting
+  private static class InputInitializerCallback implements
+      FutureCallback<List<Event>> {
+
+    private final InitializerWrapper initializer;
+    private final EventHandler eventHandler;
+    private final TezVertexID vertexID;
+
+    InputInitializerCallback(InitializerWrapper initializer,
+        EventHandler eventHandler, TezVertexID vertexID) {
+      this.initializer = initializer;
+      this.eventHandler = eventHandler;
+      this.vertexID = vertexID;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void onSuccess(List<Event> result) {
+      initializer.setComplete();
+      LOG.info(
+          "Succeeded InputInitializer for Input: " + initializer.getInput().getName() +
+              " on vertex " + initializer.getVertexLogIdentifier());
+      eventHandler.handle(new VertexEventRootInputInitialized(vertexID,
+          initializer.getInput().getName(), result));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void onFailure(Throwable t) {
+      // catch real root cause of failure, it would throw UndeclaredThrowableException
+      // if using UGI.doAs
+      if (t instanceof UndeclaredThrowableException) {
+        t = t.getCause();
+      }
+      initializer.setComplete();
+      LOG.info(
+          "Failed InputInitializer for Input: " + initializer.getInput().getName() +
+              " on vertex " + initializer.getVertexLogIdentifier());
+      eventHandler
+          .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getName(),
+              new AMUserCodeException(Source.InputInitializer, t)));
+    }
   }
 
   @VisibleForTesting

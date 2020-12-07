@@ -14,9 +14,7 @@
 
 package org.apache.tez.dag.app.dag;
 
-import static org.apache.tez.dag.app.TestDAGAppMaster.DAGAppMasterForTest.createCredentials;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doReturn;
@@ -27,43 +25,20 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.tez.client.TezApiVersionInfo;
-import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
 import org.apache.tez.dag.api.RootInputLeafOutput;
-import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.oldrecords.TaskState;
-import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -75,33 +50,10 @@ import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 public class TestRootInputInitializerManager {
-
-  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
-          TestRootInputInitializerManager.class.getName()).getAbsoluteFile();
-  private static ListeningExecutorService execService;
-
-  @Before
-  public void setUp() {
-    ExecutorService rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-            .setDaemon(true).setNameFormat("Test App Shared Pool - " + "#%d").build());
-    execService = MoreExecutors.listeningDecorator(rawExecutor);
-    FileUtil.fullyDelete(TEST_DIR);
-    TEST_DIR.mkdirs();
-  }
-
-  @After
-  public void tearDown() {
-    if (execService != null) {
-      execService.shutdownNow();
-    }
-    FileUtil.fullyDelete(TEST_DIR);
-  }
 
   // Simple testing. No events if task doesn't succeed.
   // Also exercises path where two attempts are reported as successful via the stateChangeNotifier.
@@ -262,7 +214,6 @@ public class TestRootInputInitializerManager {
     AppContext appContext = mock(AppContext.class);
     doReturn(new DefaultHadoopShim()).when(appContext).getHadoopShim();
     doReturn(mock(EventHandler.class)).when(appContext).getEventHandler();
-    when(appContext.getExecService()).thenReturn(execService);
     UserGroupInformation dagUgi = UserGroupInformation.createRemoteUser("fakeuser");
     StateChangeNotifier stateChangeNotifier = mock(StateChangeNotifier.class);
     RootInputInitializerManager rootInputInitializerManager = new RootInputInitializerManager(vertex, appContext, dagUgi, stateChangeNotifier);
@@ -271,73 +222,12 @@ public class TestRootInputInitializerManager {
     InputInitializerDescriptor iid = InputInitializerDescriptor.create(InputInitializerForUgiTest.class.getName());
     RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> rootInput =
         new RootInputLeafOutput<>("InputName", id, iid);
-    rootInputInitializerManager.runInputInitializers(Collections.singletonList(rootInput), Collections.emptyList());
+    rootInputInitializerManager.runInputInitializers(Collections.singletonList(rootInput));
 
     InputInitializerForUgiTest.awaitInitialize();
 
     assertEquals(dagUgi, InputInitializerForUgiTest.ctorUgi);
-    assertEquals(dagUgi.getRealUser(), InputInitializerForUgiTest.initializeUgi.getRealUser());
-  }
-
-  @Test (timeout = 10000)
-  public synchronized void testParallelInputInitialization() throws InterruptedException, IOException {
-    // Create Local DAGAppMaster with default conf
-    Configuration conf = new Configuration(true);
-    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
-    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.toString());
-
-    FileSystem fs = FileSystem.getLocal(conf);
-    FSDataOutputStream sessionJarsPBOutStream =
-            TezCommonUtils.createFileForAM(fs, new Path(TEST_DIR.toString(),
-                    TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
-    DAGProtos.PlanLocalResourcesProto.getDefaultInstance()
-            .writeDelimitedTo(sessionJarsPBOutStream);
-    sessionJarsPBOutStream.close();
-
-    ApplicationId appId = ApplicationId.newInstance(1, 1);
-    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
-
-    DAGAppMaster am = new DAGAppMaster(attemptId,
-            ContainerId.newContainerId(attemptId, 1),
-            "127.0.0.1", 0, 0, new SystemClock(), 1, true,
-            TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
-            new String[] {TEST_DIR.toString()},
-            new TezApiVersionInfo().getVersion(), createCredentials(),
-            "someuser", null);
-    am.init(conf);
-
-    Vertex vertex = mock(Vertex.class);
-    doReturn(mock(TezVertexID.class)).when(vertex).getVertexId();
-    UserGroupInformation dagUgi = UserGroupInformation.createRemoteUser("fakeuser");
-    StateChangeNotifier stateChangeNotifier = mock(StateChangeNotifier.class);
-    RootInputInitializerManager rootInputInitializerManager =
-            new RootInputInitializerManager(vertex, am.getContext(), dagUgi, stateChangeNotifier);
-
-    List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inlist = new LinkedList();
-    // Make sure we dont have any OOM issue by controlling the capacity of the thread pool
-    // and also block producer (createInitializerWrapper when resources are saturated)
-    InputDescriptor id = mock(InputDescriptor.class);
-    InputInitializerDescriptor iid = InputInitializerDescriptor.create(InputInitializerForUgiTest.class.getName());
-    for (int i=0; i < 10000; i++) {
-      RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> rootInput =
-              new RootInputLeafOutput<>("InputName"+i, id, iid);
-      inlist.add(rootInput);
-    }
-
-    List<RootInputInitializerManager.InitializerWrapper> initWrappers =
-            rootInputInitializerManager.createInitializerWrappers(inlist);
-
-    int maxThreadSize = conf.getInt(TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT,
-            TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT);
-    ThreadPoolExecutor amThreadPool = am.getContext().getThreadPool();
-
-    rootInputInitializerManager.executor.submit(() -> rootInputInitializerManager
-        .createAndStartInitializing(Collections.emptyList(), initWrappers));
-
-    while (am.getContext().getThreadPool().getQueue().size() > 0) {
-      assertTrue(amThreadPool.getPoolSize() <= maxThreadSize);
-      Thread.sleep(100);
-    }
+    assertEquals(dagUgi, InputInitializerForUgiTest.initializeUgi);
   }
 
   public static class InputInitializerForUgiTest extends InputInitializer {
