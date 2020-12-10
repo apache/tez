@@ -15,14 +15,12 @@
    limitations under the License.
 -->
 
-<head><title>User Guides for various Tez features</title></head>
+<head><title>Tez Javadoc</title></head>
 
-# User Guides and Documentation for various Tez features
+## From Source
 
-   - [Tez Java Examples](https://github.com/apache/tez/tree/master/tez-examples/src/main/java/org/apache/tez/examples)
-   - [Using YARN Timeline with Tez for History](./tez_yarn_timeline.html)
-   - [Access Control in Tez](./tez_acls.html)
-   - [Embedding Application Specific Data into Tez UI](./tez_ui_user_data.html)
-   - [Tez UI - Overview and installation](./tez-ui.html)
-   - [Tez Shuffle Handler - Overview and installation](./shuffle-handler.html)
-
+Once you've obtained the [Tez source code](https://github.com/apache/tez) you generate
+the Javadoc by running
+```
+mvn javadoc:aggregate
+```
