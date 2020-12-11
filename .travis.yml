@@ -14,10 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+dist: trusty
 language: java
-
 sudo: required
-
 env: MAVEN_OPTS="-Xmx2G -XX:MaxPermSize=512M"
 
 before_install:
