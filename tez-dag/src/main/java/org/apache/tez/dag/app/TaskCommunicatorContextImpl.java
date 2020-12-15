@@ -19,9 +19,11 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Objects;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.Credentials;
@@ -57,7 +59,8 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   private final ReentrantReadWriteLock.WriteLock dagChangedWriteLock;
   private final UserPayload userPayload;
 
-  private DAG dag;
+  @VisibleForTesting
+  DAG dag;
 
   public TaskCommunicatorContextImpl(AppContext appContext,
                                      TaskCommunicatorManager taskCommunicatorManager,
@@ -155,7 +158,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   @Override
   public void registerForVertexStateUpdates(String vertexName,
                                             @Nullable Set<VertexState> stateSet) {
-    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Objects.requireNonNull(vertexName, "VertexName cannot be null: " + vertexName);
     DAG dag = getDag();
     dag.getStateChangeNotifier().registerForVertexUpdates(vertexName, stateSet,
         this);
@@ -174,7 +177,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public Iterable<String> getInputVertexNames(String vertexName) {
-    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Objects.requireNonNull(vertexName, "VertexName cannot be null: " + vertexName);
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     Set<Vertex> sources = vertex.getInputVertices().keySet();
@@ -227,7 +230,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public void reportError(@Nonnull ServicePluginError servicePluginError, String message, DagInfo dagInfo) {
-    Preconditions.checkNotNull(servicePluginError, "ServicePluginError must be set");
+    Objects.requireNonNull(servicePluginError, "ServicePluginError must be set");
     taskCommunicatorManager.reportError(taskCommunicatorIndex, servicePluginError, message, dagInfo);
   }
 

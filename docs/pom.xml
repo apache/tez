@@ -239,6 +239,15 @@
         </roles>
       </developer>
       <developer>
+        <id>abstractdog</id>
+        <name>Laszlo Bodor</name>
+        <email>abstractdog@apache.org</email>
+        <timezone>+1</timezone>
+        <roles>
+          <role>Committer</role>
+        </roles>
+      </developer>
+      <developer>
         <id>kamrul</id>
         <name>Mohammad Kamrul Islam</name>
         <email>kamrul@apache.org</email>

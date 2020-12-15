@@ -409,7 +409,7 @@ public class TestHistoryEventProtoConverter {
         "logsURL", "nodeHttpAddress");
     HistoryEventProto proto = converter.convert(event);
     assertCommon(proto, HistoryEventType.TASK_ATTEMPT_FINISHED, finishTime,
-        EntityTypes.TEZ_DAG_ID, null, null, 16);
+        EntityTypes.TEZ_DAG_ID, null, null, 17);
 
     assertEventData(proto, ATSConstants.STATUS, state.name());
     assertEventData(proto, ATSConstants.CREATION_CAUSAL_ATTEMPT, tezTaskAttemptID.toString());
@@ -499,7 +499,7 @@ public class TestHistoryEventProtoConverter {
 
     HistoryEventProto proto = converter.convert(event);
     assertCommon(proto, HistoryEventType.VERTEX_INITIALIZED, initedTime,
-        EntityTypes.TEZ_VERTEX_ID, null, null, 5);
+        EntityTypes.TEZ_VERTEX_ID, null, null, 6);
 
     assertEventData(proto, ATSConstants.VERTEX_NAME, "v1");
     assertEventData(proto, ATSConstants.PROCESSOR_CLASS_NAME, "proc");

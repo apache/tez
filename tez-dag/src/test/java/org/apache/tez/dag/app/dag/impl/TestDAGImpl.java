@@ -1762,7 +1762,7 @@ public class TestDAGImpl {
     DAGStatusBuilder dagStatus = dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
     long dagStatusEndTime = System.currentTimeMillis();
     long diff = dagStatusEndTime - dagStatusStartTime;
-    Assert.assertTrue(diff > 1500 && diff < 2500);
+    Assert.assertTrue(diff >= 0 && diff < 2500);
     Assert.assertEquals(DAGStatusBuilder.State.RUNNING, dagStatus.getState());
   }
 
@@ -1805,6 +1805,9 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dag.getState());
     Assert.assertEquals(5, dag.getSuccessfulVertices());
+    // Verify that dagStatus is running state
+    Assert.assertEquals(DAGStatus.State.RUNNING, dag.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class),
+        10000L).getState());
 
     ReentrantLock lock = new ReentrantLock();
     Condition startCondition = lock.newCondition();
@@ -1851,7 +1854,8 @@ public class TestDAGImpl {
 
     long diff = statusCheckRunnable.dagStatusEndTime - statusCheckRunnable.dagStatusStartTime;
     Assert.assertNotNull(statusCheckRunnable.dagStatus);
-    Assert.assertTrue(diff > 1000 && diff < 3500);
+    Assert.assertTrue("Status: " + statusCheckRunnable.dagStatus.getState()
+            + ", Diff:" + diff, diff >= 0 && diff < 3500);
     Assert.assertEquals(testState, statusCheckRunnable.dagStatus.getState());
     t1.join();
   }

@@ -29,7 +29,8 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.common.counters.TezCounters;
@@ -79,7 +79,7 @@ public class DAGClientImpl extends DAGClient {
   private boolean cleanupFrameworkClient;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
-      YarnConfiguration yarnConf, @Nullable FrameworkClient frameworkClient) {
+      @Nullable FrameworkClient frameworkClient, UserGroupInformation ugi) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
@@ -87,7 +87,7 @@ public class DAGClientImpl extends DAGClient {
       this.frameworkClient = frameworkClient;
     } else {
       this.frameworkClient = FrameworkClient.createFrameworkClient(conf);
-      this.frameworkClient.init(conf, yarnConf);
+      this.frameworkClient.init(conf);
       this.frameworkClient.start();
       cleanupFrameworkClient = true;
     }
@@ -99,7 +99,7 @@ public class DAGClientImpl extends DAGClient {
             TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT) &&
         DAGClientTimelineImpl.isSupported();
 
-    realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient);
+    realClient = new DAGClientRPCImpl(appId, dagId, conf, this.frameworkClient, ugi);
     statusPollInterval = conf.getLong(
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);

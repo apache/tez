@@ -18,14 +18,20 @@
 
 package org.apache.tez.test;
 
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.security.KeyPair;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -36,7 +42,7 @@ import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.hdfs.server.namenode.EditLogFileOutputStream;
 import org.apache.hadoop.mapreduce.MRConfig;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -132,6 +138,9 @@ public class TestSecureShuffle {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
 
     conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, asyncHttp);
+    String sslConf = conf.get(SSL_CLIENT_CONF_KEY, "ssl-client.xml");
+    conf.addResource(sslConf);
 
     miniTezCluster = new MiniTezCluster(TestSecureShuffle.class.getName() + "-" +
         (enableSSLInCluster ? "withssl" : "withoutssl"), 1, 1, 1);
@@ -201,10 +210,68 @@ public class TestSecureShuffle {
    */
   private static void setupKeyStores() throws Exception {
     keysStoresDir.mkdirs();
-    String sslConfsDir =
-        KeyStoreTestUtil.getClasspathDir(TestSecureShuffle.class);
+    String sslConfsDir = KeyStoreTestUtil.getClasspathDir(TestSecureShuffle.class);
 
-    KeyStoreTestUtil.setupSSLConfig(keysStoresDir.getAbsolutePath(),
-      sslConfsDir, conf, true);
+    setupSSLConfig(keysStoresDir.getAbsolutePath(), sslConfsDir, conf, true, true, "");
+  }
+
+  /**
+   * This is a copied version of hadoop's KeyStoreTestUtil.setupSSLConfig which was needed to create
+   * server certs with actual hostname in CN instead of "localhost". While upgrading async http
+   * client in TEZ-4237, it turned out that netty doesn't support custom hostname verifiers anymore
+   * (as discussed in https://github.com/AsyncHttpClient/async-http-client/issues/928), that's why
+   * it cannot be set for an async http connection. So instead of hacking an ALLOW_ALL verifier
+   * somehow (which cannot be propagated to netty), a valid certificate with the actual hostname
+   * should be generated in setupSSLConfig, so the only change is the usage of
+   * "InetAddress.getLocalHost().getHostName()".
+   */
+  public static void setupSSLConfig(String keystoresDir, String sslConfDir, Configuration config,
+      boolean useClientCert, boolean trustStore, String excludeCiphers) throws Exception {
+    String clientKS = keystoresDir + "/clientKS.jks";
+    String clientPassword = "clientP";
+    String serverKS = keystoresDir + "/serverKS.jks";
+    String serverPassword = "serverP";
+    String trustKS = null;
+    String trustPassword = "trustP";
+
+    File sslClientConfFile = new File(sslConfDir, KeyStoreTestUtil.getClientSSLConfigFileName());
+    File sslServerConfFile = new File(sslConfDir, KeyStoreTestUtil.getServerSSLConfigFileName());
+
+    Map<String, X509Certificate> certs = new HashMap<String, X509Certificate>();
+
+    if (useClientCert) {
+      KeyPair cKP = KeyStoreTestUtil.generateKeyPair("RSA");
+      X509Certificate cCert =
+          KeyStoreTestUtil.generateCertificate("CN=localhost, O=client", cKP, 30, "SHA1withRSA");
+      KeyStoreTestUtil.createKeyStore(clientKS, clientPassword, "client", cKP.getPrivate(), cCert);
+      certs.put("client", cCert);
+    }
+
+    String localhostName = InetAddress.getLocalHost().getHostName();
+    KeyPair sKP = KeyStoreTestUtil.generateKeyPair("RSA");
+    X509Certificate sCert =
+        KeyStoreTestUtil.generateCertificate("CN="+localhostName+", O=server", sKP, 30, "SHA1withRSA");
+    KeyStoreTestUtil.createKeyStore(serverKS, serverPassword, "server", sKP.getPrivate(), sCert);
+    certs.put("server", sCert);
+
+    if (trustStore) {
+      trustKS = keystoresDir + "/trustKS.jks";
+      KeyStoreTestUtil.createTrustStore(trustKS, trustPassword, certs);
+    }
+
+    Configuration clientSSLConf = KeyStoreTestUtil.createClientSSLConfig(clientKS, clientPassword,
+        clientPassword, trustKS, excludeCiphers);
+    Configuration serverSSLConf = KeyStoreTestUtil.createServerSSLConfig(serverKS, serverPassword,
+        serverPassword, trustKS, excludeCiphers);
+
+    KeyStoreTestUtil.saveConfig(sslClientConfFile, clientSSLConf);
+    KeyStoreTestUtil.saveConfig(sslServerConfFile, serverSSLConf);
+
+    // this will be ignored for AsyncHttpConnection, see method comments above
+    config.set(SSLFactory.SSL_HOSTNAME_VERIFIER_KEY, "ALLOW_ALL");
+
+    config.set(SSLFactory.SSL_CLIENT_CONF_KEY, sslClientConfFile.getName());
+    config.set(SSLFactory.SSL_SERVER_CONF_KEY, sslServerConfFile.getName());
+    config.setBoolean(SSLFactory.SSL_REQUIRE_CLIENT_CERT_KEY, useClientCert);
   }
 }

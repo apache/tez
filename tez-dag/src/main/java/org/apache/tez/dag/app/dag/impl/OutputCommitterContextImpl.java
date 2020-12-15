@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.OutputCommitterDescriptor;
@@ -42,10 +42,10 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
       String vertexName,
       RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
       int vertexIdx) {
-    checkNotNull(applicationId, "applicationId is null");
-    checkNotNull(dagName, "dagName is null");
-    checkNotNull(vertexName, "vertexName is null");
-    checkNotNull(output, "output is null");
+    Objects.requireNonNull(applicationId, "applicationId is null");
+    Objects.requireNonNull(dagName, "dagName is null");
+    Objects.requireNonNull(vertexName, "vertexName is null");
+    Objects.requireNonNull(output, "output is null");
     this.applicationId = applicationId;
     this.dagAttemptNumber = dagAttemptNumber;
     this.dagName = dagName;

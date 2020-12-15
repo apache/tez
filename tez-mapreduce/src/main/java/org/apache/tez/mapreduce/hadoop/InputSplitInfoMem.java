@@ -28,7 +28,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Represents InputSplitInfo for splits generated to memory. </p>

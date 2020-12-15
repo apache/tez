@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.runtime.api.MemoryUpdateCallback;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 @Public
 @Evolving

@@ -40,7 +40,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
@@ -94,15 +94,13 @@ public class TestDAGAppMaster {
   private static final String CL_NAME = "CL";
   private static final String TC_NAME = "TC";
   private static final String CLASS_SUFFIX = "_CLASS";
-  private static final File TEST_DIR = new File(
-      System.getProperty("test.build.data",
-          System.getProperty("java.io.tmpdir")),
-          TestDAGAppMaster.class.getSimpleName()).getAbsoluteFile();
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestDAGAppMaster.class.getName()).getAbsoluteFile();
 
   @Before
   public void setup() {
     FileUtil.fullyDelete(TEST_DIR);
-    TEST_DIR.mkdir();
+    TEST_DIR.mkdirs();
   }
 
   @After
@@ -465,9 +463,15 @@ public class TestDAGAppMaster {
     when(mockVertex.getProgress()).thenReturn(-10f);
     Assert.assertEquals("Progress was negative and should be reported as 0",
         0, am.getProgress(), 0);
+    when(mockVertex.getProgress()).thenReturn(1.0000567f);
+    Assert.assertEquals(
+        "Progress was greater than 1 by a small float precision "
+            + "1.0000567 and should be reported as 1",
+        1.0f, am.getProgress(), 0.0f);
     when(mockVertex.getProgress()).thenReturn(10f);
-    Assert.assertEquals("Progress was greater than 1 and should be reported as 0",
-        0, am.getProgress(), 0);
+    Assert.assertEquals(
+        "Progress was greater than 1 and should be reported as 1",
+        1.0f, am.getProgress(), 0.0f);
   }
 
   @SuppressWarnings("deprecation")
@@ -623,7 +627,7 @@ public class TestDAGAppMaster {
     }
   }
 
-  private static class DAGAppMasterForTest extends DAGAppMaster {
+  public static class DAGAppMasterForTest extends DAGAppMaster {
     private DAGAppMasterShutdownHandler mockShutdown;
     private TaskSchedulerManager mockScheduler = mock(TaskSchedulerManager.class);
 
@@ -634,7 +638,7 @@ public class TestDAGAppMaster {
           new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null);
     }
 
-    private static Credentials createCredentials() {
+    public static Credentials createCredentials() {
       Credentials creds = new Credentials();
       JobTokenSecretManager jtsm = new JobTokenSecretManager();
       JobTokenIdentifier jtid = new JobTokenIdentifier(new Text());
@@ -643,9 +647,10 @@ public class TestDAGAppMaster {
       return creds;
     }
 
-    private static void stubSessionResources() throws IOException {
-      FileOutputStream out = new FileOutputStream(
-          new File(TEST_DIR, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+    private static void stubSessionResources(Configuration conf) throws IOException {
+      File file = new File(TEST_DIR, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME);
+      conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.getAbsolutePath());
+      FileOutputStream out = new FileOutputStream(file);
       PlanLocalResourcesProto planProto = PlanLocalResourcesProto.getDefaultInstance();
       planProto.writeDelimitedTo(out);
       out.close();
@@ -653,7 +658,7 @@ public class TestDAGAppMaster {
 
     @Override
     public synchronized void serviceInit(Configuration conf) throws Exception {
-      stubSessionResources();
+      stubSessionResources(conf);
       conf.setBoolean(TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE, false);
       super.serviceInit(conf);
     }

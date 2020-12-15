@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -76,6 +77,7 @@ import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
@@ -117,7 +119,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -179,6 +181,12 @@ public class TaskAttemptImpl implements TaskAttempt,
   private TaskAttemptRecoveryData recoveryData;
   private long launchTime = 0;
   private long finishTime = 0;
+  /** System.nanoTime for task launch time, if recorded in this JVM. */
+  private Long launchTimeNs;
+  /** System.nanoTime for task finish time, if recorded in this JVM. */
+  private Long finishTimeNs;
+  /** Whether the task was recovered from a prior AM; see getDurationNs. */
+  private boolean isRecoveredDuration;
   private String trackerName;
   private int httpPort;
 
@@ -191,6 +199,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String nodeRackName;
   
   private final Vertex vertex;
+  private final Task task;
   private final TaskLocationHint locationHint;
   private final TaskSpec taskSpec;
 
@@ -214,9 +223,6 @@ public class TaskAttemptImpl implements TaskAttempt,
   Set<String> taskRacks = new HashSet<String>();
 
   private Map<TezTaskAttemptID, Long> uniquefailedOutputReports = Maps.newHashMap();
-  private static double MAX_ALLOWED_OUTPUT_FAILURES_FRACTION;
-  private static int MAX_ALLOWED_OUTPUT_FAILURES;
-  private static int MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
 
   protected final boolean isRescheduled;
   private final Resource taskResource;
@@ -533,10 +539,10 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec) {
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec) {
     this(attemptId, eventHandler, taskCommunicatorManagerInterface, conf, clock,
         taskHeartbeatHandler, appContext, isRescheduled, resource, containerContext, leafVertex,
-        vertex, locationHint, taskSpec, null);
+        task, locationHint, taskSpec, null);
   }
 
   @SuppressWarnings("rawtypes")
@@ -545,21 +551,9 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskHeartbeatHandler taskHeartbeatHandler, AppContext appContext,
       boolean isRescheduled,
       Resource resource, ContainerContext containerContext, boolean leafVertex,
-      Vertex vertex, TaskLocationHint locationHint, TaskSpec taskSpec,
+      Task task, TaskLocationHint locationHint, TaskSpec taskSpec,
       TezTaskAttemptID schedulingCausalTA) {
 
-    // TODO: Move these configs over to Vertex.VertexConfig
-    MAX_ALLOWED_OUTPUT_FAILURES = conf.getInt(TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_DEFAULT);
-
-    MAX_ALLOWED_OUTPUT_FAILURES_FRACTION = conf.getDouble(TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, TezConfiguration
-        .TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION_DEFAULT);
-    
-    MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC = conf.getInt(
-        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
-        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -570,7 +564,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.clock = clock;
     this.taskHeartbeatHandler = taskHeartbeatHandler;
     this.appContext = appContext;
-    this.vertex = vertex;
+    this.vertex = task.getVertex();
+    this.task = task;
     this.locationHint = locationHint;
     this.taskSpec = taskSpec;
     this.creationCausalTA = schedulingCausalTA;
@@ -797,6 +792,25 @@ public class TaskAttemptImpl implements TaskAttempt,
     }
   }
 
+
+  /** @return task runtime duration in NS. */
+  public long getDurationNs() {
+    readLock.lock();
+    try {
+      if (isRecoveredDuration) {
+        // NS values are not mappable between JVMs (per documentation, at
+        // least), so just use the clock after recovery.
+        return TimeUnit.MILLISECONDS.toNanos(launchTime == 0 ? 0
+            : (finishTime == 0 ? clock.getTime() : finishTime) - launchTime);
+      } else {
+        long ft = (finishTimeNs == null ? System.nanoTime() : finishTimeNs);
+        return (launchTimeNs == null) ? 0 : (ft - launchTimeNs);
+      }
+    } finally {
+      readLock.unlock();
+    }
+  }
+
   public long getCreationTime() {
     readLock.lock();
     try {
@@ -843,7 +857,12 @@ public class TaskAttemptImpl implements TaskAttempt,
       readLock.unlock();
     }
   }
-  
+
+  @Override
+  public Task getTask() {
+    return task;
+  }
+
   Vertex getVertex() {
     return vertex;
   }
@@ -945,6 +964,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     // set the finish time only if launch time is set
     if (launchTime != 0 && finishTime == 0) {
       finishTime = clock.getTime();
+      // The default clock is not safe for measuring durations.
+      finishTimeNs = System.nanoTime();
     }
   }
 
@@ -971,6 +992,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     } else if (taState == TaskAttemptState.SUCCEEDED ) {
       jce.addCounterUpdate(DAGCounter.NUM_SUCCEEDED_TASKS, 1);
     }
+
+    long amSideWallClockTimeMs = TimeUnit.NANOSECONDS.toMillis(
+        taskAttempt.getDurationNs());
+    jce.addCounterUpdate(DAGCounter.WALL_CLOCK_MILLIS, amSideWallClockTimeMs);
 
     return jce;
   }
@@ -1046,6 +1071,14 @@ public class TaskAttemptImpl implements TaskAttempt,
 //    }
 //    */
 //  }
+
+  /**
+   * Records the launch time of the task.
+   */
+  private void setLaunchTime() {
+    launchTime = clock.getTime();
+    launchTimeNs = System.nanoTime();
+  }
 
   private void updateProgressSplits() {
 //    double newProgress = reportedStatus.progress;
@@ -1230,6 +1263,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             ta.recoveryData.getTaskAttemptStartedEvent();
         if (taStartedEvent != null) {
           ta.launchTime = taStartedEvent.getStartTime();
+          ta.isRecoveredDuration = true;
           TaskAttemptFinishedEvent taFinishedEvent =
               ta.recoveryData.getTaskAttemptFinishedEvent();
           if (taFinishedEvent == null) {
@@ -1398,6 +1432,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             .getTaskAttemptState(), helper.getFailureType(event));
       } else {
         ta.finishTime = ta.recoveryData.getTaskAttemptFinishedEvent().getFinishTime();
+        ta.isRecoveredDuration = true;
       }
 
       if (event instanceof RecoveryEvent) {
@@ -1434,7 +1469,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           .getNetworkLocation());
       ta.lastNotifyProgressTimestamp = ta.clock.getTime();
 
-      ta.launchTime = ta.clock.getTime();
+      ta.setLaunchTime();
 
       // TODO Resolve to host / IP in case of a local address.
       InetSocketAddress nodeHttpInetAddr = NetUtils
@@ -1645,6 +1680,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           ta.sendEvent(new VertexEventRouteEvent(ta.getVertexID(), tezEvents));
         }
         ta.finishTime = taFinishedEvent.getFinishTime();
+        ta.isRecoveredDuration = true;
       } else {
         ta.setFinishTime();
         // Send out history event.
@@ -1789,35 +1825,49 @@ public class TaskAttemptImpl implements TaskAttempt,
             + " at inputIndex " + failedInputIndexOnDestTa);
       long time = attempt.clock.getTime();
       Long firstErrReportTime = attempt.uniquefailedOutputReports.get(failedDestTaId);
+
       if (firstErrReportTime == null) {
         attempt.uniquefailedOutputReports.put(failedDestTaId, time);
         firstErrReportTime = time;
       }
-      
+
+      int maxAllowedOutputFailures = attempt.getVertex().getVertexConfig()
+          .getMaxAllowedOutputFailures();
+      int maxAllowedTimeForTaskReadErrorSec = attempt.getVertex()
+          .getVertexConfig().getMaxAllowedTimeForTaskReadErrorSec();
+      double maxAllowedOutputFailuresFraction = attempt.getVertex()
+          .getVertexConfig().getMaxAllowedOutputFailuresFraction();
+
       int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
-      boolean crossTimeDeadline = readErrorTimespanSec >= MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC;
+      boolean crossTimeDeadline = readErrorTimespanSec >= maxAllowedTimeForTaskReadErrorSec;
 
       int runningTasks = attempt.appContext.getCurrentDAG().getVertex(
           failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
       float failureFraction = runningTasks > 0 ? ((float) attempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =
-          (failureFraction <= MAX_ALLOWED_OUTPUT_FAILURES_FRACTION);
+          (failureFraction <= maxAllowedOutputFailuresFraction);
       boolean withinOutputFailureLimits =
-          (attempt.uniquefailedOutputReports.size() < MAX_ALLOWED_OUTPUT_FAILURES);
+          (attempt.uniquefailedOutputReports.size() < maxAllowedOutputFailures);
 
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
       // If needed we can consider only running consumer tasks
-      if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits) {
+      if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits
+          && !(readErrorEvent.isLocalFetch() || readErrorEvent.isDiskErrorAtSource())) {
         return attempt.getInternalState();
       }
       String message = attempt.getID() + " being failed for too many output errors. "
           + "failureFraction=" + failureFraction
-          + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION=" + MAX_ALLOWED_OUTPUT_FAILURES_FRACTION
+          + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION="
+          + maxAllowedOutputFailuresFraction
           + ", uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size()
-          + ", MAX_ALLOWED_OUTPUT_FAILURES=" + MAX_ALLOWED_OUTPUT_FAILURES
-          + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC=" + MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC
-          + ", readErrorTimespan=" + readErrorTimespanSec;
+          + ", MAX_ALLOWED_OUTPUT_FAILURES=" + maxAllowedOutputFailures
+          + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC="
+          + maxAllowedTimeForTaskReadErrorSec
+          + ", readErrorTimespan=" + readErrorTimespanSec
+          + ", isLocalFetch=" + readErrorEvent.isLocalFetch()
+          + ", isDiskErrorAtSource=" + readErrorEvent.isDiskErrorAtSource();
+
       LOG.info(message);
       attempt.addDiagnosticInfo(message);
       // send input failed event

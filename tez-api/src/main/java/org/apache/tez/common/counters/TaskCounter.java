@@ -74,6 +74,8 @@ public enum TaskCounter {
   MERGED_MAP_OUTPUTS,
   GC_TIME_MILLIS,
   CPU_MILLISECONDS,
+  /** Wall clock time taken by the task initialization and execution. */
+  WALL_CLOCK_MILLISECONDS,
   PHYSICAL_MEMORY_BYTES,
   VIRTUAL_MEMORY_BYTES,
   COMMITTED_HEAP_BYTES,
@@ -96,7 +98,14 @@ public enum TaskCounter {
    * Used by MROutput, OnFileSortedOutput, and OnFileUnorderedKVOutput
    */
   OUTPUT_RECORDS,
-  
+
+  /**
+   * Approximate number of input records that should be processed as the event keeps arriving from
+   * inputs.
+   * //TODO: As of now supporting broadcast data only.
+   */
+  APPROXIMATE_INPUT_RECORDS,
+
   /**
    * Represent the number of large records in the output - typically, records which are
    * spilled directly
@@ -218,5 +227,13 @@ public enum TaskCounter {
    *
    * Represented in milliseconds
    */
-  LAST_EVENT_RECEIVED
+  LAST_EVENT_RECEIVED,
+
+
+  /**
+   * The size of the data that is transmitted via event.
+   *
+   * Represented in number of bytes
+   */
+  DATA_BYTES_VIA_EVENT
 }

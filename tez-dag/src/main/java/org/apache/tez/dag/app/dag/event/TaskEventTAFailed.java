@@ -18,7 +18,8 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
 import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.TaskFailureType;
@@ -31,7 +32,7 @@ public class TaskEventTAFailed extends TaskEventTAUpdate {
 
   public TaskEventTAFailed(TezTaskAttemptID id, TaskFailureType taskFailureType, TezAbstractEvent causalEvent) {
     super(id, TaskEventType.T_ATTEMPT_FAILED);
-    Preconditions.checkNotNull(taskFailureType, "FailureType must be specified for a failed attempt");
+    Objects.requireNonNull(taskFailureType, "FailureType must be specified for a failed attempt");
     this.taskFailureType = taskFailureType;
     this.causalEvent = causalEvent;
   }

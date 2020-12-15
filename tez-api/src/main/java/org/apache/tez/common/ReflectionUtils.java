@@ -19,17 +19,14 @@
 package org.apache.tez.common;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.TezReflectionException;
-import org.apache.tez.dag.api.TezUncheckedException;
 
 @Private
 public class ReflectionUtils {
@@ -110,42 +107,10 @@ public class ReflectionUtils {
   }
 
   @Private
-  public static synchronized void addResourcesToClasspath(List<URL> urls) {
-    ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), Thread
-        .currentThread().getContextClassLoader());
-    Thread.currentThread().setContextClassLoader(classLoader);
-  }
-
-  // Parameters for addResourcesToSystemClassLoader
-  private static final Class<?>[] parameters = new Class[]{URL.class};
-  private static Method sysClassLoaderMethod = null;
-
-  @Private
   public static synchronized void addResourcesToSystemClassLoader(List<URL> urls) {
-    URLClassLoader sysLoader = (URLClassLoader)ClassLoader.getSystemClassLoader();
-    if (sysClassLoaderMethod == null) {
-      Class<?> sysClass = URLClassLoader.class;
-      Method method;
-      try {
-        method = sysClass.getDeclaredMethod("addURL", parameters);
-      } catch (SecurityException e) {
-        throw new TezUncheckedException("Failed to get handle on method addURL", e);
-      } catch (NoSuchMethodException e) {
-        throw new TezUncheckedException("Failed to get handle on method addURL", e);
-      }
-      method.setAccessible(true);
-      sysClassLoaderMethod = method;
-    }
+    TezClassLoader classLoader = TezClassLoader.getInstance();
     for (URL url : urls) {
-      try {
-        sysClassLoaderMethod.invoke(sysLoader, new Object[] { url });
-      } catch (IllegalArgumentException e) {
-        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
-      } catch (IllegalAccessException e) {
-        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
-      } catch (InvocationTargetException e) {
-        throw new TezUncheckedException("Failed to invoke addURL for rsrc: " + url, e);
-      }
+      classLoader.addURL(url);
     }
   }
 }

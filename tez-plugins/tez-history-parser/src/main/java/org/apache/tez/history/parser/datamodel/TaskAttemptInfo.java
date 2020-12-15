@@ -18,7 +18,7 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -405,7 +405,7 @@ public class TaskAttemptInfo extends BaseInfo {
     sb.append("container=").append(getContainer()).append(", ");
     sb.append("nodeId=").append(getNodeId()).append(", ");
     sb.append("logURL=").append(getLogURL()).append(", ");
-    sb.append("status=").append(getStatus());
+    sb.append("status=").append(getDetailedStatus());
     sb.append("]");
     return sb.toString();
   }

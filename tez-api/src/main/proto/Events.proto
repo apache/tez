@@ -39,6 +39,8 @@ message InputReadErrorEventProto {
   optional int32 index = 1;
   optional string diagnostics = 2;
   optional int32 version = 3;
+  optional bool is_local_fetch = 4;
+  optional bool is_disk_error_at_source = 5;
 }
 
 message InputFailedEventProto {

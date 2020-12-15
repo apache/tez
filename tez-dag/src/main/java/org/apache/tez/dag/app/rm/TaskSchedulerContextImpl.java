@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -190,7 +190,7 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   @Override
   public void reportError(ServicePluginError servicePluginError, String diagnostics,
                           DagInfo dagInfo) {
-    Preconditions.checkNotNull(servicePluginError, "ServicePluginError must be specified");
+    Objects.requireNonNull(servicePluginError, "ServicePluginError must be specified");
     taskSchedulerManager.reportError(schedulerId, servicePluginError, diagnostics, dagInfo);
   }
 }

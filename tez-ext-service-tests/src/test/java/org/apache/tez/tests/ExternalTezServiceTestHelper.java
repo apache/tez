@@ -18,8 +18,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -188,7 +188,7 @@ public class ExternalTezServiceTestHelper {
   }
 
   public TezClient getSharedTezClient() {
-    Preconditions.checkNotNull(sharedTezClient);
+    Objects.requireNonNull(sharedTezClient);
     return sharedTezClient;
   }
 }

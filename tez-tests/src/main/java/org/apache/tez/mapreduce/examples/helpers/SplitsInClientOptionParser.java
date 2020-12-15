@@ -26,7 +26,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class SplitsInClientOptionParser {
 

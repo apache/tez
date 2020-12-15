@@ -35,7 +35,7 @@ import java.util.zip.Deflater;
 import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 
@@ -263,7 +263,8 @@ public class ShuffleUtils {
     sb.append("host: " + dmProto.getHost()).append(", ");
     sb.append("port: " + dmProto.getPort()).append(", ");
     sb.append("pathComponent: " + dmProto.getPathComponent()).append(", ");
-    sb.append("runDuration: " + dmProto.getRunDuration());
+    sb.append("runDuration: " + dmProto.getRunDuration()).append(", ");
+    sb.append("hasDataInEvent: " + dmProto.hasData());
     sb.append("]");
     return sb.toString();
   }
@@ -566,15 +567,14 @@ public class ShuffleUtils {
       if (activeLogger.isInfoEnabled()) {
         long wholeMBs = 0;
         long partialMBs = 0;
-        if (millis != 0) {
-          // fast math is done using integer math to avoid double to string conversion
-          // calculate B/s * 100 to preserve MBs precision to two decimal places
-          // multiply numerator by 100000 (2^5 * 5^5) and divide denominator by MB (2^20)
-          // simply fraction to protect ourselves from overflow by factoring out 2^5
-          wholeMBs = (bytesCompressed * 3125) / (millis * 32768);
-          partialMBs = wholeMBs % 100;
-          wholeMBs /= 100;
-        }
+        millis = Math.max(1L, millis);
+        // fast math is done using integer math to avoid double to string conversion
+        // calculate B/s * 100 to preserve MBs precision to two decimal places
+        // multiply numerator by 100000 (2^5 * 5^5) and divide denominator by MB (2^20)
+        // simply fraction to protect ourselves from overflow by factoring out 2^5
+        wholeMBs = (bytesCompressed * 3125) / (millis * 32768);
+        partialMBs = wholeMBs % 100;
+        wholeMBs /= 100;
         StringBuilder sb = new StringBuilder("Completed fetch for attempt: ");
         toShortString(srcAttemptIdentifier, sb);
         sb.append(" to ");

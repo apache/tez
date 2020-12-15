@@ -20,6 +20,7 @@ package org.apache.tez.auxservices;
 //import static org.apache.hadoop.test.MetricsAsserts.assertCounter;
 //import static org.apache.hadoop.test.MetricsAsserts.assertGauge;
 //import static org.apache.hadoop.test.MetricsAsserts.getMetrics;
+import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import static org.junit.Assert.assertTrue;
 import static org.jboss.netty.buffer.ChannelBuffers.wrappedBuffer;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -41,15 +42,12 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.CheckedOutputStream;
 import java.util.zip.Checksum;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -58,11 +56,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.nativeio.NativeIO;
 import org.apache.hadoop.mapred.JobID;
-import org.apache.hadoop.mapred.MapTask;
 import org.apache.hadoop.mapreduce.TypeConverter;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.impl.MetricsSystemImpl;
@@ -103,6 +104,9 @@ import org.slf4j.LoggerFactory;
 public class TestShuffleHandler {
   static final long MiB = 1024 * 1024;
   private static final Logger LOG = LoggerFactory.getLogger(TestShuffleHandler.class);
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestShuffleHandler.class.getName()).getAbsoluteFile();
+  private static final String HADOOP_TMP_DIR = "hadoop.tmp.dir";
   class MockShuffleHandler extends org.apache.tez.auxservices.ShuffleHandler {
     @Override
     protected Shuffle getShuffle(final Configuration conf) {
@@ -169,6 +173,52 @@ public class TestShuffleHandler {
     }
   }
 
+  class MockShuffleHandlerWithFatalDiskError extends org.apache.tez.auxservices.ShuffleHandler {
+    public static final String MESSAGE =
+        "Could not find application_1234/240/output/attempt_1234_0/file.out.index";
+
+    private JobTokenSecretManager secretManager =
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()));
+
+    protected JobTokenSecretManager getSecretManager(){
+      return secretManager;
+    }
+
+    @Override
+    protected Shuffle getShuffle(final Configuration conf) {
+      return new Shuffle(conf) {
+        @Override
+        protected void verifyRequest(String appid, ChannelHandlerContext ctx, HttpRequest request,
+            HttpResponse response, URL requestUri) throws IOException {
+          super.verifyRequest(appid, ctx, request, response, requestUri);
+        }
+
+        @Override
+        protected MapOutputInfo getMapOutputInfo(String dagId, String mapId, Range reduceRange,
+            String jobId, String user) {
+          return null;
+        }
+
+        @Override
+        protected void populateHeaders(List<String> mapIds, String jobId, String dagId, String user,
+            Range reduceRange, HttpResponse response, boolean keepAliveParam,
+            Map<String, MapOutputInfo> infoMap) throws IOException {
+          throw new DiskErrorException(MESSAGE);
+        }
+
+        @Override
+        protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx, Channel ch, String user,
+            String mapId, Range reduceRange, MapOutputInfo info) throws IOException {
+          return null;
+        }
+      };
+    }
+
+    public String getSecret() {
+      return "secret";
+    }
+  }
+
   /**
    * Test the validation of ShuffleHandler's meta-data's serialization and
    * de-serialization.
@@ -231,6 +281,7 @@ public class TestShuffleHandler {
   public void testClientClosesConnection() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
       @Override
@@ -336,6 +387,7 @@ public class TestShuffleHandler {
   public void testKeepAlive() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
@@ -485,6 +537,7 @@ public class TestShuffleHandler {
   @Test
   public void testSocketKeepAlive() throws Exception {
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
@@ -528,6 +581,7 @@ public class TestShuffleHandler {
   public void testIncompatibleShuffleVersion() throws Exception {
     final int failureNum = 3;
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     ShuffleHandler shuffleHandler = new ShuffleHandler();
     shuffleHandler.init(conf);
@@ -562,6 +616,7 @@ public class TestShuffleHandler {
   public void testMaxConnections() throws Exception {
 
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
@@ -666,6 +721,7 @@ public class TestShuffleHandler {
   @Test(timeout = 10000)
   public void testRangedFetch() throws IOException {
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -767,6 +823,7 @@ public class TestShuffleHandler {
     // This will run only in NativeIO is enabled as SecureIOUtils need it
     assumeTrue(NativeIO.isAvailable());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -888,7 +945,8 @@ public class TestShuffleHandler {
     TezSpillRecord tezSpillRecord = new TezSpillRecord(2);
     tezSpillRecord.putIndex(new TezIndexRecord(0, 10, 10), 0);
     tezSpillRecord.putIndex(new TezIndexRecord(10, 10, 10), 1);
-    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf, crc);
+    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf,
+        FileSystem.getLocal(conf).getRaw(), crc);
   }
 
   @Test
@@ -900,6 +958,7 @@ public class TestShuffleHandler {
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
@@ -967,6 +1026,7 @@ public class TestShuffleHandler {
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
@@ -1073,6 +1133,7 @@ public class TestShuffleHandler {
   public void testGetMapOutputInfo() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -1177,6 +1238,7 @@ public class TestShuffleHandler {
   public void testDagDelete() throws Exception {
     final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
@@ -1287,6 +1349,7 @@ public class TestShuffleHandler {
 
     final ShuffleHandler sh = new MockShuffleHandler();
     Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
     // The Shuffle handler port associated with the service is bound to but not used.
     conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     sh.init(conf);
@@ -1304,6 +1367,53 @@ public class TestShuffleHandler {
           listenerList.size() <= maxOpenFiles);
     }
     sh.close();
+  }
+
+  @Test
+  public void testShuffleHandlerSendsDiskError() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+
+    DataInputStream input = null;
+    MockShuffleHandlerWithFatalDiskError shuffleHandler =
+        new MockShuffleHandlerWithFatalDiskError();
+    try {
+      shuffleHandler.init(conf);
+      shuffleHandler.start();
+
+      String shuffleBaseURL = "http://127.0.0.1:"
+          + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
+      URL url = new URL(
+          shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0");
+      shuffleHandler.secretManager.addTokenForJob("job_12345_1",
+          new Token<>("id".getBytes(), shuffleHandler.getSecret().getBytes(), null, null));
+
+      HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
+      BaseHttpConnection httpConnection = ShuffleUtils.getHttpConnection(true, url,
+          httpConnectionParams, "testFetcher", shuffleHandler.secretManager);
+
+      boolean connectSucceeded = httpConnection.connect();
+      Assert.assertTrue(connectSucceeded);
+
+      input = httpConnection.getInputStream();
+      httpConnection.validate();
+
+      ShuffleHeader header = new ShuffleHeader();
+      header.readFields(input);
+
+      // message is encoded in the shuffle header, and can be checked by fetchers
+      Assert.assertEquals(
+          ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + MockShuffleHandlerWithFatalDiskError.MESSAGE,
+          header.getMapId());
+      Assert.assertEquals(-1, header.getCompressedLength());
+      Assert.assertEquals(-1, header.getUncompressedLength());
+      Assert.assertEquals(-1, header.getPartition());
+    } finally {
+      if (input != null) {
+        input.close();
+      }
+      shuffleHandler.close();
+    }
   }
 
   public ChannelFuture createMockChannelFuture(Channel mockCh,

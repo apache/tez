@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -42,13 +43,16 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.runtime.api.OutputContext;
 import org.junit.Test;
 
+import java.io.File;
 
 public class TestMROutputLegacy {
+  private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
+      TestMROutputLegacy.class.getName()).getAbsoluteFile();
 
   // simulate the behavior of translating MR to DAG using MR old API
   @Test (timeout = 5000)
   public void testOldAPI_MR() throws Exception {
-    String outputPath = "/tmp/output";
+    String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
     conf.setOutputValueClass(Text.class);
@@ -79,7 +83,7 @@ public class TestMROutputLegacy {
   // simulate the behavior of translating MR to DAG using MR new API
   @Test (timeout = 5000)
   public void testNewAPI_MR() throws Exception {
-    String outputPath = "/tmp/output";
+    String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();
     job.setOutputKeyClass(NullWritable.class);
     job.setOutputValueClass(Text.class);
@@ -111,7 +115,7 @@ public class TestMROutputLegacy {
   // simulate the behavior of translating Mapper-only job to DAG using MR old API
   @Test (timeout = 5000)
   public void testOldAPI_MapperOnly() throws Exception {
-    String outputPath = "/tmp/output";
+    String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
     conf.setOutputKeyClass(NullWritable.class);
     conf.setOutputValueClass(Text.class);
@@ -142,7 +146,7 @@ public class TestMROutputLegacy {
   //simulate the behavior of translating mapper-only job to DAG using MR new API
   @Test (timeout = 5000)
   public void testNewAPI_MapperOnly() throws Exception {
-    String outputPath = "/tmp/output";
+    String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();
     job.setOutputKeyClass(NullWritable.class);
     job.setOutputValueClass(Text.class);
@@ -179,6 +183,7 @@ public class TestMROutputLegacy {
     when(outputContext.getTaskVertexIndex()).thenReturn(1);
     when(outputContext.getTaskAttemptNumber()).thenReturn(1);
     when(outputContext.getCounters()).thenReturn(new TezCounters());
+    when(outputContext.getContainerConfiguration()).thenReturn(new Configuration(false));
     return outputContext;
   }
 }

@@ -27,6 +27,7 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import com.google.common.base.Strings;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -110,7 +112,6 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -160,7 +161,7 @@ public class TezClientUtils {
   static boolean setupTezJarsLocalResources(TezConfiguration conf,
       Credentials credentials, Map<String, LocalResource> tezJarResources)
       throws IOException {
-    Preconditions.checkNotNull(credentials, "A non-null credentials object should be specified");
+    Objects.requireNonNull(credentials, "A non-null credentials object should be specified");
     boolean usingTezArchive = false;
 
     if (conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)){
@@ -395,9 +396,8 @@ public class TezClientUtils {
   static Credentials setupDAGCredentials(DAG dag, Credentials sessionCredentials,
       Configuration conf) throws IOException {
 
-    Preconditions.checkNotNull(sessionCredentials);
+    Objects.requireNonNull(sessionCredentials);
     TezCommonUtils.logCredentials(LOG, sessionCredentials, "session");
-
     Credentials dagCredentials = new Credentials();
     // All session creds are required for the DAG.
     dagCredentials.mergeAll(sessionCredentials);
@@ -461,7 +461,7 @@ public class TezClientUtils {
       ServicePluginsDescriptor servicePluginsDescriptor, JavaOptsChecker javaOptsChecker)
       throws IOException, YarnException {
 
-    Preconditions.checkNotNull(sessionCreds);
+    Objects.requireNonNull(sessionCreds);
     TezConfiguration conf = amConfig.getTezConfiguration();
 
     FileSystem fs = TezClientUtils.ensureStagingDirExists(conf,
@@ -486,17 +486,8 @@ public class TezClientUtils {
     // Setup required Credentials for the AM launch. DAG specific credentials
     // are handled separately.
     ByteBuffer securityTokens = null;
-    // Setup security tokens
-    Credentials amLaunchCredentials = new Credentials();
-    if (amConfig.getCredentials() != null) {
-      amLaunchCredentials.addAll(amConfig.getCredentials());
-    }
-
-    // Add Staging dir creds to the list of session credentials.
-    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[]{binaryConfPath}, conf);
-
-    // Add session specific credentials to the AM credentials.
-    amLaunchCredentials.mergeAll(sessionCreds);
+    Credentials amLaunchCredentials =
+        prepareAmLaunchCredentials(amConfig, sessionCreds, conf, binaryConfPath);
 
     DataOutputBuffer dob = new DataOutputBuffer();
     amLaunchCredentials.writeTokenStorageToStream(dob);
@@ -716,6 +707,51 @@ public class TezClientUtils {
     return appContext;
 
   }
+
+  static Credentials prepareAmLaunchCredentials(AMConfiguration amConfig, Credentials sessionCreds,
+      TezConfiguration conf, Path binaryConfPath) throws IOException {
+    // Setup security tokens
+    Credentials amLaunchCredentials = new Credentials();
+
+    // Add SimpleHistoryLoggingService logDir creds to the list of session credentials
+    // If it is on HDFS
+    String simpleHistoryLogDir = conf.get(TezConfiguration.TEZ_SIMPLE_HISTORY_LOGGING_DIR);
+    if (simpleHistoryLogDir != null && !simpleHistoryLogDir.isEmpty()) {
+      Path simpleHistoryLogDirPath = new Path(simpleHistoryLogDir);
+      TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] { simpleHistoryLogDirPath },
+          conf);
+    }
+
+    // Add Staging dir creds to the list of session credentials.
+    TokenCache.obtainTokensForFileSystems(sessionCreds, new Path[] {binaryConfPath }, conf);
+
+    populateTokenCache(conf, sessionCreds);
+
+    // Add session specific credentials to the AM credentials.
+    amLaunchCredentials.mergeAll(sessionCreds);
+
+    if (amConfig.getCredentials() != null) {
+      amLaunchCredentials.mergeAll(amConfig.getCredentials());
+    }
+    TezCommonUtils.logCredentials(LOG, amLaunchCredentials, "amLaunch");
+    return amLaunchCredentials;
+  }
+
+  //get secret keys and tokens and store them into TokenCache
+  private static void populateTokenCache(TezConfiguration conf, Credentials credentials)
+          throws IOException{
+    // add the delegation tokens from configuration
+    String[] nameNodes = conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS);
+    LOG.debug("adding the following namenodes' delegation tokens:" +
+            Arrays.toString(nameNodes));
+    if(nameNodes != null) {
+      Path[] ps = new Path[nameNodes.length];
+      for(int i = 0; i < nameNodes.length; i++) {
+        ps[i] = new Path(nameNodes[i]);
+      }
+      TokenCache.obtainTokensForFileSystems(credentials, ps, conf);
+    }
+  }
   
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
@@ -723,12 +759,13 @@ public class TezClientUtils {
       JavaOptsChecker javaOptsChecker) throws IOException {
     Credentials dagCredentials = setupDAGCredentials(dag, credentials,
         amConfig.getTezConfiguration());
+    TezCommonUtils.logCredentials(LOG, dagCredentials, "dagPlan");
     return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
         amConfig.getBinaryConfLR(), tezLrsAsArchive, servicePluginsDescriptor, javaOptsChecker);
   }
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
-    Preconditions.checkNotNull(vargs);
+    Objects.requireNonNull(vargs);
     if (!vargs.isEmpty()) {
       for (String arg : vargs) {
         if (arg.contains(TezConstants.TEZ_ROOT_LOGGER_NAME)) {
@@ -882,7 +919,7 @@ public class TezClientUtils {
 
   static DAGClientAMProtocolBlockingPB getAMProxy(FrameworkClient yarnClient,
       Configuration conf,
-      ApplicationId applicationId) throws TezException, IOException {
+      ApplicationId applicationId, UserGroupInformation ugi) throws TezException, IOException {
     ApplicationReport appReport;
     try {
       appReport = yarnClient.getApplicationReport(
@@ -917,16 +954,15 @@ public class TezClientUtils {
       throw new TezException(e);
     }
     return getAMProxy(conf, appReport.getHost(),
-        appReport.getRpcPort(), appReport.getClientToAMToken());
+        appReport.getRpcPort(), appReport.getClientToAMToken(), ugi);
   }
 
   @Private
   public static DAGClientAMProtocolBlockingPB getAMProxy(final Configuration conf, String amHost,
-      int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken) throws IOException {
+      int amRpcPort, org.apache.hadoop.yarn.api.records.Token clientToAMToken,
+      UserGroupInformation userUgi) throws IOException {
 
     final InetSocketAddress serviceAddr = NetUtils.createSocketAddrForHost(amHost, amRpcPort);
-    UserGroupInformation userUgi = UserGroupInformation.createRemoteUser(UserGroupInformation
-        .getCurrentUser().getUserName());
     if (clientToAMToken != null) {
       Token<ClientToAMTokenIdentifier> token = ConverterUtils.convertFromYarn(clientToAMToken,
           serviceAddr);

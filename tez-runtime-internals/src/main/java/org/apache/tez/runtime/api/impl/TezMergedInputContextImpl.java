@@ -18,12 +18,13 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import javax.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.InputReadyTracker;
@@ -45,9 +46,9 @@ public class TezMergedInputContextImpl implements MergedInputContext {
                                    Map<String, MergedLogicalInput> groupInputsMap,
                                    InputReadyTracker inputReadyTracker, String[] workDirs,
                                    LogicalIOProcessorRuntimeTask runtimeTask) {
-    checkNotNull(groupInputName, "groupInputName is null");
-    checkNotNull(groupInputsMap, "input-group map is null");
-    checkNotNull(inputReadyTracker, "inputReadyTracker is null");
+    Objects.requireNonNull(groupInputName, "groupInputName is null");
+    Objects.requireNonNull(groupInputsMap, "input-group map is null");
+    Objects.requireNonNull(inputReadyTracker, "inputReadyTracker is null");
     this.groupInputName = groupInputName;
     this.groupInputsMap = groupInputsMap;
     this.userPayload = userPayload;

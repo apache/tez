@@ -31,7 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class DiskFetchedInput extends FetchedInput {
 

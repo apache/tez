@@ -18,7 +18,7 @@
 
 package org.apache.tez.mapreduce.input.base;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -72,8 +72,9 @@ public abstract class MRInputBase extends AbstractLogicalInput {
     boolean isGrouped = mrUserPayload.getGroupingEnabled();
     Preconditions.checkArgument(mrUserPayload.hasSplits() == false,
         "Split information not expected in " + this.getClass().getName());
-    Configuration conf = TezUtils
-        .createConfFromByteString(mrUserPayload.getConfigurationBytes());
+
+    Configuration conf = new JobConf(getContext().getContainerConfiguration());
+    TezUtils.addToConfFromByteString(conf, mrUserPayload.getConfigurationBytes());
     this.jobConf = new JobConf(conf);
     useNewApi = this.jobConf.getUseNewMapper();
     if (isGrouped) {

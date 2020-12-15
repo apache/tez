@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class TestSimpleFetchedInputAllocator {
   
   @Test(timeout = 5000)
   public void testInMemAllocation() throws IOException {
-    String localDirs = "/tmp/" + this.getClass().getName();
+    File localDirs = new File(System.getProperty("test.build.data", "/tmp"), this.getClass().getName());
     Configuration conf = new Configuration();
     
     long jvmMax = Runtime.getRuntime().maxMemory();
@@ -47,7 +48,7 @@ public class TestSimpleFetchedInputAllocator {
     float bufferPercent = 0.1f;
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, bufferPercent);
     conf.setFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT, 1.0f);
-    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs.getAbsolutePath());
     
     long inMemThreshold = (long) (bufferPercent * jvmMax);
     LOG.info("InMemThreshold: " + inMemThreshold);

@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
@@ -33,8 +34,6 @@ import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
-
-import com.google.common.base.Preconditions;
 
 public class MRReaderMapReduce extends MRReader {
 
@@ -151,7 +150,7 @@ public class MRReaderMapReduce extends MRReader {
   }
 
   private void setupNewRecordReader() throws IOException {
-    Preconditions.checkNotNull(inputSplit, "Input split hasn't yet been setup");
+    Objects.requireNonNull(inputSplit, "Input split hasn't yet been setup");
     try {
       recordReader = inputFormat.createRecordReader(inputSplit, taskAttemptContext);
       recordReader.initialize(inputSplit, taskAttemptContext);

@@ -19,7 +19,12 @@
 package org.apache.tez.analyzer.plugins;
 
 import java.io.File;
+import java.io.FilenameFilter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -27,6 +32,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
@@ -36,10 +42,11 @@ import org.apache.tez.analyzer.Result;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.ATSImportTool;
 import org.apache.tez.history.parser.ATSFileParser;
+import org.apache.tez.history.parser.ProtoHistoryParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +59,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
   private static final String SAVE_RESULTS = "saveResults";
   private static final String DAG_ID = "dagId";
   private static final String FROM_SIMPLE_HISTORY = "fromSimpleHistory";
+  private static final String FROM_PROTO_HISTORY = "fromProtoHistory";
   private static final String HELP = "help";
 
   private static final int SEPARATOR_WIDTH = 80;
@@ -81,7 +89,12 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
         (FROM_SIMPLE_HISTORY)
         .withDescription("Event data from Simple History logging. Must also specify event file")
         .isRequired(false).create();
-    
+
+    Option fromProtoHistoryOption =
+        OptionBuilder.withArgName(FROM_PROTO_HISTORY).withLongOpt(FROM_PROTO_HISTORY)
+            .withDescription("Event data from Proto History logging. Must also specify event file")
+            .isRequired(false).create();
+
     Option help = OptionBuilder.withArgName(HELP).withLongOpt
         (HELP)
         .withDescription("print help")
@@ -93,6 +106,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     opts.addOption(saveResults);
     opts.addOption(eventFileNameOption);
     opts.addOption(fromSimpleHistoryOption);
+    opts.addOption(fromProtoHistoryOption);
     opts.addOption(help);
     return opts;
   }
@@ -133,21 +147,36 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       outputDir = System.getProperty("user.dir");
     }
 
-    File file = null;
-    if (cmdLine.hasOption(EVENT_FILE_NAME)) {
-      file = new File(cmdLine.getOptionValue(EVENT_FILE_NAME));
-    }
-    
     String dagId = cmdLine.getOptionValue(DAG_ID);
-    
+
+    List<File> files = new ArrayList<File>();
+    if (cmdLine.hasOption(EVENT_FILE_NAME)) {
+      for (String file : cmdLine.getOptionValue(EVENT_FILE_NAME).split(",")) {
+        File fileOrDir = new File(file);
+        if (fileOrDir.exists()) {
+          if (fileOrDir.isFile()) {
+            files.add(fileOrDir);
+          } else {
+            files.addAll(collectFilesForDagId(fileOrDir, dagId));
+          }
+        }
+      }
+    }
+
     DagInfo dagInfo = null;
     
-    if (file == null) {
+    if (files.isEmpty()) {
       if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
         System.err.println("Event file name must be specified when using simple history");
         printUsage();
         return -2;
       }
+      if (cmdLine.hasOption(FROM_PROTO_HISTORY)) {
+        System.err.println("Proto file name must be specified when using proto history");
+        printUsage();
+        return -2;
+      }
+
       // using ATS - try to download directly
       String[] importArgs = { "--dagId=" + dagId, "--downloadDir=" + outputDir };
 
@@ -159,28 +188,58 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
 
       //Parse ATS data and verify results
       //Parse downloaded contents
-      file = new File(outputDir
-          + Path.SEPARATOR + dagId + ".zip");
+      files.add(new File(outputDir
+          + Path.SEPARATOR + dagId + ".zip"));
     }
     
-    Preconditions.checkState(file != null);
-    if (!cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
-      ATSFileParser parser = new ATSFileParser(file);
+    Preconditions.checkState(!files.isEmpty());
+    if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
+      SimpleHistoryParser parser = new SimpleHistoryParser(files);
+      dagInfo = parser.getDAGData(dagId);
+    } else if (cmdLine.hasOption(FROM_PROTO_HISTORY)) {
+      ProtoHistoryParser parser = new ProtoHistoryParser(files);
       dagInfo = parser.getDAGData(dagId);
     } else {
-      SimpleHistoryParser parser = new SimpleHistoryParser(file);
+      ATSFileParser parser = new ATSFileParser(files);
       dagInfo = parser.getDAGData(dagId);
     }
     Preconditions.checkState(dagInfo.getDagId().equals(dagId));
     analyze(dagInfo);
     Result result = getResult();
-    if (saveResults && (result instanceof CSVResult)) {
-      String fileName = outputDir + File.separator
-          + this.getClass().getName() + "_" + dagInfo.getDagId() + ".csv";
-      ((CSVResult) result).dumpToFile(fileName);
-      LOG.info("Saved results in " + fileName);
+
+    if (saveResults) {
+      String dagInfoFileName = outputDir + File.separator + this.getClass().getName() + "_"
+          + dagInfo.getDagId() + ".dag";
+      FileUtils.writeStringToFile(new File(dagInfoFileName), dagInfo.toExtendedString());
+      LOG.info("Saved dag info in " + dagInfoFileName);
+
+      if (result instanceof CSVResult) {
+        String fileName = outputDir + File.separator + this.getClass().getName() + "_"
+            + dagInfo.getDagId() + ".csv";
+        ((CSVResult) result).dumpToFile(fileName);
+        LOG.info("Saved results in " + fileName);
+      }
     }
+
     return 0;
+  }
+
+  private List<File> collectFilesForDagId(File parentDir, String dagId) {
+    File[] arrFiles = parentDir.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.contains(dagId);
+      }
+    });
+    if (arrFiles == null || arrFiles.length == 0) {
+      throw new RuntimeException(
+          String.format("cannot find relevant files for dag: '%s' in dir: %s", dagId, parentDir));
+    }
+
+    List<File> files = Arrays.asList(arrFiles);
+    LOG.info("collected files for dag: \n"
+        + files.stream().map(f -> "\n" + f.getAbsolutePath()).collect(Collectors.toList()));
+    return files;
   }
 
   public void printResults() throws TezException {

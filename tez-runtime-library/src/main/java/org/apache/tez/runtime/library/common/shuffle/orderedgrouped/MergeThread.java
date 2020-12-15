@@ -36,6 +36,8 @@ abstract class MergeThread<T> extends Thread {
   private final ExceptionReporter reporter;
   private boolean closed = false;
   private final int mergeFactor;
+
+  private Thread shuffleSchedulerThread;
   
   public MergeThread(MergeManager manager, int mergeFactor,
                      ExceptionReporter reporter) {
@@ -60,6 +62,10 @@ abstract class MergeThread<T> extends Thread {
     }
   }
 
+  public void setParentThread(Thread shuffleSchedulerThread) {
+    this.shuffleSchedulerThread = shuffleSchedulerThread;
+  }
+
   public synchronized boolean isInProgress() {
     return inProgress;
   }
@@ -81,7 +87,11 @@ abstract class MergeThread<T> extends Thread {
 
   public synchronized void waitForMerge() throws InterruptedException {
     while (inProgress) {
-      wait();
+      if (shuffleSchedulerThread != null
+          && !shuffleSchedulerThread.isAlive()) {
+        return;
+      }
+      wait(5000);
     }
   }
 
@@ -91,7 +101,11 @@ abstract class MergeThread<T> extends Thread {
         // Wait for notification to start the merge...
         synchronized (this) {
           while (!inProgress) {
-            wait();
+            if (shuffleSchedulerThread != null
+                && !shuffleSchedulerThread.isAlive()) {
+              return;
+            }
+            wait(5000);
           }
         }
 

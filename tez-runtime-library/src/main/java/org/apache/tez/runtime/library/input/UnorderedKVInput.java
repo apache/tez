@@ -24,6 +24,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.common.Constants;
@@ -34,9 +35,6 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -46,15 +44,14 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
-import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.readers.UnorderedKVReader;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleInputEventHandlerImpl;
 import org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager;
 import org.apache.tez.runtime.library.common.shuffle.impl.SimpleFetchedInputAllocator;
-
-import com.google.common.base.Preconditions;
+import org.apache.tez.runtime.library.utils.CodecUtils;
+import org.apache.tez.common.Preconditions;
 
 /**
  * {@link UnorderedKVInput} provides unordered key value input by
@@ -88,7 +85,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
   @Override
   public synchronized List<Event> initialize() throws Exception {
     Preconditions.checkArgument(getNumPhysicalInputs() != -1, "Number of Inputs has not been set");
-    this.conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
+    this.conf = TezUtils.createConfFromBaseConfAndPayload(getContext());
 
     if (getNumPhysicalInputs() == 0) {
       getContext().requestInitialMemory(0l, null);
@@ -114,14 +111,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
     if (!isStarted.get()) {
       ////// Initial configuration
       memoryUpdateCallbackHandler.validateUpdateReceived();
-      CompressionCodec codec;
-      if (ConfigUtils.isIntermediateInputCompressed(conf)) {
-        Class<? extends CompressionCodec> codecClass = ConfigUtils
-            .getIntermediateInputCompressorClass(conf, DefaultCodec.class);
-        codec = ReflectionUtils.newInstance(codecClass, conf);
-      } else {
-        codec = null;
-      }
+      CompressionCodec codec = CodecUtils.getCodec(conf);
 
       boolean compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
       boolean ifileReadAhead = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,

@@ -18,6 +18,13 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,9 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ChecksumException;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -39,27 +44,37 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.lz4.Lz4Compressor;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.hadoop.io.serializer.WritableSerialization;
+import org.apache.hadoop.util.NativeCodeLoader;
+import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryWriter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
+import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
+import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.junit.After;
+import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.junit.Assert.*;
+import com.google.protobuf.ByteString;
 
 public class TestIFile {
 
@@ -83,6 +98,7 @@ public class TestIFile {
           new Path(System.getProperty("test.build.data", "/tmp")), TestIFile.class.getName())
           .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
       LOG.info("Using workDir: " + workDir);
+      defaultConf.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -132,7 +148,7 @@ public class TestIFile {
   public void testWritingEmptyKeyValues() throws IOException {
     DataInputBuffer key = new DataInputBuffer();
     DataInputBuffer value = new DataInputBuffer();
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath, null, null, null,
+    IFile.Writer writer = new IFile.Writer(null, null, localFs, outputPath, null, null, null,
         null, null);
     writer.append(key, value);
     writer.append(key, value);
@@ -191,7 +207,7 @@ public class TestIFile {
 
     // Check Key length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
@@ -214,7 +230,7 @@ public class TestIFile {
 
     // Check Value length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
@@ -238,7 +254,7 @@ public class TestIFile {
 
     // Check Key length not getting doubled
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
@@ -257,7 +273,7 @@ public class TestIFile {
 
     // Check Value length not getting doubled
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
             Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
@@ -284,7 +300,7 @@ public class TestIFile {
   public void testWithRLEMarker() throws IOException {
     //Test with append(Object, Object)
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, true);
 
     Text key = new Text("key0");
@@ -310,7 +326,7 @@ public class TestIFile {
     int valueLength = 6;
     int pos = 0;
     out = localFs.create(outputPath);
-    writer = new IFile.Writer(defaultConf, out,
+    writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, true);
 
     BoundedByteArrayOutputStream boundedOut = new BoundedByteArrayOutputStream(1024*1024);
@@ -453,8 +469,8 @@ public class TestIFile {
   //Test appendValue feature
   public void testAppendValue() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
 
     Text previousKey = null;
     for (KVPair kvp : data) {
@@ -484,8 +500,8 @@ public class TestIFile {
       values.add(val);
     }
 
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
     writer.append(data.get(0).getKey(), data.get(0).getvalue()); //write first KV pair
     writer.appendValues(values.subList(1, values.size()).iterator()); //add the rest here
 
@@ -500,6 +516,130 @@ public class TestIFile {
   }
 
   @Test(timeout = 5000)
+  // Basic test
+  public void testFileBackedInMemIFileWriter() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    List<IntWritable> values = new ArrayList<>();
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(
+        new WritableSerialization(), new WritableSerialization(), localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        200);
+
+    writer.appendKeyValues(data.get(0).getKey(), values.iterator());
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+    data.add(new KVPair(lastKey, lastVal));
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 5000)
+  // Basic test
+  public void testFileBackedInMemIFileWriterWithSmallBuffer() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(
+        new WritableSerialization(), new WritableSerialization(), localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        2);
+
+    // empty ifile
+    writer.close();
+
+    // Buffer should have self adjusted. So for this empty file, it shouldn't
+    // hit disk.
+    assertFalse("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 20000)
+  // Test file spill over scenario
+  public void testFileBackedInMemIFileWriter_withSpill() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    List<IntWritable> values = new ArrayList<>();
+
+    Text key = new Text("key");
+    IntWritable val = new IntWritable(1);
+    for(int i = 0; i < 5; i++) {
+      data.add(new KVPair(key, val));
+      values.add(val);
+    }
+
+    // Setting cache limit to 20. Actual data would be around 43 bytes, so it would spill over.
+    TezTaskOutputFiles tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(
+        new WritableSerialization(), new WritableSerialization(), localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        20);
+    writer.setOutputPath(outputPath);
+
+    writer.appendKeyValues(data.get(0).getKey(), values.iterator());
+    Text lastKey = new Text("key3");
+    IntWritable lastVal = new IntWritable(10);
+
+    data.add(new KVPair(lastKey, lastVal));
+    writer.append(lastKey, lastVal);
+    writer.close();
+
+    assertTrue("Data should have been flushed to disk", writer.isDataFlushedToDisk());
+
+    // Read output content to memory
+    FSDataInputStream inStream = localFs.open(outputPath);
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+
+    IFile.Reader.readToMemory(bytes, inStream,
+        (int) writer.getCompressedLength(), codec, false, -1);
+    inStream.close();
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
+  @Test(timeout = 5000)
+  // Test empty file case
+  public void testEmptyFileBackedInMemIFileWriter() throws IOException {
+    List<KVPair> data = new ArrayList<>();
+    TezTaskOutputFiles
+        tezTaskOutput = new TezTaskOutputFiles(defaultConf, "uniqueId", 1);
+
+    IFile.FileBackedInMemIFileWriter writer = new IFile.FileBackedInMemIFileWriter(
+        new WritableSerialization(), new WritableSerialization(), localFs, tezTaskOutput,
+        Text.class, IntWritable.class, codec, null, null,
+        100);
+
+    // empty ifile
+    writer.close();
+
+    byte[] bytes = new byte[(int) writer.getRawLength()];
+
+    IFile.Reader.readToMemory(bytes,
+        new ByteArrayInputStream(ByteString.copyFrom(writer.getData()).toByteArray()),
+        (int) writer.getCompressedLength(), codec, false, -1);
+
+    readUsingInMemoryReader(bytes, data);
+  }
+
+
+  @Test(timeout = 5000)
   //Test appendKeyValues feature
   public void testAppendKeyValues() throws IOException {
     List<KVPair> data = new ArrayList<KVPair>();
@@ -512,8 +652,8 @@ public class TestIFile {
       values.add(val);
     }
 
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
     writer.appendKeyValues(data.get(0).getKey(), values.iterator());
 
     Text lastKey = new Text("key3");
@@ -530,8 +670,8 @@ public class TestIFile {
   //Test appendValue with DataInputBuffer
   public void testAppendValueWithDataInputBuffer() throws IOException {
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
-    IFile.Writer writer = new IFile.Writer(defaultConf, localFs, outputPath,
-        Text.class, IntWritable.class, codec, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        localFs, outputPath, Text.class, IntWritable.class, codec, null, null);
 
     final DataInputBuffer previousKey = new DataInputBuffer();
     DataInputBuffer key = new DataInputBuffer();
@@ -588,6 +728,76 @@ public class TestIFile {
         codec, null, null, false, 0, 1024);
     verifyData(reader, data);
     reader.close();
+  }
+
+  @Test
+  public void testInMemoryBufferSize() throws IOException {
+    Configurable configurableCodec = (Configurable) codec;
+    int originalCodecBufferSize =
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), -1);
+
+    // for smaller amount of data, codec buffer should be sized according to compressed data length
+    List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
+    Writer writer = writeTestFile(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+
+    // buffer size cannot grow infinitely with compressed data size
+    data = KVDataGen.generateTestDataOfKeySize(false, 20000, rnd.nextInt(100));
+    writer = writeTestFile(false, false, data, codec);
+    readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
+
+    Assert.assertEquals(originalCodecBufferSize, // original size is repaired
+        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSmallDataCompression() throws IOException {
+    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+
+    tryWriteFileWithBufferSize(17, "org.apache.hadoop.io.compress.Lz4Codec");
+    tryWriteFileWithBufferSize(32, "org.apache.hadoop.io.compress.Lz4Codec");
+  }
+
+  private void tryWriteFileWithBufferSize(int bufferSize, String codecClassName)
+      throws IOException {
+    Configuration conf = new Configuration();
+
+    System.out.println("trying with buffer size: " + bufferSize);
+    conf.set(TezRuntimeUtils.getBufferSizeProperty(codecClassName), Integer.toString(bufferSize));
+    CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
+    CompressionCodec codecToTest =
+        codecFactory.getCodecByClassName(codecClassName);
+    List<KVPair> data = KVDataGen.generateTestDataOfKeySize(false, 1, 0);
+    writeTestFile(false, false, data, codecToTest);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testLz4CompressedDataIsLargerThanOriginal() throws IOException {
+    Assume.assumeTrue(NativeCodeLoader.isNativeCodeLoaded());
+
+    // this one succeeds
+    byte[] buf = new byte[32];
+    initBufWithNumbers(buf, 24, 45, 55, 49, 54, 55, 55, 54, 49, 48, 50, 55, 49, 56, 54, 48, 57, 48);
+    Lz4Compressor comp = new Lz4Compressor(32, false);
+    comp.setInput(buf, 0, 32);
+    comp.compress(buf, 0, 32);
+
+    // adding 1 more element makes that fail
+    buf = new byte[32];
+    initBufWithNumbers(buf, 24, 45, 55, 49, 54, 55, 55, 54, 49, 48, 50, 55, 49, 56, 54, 48, 57, 48,
+        50);
+    comp = new Lz4Compressor(32, false);
+    comp.setInput(buf, 0, 32);
+    comp.compress(buf, 0, 32);
+  }
+
+  private void initBufWithNumbers(byte[] buf, int... args) {
+    for (int i = 0; i < args.length; i++) {
+      buf[i] = (byte) args[i];
+    }
   }
 
   /**
@@ -762,7 +972,7 @@ public class TestIFile {
   private Writer writeTestFile(boolean rle, boolean repeatKeys,
       List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
     writeTestFile(writer, repeatKeys, data);
     out.close();
@@ -795,7 +1005,7 @@ public class TestIFile {
   private Writer writeTestFileUsingDataBuffer(boolean rle, boolean repeatKeys,
       List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
-    IFile.Writer writer = new IFile.Writer(defaultConf, out,
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
     writeTestFileUsingDataBuffer(writer, repeatKeys, data);
     out.close();

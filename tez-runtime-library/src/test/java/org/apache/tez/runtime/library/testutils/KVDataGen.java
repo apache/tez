@@ -34,17 +34,29 @@ public class KVDataGen {
   }
 
   /**
-   * Generate key value pair
+   * Generate key value pair.
    *
    * @param sorted whether data should be sorted by key
    * @param repeatCount number of keys to be repeated
    * @return
    */
   public static List<KVPair> generateTestData(boolean sorted, int repeatCount) {
+    return generateTestDataOfKeySize(sorted, 5, repeatCount);
+  }
+
+  /**
+   * Generate key value pair of given amount of keys.
+   *
+   * @param sorted whether data should be sorted by key
+   * @param keys number of keys
+   * @param repeatCount number of keys to be repeated
+   * @return
+   */
+  public static List<KVPair> generateTestDataOfKeySize(boolean sorted, int keys, int repeatCount) {
     List<KVPair> data = new LinkedList<KVPair>();
     Random rnd = new Random();
     KVPair kvp = null;
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < keys; i++) {
       String keyStr = (sorted) ? ("key" + i) : (rnd.nextLong() + "key" + i);
       Text key = new Text(keyStr);
       IntWritable value = new IntWritable(i + repeatCount);
@@ -52,7 +64,7 @@ public class KVDataGen {
       data.add(kvp);
       if ((repeatCount > 0) && (i % 2 == 0)) { // Repeat this key for random number of times
         int count = rnd.nextInt(5);
-        for(int j = 0; j < count; j++) {
+        for (int j = 0; j < count; j++) {
           repeatCount++;
           value.set(i + rnd.nextInt());
           kvp = new KVPair(key, value);
@@ -60,7 +72,7 @@ public class KVDataGen {
         }
       }
     }
-    //If we need to generated repeated keys, try to add some repeated keys to the end of file also.
+    // If we need to generated repeated keys, try to add some repeated keys to the end of file also.
     if (repeatCount > 0 && kvp != null) {
       data.add(kvp);
       data.add(kvp);

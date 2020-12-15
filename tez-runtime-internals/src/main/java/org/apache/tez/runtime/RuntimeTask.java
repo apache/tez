@@ -178,4 +178,8 @@ public abstract class RuntimeTask {
   }
 
   public abstract void abortTask();
+
+  protected final boolean isUpdatingSystemCounters() {
+    return counterUpdater != null;
+  }
 }

@@ -20,12 +20,12 @@ package org.apache.tez.dag.app;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -73,7 +73,10 @@ public interface AppContext {
   String getUser();
 
   DAG getCurrentDAG();
-  
+
+  // For testing only!
+  ThreadPoolExecutor getThreadPool();
+
   ListeningExecutorService getExecService();
 
   void setDAG(DAG dag);

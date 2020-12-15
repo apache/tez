@@ -29,7 +29,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import com.google.protobuf.ByteString;
+import org.apache.tez.common.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
@@ -398,8 +399,9 @@ public class MROutput extends AbstractLogicalOutput {
     taskNumberFormat.setGroupingUsed(false);
     nonTaskNumberFormat.setMinimumIntegerDigits(3);
     nonTaskNumberFormat.setGroupingUsed(false);
-    Configuration conf = TezUtils.createConfFromUserPayload(getContext().getUserPayload());
-    this.jobConf = new JobConf(conf);
+    UserPayload userPayload = getContext().getUserPayload();
+    this.jobConf = new JobConf(getContext().getContainerConfiguration());
+    TezUtils.addToConfFromByteString(this.jobConf, ByteString.copyFrom(userPayload.getPayload()));
     // Add tokens to the jobConf - in case they are accessed within the RW / OF
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     this.isMapperOutput = jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR,

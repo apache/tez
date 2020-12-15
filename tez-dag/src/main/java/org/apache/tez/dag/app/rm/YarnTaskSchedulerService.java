@@ -63,12 +63,13 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.common.ContainerSignatureMatcher;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -118,7 +119,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       new HashMap<ContainerId, HeldContainer>();
   
   Set<Priority> priorityHasAffinity = Sets.newHashSet();
-  
+
   Set<NodeId> blacklistedNodes = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
   
@@ -1533,6 +1534,12 @@ public class YarnTaskSchedulerService extends TaskScheduler
   private boolean canAssignTaskToContainer(
       CookieContainerRequest cookieContainerRequest, Container container) {
     HeldContainer heldContainer = heldContainers.get(container.getId());
+    Object task = getTask(cookieContainerRequest);
+    if (task instanceof TaskAttempt
+        && ((TaskAttempt) task).getTask() != null
+        && ((TaskAttempt) task).getTask().getNodesWithRunningAttempts().contains(container.getNodeId())) {
+      return false;
+    }
     if (heldContainer == null || heldContainer.isNew()) { // New container.
       return true;
     } else {

@@ -14,18 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+dist: trusty
+
 language: java
 
 sudo: required
 
 env: MAVEN_OPTS="-Xmx2G -XX:MaxPermSize=512M"
 
-jdk:
-  - oraclejdk8
-
 before_install:
   - ./build-tools/install-protobuf.sh
 
 script:
+  - jdk_switcher use oraclejdk8
   - mvn -B clean install package -DskipTests=true -Dmaven.javadoc.skip=true
 

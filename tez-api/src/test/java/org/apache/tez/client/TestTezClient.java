@@ -18,6 +18,7 @@
 
 package org.apache.tez.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -66,7 +67,6 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.counters.LimitExceededException;
@@ -108,6 +108,8 @@ import com.google.protobuf.RpcController;
 
 public class TestTezClient {
   static final long HARD_KILL_TIMEOUT = 1500L;
+  private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestTezClient.class.getName()).getAbsoluteFile();
 
   class TezClientForTest extends TezClient {
     TezYarnClient mockTezYarnClient;
@@ -163,6 +165,7 @@ public class TestTezClient {
     }
     conf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     conf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, isSession);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
     TezClientForTest client = new TezClientForTest("test", conf, lrs, null);
 
     ApplicationId appId1 = ApplicationId.newInstance(0, 1);
@@ -885,7 +888,7 @@ public class TestTezClient {
     when(yarnClient.createApplication().getNewApplicationResponse().getApplicationId()).thenReturn(appId1);
     when(yarnClient.getApplicationReport(appId1)).thenReturn(mockReport);
     TezYarnClient tezClient = new TezYarnClient(yarnClient);
-    tezClient.init(new TezConfiguration(false), new YarnConfiguration());
+    tezClient.init(new TezConfiguration(false));
     try {
       tezClient.getApplicationReport(appId1);
       fail("getApplicationReport should have thrown");

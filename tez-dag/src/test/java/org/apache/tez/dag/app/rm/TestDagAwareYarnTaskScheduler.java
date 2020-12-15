@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
@@ -34,11 +35,14 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.proto.YarnServiceProtos.SchedulerResourceTypes;
 import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.tez.common.MockDNSToSwitchMapping;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.MockClock;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler.AMRMClientAsyncWrapper;
 import org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler.HeldContainer;
 import org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler.TaskRequest;
@@ -342,6 +346,25 @@ public class TestDagAwareYarnTaskScheduler {
         removeContainerRequest(any(TaskRequest.class));
     verify(mockRMClient, times(8)).addContainerRequest(any(TaskRequest.class));
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
+
+    // test speculative node adjustment
+    String speculativeNode = "host8";
+    NodeId speculativeNodeId = mock(NodeId.class);
+    when(speculativeNodeId.getHost()).thenReturn(speculativeNode);
+    TaskAttempt mockTask5 = mock(TaskAttempt.class);
+    Task task = mock(Task.class);
+    when(mockTask5.getTask()).thenReturn(task);
+    when(task.getNodesWithRunningAttempts()).thenReturn(Sets.newHashSet(speculativeNodeId));
+    Object mockCookie5 = new Object();
+    scheduler.allocateTask(mockTask5, mockCapability, hosts, racks,
+        mockPriority, null, mockCookie5);
+    drainableAppCallback.drain();
+    // no new allocation
+    verify(mockApp, times(4)).taskAllocated(any(), any(), (Container) any());
+    // verify container released
+    verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
+    // verify request added back
+    verify(mockRMClient, times(9)).addContainerRequest(requestCaptor.capture());
 
     List<NodeReport> mockUpdatedNodes = mock(List.class);
     scheduler.onNodesUpdated(mockUpdatedNodes);
@@ -1228,6 +1251,115 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
+  @Test (timeout = 50000L)
+  public void testPreemptionWhenBlocked() throws Exception {
+    AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
+
+    String appHost = "host";
+    int appPort = 0;
+    String appUrl = "url";
+
+    Configuration conf = new Configuration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS, 100);
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED, true);
+    conf.setBoolean(TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED, false);
+    conf.setInt(TezConfiguration.TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX, 100);
+    conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_PERCENTAGE, 10);
+    conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS, 3);
+    conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS, 60 * 1000);
+
+
+    DagInfo mockDagInfo = mock(DagInfo.class);
+    when(mockDagInfo.getTotalVertices()).thenReturn(3);
+    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[] { 0x6 }));
+    when(mockDagInfo.getVertexDescendants(1)).thenReturn(BitSet.valueOf(new long[] { 0x2 }));
+    when(mockDagInfo.getVertexDescendants(2)).thenReturn(new BitSet());
+    TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, conf);
+    when(mockApp.getCurrentDagInfo()).thenReturn(mockDagInfo);
+    TaskSchedulerContextDrainable drainableAppCallback = createDrainableContext(mockApp);
+
+    MockClock clock = new MockClock(1000);
+    NewTaskSchedulerForTest scheduler = new NewTaskSchedulerForTest(drainableAppCallback,
+        mockRMClient, clock);
+
+    scheduler.initialize();
+    drainableAppCallback.drain();
+
+    scheduler.start();
+    drainableAppCallback.drain();
+    verify(mockRMClient).start();
+    verify(mockRMClient).registerApplicationMaster(appHost, appPort, appUrl);
+    RegisterApplicationMasterResponse regResponse = mockRMClient.getRegistrationResponse();
+    verify(mockApp).setApplicationRegistrationData(regResponse.getMaximumResourceCapability(),
+        regResponse.getApplicationACLs(), regResponse.getClientToAMTokenMasterKey(),
+        regResponse.getQueue());
+
+    assertEquals(scheduler.getClusterNodeCount(), mockRMClient.getClusterNodeCount());
+
+    Priority priorityv0 = Priority.newInstance(1);
+    Priority priorityv2 = Priority.newInstance(3);
+    String[] hostsv0t0 = { "host1", "host2" };
+    MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
+    when(mockApp.getVertexIndexForTask(taskv0t0.task)).thenReturn(0);
+    MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, hostsv0t0);
+    when(mockApp.getVertexIndexForTask(taskv0t1.task)).thenReturn(0);
+    MockTaskInfo taskv2t0 = new MockTaskInfo("taskv2t0", priorityv2, hostsv0t0);
+    when(mockApp.getVertexIndexForTask(taskv2t0.task)).thenReturn(2);
+    MockTaskInfo taskv2t1 = new MockTaskInfo("taskv2t1", priorityv2, hostsv0t0);
+    when(mockApp.getVertexIndexForTask(taskv2t1.task)).thenReturn(2);
+    when(mockApp.getVertexIndexForTask(taskv2t0.task)).thenReturn(2);
+
+    // asks for one task for vertex 2 and start running
+    TaskRequestCaptor taskRequestCaptor = new TaskRequestCaptor(mockRMClient,
+        scheduler, drainableAppCallback);
+    TaskRequest reqv2t0 = taskRequestCaptor.scheduleTask(taskv2t0);
+    NodeId host1 = NodeId.newInstance("host1", 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(ApplicationId.newInstance(1, 1), 1);
+    ContainerId cid1 = ContainerId.newContainerId(attemptId, 1);
+    Container container1 = Container.newInstance(cid1, host1, null, taskv2t0.capability, priorityv2, null);
+    scheduler.onContainersAllocated(Collections.singletonList(container1));
+    drainableAppCallback.drain();
+    verify(mockApp).taskAllocated(taskv2t0.task, taskv2t0.cookie, container1);
+    verify(mockRMClient).removeContainerRequest(reqv2t0);
+    clock.incrementTime(1000);
+
+    when(mockRMClient.getAvailableResources()).thenReturn(Resources.none());
+    scheduler.getProgress();
+    scheduler.getProgress();
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+    //ask another task for v2
+    TaskRequest reqv2t1 = taskRequestCaptor.scheduleTask(taskv2t1);
+    scheduler.getProgress();
+    scheduler.getProgress();
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+
+    clock.incrementTime(1000);
+    // add a request for vertex 0 but there is no headroom, this should preempt
+    when(mockRMClient.getAvailableResources()).thenReturn(Resources.none());
+    TaskRequest reqv0t0 = taskRequestCaptor.scheduleTask(taskv0t0);
+
+    // should preempt after enough heartbeats to get past preemption interval
+    scheduler.getProgress();
+    scheduler.getProgress();
+    scheduler.getProgress();
+    drainableAppCallback.drain();
+    verify(mockApp, times(1)).preemptContainer(any(ContainerId.class));
+    verify(mockApp).preemptContainer(cid1);
+    String appMsg = "success";
+    AppFinalStatus finalStatus =
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
+    when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
+    scheduler.shutdown();
+    drainableAppCallback.drain();
+    verify(mockRMClient).
+        unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
+            appMsg, appUrl);
+    verify(mockRMClient).stop();
+  }
+
   @Test(timeout=50000)
   public void testContainerAssignmentReleaseNewContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
@@ -1399,6 +1531,26 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).removeContainerRequest(reqv0t0);
   }
 
+  @Test
+  public void testMinMaxContainerIdleMillisAreEqual() throws Exception {
+    AMRMClientAsyncWrapperForTest mockRMClient = new AMRMClientAsyncWrapperForTest();
+    Configuration conf = new Configuration();
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS, 10000);
+    conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 10000);
+
+    TaskSchedulerContext mockApp = setupMockTaskSchedulerContext("host", 0, "url", conf);
+    TaskSchedulerContextDrainable drainableAppCallback = createDrainableContext(mockApp);
+    MockClock clock = new MockClock(1000);
+    NewTaskSchedulerForTest scheduler = new NewTaskSchedulerForTest(drainableAppCallback, mockRMClient, clock);
+    scheduler.initialize();
+
+    NodeId host1 = NodeId.newInstance("host1", 1);
+    Container container1 = Container.newInstance(null, host1, null, null, null, null);
+    HeldContainer heldContainer = scheduler.new HeldContainer(container1);
+    long now = clock.getTime();
+    assertEquals(now + 10000, heldContainer.getIdleExpirationTimestamp(now));
+  }
+
   static class AMRMClientAsyncWrapperForTest extends AMRMClientAsyncWrapper {
     AMRMClientAsyncWrapperForTest() {
       super(new MockAMRMClient(), 10000, null);
@@ -1406,6 +1558,12 @@ public class TestDagAwareYarnTaskScheduler {
 
     RegisterApplicationMasterResponse getRegistrationResponse() {
       return ((MockAMRMClient) client).getRegistrationResponse();
+    }
+
+    @Override
+    public RegisterApplicationMasterResponse registerApplicationMaster(String appHostName, int appHostPort,
+        String appTrackingUrl) throws YarnException, IOException {
+      return client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);
     }
 
     @Override
@@ -1434,10 +1592,9 @@ public class TestDagAwareYarnTaskScheduler {
     protected void serviceStop() {
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public RegisterApplicationMasterResponse registerApplicationMaster(
-        String appHostName, int appHostPort, String appTrackingUrl) {
+    public RegisterApplicationMasterResponse registerApplicationMaster(String appHostName, int appHostPort,
+        String appTrackingUrl) {
       mockRegResponse = mock(RegisterApplicationMasterResponse.class);
       Resource mockMaxResource = Resources.createResource(1024*1024, 1024);
       Map<ApplicationAccessType, String> mockAcls = Collections.emptyMap();

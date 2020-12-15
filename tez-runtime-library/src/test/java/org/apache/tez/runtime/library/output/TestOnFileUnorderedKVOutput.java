@@ -128,7 +128,7 @@ public class TestOnFileUnorderedKVOutput {
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
 
     TezSharedExecutor sharedExecutor = new TezSharedExecutor(conf);
-    OutputContext outputContext = createOutputContext(conf, sharedExecutor);
+    OutputContext outputContext = createOutputContext(conf, new Configuration(false), sharedExecutor);
 
     UnorderedKVOutput kvOutput = new UnorderedKVOutput(outputContext, 1);
 
@@ -161,6 +161,26 @@ public class TestOnFileUnorderedKVOutput {
     sharedExecutor.shutdownNow();
   }
 
+  @Test
+  public void testMergeConfig() throws Exception {
+    Configuration baseConf = new Configuration(false);
+    baseConf.set("local-key", "local-value");
+
+    Configuration payloadConf = new Configuration(false);
+    payloadConf.set("base-key", "base-value");
+
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(baseConf);
+    OutputContext outputContext = createOutputContext(payloadConf, baseConf, sharedExecutor);
+
+    UnorderedKVOutput kvOutput = new UnorderedKVOutput(outputContext, 1);
+
+    kvOutput.initialize();
+
+    Configuration mergedConf = kvOutput.conf;
+    assertEquals("local-value", mergedConf.get("local-key"));
+    assertEquals("base-value", mergedConf.get("base-key"));
+  }
+
   @Test(timeout = 30000)
   @SuppressWarnings("unchecked")
   public void testWithPipelinedShuffle() throws Exception {
@@ -173,7 +193,7 @@ public class TestOnFileUnorderedKVOutput {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB, 1);
 
     TezSharedExecutor sharedExecutor = new TezSharedExecutor(conf);
-    OutputContext outputContext = createOutputContext(conf, sharedExecutor);
+    OutputContext outputContext = createOutputContext(conf, new Configuration(false), sharedExecutor);
 
     UnorderedKVOutput kvOutput = new UnorderedKVOutput(outputContext, 1);
 
@@ -211,8 +231,8 @@ public class TestOnFileUnorderedKVOutput {
     sharedExecutor.shutdownNow();
   }
 
-  private OutputContext createOutputContext(Configuration conf, TezSharedExecutor sharedExecutor)
-      throws IOException {
+  private OutputContext createOutputContext(Configuration payloadConf, Configuration baseConf,
+      TezSharedExecutor sharedExecutor) throws IOException {
     int appAttemptNumber = 1;
     TezUmbilical tezUmbilical = mock(TezUmbilical.class);
     String dagName = "currentDAG";
@@ -222,7 +242,7 @@ public class TestOnFileUnorderedKVOutput {
     TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
-    UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
+    UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
     
     TaskSpec mockSpec = mock(TaskSpec.class);
     when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
@@ -237,17 +257,17 @@ public class TestOnFileUnorderedKVOutput {
     ByteBuffer bb = ByteBuffer.allocate(4);
     bb.putInt(shufflePort);
     bb.position(0);
-    AuxiliaryServiceHelper.setServiceDataIntoEnv(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
+    AuxiliaryServiceHelper.setServiceDataIntoEnv(payloadConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT), bb, auxEnv);
 
 
     OutputDescriptor outputDescriptor = mock(OutputDescriptor.class);
     when(outputDescriptor.getClassName()).thenReturn("OutputDescriptor");
 
-    OutputContext realOutputContext = new TezOutputContextImpl(conf, new String[] {workDir.toString()},
+    OutputContext realOutputContext = new TezOutputContextImpl(baseConf, new String[] {workDir.toString()},
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         -1, taskAttemptID, 0, userPayload, runtimeTask,
-        null, auxEnv, new MemoryDistributor(1, 1, conf) , outputDescriptor, null,
+        null, auxEnv, new MemoryDistributor(1, 1, payloadConf), outputDescriptor, null,
         new ExecutionContextImpl("localhost"), 2048, new TezSharedExecutor(defaultConf));
     verify(runtimeTask, times(1)).addAndGetTezCounter(destinationVertexName);
     verify(runtimeTask, times(1)).getTaskStatistics();

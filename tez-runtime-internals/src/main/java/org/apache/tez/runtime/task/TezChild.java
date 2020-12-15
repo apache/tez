@@ -76,7 +76,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezClassLoader;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -198,6 +200,7 @@ public class TezChild {
       this.umbilical = umbilical;
       ownUmbilical = false;
     }
+    TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -237,6 +240,7 @@ public class TezChild {
           shutdown();
         }
       }
+      TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
         shutdown();
@@ -256,6 +260,7 @@ public class TezChild {
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
+        TezCommonUtils.logCredentials(LOG, childUGI.getCredentials(), "taskChildUGI");
         handleNewTaskLocalResources(containerTask, childUGI);
         cleanupOnTaskChanged(containerTask);
 
@@ -477,7 +482,7 @@ public class TezChild {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
-
+    TezClassLoader.setupTezClassLoader();
     final Configuration defaultConf = new Configuration();
 
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());

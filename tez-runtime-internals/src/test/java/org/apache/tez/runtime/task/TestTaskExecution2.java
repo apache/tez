@@ -38,7 +38,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -675,8 +675,8 @@ public class TestTaskExecution2 {
 
     // If Target <=0, assert counter count is exactly 0
     if (minTaskCounterCount <= 0) {
-      assertEquals(0, numTaskCounters);
-      assertEquals(0, numFsCounters);
+      assertEquals(tezCounters.toString(), 0, numTaskCounters);
+      assertEquals(tezCounters.toString(), 0, numFsCounters);
     } else {
       assertTrue(numTaskCounters >= minTaskCounterCount);
       assertTrue(numFsCounters >= minFsCounterCount);

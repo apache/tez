@@ -14,6 +14,7 @@
 
 package org.apache.tez.dag.helpers;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.tez.serviceplugins.api.DagInfo;
 
@@ -51,6 +52,11 @@ public class DagInfoImplForTest implements DagInfo {
 
   @Override
   public BitSet getVertexDescendants(int vertexIndex) {
+    return null;
+  }
+
+  @Override
+  public Configuration getConf() {
     return null;
   }
 }

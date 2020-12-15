@@ -34,7 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -299,10 +299,11 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     if (future == null) {
       LOG.info("Ignoring stop request for containerId: " + event.getContainerId());
     } else {
-      LOG.info(
-          "Stopping containerId: {}",
-          event.getContainerId());
-      future.cancel(true);
+      LOG.info("Stopping containerId: {}, isDone: {}", event.getContainerId(),
+          future.isDone());
+      future.cancel(false);
+      LOG.debug("Stopped containerId: {}, isCancelled: {}", event.getContainerId(),
+          future.isCancelled());
     }
     // Send this event to maintain regular control flow. This isn't of much use though.
     getContext().containerStopRequested(event.getContainerId());

@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,69 +40,115 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Test local cache manager.
+ */
 public class TestTezLocalCacheManager {
 
-    @Test
-    public void testManager() throws URISyntaxException, IOException {
-        Map<String, LocalResource> resources = new HashMap<>();
+  @Test
+  public void testManager() throws URISyntaxException, IOException {
+    Map<String, LocalResource> resources = new HashMap<>();
 
-        // Test that localization works for regular files and verify that if multiple symlinks are created,
-        // they all work
-        LocalResource resourceOne = createFile("content-one");
-        LocalResource resourceTwo = createFile("content-two");
+    // Test that localization works for regular files and verify that if multiple symlinks are created,
+    // they all work
+    LocalResource resourceOne = createFile("content-one");
+    LocalResource resourceTwo = createFile("content-two");
 
-        resources.put("file-one", resourceOne);
-        resources.put("file-two", resourceTwo);
-        resources.put("file-three", resourceTwo);
+    resources.put("file-one", resourceOne);
+    resources.put("file-two", resourceTwo);
+    resources.put("file-three", resourceTwo);
 
-        TezLocalCacheManager manager = new TezLocalCacheManager(resources, new Configuration());
+    // Not currently supported, but shouldn't throw an exception...
+    resources.put("some-subdir/file-three", resourceTwo);
 
-        try {
-            manager.localize();
+    TezLocalCacheManager manager = new TezLocalCacheManager(resources, new Configuration());
 
-            Assert.assertEquals(
-                    "content-one",
-                    new String(Files.readAllBytes(Paths.get("./file-one")))
-            );
+    try {
+      manager.localize();
 
-            Assert.assertEquals(
-                    "content-two",
-                    new String(Files.readAllBytes(Paths.get("./file-two")))
-            );
+      Assert.assertEquals(
+          "content-one",
+          new String(Files.readAllBytes(Paths.get("./file-one")))
+      );
 
-            Assert.assertEquals(
-                    "content-two",
-                    new String(Files.readAllBytes(Paths.get("./file-three")))
-            );
-        } finally {
-            manager.cleanup();
-        }
+      Assert.assertEquals(
+          "content-two",
+          new String(Files.readAllBytes(Paths.get("./file-two")))
+      );
 
-        // verify that symlinks were removed
-        Assert.assertFalse(Files.exists(Paths.get("./file-one")));
-        Assert.assertFalse(Files.exists(Paths.get("./file-two")));
-        Assert.assertFalse(Files.exists(Paths.get("./file-three")));
+      Assert.assertEquals(
+          "content-two",
+          new String(Files.readAllBytes(Paths.get("./file-three")))
+      );
+    } finally {
+      manager.cleanup();
     }
 
-    // create a temporary file with the given content and return a LocalResource
-    private static LocalResource createFile(String content) throws IOException {
-        FileContext fs = FileContext.getLocalFSFileContext();
+    // verify that symlinks were removed
+    Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+    Assert.assertFalse(Files.exists(Paths.get("./file-two")));
+    Assert.assertFalse(Files.exists(Paths.get("./file-three")));
+  }
 
-        java.nio.file.Path tempFile = Files.createTempFile("test-cache-manager", ".txt");
-        File temp = tempFile.toFile();
-        temp.deleteOnExit();
-        Path p = new Path("file:///" + tempFile.toAbsolutePath().toString());
+  // create a temporary file with the given content and return a LocalResource
+  private static LocalResource createFile(String content) throws IOException {
+    FileContext fs = FileContext.getLocalFSFileContext();
 
-        Files.write(tempFile, content.getBytes());
+    java.nio.file.Path tempFile = Files.createTempFile("test-cache-manager", ".txt");
+    File temp = tempFile.toFile();
+    temp.deleteOnExit();
+    Path p = new Path("file:///" + tempFile.toAbsolutePath().toString());
 
-        RecordFactory recordFactory = RecordFactoryProvider.getRecordFactory(null);
-        LocalResource ret = recordFactory.newRecordInstance(LocalResource.class);
-        URL yarnUrlFromPath = ConverterUtils.getYarnUrlFromPath(p);
-        ret.setResource(yarnUrlFromPath);
-        ret.setSize(content.getBytes().length);
-        ret.setType(LocalResourceType.FILE);
-        ret.setVisibility(LocalResourceVisibility.PRIVATE);
-        ret.setTimestamp(fs.getFileStatus(p).getModificationTime());
-        return ret;
+    Files.write(tempFile, content.getBytes());
+
+    RecordFactory recordFactory = RecordFactoryProvider.getRecordFactory(null);
+    LocalResource ret = recordFactory.newRecordInstance(LocalResource.class);
+    URL yarnUrlFromPath = ConverterUtils.getYarnUrlFromPath(p);
+    ret.setResource(yarnUrlFromPath);
+    ret.setSize(content.getBytes().length);
+    ret.setType(LocalResourceType.FILE);
+    ret.setVisibility(LocalResourceVisibility.PRIVATE);
+    ret.setTimestamp(fs.getFileStatus(p).getModificationTime());
+    return ret;
+  }
+
+  @Test
+  public void testLocalizeRootDirectory() throws URISyntaxException, IOException {
+    // default directory
+    Map<String, LocalResource> resources = new HashMap<>();
+
+    LocalResource resourceOne = createFile("content-one");
+    resources.put("file-one", resourceOne);
+
+    TezLocalCacheManager manager = new TezLocalCacheManager(resources, new Configuration());
+
+    try {
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      manager.localize();
+      Assert.assertTrue(Files.exists(Paths.get("./file-one")));
+
+    } finally {
+      manager.cleanup();
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
     }
+
+    // configured directory
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_LOCAL_CACHE_ROOT_FOLDER, "target");
+    manager = new TezLocalCacheManager(resources, conf);
+
+    try {
+      // files don't exist at all
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+      manager.localize();
+      // file appears only at configured location
+      Assert.assertFalse(Files.exists(Paths.get("./file-one")));
+      Assert.assertTrue(Files.exists(Paths.get("./target/file-one")));
+
+    } finally {
+      manager.cleanup();
+      Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));
+    }
+  }
 }

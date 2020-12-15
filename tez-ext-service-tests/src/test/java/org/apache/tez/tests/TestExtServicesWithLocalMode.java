@@ -20,6 +20,7 @@ package org.apache.tez.tests;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -59,6 +60,8 @@ public class TestExtServicesWithLocalMode {
   private static String TEST_ROOT_DIR =
       "target" + Path.SEPARATOR + TestExtServicesWithLocalMode.class.getName()
           + "-tmpDir";
+  private static final String STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestExtServicesWithLocalMode.class.getName()).getAbsolutePath();
 
   private static final Path SRC_DATA_DIR = new Path(TEST_ROOT_DIR + Path.SEPARATOR + "data");
   private static final Path HASH_JOIN_EXPECTED_RESULT_PATH =
@@ -92,6 +95,7 @@ public class TestExtServicesWithLocalMode {
       confForJobs.set(entry.getKey(), entry.getValue());
     }
     confForJobs.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    confForJobs.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.toString());
   }
 
   @AfterClass

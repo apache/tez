@@ -19,10 +19,17 @@
 set -e
 
 APPID=$1
-
-YARN=$(which yarn);
 TMP=$(mktemp)
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-echo "Fetching yarn logs for $APPID"
-$YARN logs -applicationId $APPID | grep HISTORY > $TMP 
-python swimlane.py -o $APPID.svg $TMP
+if [[ -f $APPID ]]; then
+    echo "Reading yarn logs from local file: $APPID"
+    cat "$APPID" | grep HISTORY > "$TMP"
+else
+    YARN=$(which yarn);
+    echo "Fetching yarn logs for $APPID"
+    $YARN logs -applicationId "$APPID" | grep HISTORY > "$TMP"
+fi
+echo "History was written into $TMP"
+
+python "$DIR/swimlane.py" -o "$APPID.svg" "$TMP"

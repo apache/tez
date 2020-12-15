@@ -26,6 +26,7 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +48,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.crypto.SecretKey;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.hadoop.yarn.util.Clock;
+import org.apache.hadoop.yarn.util.MonotonicClock;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.api.TaskFailureType;
@@ -59,6 +63,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.CallableWithNdc;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -79,13 +84,14 @@ import org.apache.tez.runtime.library.common.shuffle.Fetcher;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher.FetcherBuilder;
 import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.InputHost.PartitionToInputs;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
@@ -114,9 +120,30 @@ public class ShuffleManager implements FetcherCallback {
   @VisibleForTesting
   final ListeningExecutorService fetcherExecutor;
 
+  /**
+   * Executor for ReportCallable.
+   */
+  private ExecutorService reporterExecutor;
+
+  /**
+   * Lock to sync failedEvents.
+   */
+  private final ReentrantLock reportLock = new ReentrantLock();
+
+  /**
+   * Condition to wake up the thread notifying when events fail.
+   */
+  private final Condition reportCondition = reportLock.newCondition();
+
+  /**
+   * Events reporting fetcher failed.
+   */
+  private final HashMap<InputReadErrorEvent, Integer> failedEvents
+      = new HashMap<>();
+
   private final ListeningExecutorService schedulerExecutor;
   private final RunShuffleCallable schedulerCallable;
-  
+
   private final BlockingQueue<FetchedInput> completedInputs;
   private final AtomicBoolean inputReadyNotificationSent = new AtomicBoolean(false);
   @VisibleForTesting
@@ -151,6 +178,11 @@ public class ShuffleManager implements FetcherCallback {
   private final int ifileBufferSize;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
+
+  /**
+   * Holds the time to wait for failures to batch them and send less events.
+   */
+  private final int maxTimeToWaitForReportMillis;
   
   private final String srcNameTrimmed;
 
@@ -158,6 +190,9 @@ public class ShuffleManager implements FetcherCallback {
 
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
+  private long inputRecordsFromEvents;
+  private long eventsReceived;
+  private final TezCounter approximateInputRecords;
   private final TezCounter shuffledInputsCounter;
   private final TezCounter failedShufflesCounter;
   private final TezCounter bytesShuffledCounter;
@@ -191,7 +226,8 @@ public class ShuffleManager implements FetcherCallback {
       CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
     this.inputContext = inputContext;
     this.numInputs = numInputs;
-    
+
+    this.approximateInputRecords = inputContext.getCounters().findCounter(TaskCounter.APPROXIMATE_INPUT_RECORDS);
     this.shuffledInputsCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SHUFFLED_INPUTS);
     this.failedShufflesCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_FAILED_SHUFFLE_INPUTS);
     this.bytesShuffledCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES);
@@ -199,7 +235,8 @@ public class ShuffleManager implements FetcherCallback {
     this.bytesShuffledToDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_DISK);
     this.bytesShuffledToMemCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_MEM);
     this.bytesShuffledDirectDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
-  
+
+
     this.ifileBufferSize = bufferSize;
     this.ifileReadAhead = ifileReadAheadEnabled;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -212,6 +249,10 @@ public class ShuffleManager implements FetcherCallback {
     this.verifyDiskChecksum = conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM_DEFAULT);
+    this.maxTimeToWaitForReportMillis = conf.getInt(
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT_DEFAULT);
+
 
     this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
@@ -296,18 +337,79 @@ public class ShuffleManager implements FetcherCallback {
         + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength +", "
         + "localDiskFetchEnabled=" + localDiskFetchEnabled + ", "
         + "sharedFetchEnabled=" + sharedFetchEnabled + ", "
-        + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce);
+        + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce
+        + ", asyncHttp=" + asyncHttp);
+  }
+
+  public void updateApproximateInputRecords(int delta) {
+    if (delta <= 0) {
+      return;
+    }
+    inputRecordsFromEvents += delta;
+    eventsReceived++;
+    approximateInputRecords.setValue((inputRecordsFromEvents / eventsReceived) * numInputs);
   }
 
   public void run() throws IOException {
     Preconditions.checkState(inputManager != null, "InputManager must be configured");
 
+    if (maxTimeToWaitForReportMillis > 0) {
+      reporterExecutor = Executors.newSingleThreadExecutor(
+          new ThreadFactoryBuilder().setDaemon(true)
+              .setNameFormat("ShuffleRunner {" + srcNameTrimmed + "}")
+              .build());
+      Future reporterFuture = reporterExecutor.submit(new ReporterCallable());
+    }
+
     ListenableFuture<Void> runShuffleFuture = schedulerExecutor.submit(schedulerCallable);
-    Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback());
+    Futures.addCallback(runShuffleFuture, new SchedulerFutureCallback(), GuavaShim.directExecutor());
     // Shutdown this executor once this task, and the callback complete.
     schedulerExecutor.shutdown();
   }
-  
+
+  private class ReporterCallable extends CallableWithNdc<Void> {
+    /**
+     * Measures if the batching interval has ended.
+     */
+    private final Clock clock;
+    ReporterCallable() {
+      clock = new MonotonicClock();
+    }
+
+    @Override
+    protected Void callInternal() throws Exception {
+      long nextReport = 0;
+      while (!isShutdown.get()) {
+        try {
+          reportLock.lock();
+          while (failedEvents.isEmpty()) {
+            boolean signaled = reportCondition.await(maxTimeToWaitForReportMillis,
+                TimeUnit.MILLISECONDS);
+          }
+
+          long currentTime = clock.getTime();
+          if (currentTime > nextReport) {
+            if (failedEvents.size() > 0) {
+              List<Event> failedEventsToSend = Lists.newArrayListWithCapacity(
+                  failedEvents.size());
+              for (InputReadErrorEvent key : failedEvents.keySet()) {
+                failedEventsToSend.add(InputReadErrorEvent.create(key.getDiagnostics(),
+                    key.getIndex(), key.getVersion(), failedEvents.get(key), key.isLocalFetch(),
+                    key.isDiskErrorAtSource()));
+              }
+              inputContext.sendEvents(failedEventsToSend);
+              failedEvents.clear();
+              nextReport = currentTime + maxTimeToWaitForReportMillis;
+            }
+          }
+        } finally {
+          reportLock.unlock();
+        }
+      }
+      return null;
+    }
+  }
+
   private class RunShuffleCallable extends CallableWithNdc<Void> {
 
     private final Configuration conf;
@@ -374,7 +476,7 @@ public class ShuffleManager implements FetcherCallback {
                 }
                 ListenableFuture<FetchResult> future = fetcherExecutor
                     .submit(fetcher);
-                Futures.addCallback(future, new FetchFutureCallback(fetcher));
+                Futures.addCallback(future, new FetchFutureCallback(fetcher), GuavaShim.directExecutor());
                 if (++count >= maxFetchersToRun) {
                   break;
                 }
@@ -576,6 +678,52 @@ public class ShuffleManager implements FetcherCallback {
       wakeLoop.signal();
     } finally {
       lock.unlock();
+    }
+  }
+
+  public void addCompletedInputWithData(
+      InputAttemptIdentifier srcAttemptIdentifier, FetchedInput fetchedInput)
+      throws IOException {
+    //InputIdentifier inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Received Data via Event: " + srcAttemptIdentifier + " to "
+          + fetchedInput.getType());
+    }
+    // Count irrespective of whether this is a copy of an already fetched input
+    lock.lock();
+    try {
+      lastProgressTime = System.currentTimeMillis();
+    } finally {
+      lock.unlock();
+    }
+
+    boolean committed = false;
+    if (!completedInputSet.get(inputIdentifier)) {
+      synchronized (completedInputSet) {
+        if (!completedInputSet.get(inputIdentifier)) {
+          fetchedInput.commit();
+          committed = true;
+          if (!srcAttemptIdentifier.canRetrieveInputInChunks()) {
+            registerCompletedInput(fetchedInput);
+          } else {
+            registerCompletedInputForPipelinedShuffle(srcAttemptIdentifier,
+                fetchedInput);
+          }
+        }
+      }
+    }
+    if (!committed) {
+      fetchedInput.abort(); // If this fails, the fetcher may attempt another
+      // abort.
+    } else {
+      lock.lock();
+      try {
+        // Signal the wakeLoop to check for termination.
+        wakeLoop.signal();
+      } finally {
+        lock.unlock();
+      }
     }
   }
 
@@ -793,29 +941,43 @@ public class ShuffleManager implements FetcherCallback {
 
   @Override
   public void fetchFailed(String host,
-      InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
+      InputAttemptFetchFailure inputAttemptFetchFailure, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
-    LOG.info(srcNameTrimmed + ": " + "Fetch failed for src: " + srcAttemptIdentifier
-        + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
-        + connectFailed);
+    InputAttemptIdentifier srcAttemptIdentifier = inputAttemptFetchFailure.getInputAttemptIdentifier();
+    LOG.info(
+        "{}: Fetch failed for src: {} InputIdentifier: {}, connectFailed: {}, "
+            + "local fetch: {}, remote fetch failure reported as local failure: {})",
+        srcNameTrimmed, srcAttemptIdentifier, srcAttemptIdentifier, connectFailed,
+        inputAttemptFetchFailure.isLocalFetch(), inputAttemptFetchFailure.isDiskErrorAtSource());
     failedShufflesCounter.increment(1);
     inputContext.notifyProgress();
     if (srcAttemptIdentifier == null) {
       reportFatalError(null, "Received fetchFailure for an unknown src (null)");
     } else {
-    InputReadErrorEvent readError = InputReadErrorEvent.create(
-        "Fetch failure while fetching from "
-            + TezRuntimeUtils.getTaskAttemptIdentifier(
-            inputContext.getSourceVertexName(),
-            srcAttemptIdentifier.getInputIdentifier(),
-            srcAttemptIdentifier.getAttemptNumber()),
-        srcAttemptIdentifier.getInputIdentifier(),
-        srcAttemptIdentifier.getAttemptNumber());
-
-    List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
-    failedEvents.add(readError);
-    inputContext.sendEvents(failedEvents);
+      InputReadErrorEvent readError = InputReadErrorEvent.create(
+          "Fetch failure while fetching from "
+              + TezRuntimeUtils.getTaskAttemptIdentifier(
+              inputContext.getSourceVertexName(),
+              srcAttemptIdentifier.getInputIdentifier(),
+              srcAttemptIdentifier.getAttemptNumber()),
+          srcAttemptIdentifier.getInputIdentifier(),
+          srcAttemptIdentifier.getAttemptNumber(),
+          inputAttemptFetchFailure.isLocalFetch(),
+          inputAttemptFetchFailure.isDiskErrorAtSource());
+      if (maxTimeToWaitForReportMillis > 0) {
+        try {
+          reportLock.lock();
+          failedEvents.merge(readError, 1, (a, b) -> a + b);
+          reportCondition.signal();
+        } finally {
+          reportLock.unlock();
+        }
+      } else {
+        List<Event> events = Lists.newArrayListWithCapacity(1);
+        events.add(readError);
+        inputContext.sendEvents(events);
+      }
     }
   }
   /////////////////// End of Methods from FetcherCallbackHandler
@@ -848,6 +1010,10 @@ public class ShuffleManager implements FetcherCallback {
 
       if (this.schedulerExecutor != null && !this.schedulerExecutor.isShutdown()) {
         this.schedulerExecutor.shutdownNow();
+      }
+      if (this.reporterExecutor != null
+          && !this.reporterExecutor.isShutdown()) {
+        this.reporterExecutor.shutdownNow();
       }
       if (this.fetcherExecutor != null && !this.fetcherExecutor.isShutdown()) {
         this.fetcherExecutor.shutdownNow(); // Interrupts all running fetchers.

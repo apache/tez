@@ -16,7 +16,7 @@ package org.apache.tez.dag.app.dag.event;
 
 import java.util.EnumSet;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class DAGAppMasterEventUserServiceFatalError extends DAGAppMasterEvent implements DiagnosableEvent {
 

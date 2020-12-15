@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.CallableWithNdc;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
@@ -66,6 +67,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
           }
           LOG.info("Initializing task" + ", taskAttemptId={}", task.getTaskAttemptID());
           TezUtilsInternal.setHadoopCallerContext(task.getHadoopShim(), task.getTaskAttemptID());
+          TezCommonUtils.logCredentials(LOG, ugi.getCredentials(), "taskInit");
           task.initialize();
 
           if (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {

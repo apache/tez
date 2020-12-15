@@ -18,11 +18,12 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -70,8 +71,8 @@ public class EventMetaData implements Writable {
   public EventMetaData(EventProducerConsumerType generator,
       String taskVertexName, @Nullable String edgeVertexName,
       @Nullable TezTaskAttemptID taskAttemptID) {
-    checkNotNull(generator, "generator is null");
-    checkNotNull(taskVertexName, "taskVertexName is null");
+    Objects.requireNonNull(generator, "generator is null");
+    Objects.requireNonNull(taskVertexName, "taskVertexName is null");
     this.producerConsumerType = generator;
     this.taskVertexName = StringInterner.weakIntern(taskVertexName);
     this.edgeVertexName = StringInterner.weakIntern(edgeVertexName);

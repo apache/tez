@@ -16,6 +16,7 @@ package org.apache.tez.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class TestTaskErrorsUsingLocalMode {
   private static final Logger LOG = LoggerFactory.getLogger(TestTaskErrorsUsingLocalMode.class);
 
   private static final String VERTEX_NAME = "vertex1";
+  private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
+      TestTaskErrorsUsingLocalMode.class.getName()).getAbsoluteFile();
 
 
   @Test(timeout = 20000)
@@ -123,6 +126,7 @@ public class TestTaskErrorsUsingLocalMode {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf1.set("fs.defaultFS", "file:///");
+    tezConf1.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
     tezConf1.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, true);
     tezConf1.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
     TezClient tezClient1 = TezClient.create(name, tezConf1, true);

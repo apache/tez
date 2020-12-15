@@ -228,5 +228,4 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
    * @return time when the current dag started executing
    */
   long getDagStartTime();
-
 }

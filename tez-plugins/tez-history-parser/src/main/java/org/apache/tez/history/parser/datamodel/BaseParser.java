@@ -18,13 +18,14 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,26 @@ public abstract class BaseParser {
     vertexList = Lists.newLinkedList();
     taskList = Lists.newLinkedList();
     attemptList = Lists.newLinkedList();
+  }
+
+
+  protected boolean checkFiles(List<File> files) {
+    if (files.isEmpty()) {
+      return false;
+    }
+    for (File file : files) {
+      if (!file.exists()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
+  protected void addRawDataToDagInfo() {
+    dagInfo.addMeta("vertices", vertexList);
+    dagInfo.addMeta("tasks", taskList);
+    dagInfo.addMeta("taskAttempts", attemptList);
   }
 
   /**

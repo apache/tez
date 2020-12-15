@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.tez.common.ProgressHelper;
 
 /**
  * Context handle for the Processor to initialize itself.
@@ -31,12 +32,31 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 public interface ProcessorContext extends TaskContext {
 
   /**
+   * validate that progress is the valid range.
+   * @param progress
+   * @return the processed value of the progress that is guaranteed to be within
+   *          the valid range.
+   */
+  static float preProcessProgress(float progress) {
+    return ProgressHelper.processProgress(progress);
+  }
+
+  /**
    * Set the overall progress of this Task Attempt.
    * This automatically results in invocation of {@link ProcessorContext#notifyProgress()} 
    * and so invoking that separately is not required.
    * @param progress Progress in the range from [0.0 - 1.0f]
    */
-  public void setProgress(float progress);
+  default void setProgress(float progress) {
+    setProgressInternally(preProcessProgress(progress));
+  }
+
+  /**
+   * The actual implementation of the taskAttempt progress.
+   * All implementations needs to override this method
+   * @param progress
+   */
+  void setProgressInternally(float progress);
 
   /**
    * Check whether this attempt can commit its output

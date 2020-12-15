@@ -24,8 +24,6 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -42,7 +40,7 @@ import java.util.concurrent.ThreadFactory;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -78,6 +76,7 @@ public class TestHttpConnection {
         });
     url = new URL(NOT_HOSTED_URL);
     tokenSecretManager = mock(JobTokenSecretManager.class);
+    when(tokenSecretManager.computeHash(any())).thenReturn("1234".getBytes());
   }
 
   @AfterClass
@@ -89,7 +88,7 @@ public class TestHttpConnection {
       InterruptedException {
     long startTime = System.currentTimeMillis();
     try {
-      Future future = executorService.submit(worker);
+      Future<Void> future = executorService.submit(worker);
       future.get();
     } catch (ExecutionException e) {
       assertTrue(e.getCause().getCause() instanceof IOException);
@@ -117,14 +116,13 @@ public class TestHttpConnection {
   }
 
   @Test(timeout = 20000)
-  @SuppressWarnings("unchecked")
   //Should be interruptible
   public void testAsyncHttpConnectionInterrupt()
       throws IOException, InterruptedException, ExecutionException {
     CountDownLatch latch = new CountDownLatch(1);
     HttpConnectionParams params = getConnectionParams();
     AsyncHttpConnection asyncHttpConn = getAsyncHttpConnection(params);
-    Future future = executorService.submit(new Worker(latch, asyncHttpConn, true));
+    Future<Void> future = executorService.submit(new Worker(latch, asyncHttpConn, true));
 
     while(currentThread == null) {
       synchronized (this) {
@@ -153,24 +151,14 @@ public class TestHttpConnection {
   HttpConnection getHttpConnection(HttpConnectionParams params) throws IOException {
     HttpConnection realConn = new HttpConnection(url, params, "log", tokenSecretManager);
     HttpConnection connection = spy(realConn);
-
-    doAnswer(new Answer() {
-      public Void answer(InvocationOnMock invocation) {
-        return null;
-      }
-    }).when(connection).computeEncHash();
+    realConn.computeEncHash();
     return connection;
   }
 
   AsyncHttpConnection getAsyncHttpConnection(HttpConnectionParams params) throws IOException {
     AsyncHttpConnection realConn = new AsyncHttpConnection(url, params, "log", tokenSecretManager);
     AsyncHttpConnection connection = spy(realConn);
-
-    doAnswer(new Answer() {
-      public Void answer(InvocationOnMock invocation) {
-        return null;
-      }
-    }).when(connection).computeEncHash();
+    realConn.computeEncHash();
     return connection;
   }
 

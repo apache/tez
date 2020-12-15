@@ -5935,8 +5935,8 @@ public class TestVertexImpl {
 
     @Override
     public void runInputInitializers(
-        List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputs) {
-      this.inputs = inputs;
+        List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> inputList) {
+      this.inputs = inputList;
     }
 
     @Override

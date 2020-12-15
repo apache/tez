@@ -15,8 +15,8 @@
 package org.apache.tez.mapreduce.grouper;
 
 import java.io.IOException;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import org.apache.hadoop.mapred.InputSplit;
 
 public class MapredSplitContainer extends SplitContainer {
@@ -24,7 +24,7 @@ public class MapredSplitContainer extends SplitContainer {
   private final InputSplit inputSplit;
 
   public MapredSplitContainer(InputSplit inputSplit) {
-    Preconditions.checkNotNull(inputSplit);
+    Objects.requireNonNull(inputSplit);
     this.inputSplit = inputSplit;
   }
 

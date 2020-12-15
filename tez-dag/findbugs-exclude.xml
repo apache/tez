@@ -252,15 +252,4 @@
     <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
   </Match>
 
-  <!-- TEZ-2552 -->
-  <Match>
-    <Class name="org.apache.tez.dag.app.dag.impl.TaskAttemptImpl"/>
-    <Or>
-      <Field name="MAX_ALLOWED_OUTPUT_FAILURES_FRACTION"/>
-      <Field name="MAX_ALLOWED_OUTPUT_FAILURES"/>
-      <Field name="MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC"/>
-    </Or>
-    <Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"/>
-  </Match>
-
 </FindBugsFilter>

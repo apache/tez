@@ -16,7 +16,8 @@ package org.apache.tez.dag.app;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Preconditions;
+import java.util.Objects;
+
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.TezUtilsInternal;
@@ -52,9 +53,9 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
   public ContainerLauncherContextImpl(AppContext appContext, ContainerLauncherManager containerLauncherManager,
                                       TaskCommunicatorManagerInterface tal,
                                       UserPayload initialUserPayload, int containerLauncherIndex) {
-    Preconditions.checkNotNull(appContext, "AppContext cannot be null");
-    Preconditions.checkNotNull(appContext, "ContainerLauncherManager cannot be null");
-    Preconditions.checkNotNull(tal, "TaskCommunicator cannot be null");
+    Objects.requireNonNull(appContext, "AppContext cannot be null");
+    Objects.requireNonNull(appContext, "ContainerLauncherManager cannot be null");
+    Objects.requireNonNull(tal, "TaskCommunicator cannot be null");
     this.context = appContext;
     this.containerLauncherManager = containerLauncherManager;
     this.tal = tal;
@@ -140,7 +141,7 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
 
   @Override
   public void reportError(ServicePluginError servicePluginError, String message, DagInfo dagInfo) {
-    Preconditions.checkNotNull(servicePluginError, "ServiceError must be specified");
+    Objects.requireNonNull(servicePluginError, "ServiceError must be specified");
     containerLauncherManager.reportError(containerLauncherIndex, servicePluginError, message, dagInfo);
   }
 

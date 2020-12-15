@@ -51,10 +51,12 @@ class OutputTestHelpers {
     doReturn(200 * 1024 * 1024l).when(outputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(outputContext).getCounters();
     doReturn(statsReporter).when(outputContext).getStatisticsReporter();
+    doReturn(new Configuration(false)).when(outputContext).getContainerConfiguration();
     return outputContext;
   }
 
-  static OutputContext createOutputContext(Configuration conf, Path workingDir) throws IOException {
+  static OutputContext createOutputContext(Configuration conf, Configuration userPayloadConf, Path workingDir)
+      throws IOException {
     OutputContext ctx = mock(OutputContext.class);
     doAnswer(new Answer<Void>() {
       @Override public Void answer(InvocationOnMock invocation) throws Throwable {
@@ -65,7 +67,8 @@ class OutputTestHelpers {
         return null;
       }
     }).when(ctx).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
-    doReturn(TezUtils.createUserPayloadFromConf(conf)).when(ctx).getUserPayload();
+    doReturn(conf).when(ctx).getContainerConfiguration();
+    doReturn(TezUtils.createUserPayloadFromConf(userPayloadConf)).when(ctx).getUserPayload();
     doReturn("destinationVertex").when(ctx).getDestinationVertexName();
     doReturn("UUID").when(ctx).getUniqueIdentifier();
     doReturn(new String[] { workingDir.toString() }).when(ctx).getWorkDirs();

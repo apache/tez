@@ -45,12 +45,14 @@ import org.slf4j.LoggerFactory;
  */
 public class ProtoHistoryLoggingService extends HistoryLoggingService {
   private static final Logger LOG = LoggerFactory.getLogger(ProtoHistoryLoggingService.class);
+  // The file suffix used if we are writing start events and rest into different files.
+  static final String SPLIT_DAG_EVENTS_FILE_SUFFIX = "_1";
+
   private final HistoryEventProtoConverter converter =
       new HistoryEventProtoConverter();
   private boolean loggingDisabled = false;
 
-  private final LinkedBlockingQueue<DAGHistoryEvent> eventQueue =
-      new LinkedBlockingQueue<>(10000);
+  private LinkedBlockingQueue<DAGHistoryEvent> eventQueue;
   private Thread eventHandlingThread;
   private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -64,6 +66,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
 
   private String appEventsFile;
   private long appLaunchedEventOffset;
+  private boolean splitDagStartEvents;
 
   public ProtoHistoryLoggingService() {
     super(ProtoHistoryLoggingService.class.getName());
@@ -75,7 +78,13 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
     setConfig(conf);
     loggingDisabled = !conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
         TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED_DEFAULT);
-    LOG.info("Inited ProtoHistoryLoggingService");
+    splitDagStartEvents = conf.getBoolean(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START,
+        TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START_DEFAULT);
+    final int queueSize = conf.getInt(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE,
+        TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE_DEFAULT);
+    eventQueue = new LinkedBlockingQueue<>(queueSize);
+    LOG.info("Inited ProtoHistoryLoggingService. loggingDisabled: {} splitDagStartEvents: {} queueSize: {}",
+        loggingDisabled, splitDagStartEvents, queueSize);
   }
 
   @Override
@@ -171,6 +180,13 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
         dagEventsWriter.writeProto(converter.convert(historyEvent));
       } else if (dagEventsWriter != null) {
         dagEventsWriter.writeProto(converter.convert(historyEvent));
+        if (splitDagStartEvents && type == HistoryEventType.DAG_STARTED) {
+          // Close the file and write submitted event offset into manifest.
+          finishCurrentDag(null);
+          dagEventsWriter = loggers.getDagEventsLogger().getWriter(dagId.toString()
+              + "_" + appContext.getApplicationAttemptId().getAttemptId()
+              + SPLIT_DAG_EVENTS_FILE_SUFFIX);
+        }
       }
     }
   }
@@ -214,7 +230,6 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       // into another dag.
       IOUtils.closeQuietly(dagEventsWriter);
       dagEventsWriter = null;
-      currentDagId = null;
       dagSubmittedEventOffset = -1;
     }
   }

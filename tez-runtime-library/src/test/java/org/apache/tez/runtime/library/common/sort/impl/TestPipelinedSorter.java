@@ -47,7 +47,6 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.combine.Combiner;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.testutils.RandomTextGenerator;
@@ -67,7 +66,6 @@ import java.util.UUID;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -497,6 +495,33 @@ public class TestPipelinedSorter {
     assertTrue("Expecting needsRLE to be true", sorter.needsRLE());
     verifyCounters(sorter, outputContext);
     verifyOutputPermissions(outputContext.getUniqueIdentifier());
+  }
+
+  @Test
+  /**
+   * Verify whether all buffers are used evenly in sorter.
+   */
+  public void basicTestForBufferUsage() throws IOException {
+    this.numOutputs = 1;
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, numOutputs, (100 << 20));
+    Assert.assertTrue(sorter.maxNumberOfBlocks >= 2);
+
+    // Start filling in with data 1MB Key, 1MB Val.
+    for (int i = 0; i < 200; i++) {
+      writeData(sorter, 1, 1024 * 1024, false);
+    }
+
+    // Check if all buffers are evenly used
+    int avg = (int) sorter.bufferUsage.stream().mapToDouble(d -> d).average().orElse(0.0);
+
+    for(int i = 0; i< sorter.bufferUsage.size(); i++) {
+      int usage = sorter.bufferUsage.get(i);
+      Assert.assertTrue("Buffer index " + i + " is not used correctly. "
+              + " usage: " + usage + ", avg: " + avg, usage >= avg);
+    }
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, false);
   }
 
   public void basicTest2(int partitions, int[] numkeys, int[] keysize,
