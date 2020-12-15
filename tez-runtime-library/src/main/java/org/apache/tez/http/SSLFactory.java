@@ -18,7 +18,12 @@
 
 package org.apache.tez.http;
 
-import com.ning.http.client.AsyncHttpClientConfig;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.JdkSslContext;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -85,13 +90,13 @@ public class SSLFactory implements ConnectionConfigurator {
     this.mode = mode;
     requireClientCert = conf.getBoolean(SSL_REQUIRE_CLIENT_CERT_KEY,
         DEFAULT_SSL_REQUIRE_CLIENT_CERT);
-    Configuration sslConf = readSSLConfiguration(mode);
+    // Rest of ssl configs are pre-populated in incoming conf payload
+    conf.setBoolean(SSL_REQUIRE_CLIENT_CERT_KEY, requireClientCert);
 
     Class<? extends KeyStoresFactory> klass
         = conf.getClass(KEYSTORES_FACTORY_CLASS_KEY,
         FileBasedKeyStoresFactory.class, KeyStoresFactory.class);
-    keystoresFactory = ReflectionUtils.newInstance(klass, sslConf);
-
+    keystoresFactory = ReflectionUtils.newInstance(klass, conf);
     enabledProtocols = conf.getStrings(SSL_ENABLED_PROTOCOLS, DEFAULT_SSL_ENABLED_PROTOCOLS);
   }
 
@@ -223,17 +228,20 @@ public class SSLFactory implements ConnectionConfigurator {
   }
 
   /**
-   * Set ssl context for {@link com.ning.http.client.AsyncHttpClientConfig.Builder}
+   * Set ssl context for {@link org.asynchttpclient.DefaultAsyncHttpClientConfig.Builder}
    *
-   * @param asyncNingBuilder {@link com.ning.http.client.AsyncHttpClientConfig.Builder} instance to
+   * @param builder {@link org.asynchttpclient.DefaultAsyncHttpClientConfig.Builder} instance to
    *                configure.
    * @throws IOException if an IO error occurred.
    */
-  public void configure(AsyncHttpClientConfig.Builder asyncNingBuilder) throws IOException {
-    if (asyncNingBuilder != null) {
-      asyncNingBuilder.setSSLContext(context);
-      asyncNingBuilder.setHostnameVerifier(getHostnameVerifier());
+  public void configure(DefaultAsyncHttpClientConfig.Builder builder) throws IOException {
+    if (builder != null) {
+      JdkSslContext jdkSslContext =
+          new JdkSslContext(context, mode.equals(Mode.CLIENT), /* ciphers */null,
+              SupportedCipherSuiteFilter.INSTANCE, /* ApplicationProtocolConfig */ null,
+              requireClientCert ? ClientAuth.REQUIRE : ClientAuth.OPTIONAL, enabledProtocols,
+              /* startTls */ true);
+      builder.setSslContext(jdkSslContext);
     }
   }
-
 }

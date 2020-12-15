@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections4.IteratorUtils;
 
 public class MRCounters extends org.apache.hadoop.mapred.Counters {
   private final org.apache.tez.common.counters.TezCounters raw;

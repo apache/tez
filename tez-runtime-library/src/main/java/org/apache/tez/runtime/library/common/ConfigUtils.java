@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -56,33 +56,10 @@ public class ConfigUtils {
     }
     return codecClass;
   }
-  
-  public static Class<? extends CompressionCodec> getIntermediateInputCompressorClass(
-      Configuration conf, Class<DefaultCodec> defaultValue) {
-    Class<? extends CompressionCodec> codecClass = defaultValue;
-    String name = conf
-        .get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC);
-    if (name != null) {
-      try {
-        codecClass = conf.getClassByName(name).asSubclass(
-            CompressionCodec.class);
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException("Compression codec " + name
-            + " was not found.", e);
-      }
-    }
-    return codecClass;
-  }
-
 
   // TODO Move defaults over to a constants file.
   
   public static boolean shouldCompressIntermediateOutput(Configuration conf) {
-    return conf.getBoolean(
-        TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
-  }
-
-  public static boolean isIntermediateInputCompressed(Configuration conf) {
     return conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS, false);
   }
@@ -122,7 +99,7 @@ public class ConfigUtils {
     if (theClass != null)
       return ReflectionUtils.newInstance(theClass, conf);
     return WritableComparator.get(getIntermediateOutputKeyClass(conf).asSubclass(
-        WritableComparable.class));
+        WritableComparable.class), conf);
   }
 
   public static <K> RawComparator<K> getIntermediateInputKeyComparator(Configuration conf) {
@@ -132,7 +109,7 @@ public class ConfigUtils {
     if (theClass != null)
       return ReflectionUtils.newInstance(theClass, conf);
     return WritableComparator.get(getIntermediateInputKeyClass(conf).asSubclass(
-        WritableComparable.class));
+        WritableComparable.class), conf);
   }
 
   

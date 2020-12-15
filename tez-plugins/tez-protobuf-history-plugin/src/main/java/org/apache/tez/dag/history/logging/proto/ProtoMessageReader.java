@@ -34,7 +34,7 @@ public class ProtoMessageReader<T extends MessageLite> implements Closeable {
   private final Reader reader;
   private final ProtoMessageWritable<T> writable;
 
-  ProtoMessageReader(Configuration conf, Path filePath, Parser<T> parser) throws IOException {
+  public ProtoMessageReader(Configuration conf, Path filePath, Parser<T> parser) throws IOException {
     this.filePath = filePath;
     // The writer does not flush the length during hflush. Using length options lets us read
     // past length in the FileStatus but it will throw EOFException during a read instead

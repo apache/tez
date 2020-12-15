@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
@@ -49,7 +50,13 @@ public interface InputInitializerContext {
    * @return DAG name
    */
   String getDAGName();
-  
+
+  /**
+   * Get vertex configuration
+   * @return Vertex configuration
+   */
+  Configuration getVertexConfiguration();
+
   /**
    * Get the name of the input
    * @return Input name

@@ -58,7 +58,7 @@ public class TestReflectionUtils {
 
   @Test(timeout = 5000)
   public void testAddResourceToClasspath() throws IOException, TezException {
-
+    TezClassLoader.setupTezClassLoader();
     String rsrcName = "dummyfile.xml";
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     Path p = new Path(rsrcName);
@@ -78,7 +78,7 @@ public class TestReflectionUtils {
       urlForm = urlForm.substring(0, urlForm.lastIndexOf('/') + 1);
       URL url = new URL(urlForm);
 
-      ReflectionUtils.addResourcesToClasspath(Collections.singletonList(url));
+      ReflectionUtils.addResourcesToSystemClassLoader(Collections.singletonList(url));
 
       loadedUrl = Thread.currentThread().getContextClassLoader().getResource(rsrcName);
 

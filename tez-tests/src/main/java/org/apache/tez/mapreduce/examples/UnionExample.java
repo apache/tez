@@ -64,7 +64,7 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Maps;
 
 public class UnionExample {
@@ -262,7 +262,10 @@ public class UnionExample {
     DAGClient dagClient = null;
 
     try {
-        if (fs.exists(new Path(outputPath))) {
+        Path outputPathAsPath = new Path(outputPath);
+      FileSystem outputFs = outputPathAsPath.getFileSystem(tezConf);
+      outputPathAsPath = outputFs.makeQualified(outputPathAsPath);
+        if (outputFs.exists(outputPathAsPath)) {
           throw new FileAlreadyExistsException("Output directory "
               + outputPath + " already exists");
         }

@@ -24,7 +24,7 @@ import static org.apache.tez.dag.app.dag.impl.RootInputVertexManager.TEZ_ROOT_IN
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -176,7 +176,7 @@ public class TestRootInputVertexManager {
 
     final List<Integer> scheduledTasks = Lists.newLinkedList();
     doAnswer(new ScheduledTasksAnswer(scheduledTasks)).when(
-        mockContext).scheduleTasks(anyList());
+        mockContext).scheduleTasks(anyListOf(VertexManagerPluginContext.ScheduleTaskRequest.class));
 
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(0);
@@ -568,6 +568,7 @@ public class TestRootInputVertexManager {
     public Object answer(InvocationOnMock invocation) throws IOException {
       Object[] args = invocation.getArguments();
       scheduledTasks.clear();
+      @SuppressWarnings("unchecked")
       List<VertexManagerPluginContext.ScheduleTaskRequest> tasks =
           (List<VertexManagerPluginContext.ScheduleTaskRequest>)args[0];
       for (VertexManagerPluginContext.ScheduleTaskRequest task : tasks) {

@@ -148,7 +148,7 @@ public class YARNRunner implements ClientProtocol {
    * @param conf the configuration object for the client
    */
   public YARNRunner(Configuration conf) {
-   this(conf, new ResourceMgrDelegate(new YarnConfiguration(conf)));
+    this(conf, new ResourceMgrDelegate(new YarnConfiguration(conf)));
   }
 
   /**

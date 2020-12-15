@@ -30,7 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.GuavaShim;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.FutureCallback;
@@ -210,7 +211,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
         workingDir, credentials, memoryPerExecutor);
     ListenableFuture<ContainerExecutionResult> future = executorService
         .submit(callable);
-    Futures.addCallback(future, new ContainerRunnerCallback(request, callable));
+    Futures.addCallback(future, new ContainerRunnerCallback(request, callable), GuavaShim.directExecutor());
   }
 
   /**
@@ -265,11 +266,12 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     // TODO Unregistering does not happen at the moment, since there's no signals on when an app completes.
     LOG.info("Registering request with the ShuffleHandler for containerId {}", request.getContainerIdString());
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
+    TezCommonUtils.logCredentials(LOG, credentials, "taskCallable");
     TaskRunnerCallable callable = new TaskRunnerCallable(request, new Configuration(getConfig()),
         new ExecutionContextImpl(localAddress.get().getHostName()), env, localDirs,
         workingDir, credentials, memoryPerExecutor, sharedExecutor);
     ListenableFuture<ContainerExecutionResult> future = executorService.submit(callable);
-    Futures.addCallback(future, new TaskRunnerCallback(request, callable));
+    Futures.addCallback(future, new TaskRunnerCallback(request, callable), GuavaShim.directExecutor());
   }
 
 
@@ -456,6 +458,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
           new AtomicLong(0),
           request.getContainerIdString());
 
+      TezCommonUtils.logCredentials(LOG, taskUgi.getCredentials(), "taskUgi");
       taskRunner = new TezTaskRunner2(conf, taskUgi, localDirs,
           ProtoConverters.getTaskSpecfromProto(request.getTaskSpec()),
           request.getAppAttemptNumber(),

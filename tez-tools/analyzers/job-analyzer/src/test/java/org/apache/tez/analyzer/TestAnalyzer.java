@@ -21,6 +21,7 @@ package org.apache.tez.analyzer;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -267,7 +268,7 @@ public class TestAnalyzer {
       //Parse downloaded contents
       File downloadedFile = new File(DOWNLOAD_DIR
           + Path.SEPARATOR + dagId + ".zip");
-      ATSFileParser parser = new ATSFileParser(downloadedFile);
+      ATSFileParser parser = new ATSFileParser(Arrays.asList(downloadedFile));
       dagInfo = parser.getDAGData(dagId);
       assertTrue(dagInfo.getDagId().equals(dagId));
     } else {
@@ -286,7 +287,7 @@ public class TestAnalyzer {
       }
       //Now parse via SimpleHistory
       File localFile = new File(DOWNLOAD_DIR, HISTORY_TXT);
-      SimpleHistoryParser parser = new SimpleHistoryParser(localFile);
+      SimpleHistoryParser parser = new SimpleHistoryParser(Arrays.asList(localFile));
       dagInfo = parser.getDAGData(dagId);
       assertTrue(dagInfo.getDagId().equals(dagId));
     }

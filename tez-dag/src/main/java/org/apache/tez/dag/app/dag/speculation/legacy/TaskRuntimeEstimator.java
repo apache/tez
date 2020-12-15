@@ -29,13 +29,14 @@ import org.apache.tez.dag.records.TezTaskID;
  * 
  */
 public interface TaskRuntimeEstimator {
-  public void enrollAttempt(TezTaskAttemptID id, long timestamp);
+  void enrollAttempt(TezTaskAttemptID id, long timestamp);
 
-  public long attemptEnrolledTime(TezTaskAttemptID attemptID);
+  long attemptEnrolledTime(TezTaskAttemptID attemptID);
 
-  public void updateAttempt(TezTaskAttemptID taId, TaskAttemptState reportedState, long timestamp);
+  void updateAttempt(TezTaskAttemptID taId,
+      TaskAttemptState reportedState, long timestamp);
 
-  public void contextualize(Configuration conf, Vertex vertex);
+  void contextualize(Configuration conf, Vertex vertex);
 
   /**
    *
@@ -52,7 +53,7 @@ public interface TaskRuntimeEstimator {
    *         however long.
    *
    */
-  public long thresholdRuntime(TezTaskID id);
+  long thresholdRuntime(TezTaskID id);
 
   /**
    *
@@ -64,7 +65,7 @@ public interface TaskRuntimeEstimator {
    *         we don't have enough information yet to produce an estimate.
    *
    */
-  public long estimatedRuntime(TezTaskAttemptID id);
+  long estimatedRuntime(TezTaskAttemptID id);
 
   /**
    *
@@ -75,7 +76,7 @@ public interface TaskRuntimeEstimator {
    *         we don't have enough information yet to produce an estimate.
    *
    */
-  public long newAttemptEstimatedRuntime();
+  long newAttemptEstimatedRuntime();
 
   /**
    *
@@ -87,5 +88,20 @@ public interface TaskRuntimeEstimator {
    *         we don't have enough information yet to produce an estimate.
    *
    */
-  public long runtimeEstimateVariance(TezTaskAttemptID id);
+  long runtimeEstimateVariance(TezTaskAttemptID id);
+
+  /**
+   *
+   * Returns true if the estimator has no updates records for a threshold time
+   * window. This helps to identify task attempts that are stalled at the
+   * beginning of execution.
+   *
+   * @param id the {@link TezTaskAttemptID} of the attempt we are asking about
+   * @param timeStamp the time of the report we compare with
+   * @return true if the task attempt has no progress for a given time window
+   *
+   */
+  default boolean hasStagnatedProgress(TezTaskAttemptID id, long timeStamp) {
+    return false;
+  }
 }

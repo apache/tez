@@ -43,7 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.GuavaShim;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
@@ -60,11 +61,12 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TaskCounter;
@@ -78,6 +80,7 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.HostPortPartition;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 
@@ -214,6 +217,7 @@ class ShuffleScheduler {
   private final int ifileReadAheadLength;
   private final CompressionCodec codec;
   private final Configuration conf;
+  private final RawLocalFileSystem localFs;
   private final boolean localDiskFetchEnabled;
   private final String localHostname;
   private final int shufflePort;
@@ -245,6 +249,7 @@ class ShuffleScheduler {
   private final boolean compositeFetch;
 
   private volatile Thread shuffleSchedulerThread = null;
+  private final int maxPenaltyTime;
 
   private long totalBytesShuffledTillNow = 0;
   private final DecimalFormat  mbpsFormat = new DecimalFormat("0.00");
@@ -262,6 +267,7 @@ class ShuffleScheduler {
                           String srcNameTrimmed) throws IOException {
     this.inputContext = inputContext;
     this.conf = conf;
+    this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
     this.exceptionReporter = exceptionReporter;
     this.allocator = allocator;
     this.mergeManager = mergeManager;
@@ -417,6 +423,8 @@ class ShuffleScheduler {
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
+    this.maxPenaltyTime = conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS,
+        TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS_DEFAULT);
 
     pipelinedShuffleInfoEventsMap = Maps.newConcurrentMap();
     LOG.info("ShuffleScheduler running for sourceVertex: "
@@ -433,11 +441,13 @@ class ShuffleScheduler {
         + ", maxStallTimeFraction=" + maxStallTimeFraction
         + ", minReqProgressFraction=" + minReqProgressFraction
         + ", checkFailedFetchSinceLastCompletion=" + checkFailedFetchSinceLastCompletion
+        + ", asyncHttp=" + asyncHttp
     );
   }
 
   public void start() throws Exception {
     shuffleSchedulerThread = Thread.currentThread();
+    mergeManager.setupParentThread(shuffleSchedulerThread);
     ShuffleSchedulerCallable schedulerCallable = new ShuffleSchedulerCallable();
     schedulerCallable.call();
   }
@@ -747,16 +757,13 @@ class ShuffleScheduler {
     }
   }
 
-  public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
-                                      MapHost host,
-                                      boolean readError,
-                                      boolean connectError,
-                                      boolean isLocalFetch) {
+  public synchronized void copyFailed(InputAttemptFetchFailure fetchFailure, MapHost host,
+      boolean readError, boolean connectError) {
     failedShuffleCounter.increment(1);
     inputContext.notifyProgress();
-    int failures = incrementAndGetFailureAttempt(srcAttempt);
+    int failures = incrementAndGetFailureAttempt(fetchFailure.getInputAttemptIdentifier());
 
-    if (!isLocalFetch) {
+    if (!fetchFailure.isLocalFetch()) {
       /**
        * Track the number of failures that has happened since last completion.
        * This gets reset on a successful copy.
@@ -781,11 +788,11 @@ class ShuffleScheduler {
 
     if (shouldInformAM) {
       //Inform AM. In case producer needs to be restarted, it is handled at AM.
-      informAM(srcAttempt);
+      informAM(fetchFailure);
     }
 
     //Restart consumer in case shuffle is not healthy
-    if (!isShuffleHealthy(srcAttempt)) {
+    if (!isShuffleHealthy(fetchFailure.getInputAttemptIdentifier())) {
       return;
     }
 
@@ -831,7 +838,8 @@ class ShuffleScheduler {
 
     long delay = (long) (INITIAL_PENALTY *
         Math.pow(PENALTY_GROWTH_RATE, failures));
-    penalties.add(new Penalty(host, delay));
+    long penaltyDelay = Math.min(delay, maxPenaltyTime);
+    penalties.add(new Penalty(host, penaltyDelay));
   }
 
   private int getFailureCount(InputAttemptIdentifier srcAttempt) {
@@ -859,21 +867,24 @@ class ShuffleScheduler {
   }
 
   // Notify AM
-  private void informAM(InputAttemptIdentifier srcAttempt) {
+  private void informAM(InputAttemptFetchFailure fetchFailure) {
+    InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
     LOG.info(
-        srcNameTrimmed + ": " + "Reporting fetch failure for InputIdentifier: "
-            + srcAttempt + " taskAttemptIdentifier: " + TezRuntimeUtils
-            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier(),
-                srcAttempt.getAttemptNumber()) + " to AM.");
+        "{}: Reporting fetch failure for InputIdentifier: {} taskAttemptIdentifier: {}, "
+            + "local fetch: {}, remote fetch failure reported as local failure: {}) to AM.",
+        srcNameTrimmed, srcAttempt,
+        TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber()),
+        fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource());
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
-    failedEvents.add(InputReadErrorEvent.create(
-        "Fetch failure for " + TezRuntimeUtils
-            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                srcAttempt.getInputIdentifier(),
-                srcAttempt.getAttemptNumber()) + " to jobtracker.",
-        srcAttempt.getInputIdentifier(),
-        srcAttempt.getAttemptNumber()));
+    failedEvents.add(
+        InputReadErrorEvent.create(
+            "Fetch failure for "
+                + TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+                    srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber())
+                + " to jobtracker.",
+            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber(),
+            fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource()));
 
     inputContext.sendEvents(failedEvents);
   }
@@ -1149,7 +1160,12 @@ class ShuffleScheduler {
       String path, int reduceId) {
     return pathToIdentifierMap.get(new PathPartition(path, reduceId));
   }
-  
+
+  @VisibleForTesting
+  DelayQueue<Penalty> getPenalties() {
+    return penalties;
+  }
+
   private synchronized boolean inputShouldBeConsumed(InputAttemptIdentifier id) {
     boolean isInputFinished = false;
     if (id instanceof CompositeInputAttemptIdentifier) {
@@ -1281,7 +1297,7 @@ class ShuffleScheduler {
   /**
    * A structure that records the penalty for a host.
    */
-  private static class Penalty implements Delayed {
+  static class Penalty implements Delayed {
     MapHost host;
     private long endTime;
     
@@ -1432,7 +1448,7 @@ class ShuffleScheduler {
                 FetcherOrderedGrouped fetcherOrderedGrouped = constructFetcherForHost(mapHost);
                 runningFetchers.add(fetcherOrderedGrouped);
                 ListenableFuture<Void> future = fetcherExecutor.submit(fetcherOrderedGrouped);
-                Futures.addCallback(future, new FetchFutureCallback(fetcherOrderedGrouped));
+                Futures.addCallback(future, new FetchFutureCallback(fetcherOrderedGrouped), GuavaShim.directExecutor());
               }
             }
           }
@@ -1455,7 +1471,7 @@ class ShuffleScheduler {
   FetcherOrderedGrouped constructFetcherForHost(MapHost mapHost) {
     return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
         exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
-        codec, conf, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+        codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
         connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
         verifyDiskChecksum, compositeFetch);

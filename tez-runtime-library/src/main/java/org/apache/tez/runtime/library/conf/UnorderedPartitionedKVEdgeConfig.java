@@ -23,8 +23,7 @@ package org.apache.tez.runtime.library.conf;
 import javax.annotation.Nullable;
 
 import java.util.Map;
-
-import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -151,7 +150,7 @@ public class UnorderedPartitionedKVEdgeConfig
    * @return an {@link org.apache.tez.dag.api.EdgeProperty} instance
    */
   public EdgeProperty createDefaultCustomEdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor) {
-    Preconditions.checkNotNull(edgeManagerDescriptor, "EdgeManagerDescriptor cannot be null");
+    Objects.requireNonNull(edgeManagerDescriptor, "EdgeManagerDescriptor cannot be null");
     EdgeProperty edgeProperty =
         EdgeProperty.create(edgeManagerDescriptor, EdgeProperty.DataSourceType.PERSISTED,
             EdgeProperty.SchedulingType.SEQUENTIAL,

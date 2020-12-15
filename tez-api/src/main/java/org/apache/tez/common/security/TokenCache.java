@@ -34,6 +34,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
+import org.apache.tez.dag.api.TezConfiguration;
 
 
 /**
@@ -101,6 +102,20 @@ public class TokenCache {
     }
   }
 
+  static boolean isTokenRenewalExcluded(FileSystem fs, Configuration conf) {
+    String[] nns =
+            conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
+    if (nns != null) {
+      String host = fs.getUri().getHost();
+      for(int i = 0; i < nns.length; i++) {
+        if (nns[i].equals(host)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * get delegation token for a specific FS
    * @param fs
@@ -112,10 +127,14 @@ public class TokenCache {
   static void obtainTokensForFileSystemsInternal(FileSystem fs, 
       Credentials credentials, Configuration conf) throws IOException {
     // TODO Change this to use YARN utilities once YARN-1664 is fixed.
-    String delegTokenRenewer = Master.getMasterPrincipal(conf);
-    if (delegTokenRenewer == null || delegTokenRenewer.length() == 0) {
-      throw new IOException(
-          "Can't get Master Kerberos principal for use as renewer");
+    // RM skips renewing token with empty renewer
+    String delegTokenRenewer = "";
+    if (!isTokenRenewalExcluded(fs, conf)) {
+      delegTokenRenewer = Master.getMasterPrincipal(conf);
+      if (delegTokenRenewer == null || delegTokenRenewer.length() == 0) {
+        throw new IOException(
+                "Can't get Master Kerberos principal for use as renewer");
+      }
     }
 
     final Token<?> tokens[] = fs.addDelegationTokens(delegTokenRenewer,

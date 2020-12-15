@@ -66,8 +66,8 @@ import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
-
-import com.google.common.base.Preconditions;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single
@@ -235,6 +235,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
   }
 
+
   // helper method to populate the remaining map
   void populateRemainingMap(List<InputAttemptIdentifier> origlist) {
     if (srcAttemptsRemaining == null) {
@@ -276,7 +277,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     HostFetchResult hostFetchResult;
 
-    if (localDiskFetchEnabled && host.equals(localHostname) && port == shufflePort) {
+    boolean isLocalFetch = localDiskFetchEnabled && host.equals(localHostname) && port == shufflePort;
+    if (isLocalFetch) {
       hostFetchResult = setupLocalDiskFetch();
     } else if (multiplex) {
       hostFetchResult = doSharedFetch();
@@ -287,7 +289,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     if (hostFetchResult.failedInputs != null && hostFetchResult.failedInputs.length > 0) {
       if (!isShutDown.get()) {
         LOG.warn("copyInputs failed for tasks " + Arrays.toString(hostFetchResult.failedInputs));
-        for (InputAttemptIdentifier left : hostFetchResult.failedInputs) {
+        for (InputAttemptFetchFailure left : hostFetchResult.failedInputs) {
           fetcherCallback.fetchFailed(host, left, hostFetchResult.connectFailed);
         }
       } else {
@@ -357,7 +359,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         }
 
         spillRec.putIndex(indexRec, 0);
-        spillRec.writeToFile(tmpIndex, conf);
+        spillRec.writeToFile(tmpIndex, conf, localFs);
         // everything went well so far - rename it
         boolean renamed = localFs.rename(tmpIndex, outputPath
             .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
@@ -503,7 +505,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       // ioErrs.increment(1);
       // If connect did not succeed, just mark all the maps as failed,
       // indirectly penalizing the host
-      InputAttemptIdentifier[] failedFetches = null;
+      InputAttemptFetchFailure[] failedFetches = null;
       if (isShutDown.get()) {
         if (isDebugEnabled) {
           LOG.debug(
@@ -511,8 +513,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
                   e.getClass().getName() + ", Message: " + e.getMessage());
         }
       } else {
-        failedFetches = srcAttemptsRemaining.values().
-            toArray(new InputAttemptIdentifier[srcAttemptsRemaining.values().size()]);
+        failedFetches = InputAttemptFetchFailure.fromAttempts(srcAttemptsRemaining.values());
       }
       return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()), failedFetches, true);
     }
@@ -542,10 +543,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         }
       } else {
         InputAttemptIdentifier firstAttempt = attempts.iterator().next();
-        LOG.warn("Fetch Failure from host while connecting: " + host + ", attempt: " + firstAttempt
-            + " Informing ShuffleManager: ", e);
+        LOG.warn(String.format(
+            "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
+            localHostname, host, port, firstAttempt), e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
-            new InputAttemptIdentifier[] { firstAttempt }, false);
+            new InputAttemptFetchFailure[] { new InputAttemptFetchFailure(firstAttempt) }, true);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); //reset status
@@ -582,7 +584,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     // On any error, faildTasks is not null and we exit
     // after putting back the remaining maps to the
     // yet_to_be_fetched list and marking the failed tasks.
-    InputAttemptIdentifier[] failedInputs = null;
+    InputAttemptFetchFailure[] failedInputs = null;
     while (!srcAttemptsRemaining.isEmpty() && failedInputs == null) {
       InputAttemptIdentifier inputAttemptIdentifier =
           srcAttemptsRemaining.entrySet().iterator().next().getValue();
@@ -709,7 +711,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       }
     }
 
-    InputAttemptIdentifier[] failedFetches = null;
+    InputAttemptFetchFailure[] failedFetches = null;
     if (failMissing && srcAttemptsRemaining.size() > 0) {
       if (isShutDown.get()) {
         if (isDebugEnabled) {
@@ -718,8 +720,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
                   " remaining inputs");
         }
       } else {
-        failedFetches = srcAttemptsRemaining.values().
-            toArray(new InputAttemptIdentifier[srcAttemptsRemaining.values().size()]);
+        failedFetches =
+            InputAttemptFetchFailure.fromAttemptsLocalFetchFailure(srcAttemptsRemaining.values());
       }
     } else {
       // nothing needs to be done to requeue remaining entries
@@ -735,7 +737,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     Path indexFile = getShuffleInputFileName(srcAttemptId.getPathComponent(),
         Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
 
-    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, conf);
+    TezSpillRecord spillRecord = new TezSpillRecord(indexFile, localFs);
     idxRecord = spillRecord.getIndex(partition);
     return idxRecord;
   }
@@ -768,10 +770,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   static class HostFetchResult {
     private final FetchResult fetchResult;
-    private final InputAttemptIdentifier[] failedInputs;
+    private final InputAttemptFetchFailure[] failedInputs;
     private final boolean connectFailed;
 
-    public HostFetchResult(FetchResult fetchResult, InputAttemptIdentifier[] failedInputs,
+    public HostFetchResult(FetchResult fetchResult, InputAttemptFetchFailure[] failedInputs,
                            boolean connectFailed) {
       this.fetchResult = fetchResult;
       this.failedInputs = failedInputs;
@@ -829,8 +831,11 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       return "id: " + srcAttemptId + ", decompressed length: " + decompressedLength + ", compressed length: " + compressedLength + ", reduce: " + forReduce;
     }
   }
-  private InputAttemptIdentifier[] fetchInputs(DataInputStream input,
-      CachingCallBack callback, InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
+
+  @VisibleForTesting
+  InputAttemptFetchFailure[] fetchInputs(DataInputStream input, CachingCallBack callback,
+      InputAttemptIdentifier inputAttemptIdentifier)
+      throws FetcherReadTimeoutException {
     FetchedInput fetchedInput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;
@@ -854,9 +859,19 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           header.readFields(input);
           pathComponent = header.getMapId();
           if (!pathComponent.startsWith(InputAttemptIdentifier.PATH_PREFIX)) {
-            throw new IllegalArgumentException("Invalid map id: " + header.getMapId() + ", expected to start with " +
-                InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.getPartition()
-                + " while fetching " + inputAttemptIdentifier);
+            if (pathComponent.startsWith(ShuffleHandlerError.DISK_ERROR_EXCEPTION.toString())) {
+              LOG.warn("Invalid map id: " + header.getMapId() + ", expected to start with "
+                  + InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.getPartition()
+                  + " while fetching " + inputAttemptIdentifier);
+              // this should be treated as local fetch failure while reporting later
+              return new InputAttemptFetchFailure[] {
+                  InputAttemptFetchFailure.fromDiskErrorAtSource(inputAttemptIdentifier) };
+            } else {
+              throw new IllegalArgumentException(
+                  "Invalid map id: " + header.getMapId() + ", expected to start with "
+                      + InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.getPartition()
+                      + " while fetching " + inputAttemptIdentifier);
+            }
           }
 
           srcAttemptId = pathToAttemptMap.get(new PathPartition(pathComponent, header.getPartition()));
@@ -881,7 +896,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           if (!isShutDown.get()) {
             LOG.warn("Invalid src id ", e);
             // Don't know which one was bad, so consider all of them as bad
-            return srcAttemptsRemaining.values().toArray(new InputAttemptIdentifier[srcAttemptsRemaining.size()]);
+            return InputAttemptFetchFailure.fromAttempts(srcAttemptsRemaining.values());
           } else {
             if (isDebugEnabled) {
               LOG.debug("Already shutdown. Ignoring badId error with message: " + e.getMessage());
@@ -900,7 +915,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
               srcAttemptId = getNextRemainingAttempt();
             }
             assert (srcAttemptId != null);
-            return new InputAttemptIdentifier[]{srcAttemptId};
+            return new InputAttemptFetchFailure[] {
+                InputAttemptFetchFailure.fromAttempt(srcAttemptId) };
           } else {
             if (isDebugEnabled) {
               LOG.debug("Already shutdown. Ignoring verification failure.");
@@ -1002,19 +1018,20 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         // Cleanup the fetchedInput before returning.
         cleanupFetchedInput(fetchedInput);
         if (srcAttemptId == null) {
-          return srcAttemptsRemaining.values()
-              .toArray(new InputAttemptIdentifier[srcAttemptsRemaining.size()]);
+          return InputAttemptFetchFailure.fromAttempts(srcAttemptsRemaining.values());
         } else {
-          return new InputAttemptIdentifier[] { srcAttemptId };
+          return new InputAttemptFetchFailure[] {
+              new InputAttemptFetchFailure(srcAttemptId) };
         }
       }
-      LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host,
-          ioe);
+      LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + " (to "
+          + localHostname + ")", ioe);
 
       // Cleanup the fetchedInput
       cleanupFetchedInput(fetchedInput);
       // metrics.failedFetch();
-      return new InputAttemptIdentifier[] { srcAttemptId };
+      return new InputAttemptFetchFailure[] {
+          new InputAttemptFetchFailure(srcAttemptId) };
     }
     return null;
   }
@@ -1049,7 +1066,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
       LOG.warn("Shuffle output from " + srcAttemptId +
-          " failed, retry it.");
+          " failed (to "+ localHostname +"), retry it.");
       //retry connecting to the host
       return true;
     } else {

@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.io.IntWritable;
@@ -55,6 +55,7 @@ import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.mapreduce.examples.CartesianProduct;
+import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
@@ -138,7 +139,6 @@ public class TestTezJobs {
 
     if (mrrTezCluster == null) {
       mrrTezCluster = new MiniTezCluster(TestTezJobs.class.getName(), 1, 1, 1);
-      Configuration conf = new Configuration();
       conf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
       mrrTezCluster.init(conf);
@@ -163,7 +163,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
-    hashJoinExample.setConf(mrrTezCluster.getConfig());
+    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path("/tmp/tez-staging-dir");
     Path inPath1 = new Path("/tmp/hashJoin/inPath1");
     Path inPath2 = new Path("/tmp/hashJoin/inPath2");
@@ -216,10 +216,64 @@ public class TestTezJobs {
     assertEquals(0, expectedResult.size());
   }
 
+  /**
+   * test whole {@link HashJoinExample} pipeline as following: <br>
+   * {@link JoinDataGen} -> {@link HashJoinExample} -> {@link JoinValidate}
+   * @throws Exception
+   */
+  @Test(timeout = 120000)
+  public void testHashJoinExampleWithDataViaEvent() throws Exception {
+
+    Path testDir = new Path("/tmp/testHashJoinExampleDataViaEvent");
+    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
+    remoteFs.mkdirs(stagingDirPath);
+    remoteFs.mkdirs(testDir);
+
+    Path dataPath1 = new Path(testDir, "inPath1");
+    Path dataPath2 = new Path(testDir, "inPath2");
+    Path expectedOutputPath = new Path(testDir, "expectedOutputPath");
+    Path outPath = new Path(testDir, "outPath");
+
+    TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
+    tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
+
+    //turn on the dataViaEvent
+    tezConf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED, true);
+
+    TezClient tezSession = null;
+    try {
+      tezSession = TezClient.create("HashJoinExampleSession", tezConf, true);
+      tezSession.start();
+
+      JoinDataGen dataGen = new JoinDataGen();
+      String[] dataGenArgs = new String[] {
+              "-counter",
+              dataPath1.toString(), "1048576", dataPath2.toString(), "8",
+              expectedOutputPath.toString(), "2" };
+      assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
+
+      HashJoinExample joinExample = new HashJoinExample();
+      String[] args = new String[] {
+              dataPath1.toString(), dataPath2.toString(), "1", outPath.toString(),
+              "doBroadcast"};
+
+      assertEquals(0, joinExample.run(tezConf, args, tezSession));
+
+      JoinValidate joinValidate = new JoinValidate();
+      String[] validateArgs = new String[] {
+              "-counter", expectedOutputPath.toString(), outPath.toString(), "3" };
+      assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
+    } finally {
+      if (tezSession != null) {
+        tezSession.stop();
+      }
+    }
+  }
+
   @Test(timeout = 60000)
   public void testHashJoinExampleDisableSplitGrouping() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
-    hashJoinExample.setConf(conf);
+    hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/hashJoin/inPath2");
@@ -431,7 +485,7 @@ public class TestTezJobs {
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
-    sortMergeJoinExample.setConf(conf);
+    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");

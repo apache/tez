@@ -47,11 +47,10 @@ public class MRInputUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInputUtils.class);
 
-  public static TaskSplitMetaInfo[] readSplits(Configuration conf) throws IOException {
-    TaskSplitMetaInfo[] allTaskSplitMetaInfo;
-    allTaskSplitMetaInfo = SplitMetaInfoReaderTez
-        .readSplitMetaInfo(conf, FileSystem.getLocal(conf));
-    return allTaskSplitMetaInfo;
+  public static TaskSplitMetaInfo getSplits(Configuration conf, int index) throws IOException {
+    TaskSplitMetaInfo taskSplitMInfo = SplitMetaInfoReaderTez
+        .getSplitMetaInfo(conf, FileSystem.getLocal(conf), index);
+    return taskSplitMInfo;
   }
 
   public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(

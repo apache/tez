@@ -46,7 +46,7 @@ import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 public class JoinDataGen extends TezExampleBase {
 
@@ -102,10 +102,10 @@ public class JoinDataGen extends TezExampleBase {
     Path expectedOutputPath = new Path(expectedOutputDir);
 
     // Verify output path existence
-    FileSystem fs = FileSystem.get(tezConf);
     int res = 0;
-    res = checkOutputDirectory(fs, largeOutPath) + checkOutputDirectory(fs, smallOutPath)
-        + checkOutputDirectory(fs, expectedOutputPath);
+    res = checkOutputDirectory(tezConf, largeOutPath)
+        + checkOutputDirectory(tezConf, smallOutPath)
+        + checkOutputDirectory(tezConf, expectedOutputPath);
     if (res != 0) {
       return 3;
     }
@@ -279,7 +279,9 @@ public class JoinDataGen extends TezExampleBase {
 
   }
 
-  private int checkOutputDirectory(FileSystem fs, Path path) throws IOException {
+  private int checkOutputDirectory(Configuration conf, Path path) throws IOException {
+    FileSystem fs = path.getFileSystem(conf);
+    path = fs.makeQualified(path);
     if (fs.exists(path)) {
       System.err.println("Output directory: " + path + " already exists");
       return 2;

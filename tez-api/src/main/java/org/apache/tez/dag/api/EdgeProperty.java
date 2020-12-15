@@ -21,7 +21,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * An @link {@link EdgeProperty} defines the relation between the source and
@@ -43,7 +43,7 @@ public class EdgeProperty {
    */
   public enum DataMovementType {
     /**
-     * Output on this edge produced by the i-th source task is available to the 
+     * Output on this edge produced by the i-th source task is available to the
      * i-th destination task.
      */
     ONE_TO_ONE,
@@ -58,20 +58,20 @@ public class EdgeProperty {
      * are gathered by designated destination tasks.
      */
     SCATTER_GATHER,
-    
+
     /**
      * Custom routing defined by the user.
      */
     CUSTOM
   }
-  
+
   /**
    * Determines the lifetime of the data produced on this edge by a source task.
    */
   public enum DataSourceType {
     /**
      * Data produced by the source is persisted and available even when the
-     * task is not running. The data may become unavailable and may cause the 
+     * task is not running. The data may become unavailable and may cause the
      * source task to be re-executed.
      */
     PERSISTED,
@@ -82,31 +82,51 @@ public class EdgeProperty {
     PERSISTED_RELIABLE,
     /**
      * Data produced by the source task is available only while the source task
-     * is running. This requires the destination task to run concurrently with 
-     * the source task. This is not supported yet.
+     * is running. This requires the destination task to run concurrently with
+     * the source task. Development in progress.
      */
     @Unstable
     EPHEMERAL
   }
-  
+
   /**
-   * Determines when the destination task is eligible to run, once the source  
+   * Determines when the destination task is eligible to run, once the source
    * task is eligible to run.
    */
   public enum SchedulingType {
     /**
-     * Destination task is eligible to run after one or more of its source tasks 
+     * Destination task is eligible to run after one or more of its source tasks
      * have started or completed.
      */
     SEQUENTIAL,
     /**
      * Destination task must run concurrently with the source task.
-     *  This is not supported yet.
+     * Development in progress.
      */
     @Unstable
     CONCURRENT
   }
-  
+
+  /**
+   * Determines the relevant event(s) that will assist in scheduling downstream vertex
+   * connected via a edge with CONCURRENT {@link SchedulingType}.
+   */
+  public enum ConcurrentEdgeTriggerType {
+    /**
+     * trigger tasks scheduling for downstream vertex(es) upon upstream being configured
+     * this effectively simultaneously schedules downstream and upstream vertices
+     * connected on both ends of a concurrent edge.
+     */
+    SOURCE_VERTEX_CONFIGURED,
+
+    /**
+     * trigger tasks scheduling for downstream vertex(es) by "running" event(s) of upstream tasks
+     * this will be fully supported with TEZ-3999
+     */
+    SOURCE_TASK_STARTED
+  }
+
+
   final DataMovementType dataMovementType;
   final DataSourceType dataSourceType;
   final SchedulingType schedulingType;
@@ -172,7 +192,7 @@ public class EdgeProperty {
     Preconditions.checkArgument(dataMovementType != DataMovementType.CUSTOM,
         DataMovementType.CUSTOM + " cannot be used with this constructor");
   }
-  
+
 
   private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
                        DataSourceType dataSourceType,
@@ -182,7 +202,7 @@ public class EdgeProperty {
     this(edgeManagerDescriptor, DataMovementType.CUSTOM, dataSourceType, schedulingType,
         edgeSource, edgeDestination);
   }
-  
+
   private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
       DataMovementType dataMovementType, DataSourceType dataSourceType,
       SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
@@ -193,7 +213,7 @@ public class EdgeProperty {
     this.inputDescriptor = edgeDestination;
     this.outputDescriptor = edgeSource;
   }
-  
+
   /**
    * Get the {@link DataMovementType}
    * @return {@link DataMovementType}
@@ -201,7 +221,7 @@ public class EdgeProperty {
   public DataMovementType getDataMovementType() {
     return dataMovementType;
   }
-  
+
   /**
    * Get the {@link DataSourceType}
    * @return {@link DataSourceType}
@@ -209,7 +229,7 @@ public class EdgeProperty {
   public DataSourceType getDataSourceType() {
     return dataSourceType;
   }
-  
+
   /**
    * Get the {@link SchedulingType}
    * @return {@link SchedulingType}
@@ -217,30 +237,30 @@ public class EdgeProperty {
   public SchedulingType getSchedulingType() {
     return schedulingType;
   }
-  
+
   /**
    * @return the {@link InputDescriptor} which will consume data from the edge.
    */
   public InputDescriptor getEdgeDestination() {
     return inputDescriptor;
   }
-  
+
   /**
    * @return the {@link OutputDescriptor} which produces data on the edge.
    */
   public OutputDescriptor getEdgeSource() {
     return outputDescriptor;
   }
-  
+
   /**
-   * Returns the Edge Manager specifications for this edge.  
+   * Returns the Edge Manager specifications for this edge.
    * @return @link {@link EdgeManagerPluginDescriptor} if a custom edge was setup, null otherwise.
    */
   @Private
   public EdgeManagerPluginDescriptor getEdgeManagerDescriptor() {
     return edgeManagerDescriptor;
   }
-  
+
   @Override
   public String toString() {
     return "{ " + dataMovementType + " : " + inputDescriptor.getClassName()
@@ -248,5 +268,5 @@ public class EdgeProperty {
         + " >> " + (edgeManagerDescriptor == null ? "NullEdgeManager" : edgeManagerDescriptor.getClassName())
         + " }";
   }
-  
+
 }

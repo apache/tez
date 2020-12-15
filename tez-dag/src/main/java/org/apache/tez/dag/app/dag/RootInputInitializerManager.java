@@ -34,8 +34,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Objects;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.event.EventHandler;
+import org.apache.tez.common.GuavaShim;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -107,7 +109,7 @@ public class RootInputInitializerManager {
     this.dagUgi = dagUgi;
     this.entityStateTracker = stateTracker;
   }
-  
+
   public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
       inputs) throws TezException {
     for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
@@ -127,7 +129,8 @@ public class RootInputInitializerManager {
           new InitializerWrapper(input, initializer, context, vertex, entityStateTracker, appContext);
 
       // Register pending vertex update registrations
-      List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations = pendingVertexRegistrations.removeAll(input.getName());
+      List<VertexUpdateRegistrationHolder> vertexUpdateRegistrations =
+          pendingVertexRegistrations.removeAll(input.getName());
       if (vertexUpdateRegistrations != null) {
         for (VertexUpdateRegistrationHolder h : vertexUpdateRegistrations) {
           initializerWrapper.registerForVertexStateUpdates(h.vertexName, h.stateSet);
@@ -137,7 +140,7 @@ public class RootInputInitializerManager {
       initializerMap.put(input.getName(), initializerWrapper);
       ListenableFuture<List<Event>> future = executor
           .submit(new InputInitializerCallable(initializerWrapper, dagUgi, appContext));
-      Futures.addCallback(future, createInputInitializerCallback(initializerWrapper));
+      Futures.addCallback(future, createInputInitializerCallback(initializerWrapper), GuavaShim.directExecutor());
     }
   }
 
@@ -175,7 +178,7 @@ public class RootInputInitializerManager {
       InputInitializerEvent event = (InputInitializerEvent)tezEvent.getEvent();
       Preconditions.checkState(vertex.getName().equals(event.getTargetVertexName()),
           "Received event for incorrect vertex");
-      Preconditions.checkNotNull(event.getTargetInputName(), "target input name must be set");
+      Objects.requireNonNull(event.getTargetInputName(), "target input name must be set");
       InitializerWrapper initializer = initializerMap.get(event.getTargetInputName());
       Preconditions.checkState(initializer != null,
           "Received event for unknown input : " + event.getTargetInputName());
@@ -220,8 +223,8 @@ public class RootInputInitializerManager {
 
   public void registerForVertexUpdates(String vertexName, String inputName,
                                        @Nullable Set<org.apache.tez.dag.api.event.VertexState> stateSet) {
-    Preconditions.checkNotNull(vertexName, "VertexName cannot be null: " + vertexName);
-    Preconditions.checkNotNull(inputName, "InputName cannot be null");
+    Objects.requireNonNull(vertexName, "VertexName cannot be null: " + vertexName);
+    Objects.requireNonNull(inputName, "InputName cannot be null");
     InitializerWrapper initializer = initializerMap.get(inputName);
     if (initializer == null) {
       pendingVertexRegistrations.put(inputName, new VertexUpdateRegistrationHolder(vertexName, stateSet));
@@ -257,7 +260,7 @@ public class RootInputInitializerManager {
     private final UserGroupInformation ugi;
     private final AppContext appContext;
 
-    public InputInitializerCallable(InitializerWrapper initializer, UserGroupInformation ugi,
+    InputInitializerCallable(InitializerWrapper initializer, UserGroupInformation ugi,
                                     AppContext appContext) {
       this.initializerWrapper = initializer;
       this.ugi = ugi;
@@ -294,7 +297,7 @@ public class RootInputInitializerManager {
     private final EventHandler eventHandler;
     private final TezVertexID vertexID;
 
-    public InputInitializerCallback(InitializerWrapper initializer,
+    InputInitializerCallback(InitializerWrapper initializer,
         EventHandler eventHandler, TezVertexID vertexID) {
       this.initializer = initializer;
       this.eventHandler = eventHandler;
@@ -326,7 +329,7 @@ public class RootInputInitializerManager {
               " on vertex " + initializer.getVertexLogIdentifier());
       eventHandler
           .handle(new VertexEventRootInputFailed(vertexID, initializer.getInput().getName(),
-              new AMUserCodeException(Source.InputInitializer,t)));
+              new AMUserCodeException(Source.InputInitializer, t)));
     }
   }
 

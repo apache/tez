@@ -18,7 +18,7 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -28,8 +28,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
-import org.apache.commons.collections.BidiMap;
-import org.apache.commons.collections.bidimap.DualHashBidiMap;
+import org.apache.commons.collections4.BidiMap;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.util.StringInterner;
@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +72,7 @@ public class DagInfo extends BaseInfo {
   private CallerContext callerContext;
 
   //VertexID --> VertexName & vice versa
-  private final BidiMap vertexNameIDMapping;
+  private final BidiMap<String, String> vertexNameIDMapping;
 
   //edgeId to EdgeInfo mapping
   private final Map<Integer, EdgeInfo> edgeInfoMap;
@@ -85,11 +86,13 @@ public class DagInfo extends BaseInfo {
   private Multimap<Container, TaskAttemptInfo> containerMapping;
   private Map<String, String> config;
 
+  private Map<String, Object> meta = new HashMap<String, Object>();
+
   DagInfo(JSONObject jsonObject) throws JSONException {
     super(jsonObject);
 
     vertexNameMap = Maps.newHashMap();
-    vertexNameIDMapping = new DualHashBidiMap();
+    vertexNameIDMapping = new DualHashBidiMap<>();
     edgeInfoMap = Maps.newHashMap();
     basicVertexInfoMap = Maps.newHashMap();
     containerMapping = LinkedHashMultimap.create();
@@ -166,6 +169,10 @@ public class DagInfo extends BaseInfo {
   public static DagInfo create(JSONObject jsonObject) throws JSONException {
     DagInfo dagInfo = new DagInfo(jsonObject);
     return dagInfo;
+  }
+
+  public void addMeta(String key, Object value) {
+    meta.put(key, value);
   }
 
   private void parseDAGPlan(JSONObject dagPlan) throws JSONException {
@@ -320,7 +327,7 @@ public class DagInfo extends BaseInfo {
     BasicVertexInfo basicVertexInfo = basicVertexInfoMap.get(vertexInfo.getVertexName());
 
     Preconditions.checkArgument(basicVertexInfo != null,
-        "VerteName " + vertexInfo.getVertexName()
+        "VertexName " + vertexInfo.getVertexName()
             + " not present in DAG's vertices " + basicVertexInfoMap.entrySet());
 
     //populate additional information in VertexInfo
@@ -384,6 +391,19 @@ public class DagInfo extends BaseInfo {
     sb.append("events=").append(getEvents()).append(", ");
     sb.append("status=").append(getStatus());
     sb.append("]");
+    return sb.toString();
+  }
+
+  public String toExtendedString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(toString());
+
+    try {
+      sb.append("\nmeta=").append(new JSONObject(meta).toString(3));
+    } catch (JSONException e) {
+      throw new RuntimeException(e);
+    }
+
     return sb.toString();
   }
 
@@ -607,7 +627,7 @@ public class DagInfo extends BaseInfo {
     return Multimaps.unmodifiableMultimap(containerMapping);
   }
 
-  public final Map getVertexNameIDMapping() {
+  public final Map<String, String> getVertexNameIDMapping() {
     return vertexNameIDMapping;
   }
 
@@ -630,5 +650,4 @@ public class DagInfo extends BaseInfo {
   final void setUserName(String userName) {
     this.userName = userName;
   }
-
 }

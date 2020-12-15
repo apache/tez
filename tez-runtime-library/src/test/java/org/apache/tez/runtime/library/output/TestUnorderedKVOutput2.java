@@ -93,9 +93,24 @@ public class TestUnorderedKVOutput2 {
     }
   }
 
+  @Test(timeout = 5000)
+  public void testConfigMerge() throws Exception {
+    Configuration localConf = new Configuration(conf);
+    localConf.set("config-from-local", "config-from-local-value");
+    Configuration payload = new Configuration(false);
+    payload.set("config-from-payload", "config-from-payload-value");
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(localConf, payload, workingDir);
+    int numPartitions = 10;
+    UnorderedKVOutput output = new UnorderedKVOutput(outputContext, numPartitions);
+    output.initialize();
+    Configuration configAfterMerge = output.conf;
+    assertEquals("config-from-local-value", configAfterMerge.get("config-from-local"));
+    assertEquals("config-from-payload-value", configAfterMerge.get("config-from-payload"));
+  }
+
   @Test(timeout = 10000)
   public void testClose() throws Exception {
-    OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, workingDir);
+    OutputContext outputContext = OutputTestHelpers.createOutputContext(conf, conf, workingDir);
     int numPartitions = 1;
     UnorderedKVOutput output = new UnorderedKVOutput(outputContext, numPartitions);
     output.initialize();

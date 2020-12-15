@@ -19,7 +19,6 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.tez.dag.app.MockClock;
-import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
@@ -83,6 +82,8 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskCommunicatorWrapper;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
@@ -126,6 +127,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +147,7 @@ public class TestTaskAttempt {
   TezConfiguration vertexConf = new TezConfiguration();
   TaskLocationHint locationHint;
   Vertex mockVertex;
+  Task mockTask;
   ServicePluginInfo servicePluginInfo = new ServicePluginInfo()
       .setContainerLauncherName(TezConstants.getTezYarnServicePluginName());
 
@@ -160,13 +163,20 @@ public class TestTaskAttempt {
     when(appCtx.getContainerLauncherName(anyInt())).thenReturn(
         TezConstants.getTezYarnServicePluginName());
 
-    mockVertex = mock(Vertex.class);
-    when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
-    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(vertexConf));
+    createMockVertex(vertexConf);
+    mockTask = mock(Task.class);
+    when(mockTask.getVertex()).thenReturn(mockVertex);
 
     HistoryEventHandler mockHistHandler = mock(HistoryEventHandler.class);
     doReturn(mockHistHandler).when(appCtx).getHistoryHandler();
     LogManager.getRootLogger().setLevel(Level.DEBUG);
+  }
+
+  private void createMockVertex(Configuration conf) {
+    mockVertex = mock(Vertex.class);
+    when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
+    when(mockVertex.getVertexConfig()).thenReturn(
+        new VertexImpl.VertexConfigImpl(conf));
   }
 
   @Test(timeout = 5000)
@@ -1919,7 +1929,11 @@ public class TestTaskAttempt {
     verify(eventHandler, times(expectedEventsAfterFetchFailure)).handle(
         arg.capture());
 
-    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 1);
+    Configuration newVertexConf = new Configuration(vertexConf);
+    newVertexConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES,
+        1);
+    createMockVertex(newVertexConf);
+
     TezTaskID taskID2 = TezTaskID.getInstance(vertexID, 2);
     MockTaskAttemptImpl taImpl2 = new MockTaskAttemptImpl(taskID2, 1, eventHandler,
         taListener, taskConf, new SystemClock(),
@@ -1953,8 +1967,15 @@ public class TestTaskAttempt {
 
     Clock mockClock = mock(Clock.class); 
     int readErrorTimespanSec = 1;
-    taskConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES, 10);
-    taskConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, readErrorTimespanSec);
+
+    newVertexConf = new Configuration(vertexConf);
+    newVertexConf.setInt(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES,
+        10);
+    newVertexConf.setInt(
+        TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
+        readErrorTimespanSec);
+    createMockVertex(newVertexConf);
+
     TezTaskID taskID3 = TezTaskID.getInstance(vertexID, 3);
     MockTaskAttemptImpl taImpl3 = new MockTaskAttemptImpl(taskID3, 1, eventHandler,
         taListener, taskConf, mockClock,
@@ -2134,6 +2155,52 @@ public class TestTaskAttempt {
     Assert.assertEquals(1, taImpl.taskAttemptFinishedEventLogged);
   }
 
+  @Test
+  public void testMapTaskIsBlamedImmediatelyOnLocalFetchFailure() throws ServicePluginException {
+    // local fetch failure or disk read error at source -> turn source attempt to FAIL_IN_PROGRESS
+    testMapTaskFailingForFetchFailureType(true, true, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    testMapTaskFailingForFetchFailureType(true, false, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+    testMapTaskFailingForFetchFailureType(false, true, TaskAttemptStateInternal.FAIL_IN_PROGRESS);
+
+    // remote fetch failure -> won't change current state
+    testMapTaskFailingForFetchFailureType(false, false, TaskAttemptStateInternal.NEW);
+  }
+
+  private void testMapTaskFailingForFetchFailureType(boolean isLocalFetch,
+      boolean isDiskErrorAtSource, TaskAttemptStateInternal expectedState) {
+    EventHandler eventHandler = mock(EventHandler.class);
+    TezTaskID taskID =
+        TezTaskID.getInstance(TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
+    TaskAttemptImpl sourceAttempt = new MockTaskAttemptImpl(taskID, 1, eventHandler, null,
+        new Configuration(), SystemClock.getInstance(), mock(TaskHeartbeatHandler.class), appCtx,
+        false, null, null, false);
+
+    // the original read error event, sent by reducer task
+    InputReadErrorEvent inputReadErrorEvent =
+        InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource);
+    TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
+    when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
+    when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
+    when(appCtx.getCurrentDAG()).thenReturn(mock(DAG.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)))
+        .thenReturn(mock(Vertex.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)).getRunningTasks())
+        .thenReturn(100);
+
+    EventMetaData mockMeta = mock(EventMetaData.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(destTaskAttemptId);
+    TezEvent tezEvent = new TezEvent(inputReadErrorEvent, mockMeta);
+
+    // the event is propagated to map task's event handler
+    TaskAttemptEventOutputFailed outputFailedEvent =
+        new TaskAttemptEventOutputFailed(sourceAttempt.getID(), tezEvent, 11);
+
+    Assert.assertEquals(TaskAttemptStateInternal.NEW, sourceAttempt.getInternalState());
+    TaskAttemptStateInternal resultState = new TaskAttemptImpl.OutputReportedFailedTransition()
+        .transition(sourceAttempt, outputFailedEvent);
+    Assert.assertEquals(expectedState, resultState);
+  }
+
   private Event verifyEventType(List<Event> events,
       Class<? extends Event> eventClass, int expectedOccurences) {
     int count = 0;
@@ -2177,7 +2244,7 @@ public class TestTaskAttempt {
       super(TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber),
           eventHandler, tal, conf,
           clock, taskHeartbeatHandler, appContext,
-          isRescheduled, resource, containerContext, leafVertex, mockVertex,
+          isRescheduled, resource, containerContext, leafVertex, mockTask,
           locationHint, null, null);
     }
     

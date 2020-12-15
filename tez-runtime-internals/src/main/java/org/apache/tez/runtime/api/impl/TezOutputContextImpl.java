@@ -18,15 +18,12 @@
 
 package org.apache.tez.runtime.api.impl;
 
-import com.google.common.base.Preconditions;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -97,8 +94,8 @@ public class TezOutputContextImpl extends TezTaskContextImpl
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, outputDescriptor, objectRegistry, executionContext, memAvailable,
         sharedExecutor);
-    checkNotNull(outputIndex, "outputIndex is null");
-    checkNotNull(destinationVertexName, "destinationVertexName is null");
+    Objects.requireNonNull(outputIndex, "outputIndex is null");
+    Objects.requireNonNull(destinationVertexName, "destinationVertexName is null");
     this.userPayload = userPayload;
     this.outputIndex = outputIndex;
     this.destinationVertexName = destinationVertexName;
@@ -121,7 +118,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
 
   @Override
   public void sendEvents(List<Event> events) {
-    Preconditions.checkNotNull(events, "events are null");
+    Objects.requireNonNull(events, "events are null");
     List<TezEvent> tezEvents = new ArrayList<TezEvent>(events.size());
     for (Event e : events) {
       TezEvent tEvt = new TezEvent(e, sourceInfo);

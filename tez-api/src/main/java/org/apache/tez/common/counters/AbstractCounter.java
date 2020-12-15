@@ -49,4 +49,9 @@ public abstract class AbstractCounter implements TezCounter {
   public synchronized int hashCode() {
     return Objects.hashCode(getName(), getDisplayName(), getValue());
   }
+
+  @Override
+  public String toString() {
+    return "[" + getClass().getSimpleName() + "]: " + getDisplayName() + "=" + getValue();
+  }
 }

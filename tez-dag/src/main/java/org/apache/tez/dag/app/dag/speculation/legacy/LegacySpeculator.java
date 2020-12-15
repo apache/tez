@@ -18,12 +18,19 @@
 
 package org.apache.tez.dag.app.dag.speculation.legacy;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.annotations.VisibleForTesting;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +47,6 @@ import org.apache.tez.dag.app.dag.event.SpeculatorEventTaskAttemptStatusUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Maintains runtime estimation statistics. Makes periodic updates
  * estimates based on progress and decides on when to trigger a 
@@ -53,7 +58,7 @@ import com.google.common.base.Preconditions;
  * because it may be likely a wasted attempt. There is a delay between
  * successive speculations.
  */
-public class LegacySpeculator {
+public class LegacySpeculator extends AbstractService {
   
   private static final long ON_SCHEDULE = Long.MIN_VALUE;
   private static final long ALREADY_SPECULATING = Long.MIN_VALUE + 1;
@@ -62,19 +67,19 @@ public class LegacySpeculator {
   private static final long NOT_RUNNING = Long.MIN_VALUE + 4;
   private static final long TOO_LATE_TO_SPECULATE = Long.MIN_VALUE + 5;
 
-  private static final long SOONEST_RETRY_AFTER_NO_SPECULATE = 1000L * 1L;
-  private static final long SOONEST_RETRY_AFTER_SPECULATE = 1000L * 15L;
+  private final long soonestRetryAfterNoSpeculate;
+  private final long soonestRetryAfterSpeculate;
 
-  private static final double PROPORTION_RUNNING_TASKS_SPECULATABLE = 0.1;
-  private static final double PROPORTION_TOTAL_TASKS_SPECULATABLE = 0.01;
-  private static final int  MINIMUM_ALLOWED_SPECULATIVE_TASKS = 10;
+  private final double proportionRunningTasksSpeculatable;
+  private final double proportionTotalTasksSpeculatable;
+  private final int  minimumAllowedSpeculativeTasks;
   private static final int VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION = 1;
 
   private static final Logger LOG = LoggerFactory.getLogger(LegacySpeculator.class);
 
   private final ConcurrentMap<TezTaskID, Boolean> runningTasks
       = new ConcurrentHashMap<TezTaskID, Boolean>();
-
+  private ReadWriteLock lock = new ReentrantReadWriteLock();
   // Used to track any TaskAttempts that aren't heart-beating for a while, so
   // that we can aggressively speculate instead of waiting for task-timeout.
   private final ConcurrentMap<TezTaskAttemptID, TaskAttemptHistoryStatistics>
@@ -85,13 +90,29 @@ public class LegacySpeculator {
   // in progress.
   private static final long MAX_WAITTING_TIME_FOR_HEARTBEAT = 9 * 1000;
 
-  private final Set<TezTaskID> waitingToSpeculate = new HashSet<TezTaskID>();
+  private final Set<TezTaskID> mayHaveSpeculated = new HashSet<TezTaskID>();
 
   private Vertex vertex;
   private TaskRuntimeEstimator estimator;
   private final long taskTimeout;
   private final Clock clock;
-  private long nextSpeculateTime = Long.MIN_VALUE;
+  private Thread speculationBackgroundThread = null;
+  private volatile boolean stopped = false;
+
+  @VisibleForTesting
+  public int getMinimumAllowedSpeculativeTasks() { return minimumAllowedSpeculativeTasks;}
+
+  @VisibleForTesting
+  public double getProportionTotalTasksSpeculatable() { return proportionTotalTasksSpeculatable;}
+
+  @VisibleForTesting
+  public double getProportionRunningTasksSpeculatable() { return proportionRunningTasksSpeculatable;}
+
+  @VisibleForTesting
+  public long getSoonestRetryAfterNoSpeculate() { return soonestRetryAfterNoSpeculate;}
+
+  @VisibleForTesting
+  public long getSoonestRetryAfterSpeculate() { return soonestRetryAfterSpeculate;}
 
   public LegacySpeculator(Configuration conf, AppContext context, Vertex vertex) {
     this(conf, context.getClock(), vertex);
@@ -103,10 +124,63 @@ public class LegacySpeculator {
   
   static private TaskRuntimeEstimator getEstimator
       (Configuration conf, Vertex vertex) {
-    TaskRuntimeEstimator estimator = new LegacyTaskRuntimeEstimator();
-    estimator.contextualize(conf, vertex);
-    
+    TaskRuntimeEstimator estimator;
+    Class<? extends TaskRuntimeEstimator> estimatorClass =
+        conf.getClass(TezConfiguration.TEZ_AM_TASK_ESTIMATOR_CLASS,
+            LegacyTaskRuntimeEstimator.class,
+            TaskRuntimeEstimator.class);
+    try {
+      Constructor<? extends TaskRuntimeEstimator> estimatorConstructor
+          = estimatorClass.getConstructor();
+      estimator = estimatorConstructor.newInstance();
+      estimator.contextualize(conf, vertex);
+    } catch (NoSuchMethodException e) {
+      LOG.error("Can't make a speculation runtime estimator", e);
+      throw new RuntimeException(e);
+    } catch (IllegalAccessException e) {
+      LOG.error("Can't make a speculation runtime estimator", e);
+      throw new RuntimeException(e);
+    } catch (InstantiationException e) {
+      LOG.error("Can't make a speculation runtime estimator", e);
+      throw new RuntimeException(e);
+    } catch (InvocationTargetException e) {
+      LOG.error("Can't make a speculation runtime estimator", e);
+      throw new RuntimeException(e);
+    }
     return estimator;
+  }
+
+  @Override
+  protected void serviceStart() throws Exception {
+    lock.writeLock().lock();
+    try {
+      assert (speculationBackgroundThread == null);
+
+      if (speculationBackgroundThread == null) {
+        speculationBackgroundThread =
+            new Thread(createThread(),
+                "DefaultSpeculator background processing");
+        speculationBackgroundThread.start();
+      }
+      super.serviceStart();
+    } catch (Exception e) {
+      LOG.warn("Speculator thread could not launch", e);
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
+  public boolean isStarted() {
+    boolean result = false;
+    lock.readLock().lock();
+    try {
+      if (this.speculationBackgroundThread != null) {
+        result = getServiceState().equals(STATE.STARTED);
+      }
+    } finally {
+      lock.readLock().unlock();
+    }
+    return result;
   }
 
   // This constructor is designed to be called by other constructors.
@@ -114,36 +188,74 @@ public class LegacySpeculator {
   // Normally we figure out our own estimator.
   public LegacySpeculator
       (Configuration conf, TaskRuntimeEstimator estimator, Clock clock, Vertex vertex) {
+    super(LegacySpeculator.class.getName());
     this.vertex = vertex;
     this.estimator = estimator;
     this.clock = clock;
     taskTimeout = conf.getLong(
             TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
             TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT);
+    soonestRetryAfterNoSpeculate = conf.getLong(
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE,
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE_DEFAULT);
+    soonestRetryAfterSpeculate = conf.getLong(
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE,
+            TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE_DEFAULT);
+    proportionRunningTasksSpeculatable = conf.getDouble(
+            TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE,
+            TezConfiguration.TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE_DEFAULT);
+    proportionTotalTasksSpeculatable = conf.getDouble(
+            TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE,
+            TezConfiguration.TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE_DEFAULT);
+    minimumAllowedSpeculativeTasks = conf.getInt(
+            TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS,
+            TezConfiguration.TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS_DEFAULT);
   }
 
-/*   *************************************************************    */
-
-  void maybeSpeculate() {
-    long now = clock.getTime();
-    
-    if (now < nextSpeculateTime) {
-      return;
+  @Override
+  protected void serviceStop() throws Exception {
+    lock.writeLock().lock();
+    try {
+      stopped = true;
+      // this could be called before background thread is established
+      if (speculationBackgroundThread != null) {
+        speculationBackgroundThread.interrupt();
+      }
+      super.serviceStop();
+      speculationBackgroundThread = null;
+    } finally {
+      lock.writeLock().unlock();
     }
-    
-    int speculations = maybeScheduleASpeculation();
-    long mininumRecomp
-        = speculations > 0 ? SOONEST_RETRY_AFTER_SPECULATE
-                           : SOONEST_RETRY_AFTER_NO_SPECULATE;
+  }
 
-    long wait = Math.max(mininumRecomp,
-          clock.getTime() - now);
-    nextSpeculateTime = now + wait;
-
-    if (speculations > 0) {
-      LOG.info("We launched " + speculations
-          + " speculations.  Waiting " + wait + " milliseconds.");
-    }
+  public Runnable createThread() {
+    return new Runnable() {
+      @Override
+      public void run() {
+        while (!stopped && !Thread.currentThread().isInterrupted()) {
+          long backgroundRunStartTime = clock.getTime();
+          try {
+            int speculations = computeSpeculations();
+            long nextRecompTime = speculations > 0 ? soonestRetryAfterSpeculate
+                : soonestRetryAfterNoSpeculate;
+            long wait = Math.max(nextRecompTime, clock.getTime() - backgroundRunStartTime);
+            if (speculations > 0) {
+              LOG.info("We launched " + speculations
+                  + " speculations.  Waiting " + wait + " milliseconds before next evaluation.");
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Waiting {} milliseconds before next evaluation.", wait);
+              }
+            }
+            Thread.sleep(wait);
+          } catch (InterruptedException ie) {
+            if (!stopped) {
+              LOG.warn("Speculator thread interrupted", ie);
+            }
+          }
+        }
+      }
+    };
   }
 
 /*   *************************************************************    */
@@ -151,11 +263,11 @@ public class LegacySpeculator {
   public void notifyAttemptStarted(TezTaskAttemptID taId, long timestamp) {
     estimator.enrollAttempt(taId, timestamp);    
   }
-  
-  public void notifyAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState reportedState,
+
+  public void notifyAttemptStatusUpdate(TezTaskAttemptID taId,
+      TaskAttemptState reportedState,
       long timestamp) {
     statusUpdate(taId, reportedState, timestamp);
-    maybeSpeculate();
   }
 
   /**
@@ -166,21 +278,22 @@ public class LegacySpeculator {
    * @param timestamp the time this status corresponds to.  This matters
    *        because statuses contain progress.
    */
-  private void statusUpdate(TezTaskAttemptID attemptID, TaskAttemptState reportedState, long timestamp) {
+  private void statusUpdate(TezTaskAttemptID attemptID,
+      TaskAttemptState reportedState, long timestamp) {
 
     TezTaskID taskID = attemptID.getTaskID();
     Task task = vertex.getTask(taskID);
 
-    Preconditions.checkState(task != null, "Null task for attempt: " + attemptID);
+    if (task == null) {
+      return;
+    }
 
     estimator.updateAttempt(attemptID, reportedState, timestamp);
 
-    //if (stateString.equals(TaskAttemptState.RUNNING.name())) {
     if (reportedState == TaskAttemptState.RUNNING) {
       runningTasks.putIfAbsent(taskID, Boolean.TRUE);
     } else {
       runningTasks.remove(taskID, Boolean.TRUE);
-      //if (!stateString.equals(TaskAttemptState.STARTING.name())) {
       if (reportedState == TaskAttemptState.STARTING) {
         runningTaskAttemptStatistics.remove(attemptID);
       }
@@ -226,9 +339,19 @@ public class LegacySpeculator {
 
     // short circuit completed tasks. no need to spend time on them
     if (task.getState() == TaskState.SUCCEEDED) {
+      // remove the task from may have speculated if it exists
+      mayHaveSpeculated.remove(taskID);
       return NOT_RUNNING;
     }
 
+    if (!mayHaveSpeculated.contains(taskID) && !shouldUseTimeout) {
+      acceptableRuntime = estimator.thresholdRuntime(taskID);
+      if (acceptableRuntime == Long.MAX_VALUE) {
+        return ON_SCHEDULE;
+      }
+    }
+
+    TezTaskAttemptID runningTaskAttemptID;
     int numberRunningAttempts = 0;
 
     for (TaskAttempt taskAttempt : attempts.values()) {
@@ -236,36 +359,8 @@ public class LegacySpeculator {
       if (taskAttemptState == TaskAttemptState.RUNNING
           || taskAttemptState == TaskAttemptState.STARTING) {
         if (++numberRunningAttempts > 1) {
-          waitingToSpeculate.remove(taskID);
           return ALREADY_SPECULATING;
         }
-      }
-    }
-
-    // If we are here, there's at most one task attempt.
-    if (numberRunningAttempts == 0) {
-      return NOT_RUNNING;
-    }
-
-    if ((numberRunningAttempts == 1) && waitingToSpeculate.contains(taskID)) {
-      return ALREADY_SPECULATING;
-    }
-    else {
-      if (!shouldUseTimeout) {
-        acceptableRuntime = estimator.thresholdRuntime(taskID);
-        if (acceptableRuntime == Long.MAX_VALUE) {
-          return ON_SCHEDULE;
-        }
-      }
-    }
-
-    TezTaskAttemptID runningTaskAttemptID = null;
-
-    for (TaskAttempt taskAttempt : attempts.values()) {
-      TaskAttemptState taskAttemptState = taskAttempt.getState();
-      if (taskAttemptState == TaskAttemptState.RUNNING
-          || taskAttemptState == TaskAttemptState.STARTING) {
-
         runningTaskAttemptID = taskAttempt.getID();
 
         long taskAttemptStartTime
@@ -287,7 +382,8 @@ public class LegacySpeculator {
             return ON_SCHEDULE;
           }
         } else {
-          long estimatedRunTime = estimator.estimatedRuntime(runningTaskAttemptID);
+          long estimatedRunTime = estimator
+              .estimatedRuntime(runningTaskAttemptID);
 
           long estimatedEndTime = estimatedRunTime + taskAttemptStartTime;
 
@@ -299,15 +395,19 @@ public class LegacySpeculator {
                   runningTaskAttemptStatistics.get(runningTaskAttemptID);
           if (data == null) {
             runningTaskAttemptStatistics.put(runningTaskAttemptID,
-                    new TaskAttemptHistoryStatistics(estimatedRunTime, progress, now));
+                new TaskAttemptHistoryStatistics(estimatedRunTime, progress,
+                    now));
           } else {
             if (estimatedRunTime == data.getEstimatedRunTime()
                     && progress == data.getProgress()) {
               // Previous stats are same as same stats
-              if (data.notHeartbeatedInAWhile(now)) {
+              if (data.notHeartbeatedInAWhile(now)
+                  || estimator
+                  .hasStagnatedProgress(runningTaskAttemptID, now)) {
                 // Stats have stagnated for a while, simulate heart-beat.
                 // Now simulate the heart-beat
-                statusUpdate(taskAttempt.getID(), taskAttempt.getState(), clock.getTime());
+                statusUpdate(taskAttempt.getID(), taskAttempt.getState(),
+                    clock.getTime());
               }
             } else {
               // Stats have changed - update our data structure
@@ -330,6 +430,11 @@ public class LegacySpeculator {
       }
     }
 
+    // If we are here, there's at most one task attempt.
+    if (numberRunningAttempts == 0) {
+      return NOT_RUNNING;
+    }
+
     if ((acceptableRuntime == Long.MIN_VALUE) && !shouldUseTimeout) {
       acceptableRuntime = estimator.thresholdRuntime(taskID);
       if (acceptableRuntime == Long.MAX_VALUE) {
@@ -340,14 +445,15 @@ public class LegacySpeculator {
     return result;
   }
 
-  //Add attempt to a given Task.
+  // Add attempt to a given Task.
   protected void addSpeculativeAttempt(TezTaskID taskID) {
-    LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating " + taskID);
+    LOG.info("DefaultSpeculator.addSpeculativeAttempt -- we are speculating "
+        + taskID);
     vertex.scheduleSpeculativeTask(taskID);
-    waitingToSpeculate.add(taskID);
+    mayHaveSpeculated.add(taskID);
   }
 
-  private int maybeScheduleASpeculation() {
+  int computeSpeculations() {
     int successes = 0;
 
     long now = clock.getTime();
@@ -358,20 +464,19 @@ public class LegacySpeculator {
     Map<TezTaskID, Task> tasks = vertex.getTasks();
 
     int numberAllowedSpeculativeTasks
-        = (int) Math.max(MINIMUM_ALLOWED_SPECULATIVE_TASKS,
-                         PROPORTION_TOTAL_TASKS_SPECULATABLE * tasks.size());
-
+        = (int) Math.max(minimumAllowedSpeculativeTasks,
+        proportionTotalTasksSpeculatable * tasks.size());
     TezTaskID bestTaskID = null;
     long bestSpeculationValue = -1L;
     boolean shouldUseTimeout =
-            (tasks.size() <= VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION) &&
+        (tasks.size() <= VERTEX_SIZE_THRESHOLD_FOR_TIMEOUT_SPECULATION) &&
             (taskTimeout >= 0);
 
     // this loop is potentially pricey.
     // TODO track the tasks that are potentially worth looking at
     for (Map.Entry<TezTaskID, Task> taskEntry : tasks.entrySet()) {
       long mySpeculationValue = speculationValue(taskEntry.getValue(), now,
-              shouldUseTimeout);
+          shouldUseTimeout);
 
       if (mySpeculationValue == ALREADY_SPECULATING) {
         ++numberSpeculationsAlready;
@@ -388,7 +493,7 @@ public class LegacySpeculator {
     }
     numberAllowedSpeculativeTasks
         = (int) Math.max(numberAllowedSpeculativeTasks,
-                         PROPORTION_RUNNING_TASKS_SPECULATABLE * numberRunningTasks);
+                        proportionRunningTasksSpeculatable * numberRunningTasks);
 
     // If we found a speculation target, fire it off
     if (bestTaskID != null
@@ -396,7 +501,6 @@ public class LegacySpeculator {
       addSpeculativeAttempt(bestTaskID);
       ++successes;
     }
-
     return successes;
   }
 
@@ -426,6 +530,12 @@ public class LegacySpeculator {
     }
 
     public void setProgress(float progress) {
+      if (LOG.isDebugEnabled()) {
+        if (!ProgressHelper.isProgressWithinRange(progress)) {
+          LOG.debug("Progress update: speculator received progress in invalid "
+              + "range={}", progress);
+        }
+      }
       this.progress = progress;
     }
 

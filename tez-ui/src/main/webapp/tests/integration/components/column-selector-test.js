@@ -85,3 +85,23 @@ test('searchText test', function(assert) {
 
   assert.equal(this.$(".select-option").text().trim(), '');
 });
+
+test('case-insensitive searchText test', function(assert) {
+
+  this.setProperties({
+    searchText: "test",
+    content: {
+      visibleColumnIDs: {
+        testID: true,
+      },
+      columns: [Ember.Object.create({
+        id: "testID",
+        headerTitle: "Test Column"
+      })]
+    }
+  });
+
+  this.render(hbs`{{column-selector content=content searchText=searchText}}`);
+
+  assert.equal(this.$(".select-option").text().trim(), 'Test Column');
+});

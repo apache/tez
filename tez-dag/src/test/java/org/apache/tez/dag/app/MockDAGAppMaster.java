@@ -57,6 +57,8 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.client.TezApiVersionInfo;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.GuavaShim;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -73,7 +75,6 @@ import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.EventMetaData.EventProducerConsumerType;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
@@ -323,7 +324,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
             Worker worker = workers.remove();
             worker.setContainerData(cData);
             ListenableFuture<Void> future = executorService.submit(worker);
-            Futures.addCallback(future, worker.getCallback());            
+            Futures.addCallback(future, worker.getCallback(), GuavaShim.directExecutor());
           } else {
             containers.remove(cData.cId);
           }

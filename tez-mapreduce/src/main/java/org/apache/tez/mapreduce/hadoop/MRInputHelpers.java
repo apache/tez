@@ -27,9 +27,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
@@ -165,7 +166,7 @@ public class MRInputHelpers {
       throws IOException {
     // This may not need to use serialization factory, since OldFormat
     // always uses Writable to write splits.
-    Preconditions.checkNotNull(splitProto, "splitProto cannot be null");
+    Objects.requireNonNull(splitProto, "splitProto cannot be null");
     String className = splitProto.getSplitClassName();
     Class<InputSplit> clazz;
 
@@ -198,7 +199,7 @@ public class MRInputHelpers {
   public static org.apache.hadoop.mapreduce.InputSplit createNewFormatSplitFromUserPayload(
       MRRuntimeProtos.MRSplitProto splitProto, SerializationFactory serializationFactory)
       throws IOException {
-    Preconditions.checkNotNull(splitProto, "splitProto must be specified");
+    Objects.requireNonNull(splitProto, "splitProto must be specified");
     String className = splitProto.getSplitClassName();
     Class<org.apache.hadoop.mapreduce.InputSplit> clazz;
 
@@ -771,8 +772,8 @@ public class MRInputHelpers {
 
 
   private static String getStringProperty(Configuration conf, String propertyName) {
-    Preconditions.checkNotNull(conf, "Configuration must be provided");
-    Preconditions.checkNotNull(propertyName, "Property name must be provided");
+    Objects.requireNonNull(conf, "Configuration must be provided");
+    Objects.requireNonNull(propertyName, "Property name must be provided");
     return conf.get(propertyName);
   }
 

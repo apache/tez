@@ -53,7 +53,7 @@ import org.apache.tez.runtime.library.conf.UnorderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Simple example of joining 2 data sets using <a
@@ -113,7 +113,8 @@ public class HashJoinExample extends TezExampleBase {
     Path outputPath = new Path(outputDir);
 
     // Verify output path existence
-    FileSystem fs = FileSystem.get(tezConf);
+    FileSystem fs = outputPath.getFileSystem(tezConf);
+    outputPath = fs.makeQualified(outputPath);
     if (fs.exists(outputPath)) {
       System.err.println("Output directory: " + outputDir + " already exists");
       return 3;

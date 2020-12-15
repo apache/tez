@@ -96,7 +96,7 @@ public class TestMRInputAMSplitGenerator {
     UserPayload userPayload = dataSource.getInputDescriptor().getUserPayload();
 
     InputInitializerContext context =
-        new TezTestUtils.TezRootInputInitializerContextForTest(userPayload);
+        new TezTestUtils.TezRootInputInitializerContextForTest(userPayload, new Configuration(false));
     MRInputAMSplitGenerator splitGenerator =
         new MRInputAMSplitGenerator(context);
 

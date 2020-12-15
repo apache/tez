@@ -65,7 +65,7 @@ export default Ember.Component.extend({
     }
 
     return options.filter(function (option) {
-      return option.get('displayText').match(searchText);
+      return option.get('displayText').match(new RegExp(searchText, 'i'));
     });
   }),
 

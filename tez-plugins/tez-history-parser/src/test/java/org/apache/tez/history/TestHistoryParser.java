@@ -88,6 +88,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -239,7 +240,7 @@ public class TestHistoryParser {
     File localFile = new File(DOWNLOAD_DIR, HISTORY_TXT);
 
     //Now parse via SimpleHistory
-    SimpleHistoryParser parser = new SimpleHistoryParser(localFile);
+    SimpleHistoryParser parser = new SimpleHistoryParser(Arrays.asList(localFile));
     DagInfo dagInfo = parser.getDAGData(dagId);
     assertTrue(dagInfo.getDagId().equals(dagId));
     return dagInfo;
@@ -603,7 +604,7 @@ public class TestHistoryParser {
     //Parse downloaded contents
     File downloadedFile = new File(DOWNLOAD_DIR
         + Path.SEPARATOR + dagId + ".zip");
-    ATSFileParser parser = new ATSFileParser(downloadedFile);
+    ATSFileParser parser = new ATSFileParser(Arrays.asList(downloadedFile));
     DagInfo dagInfo = parser.getDAGData(dagId);
     assertTrue(dagInfo.getDagId().equals(dagId));
     return dagInfo;

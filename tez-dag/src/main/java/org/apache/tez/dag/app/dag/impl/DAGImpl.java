@@ -43,6 +43,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.Utils;
+import org.apache.tez.common.GuavaShim;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
@@ -136,7 +138,7 @@ import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -162,8 +164,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   // TODO Recovery
   //private final List<AMInfo> amInfos;
   private final Lock dagStatusLock = new ReentrantLock();
-  private final Condition dagCompletionCondition = dagStatusLock.newCondition();
+  private final Condition dagStateChangedCondition = dagStatusLock.newCondition();
   private final AtomicBoolean isFinalState = new AtomicBoolean(false);
+  private final AtomicBoolean runningStatusYetToBeConsumed = new AtomicBoolean(false);
   private final Lock readLock;
   private final Lock writeLock;
   private final String dagName;
@@ -567,6 +570,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   private void augmentStateMachine() {
     stateMachine
+        .registerStateEnteredCallback(DAGState.RUNNING,
+            STATE_CHANGED_CALLBACK)
         .registerStateEnteredCallback(DAGState.SUCCEEDED,
             STATE_CHANGED_CALLBACK)
         .registerStateEnteredCallback(DAGState.FAILED,
@@ -581,10 +586,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       implements OnStateChangedCallback<DAGState, DAGImpl> {
     @Override
     public void onStateChanged(DAGImpl dag, DAGState dagState) {
-      dag.isFinalState.set(true);
+      switch(dagState) {
+      case RUNNING:
+        dag.runningStatusYetToBeConsumed.set(true);
+        break;
+      case SUCCEEDED:
+      case FAILED:
+      case KILLED:
+      case ERROR:
+        dag.isFinalState.set(true);
+        break;
+      default:
+        break;
+      }
       dag.dagStatusLock.lock();
       try {
-        dag.dagCompletionCondition.signal();
+        dag.dagStateChangedCondition.signal();
       } finally {
         dag.dagStatusLock.unlock();
       }
@@ -804,19 +821,30 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public float getProgress() {
     this.readLock.lock();
     try {
-      float progress = 0.0f;
+      float accProg = 0.0f;
+      float dagProgress = 0.0f;
+      int verticesCount = getVertices().size();
       for (Vertex v : getVertices().values()) {
         float vertexProgress = v.getProgress();
-        if (vertexProgress >= 0.0f && vertexProgress <= 1.0f) {
-          progress += vertexProgress;
+        if (LOG.isDebugEnabled()) {
+          if (!ProgressHelper.isProgressWithinRange(vertexProgress)) {
+            LOG.debug("progress update: Vertex progress is invalid range"
+                + "; v={}, progress={}", v.getName(), vertexProgress);
+          }
+        }
+        accProg += ProgressHelper.processProgress(vertexProgress);
+      }
+      if (LOG.isDebugEnabled()) {
+        if (verticesCount == 0) {
+          LOG.debug("progress update: DAGImpl getProgress() returns 0.0f: "
+              + "vertices count is 0");
         }
       }
-      float dagProgress = progress / getTotalVertices();
-      if (dagProgress >= 0.0f && progress <= 1.0f) {
-        return dagProgress;
-      } else {
-        return 0.0f;
+      if (verticesCount > 0) {
+        dagProgress =
+            ProgressHelper.processProgress(accProg / verticesCount);
       }
+      return dagProgress;
     } finally {
       this.readLock.unlock();
     }
@@ -933,7 +961,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         if (isFinalState.get()) {
           break;
         }
-        nanosLeft = dagCompletionCondition.awaitNanos(timeoutNanos);
+        if (runningStatusYetToBeConsumed.compareAndSet(true, false)) {
+          // No need to wait further, as state just got changed to RUNNING
+          break;
+        }
+        nanosLeft = dagStateChangedCondition.awaitNanos(timeoutNanos);
       } catch (InterruptedException e) {
         throw new TezException("Interrupted while waiting for dag to complete", e);
       } finally {
@@ -1130,7 +1162,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
       for (Map.Entry<OutputKey,CallableEvent> entry : commitEvents.entrySet()) {
         ListenableFuture<Void> commitFuture = appContext.getExecService().submit(entry.getValue());
-        Futures.addCallback(commitFuture, entry.getValue().getCallback());
+        Futures.addCallback(commitFuture, entry.getValue().getCallback(), GuavaShim.directExecutor());
         commitFutures.put(entry.getKey(), commitFuture);
       }
     }
@@ -1631,7 +1663,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     // This is going to override the previously generated file
     // which didn't have the priorities
-    Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
+    if (getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
+        TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
+      Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
+    }
     return DAGState.INITED;
   }
 
@@ -2144,7 +2179,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                 };
               };
               ListenableFuture<Void> groupCommitFuture = appContext.getExecService().submit(groupCommitCallableEvent);
-              Futures.addCallback(groupCommitFuture, groupCommitCallableEvent.getCallback());
+              Futures.addCallback(groupCommitFuture, groupCommitCallableEvent.getCallback(),
+                  GuavaShim.directExecutor());
               commitFutures.put(outputKey, groupCommitFuture);
             }
           }

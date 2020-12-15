@@ -85,10 +85,6 @@
       <artifactId>commons-lang</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-runtime-internals</artifactId>
       <scope>test</scope>
@@ -119,6 +115,10 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+     <groupId>org.apache.commons</groupId>
+     <artifactId>commons-collections4</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.protobuf</groupId>

@@ -58,6 +58,7 @@ public class TestUnorderedKVInputConfig {
     fromConf.set("test.conf.key.1", "confkey1");
     fromConf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 1111);
     fromConf.set("io.shouldExist", "io");
+    fromConf.set("ssl.shouldExist", "ssl");
     Map<String, String> additionalConf = new HashMap<String, String>();
     additionalConf.put("test.key.2", "key2");
     additionalConf.put(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, "3");
@@ -105,6 +106,7 @@ public class TestUnorderedKVInputConfig {
     assertEquals("io", conf.get("io.shouldExist"));
     assertEquals("file", conf.get("file.shouldExist"));
     assertEquals("fs", conf.get("fs.shouldExist"));
+    assertEquals("ssl", conf.get("ssl.shouldExist"));
     assertNull(conf.get("test.conf.key.1"));
     assertNull(conf.get("test.key.1"));
     assertNull(conf.get("test.key.2"));

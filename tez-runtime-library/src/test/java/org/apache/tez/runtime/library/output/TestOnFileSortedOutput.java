@@ -44,7 +44,6 @@ import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.After;
 import org.junit.Assert;
@@ -378,6 +377,7 @@ public class TestOnFileSortedOutput {
 
   private OutputContext createTezOutputContext() throws IOException {
     String[] workingDirs = { workingDir.toString() };
+    Configuration localConf = new Configuration(false);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
     serviceProviderMetaData.writeInt(PORT);
@@ -400,6 +400,7 @@ public class TestOnFileSortedOutput {
 
     
     OutputContext context = mock(OutputContext.class);
+    doReturn(localConf).when(context).getContainerConfiguration();
     doReturn(counters).when(context).getCounters();
     doReturn(workingDirs).when(context).getWorkDirs();
     doReturn(payLoad).when(context).getUserPayload();

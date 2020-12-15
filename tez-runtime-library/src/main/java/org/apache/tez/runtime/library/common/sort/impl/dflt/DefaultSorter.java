@@ -32,7 +32,6 @@ import java.util.zip.Deflater;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
@@ -62,9 +61,9 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.DiskSegment;
 import org.apache.tez.runtime.library.common.sort.impl.TezMerger.Segment;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
-import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.SPILL_FILE_PERMS;
+import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.ensureSpillFilePermissions;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public final class DefaultSorter extends ExternalSorter implements IndexedSortable {
@@ -250,14 +249,14 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
 
-    if (key.getClass() != keyClass) {
+    if (key.getClass() != serializationContext.getKeyClass()) {
       throw new IOException("Type mismatch in key from map: expected "
-                            + keyClass.getName() + ", received "
+                            + serializationContext.getKeyClass().getName() + ", received "
                             + key.getClass().getName());
     }
-    if (value.getClass() != valClass) {
+    if (value.getClass() != serializationContext.getValueClass()) {
       throw new IOException("Type mismatch in value from map: expected "
-                            + valClass.getName() + ", received "
+                            + serializationContext.getValueClass().getName() + ", received "
                             + value.getClass().getName());
     }
     if (partition < 0 || partition >= partitions) {
@@ -896,9 +895,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(filename, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(filename, rfs);
 
       int spindex = mstart;
       final InMemValBytes value = createInMemValBytes();
@@ -909,8 +906,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           long segmentStart = out.getPos();
           if (spindex < mend && kvmeta.get(offsetFor(spindex) + PARTITION) == i
               || !sendEmptyPartitionDetails) {
-            writer = new Writer(conf, out, keyClass, valClass, codec,
-                spilledRecordsCounter, null, rle);
+            writer = new Writer(serializationContext.getKeySerialization(),
+                serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+                serializationContext.getValueClass(), codec, spilledRecordsCounter, null, rle);
           }
           if (combiner == null) {
             // spill directly
@@ -971,7 +969,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
         spillFileIndexPaths.put(numSpills, indexFilename);
-        spillRec.writeToFile(indexFilename, conf);
+        spillRec.writeToFile(indexFilename, conf, localFs);
       } else {
         indexCacheList.add(spillRec);
         totalIndexCacheMemory +=
@@ -1007,9 +1005,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(filename, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(filename, rfs);
 
       // we don't run the combiner for a single record
       for (int i = 0; i < partitions; ++i) {
@@ -1018,8 +1014,9 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           long segmentStart = out.getPos();
           // Create a new codec, don't care!
           if (!sendEmptyPartitionDetails || (i == partition)) {
-            writer = new Writer(conf, out, keyClass, valClass, codec,
-                spilledRecordsCounter, null, false);
+            writer = new Writer(serializationContext.getKeySerialization(),
+                serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+                serializationContext.getValueClass(), codec, spilledRecordsCounter, null, false);
           }
           if (i == partition) {
             final long recordStart = out.getPos();
@@ -1053,7 +1050,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
             mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
                 * MAP_OUTPUT_INDEX_RECORD_LENGTH);
         spillFileIndexPaths.put(numSpills, indexFilename);
-         spillRec.writeToFile(indexFilename, conf);
+        spillRec.writeToFile(indexFilename, conf, localFs);
       } else {
         indexCacheList.add(spillRec);
         totalIndexCacheMemory +=
@@ -1193,13 +1190,13 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       TezSpillRecord spillRecord = indexCacheList.get(i);
       if (spillRecord == null) {
         //File was already written and location is stored in spillFileIndexPaths
-        spillRecord = new TezSpillRecord(spillFileIndexPaths.get(i), conf);
+        spillRecord = new TezSpillRecord(spillFileIndexPaths.get(i), localFs);
       } else {
         //Double check if this file has to be written
         if (spillFileIndexPaths.get(i) == null) {
           Path indexPath = mapOutputFile.getSpillIndexFileForWrite(i, partitions *
               MAP_OUTPUT_INDEX_RECORD_LENGTH);
-          spillRecord.writeToFile(indexPath, conf);
+          spillRecord.writeToFile(indexPath, conf, localFs);
         }
       }
 
@@ -1228,10 +1225,10 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         sameVolRename(filename[0], finalOutputFile);
         if (indexCacheList.size() == 0) {
           sameVolRename(spillFileIndexPaths.get(0), finalIndexFile);
-          spillRecord = new TezSpillRecord(finalIndexFile, conf);
+          spillRecord = new TezSpillRecord(finalIndexFile, localFs);
         } else {
           spillRecord = indexCacheList.get(0);
-          spillRecord.writeToFile(finalIndexFile, conf);
+          spillRecord.writeToFile(finalIndexFile, conf, localFs);
         }
       } else {
         List<Event> events = Lists.newLinkedList();
@@ -1239,7 +1236,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         spillRecord = indexCacheList.get(0);
         Path indexPath = mapOutputFile.getSpillIndexFileForWrite(numSpills-1, partitions *
             MAP_OUTPUT_INDEX_RECORD_LENGTH);
-        spillRecord.writeToFile(indexPath, conf);
+        spillRecord.writeToFile(indexPath, conf, localFs);
         maybeSendEventForSpill(events, true, spillRecord, 0, true);
         fileOutputByteCounter.increment(rfs.getFileStatus(spillFilePaths.get(0)).getLen());
         //No need to populate finalIndexFile, finalOutputFile etc when finalMerge is disabled
@@ -1256,7 +1253,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     // read in paged indices
     for (int i = indexCacheList.size(); i < numSpills; ++i) {
       Path indexFileName = spillFileIndexPaths.get(i);
-      indexCacheList.add(new TezSpillRecord(indexFileName, conf));
+      indexCacheList.add(new TezSpillRecord(indexFileName, localFs));
     }
 
     //Check if it is needed to do final merge. Or else, exit early.
@@ -1283,9 +1280,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
 
     //The output stream for the final single output file
     FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
-    if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-      rfs.setPermission(finalOutputFile, SPILL_FILE_PERMS);
-    }
+    ensureSpillFilePermissions(finalOutputFile, rfs);
 
     if (numSpills == 0) {
       // TODO Change event generation to say there is no data rather than generating a dummy file
@@ -1298,7 +1293,10 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           long segmentStart = finalOut.getPos();
           if (!sendEmptyPartitionDetails) {
             Writer writer =
-                new Writer(conf, finalOut, keyClass, valClass, codec, null, null);
+                new Writer(serializationContext.getKeySerialization(),
+                    serializationContext.getValSerialization(), finalOut,
+                    serializationContext.getKeyClass(), serializationContext.getValueClass(), codec,
+                    null, null);
             writer.close();
             rawLength = writer.getRawLength();
             partLength = writer.getCompressedLength();
@@ -1309,7 +1307,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           outputBytesWithOverheadCounter.increment(rawLength);
           sr.putIndex(rec, i);
         }
-        sr.writeToFile(finalIndexFile, conf);
+        sr.writeToFile(finalIndexFile, conf, localFs);
       } finally {
         finalOut.close();
       }
@@ -1356,7 +1354,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         boolean sortSegments = segmentList.size() > mergeFactor;
         //merge
         TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
-                       keyClass, valClass, codec,
+                       serializationContext, codec,
                        segmentList, mergeFactor,
                        new Path(taskIdentifier),
                        (RawComparator)ConfigUtils.getIntermediateOutputKeyComparator(conf),
@@ -1369,9 +1367,10 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         long rawLength = 0;
         long partLength = 0;
         if (shouldWrite) {
-        Writer writer =
-            new Writer(conf, finalOut, keyClass, valClass, codec,
-                spilledRecordsCounter, null);
+          Writer writer = new Writer(serializationContext.getKeySerialization(),
+              serializationContext.getValSerialization(), finalOut,
+              serializationContext.getKeyClass(), serializationContext.getValueClass(), codec,
+              spilledRecordsCounter, null);
         if (combiner == null || numSpills < minSpillsForCombine) {
           TezMerger.writeFile(kvIter, writer,
               progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
@@ -1392,7 +1391,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         }
       }
       numShuffleChunks.setValue(1); //final merge has happened
-      spillRec.writeToFile(finalIndexFile, conf);
+      spillRec.writeToFile(finalIndexFile, conf, localFs);
       finalOut.close();
       for(int i = 0; i < numSpills; i++) {
         rfs.delete(filename[i],true);

@@ -133,6 +133,7 @@ public class TimelineReaderFactory {
 
   public interface TimelineReaderStrategy {
     Client getHttpClient() throws IOException;
+    void close();
   }
 
   /*
@@ -142,6 +143,8 @@ public class TimelineReaderFactory {
     private final Configuration conf;
     private final boolean useHttps;
     private final int connTimeout;
+    private ConnectionConfigurator connectionConfigurator;
+    private SSLFactory sslFactory;
 
     public TimelineReaderTokenAuthenticatedStrategy(final Configuration conf,
                                                     final boolean useHttps,
@@ -150,6 +153,7 @@ public class TimelineReaderFactory {
       this.conf = conf;
       this.useHttps = useHttps;
       this.connTimeout = connTimeout;
+      this.sslFactory = useHttps ? new SSLFactory(CLIENT, conf) : null;
     }
 
     @Override
@@ -160,8 +164,8 @@ public class TimelineReaderFactory {
       UserGroupInformation authUgi;
       String doAsUser;
       ClientConfig clientConfig = new DefaultClientConfig(JSONRootElementProvider.App.class);
-      ConnectionConfigurator connectionConfigurator = getNewConnectionConf(conf, useHttps,
-          connTimeout);
+      connectionConfigurator = getNewConnectionConf(conf, useHttps,
+          connTimeout, sslFactory);
 
       try {
         authenticator = getTokenAuthenticator();
@@ -238,6 +242,13 @@ public class TimelineReaderFactory {
         }
       }
     }
+
+    @Override
+    public void close() {
+      if (sslFactory != null) {
+        sslFactory.destroy();
+      }
+    }
   }
 
   /*
@@ -247,11 +258,13 @@ public class TimelineReaderFactory {
   protected static class TimelineReaderPseudoAuthenticatedStrategy implements TimelineReaderStrategy {
 
     private final ConnectionConfigurator connectionConf;
+    private final SSLFactory sslFactory;
 
     public TimelineReaderPseudoAuthenticatedStrategy(final Configuration conf,
                                                      final boolean useHttps,
                                                      final int connTimeout) {
-      connectionConf = getNewConnectionConf(conf, useHttps, connTimeout);
+      sslFactory = useHttps ? new SSLFactory(CLIENT, conf) : null;
+      connectionConf = getNewConnectionConf(conf, useHttps, connTimeout, sslFactory);
     }
 
     @Override
@@ -282,15 +295,23 @@ public class TimelineReaderFactory {
         return httpURLConnection;
       }
     }
+
+    @Override
+    public void close() {
+      if (sslFactory != null) {
+        sslFactory.destroy();
+      }
+    }
   }
 
   private static ConnectionConfigurator getNewConnectionConf(final Configuration conf,
                                                              final boolean useHttps,
-                                                             final int connTimeout) {
+                                                             final int connTimeout,
+                                                             final SSLFactory sslFactory) {
     ConnectionConfigurator connectionConf = null;
     if (useHttps) {
       try {
-        connectionConf = getNewSSLConnectionConf(conf, connTimeout);
+        connectionConf = getNewSSLConnectionConf(conf, connTimeout, sslFactory);
       } catch (IOException e) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Cannot load customized ssl related configuration."
@@ -313,13 +334,12 @@ public class TimelineReaderFactory {
   }
 
   private static ConnectionConfigurator getNewSSLConnectionConf(final Configuration conf,
-                                                                final int connTimeout)
+                                                                final int connTimeout,
+                                                                final SSLFactory sslFactory)
       throws IOException {
-    final SSLFactory sslFactory;
     final SSLSocketFactory sslSocketFactory;
     final HostnameVerifier hostnameVerifier;
 
-    sslFactory = new SSLFactory(CLIENT, conf);
     try {
       sslFactory.init();
       sslSocketFactory = sslFactory.createSSLSocketFactory();

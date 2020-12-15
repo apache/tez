@@ -50,7 +50,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 
 /**
  * Simple example of joining 2 data sets using <a
@@ -105,7 +105,8 @@ public class SortMergeJoinExample extends TezExampleBase {
     Path outputPath = new Path(outputDir);
 
     // Verify output path existence
-    FileSystem fs = FileSystem.get(tezConf);
+    FileSystem fs = outputPath.getFileSystem(tezConf);
+    outputPath = fs.makeQualified(outputPath);
     if (fs.exists(outputPath)) {
       System.err.println("Output directory: " + outputDir + " already exists");
       return 3;

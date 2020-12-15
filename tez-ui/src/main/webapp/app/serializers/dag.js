@@ -75,8 +75,9 @@ function getContainerLogs(source) {
   for (var key in otherinfo) {
     if (key.indexOf('inProgressLogsURL_') === 0) {
       let logs = Ember.get(source, 'otherinfo.' + key);
-      if (logs.indexOf('http') !== 0) {
-        logs = 'http://' + logs;
+      if (logs.indexOf("://") === -1) {
+        let yarnProtocol = this.get('env.app.yarnProtocol');
+        logs = yarnProtocol + '://' + logs;
       }
       let attemptID = key.substring(18);
       containerLogs.push({

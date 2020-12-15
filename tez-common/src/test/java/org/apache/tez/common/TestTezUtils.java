@@ -54,6 +54,34 @@ public class TestTezUtils {
     checkConf(conf);
   }
 
+  @Test (timeout=20000)
+  public void testByteStringToAndFromLargeConf() throws IOException {
+    Configuration conf = getConf();
+    int largeSizeMinimum = 64 * 1024 * 1024;
+    final String alphaString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    int largeSize = (largeSizeMinimum + alphaString.length() - 1) / alphaString.length();
+
+    largeSize *= alphaString.length();
+    assertTrue(largeSize >= alphaString.length());
+    StringBuilder sb = new StringBuilder(largeSize);
+
+    while (sb.length() < largeSize) {
+      sb.append(alphaString);
+    }
+
+    String largeValue = sb.toString();
+    Assert.assertEquals(largeSize, largeValue.length());
+    conf.set("testLargeValue", largeValue);
+    Assert.assertEquals(conf.size(), 7);
+    ByteString bsConf = TezUtils.createByteStringFromConf(conf);
+    conf.clear();
+    Assert.assertEquals(conf.size(), 0);
+    conf = TezUtils.createConfFromByteString(bsConf);
+    Assert.assertEquals(conf.size(), 7);
+    checkConf(conf);
+    Assert.assertEquals(conf.get("testLargeValue"), largeValue);
+  }
+
   @Test (timeout=2000)
   public void testPayloadToAndFromConf() throws IOException {
     Configuration conf = getConf();

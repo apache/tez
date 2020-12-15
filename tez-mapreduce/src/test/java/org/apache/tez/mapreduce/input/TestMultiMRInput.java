@@ -102,7 +102,7 @@ public class TestMultiMRInput {
     jobConf.setInputFormat(org.apache.hadoop.mapred.SequenceFileInputFormat.class);
     FileInputFormat.setInputPaths(jobConf, workDir);
 
-    InputContext inputContext = createTezInputContext(jobConf);
+    InputContext inputContext = createTezInputContext(jobConf, new Configuration(false));
 
     MultiMRInput mMrInput = new MultiMRInput(inputContext, 0);
 
@@ -122,6 +122,25 @@ public class TestMultiMRInput {
   }
 
   @Test(timeout = 5000)
+  public void testConfigMerge() throws Exception {
+    JobConf jobConf = new JobConf(false);
+    jobConf.set("payload-key", "payload-value");
+
+    Configuration localConfig = new Configuration(false);
+    localConfig.set("local-key", "local-value");
+
+    InputContext inputContext = createTezInputContext(jobConf, localConfig);
+
+    MultiMRInputForTest input = new MultiMRInputForTest(inputContext, 1);
+    input.initialize();
+
+    Configuration mergedConfig = input.getConfiguration();
+
+    assertEquals("local-value", mergedConfig.get("local-key"));
+    assertEquals("payload-value", mergedConfig.get("payload-key"));
+  }
+
+  @Test(timeout = 5000)
   public void testSingleSplit() throws Exception {
 
     Path workDir = new Path(TEST_ROOT_DIR, "testSingleSplit");
@@ -129,7 +148,7 @@ public class TestMultiMRInput {
     jobConf.setInputFormat(org.apache.hadoop.mapred.SequenceFileInputFormat.class);
     FileInputFormat.setInputPaths(jobConf, workDir);
 
-    InputContext inputContext = createTezInputContext(jobConf);
+    InputContext inputContext = createTezInputContext(jobConf, new Configuration(false));
 
     MultiMRInput input = new MultiMRInput(inputContext, 1);
     input.initialize();
@@ -180,7 +199,7 @@ public class TestMultiMRInput {
         splitProto.toByteString().asReadOnlyByteBuffer());
 
     // Create input context.
-    InputContext inputContext = createTezInputContext(conf);
+    InputContext inputContext = createTezInputContext(conf, new Configuration(false));
 
     // Create the MR input object and process the event
     MultiMRInput input = new MultiMRInput(inputContext, 1);
@@ -198,7 +217,7 @@ public class TestMultiMRInput {
     jobConf.setInputFormat(org.apache.hadoop.mapred.SequenceFileInputFormat.class);
     FileInputFormat.setInputPaths(jobConf, workDir);
 
-    InputContext inputContext = createTezInputContext(jobConf);
+    InputContext inputContext = createTezInputContext(jobConf, new Configuration(false));
 
     MultiMRInput input = new MultiMRInput(inputContext, 2);
     input.initialize();
@@ -265,7 +284,7 @@ public class TestMultiMRInput {
     jobConf.setInputFormat(org.apache.hadoop.mapred.SequenceFileInputFormat.class);
     FileInputFormat.setInputPaths(jobConf, workDir);
 
-    InputContext inputContext = createTezInputContext(jobConf);
+    InputContext inputContext = createTezInputContext(jobConf, new Configuration(false));
 
     MultiMRInput input = new MultiMRInput(inputContext, 1);
     input.initialize();
@@ -308,10 +327,10 @@ public class TestMultiMRInput {
     return data;
   }
 
-  private InputContext createTezInputContext(Configuration conf) throws Exception {
+  private InputContext createTezInputContext(Configuration payloadConf, Configuration baseConf) throws Exception {
     MRInputUserPayloadProto.Builder builder = MRInputUserPayloadProto.newBuilder();
     builder.setGroupingEnabled(false);
-    builder.setConfigurationBytes(TezUtils.createByteStringFromConf(conf));
+    builder.setConfigurationBytes(TezUtils.createByteStringFromConf(payloadConf));
     byte[] payload = builder.build().toByteArray();
 
     ApplicationId applicationId = ApplicationId.newInstance(10000, 1);
@@ -330,6 +349,7 @@ public class TestMultiMRInput {
     doReturn(UUID.randomUUID().toString()).when(inputContext).getUniqueIdentifier();
     doReturn("taskVertexName").when(inputContext).getTaskVertexName();
     doReturn(UserPayload.create(ByteBuffer.wrap(payload))).when(inputContext).getUserPayload();
+    doReturn(baseConf).when(inputContext).getContainerConfiguration();
     return inputContext;
   }
 

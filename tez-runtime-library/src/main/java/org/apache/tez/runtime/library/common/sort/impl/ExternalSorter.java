@@ -42,9 +42,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.Compressor;
-import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.io.serializer.Serializer;
 import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progressable;
@@ -60,13 +57,14 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitio
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.combine.Combiner;
+import org.apache.tez.runtime.library.common.serializer.SerializationContext;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
+import org.apache.tez.runtime.library.utils.CodecUtils;
+import org.apache.tez.common.Preconditions;
 
-import com.google.common.base.Preconditions;
-
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({"rawtypes"})
 public abstract class ExternalSorter {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalSorter.class);
@@ -102,13 +100,13 @@ public abstract class ExternalSorter {
   protected final Combiner combiner;
   protected final Partitioner partitioner;
   protected final Configuration conf;
+  protected final RawLocalFileSystem localFs;
   protected final FileSystem rfs;
   protected final TezTaskOutput mapOutputFile;
   protected final int partitions;
-  protected final Class keyClass;
-  protected final Class valClass;
   protected final RawComparator comparator;
-  protected final SerializationFactory serializationFactory;
+
+  protected final SerializationContext serializationContext;
   protected final Serializer keySerializer;
   protected final Serializer valSerializer;
   
@@ -171,6 +169,7 @@ public abstract class ExternalSorter {
       long initialMemoryAvailable) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;
+    this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
     this.partitions = numOutputs;
     reportPartitionStats = ReportPartitionStats.fromString(
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
@@ -199,14 +198,12 @@ public abstract class ExternalSorter {
     comparator = ConfigUtils.getIntermediateOutputKeyComparator(this.conf);
 
     // k/v serialization
-    keyClass = ConfigUtils.getIntermediateOutputKeyClass(this.conf);
-    valClass = ConfigUtils.getIntermediateOutputValueClass(this.conf);
-    serializationFactory = new SerializationFactory(this.conf);
-    keySerializer = serializationFactory.getSerializer(keyClass);
-    valSerializer = serializationFactory.getSerializer(valClass);
+    this.serializationContext = new SerializationContext(this.conf);
+    keySerializer = serializationContext.getKeySerializer();
+    valSerializer = serializationContext.getValueSerializer();
     LOG.info(outputContext.getDestinationVertexName() + " using: "
         + "memoryMb=" + assignedMb
-        + ", keySerializerClass=" + keyClass
+        + ", keySerializerClass=" + serializationContext.getKeyClass()
         + ", valueSerializerClass=" + valSerializer
         + ", comparator=" + (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf)
         + ", partitioner=" + conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS)
@@ -225,30 +222,7 @@ public abstract class ExternalSorter {
     numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
 
     // compression
-    if (ConfigUtils.shouldCompressIntermediateOutput(this.conf)) {
-      Class<? extends CompressionCodec> codecClass =
-          ConfigUtils.getIntermediateOutputCompressorClass(this.conf, DefaultCodec.class);
-      codec = ReflectionUtils.newInstance(codecClass, this.conf);
-
-      if (codec != null) {
-        Class<? extends Compressor> compressorType = null;
-        Throwable cause = null;
-        try {
-          compressorType = codec.getCompressorType();
-        } catch (RuntimeException e) {
-          cause = e;
-        }
-        if (compressorType == null) {
-          String errMsg =
-              String.format("Unable to get CompressorType for codec (%s). This is most" +
-                      " likely due to missing native libraries for the codec.",
-                  conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC));
-          throw new IOException(errMsg, cause);
-        }
-      }
-    } else {
-      codec = null;
-    }
+    this.codec = CodecUtils.getCodec(conf);
 
     this.ifileReadAhead = this.conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD,

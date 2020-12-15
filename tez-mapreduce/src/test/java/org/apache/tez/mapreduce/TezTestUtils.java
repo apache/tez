@@ -17,6 +17,7 @@
  */
 package org.apache.tez.mapreduce;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
@@ -59,10 +60,12 @@ public class TezTestUtils {
 
     private final ApplicationId appId;
     private final UserPayload payload;
+    private final Configuration vertexConfig;
 
-    public TezRootInputInitializerContextForTest(UserPayload payload) throws IOException {
+    public TezRootInputInitializerContextForTest(UserPayload payload, Configuration vertexConfig) throws IOException {
       appId = ApplicationId.newInstance(1000, 200);
       this.payload = payload == null ? UserPayload.create(null) : payload;
+      this.vertexConfig = vertexConfig;
     }
 
     @Override
@@ -73,6 +76,11 @@ public class TezTestUtils {
     @Override
     public String getDAGName() {
       return "FakeDAG";
+    }
+
+    @Override
+    public Configuration getVertexConfiguration() {
+      return vertexConfig;
     }
 
     @Override

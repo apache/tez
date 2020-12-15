@@ -76,7 +76,7 @@ public class HttpConnectionParams {
     sb.append("connectionTimeout=").append(connectionTimeout).append(", ");
     sb.append("readTimeout=").append(readTimeout).append(", ");
     sb.append("bufferSize=").append(bufferSize).append(", ");
-    sb.append("bufferSize=").append(bufferSize);
+    sb.append("sslShuffle=").append(sslShuffle);
     return sb.toString();
   }
 }

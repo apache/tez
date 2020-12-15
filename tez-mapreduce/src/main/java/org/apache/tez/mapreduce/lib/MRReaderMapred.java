@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.lib;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +30,12 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.InputContext;
-
-import com.google.common.base.Preconditions;
 
 public class MRReaderMapred extends MRReader {
 
@@ -146,6 +146,13 @@ public class MRReaderMapred extends MRReader {
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
+    String propertyList = jobConf.get(TezConfiguration.TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES);
+    if (propertyList != null) {
+      String[] properties = propertyList.split(",");
+      for (String prop : properties) {
+        addToIncrementalConfFromJobConf(prop);
+      }
+    }
     if (incrementalConf != null) {
       return new Configuration(incrementalConf);
     }
@@ -153,7 +160,7 @@ public class MRReaderMapred extends MRReader {
   }
 
   private void setupOldRecordReader() throws IOException {
-    Preconditions.checkNotNull(inputSplit, "Input split hasn't yet been setup");
+    Objects.requireNonNull(inputSplit, "Input split hasn't yet been setup");
     recordReader = inputFormat.getRecordReader(inputSplit, this.jobConf, new MRReporter(
         tezCounters, inputSplit));
     setIncrementalConfigParams(inputSplit);
@@ -162,15 +169,24 @@ public class MRReaderMapred extends MRReader {
     setupComplete = true;
   }
 
-  private void setIncrementalConfigParams(InputSplit inputSplit) {
-    if (inputSplit instanceof FileSplit) {
-      FileSplit fileSplit = (FileSplit) inputSplit;
+  private void setIncrementalConfigParams(InputSplit split) {
+    if (split instanceof FileSplit) {
+      FileSplit fileSplit = (FileSplit) split;
       this.incrementalConf = new Configuration(false);
 
       this.incrementalConf.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath().toString());
       this.incrementalConf.setLong(JobContext.MAP_INPUT_START, fileSplit.getStart());
       this.incrementalConf.setLong(JobContext.MAP_INPUT_PATH, fileSplit.getLength());
     }
-    LOG.info("Processing split: " + inputSplit);
+    LOG.info("Processing split: " + split);
+  }
+
+  private void addToIncrementalConfFromJobConf(String property) {
+    if (jobConf.get(property) != null) {
+      if (incrementalConf == null) {
+        incrementalConf = new Configuration(false);
+      }
+      incrementalConf.set(property, jobConf.get(property));
+    }
   }
 }

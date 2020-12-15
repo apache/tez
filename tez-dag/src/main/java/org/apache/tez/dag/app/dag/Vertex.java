@@ -26,6 +26,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
@@ -73,7 +74,6 @@ public interface Vertex extends Comparable<Vertex> {
   LinkedHashMap<String, Integer> getIOIndices();
   String getName();
   VertexState getState();
-
   /**
    * Get all the counters of this vertex.
    * @return aggregate task-counters
@@ -169,7 +169,10 @@ public interface Vertex extends Comparable<Vertex> {
       int fromEventId, int nextPreRoutedFromEventId, int maxEvents);
   
   void handleSpeculatorEvent(SpeculatorEvent event);
-
+  AbstractService getSpeculator();
+  void initServices();
+  void startServices();
+  void stopServices();
   ProcessorDescriptor getProcessorDescriptor();
   public DAG getDAG();
   @Nullable
@@ -211,8 +214,22 @@ public interface Vertex extends Comparable<Vertex> {
 
   interface VertexConfig {
     int getMaxFailedTaskAttempts();
+    int getMaxTaskAttempts();
     boolean getTaskRescheduleHigherPriority();
     boolean getTaskRescheduleRelaxedLocality();
+
+    /**
+     * @return tez.task.max.allowed.output.failures.
+     */
+    int getMaxAllowedOutputFailures();
+    /**
+     * @return tez.task.max.allowed.output.failures.fraction.
+     */
+    double getMaxAllowedOutputFailuresFraction();
+    /**
+     * @return tez.am.max.allowed.time-sec.for-read-error.
+     */
+    int getMaxAllowedTimeForTaskReadErrorSec();
   }
 
   void incrementRejectedTaskAttemptCount();

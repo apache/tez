@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -69,7 +69,7 @@ import org.apache.tez.util.StopWatch;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.SPILL_FILE_PERMS;
+import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.ensureSpillFilePermissions;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
@@ -116,6 +116,8 @@ public class PipelinedSorter extends ExternalSorter {
   //Maintain a list of ByteBuffers
   @VisibleForTesting
   final List<ByteBuffer> buffers;
+  @VisibleForTesting
+  List<Integer> bufferUsage;
   final int maxNumberOfBlocks;
   private int bufferIndex = -1;
   private final int MIN_BLOCK_SIZE;
@@ -202,6 +204,7 @@ public class PipelinedSorter extends ExternalSorter {
     capacity = totalCapacityWithoutMeta;
 
     buffers = Lists.newArrayListWithCapacity(maxNumberOfBlocks);
+    bufferUsage = Lists.newArrayListWithCapacity(maxNumberOfBlocks);
     allocateSpace(); //Allocate the first block
     if (!lazyAllocateMem) {
       LOG.info("Pre allocating rest of memory buffers upfront");
@@ -257,6 +260,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     buffers.add(space);
     bufferIndex++;
+    bufferUsage.add(0);
 
     Preconditions.checkState(buffers.size() <= maxNumberOfBlocks,
         "Number of blocks " + buffers.size()
@@ -337,8 +341,9 @@ public class PipelinedSorter extends ExternalSorter {
       if (pipelinedShuffle && ret) {
         sendPipelinedShuffleEvents();
       }
-      //safe to reset bufferIndex to 0;
-      bufferIndex = 0;
+      // Use the next buffer
+      bufferIndex = (bufferIndex + 1) % buffers.size();
+      bufferUsage.set(bufferIndex, bufferUsage.get(bufferIndex) + 1);
       int items = 1024*1024;
       int perItem = 16;
       if(span.length() != 0) {
@@ -393,14 +398,14 @@ public class PipelinedSorter extends ExternalSorter {
    */
   synchronized void collect(Object key, Object value, final int partition
                                    ) throws IOException {
-    if (key.getClass() != keyClass) {
+    if (key.getClass() != serializationContext.getKeyClass()) {
       throw new IOException("Type mismatch in key from map: expected "
-                            + keyClass.getName() + ", received "
+                            + serializationContext.getKeyClass().getName() + ", received "
                             + key.getClass().getName());
     }
-    if (value.getClass() != valClass) {
+    if (value.getClass() != serializationContext.getValueClass()) {
       throw new IOException("Type mismatch in value from map: expected "
-                            + valClass.getName() + ", received "
+                            + serializationContext.getValueClass().getName() + ", received "
                             + value.getClass().getName());
     }
     if (partition < 0 || partition >= partitions) {
@@ -488,9 +493,7 @@ public class PipelinedSorter extends ExternalSorter {
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
     spillFilePaths.put(numSpills, filename);
     FSDataOutputStream out = rfs.create(filename, true, 4096);
-    if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-      rfs.setPermission(filename, SPILL_FILE_PERMS);
-    }
+    ensureSpillFilePermissions(filename, rfs);
 
     try {
       LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString() +
@@ -503,8 +506,9 @@ public class PipelinedSorter extends ExternalSorter {
         try {
           long segmentStart = out.getPos();
           if (!sendEmptyPartitionDetails || (i == partition)) {
-            writer = new Writer(conf, out, keyClass, valClass, codec,
-                spilledRecordsCounter, null, false);
+            writer = new Writer(serializationContext.getKeySerialization(),
+                serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+                serializationContext.getValueClass(), codec, spilledRecordsCounter, null, false);
           }
           // we need not check for combiner since its a single record
           if (i == partition) {
@@ -535,7 +539,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
 
       spillFileIndexPaths.put(numSpills, indexFilename);
-      spillRec.writeToFile(indexFilename, conf);
+      spillRec.writeToFile(indexFilename, conf, localFs);
       //TODO: honor cache limits
       indexCacheList.add(spillRec);
       ++numSpills;
@@ -576,9 +580,7 @@ public class PipelinedSorter extends ExternalSorter {
         mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename, true, 4096);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(filename, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(filename, rfs);
       LOG.info(outputContext.getDestinationVertexName() + ": Spilling to " + filename.toString());
       for (int i = 0; i < partitions; ++i) {
         if (isThreadInterrupted()) {
@@ -591,8 +593,10 @@ public class PipelinedSorter extends ExternalSorter {
         Writer writer = null;
         boolean hasNext = kvIter.hasNext();
         if (hasNext || !sendEmptyPartitionDetails) {
-          writer = new Writer(conf, out, keyClass, valClass, codec,
-              spilledRecordsCounter, null, merger.needsRLE());
+          writer = new Writer(serializationContext.getKeySerialization(),
+              serializationContext.getValSerialization(), out, serializationContext.getKeyClass(),
+              serializationContext.getValueClass(), codec, spilledRecordsCounter, null,
+              merger.needsRLE());
         }
         if (combiner == null) {
           while (kvIter.next()) {
@@ -625,7 +629,7 @@ public class PipelinedSorter extends ExternalSorter {
         mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
             * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       spillFileIndexPaths.put(numSpills, indexFilename);
-      spillRec.writeToFile(indexFilename, conf);
+      spillRec.writeToFile(indexFilename, conf, localFs);
       //TODO: honor cache limits
       indexCacheList.add(spillRec);
       ++numSpills;
@@ -737,7 +741,7 @@ public class PipelinedSorter extends ExternalSorter {
               + "finalIndexFile=" + finalIndexFile + ", filename=" + filename + ", indexFilename=" +
               indexFilename);
         }
-        TezSpillRecord spillRecord = new TezSpillRecord(finalIndexFile, conf);
+        TezSpillRecord spillRecord = new TezSpillRecord(finalIndexFile, localFs);
         if (reportPartitionStats()) {
           for (int i = 0; i < spillRecord.size(); i++) {
             partitionStats[i] += spillRecord.getIndex(i).getPartLength();
@@ -761,9 +765,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       //The output stream for the final single output file
       FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
-      if (!SPILL_FILE_PERMS.equals(SPILL_FILE_PERMS.applyUMask(FsPermission.getUMask(conf)))) {
-        rfs.setPermission(finalOutputFile, SPILL_FILE_PERMS);
-      }
+      ensureSpillFilePermissions(finalOutputFile, rfs);
 
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
 
@@ -792,7 +794,7 @@ public class PipelinedSorter extends ExternalSorter {
         boolean sortSegments = segmentList.size() > mergeFactor;
         //merge
         TezRawKeyValueIterator kvIter = TezMerger.merge(conf, rfs,
-            keyClass, valClass, codec,
+            serializationContext, codec,
             segmentList, mergeFactor,
             new Path(uniqueIdentifier),
             (RawComparator) ConfigUtils.getIntermediateOutputKeyComparator(conf),
@@ -804,9 +806,10 @@ public class PipelinedSorter extends ExternalSorter {
         long rawLength = 0;
         long partLength = 0;
         if (shouldWrite) {
-          Writer writer =
-              new Writer(conf, finalOut, keyClass, valClass, codec,
-                  spilledRecordsCounter, null, merger.needsRLE());
+          Writer writer = new Writer(serializationContext.getKeySerialization(),
+              serializationContext.getValSerialization(), finalOut,
+              serializationContext.getKeyClass(), serializationContext.getValueClass(), codec,
+              spilledRecordsCounter, null, merger.needsRLE());
           if (combiner == null || numSpills < minSpillsForCombine) {
             TezMerger.writeFile(kvIter, writer, progressable,
                 TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
@@ -833,7 +836,7 @@ public class PipelinedSorter extends ExternalSorter {
       numShuffleChunks.setValue(1); //final merge has happened.
       fileOutputByteCounter.increment(rfs.getFileStatus(finalOutputFile).getLen());
 
-      spillRec.writeToFile(finalIndexFile, conf);
+      spillRec.writeToFile(finalIndexFile, conf, localFs);
       finalOut.close();
       for (int i = 0; i < numSpills; i++) {
         Path indexFilename = spillFileIndexPaths.get(i);
@@ -1192,7 +1195,7 @@ public class PipelinedSorter extends ExternalSorter {
     public int compareTo(SpanIterator other) {
       return span.compareInternal(other.getKey(), other.getPartition(), kvindex);
     }
-    
+
     @Override
     public String toString() {
       return String.format("SpanIterator<%d:%d> (span=%s)", kvindex, maxindex, span.toString());

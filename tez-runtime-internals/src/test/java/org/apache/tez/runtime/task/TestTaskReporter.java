@@ -60,6 +60,7 @@ public class TestTaskReporter {
 
     final Object lock = new Object();
     final AtomicBoolean hb2Done = new AtomicBoolean(false);
+    final int maxEvents = 5;
 
     TezTaskUmbilicalProtocol mockUmbilical = mock(TezTaskUmbilicalProtocol.class);
     doAnswer(new Answer() {
@@ -68,7 +69,7 @@ public class TestTaskReporter {
         Object[] args = invocation.getArguments();
         TezHeartbeatRequest request = (TezHeartbeatRequest) args[0];
         if (request.getRequestId() == 1 || request.getRequestId() == 2) {
-          TezHeartbeatResponse response = new TezHeartbeatResponse(createEvents(5));
+          TezHeartbeatResponse response = new TezHeartbeatResponse(createEvents(maxEvents));
           response.setLastRequestId(request.getRequestId());
           return response;
         } else if (request.getRequestId() == 3) {
@@ -92,7 +93,7 @@ public class TestTaskReporter {
 
     // Setup the sleep time to be way higher than the test timeout
     TaskReporter.HeartbeatCallable heartbeatCallable =
-        new TaskReporter.HeartbeatCallable(mockTask, mockUmbilical, 100000, 100000, 5,
+        new TaskReporter.HeartbeatCallable(mockTask, mockUmbilical, 100000, 100000, maxEvents,
             new AtomicLong(0),
             "containerIdStr");
 
@@ -105,8 +106,8 @@ public class TestTaskReporter {
         }
       }
       verify(mockUmbilical, times(3)).heartbeat(any(TezHeartbeatRequest.class));
-      Thread.sleep(2000l);
-      // Sleep for 2 seconds, less than the callable sleep time. No more invocations.
+      Thread.sleep(200l);
+      // Sleep for less than the callable sleep time. No more invocations.
       verify(mockUmbilical, times(3)).heartbeat(any(TezHeartbeatRequest.class));
     } finally {
       executor.shutdownNow();

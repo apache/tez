@@ -85,6 +85,15 @@ public interface MRJobConfig {
 
   public static final String SKIP_OUTDIR = "mapreduce.job.skip.outdir";
 
+  public static final String SPECULATIVECAP_RUNNING_TASKS = "mapreduce.job.speculative.speculative-cap-running-tasks";
+
+  public static final String RETRY_AFTER_NO_SPECULATE = "mapreduce.job.speculative.retry-after-no-speculate";
+
+  public static final String RETRY_AFTER_SPECULATE = "mapreduce.job.speculative.retry-after-speculate";
+
+  public static final String MINIMUM_ALLOWED_TASKS = "mapreduce.job.speculative.minimum-allowed-tasks";
+
+  public static final String SPECULATIVECAP_TOTAL_TASKS = "mapreduce.job.speculative.speculative-cap-total-tasks";
 
   public static final String JOB_LOCAL_DIR = "mapreduce.job.local.dir";
 
@@ -292,6 +301,8 @@ public interface MRJobConfig {
   public static final String COMBINE_RECORDS_BEFORE_PROGRESS = "mapreduce.task.combine.progress.records";
 
   public static final String JOB_NAMENODES = "mapreduce.job.hdfs-servers";
+
+  public static final String JOB_NAMENODES_TOKEN_RENEWAL_EXCLUDE = "mapreduce.job.hdfs-servers.token-renewal.exclude";
 
   public static final String JOB_JOBTRACKER_ID = "mapreduce.job.kerberos.jtprinicipal";
 

@@ -120,7 +120,7 @@ public class TestDAGVerify {
     dag.addEdge(e1);
     dag.verify();
   }
-  
+
   @Test(timeout = 5000)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   public void testVerifyOneToOneInferParallelism() {
@@ -153,7 +153,7 @@ public class TestDAGVerify {
     Assert.assertEquals(dummyTaskCount, v2.getParallelism());
     Assert.assertEquals(dummyTaskCount, v3.getParallelism());
   }
-  
+
   @Test(timeout = 5000)
   // v1 (known) -> v2 (-1) -> v3 (-1)
   // The test checks resiliency to ordering of the vertices/edges
@@ -187,7 +187,7 @@ public class TestDAGVerify {
     Assert.assertEquals(dummyTaskCount, v2.getParallelism());
     Assert.assertEquals(dummyTaskCount, v3.getParallelism());
   }
-  
+
   @Test(timeout = 5000)
   public void testVerifyOneToOneNoInferParallelism() {
     Vertex v1 = Vertex.create("v1",
@@ -211,7 +211,7 @@ public class TestDAGVerify {
     dag.verify();
     Assert.assertEquals(-1, v2.getParallelism());
   }
-  
+
   @Test(timeout = 5000)
   // v1 (-1) -> v2 (known) -> v3 (-1)
   public void testVerifyOneToOneIncorrectParallelism1() {
@@ -296,7 +296,7 @@ public class TestDAGVerify {
           "1-1 Edge. Destination vertex parallelism must match source vertex"));
     }
   }
-  
+
   @Test(timeout = 5000)
   public void testVerifyBroadcast() {
     Vertex v1 = Vertex.create("v1",
@@ -317,7 +317,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)  
+  @Test(timeout = 5000)
   public void testVerify3() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -337,7 +337,7 @@ public class TestDAGVerify {
     dag.verify();
   }
 
-  @Test(expected = IllegalStateException.class, timeout = 5000)  
+  @Test(timeout = 5000)
   public void testVerify4() {
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create(dummyProcessorClassName),
@@ -525,7 +525,7 @@ public class TestDAGVerify {
     System.out.println(ex.getMessage());
     Assert.assertTrue(ex.getMessage().startsWith("Vertex v1 already defined"));
   }
-  
+
   @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testInputAndInputVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
@@ -534,22 +534,22 @@ public class TestDAGVerify {
     Vertex v2 = Vertex.create("v2",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     v2.addDataSource("v1", DataSourceDescriptor.create(null, null, null));
-    
+
     Edge e1 = Edge.create(v1, v2,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
     dag.verify();
   }
-  
+
   @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testOutputAndOutputVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
@@ -558,22 +558,22 @@ public class TestDAGVerify {
     Vertex v2 = Vertex.create("v2",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     v1.addDataSink("v2", DataSinkDescriptor.create(null, null, null));
-    
+
     Edge e1 = Edge.create(v1, v2,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
     dag.verify();
   }
-  
+
   @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testOutputAndVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
@@ -582,15 +582,15 @@ public class TestDAGVerify {
     Vertex v2 = Vertex.create("v2",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     v1.addDataSink("v2", DataSinkDescriptor.create(null, null, null));
-    
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.verify();
   }
-  
+
   @Test(expected = IllegalStateException.class, timeout = 5000)
   public void testInputAndVertexNameCollision() {
     Vertex v1 = Vertex.create("v1",
@@ -599,9 +599,9 @@ public class TestDAGVerify {
     Vertex v2 = Vertex.create("v2",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     v1.addDataSource("v2", DataSourceDescriptor.create(null, null, null));
-    
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -640,7 +640,7 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     dag.verify();
   }
-  
+
   @Test(timeout = 5000)
   public void testVertexGroupWithMultipleOutputEdges() {
     Vertex v1 = Vertex.create("v1",
@@ -655,19 +655,19 @@ public class TestDAGVerify {
     Vertex v4 = Vertex.create("v4",
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     DAG dag = DAG.create("testDag");
     VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
     uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
-    
+
     GroupInputEdge e1 = GroupInputEdge.create(uv12, v3,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")),
         InputDescriptor.create("dummy input class"));
-    
+
     GroupInputEdge e2 = GroupInputEdge.create(uv12, v4,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
@@ -685,7 +685,7 @@ public class TestDAGVerify {
     for (int i = 0; i< 10;++i){
       dag.verify();  // should be OK when called multiple times
     }
-    
+
     Assert.assertEquals(2, v1.getOutputVertices().size());
     Assert.assertEquals(2, v2.getOutputVertices().size());
     Assert.assertTrue(v1.getOutputVertices().contains(v3));
@@ -693,7 +693,7 @@ public class TestDAGVerify {
     Assert.assertTrue(v2.getOutputVertices().contains(v3));
     Assert.assertTrue(v2.getOutputVertices().contains(v4));
   }
-  
+
   @Test(timeout = 5000)
   public void testVertexGroup() {
     Vertex v1 = Vertex.create("v1",
@@ -711,16 +711,16 @@ public class TestDAGVerify {
     Vertex v5 = Vertex.create("v5",
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
-    
+
     DAG dag = DAG.create("testDag");
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
     uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
-    
+
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
-    
+
     GroupInputEdge e1 = GroupInputEdge.create(uv12, v4,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
@@ -733,7 +733,7 @@ public class TestDAGVerify {
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")),
         InputDescriptor.create("dummy input class"));
-    
+
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -744,7 +744,7 @@ public class TestDAGVerify {
     for (int i = 0; i< 10;++i){
       dag.verify(); // should be OK when called multiple times
     }
-    
+
     // for the first Group v1 and v2 should get connected to v4 and also have 1 output
     // for the second Group v2 and v3 should get connected to v5
     // the Group place holders should disappear
@@ -775,7 +775,7 @@ public class TestDAGVerify {
     Assert.assertTrue(v5.getGroupInputs().containsKey(groupName2));
     Assert.assertEquals(2, dag.vertexGroups.size());
   }
-  
+
   @Test(timeout = 5000)
   public void testVertexGroupOneToOne() {
     Vertex v1 = Vertex.create("v1",
@@ -793,16 +793,16 @@ public class TestDAGVerify {
     Vertex v5 = Vertex.create("v5",
         ProcessorDescriptor.create("Processor"),
         -1, dummyTaskResource);
-    
+
     DAG dag = DAG.create("testDag");
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
     uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
-    
+
     String groupName2 = "uv23";
     VertexGroup uv23 = dag.createVertexGroup(groupName2, v2, v3);
-    
+
     GroupInputEdge e1 = GroupInputEdge.create(uv12, v4,
         EdgeProperty.create(DataMovementType.ONE_TO_ONE,
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
@@ -815,7 +815,7 @@ public class TestDAGVerify {
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")),
         InputDescriptor.create("dummy input class"));
-    
+
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -826,7 +826,7 @@ public class TestDAGVerify {
     for (int i = 0; i< 10;++i){
       dag.verify();  // should be OK when called multiple times
     }
-    
+
     Assert.assertEquals(dummyTaskCount, v5.getParallelism());
   }
 
@@ -941,8 +941,8 @@ public class TestDAGVerify {
 
     dag.createDag(new TezConfiguration(), null, null, null, true);
   }
-  
-  
+
+
   @Test(timeout = 5000)
   public void testDAGCreateDataInference() {
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
@@ -954,7 +954,7 @@ public class TestDAGVerify {
     String lrName2 = "LR2";
     lrs2.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
-    
+
     Set<String> hosts = Sets.newHashSet();
     hosts.add("h1");
     hosts.add("h2");
@@ -962,10 +962,10 @@ public class TestDAGVerify {
     taskLocationHints.add(TaskLocationHint.createTaskLocationHint(hosts, null));
     taskLocationHints.add(TaskLocationHint.createTaskLocationHint(hosts, null));
     VertexLocationHint vLoc = VertexLocationHint.create(taskLocationHints);
-    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
+    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"),
         InputInitializerDescriptor.create(dummyInputInitClassName), dummyTaskCount, null, vLoc, lrs2);
     v1.addDataSource("i1", ds);
-        
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs1);
@@ -1003,10 +1003,10 @@ public class TestDAGVerify {
       Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
 
-    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"), 
+    DataSourceDescriptor ds = DataSourceDescriptor.create(InputDescriptor.create("I.class"),
         null, -1, null, null, lrs2);
     v1.addDataSource("i1", ds);
-    
+
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs);
@@ -1024,7 +1024,7 @@ public class TestDAGVerify {
       Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
   }
-  
+
   @Test(timeout = 5000)
   public void testDAGAccessControls() {
     DAG dag = DAG.create("testDag");

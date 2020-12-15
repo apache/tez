@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 

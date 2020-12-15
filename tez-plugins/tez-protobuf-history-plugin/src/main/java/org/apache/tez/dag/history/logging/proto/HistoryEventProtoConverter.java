@@ -351,11 +351,14 @@ public class HistoryEventProtoConverter {
     addEventData(builder, ATSConstants.CREATION_TIME, event.getCreationTime());
     addEventData(builder, ATSConstants.ALLOCATION_TIME, event.getAllocationTime());
     addEventData(builder, ATSConstants.START_TIME, event.getStartTime());
+
     if (event.getCreationCausalTA() != null) {
       addEventData(builder, ATSConstants.CREATION_CAUSAL_ATTEMPT,
           event.getCreationCausalTA().toString());
     }
     addEventData(builder, ATSConstants.TIME_TAKEN, (event.getFinishTime() - event.getStartTime()));
+    addEventData(builder, ATSConstants.STATUS, event.getState().name());
+
     if (event.getTaskAttemptError() != null) {
       addEventData(builder, ATSConstants.TASK_ATTEMPT_ERROR_ENUM,
           event.getTaskAttemptError().name());
@@ -447,6 +450,7 @@ public class HistoryEventProtoConverter {
         null, null, null, event.getVertexID(), null, null, null);
     addEventData(builder, ATSConstants.VERTEX_NAME, event.getVertexName());
     addEventData(builder, ATSConstants.INIT_REQUESTED_TIME, event.getInitRequestedTime());
+    addEventData(builder, ATSConstants.INIT_TIME, event.getInitedTime());
     addEventData(builder, ATSConstants.NUM_TASKS, event.getNumTasks());
     addEventData(builder, ATSConstants.PROCESSOR_CLASS_NAME, event.getProcessorName());
     if (event.getServicePluginInfo() != null) {

@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -57,6 +58,7 @@ import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RunnableWithNdc;
 import org.apache.tez.common.TezExecutors;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
@@ -96,7 +98,7 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.resources.MemoryDistributor;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -160,6 +162,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final boolean initializeProcessorFirst;
   private final boolean initializeProcessorIOSerially;
   private final TezExecutors sharedExecutor;
+  /** nanoTime of the task initialization start. */
+  private Long initStartTimeNs = null;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
@@ -229,6 +233,9 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   public void initialize() throws Exception {
     Preconditions.checkState(this.state.get() == State.NEW, "Already initialized");
     this.state.set(State.INITED);
+    if (this.tezCounters != null) {
+      this.initStartTimeNs = System.nanoTime();
+    }
 
     this.processorContext = createProcessorContext();
     this.processor = createProcessor(processorDescriptor.getClassName(), processorContext);
@@ -1076,5 +1083,16 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   @VisibleForTesting
   public Configuration getTaskConf() {
     return tezConf;
+  }
+
+  @Override
+  public void setFrameworkCounters() {
+    super.setFrameworkCounters();
+    if (tezCounters != null && isUpdatingSystemCounters()) {
+      long timeNs = initStartTimeNs == null ? 0
+          : (System.nanoTime() - initStartTimeNs);
+      tezCounters.findCounter(TaskCounter.WALL_CLOCK_MILLISECONDS)
+          .setValue(TimeUnit.NANOSECONDS.toMillis(timeNs));
+    }
   }
 }

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -38,8 +37,8 @@ import java.util.UUID;
 
 import com.google.common.collect.Sets;
 
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.serializer.WritableSerialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -255,6 +254,65 @@ public class TestMergeManager {
     mergeManager.waitForMemToMemMerge();
     assertEquals(data1.length + data2.length, mergeManager.getCommitMemory());
     assertEquals(data1.length + data2.length, mergeManager.getUsedMemory());
+  }
+
+  @Test
+  public void testDiskMergeWithCodec() throws Throwable {
+    Configuration conf = new TezConfiguration(defaultConf);
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, IntWritable.class.getName());
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 3);
+
+    Path localDir = new Path(workDir, "local");
+    localFs.mkdirs(localDir);
+
+    conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDir.toString());
+
+    LocalDirAllocator localDirAllocator =
+            new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+    InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
+
+    // Create a mock compressor. We will check if it is used.
+    CompressionCodec dummyCodec = spy(new DummyCompressionCodec());
+
+    MergeManager mergeManager =
+            new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
+                    mock(ExceptionReporter.class), 2000, dummyCodec, false, -1);
+    mergeManager.configureAndStart();
+
+    assertEquals(0, mergeManager.getUsedMemory());
+    assertEquals(0, mergeManager.getCommitMemory());
+
+    InputAttemptIdentifier inputAttemptIdentifier1 = new InputAttemptIdentifier(0, 0);
+    InputAttemptIdentifier inputAttemptIdentifier2 = new InputAttemptIdentifier(1, 0);
+    InputAttemptIdentifier inputAttemptIdentifier3 = new InputAttemptIdentifier(2, 0);
+    InputAttemptIdentifier inputAttemptIdentifier4 = new InputAttemptIdentifier(3, 0);
+    byte[] data1 = generateDataBySizeAndGetBytes(conf, 500, inputAttemptIdentifier1);
+    byte[] data2 = generateDataBySizeAndGetBytes(conf, 500, inputAttemptIdentifier2);
+    byte[] data3 = generateDataBySizeAndGetBytes(conf, 500, inputAttemptIdentifier3);
+    byte[] data4 = generateDataBySizeAndGetBytes(conf, 500, inputAttemptIdentifier3);
+
+    MapOutput mo1 = mergeManager.reserve(inputAttemptIdentifier1, data1.length, data1.length, 0);
+    MapOutput mo2 = mergeManager.reserve(inputAttemptIdentifier2, data2.length, data2.length, 0);
+    MapOutput mo3 = mergeManager.reserve(inputAttemptIdentifier3, data3.length, data3.length, 0);
+    MapOutput mo4 = mergeManager.reserve(inputAttemptIdentifier4, data4.length, data4.length, 0);
+
+    mo1.getDisk().write(data1);
+    mo1.getDisk().flush();
+    mo2.getDisk().write(data2);
+    mo2.getDisk().flush();
+    mo3.getDisk().write(data3);
+    mo3.getDisk().flush();
+    mo4.getDisk().write(data4);
+    mo4.getDisk().flush();
+
+    mo1.commit();
+    mo2.commit();
+    mo3.commit();
+    mo4.commit();
+
+    mergeManager.close(true);
+    verify(dummyCodec, atLeastOnce()).createOutputStream(any(), any());
   }
 
   @Test(timeout = 60000l)
@@ -573,8 +631,8 @@ public class TestMergeManager {
   private byte[] generateDataBySize(Configuration conf, int rawLen, InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
-    IFile.Writer writer =
-        new IFile.Writer(conf, fsdos, IntWritable.class, IntWritable.class, null, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        fsdos, IntWritable.class, IntWritable.class, null, null, null);
     int i = 0;
     while(true) {
       writer.append(new IntWritable(i), new IntWritable(i));
@@ -592,11 +650,35 @@ public class TestMergeManager {
     return data;
   }
 
-  private byte[] generateData(Configuration conf, int numEntries, InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
+  private byte[] generateDataBySizeAndGetBytes(Configuration conf, int rawLen,
+                                               InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
-    IFile.Writer writer =
-        new IFile.Writer(conf, fsdos, IntWritable.class, IntWritable.class, null, null, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        fsdos, IntWritable.class, IntWritable.class, null, null, null);
+    int i = 0;
+    while(true) {
+      writer.append(new IntWritable(i), new IntWritable(i));
+      i++;
+      if (writer.getRawLength() > rawLen) {
+        break;
+      }
+    }
+    writer.close();
+    int compressedLength = (int)writer.getCompressedLength();
+    int rawLength = (int)writer.getRawLength();
+    byte[] data = new byte[rawLength];
+    ShuffleUtils.shuffleToMemory(data, new ByteArrayInputStream(baos.toByteArray()),
+            rawLength, compressedLength, null, false, 0, LOG, inputAttemptIdentifier);
+    return baos.toByteArray();
+  }
+
+  private byte[] generateData(Configuration conf, int numEntries,
+                              InputAttemptIdentifier inputAttemptIdentifier) throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    FSDataOutputStream fsdos = new FSDataOutputStream(baos, null);
+    IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(),
+        fsdos, IntWritable.class, IntWritable.class, null, null, null);
     for (int i = 0; i < numEntries; ++i) {
       writer.append(new IntWritable(i), new IntWritable(i));
     }
@@ -757,9 +839,9 @@ public class TestMergeManager {
     assertEquals(m2Path.toString().length(), m3Path.toString().length());
 
     // Ensure the filenames are used correctly - based on the first file given to the merger.
-    String m1Prefix = m1Path.toString().substring(0, m1Path.toString().indexOf("."));
-    String m2Prefix = m2Path.toString().substring(0, m2Path.toString().indexOf("."));
-    String m3Prefix = m3Path.toString().substring(0, m3Path.toString().indexOf("."));
+    String m1Prefix = m1Path.toString().substring(0, m1Path.toString().lastIndexOf('.'));
+    String m2Prefix = m2Path.toString().substring(0, m2Path.toString().lastIndexOf('.'));
+    String m3Prefix = m3Path.toString().substring(0, m3Path.toString().lastIndexOf('.'));
 
     assertEquals(m1Prefix, m2Prefix);
     assertNotEquals(m1Prefix, m3Prefix);
@@ -934,7 +1016,8 @@ public class TestMergeManager {
     for (int i = 0; i < numPartitions; i++) {
       long pos = outStream.getPos();
       IFile.Writer writer =
-          new IFile.Writer(conf, outStream, IntWritable.class, IntWritable.class, null, null, null);
+          new IFile.Writer(new WritableSerialization(), new WritableSerialization(), outStream,
+              IntWritable.class, IntWritable.class, null, null, null);
       for (int j = 0; j < numKeysPerPartition; j++) {
         writer.append(new IntWritable(currentKey), new IntWritable(currentKey));
         currentKey++;
