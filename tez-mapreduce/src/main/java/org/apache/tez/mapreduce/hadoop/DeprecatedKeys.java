@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
@@ -183,11 +182,6 @@ public class DeprecatedKeys {
   private static void registerMRToRuntimeKeyTranslation(String mrKey,
       String tezKey) {
     mrParamToTezRuntimeParamMap.put(mrKey, tezKey);
-  }
-  
-  @SuppressWarnings("unused")
-  private static void _(String mrKey, String tezKey) {
-    Configuration.addDeprecation(mrKey, tezKey);
   }
 
   public static Map<String, String> getMRToDAGParamMap() {
