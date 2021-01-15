@@ -782,7 +782,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getDagIdentifier}
+   * @see InputContext#getDagIdentifier()
    * @param conf configuration instance
    * @return dag index
    */
@@ -802,7 +802,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * * @see {@link InputContext#getTaskVertexIndex}
+   * @see InputContext#getTaskVertexIndex
    * @param conf configuration instance
    * @return vertex index
    */
@@ -822,7 +822,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getTaskIndex}
+   * @see InputContext#getTaskIndex
    * @param conf configuration instance
    * @return task index
    */
@@ -842,7 +842,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getTaskAttemptNumber}
+   * @see InputContext#getTaskAttemptNumber
    * @param conf configuration instance
    * @return task attempt index
    */
@@ -862,7 +862,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getInputIndex}
+   * @see InputContext#getInputIndex
    * @param conf configuration instance
    * @return input index
    */
@@ -872,7 +872,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getDAGName}
+   * @see InputContext#getDAGName
    * @param conf configuration instance
    * @return dag name
    */
@@ -882,7 +882,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getTaskVertexName}
+   * @see InputContext#getTaskVertexName
    * @param conf configuration instance
    * @return vertex name
    */
@@ -892,7 +892,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getSourceVertexName}
+   * @see InputContext#getSourceVertexName
    * @param conf configuration instance
    * @return source name
    */
@@ -902,7 +902,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getApplicationId}
+   * @see InputContext#getApplicationId
    * @param conf configuration instance
    * @return applicationId as a string
    */
@@ -912,7 +912,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getUniqueIdentifier}
+   * @see InputContext#getUniqueIdentifier
    * @param conf configuration instance
    * @return unique identifier for the input
    */
@@ -922,7 +922,7 @@ public class MRInputHelpers {
   }
 
   /**
-   * @see {@link InputContext#getDAGAttemptNumber}
+   * @see InputContext#getDAGAttemptNumber
    * @param conf configuration instance
    * @return attempt number
    */
