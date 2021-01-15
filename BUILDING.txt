@@ -105,6 +105,16 @@ Issue with PhantomJS on building in PowerPC.
  and install it globally for the build to work.
 
 ----------------------------------------------------------------------------------
+Skip UI build:
+
+In case you want to completely skip UI build, you can use 'noui' profile.
+For instance, a full build without tests and tez-ui looks like:
+
+ $ mvn clean install -DskipTests -Pnoui
+
+It's important to note that maven will still include tez-ui project, but all of the maven plugins are skipped.
+
+----------------------------------------------------------------------------------
 Protocol Buffer compiler:
 
 The version of Protocol Buffer compiler, protoc, must be 2.5.0 and match the
