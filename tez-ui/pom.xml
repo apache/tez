@@ -40,6 +40,173 @@
   </properties>
 
   <profiles>
+    <!-- profile to be activated if -Dtest is not provided: 'mvn clean install' -->
+    <!-- runs 'ember test' execution if -DskipTests is not provided -->
+    <profile>
+      <id>default</id>
+      <activation>
+        <property>
+          <name>!test</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+        <plugin>
+          <artifactId>exec-maven-plugin</artifactId>
+          <groupId>org.codehaus.mojo</groupId>
+          <executions>
+            <!-- Build -->
+            <execution>
+              <id>ember build</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <workingDirectory>${webappDir}</workingDirectory>
+                <executable>${nodeExecutable}</executable>
+                <arguments>
+                  <argument>${packageManagerScript}</argument>
+                  <argument>run</argument>
+                  <argument>build:mvn</argument>
+                </arguments>
+              </configuration>
+            </execution>
+
+            <!-- Test if enabled-->
+            <execution>
+              <id>ember test</id>
+              <phase>test</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <skip>${skipTests}</skip>
+                <workingDirectory>${webappDir}</workingDirectory>
+                <executable>${nodeExecutable}</executable>
+                <arguments>
+                  <argument>${packageManagerScript}</argument>
+                  <argument>run</argument>
+                  <argument>test:mvn</argument>
+                </arguments>
+              </configuration>
+            </execution>
+          </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- profile to be activated if -Dtest=ember: 'mvn clean install -Dtest=ember' -->
+    <!-- runs 'ember test' execution -->
+    <profile>
+      <id>ui-tests</id>
+      <activation>
+        <property>
+          <name>test</name>
+          <value>ember</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+        <plugin>
+          <artifactId>exec-maven-plugin</artifactId>
+          <groupId>org.codehaus.mojo</groupId>
+          <executions>
+            <!-- Build -->
+            <execution>
+              <id>ember build</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <workingDirectory>${webappDir}</workingDirectory>
+                <executable>${nodeExecutable}</executable>
+                <arguments>
+                  <argument>${packageManagerScript}</argument>
+                  <argument>run</argument>
+                  <argument>build:mvn</argument>
+                </arguments>
+              </configuration>
+            </execution>
+
+            <!-- Test if enabled-->
+            <execution>
+              <id>ember test</id>
+              <phase>test</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <skip>${skipTests}</skip>
+                <workingDirectory>${webappDir}</workingDirectory>
+                <executable>${nodeExecutable}</executable>
+                <arguments>
+                  <argument>${packageManagerScript}</argument>
+                  <argument>run</argument>
+                  <argument>test:mvn</argument>
+                </arguments>
+              </configuration>
+            </execution>
+          </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- profile to be activated if -Dtest is defined but it doesn't equal to 'ember': 'mvn clean install -Dtest=TestAnythingElse' -->
+    <!-- doesn't run 'ember test' execution -->
+    <profile>
+      <id>no-ui-tests</id>
+      <activation>
+        <property>
+          <name>test</name>
+          <value>.*</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+        <plugin>
+          <artifactId>exec-maven-plugin</artifactId>
+          <groupId>org.codehaus.mojo</groupId>
+          <executions>
+            <!-- Build -->
+            <execution>
+              <id>ember build</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <workingDirectory>${webappDir}</workingDirectory>
+                <executable>${nodeExecutable}</executable>
+                <arguments>
+                  <argument>${packageManagerScript}</argument>
+                  <argument>run</argument>
+                  <argument>build:mvn</argument>
+                </arguments>
+              </configuration>
+            </execution>
+
+            <!-- Test - to be skipped -->
+            <execution>
+                <id>ember test</id>
+                <phase>test</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>${nodeExecutable}</executable>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+          </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!-- Clear temporary directories -->
     <profile>
       <id>cleanUICache</id>
@@ -85,6 +252,72 @@
       <properties>
         <allow-root-build>--allow-root=true</allow-root-build>
       </properties>
+    </profile>
+    <profile>
+      <id>noui</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>exec-maven-plugin</artifactId>
+          <groupId>org.codehaus.mojo</groupId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>ro.isdc.wro4j</groupId>
+          <artifactId>wro4j-maven-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <configuration>
+            <skip>true</skip>
+          </configuration>
+        </plugin>
+      </plugins>
+      </build>
     </profile>
   </profiles>
 
@@ -163,50 +396,6 @@
             <goals>
               <goal>bower</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <plugin>
-        <artifactId>exec-maven-plugin</artifactId>
-        <groupId>org.codehaus.mojo</groupId>
-        <executions>
-
-          <!-- Build -->
-          <execution>
-            <id>ember build</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <workingDirectory>${webappDir}</workingDirectory>
-              <executable>${nodeExecutable}</executable>
-              <arguments>
-                <argument>${packageManagerScript}</argument>
-                <argument>run</argument>
-                <argument>build:mvn</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
-          <!-- Test if enabled-->
-          <execution>
-            <id>ember test</id>
-            <phase>test</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <skip>${skipTests}</skip>
-              <workingDirectory>${webappDir}</workingDirectory>
-              <executable>${nodeExecutable}</executable>
-              <arguments>
-                <argument>${packageManagerScript}</argument>
-                <argument>run</argument>
-                <argument>test:mvn</argument>
-              </arguments>
-            </configuration>
           </execution>
         </executions>
       </plugin>
