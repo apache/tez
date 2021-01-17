@@ -690,9 +690,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   public boolean canCommit(TezTaskAttemptID taskAttemptID) {
     writeLock.lock();
     try {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Commit go/no-go request from " + taskAttemptID);
-      }
+      LOG.debug("Commit go/no-go request from {}", taskAttemptID);
       TaskState state = getState();
       if (state == TaskState.SCHEDULED) {
         // the actual running task ran and is done and asking for commit. we are still stuck 
@@ -730,9 +728,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         }
       } else {
         if (commitAttempt.equals(taskAttemptID)) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(taskAttemptID + " already given a go for committing the task output.");
-          }
+          LOG.debug("{} already given a go for committing the task output.", taskAttemptID);
           return true;
         }
         // Don't think this can be a pluggable decision, so simply raise an
@@ -740,9 +736,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         // Wait for commit attempt to succeed. Dont kill this. If commit
         // attempt fails then choose a different committer. When commit attempt
         // succeeds then this and others will be killed
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(commitAttempt + " is current committer. Commit waiting for:  " + taskAttemptID);
-        }
+        LOG.debug("{} is current committer. Commit waiting for: {}", commitAttempt, taskAttemptID);
         return false;
       }
 

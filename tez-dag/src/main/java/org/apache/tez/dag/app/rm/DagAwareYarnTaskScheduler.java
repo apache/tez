@@ -743,7 +743,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
       ++numHeartbeats;
       if (LOG.isDebugEnabled() || numHeartbeats % 50 == 1) {
-        LOG.info(constructPeriodicLog(freeResources));
+        LOG.debug(constructPeriodicLog(freeResources));
       }
 
       preemptedContainers = maybePreempt(freeResources);

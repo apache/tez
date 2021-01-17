@@ -449,10 +449,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
           // being released
           // completion of a container we had released earlier
           // an allocated container completed. notify app
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Released container completed:" + completedId +
-                " last allocated to task: " + task);
-          }
+          LOG.debug("Released container completed:{} last allocated to task: {}",
+            completedId, task);
           appContainerStatus.put(task, containerStatus);
           continue;
         }
@@ -1216,12 +1214,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
       if(!preemptionWaitDeadlineCrossed && 
           fitsIn(highestPriRequest.getCapability(), freeResources)) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(highestPriRequest + " fits in free resources");
-        } else {
-          if (numHeartbeats % 50 == 1) {
-            LOG.info(highestPriRequest + " fits in free resources");
-          }
+        LOG.debug("{} fits in free resources", highestPriRequest);
+        if (numHeartbeats % 50 == 1) {
+          LOG.info(highestPriRequest + " fits in free resources");
         }
         return true;
       }
@@ -1509,10 +1504,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
               if (container.getId().equals(
                   cookieContainerRequest.getAffinitizedContainer())) {
                 // container level match
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Matching with affinity for request: "
-                      + cookieContainerRequest + " container: " + affCId);
-                }
+                  LOG.debug("Matching with affinity for request: {} container: {}",
+                    cookieContainerRequest, affCId);
                 return cookieContainerRequest;
               }
               if (LOG.isDebugEnabled()) {
@@ -2025,10 +2018,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         if (delayedContainer == null) {
           continue;
         }
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Considering HeldContainer: "
-              + delayedContainer + " for assignment");
-        }
+        LOG.debug("Considering HeldContainer: {} for assignment", delayedContainer);
         long currentTs = System.currentTimeMillis();
         long nextScheduleTs = delayedContainer.getNextScheduleTime();
         if (currentTs >= nextScheduleTs) {
@@ -2091,10 +2081,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // honor reuse-locality flags (container not timed out yet), Don't queue
         // (already in queue), don't release (release happens when containers
         // time-out)
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Trying to assign all delayed containers to newly received"
-            + " tasks");
-        }
+        LOG.debug("Trying to assign all delayed containers to newly received tasks");
         Iterator<HeldContainer> iter = delayedContainers.iterator();
         while(iter.hasNext()) {
           HeldContainer delayedContainer = iter.next();

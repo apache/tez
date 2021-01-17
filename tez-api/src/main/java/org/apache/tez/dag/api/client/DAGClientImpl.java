@@ -247,9 +247,7 @@ public class DAGClientImpl extends DAGClient {
         LOG.info("Failed to fetch DAG data for completed DAG from YARN Timeline"
             + " - Application not found by YARN", e);
       } catch (TezException e) {
-        if (LOG.isDebugEnabled()) {
-          LOG.info("DAGStatus fetch failed." + e.getMessage());
-        }
+        LOG.debug("DAGStatus fetch failed", e);
       }
     }
 
@@ -302,9 +300,7 @@ public class DAGClientImpl extends DAGClient {
             + " - Application not found by YARN", e);
         return null;
       } catch (TezException e) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("ERROR fetching vertex data from Yarn Timeline. " + e.getMessage());
-        }
+        LOG.debug("ERROR fetching vertex data from Yarn Timeline", e);
       }
     }
 
@@ -425,9 +421,7 @@ public class DAGClientImpl extends DAGClient {
    */
   @VisibleForTesting
   protected DAGStatus getDAGStatusViaRM() throws TezException, IOException {
-    if(LOG.isDebugEnabled()) {
-      LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
-    }
+    LOG.debug("GetDAGStatus via AM for app: {} dag:{}", appId, dagId);
     ApplicationReport appReport;
     try {
       appReport = frameworkClient.getApplicationReport(appId);
@@ -638,9 +632,7 @@ public class DAGClientImpl extends DAGClient {
     realClient.close();
     realClient = new DAGClientTimelineImpl(appId, dagId, conf, frameworkClient,
         (int) (2 * PRINT_STATUS_INTERVAL_MILLIS));
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("dag completed switching to DAGClientTimelineImpl");
-    }
+    LOG.debug("dag completed switching to DAGClientTimelineImpl");
   }
 
   @VisibleForTesting

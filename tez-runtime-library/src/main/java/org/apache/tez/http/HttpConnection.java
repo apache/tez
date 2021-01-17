@@ -77,9 +77,7 @@ public class HttpConnection extends BaseHttpConnection {
     this.url = url;
     this.stopWatch = new StopWatch();
     this.urlLogCount = new AtomicLong();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("MapOutput URL :" + url.toString());
-    }
+    LOG.debug("MapOutput URL :{}", url);
   }
 
   @VisibleForTesting
@@ -278,9 +276,7 @@ public class HttpConnection extends BaseHttpConnection {
     stopWatch.reset().start();
     try {
       if (input != null) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Closing input on " + logIdentifier);
-        }
+        LOG.debug("Closing input on {}", logIdentifier);
         input.close();
         input = null;
       }

@@ -117,10 +117,8 @@ public class ProgressHelper {
           // Report progress as 0.0f when if are errors.
           processorContext.setProgress(progressVal);
         } catch (Throwable th) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("progress update: Encountered InterruptedException during"
-                + " Processor={}", processorName, th);
-          }
+          LOG.debug("progress update: Encountered InterruptedException during"
+              + " Processor={}", processorName, th);
           if (th instanceof InterruptedException) {
             // set interrupt flag to true sand exit
             Thread.currentThread().interrupt();
@@ -161,10 +159,8 @@ public class ProgressHelper {
           scheduledExecutorService.shutdownNow();
         }
       } catch (InterruptedException e) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Interrupted exception while shutting down the "
-              + "executor service for the processor name={}", processorName);
-        }
+        LOG.debug("Interrupted exception while shutting down the "
+            + "executor service for the processor name={}", processorName);
       }
       scheduledExecutorService.shutdownNow();
     }

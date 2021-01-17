@@ -265,9 +265,7 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing the event " + sEvent.toString());
-    }
+    LOG.debug("Processing the event {}", sEvent);
     switch (sEvent.getType()) {
     case S_TA_LAUNCH_REQUEST:
       handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
@@ -861,9 +859,7 @@ public class TaskSchedulerManager extends AbstractService implements
         }
       }
     }
-    if(LOG.isDebugEnabled()) {
-      LOG.debug("Setting job diagnostics to " + sb.toString());
-    }
+    LOG.debug("Setting job diagnostics to {}", sb);
 
     // if history url is set use the same, if historyUrl is set to "" then rm ui disables the
     // history url

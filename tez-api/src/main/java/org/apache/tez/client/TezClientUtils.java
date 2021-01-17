@@ -479,9 +479,7 @@ public class TezClientUtils {
     capability.setVirtualCores(
         amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES,
             TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT));
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("AppMaster capability = " + capability);
-    }
+    LOG.debug("AppMaster capability = {}", capability);
 
     // Setup required Credentials for the AM launch. DAG specific credentials
     // are handled separately.
@@ -531,10 +529,7 @@ public class TezClientUtils {
     }
     vargsFinal.add(mergedCommand.toString());
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Command to launch container for ApplicationMaster is : "
-          + mergedCommand);
-    }
+    LOG.debug("Command to launch container for ApplicationMaster is : {}", mergedCommand);
 
     Map<String, String> environment = new TreeMap<String, String>();
     TezYARNUtils.setupDefaultEnv(environment, conf,
@@ -968,9 +963,7 @@ public class TezClientUtils {
           serviceAddr);
       userUgi.addToken(token);
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Connecting to Tez AM at " + serviceAddr);
-    }
+    LOG.debug("Connecting to Tez AM at {}", serviceAddr);
     DAGClientAMProtocolBlockingPB proxy = null;
     try {
       proxy = userUgi.doAs(new PrivilegedExceptionAction<DAGClientAMProtocolBlockingPB>() {

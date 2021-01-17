@@ -509,10 +509,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
           comparator,
           keyClass,
           valueClass);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Using key class: " + keyClass
-          + ", valueClass: " + valueClass);
-    }
+    LOG.debug("Using key class: {}, valueClass: {}", keyClass, valueClass);
 
     org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
         reducerContext =

@@ -405,11 +405,8 @@ public class RecoveryService extends AbstractService {
   protected void handleSummaryEvent(TezDAGID dagID,
       HistoryEventType eventType,
       SummaryEvent summaryEvent) throws IOException {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Handling summary event"
-          + ", dagID=" + dagID
-          + ", eventType=" + eventType);
-    }
+      LOG.debug("Handling summary event, dagID={}, eventType={}", dagID, eventType);
+
     if (summaryStream == null) {
       Path summaryPath = TezCommonUtils.getSummaryRecoveryPath(recoveryPath);
       if (LOG.isDebugEnabled()) {
@@ -470,11 +467,8 @@ public class RecoveryService extends AbstractService {
     }
 
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Writing recovery event to output stream"
-          + ", dagId=" + dagID
-          + ", eventType=" + eventType);
-    }
+    LOG.debug("Writing recovery event to output stream, dagId={}, eventType={}",
+      dagID, eventType);
     ++unflushedEventsCount;
     recoveryStream.codedOutputStream.writeFixed32NoTag(event.getHistoryEvent().getEventType().ordinal());
     event.getHistoryEvent().toProtoStream(recoveryStream.codedOutputStream);
@@ -489,11 +483,9 @@ public class RecoveryService extends AbstractService {
     boolean doFlush = false;
     if (maxUnflushedEvents >=0
         && unflushedEventsCount >= maxUnflushedEvents) {
-      if  (LOG.isDebugEnabled()) {
-        LOG.debug("Max unflushed events count reached. Flushing recovery data"
-            + ", unflushedEventsCount=" + unflushedEventsCount
-            + ", maxUnflushedEvents=" + maxUnflushedEvents);
-      }
+        LOG.debug("Max unflushed events count reached. Flushing recovery data, "
+            + "unflushedEventsCount={}, maxUnflushedEvents={}", unflushedEventsCount,
+            maxUnflushedEvents);
       doFlush = true;
     } else if (flushInterval >= 0
         && ((currentTime - lastFlushTime) >= (flushInterval*1000))) {

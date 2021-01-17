@@ -84,9 +84,7 @@ class IndexCache {
           }
         }
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
-      }
+      LOG.debug("IndexCache HIT: MapId {} found", mapId);
     }
 
     if (info.mapSpillRecord.size() == 0) {
@@ -125,9 +123,7 @@ class IndexCache {
           }
         }
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
-      }
+      LOG.debug("IndexCache HIT: MapId {} found", mapId);
     }
 
     if (info.mapSpillRecord.size() == 0 ||
@@ -161,14 +157,11 @@ class IndexCache {
           }
         }
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("IndexCache HIT: MapId " + mapId + " found");
-      }
+      LOG.debug("IndexCache HIT: MapId {} found", mapId);
       return info;
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("IndexCache MISS: MapId " + mapId + " not found");
-    }
+    LOG.debug("IndexCache MISS: MapId {} not found", mapId);
+
     TezSpillRecord tmp = null;
     try {
       tmp = new TezSpillRecord(indexFileName, fs, expectedIndexOwner);

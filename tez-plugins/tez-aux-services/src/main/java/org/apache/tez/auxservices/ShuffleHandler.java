@@ -933,9 +933,7 @@ public class ShuffleHandler extends AuxiliaryService {
           Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
               attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
 
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Loaded : " + key + " via loader");
-          }
+          LOG.debug("Loaded : {} via loader", key);
           return new AttemptPathInfo(indexFileName, mapOutputFileName);
         }
       });
@@ -1011,10 +1009,7 @@ public class ShuffleHandler extends AuxiliaryService {
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("KeepAliveParam : " + keepAliveList
-            + " : " + keepAliveParam);
-        }
+        LOG.debug("KeepAliveParam : {} : {}", keepAliveList, keepAliveParam);
       }
       final List<String> mapIds = splitMaps(q.get("map"));
       final Range reduceRange = splitReduces(q.get("reduce"));
@@ -1226,11 +1221,8 @@ public class ShuffleHandler extends AuxiliaryService {
         AttemptPathIdentifier identifier = new AttemptPathIdentifier(
             jobId, dagId, user, mapId);
         pathInfo = pathCache.get(identifier);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Retrieved pathInfo for " + identifier +
-              " check for corresponding loaded messages to determine whether" +
-              " it was loaded or cached");
-        }
+        LOG.debug("Retrieved pathInfo for {} check for corresponding loaded " +
+            "messages to determine whether it was loaded or cached", identifier);
       } catch (ExecutionException e) {
         if (e.getCause() instanceof IOException) {
           throw (IOException) e.getCause();
@@ -1303,13 +1295,9 @@ public class ShuffleHandler extends AuxiliaryService {
         response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, String.valueOf(contentLength));
         response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
         response.headers().set(HttpHeaders.Values.KEEP_ALIVE, "timeout=" + connectionKeepAliveTimeOut);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Content Length in shuffle : " + contentLength);
-        }
+        LOG.debug("Content Length in shuffle : {}", contentLength);
       } else {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Setting connection close header...");
-        }
+        LOG.debug("Setting connection close header...");
         response.headers().set(HttpHeaders.Names.CONNECTION, CONNECTION_CLOSE);
       }
     }
