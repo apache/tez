@@ -130,9 +130,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       // Start the shuffle - copy and merge
       shuffle = createShuffle();
       shuffle.run();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
-      }
+      LOG.debug("Initialized the handlers in shuffle..Safe to start processing..");
       List<Event> pending = new LinkedList<Event>();
       pendingEvents.drainTo(pending);
       if (pending.size() > 0) {

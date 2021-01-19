@@ -156,11 +156,8 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
     if (shufflePayload.hasEmptyPartitions()) {
       try {
         if (emptyPartitionsBitSet.get(partitionId)) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(
-                "Source partition: " + partitionId + " did not generate any data. SrcAttempt: ["
-                    + srcAttemptIdentifier + "]. Not fetching.");
-          }
+          LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
+               partitionId, srcAttemptIdentifier);
           numDmeEventsNoData.getAndIncrement();
           scheduler.copySucceeded(srcAttemptIdentifier.expand(0), null, 0, 0, 0, null, true);
           return;
@@ -191,10 +188,8 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
         allPartitionsEmpty &= emptyPartitionsBitSet.get(srcPartitionId);
         if (emptyPartitionsBitSet.get(srcPartitionId)) {
           InputAttemptIdentifier srcInputAttemptIdentifier = compositeInputAttemptIdentifier.expand(i);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Source partition: " + srcPartitionId + " did not generate any data. SrcAttempt: ["
-                + srcInputAttemptIdentifier + "]. Not fetching.");
-          }
+          LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
+              srcPartitionId, srcInputAttemptIdentifier);
           numDmeEventsNoData.getAndIncrement();
           scheduler.copySucceeded(srcInputAttemptIdentifier, null, 0, 0, 0, null, true);
         }
@@ -212,9 +207,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
   private void processTaskFailedEvent(InputFailedEvent ifEvent) {
     InputAttemptIdentifier taIdentifier = new InputAttemptIdentifier(ifEvent.getTargetIndex(), ifEvent.getVersion());
     scheduler.obsoleteInput(taIdentifier);
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Obsoleting output of src-task: " + taIdentifier);
-    }
+    LOG.debug("Obsoleting output of src-task: {}", taIdentifier);
   }
 
   /**
