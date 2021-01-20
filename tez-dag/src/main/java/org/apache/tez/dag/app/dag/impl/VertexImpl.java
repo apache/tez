@@ -879,10 +879,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   @Override
   public void initServices() {
     if (servicesInited.get()) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Skipping Initing services for vertex because already"
-            + " Initialized, name=" + this.vertexName);
-      }
+      LOG.debug("Skipping Initing services for vertex because already"
+          + " Initialized, name={}", this.vertexName);
       return;
     }
     writeLock.lock();
@@ -890,10 +888,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       List<AbstractService> servicesToAdd = new ArrayList<>();
       if (isSpeculationEnabled()) {
         // Initialize the speculator
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(
-              "Initing service vertex speculator, name=" + this.vertexName);
-        }
+        LOG.debug("Initing service vertex speculator, name={}", this.vertexName);
         speculator = new LegacySpeculator(vertexConf, getAppContext(), this);
         speculator.init(vertexConf);
         servicesToAdd.add(speculator);
@@ -903,9 +898,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     } finally {
       writeLock.unlock();
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Initing service vertex, name=" + this.vertexName);
-    }
+    LOG.debug("Initing service vertex, name={}", this.vertexName);
   }
 
   @Override
@@ -935,9 +928,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     try {
       if (servicesInited.get()) {
         for (AbstractService srvc : services) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Stopping service : " + srvc);
-          }
+          LOG.debug("Stopping service : {}", srvc);
           Exception ex = ServiceOperations.stopQuietly(srvc);
           if (ex != null && firstException == null) {
             LOG.warn(String.format(
@@ -1590,7 +1581,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (LOG.isDebugEnabled()) {
         if (!ProgressHelper.isProgressWithinRange(taskProg)) {
           LOG.debug("progress update: vertex={}, task={} incorrect; range={}",
-              getName(), task.getTaskId().toString(), taskProg);
+              getName(), task.getTaskId(), taskProg);
         }
       }
       accProg += ProgressHelper.processProgress(taskProg);
@@ -2522,11 +2513,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> od = entry.getValue();
         if (od.getControllerDescriptor() == null
             || od.getControllerDescriptor().getClassName() == null) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Ignoring committer as none specified for output="
-                + outputName
-                + ", vertexId=" + logIdentifier);
-          }
+          LOG.debug("Ignoring committer as none specified for output={}, vertexId={}",
+              outputName, logIdentifier);
           continue;
         }
         LOG.info("Instantiating committer for output=" + outputName
@@ -2547,19 +2535,13 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                 .createClazzInstance(od.getControllerDescriptor().getClassName(),
                     new Class[]{OutputCommitterContext.class},
                     new Object[]{outputCommitterContext});
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Invoking committer init for output=" + outputName
-                  + ", vertex=" + logIdentifier);
-            }
+            LOG.debug("Invoking committer init for output={}, vertex={}", outputName, logIdentifier);
 
             try {
               TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(), vertexId);
               outputCommitter.initialize();
               outputCommitters.put(outputName, outputCommitter);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Invoking committer setup for output=" + outputName
-                    + ", vertex=" + logIdentifier);
-              }
+              LOG.debug("Invoking committer setup for output={}, vertex={}", outputName, logIdentifier);
               outputCommitter.setupOutput();
             } finally {
               appContext.getHadoopShim().clearHadoopCallerContext();
@@ -4744,9 +4726,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
 
     @Override
     public void initialize() throws Exception {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("initialize NoOpVertexManager");
-      }
+      LOG.debug("initialize NoOpVertexManager");
       configurationDoneEvent = new VertexConfigurationDoneEvent();
       configurationDoneEvent.fromProtoStream(CodedInputStream.newInstance(getContext().getUserPayload().deepCopyAsArray()));
       String vertexName = getContext().getVertexName();
@@ -4772,9 +4752,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       }
       getContext().doneReconfiguringVertex();
       int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Schedule all the tasks, numTask=" + numTasks);
-      }
+      LOG.debug("Schedule all the tasks, numTask={}", numTasks);
       List<ScheduleTaskRequest> tasks = new ArrayList<ScheduleTaskRequest>();
       for (int i=0;i<numTasks;++i) {
         tasks.add(ScheduleTaskRequest.create(i, null));

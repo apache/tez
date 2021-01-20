@@ -486,9 +486,7 @@ public class MROutput extends AbstractLogicalOutput {
       throws IOException, InterruptedException {
 
     if (useNewApi) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("using new api for output committer");
-      }
+      LOG.debug("using new api for output committer");
 
       this.committer = newOutputFormat.getOutputCommitter(
           newApiTaskAttemptContext);

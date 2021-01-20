@@ -313,10 +313,8 @@ public class TimelineReaderFactory {
       try {
         connectionConf = getNewSSLConnectionConf(conf, connTimeout, sslFactory);
       } catch (IOException e) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Cannot load customized ssl related configuration."
-              + " Falling back to system-generic settings.", e);
-        }
+        LOG.debug("Cannot load customized ssl related configuration."
+            + " Falling back to system-generic settings.", e);
       }
     }
 

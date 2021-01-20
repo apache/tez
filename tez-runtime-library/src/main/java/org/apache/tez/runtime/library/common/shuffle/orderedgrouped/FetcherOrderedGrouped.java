@@ -208,9 +208,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   public void shutDown() {
     if (!stopped) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Fetcher stopped for host " + mapHost);
-      }
+      LOG.debug("Fetcher stopped for host {}", mapHost);
       stopped = true;
       // An interrupt will come in while shutting down the thread.
       cleanupCurrentConnection(false);
@@ -287,19 +285,14 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           // Setup connection again if disconnected
           cleanupCurrentConnection(true);
           if (stopped) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Not re-establishing connection since Fetcher has been stopped");
-            }
+            LOG.debug("Not re-establishing connection since Fetcher has been stopped");
             return;
           }
           // Connect with retry
           if (!setupConnection(host, remaining.values())) {
             if (stopped) {
               cleanupCurrentConnection(true);
-              if (LOG.isDebugEnabled()) {
-                LOG.debug(
-                    "Not reporting connection re-establishment failure since fetcher is stopped");
-              }
+              LOG.debug("Not reporting connection re-establishment failure since fetcher is stopped");
               return;
             }
             failedTasks = new InputAttemptIdentifier[] {getNextRemainingAttempt()};
@@ -347,9 +340,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       connectSucceeded = httpConnection.connect();
 
       if (stopped) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Detected fetcher has been shutdown after connection establishment. Returning");
-        }
+        LOG.debug("Detected fetcher has been shutdown after connection establishment. Returning");
         return false;
       }
       input = httpConnection.getInputStream();
@@ -360,9 +351,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         Thread.currentThread().interrupt(); //reset status
       }
       if (stopped) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Not reporting fetch failure, since an Exception was caught after shutdown");
-        }
+        LOG.debug("Not reporting fetch failure, since an Exception was caught after shutdown");
         return false;
       }
       ioErrs.increment(1);
@@ -454,9 +443,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                   InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
               return new InputAttemptIdentifier[]{getNextRemainingAttempt()};
             } else {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Already shutdown. Ignoring invalid map id error");
-              }
+              LOG.debug("Already shutdown. Ignoring invalid map id error");
               return EMPTY_ATTEMPT_ID_ARRAY;
             }
           }
@@ -499,9 +486,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             assert (srcAttemptId != null);
             return new InputAttemptIdentifier[]{srcAttemptId};
           } else {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Already stopped. Ignoring verification failure.");
-            }
+            LOG.debug("Already stopped. Ignoring verification failure.");
             return EMPTY_ATTEMPT_ID_ARRAY;
           }
         }
@@ -525,9 +510,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             ioErrs.increment(1);
             scheduler.reportLocalError(e);
           } else {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Already stopped. Ignoring error from merger.reserve");
-            }
+            LOG.debug("Already stopped. Ignoring error from merger.reserve");
           }
           return EMPTY_ATTEMPT_ID_ARRAY;
         }
@@ -738,10 +721,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
                   host.getHostIdentifier(), e);
             } else {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug(
-                    "Ignoring fetch error during local disk copy since fetcher has already been stopped");
-              }
+              LOG.debug("Ignoring fetch error during local disk copy since fetcher has already been stopped");
               return;
             }
 

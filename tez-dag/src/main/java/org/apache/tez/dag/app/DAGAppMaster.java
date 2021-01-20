@@ -580,9 +580,7 @@ public class DAGAppMaster extends AbstractService {
       this.webUIService = new WebUIService(context);
       addIfService(webUIService, false);
     } else {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Web UI Service is not enabled.");
-      }
+      LOG.debug("Web UI Service is not enabled.");
     }
 
     this.taskSchedulerManager = createTaskSchedulerManager(taskSchedulerDescriptors);
@@ -1401,9 +1399,8 @@ public class DAGAppMaster extends AbstractService {
       // the job user's UGI context
       LOG.info("Starting DAG submitted via RPC: " + dagPlan.getName());
 
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Invoked with additional local resources: " + additionalResources);
-      }
+      LOG.debug("Invoked with additional local resources: {}", additionalResources);
+
       if (!dagPlan.getName().startsWith(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
         submittedDAGs.incrementAndGet();
       }
@@ -1921,9 +1918,8 @@ public class DAGAppMaster extends AbstractService {
     try {
       Throwable firstError = null;
       List<ServiceThread> threads = new ArrayList<ServiceThread>();
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("Begin parallel start");
-      }
+      LOG.debug("Begin parallel start");
+
       for(ServiceWithDependency sd : services.values()) {
         // start the service. If this fails that service
         // will be stopped and an exception raised
@@ -1947,9 +1943,7 @@ public class DAGAppMaster extends AbstractService {
       if(firstError != null) {
         throw ServiceStateException.convert(firstError);
       }
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("End parallel start");
-      }
+      LOG.debug("End parallel start");
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
@@ -1957,9 +1951,7 @@ public class DAGAppMaster extends AbstractService {
 
   void initServices(Configuration conf) {
     for (ServiceWithDependency sd : services.values()) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Initing service : " + sd.service);
-      }
+      LOG.debug("Initing service : {}", sd.service);
       sd.service.init(conf);
     }
   }
@@ -1977,9 +1969,7 @@ public class DAGAppMaster extends AbstractService {
 
     for (int i = services.size() - 1; i >= 0; i--) {
       Service service = serviceList.get(i);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Stopping service : " + service);
-      }
+      LOG.debug("Stopping service : {}", service);
       Exception ex = ServiceOperations.stopQuietly(service);
       if (ex != null && firstException == null) {
         LOG.warn("Failed to stop service, name=" + service.getName(), ex);
@@ -2209,10 +2199,8 @@ public class DAGAppMaster extends AbstractService {
       boolean deleteTezScratchData = this.amConf.getBoolean(
           TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
           TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData="
-            + deleteTezScratchData);
-      }
+      LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData={}",
+        deleteTezScratchData);
       if (deleteTezScratchData && this.taskSchedulerManager != null
           && this.taskSchedulerManager.hasUnregistered()) {
         // Delete tez scratch data dir
@@ -2490,9 +2478,7 @@ public class DAGAppMaster extends AbstractService {
     public void run() {
       LOG.info("DAGAppMasterShutdownHook invoked");
       if(appMaster.getServiceState() == STATE.STOPPED) {
-        if(LOG.isDebugEnabled()) {
-          LOG.debug("DAGAppMaster already stopped. Ignoring signal");
-        }
+        LOG.debug("DAGAppMaster already stopped. Ignoring signal");
         synchronized (appMaster.shutdownHandlerRunning) {
           try {
             if (appMaster.shutdownHandlerRunning.get()) {

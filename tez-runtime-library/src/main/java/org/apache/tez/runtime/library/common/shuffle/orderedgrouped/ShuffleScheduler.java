@@ -1102,9 +1102,7 @@ class ShuffleScheduler {
       if (eventInfo.eventsProcessed.isEmpty() && !eventInfo.scheduledForDownload) {
         // obsoleted anyways; no point tracking if nothing is started
         pipelinedShuffleInfoEventsMap.remove(srcAttempt.getInputIdentifier());
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Removing " + eventInfo + " from tracking");
-        }
+        LOG.debug("Removing {} from tracking", eventInfo);
         return;
       }
       IOException exception = new IOException(srcAttempt + " is marked as obsoleteInput, but it "
@@ -1126,9 +1124,7 @@ class ShuffleScheduler {
 
   public synchronized MapHost getHost() throws InterruptedException {
     while (pendingHosts.isEmpty() && remainingMaps.get() > 0) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("PendingHosts=" + pendingHosts);
-      }
+      LOG.debug("PendingHosts={}", pendingHosts);
       waitAndNotifyProgress();
     }
 
@@ -1434,9 +1430,7 @@ class ShuffleScheduler {
               if (mapHost == null) {
                 break; // Check for the exit condition.
               }
-              if (LOG.isDebugEnabled()) {
-                LOG.debug(srcNameTrimmed + ": " + "Processing pending host: " + mapHost.toString());
-              }
+              LOG.debug("{}: Processing pending host: {}", srcNameTrimmed, mapHost);
               if (!isShutdown.get()) {
                 count++;
                 if (LOG.isDebugEnabled()) {

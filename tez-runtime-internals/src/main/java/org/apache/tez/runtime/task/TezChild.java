@@ -334,9 +334,7 @@ public class TezChild {
       UserGroupInformation ugi) throws IOException, TezException {
 
     final Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Additional Resources added to container: " + additionalResources);
-    }
+    LOG.debug("Additional Resources added to container: {}", additionalResources);
 
     if (additionalResources != null && !additionalResources.isEmpty()) {
       LOG.info("Localizing additional local resources for Task : " + additionalResources);

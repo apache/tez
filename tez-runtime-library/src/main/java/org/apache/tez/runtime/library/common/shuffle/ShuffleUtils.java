@@ -121,10 +121,7 @@ public class ShuffleUtils {
       IFile.Reader.readToMemory(shuffleData, input, compressedLength, codec,
           ifileReadAhead, ifileReadAheadLength);
       // metrics.inputBytes(shuffleData.length);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Read " + shuffleData.length + " bytes from input for "
-            + identifier);
-      }
+      LOG.debug("Read {} bytes from input for {}", shuffleData.length, identifier);
     } catch (InternalError | Exception e) {
       // Close the streams
       LOG.info("Failed to read data to memory for " + identifier + ". len=" + compressedLength +
@@ -200,8 +197,7 @@ public class ShuffleUtils {
       try {
         c.close();
       } catch (IOException e) {
-        if (LOG.isDebugEnabled())
-          LOG.debug("Exception in closing " + c, e);
+        LOG.debug("Exception in closing {}", c, e);
       }
     }
   }

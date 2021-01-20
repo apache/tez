@@ -38,9 +38,8 @@ public class JavaOptsChecker {
 
   public void checkOpts(String opts) throws TezException {
     Set<String> gcOpts = new TreeSet<String>();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Checking JVM GC opts: " + opts);
-    }
+    LOG.debug("Checking JVM GC opts: {}", opts);
+
     Matcher matcher = pattern.matcher(opts);
     while (matcher.find()) {
       if (matcher.groupCount() != 3) {
@@ -74,10 +73,8 @@ public class JavaOptsChecker {
         }
       }
 
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Found clashing GC opts"
-            + ", conflicting GC Values=" + gcOpts);
-      }
+      LOG.debug("Found clashing GC opts, conflicting GC Values={}", gcOpts);
+
       throw new TezException("Invalid/conflicting GC options found,"
           + " cmdOpts=\"" + opts + "\"");
     }

@@ -385,9 +385,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
       // Load ContainerManager tokens before creating a connection.
       // TODO: Do it only once per NodeManager.
       ContainerId containerID = event.getBaseOperation().getContainerId();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Processing ContainerOperation {}", event);
-      }
+      LOG.debug("Processing ContainerOperation {}", event);
 
       Container c = getContainer(event);
       switch(event.getOpType()) {

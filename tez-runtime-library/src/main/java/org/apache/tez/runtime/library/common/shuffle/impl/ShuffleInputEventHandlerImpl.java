@@ -176,10 +176,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
       if (emptyPartitionsBitSet.get(srcIndex)) {
         CompositeInputAttemptIdentifier srcAttemptIdentifier =
             constructInputAttemptIdentifier(dme.getTargetIndex(), 1, dme.getVersion(), shufflePayload, false);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Source partition: " + srcIndex + " did not generate any data. SrcAttempt: ["
-              + srcAttemptIdentifier + "]. Not fetching.");
-        }
+        LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
+          srcIndex, srcAttemptIdentifier);
         numDmeEventsNoData.getAndIncrement();
         shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier.expand(0));
         return;
@@ -210,10 +208,8 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
         allPartitionsEmpty &= emptyPartitionsBitSet.get(srcPartitionId);
         if (emptyPartitionsBitSet.get(srcPartitionId)) {
           InputAttemptIdentifier srcAttemptIdentifier = compositeInputAttemptIdentifier.expand(i);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Source partition: " + srcPartitionId + " did not generate any data. SrcAttempt: ["
-                + srcAttemptIdentifier + "]. Not fetching.");
-          }
+          LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
+            srcPartitionId, srcAttemptIdentifier);
           numDmeEventsNoData.getAndIncrement();
           shuffleManager.addCompletedInputWithNoData(srcAttemptIdentifier);
         }

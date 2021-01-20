@@ -644,9 +644,7 @@ public class IFile {
           try {
             in.close();
           } catch(IOException e) {
-            if(LOG.isDebugEnabled()) {
-              LOG.debug("Exception in closing " + in, e);
-            }
+            LOG.debug("Exception in closing {}", in, e);
           }
         }
         throw ioe;

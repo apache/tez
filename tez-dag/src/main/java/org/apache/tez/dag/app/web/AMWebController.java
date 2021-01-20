@@ -144,9 +144,7 @@ public class AMWebController extends Controller {
         URL url = new URL(historyUrlBase);
         origin = url.getProtocol() + "://" + url.getAuthority();
       } catch (MalformedURLException e) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Invalid url set for tez history url base: " + historyUrlBase, e);
-        }
+        LOG.debug("Invalid url set for tez history url base: {}", historyUrlBase, e);
       }
     }
 
@@ -161,9 +159,7 @@ public class AMWebController extends Controller {
   }
 
   void sendErrorResponse(int sc, String msg, Exception e) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(msg, e);
-    }
+    LOG.debug(msg, e);
 
     try {
       response().sendError(sc, msg);

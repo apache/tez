@@ -80,9 +80,7 @@ public class TezRuntimeUtils {
     if (className == null) {
       return null;
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Using Combiner class: " + className);
-    }
+    LOG.debug("Using Combiner class: {}", className);
     try {
       clazz = (Class<? extends Combiner>) conf.getClassByName(className);
     } catch (ClassNotFoundException e) {
