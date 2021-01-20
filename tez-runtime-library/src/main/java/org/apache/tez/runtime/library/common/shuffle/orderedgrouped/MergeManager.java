@@ -388,9 +388,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     }
     if (triggerAdditionalMerge) {
       inMemoryMerger.waitForMerge();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Additional in-memory merge triggered");
-      }
+      LOG.debug("Additional in-memory merge triggered");
     }
   }
 
@@ -700,9 +698,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     }
 
     try {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Deleting " + path);
-      }
+      LOG.debug("Deleting {}", path);
       fs.delete(path, true);
     } catch (IOException e) {
       LOG.info("Error in deleting " + path);

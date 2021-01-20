@@ -346,11 +346,8 @@ public class RecoveryParser {
     } catch (EOFException eof) {
       return null;
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Parsed event from input stream"
-          + ", eventType=" + eventType
-          + ", event=" + event.toString());
-    }
+      LOG.debug("Parsed event from input stream, eventType={}, event={}",
+        eventType, event);
     return event;
   }
 

@@ -441,9 +441,7 @@ public class ShuffleManager implements FetcherCallback {
           break;
         }
 
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(srcNameTrimmed + ": " + "NumCompletedInputs: " + numCompletedInputs);
-        }
+        LOG.debug("{}: NumCompletedInputs: {}", srcNameTrimmed, numCompletedInputs);
         if (numCompletedInputs.get() < numInputs && !isShutdown.get()) {
           lock.lock();
           try {
@@ -661,9 +659,7 @@ public class ShuffleManager implements FetcherCallback {
   public void addCompletedInputWithNoData(
       InputAttemptIdentifier srcAttemptIdentifier) {
     int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("No input data exists for SrcTask: " + inputIdentifier + ". Marking as complete.");
-    }
+    LOG.debug("No input data exists for SrcTask: {}. Marking as complete.", inputIdentifier);
     lock.lock();
     try {
       if (!completedInputSet.get(inputIdentifier)) {
@@ -1144,9 +1140,7 @@ public class ShuffleManager implements FetcherCallback {
     @Override
     public void onFailure(Throwable t) {
       if (isShutdown.get()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(srcNameTrimmed + ": " + "Already shutdown. Ignoring error: " + t);
-        }
+        LOG.debug("{}: Already shutdown. Ignoring error.", srcNameTrimmed, t);
       } else {
         LOG.error(srcNameTrimmed + ": " + "Scheduler failed with error: ", t);
         inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Shuffle Scheduler Failed");
@@ -1177,9 +1171,7 @@ public class ShuffleManager implements FetcherCallback {
     public void onSuccess(FetchResult result) {
       fetcher.shutdown();
       if (isShutdown.get()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(srcNameTrimmed + ": " + "Already shutdown. Ignoring event from fetcher");
-        }
+        LOG.debug("{}: Already shutdown. Ignoring event from fetcher", srcNameTrimmed);
       } else {
         Iterable<InputAttemptIdentifier> pendingInputs = result.getPendingInputs();
         if (pendingInputs != null && pendingInputs.iterator().hasNext()) {
@@ -1202,9 +1194,7 @@ public class ShuffleManager implements FetcherCallback {
       // Unsuccessful - the fetcher may not have shutdown correctly. Try shutting it down.
       fetcher.shutdown();
       if (isShutdown.get()) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug(srcNameTrimmed + ": " + "Already shutdown. Ignoring error from fetcher: " + t);
-        }
+        LOG.debug("{}: Already shutdown. Ignoring error from fetcher.", srcNameTrimmed, t);
       } else {
         LOG.error(srcNameTrimmed + ": " + "Fetcher failed with error: ", t);
         shuffleError = t;

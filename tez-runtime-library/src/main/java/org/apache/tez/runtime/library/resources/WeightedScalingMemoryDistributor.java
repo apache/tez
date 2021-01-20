@@ -244,9 +244,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
       requestType = RequestType.PARTITIONED_UNSORTED_OUTPUT;
     } else {
       requestType = RequestType.OTHER;
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Falling back to RequestType.OTHER for class: " + className);
-      }
+      LOG.debug("Falling back to RequestType.OTHER for class: {}", className);
     }
     return requestType;
   }

@@ -113,9 +113,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     this.httpConnParams = connParams;
     this.url = url;
     this.stopWatch = new StopWatch();
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("MapOutput URL :" + url.toString());
-    }
+    LOG.debug("MapOutput URL :{}", url);
 
     initClient(httpConnParams);
     pos = new PipedOutputStream();

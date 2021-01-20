@@ -70,25 +70,19 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   public void setDesiredNumberOfSplits(int num) {
     Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("desiredNumSplits: " + desiredNumSplits);
-    }
+    LOG.debug("desiredNumSplits: {}", desiredNumSplits);
   }
 
   public void setSplitSizeEstimator(SplitSizeEstimator estimator) {
     Preconditions.checkArgument(estimator != null);
     this.estimator = estimator;
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Split size estimator : " + estimator);
-    }
+    LOG.debug("Split size estimator : {}", estimator);
   }
 
   public void setSplitLocationProvider(SplitLocationProvider locationProvider) {
     Preconditions.checkArgument(locationProvider != null);
     this.locationProvider = locationProvider;
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Split location provider : " + locationProvider);
-    }
+    LOG.debug("Split location provider : {}", locationProvider);
   }
 
   @Override

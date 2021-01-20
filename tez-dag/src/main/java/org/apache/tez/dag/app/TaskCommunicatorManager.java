@@ -220,10 +220,7 @@ public class TaskCommunicatorManager extends AbstractService implements
       throws IOException, TezException {
     ContainerId containerId = ConverterUtils.toContainerId(request
         .getContainerIdentifier());
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Received heartbeat from container"
-          + ", request=" + request);
-    }
+    LOG.debug("Received heartbeat from container, request={}", request);
 
     if (!registeredContainers.containsKey(containerId)) {
       LOG.warn("Received task heartbeat from unknown container with id: " + containerId +
@@ -488,9 +485,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @Override
   public void registerRunningContainer(ContainerId containerId, int taskCommId) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("ContainerId: " + containerId + " registered with TaskAttemptListener");
-    }
+    LOG.debug("ContainerId: {} registered with TaskAttemptListener", containerId);
     ContainerInfo oldInfo = registeredContainers.put(containerId, NULL_CONTAINER_INFO);
     if (oldInfo != null) {
       throw new TezUncheckedException(
@@ -515,9 +510,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
   @Override
   public void unregisterRunningContainer(ContainerId containerId, int taskCommId, ContainerEndReason endReason, String diagnostics) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Unregistering Container from TaskAttemptListener: " + containerId);
-    }
+    LOG.debug("Unregistering Container from TaskAttemptListener: {}", containerId);
     ContainerInfo containerInfo = registeredContainers.remove(containerId);
     if (containerInfo.taskAttemptId != null) {
       registeredAttempts.remove(containerInfo.taskAttemptId);

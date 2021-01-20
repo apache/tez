@@ -100,9 +100,7 @@ public class DAGClientHandler {
     final String currentDAGIdStr = currentDAG.getID().toString();
     if (!currentDAGIdStr.equals(dagIdStr)) {
       if (getAllDagIDs().contains(dagIdStr)) {
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Looking for finished dagId " + dagIdStr + " current dag is " + currentDAGIdStr);
-        }
+        LOG.debug("Looking for finished dagId {} current dag is {}", dagIdStr, currentDAGIdStr);
         throw new DAGNotRunningException("DAG " + dagIdStr + " Not running, current dag is " +
             currentDAGIdStr);
       } else {

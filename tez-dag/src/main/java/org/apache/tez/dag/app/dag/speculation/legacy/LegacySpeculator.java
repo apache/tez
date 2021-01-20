@@ -243,9 +243,7 @@ public class LegacySpeculator extends AbstractService {
               LOG.info("We launched " + speculations
                   + " speculations.  Waiting " + wait + " milliseconds before next evaluation.");
             } else {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Waiting {} milliseconds before next evaluation.", wait);
-              }
+              LOG.debug("Waiting {} milliseconds before next evaluation.", wait);
             }
             Thread.sleep(wait);
           } catch (InterruptedException ie) {

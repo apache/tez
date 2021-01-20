@@ -146,9 +146,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   @Override
   public void tryKillDAG() throws TezException, IOException {
-    if(LOG.isDebugEnabled()) {
-      LOG.debug("TryKill for app: " + appId + " dag:" + dagId);
-    }
+    LOG.debug("TryKill for app: {} dag:{}", appId, dagId);
     try {
       if (createAMProxyIfNeeded()) {
         TryKillDAGRequestProto requestProto =
@@ -186,9 +184,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions, long timeout)
       throws IOException, TezException {
-    if(LOG.isDebugEnabled()) {
-      LOG.debug("GetDAGStatus via AM for app: " + appId + " dag:" + dagId);
-    }
+    LOG.debug("GetDAGStatus via AM for app: {} dag:{}", appId, dagId);
     GetDAGStatusRequestProto.Builder requestProtoBuilder =
         GetDAGStatusRequestProto.newBuilder()
           .setDagId(dagId).setTimeout(timeout);

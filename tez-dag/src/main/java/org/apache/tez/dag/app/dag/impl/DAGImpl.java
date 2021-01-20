@@ -1651,10 +1651,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       if (!groupInfo.outputs.isEmpty()) {
         // shared outputs
         for (String vertexName : groupInfo.groupMembers) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Setting shared outputs for group: " + groupName +
-                " on vertex: " + vertexName);
-          }
+          LOG.debug("Setting shared outputs for group: {} on vertex: {}", groupName, vertexName);
           Vertex v = getVertex(vertexName);
           v.addSharedOutputs(groupInfo.outputs);
         }

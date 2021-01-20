@@ -66,10 +66,7 @@ public class TFileLoader extends FileInputLoadFunc implements LoadMetadata {
 
       currentKey = recReader.getCurrentKey();
       String line = recReader.getCurrentValue().toString();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("currentKey: " + currentKey
-                + ", line=" + line);
-      }
+      LOG.debug("currentKey: {}, line={}", currentKey, line);
       //Tuple would be of format: machine, key, line
       Tuple tuple = tupleFactory.newTuple(3);
       if (currentKey != null) {

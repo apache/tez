@@ -1267,10 +1267,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptFinishedEvent taFinishedEvent =
               ta.recoveryData.getTaskAttemptFinishedEvent();
           if (taFinishedEvent == null) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Only TaskAttemptStartedEvent but no TaskAttemptFinishedEvent, "
-                  + "send out TaskAttemptEventAttemptKilled to move it to KILLED");
-            }
+            LOG.debug("Only TaskAttemptStartedEvent but no TaskAttemptFinishedEvent, "
+                + "send out TaskAttemptEventAttemptKilled to move it to KILLED");
             ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(), 
                 "Task Attempt killed in recovery due to can't recover the running task attempt",
                 TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, true));
@@ -1285,30 +1283,21 @@ public class TaskAttemptImpl implements TaskAttempt,
             + "taskAttemptId=" + ta.getID());
         switch (taFinishedEvent.getState()) {
           case FAILED:
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("TaskAttemptFinishedEvent is seen with state of FAILED"
-                  + ", send TA_FAILED to itself"
-                  + ", attemptId=" + ta.attemptId);
-            }
+            LOG.debug("TaskAttemptFinishedEvent is seen with state of FAILED, "
+                + "send TA_FAILED to itself, attemptId={}", ta.attemptId);
             ta.sendEvent(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
                 taFinishedEvent.getTaskFailureType(),
                 taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
             break;
           case KILLED:
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("TaskAttemptFinishedEvent is seen with state of KILLED"
-                  + ", send TA_KILLED to itself"
-                  + ", attemptId=" + ta.attemptId);
-            }
+            LOG.debug("TaskAttemptFinishedEvent is seen with state of KILLED, "
+                + "send TA_KILLED to itself, attemptId={}", ta.attemptId);
             ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(),
                 taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
             break;
           case SUCCEEDED:
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("TaskAttemptFinishedEvent is seen with state of SUCCEEDED"
-                  + ", send TA_DONE to itself"
-                  + ", attemptId=" + ta.attemptId);
-            }
+              LOG.debug("TaskAttemptFinishedEvent is seen with state of SUCCEEDED, "
+                  + "send TA_DONE to itself, attemptId={}", ta.attemptId);
             ta.sendEvent(new TaskAttemptEvent(ta.getID(), TaskAttemptEventType.TA_DONE));
             break;
           default:
@@ -1671,9 +1660,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       if (ta.recoveryData != null && ta.recoveryData.isTaskAttemptSucceeded()) {
         TaskAttemptFinishedEvent taFinishedEvent = ta.recoveryData
             .getTaskAttemptFinishedEvent();
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("TaskAttempt is recovered to SUCCEEDED, attemptId=" + ta.attemptId);
-        }
+        LOG.debug("TaskAttempt is recovered to SUCCEEDED, attemptId={}", ta.attemptId);
         ta.reportedStatus.counters = taFinishedEvent.getCounters();
         List<TezEvent> tezEvents = taFinishedEvent.getTAGeneratedEvents();
         if (tezEvents != null && !tezEvents.isEmpty()) {

@@ -310,18 +310,14 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       } else {
         ContainerId containerId = ConverterUtils.toContainerId(containerContext
             .getContainerIdentifier());
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Container with id: " + containerId + " asked for a task");
-        }
+        LOG.debug("Container with id: {} asked for a task", containerId);
         task = getContainerTask(containerId);
         if (task != null && !task.shouldDie()) {
           getContext().taskSubmitted(task.getTaskSpec().getTaskAttemptID(), containerId);
           getContext().taskStartedRemotely(task.getTaskSpec().getTaskAttemptID());
         }
       }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("getTask returning task: " + task);
-      }
+      LOG.debug("getTask returning task: {}", task);
       return task;
     }
 
@@ -335,10 +331,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         TezException {
       ContainerId containerId = ConverterUtils.toContainerId(request.getContainerIdentifier());
       long requestId = request.getRequestId();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Received heartbeat from container"
-            + ", request=" + request);
-      }
+      LOG.debug("Received heartbeat from container, request={}", request);
 
       ContainerInfo containerInfo = registeredContainers.get(containerId);
       if (containerInfo == null) {
@@ -436,9 +429,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
           }
         } else {
           task = null;
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("No task assigned yet for running container: " + containerId);
-          }
+          LOG.debug("No task assigned yet for running container: {}", containerId);
         }
       }
     }

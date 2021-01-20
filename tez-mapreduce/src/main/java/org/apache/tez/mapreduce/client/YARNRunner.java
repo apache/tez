@@ -616,9 +616,7 @@ public class YARNRunner implements ClientProtocol {
     dagAMConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, javaOpts.toString());
     if (envStr.length() > 0) {
       dagAMConf.set(TezConfiguration.TEZ_AM_LAUNCH_ENV, envStr);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Setting MR AM env to : " + envStr);
-      }
+      LOG.debug("Setting MR AM env to : {}", envStr);
     }
 
     // Submit to ResourceManager

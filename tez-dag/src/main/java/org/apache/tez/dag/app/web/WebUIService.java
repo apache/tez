@@ -119,9 +119,7 @@ public class WebUIService extends AbstractService {
   @Override
   protected void serviceStop() throws Exception {
     if (this.webApp != null) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Stopping WebApp");
-      }
+      LOG.debug("Stopping WebApp");
       this.webApp.stop();
     }
     super.serviceStop();
