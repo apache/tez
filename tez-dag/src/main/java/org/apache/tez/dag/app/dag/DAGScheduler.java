@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 

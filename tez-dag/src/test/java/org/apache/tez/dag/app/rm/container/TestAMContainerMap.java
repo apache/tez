@@ -37,7 +37,7 @@ import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.tez.common.ContainerSignatureMatcher;
 import org.apache.tez.dag.app.TaskCommunicatorWrapper;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.app.rm.container.TestAMContainer.WrappedContainer;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
 import org.apache.tez.dag.app.AppContext;

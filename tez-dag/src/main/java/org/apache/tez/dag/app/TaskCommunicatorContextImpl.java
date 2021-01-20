@@ -30,7 +30,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.impl.Task;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.DagInfo;
@@ -42,8 +42,8 @@ import org.apache.tez.serviceplugins.api.TaskHeartbeatResponse;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
@@ -234,7 +234,6 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     taskCommunicatorManager.reportError(taskCommunicatorIndex, servicePluginError, message, dagInfo);
   }
 
-  @Override
   public void onStateUpdated(VertexStateUpdate event) {
     taskCommunicatorManager.vertexStateUpdateNotificationReceived(event, taskCommunicatorIndex);
   }

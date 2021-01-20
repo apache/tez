@@ -17,7 +17,7 @@
  */
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.impl.DAGImpl.OutputKey;
+import org.apache.tez.dag.app.dag.impl.DAG.OutputKey;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGEventCommitCompleted extends DAGEvent{

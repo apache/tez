@@ -19,10 +19,10 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
-import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
 import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.records.TezTaskAttemptID;

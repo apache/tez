@@ -41,6 +41,8 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;

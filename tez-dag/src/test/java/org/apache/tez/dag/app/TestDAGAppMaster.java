@@ -16,7 +16,8 @@ package org.apache.tez.dag.app;
 
 import org.apache.hadoop.yarn.util.MonotonicClock;
 import org.apache.tez.dag.app.dag.DAGState;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Vertex;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.records.TezVertexID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -78,7 +79,6 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezUserPayloadProto;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.junit.After;
@@ -448,7 +448,7 @@ public class TestDAGAppMaster {
         .setCredentialsBinary(
             DagTypeConverters.convertCredentialsToProto(dagCreds))
         .build();
-    DAGImpl dag = spy(am.createDAG(dagPlan, dagId));
+    DAG dag = spy(am.createDAG(dagPlan, dagId));
     am.setCurrentDAG(dag);
     when(dag.getState()).thenReturn(DAGState.RUNNING);
     Map<TezVertexID, Vertex> map = new HashMap<TezVertexID, Vertex>();
@@ -535,7 +535,7 @@ public class TestDAGAppMaster {
         .setCredentialsBinary(
             DagTypeConverters.convertCredentialsToProto(dagCreds))
         .build();
-    DAGImpl dag = am.createDAG(dagPlan, dagId);
+    DAG dag = am.createDAG(dagPlan, dagId);
     Credentials fetchedDagCreds = dag.getCredentials();
     am.stop();
 

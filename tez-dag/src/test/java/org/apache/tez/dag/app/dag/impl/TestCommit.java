@@ -51,7 +51,6 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.common.DrainDispatcher;
 import org.apache.tez.common.security.ACLManager;
-import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSinkDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -75,8 +74,8 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.DAGTerminationCause;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.CallableEventType;
@@ -95,7 +94,7 @@ import org.apache.tez.dag.app.dag.event.VertexEventRouteEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskCompleted;
 import org.apache.tez.dag.app.dag.event.VertexEventTaskReschedule;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
-import org.apache.tez.dag.app.dag.impl.DAGImpl.OutputKey;
+import org.apache.tez.dag.app.dag.impl.DAG.OutputKey;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
@@ -141,7 +140,7 @@ public class TestCommit {
   private AppContext appContext;
   private ACLManager aclManager;
   private ApplicationAttemptId appAttemptId;
-  private DAGImpl dag;
+  private DAG dag;
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
@@ -319,7 +318,7 @@ public class TestCommit {
     doReturn(dagId).when(appContext).getCurrentDAGID();
     doReturn(historyEventHandler).when(appContext).getHistoryHandler();
     doReturn(aclManager).when(appContext).getAMACLManager();
-    dag = new DAGImpl(dagId, conf, dagPlan, dispatcher.getEventHandler(),
+    dag = new DAG(dagId, conf, dagPlan, dispatcher.getEventHandler(),
         taskCommunicatorManagerInterface, fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dispatcher.getEventHandler()).when(appContext).getEventHandler();
@@ -351,7 +350,7 @@ public class TestCommit {
     }
   }
 
-  private void waitUntil(DAGImpl dag, DAGState state) {
+  private void waitUntil(DAG dag, DAGState state) {
     while (dag.getState() != state) {
       LOG.info("Wait for dag go to state:" + state);
       try {
@@ -362,7 +361,7 @@ public class TestCommit {
     }
   }
 
-  private void waitUntil(VertexImpl vertex, VertexState state) {
+  private void waitUntil(Vertex vertex, VertexState state) {
     while (vertex.getState() != state) {
       LOG.info("Wait for vertex " + vertex.getLogIdentifier() + " go to state:"
           + state);
@@ -374,7 +373,7 @@ public class TestCommit {
     }
   }
 
-  private void waitForCommitCompleted(VertexImpl vertex, String outputName) {
+  private void waitForCommitCompleted(Vertex vertex, String outputName) {
     while (vertex.commitFutures.containsKey(outputName)) {
       try {
         Thread.sleep(200);
@@ -385,7 +384,7 @@ public class TestCommit {
     }
   }
 
-  private void waitForCommitCompleted(DAGImpl vertex, OutputKey outputKey) {
+  private void waitForCommitCompleted(DAG vertex, OutputKey outputKey) {
     while (vertex.commitFutures.containsKey(outputKey)) {
       try {
         Thread.sleep(200);
@@ -414,7 +413,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testDag");
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -465,7 +464,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testDag");
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -534,7 +533,7 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !commit2Succeed, true).toUserPayload())));
 
-    DAG dag = DAG.create("testDag");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testDag");
     dag.addVertex(v1);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     v1.addDataSink("v1Out_1", DataSinkDescriptor.create(outDesc, ocd1, null));
@@ -542,13 +541,13 @@ public class TestCommit {
     return dag.createDag(conf, null, null, null, true);
   }
 
-  private void initDAG(DAGImpl dag) {
+  private void initDAG(DAG dag) {
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
     Assert.assertEquals(DAGState.INITED, dag.getState());
   }
 
   @SuppressWarnings("unchecked")
-  private void startDAG(DAGImpl impl) {
+  private void startDAG(DAG impl) {
     dispatcher.getEventHandler().handle(
         new DAGEventStartDag(impl.getID(), null));
     dispatcher.await();
@@ -562,7 +561,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
@@ -593,7 +592,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -632,7 +631,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(false, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -668,7 +667,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, false));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -706,7 +705,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -745,7 +744,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -785,7 +784,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -830,7 +829,7 @@ public class TestCommit {
     setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
@@ -871,9 +870,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -927,9 +926,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, false));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -988,9 +987,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(false, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1048,9 +1047,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1106,9 +1105,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1166,9 +1165,9 @@ public class TestCommit {
     setupDAG(createDAGPlanWith2VertexGroupOutputs(true, true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1231,9 +1230,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(false, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1290,9 +1289,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, false));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1349,9 +1348,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, false));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1412,9 +1411,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(false, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
 
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1471,9 +1470,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1533,9 +1532,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1598,9 +1597,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1668,9 +1667,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1727,9 +1726,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1786,9 +1785,9 @@ public class TestCommit {
     setupDAG(createDAGPlan(true, true));
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1836,9 +1835,9 @@ public class TestCommit {
     
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1891,9 +1890,9 @@ public class TestCommit {
     
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));
@@ -1955,9 +1954,9 @@ public class TestCommit {
 
     initDAG(dag);
     startDAG(dag);
-    VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
-    VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
+    Vertex v1 = (Vertex) dag.getVertex("vertex1");
+    Vertex v2 = (Vertex) dag.getVertex("vertex2");
+    Vertex v3 = (Vertex) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
     v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
         TaskState.SUCCEEDED));

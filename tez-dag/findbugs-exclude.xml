@@ -145,7 +145,7 @@
 
   <!-- TEZ-1953 -->
   <Match>
-    <Class name="org.apache.tez.dag.app.dag.impl.VertexImpl"/>
+    <Class name="org.apache.tez.dag.app.dag.impl.Vertex"/>
     <Field name="groupInputSpecList"/>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>

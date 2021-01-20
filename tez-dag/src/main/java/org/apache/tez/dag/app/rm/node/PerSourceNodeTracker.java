@@ -24,7 +24,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

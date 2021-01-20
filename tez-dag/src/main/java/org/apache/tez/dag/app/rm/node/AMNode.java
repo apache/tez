@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.EventHandler;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 
 public interface AMNode extends EventHandler<AMNodeEvent> {
   

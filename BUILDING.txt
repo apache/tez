@@ -164,7 +164,7 @@ Optional parameters:
 
 For example, to generate the state machine graphviz file for DAGImpl, run:
 
-  $ mvn compile -Pvisualize -Dtez.dag.state.classes=org.apache.tez.dag.app.dag.impl.DAGImpl -DskipTests=true
+  $ mvn compile -Pvisualize -Dtez.dag.state.classes=org.apache.tez.dag.app.dag.impl.DAG -DskipTests=true
 
 To generate the diagram, you can use a Graphviz application or something like:
 

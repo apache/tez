@@ -23,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**

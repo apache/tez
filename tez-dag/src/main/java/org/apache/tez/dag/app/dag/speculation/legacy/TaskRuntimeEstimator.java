@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag.speculation.legacy;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 

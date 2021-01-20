@@ -58,7 +58,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
@@ -68,7 +68,7 @@ import org.junit.Test;
 /**
  * Contains additional tests for VertexImpl. Please avoid adding class parameters.
  */
-public class TestVertexImpl2 {
+public class TestVertex2 {
 
   @Test(timeout = 5000)
   public void testTaskLoggingOptsPerLogger() {
@@ -507,7 +507,7 @@ public class TestVertexImpl2 {
   private static class VertexWrapper {
 
     final AppContext mockAppContext;
-    final VertexImpl vertex;
+    final Vertex vertex;
     final VertexPlan vertexPlan;
 
     VertexWrapper(AppContext appContext, VertexPlan vertexPlan, Configuration conf,
@@ -528,7 +528,7 @@ public class TestVertexImpl2 {
       this.vertexPlan = vertexPlan;
 
       vertex =
-          new VertexImpl(TezVertexID.fromString("vertex_1418197758681_0001_1_00"), vertexPlan,
+          new Vertex(TezVertexID.fromString("vertex_1418197758681_0001_1_00"), vertexPlan,
               "testvertex", conf, mock(EventHandler.class), mock(TaskCommunicatorManagerInterface.class),
               mock(Clock.class), mock(TaskHeartbeatHandler.class), false, mockAppContext,
               VertexLocationHint.create(new LinkedList<TaskLocationHint>()), null,

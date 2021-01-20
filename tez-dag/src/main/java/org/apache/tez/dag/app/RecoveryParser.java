@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.protobuf.CodedInputStream;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -43,7 +44,6 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
@@ -113,7 +113,7 @@ public class RecoveryParser {
   public static class DAGRecoveryData {
 
     public TezDAGID recoveredDagID = null;
-    public DAGImpl recoveredDAG = null;
+    public DAG recoveredDAG = null;
     public DAGState dagState = null;
     public boolean isCompleted = false;
     public boolean nonRecoverable = false;

@@ -38,6 +38,8 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.api.event.VertexStateUpdateParallelismUpdated;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.junit.Assert;

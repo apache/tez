@@ -45,12 +45,10 @@ import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.URL;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.tez.common.counters.AggregateFrameworkCounter;
 import org.apache.tez.common.counters.AggregateTezCounterDelegate;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeManagerPlugin;
@@ -67,7 +65,6 @@ import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.VertexGroup;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -82,11 +79,11 @@ import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher.ContainerData;
 import org.apache.tez.dag.app.MockDAGAppMaster.StatisticsDelegate;
 import org.apache.tez.dag.app.dag.DAGState;
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
-import org.apache.tez.dag.app.dag.impl.TaskImpl;
-import org.apache.tez.dag.app.dag.impl.VertexImpl;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
@@ -169,8 +166,8 @@ public class TestMockDAGAppMaster {
     lrVertex.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-    DAG dag = DAG.create("testLocalResourceSetup").addTaskLocalFiles(lrDAG);
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testLocalResourceSetup").addTaskLocalFiles(lrDAG);
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
     dag.addVertex(vA);
 
     DAGClient dagClient = tezClient.submitDAG(dag);
@@ -199,14 +196,14 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
     // there is only 1 task whose first attempt will be preempted
-    DAG dag = DAG.create("testInternalPreemption");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testInternalPreemption");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
     dag.addVertex(vA);
 
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
     ContainerData cData = mockLauncher.getContainers().values().iterator().next();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockApp.getTaskSchedulerManager().preemptContainer(0, cData.cId);
     
     mockLauncher.startScheduling(true);
@@ -231,11 +228,11 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
     mockApp.eventsDelegate = new TestEventsDelegate();
-    DAG dag = DAG.create("testBasicEvents");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 2);
-    Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 2);
-    Vertex vC = Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 2);
-    Vertex vD = Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 2);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testBasicEvents");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 2);
+    org.apache.tez.dag.api.Vertex vB = org.apache.tez.dag.api.Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 2);
+    org.apache.tez.dag.api.Vertex vC = org.apache.tez.dag.api.Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 2);
+    org.apache.tez.dag.api.Vertex vD = org.apache.tez.dag.api.Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 2);
     dag.addVertex(vA)
         .addVertex(vB)
         .addVertex(vC)
@@ -255,12 +252,12 @@ public class TestMockDAGAppMaster {
 
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
-    VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vB.getName());
-    TaskImpl tImpl = (TaskImpl) vImpl.getTask(1);
+    Vertex vImpl = (Vertex) dagImpl.getVertex(vB.getName());
+    Task tImpl = (Task) vImpl.getTask(1);
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     List<TezEvent> tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
@@ -273,8 +270,8 @@ public class TestMockDAGAppMaster {
     // order of vA task completion can change order of events
     Assert.assertTrue("t1: " + targetIndex1 + " t2: " + targetIndex2,
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
-    vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
-    tImpl = (TaskImpl) vImpl.getTask(1);
+    vImpl = (Vertex) dagImpl.getVertex(vC.getName());
+    tImpl = (Task) vImpl.getTask(1);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
@@ -287,8 +284,8 @@ public class TestMockDAGAppMaster {
     // order of vA task completion can change order of events
     Assert.assertTrue("t1: " + targetIndex1 + " t2: " + targetIndex2,
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
-    vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
-    tImpl = (TaskImpl) vImpl.getTask(1);
+    vImpl = (Vertex) dagImpl.getVertex(vD.getName());
+    tImpl = (Task) vImpl.getTask(1);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(1, tEvents.size()); // 1 from vA
@@ -356,12 +353,12 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
     mockApp.eventsDelegate = new TestEventsDelegate();
-    DAG dag = DAG.create("testMixedEdgeRouting");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
-    Vertex vB = Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 1);
-    Vertex vC = Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 1);
-    Vertex vD = Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 1);
-    Vertex vE = Vertex.create("E", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testMixedEdgeRouting");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.Vertex vB = org.apache.tez.dag.api.Vertex.create("B", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.Vertex vC = org.apache.tez.dag.api.Vertex.create("C", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.Vertex vD = org.apache.tez.dag.api.Vertex.create("D", ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.Vertex vE = org.apache.tez.dag.api.Vertex.create("E", ProcessorDescriptor.create("Proc.class"), 1);
     dag.addVertex(vA)
         .addVertex(vB)
         .addVertex(vC)
@@ -392,23 +389,23 @@ public class TestMockDAGAppMaster {
 
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     // vC uses on demand routing and its task does not provide events
-    VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
-    TaskImpl tImpl = (TaskImpl) vImpl.getTask(0);
+    Vertex vImpl = (Vertex) dagImpl.getVertex(vC.getName());
+    Task tImpl = (Task) vImpl.getTask(0);
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     Assert.assertEquals(0, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
     // vD is mixed mode and only 1 out of 2 edges does legacy routing with task providing events
-    vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
-    tImpl = (TaskImpl) vImpl.getTask(0);
+    vImpl = (Vertex) dagImpl.getVertex(vD.getName());
+    tImpl = (Task) vImpl.getTask(0);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
     // vE has single legacy edge and does not use on demand routing and its task provides events
-    vImpl = (VertexImpl) dagImpl.getVertex(vE.getName());
-    tImpl = (TaskImpl) vImpl.getTask(0);
+    vImpl = (Vertex) dagImpl.getVertex(vE.getName());
+    tImpl = (Task) vImpl.getTask(0);
     taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
     Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
 
@@ -447,8 +444,8 @@ public class TestMockDAGAppMaster {
         System.out.println("Launched: " + maxConc);
       }
     };
-    DAG dag = DAG.create("testConcurrencyLimit");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 20).setConf(
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testConcurrencyLimit");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 20).setConf(
         TezConfiguration.TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY, String.valueOf(concurrencyLimit));
     dag.addVertex(vA);
 
@@ -471,9 +468,9 @@ public class TestMockDAGAppMaster {
     final String vBName = "B";
     final String procCounterName = "Proc";
     final String globalCounterName = "Global";
-    DAG dag = DAG.create("testCountersAggregation");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
-    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testCountersAggregation");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
+    org.apache.tez.dag.api.Vertex vB = org.apache.tez.dag.api.Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
     dag.addVertex(vA)
         .addVertex(vB)
         .addEdge(
@@ -518,15 +515,15 @@ public class TestMockDAGAppMaster {
     mockApp.doSleep = false;
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     TezCounters counters = dagImpl.getAllCounters();
 
     // verify processor counters
-    VertexImpl vAImpl = (VertexImpl) dagImpl.getVertex(vAName);
-    VertexImpl vBImpl = (VertexImpl) dagImpl.getVertex(vBName);
+    Vertex vAImpl = (Vertex) dagImpl.getVertex(vAName);
+    Vertex vBImpl = (Vertex) dagImpl.getVertex(vBName);
     TezCounters vACounters = vAImpl.getAllCounters();
     TezCounters vBCounters = vBImpl.getAllCounters();
 
@@ -554,9 +551,9 @@ public class TestMockDAGAppMaster {
     final String vBName = "B";
     final String procCounterName = "Proc";
     final String globalCounterName = "Global";
-    DAG dag = DAG.create("testBasicCounters");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
-    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testBasicCounters");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10);
+    org.apache.tez.dag.api.Vertex vB = org.apache.tez.dag.api.Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 1);
     dag.addVertex(vA)
         .addVertex(vB)
         .addEdge(
@@ -600,7 +597,7 @@ public class TestMockDAGAppMaster {
     mockApp.doSleep = false;
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
@@ -619,8 +616,8 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(1, counters.findCounter(vBName, vAName).getValue());
     // verify global counters
     Assert.assertEquals(11, counters.findCounter(globalCounterName, globalCounterName).getValue());
-    VertexImpl vAImpl = (VertexImpl) dagImpl.getVertex(vAName);
-    VertexImpl vBImpl = (VertexImpl) dagImpl.getVertex(vBName);
+    Vertex vAImpl = (Vertex) dagImpl.getVertex(vAName);
+    Vertex vBImpl = (Vertex) dagImpl.getVertex(vBName);
     TezCounters vACounters = vAImpl.getAllCounters();
     TezCounters vBCounters = vBImpl.getAllCounters();
     String vACounterName = vACounters.findCounter(globalCounterName, globalCounterName).getName();
@@ -650,9 +647,9 @@ public class TestMockDAGAppMaster {
     final String vBName = "B";
     final String sourceName = "In";
     final String sinkName = "Out";
-    DAG dag = DAG.create("testBasisStatistics");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 3);
-    Vertex vB = Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 2);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testBasisStatistics");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 3);
+    org.apache.tez.dag.api.Vertex vB = org.apache.tez.dag.api.Vertex.create(vBName, ProcessorDescriptor.create("Proc.class"), 2);
     vA.addDataSource(sourceName,
         DataSourceDescriptor.create(InputDescriptor.create("In"), null, null));
     vB.addDataSink(sinkName, DataSinkDescriptor.create(OutputDescriptor.create("Out"), null, null));
@@ -705,13 +702,13 @@ public class TestMockDAGAppMaster {
     mockApp.doSleep = false;
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
     
     // verify that the values have been correct aggregated
-    for (org.apache.tez.dag.app.dag.Vertex v : dagImpl.getVertices().values()) {
+    for (org.apache.tez.dag.app.dag.impl.Vertex v : dagImpl.getVertices().values()) {
       VertexStatistics vStats = v.getStatistics();
       if (v.getName().equals(vAName)) {
         Assert.assertEquals(3, vStats.getOutputStatistics(vBName).getDataSize());
@@ -765,8 +762,8 @@ public class TestMockDAGAppMaster {
 
     final String vAName = "A";
     
-    DAG dag = DAG.create("testBasicCounterMemory");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10000);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testBasicCounterMemory");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 10000);
     dag.addVertex(vA);
 
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
@@ -789,7 +786,7 @@ public class TestMockDAGAppMaster {
     mockApp.doSleep = false;
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
@@ -811,8 +808,8 @@ public class TestMockDAGAppMaster {
 
     final String vAName = "A";
     
-    DAG dag = DAG.create("testTaskEventsProcessingSpeed");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 50000);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testTaskEventsProcessingSpeed");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), 50000);
     dag.addVertex(vA);
 
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
@@ -841,8 +838,8 @@ public class TestMockDAGAppMaster {
     ioStats.setItemsProcessed(1);
     TaskStatistics vAStats = new TaskStatistics();
 
-    DAG dag = DAG.create("testBasicStatisticsMemory");
-    Vertex vA = Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), numTasks);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testBasicStatisticsMemory");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create(vAName, ProcessorDescriptor.create("Proc.class"), numTasks);
     for (int i=0; i<numSources; ++i) {
       final String sourceName = i + vAName;
       vA.addDataSource(sourceName,
@@ -878,7 +875,7 @@ public class TestMockDAGAppMaster {
     mockApp.doSleep = false;
     DAGClient dagClient = tezClient.submitDAG(dag);
     mockLauncher.waitTillContainersLaunched();
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     mockLauncher.startScheduling(true);
     DAGStatus status = dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, status.getState());
@@ -901,8 +898,8 @@ public class TestMockDAGAppMaster {
     lrVertex.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-    DAG dag = DAG.create("test").addTaskLocalFiles(lrDAG);
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test").addTaskLocalFiles(lrDAG);
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
     dag.addVertex(vA);
 
     TezConfiguration tezconf = new TezConfiguration(defaultConf);
@@ -934,8 +931,8 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
 
-    DAG dag = DAG.create("testSchedulerErrorHandling");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("testSchedulerErrorHandling");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     tezClient.submitDAG(dag);
@@ -991,11 +988,11 @@ public class TestMockDAGAppMaster {
     return outputCommitterDesc;
   }
 
-  private DAG createDAG(String dagName, boolean uv12CommitFail, boolean v3CommitFail) {
-    DAG dag = DAG.create(dagName);
-    Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("Proc"), 1);
-    Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("Proc"), 1);
-    Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Proc"), 1);
+  private org.apache.tez.dag.api.DAG createDAG(String dagName, boolean uv12CommitFail, boolean v3CommitFail) {
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create(dagName);
+    org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create("v1", ProcessorDescriptor.create("Proc"), 1);
+    org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create("v2", ProcessorDescriptor.create("Proc"), 1);
+    org.apache.tez.dag.api.Vertex v3 = org.apache.tez.dag.api.Vertex.create("v3", ProcessorDescriptor.create("Proc"), 1);
     VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
     DataSinkDescriptor uv12DataSink = DataSinkDescriptor.create(
         OutputDescriptor.create("dummy output"), createOutputCommitterDesc(uv12CommitFail), null);
@@ -1024,13 +1021,13 @@ public class TestMockDAGAppMaster {
     tezClient.start();
 
     // both committers succeed
-    DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
+    org.apache.tez.dag.api.DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
     DAGClient dagClient = tezClient.submitDAG(dag1);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     
     // vertexGroupCommiter fail (uv12)
-    DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
+    org.apache.tez.dag.api.DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
     dagClient = tezClient.submitDAG(dag2);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
@@ -1042,7 +1039,7 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v3", null).getState());
 
     // vertex commit fail (v3)
-    DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
+    org.apache.tez.dag.api.DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
     dagClient = tezClient.submitDAG(dag3);
     dagClient.waitForCompletion();
     LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
@@ -1054,7 +1051,7 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(VertexStatus.State.SUCCEEDED, dagClient.getVertexStatus("v3", null).getState());
 
     // both committers fail
-    DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
+    org.apache.tez.dag.api.DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
     dagClient = tezClient.submitDAG(dag4);
     dagClient.waitForCompletion();
     LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
@@ -1077,13 +1074,13 @@ public class TestMockDAGAppMaster {
     tezClient.start();
 
     // both committers succeed
-    DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
+    org.apache.tez.dag.api.DAG dag1 = createDAG("testDAGBothCommitsSucceed", false, false);
     DAGClient dagClient = tezClient.submitDAG(dag1);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     
     // vertexGroupCommiter fail (uv12)
-    DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
+    org.apache.tez.dag.api.DAG dag2 = createDAG("testDAGVertexGroupCommitFail", true, false);
     dagClient = tezClient.submitDAG(dag2);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
@@ -1102,7 +1099,7 @@ public class TestMockDAGAppMaster {
     }
 
     // vertex commit fail (v3)
-    DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
+    org.apache.tez.dag.api.DAG dag3 = createDAG("testDAGVertexCommitFail", false, true);
     dagClient = tezClient.submitDAG(dag3);
     dagClient.waitForCompletion();
     LOG.info(dagClient.getDAGStatus(null).getDiagnostics());
@@ -1116,7 +1113,7 @@ public class TestMockDAGAppMaster {
         .contains("fail output committer:v3Out"));
     
     // both committers fail
-    DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
+    org.apache.tez.dag.api.DAG dag4 = createDAG("testDAGBothCommitsFail", true, true);
     dagClient = tezClient.submitDAG(dag4);
     dagClient.waitForCompletion();
     Assert.assertEquals(DAGStatus.State.FAILED, dagClient.getDAGStatus(null).getState());
@@ -1213,8 +1210,8 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(true);
 
-    DAG dag = DAG.create("test");
-    Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test");
+    org.apache.tez.dag.api.Vertex vA = org.apache.tez.dag.api.Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     DAGClient dagClient = tezClient.submitDAG(dag);
