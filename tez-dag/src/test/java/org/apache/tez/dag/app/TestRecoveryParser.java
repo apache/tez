@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Random;
 
 import com.google.common.collect.Sets;
-import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,8 +36,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -51,8 +48,8 @@ import org.apache.tez.dag.app.RecoveryParser.TaskRecoveryData;
 import org.apache.tez.dag.app.RecoveryParser.VertexRecoveryData;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.VertexState;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
-import org.apache.tez.dag.app.dag.impl.TestDAGImpl;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.TestDAG;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.DAGCommitStartedEvent;
 import org.apache.tez.dag.history.events.DAGFinishedEvent;
@@ -96,7 +93,7 @@ public class TestRecoveryParser {
   private Configuration conf;
   private Path recoveryPath;
   private DAGAppMaster mockAppMaster;
-  private DAGImpl mockDAGImpl;
+  private DAG mockDAG;
   // Protobuf message limit is 64 MB by default
   private static final int PROTOBUF_DEFAULT_SIZE_LIMIT = 64 << 20;
 
@@ -110,8 +107,8 @@ public class TestRecoveryParser {
     mockAppMaster = mock(DAGAppMaster.class);
     mockAppMaster.dagIDs = new HashSet<String>();
     when(mockAppMaster.getConfig()).thenReturn(new Configuration());
-    mockDAGImpl = mock(DAGImpl.class);
-    when(mockAppMaster.createDAG(any(DAGPlan.class), any(TezDAGID.class))).thenReturn(mockDAGImpl);
+    mockDAG = mock(DAG.class);
+    when(mockAppMaster.createDAG(any(DAGPlan.class), any(TezDAGID.class))).thenReturn(mockDAG);
     parser = new RecoveryParser(mockAppMaster, localFS, recoveryPath, 3);
   }
 
@@ -167,7 +164,7 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write data in attempt_1
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -213,7 +210,7 @@ public class TestRecoveryParser {
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write data in attempt_1
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -262,7 +259,7 @@ public class TestRecoveryParser {
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write data in attempt_1
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -313,7 +310,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -339,7 +336,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -347,7 +344,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -371,7 +368,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -379,7 +376,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -407,7 +404,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
 
     RecoveryService rService = new RecoveryService(appContext);
     Configuration conf = new Configuration();
@@ -415,7 +412,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -438,7 +435,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -448,7 +445,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -475,7 +472,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -485,7 +482,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -509,7 +506,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -519,7 +516,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -557,7 +554,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -568,7 +565,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -595,7 +592,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
 
     // MockRecoveryService will skip the non-summary event
     MockRecoveryService rService = new MockRecoveryService(appContext);
@@ -604,7 +601,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // write a DAGSubmittedEvent first to initialize summaryStream
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -632,7 +629,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -642,7 +639,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // DAG  DAGSubmittedEvent -> DAGInitializedEvent -> DAGStartedEvent
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
@@ -702,7 +699,7 @@ public class TestRecoveryParser {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
-    when(mockDAGImpl.getID()).thenReturn(dagID);
+    when(mockDAG.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
 
@@ -712,7 +709,7 @@ public class TestRecoveryParser {
     rService.init(conf);
     rService.start();
 
-    DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
+    DAGPlan dagPlan = TestDAG.createTestDAGPlan();
     // DAG  DAGSubmittedEvent -> DAGInitializedEvent -> DAGStartedEvent
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),

@@ -18,8 +18,8 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.impl.Edge;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexEventNullEdgeInitialized extends VertexEvent {

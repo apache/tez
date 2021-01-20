@@ -18,7 +18,7 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 
 public class DAGEventSchedulerUpdate extends DAGEvent {
   

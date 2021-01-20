@@ -66,11 +66,8 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.RecoveryParser.TaskRecoveryData;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
 import org.apache.tez.dag.app.dag.TaskStateInternal;
-import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventDiagnosticsUpdate;
 import org.apache.tez.dag.app.dag.event.DAGEventSchedulerUpdate;
@@ -112,9 +109,9 @@ import org.apache.tez.state.StateMachineTez;
  * Implementation of Task interface.
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class TaskImpl implements Task, EventHandler<TaskEvent> {
+public class Task implements EventHandler<TaskEvent> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TaskImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Task.class);
 
   private static final String LINE_SEPARATOR = System
     .getProperty("line.separator");
@@ -160,20 +157,20 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private final Set<NodeId> nodesWithRunningAttempts = Collections
       .newSetFromMap(new ConcurrentHashMap<NodeId, Boolean>());
 
-  private static final MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal>
+  private static final MultipleArcTransition<Task, TaskEvent, TaskStateInternal>
      ATTEMPT_KILLED_TRANSITION = new AttemptKilledTransition();
-  private static final SingleArcTransition<TaskImpl, TaskEvent>
+  private static final SingleArcTransition<Task, TaskEvent>
      KILL_TRANSITION = new KillTransition();
-  private static final SingleArcTransition<TaskImpl, TaskEvent>
+  private static final SingleArcTransition<Task, TaskEvent>
       REDUNDANT_COMPLETED_TRANSITION = new AttemptRedundantCompletedTransition();
 
 
   private static final TaskStateChangedCallback STATE_CHANGED_CALLBACK = new TaskStateChangedCallback();
   
   private static final StateMachineFactory
-               <TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
+               <Task, TaskStateInternal, TaskEventType, TaskEvent>
             stateMachineFactory
-           = new StateMachineFactory<TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
+           = new StateMachineFactory<Task, TaskStateInternal, TaskEventType, TaskEvent>
                (TaskStateInternal.NEW)
 
     // define the state machine of Task
@@ -317,7 +314,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             STATE_CHANGED_CALLBACK);
   }
 
-  private final StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, TaskImpl>
+  private final StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, Task>
     stateMachine;
 
   // TODO: Recovery
@@ -356,7 +353,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   @VisibleForTesting
   long finishTime = -1L;
 
-  @Override
   public TaskState getState() {
     readLock.lock();
     try {
@@ -366,14 +362,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  public TaskImpl(TezVertexID vertexId, int taskIndex,
-      EventHandler eventHandler, Configuration conf,
-      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
-      Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
-      boolean leafVertex, Resource resource,
-      ContainerContext containerContext,
-      StateChangeNotifier stateChangeNotifier,
-      Vertex vertex) {
+  public Task(TezVertexID vertexId, int taskIndex,
+              EventHandler eventHandler, Configuration conf,
+              TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
+              Clock clock, TaskHeartbeatHandler thh, AppContext appContext,
+              boolean leafVertex, Resource resource,
+              ContainerContext containerContext,
+              StateChangeNotifier stateChangeNotifier,
+              Vertex vertex) {
     this.conf = conf;
     this.clock = clock;
     ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -394,12 +390,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.containerContext = containerContext;
     this.recoveryData = appContext.getDAGRecoveryData() == null ?
         null : appContext.getDAGRecoveryData().getTaskRecoveryData(taskId);
-    stateMachine = new StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, TaskImpl>(
+    stateMachine = new StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, Task>(
         stateMachineFactory.make(this), this);
     augmentStateMachine();
   }
-  
-  @Override
+
   public Map<TezTaskAttemptID, TaskAttempt> getAttempts() {
     readLock.lock();
 
@@ -417,8 +412,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
-  @Override
+
   public TaskAttempt getAttempt(TezTaskAttemptID attemptID) {
     readLock.lock();
     try {
@@ -428,17 +422,14 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public Vertex getVertex() {
     return vertex;
   }
 
-  @Override
   public TezTaskID getTaskId() {
     return taskId;
   }
 
-  @Override
   public boolean isFinished() {
     TaskStateInternal internalState = getInternalState();
     return (internalState == TaskStateInternal.SUCCEEDED ||
@@ -447,7 +438,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         internalState == TaskStateInternal.KILL_WAIT);
   }
 
-  @Override
   public TaskReport getReport() {
     TaskReport report = new TaskReportImpl();
     readLock.lock();
@@ -463,7 +453,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public TezCounters getCounters() {
     TezCounters counters = new TezCounters();
     counters.incrAllCounters(this.counters);
@@ -483,7 +472,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // simply return the stats from the best attempt
     readLock.lock();
     try {
-      TaskAttemptImpl bestAttempt = (TaskAttemptImpl) selectBestAttempt();
+      TaskAttempt bestAttempt = (TaskAttempt) selectBestAttempt();
       if (bestAttempt == null) {
         return null;
       }
@@ -493,7 +482,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public float getProgress() {
     readLock.lock();
     try {
@@ -514,7 +502,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public ArrayList<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int maxEvents) {
     ArrayList<TezEvent> events = EMPTY_TASK_ATTEMPT_TEZ_EVENTS;
@@ -549,8 +536,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
-  @Override
+
   public TaskSpec getBaseTaskSpec() {
     readLock.lock();
     try {
@@ -559,8 +545,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
-  @Override
+
   public TaskLocationHint getTaskLocationHint() {
     readLock.lock();
     try {
@@ -570,7 +555,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public List<String> getDiagnostics() {
     readLock.lock();
     try {
@@ -580,7 +564,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public long getFinishTime() {
     readLock.lock();
     try {
@@ -590,7 +573,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public Set<NodeId> getNodesWithRunningAttempts() {
     return nodesWithRunningAttempts;
   }
@@ -686,7 +668,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     return result;
   }
 
-  @Override
   public boolean canCommit(TezTaskAttemptID taskAttemptID) {
     writeLock.lock();
     try {
@@ -751,20 +732,19 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  TaskAttemptImpl createAttempt(int attemptNumber, TezTaskAttemptID schedulingCausalTA) {
+  TaskAttempt createAttempt(int attemptNumber, TezTaskAttemptID schedulingCausalTA) {
     TezTaskAttemptID attemptId = TezBuilderUtils.newTaskAttemptId(taskId, attemptNumber);
     TaskSpec taskSpec = new TaskSpec(attemptId,
         baseTaskSpec.getDAGName(), baseTaskSpec.getVertexName(),
         baseTaskSpec.getVertexParallelism(), baseTaskSpec.getProcessorDescriptor(),
         baseTaskSpec.getInputs(), baseTaskSpec.getOutputs(), baseTaskSpec.getGroupInputs(),
         baseTaskSpec.getTaskConf());
-    return new TaskAttemptImpl(attemptId, eventHandler,
+    return new TaskAttempt(attemptId, eventHandler,
         taskCommunicatorManagerInterface, conf, clock, taskHeartbeatHandler, appContext,
         (failedAttempts > 0), taskResource, containerContext, leafVertex, this,
         locationHint, taskSpec, schedulingCausalTA);
   }
 
-  @Override
   public TaskAttempt getSuccessfulAttempt() {
     readLock.lock();
     try {
@@ -803,7 +783,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
 
     if (maxAttempts > 0 && attempts.size() == maxAttempts) {
-      TaskImpl task = (TaskImpl) attempt.getTask();
+      Task task = (Task) attempt.getTask();
       LOG.error("Cannot schedule new attempt for task as max number of attempts ({}) reached: {}",
           maxAttempts, task);
 
@@ -904,7 +884,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         DAGEventSchedulerUpdate.UpdateType.TA_COMPLETED, attempts.get(taId)));
   }
   
-  private static void unSucceed(TaskImpl task) {
+  private static void unSucceed(Task task) {
     task.commitAttempt = null;
     task.successfulAttempt = null;
   }
@@ -987,10 +967,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class InitialScheduleTransition
-    implements MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+    implements MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
 
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       if (task.recoveryData != null) {
         TaskStartedEvent tStartedEvent = task.recoveryData.getTaskStartedEvent();
         TaskFinishedEvent tFinishedEvent = task.recoveryData.getTaskFinishedEvent();
@@ -1032,10 +1012,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   //  problems, so we can take later failures in parallel and flush the
   //  job quickly when this happens.
   private static class RedundantScheduleTransition
-    implements SingleArcTransition<TaskImpl, TaskEvent> {
+    implements SingleArcTransition<Task, TaskEvent> {
 
     @Override
-    public void transition(TaskImpl task, TaskEvent event) {
+    public void transition(Task task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
       task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
       TaskAttempt earliestUnfinishedAttempt = null;
@@ -1070,9 +1050,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
 
   private static class AttemptSucceededTransition
-      implements MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+      implements MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
 
-    private String recoverSuccessTaskAttempt(TaskImpl task) {
+    private String recoverSuccessTaskAttempt(Task task) {
       // Found successful attempt
       // Recover data
       String errorMsg = null;
@@ -1111,7 +1091,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
 
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       TezTaskAttemptID successTaId = ((TaskEventTAUpdate) event).getTaskAttemptID();
       // Try to recover the succeeded TaskAttempt. It may be not recoverable if has committer which don't support
       // recovery. In that case just reschedule new attempt if numFailedAttempts does not exceeded maxFailedAttempts.
@@ -1183,9 +1163,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class AttemptKilledTransition implements
-      MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+      MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       TaskStateInternal originalState = task.getInternalState();
 
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate) event;
@@ -1224,10 +1204,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class KillWaitAttemptCompletedTransition implements
-      MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+      MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
 
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       TaskEventTAUpdate castEvent = (TaskEventTAUpdate)event;
       task.handleTaskAttemptCompletion(
           castEvent.getTaskAttemptID(),
@@ -1251,12 +1231,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class AttemptFailedTransition implements
-    MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+    MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
 
     private TezTaskAttemptID schedulingCausalTA;
     
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       task.failedAttempts++;
       task.getVertex().incrementFailedTaskAttemptCount();
       TaskEventTAFailed castEvent = (TaskEventTAFailed) event;
@@ -1305,7 +1285,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       return getDefaultState(task);
     }
 
-    protected TaskStateInternal getDefaultState(TaskImpl task) {
+    protected TaskStateInternal getDefaultState(Task task) {
       return task.getInternalState();
     }
     
@@ -1320,7 +1300,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     private TezTaskAttemptID schedulingCausalTA;
 
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
       TaskEventTAFailed castEvent = (TaskEventTAFailed) event;
       TezTaskAttemptID failedAttemptId = castEvent.getTaskAttemptID();
       TaskAttempt failedAttempt = task.getAttempt(failedAttemptId);
@@ -1377,16 +1357,16 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
 
     @Override
-    protected TaskStateInternal getDefaultState(TaskImpl task) {
+    protected TaskStateInternal getDefaultState(Task task) {
       return TaskStateInternal.SCHEDULED;
     }
   }
 
   private static class TaskRetroactiveKilledTransition implements
-    MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
+    MultipleArcTransition<Task, TaskEvent, TaskStateInternal> {
 
     @Override
-    public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
+    public TaskStateInternal transition(Task task, TaskEvent event) {
 
       TaskEventTAUpdate attemptEvent = (TaskEventTAUpdate) event;
       TezTaskAttemptID attemptId = attemptEvent.getTaskAttemptID();
@@ -1410,9 +1390,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class KillNewTransition
-    implements SingleArcTransition<TaskImpl, TaskEvent> {
+    implements SingleArcTransition<Task, TaskEvent> {
     @Override
-    public void transition(TaskImpl task, TaskEvent event) {
+    public void transition(Task task, TaskEvent event) {
       TaskEventTermination terminateEvent = (TaskEventTermination)event;
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       if (terminateEvent.isFromRecovery()) {
@@ -1430,19 +1410,19 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class AttemptRedundantCompletedTransition
-      implements SingleArcTransition<TaskImpl, TaskEvent> {
+      implements SingleArcTransition<Task, TaskEvent> {
     @Override
-    public void transition(TaskImpl task, TaskEvent event) {
+    public void transition(Task task, TaskEvent event) {
       TezTaskAttemptID successTaId = ((TaskEventTAUpdate)event).getTaskAttemptID();
       task.taskAttemptStatus.put(successTaId.getId(), true);
     }
   }
 
   private static class TaskStateChangedCallback
-      implements OnStateChangedCallback<TaskStateInternal, TaskImpl> {
+      implements OnStateChangedCallback<TaskStateInternal, Task> {
 
     @Override
-    public void onStateChanged(TaskImpl task, TaskStateInternal taskStateInternal) {
+    public void onStateChanged(Task task, TaskStateInternal taskStateInternal) {
       // Only registered for SUCCEEDED notifications at the moment
       Preconditions.checkState(taskStateInternal == TaskStateInternal.SUCCEEDED);
       TaskAttempt successfulAttempt = task.getSuccessfulAttempt();
@@ -1469,7 +1449,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public void registerTezEvent(TezEvent tezEvent) {
     this.writeLock.lock();
     try {
@@ -1479,7 +1458,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
   }
 
-  @Override
   public long getFirstAttemptStartTime() {
     readLock.lock();
     try {
@@ -1491,9 +1469,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   private static class KillTransition
-    implements SingleArcTransition<TaskImpl, TaskEvent> {
+    implements SingleArcTransition<Task, TaskEvent> {
     @Override
-    public void transition(TaskImpl task, TaskEvent event) {
+    public void transition(Task task, TaskEvent event) {
       TaskEventTermination terminateEvent = (TaskEventTermination)event;
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       // issue kill to all non finished attempts
@@ -1505,9 +1483,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   static class LaunchTransition
-      implements SingleArcTransition<TaskImpl, TaskEvent> {
+      implements SingleArcTransition<Task, TaskEvent> {
     @Override
-    public void transition(TaskImpl task, TaskEvent event) {
+    public void transition(Task task, TaskEvent event) {
       // TODO Metrics
       /*
       task.metrics.launchedTask(task);

@@ -32,7 +32,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.counters.TaskCounter;
-import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
@@ -46,9 +45,9 @@ import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.app.MockDAGAppMaster.MockContainerLauncher;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacySpeculator;
 import org.apache.tez.dag.app.dag.speculation.legacy.LegacyTaskRuntimeEstimator;
 import org.apache.tez.dag.app.dag.speculation.legacy.SimpleExponentialTaskRuntimeEstimator;
@@ -300,7 +299,7 @@ public class TestSpeculation {
               TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
               entry.getKey());
 
-      DAG dag = DAG.create("test");
+      org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test");
       Vertex vA = Vertex.create("A",
               ProcessorDescriptor.create("Proc.class"),
               1);
@@ -309,7 +308,7 @@ public class TestSpeculation {
       MockTezClient tezClient = createTezSession();
 
       DAGClient dagClient = tezClient.submitDAG(dag);
-      DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+      DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
       TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
       // original attempt is killed and speculative one is successful
       TezTaskAttemptID killedTaId =
@@ -343,14 +342,14 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   public void testBasicSpeculation(boolean withProgress) throws Exception {
-    DAG dag = DAG.create("test");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test");
     Vertex vA = Vertex.create("A",
         ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
     DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
     // original attempt is killed and speculative one is successful
     TezTaskAttemptID killedTaId =
@@ -380,7 +379,7 @@ public class TestSpeculation {
           .getValue());
       Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
-      org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+      org.apache.tez.dag.app.dag.impl.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
       Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
     }
@@ -426,7 +425,7 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
-    DAG dag = DAG.create("test");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test");
     String vNameNoSpec = "A";
     String vNameSpec = "B";
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
@@ -444,7 +443,7 @@ public class TestSpeculation {
     MockTezClient tezClient = createTezSession();
 
     DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexIdSpec = dagImpl.getVertex(vNameSpec).getVertexId();
     TezVertexID vertexIdNoSpec = dagImpl.getVertex(vNameNoSpec).getVertexId();
     // original attempt is killed and speculative one is successful
@@ -458,8 +457,8 @@ public class TestSpeculation {
     mockLauncher.setStatusUpdatesForTask(successfulTaId, NUM_UPDATES_FOR_TEST_TASK);
 
     mockLauncher.startScheduling(true);
-    org.apache.tez.dag.app.dag.Vertex vSpec = dagImpl.getVertex(vertexIdSpec);
-    org.apache.tez.dag.app.dag.Vertex vNoSpec = dagImpl.getVertex(vertexIdNoSpec);
+    org.apache.tez.dag.app.dag.impl.Vertex vSpec = dagImpl.getVertex(vertexIdSpec);
+    org.apache.tez.dag.app.dag.impl.Vertex vNoSpec = dagImpl.getVertex(vertexIdNoSpec);
     // Wait enough time to give chance for the speculator to trigger
     // speculation on VB.
     // This would fail because of JUnit time out.
@@ -487,14 +486,14 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationNotUseful() throws Exception {
-    DAG dag = DAG.create("test");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
     
     DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
+    DAG dagImpl = (DAG) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
     // original attempt is successful and speculative one is killed
     TezTaskAttemptID successTaId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexId, 0), 0);
@@ -517,7 +516,7 @@ public class TestSpeculation {
         .getValue());
     Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
-    org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+    org.apache.tez.dag.app.dag.impl.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
     Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
     tezClient.stop();

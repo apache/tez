@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.rm;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 

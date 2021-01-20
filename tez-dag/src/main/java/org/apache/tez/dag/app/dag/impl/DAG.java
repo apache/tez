@@ -49,6 +49,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
+import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 import org.slf4j.Logger;
@@ -94,13 +95,12 @@ import org.apache.tez.dag.app.RecoveryParser.VertexRecoveryData;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
-import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGReport;
 import org.apache.tez.dag.app.dag.DAGScheduler;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.DAGTerminationCause;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.VertexTerminationCause;
 import org.apache.tez.dag.app.dag.event.CallableEvent;
@@ -150,10 +150,9 @@ import com.google.common.util.concurrent.ListenableFuture;
  * The read and write calls use ReadWriteLock for concurrency.
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
-  EventHandler<DAGEvent> {
+public class DAG implements EventHandler<DAGEvent>, DagInfo {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DAGImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DAG.class);
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
 
@@ -242,9 +241,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       new CommitCompletedTransition();
 
   protected static final
-    StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
+    StateMachineFactory<DAG, DAGState, DAGEventType, DAGEvent>
        stateMachineFactory
-     = new StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
+     = new StateMachineFactory<DAG, DAGState, DAGEventType, DAGEvent>
               (DAGState.NEW)
 
           // Transitions from NEW state
@@ -441,7 +440,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           // create the topology tables
           .installTopology();
 
-  private final StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl> stateMachine;
+  private final StateMachineTez<DAGState, DAGEventType, DAGEvent, DAG> stateMachine;
 
   //changing fields while the job is running
   @VisibleForTesting
@@ -498,16 +497,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
 
-  public DAGImpl(TezDAGID dagId,
-      Configuration amConf,
-      DAGPlan jobPlan,
-      EventHandler eventHandler,
-      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
-      Credentials dagCredentials,
-      Clock clock,
-      String appUserName,
-      TaskHeartbeatHandler thh,
-      AppContext appContext) {
+  public DAG(TezDAGID dagId,
+             Configuration amConf,
+             DAGPlan jobPlan,
+             EventHandler eventHandler,
+             TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
+             Credentials dagCredentials,
+             Clock clock,
+             String appUserName,
+             TaskHeartbeatHandler thh,
+             AppContext appContext) {
     this.dagId = dagId;
     this.jobPlan = jobPlan;
     this.dagConf = new Configuration(amConf);
@@ -562,7 +561,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
-    stateMachine = new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
+    stateMachine = new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAG>(
         stateMachineFactory.make(this), this);
     augmentStateMachine();
     this.entityUpdateTracker = new StateChangeNotifier(this);
@@ -583,9 +582,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class DagStateChangedCallback
-      implements OnStateChangedCallback<DAGState, DAGImpl> {
+      implements OnStateChangedCallback<DAGState, DAG> {
     @Override
-    public void onStateChanged(DAGImpl dag, DAGState dagState) {
+    public void onStateChanged(DAG dag, DAGState dagState) {
       switch(dagState) {
       case RUNNING:
         dag.runningStatusYetToBeConsumed.set(true);
@@ -612,33 +611,27 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return stateMachine;
   }
 
-  @Override
   public TezDAGID getID() {
     return dagId;
   }
-  
-  @Override
+
   public Map<String, LocalResource> getLocalResources() {
     return localResources;
   }
 
   // TODO maybe removed after TEZ-74
-  @Override
   public Configuration getConf() {
     return dagConf;
   }
 
-  @Override
   public DAGPlan getJobPlan() {
     return jobPlan;
   }
 
-  @Override
   public EventHandler getEventHandler() {
     return this.eventHandler;
   }
 
-  @Override
   public Vertex getVertex(TezVertexID vertexID) {
     readLock.lock();
     try {
@@ -648,27 +641,22 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public boolean isUber() {
     return isUber;
   }
 
-  @Override
   public Credentials getCredentials() {
     return this.credentials;
   }
 
-  @Override
   public UserGroupInformation getDagUGI() {
     return this.dagUGI;
   }
 
-  @Override
   public ACLManager getACLManager() {
     return this.aclManager;
   }
 
-  @Override
   public Map<String, TezVertexID> getVertexNameIDMapping() {
     this.readLock.lock();
     try {
@@ -682,7 +670,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public long getStartTime() {
     readLock.lock();
     try {
@@ -692,17 +679,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public StateChangeNotifier getStateChangeNotifier() {
     return entityUpdateTracker;
   }
 
-  @Override
   public org.apache.tez.dag.api.Vertex.VertexExecutionContext getDefaultExecutionContext() {
     return defaultExecutionContext;
   }
 
-  @Override
   public TezCounters getAllCounters() {
 
     readLock.lock();
@@ -726,7 +710,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public TezCounters getCachedCounters() {
 
     readLock.lock();
@@ -775,7 +758,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return counters;
   }
 
-  @Override
   public List<String> getDiagnostics() {
     readLock.lock();
     try {
@@ -785,7 +767,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public DAGReport getReport() {
     readLock.lock();
     try {
@@ -817,7 +798,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public float getProgress() {
     this.readLock.lock();
     try {
@@ -850,7 +830,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public float getCompletedTaskProgress() {
     this.readLock.lock();
     try {
@@ -879,14 +858,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public Map<TezVertexID, Vertex> getVertices() {
     synchronized (tasksSyncHandle) {
       return Collections.unmodifiableMap(vertices);
     }
   }
 
-  @Override
   public DAGState getState() {
     readLock.lock();
     try {
@@ -897,7 +874,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   // monitoring apis
-  @Override
   public DAGStatusBuilder getDAGStatus(Set<StatusGetOpts> statusOptions) {
     DAGStatusBuilder status = new DAGStatusBuilder();
     int totalTaskCount = 0;
@@ -1018,7 +994,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public VertexStatusBuilder getVertexStatus(String vertexName,
       Set<StatusGetOpts> statusOptions) {
     Vertex vertex = vertexMap.get(vertexName);
@@ -1028,13 +1003,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return vertex.getVertexStatus(statusOptions);
   }
   
-  public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
-    return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
+  public TaskAttempt getTaskAttempt(TezTaskAttemptID taId) {
+    return (TaskAttempt) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
   }
 
-  public TaskImpl getTask(TezTaskID tId) {
-    return (TaskImpl) getVertex(tId.getVertexID()).getTask(tId);
+  public Task getTask(TezTaskID tId) {
+    return (Task) getVertex(tId.getVertexID()).getTask(tId);
   }
 
   protected void initializeVerticesAndStart() {
@@ -1185,7 +1160,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // Some output may be aborted multiple times if it is shared output.
     // It should be OK for it to be aborted multiple times.
     for (Vertex vertex : vertices.values()) {
-      ((VertexImpl)vertex).abortVertex(VertexStatus.State.FAILED);
+      ((Vertex)vertex).abortVertex(VertexStatus.State.FAILED);
     }
   }
 
@@ -1325,7 +1300,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   // triggered by vertex_complete
-  static DAGState checkVerticesForCompletion(DAGImpl dag) {
+  static DAGState checkVerticesForCompletion(DAG dag) {
     LOG.info("Checking vertices for DAG completion"
         + ", numCompletedVertices=" + dag.numCompletedVertices
         + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
@@ -1377,7 +1352,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   // triggered by commit_complete, checkCommitsForCompletion should only been called in COMMITTING/TERMINATING
-  static DAGState checkCommitsForCompletion(DAGImpl dag) {
+  static DAGState checkCommitsForCompletion(DAG dag) {
     LOG.info("Checking commits for DAG completion"
         + ", numCompletedVertices=" + dag.numCompletedVertices
         + ", numSuccessfulVertices=" + dag.numSuccessfulVertices
@@ -1410,7 +1385,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  private static DAGState finishWithTerminationCause(DAGImpl dag) {
+  private static DAGState finishWithTerminationCause(DAG dag) {
     Preconditions.checkArgument(dag.getTerminationCause() != null, "TerminationCause is not set.");
     String diagnosticMsg =  "DAG did not succeed due to " + dag.terminationCause
         + ". failedVertices:" + dag.numFailedVertices
@@ -1478,22 +1453,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return finalState;
   }
 
-  @Override
   public String getUserName() {
     return userName;
   }
 
-  @Override
   public int getIndex() {
     return dagId.getId();
   }
 
-  @Override
   public String getName() {
     return dagName;
   }
 
-  @Override
   public int getTotalVertices() {
     readLock.lock();
     try {
@@ -1504,7 +1475,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   }
 
-  @Override
   public BitSet getVertexDescendants(int vertexIndex) {
     readLock.lock();
     try {
@@ -1514,7 +1484,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public int getSuccessfulVertices() {
     readLock.lock();
     try {
@@ -1580,7 +1549,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // create the vertices`
     for (int i=0; i < numVertices; ++i) {
       String vertexName = getJobPlan().getVertex(i).getName();
-      VertexImpl v = createVertex(this, vertexName, i);
+      Vertex v = createVertex(this, vertexName, i);
       addVertex(v);
     }
 
@@ -1670,7 +1639,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return DAGState.INITED;
   }
 
-  private void createDAGEdges(DAGImpl dag) throws TezException {
+  private void createDAGEdges(DAG dag) throws TezException {
     for (EdgePlan edgePlan : dag.getJobPlan().getEdgeList()) {
       EdgeProperty edgeProperty = DagTypeConverters
           .createEdgePropertyMapFromDAGPlan(edgePlan);
@@ -1706,7 +1675,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     return descendants;
   }
 
-  private static void assignDAGScheduler(DAGImpl dag) throws TezException {
+  private static void assignDAGScheduler(DAG dag) throws TezException {
     String dagSchedulerClassName = dag.dagConf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
         TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT);
     LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);
@@ -1717,14 +1686,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  private static VertexImpl createVertex(DAGImpl dag, String vertexName, int vId) {
+  private static Vertex createVertex(DAG dag, String vertexName, int vId) {
     TezVertexID vertexId = TezBuilderUtils.newVertexID(dag.getID(), vId);
 
     VertexPlan vertexPlan = dag.getJobPlan().getVertex(vId);
     VertexLocationHint vertexLocationHint = DagTypeConverters
         .convertFromDAGPlan(vertexPlan.getTaskLocationHintList());
 
-    VertexImpl v = new VertexImpl(
+    Vertex v = new Vertex(
         vertexId, vertexPlan, vertexName, dag.dagConf,
         dag.eventHandler, dag.taskCommunicatorManagerInterface,
         dag.clock, dag.taskHeartbeatHandler,
@@ -1735,7 +1704,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   // hooks up this VertexImpl to input and output EdgeProperties
-  private static void parseVertexEdges(DAGImpl dag, Map<String, EdgePlan> edgePlans, Vertex vertex) {
+  private static void parseVertexEdges(DAG dag, Map<String, EdgePlan> edgePlans, Vertex vertex) {
     VertexPlan vertexPlan = vertex.getVertexPlan();
 
     Map<Vertex, Edge> inVertices =
@@ -1782,10 +1751,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * </ul>
    */
   private static class RecoverTransition
-      implements MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      implements MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
+    public DAGState transition(DAG dag, DAGEvent dagEvent) {
       DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent)dagEvent;
       // With desired state, represents the case that DAG is completed
       if (recoverEvent.hasDesiredState()) {
@@ -1831,7 +1800,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class InitTransition
-      implements MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      implements MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     /**
      * Note that this transition method is called directly (and synchronously)
@@ -1841,7 +1810,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
      * way; MR version is).
      */
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent event) {
+    public DAGState transition(DAG dag, DAGEvent event) {
       // TODO Metrics
       //dag.metrics.submittedJob(dag);
       //dag.metrics.preparingJob(dag);
@@ -1870,13 +1839,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   } // end of InitTransition
 
   public static class StartTransition
-  implements SingleArcTransition<DAGImpl, DAGEvent> {
+  implements SingleArcTransition<DAG, DAGEvent> {
     /**
      * This transition executes in the event-dispatcher thread, though it's
      * triggered in MRAppMaster's startJobs() method.
      */
     @Override
-    public void transition(DAGImpl dag, DAGEvent event) {
+    public void transition(DAG dag, DAGEvent event) {
       if (dag.recoveryData != null && dag.recoveryData.getDAGStartedEvent() != null) {
         dag.startTime = dag.recoveryData.getDAGStartedEvent().getStartTime();
       } else {
@@ -1904,7 +1873,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     vertexMap.put(v.getName(), v);
   }
 
-  @Override
   public Vertex getVertex(String vertexName) {
     return vertexMap.get(vertexName);
   }
@@ -1955,10 +1923,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   // Task-start has been moved out of InitTransition, so this arc simply
   // hardcodes 0 for both map and reduce finished tasks.
   private static class KillNewJobTransition implements
-      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
+    public DAGState transition(DAG dag, DAGEvent dagEvent) {
       DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
       dag.setFinishTime();
       dag.trySetTerminationCause(event.getTerminationCause());
@@ -1971,10 +1939,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class KillInitedJobTransition implements
-      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
+    public DAGState transition(DAG dag, DAGEvent dagEvent) {
       DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
       dag.trySetTerminationCause(event.getTerminationCause());
       dag.addDiagnostic("Dag received [" + event.getType() + ", " + event.getTerminationCause() +
@@ -1986,9 +1954,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class DAGKilledTransition
-      implements SingleArcTransition<DAGImpl, DAGEvent> {
+      implements SingleArcTransition<DAG, DAGEvent> {
     @Override
-    public void transition(DAGImpl job, DAGEvent dagEvent) {
+    public void transition(DAG job, DAGEvent dagEvent) {
       DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
       String msg = "Dag received [" + event.getType() + ", " + event.getTerminationCause() +
           "] in RUNNING state.";
@@ -2006,10 +1974,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class DAGKilledWhileCommittingTransition
-    implements SingleArcTransition<DAGImpl, DAGEvent> {
+    implements SingleArcTransition<DAG, DAGEvent> {
 
     @Override
-    public void transition(DAGImpl dag, DAGEvent dagEvent) {
+    public void transition(DAG dag, DAGEvent dagEvent) {
       DAGEventTerminateDag event = (DAGEventTerminateDag) dagEvent;
       String diag = "Dag received [" + event.getType() + ", " + event.getTerminationCause() +
           "] in COMMITTING state.";
@@ -2032,10 +2000,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class VertexCompletedTransition implements
-      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     @Override
-    public DAGState transition(DAGImpl job, DAGEvent event) {
+    public DAGState transition(DAG job, DAGEvent event) {
       boolean forceTransitionToKillWait = false;
 
       DAGEventVertexCompleted vertexEvent = (DAGEventVertexCompleted) event;
@@ -2093,10 +2061,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class VertexReRunningTransition implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+    MultipleArcTransition<DAG, DAGEvent, DAGState> {
 
     @Override
-    public DAGState transition(DAGImpl job, DAGEvent event) {
+    public DAGState transition(DAG job, DAGEvent event) {
       DAGEventVertexReRunning vertexEvent = (DAGEventVertexReRunning) event;
       Vertex vertex = job.vertices.get(vertexEvent.getVertexId());
       boolean failed = job.vertexReRunning(vertex);
@@ -2257,18 +2225,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class DiagnosticsUpdateTransition implements
-      SingleArcTransition<DAGImpl, DAGEvent> {
+      SingleArcTransition<DAG, DAGEvent> {
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
+    public void transition(DAG job, DAGEvent event) {
       job.addDiagnostic(((DAGEventDiagnosticsUpdate) event)
           .getDiagnosticUpdate());
     }
   }
 
   private static class CounterUpdateTransition implements
-      SingleArcTransition<DAGImpl, DAGEvent> {
+      SingleArcTransition<DAG, DAGEvent> {
     @Override
-    public void transition(DAGImpl job, DAGEvent event) {
+    public void transition(DAG job, DAGEvent event) {
       DAGEventCounterUpdate jce = (DAGEventCounterUpdate) event;
       for (DAGEventCounterUpdate.CounterIncrementalUpdate ci : jce
           .getCounterUpdates()) {
@@ -2279,9 +2247,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class DAGSchedulerUpdateTransition implements
-    SingleArcTransition<DAGImpl, DAGEvent> {
+    SingleArcTransition<DAG, DAGEvent> {
     @Override
-    public void transition(DAGImpl dag, DAGEvent event) {
+    public void transition(DAG dag, DAGEvent event) {
       DAGEventSchedulerUpdate sEvent = (DAGEventSchedulerUpdate) event;
       switch(sEvent.getUpdateType()) {
         case TA_SCHEDULE:
@@ -2298,10 +2266,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class CommitCompletedWhileRunning implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState>{
+    MultipleArcTransition<DAG, DAGEvent, DAGState>{
 
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent event) {
+    public DAGState transition(DAG dag, DAGEvent event) {
       DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted)event;
       if (dag.commitCompleted(commitCompletedEvent)) {
         return DAGState.RUNNING;
@@ -2313,10 +2281,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class CommitCompletedTransition implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState>{
+    MultipleArcTransition<DAG, DAGEvent, DAGState>{
 
     @Override
-    public DAGState transition(DAGImpl dag, DAGEvent event) {
+    public DAGState transition(DAG dag, DAGEvent event) {
       DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted)event;
       dag.commitCompleted(commitCompletedEvent);
       return checkCommitsForCompletion(dag);
@@ -2372,10 +2340,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
 
   private static class VertexRerunWhileCommitting implements
-    SingleArcTransition<DAGImpl, DAGEvent> {
+    SingleArcTransition<DAG, DAGEvent> {
 
     @Override
-    public void transition(DAGImpl dag, DAGEvent event) {
+    public void transition(DAG dag, DAGEvent event) {
       LOG.info("Vertex rerun while dag it is COMMITTING");
       DAGEventVertexReRunning rerunEvent = (DAGEventVertexReRunning)event;
       Vertex vertex = dag.getVertex(rerunEvent.getVertexId());
@@ -2393,9 +2361,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   // TODO TEZ-2250 go to TERMINATING to wait for all vertices and commits completed
   private static class InternalErrorTransition implements
-      SingleArcTransition<DAGImpl, DAGEvent> {
+      SingleArcTransition<DAG, DAGEvent> {
     @Override
-    public void transition(DAGImpl dag, DAGEvent event) {
+    public void transition(DAG dag, DAGEvent event) {
       String diagnostics = null;
       if (event instanceof DiagnosableEvent) {
         DiagnosableEvent errEvent = (DiagnosableEvent) event;
@@ -2413,7 +2381,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public boolean isComplete() {
     readLock.lock();
     try {
@@ -2430,7 +2397,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-  @Override
   public DAGScheduler getDAGScheduler() {
     return dagScheduler;
   }

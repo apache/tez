@@ -14,7 +14,7 @@
 
 package org.apache.tez.dag.app.dag.event;
 
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 
 public class DAGAppMasterEventDagCleanup extends DAGAppMasterEvent {
 

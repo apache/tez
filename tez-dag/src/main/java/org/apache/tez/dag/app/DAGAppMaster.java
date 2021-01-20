@@ -82,6 +82,7 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDagCleanup;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
@@ -137,11 +138,11 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
-import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.impl.DAG;
 import org.apache.tez.dag.app.dag.DAGState;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEvent;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventDAGFinished;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventSchedulingServiceError;
@@ -158,7 +159,6 @@ import org.apache.tez.dag.app.dag.event.TaskEvent;
 import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.dag.event.VertexEvent;
 import org.apache.tez.dag.app.dag.event.VertexEventType;
-import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
 import org.apache.tez.dag.app.rm.AMSchedulerEventType;
 import org.apache.tez.dag.app.rm.ContainerLauncherEventType;
@@ -1003,7 +1003,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   /** Create and initialize (but don't start) a single dag. */
-  DAGImpl createDAG(DAGPlan dagPB, TezDAGID dagId) {
+  DAG createDAG(DAGPlan dagPB, TezDAGID dagId) {
     if (dagId == null) {
       dagId = TezDAGID.getInstance(appAttemptID.getApplicationId(),
           dagCounter.incrementAndGet());
@@ -1027,8 +1027,8 @@ public class DAGAppMaster extends AbstractService {
     TokenCache.setSessionToken(sessionToken, dagCredentials);
     TezCommonUtils.logCredentials(LOG, dagCredentials, "newDag");
     // create single dag
-    DAGImpl newDag =
-        new DAGImpl(dagId, amConf, dagPB, dispatcher.getEventHandler(),
+    DAG newDag =
+        new DAG(dagId, amConf, dagPB, dispatcher.getEventHandler(),
             taskCommunicatorManager, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
             taskHeartbeatHandler, context);
@@ -1047,7 +1047,7 @@ public class DAGAppMaster extends AbstractService {
     return newDag;
   } // end createDag()
 
-  private void writeDebugArtifacts(DAGPlan dagPB, DAGImpl newDag) {
+  private void writeDebugArtifacts(DAGPlan dagPB, DAG newDag) {
     boolean debugArtifacts =
         newDag.getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
             TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT);

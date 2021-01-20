@@ -17,7 +17,7 @@
 
 package org.apache.tez.dag.app.rm;
 
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 import org.apache.tez.serviceplugins.api.TaskScheduler.SchedulerTaskState;
 
 public class AMSchedulerEventTAStateUpdated extends AMSchedulerEvent {

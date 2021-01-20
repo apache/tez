@@ -74,14 +74,14 @@ import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.DAG;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
-import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl;
-import org.apache.tez.dag.app.dag.impl.TaskImpl;
-import org.apache.tez.dag.app.dag.impl.VertexImpl;
+import org.apache.tez.dag.app.dag.impl.TaskAttempt;
+import org.apache.tez.dag.app.dag.impl.Task;
+import org.apache.tez.dag.app.dag.impl.Vertex;
 import org.apache.tez.dag.app.rm.container.AMContainer;
 import org.apache.tez.dag.app.rm.container.AMContainerEventAssignTA;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
@@ -186,7 +186,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.init(conf);
     schedulerHandler.start();
 
-    TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTaskAttempt = mock(TaskAttempt.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
     when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
@@ -225,7 +225,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.init(conf);
     schedulerHandler.start();
 
-    TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTaskAttempt = mock(TaskAttempt.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
     when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
@@ -265,7 +265,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.init(conf);
     schedulerHandler.start();
 
-    TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTaskAttempt = mock(TaskAttempt.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
     when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
@@ -298,14 +298,14 @@ public class TestTaskSchedulerManager {
     schedulerHandler.init(conf);
     schedulerHandler.start();
 
-    TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTaskAttempt = mock(TaskAttempt.class);
     TezTaskAttemptID taId = mock(TezTaskAttemptID.class);
     String affVertexName = "srcVertex";
     int affTaskIndex = 1;
     TaskLocationHint locHint = TaskLocationHint.createTaskLocationHint(affVertexName, affTaskIndex);
-    VertexImpl affVertex = mock(VertexImpl.class);
-    TaskImpl affTask = mock(TaskImpl.class);
-    TaskAttemptImpl affAttempt = mock(TaskAttemptImpl.class);
+    Vertex affVertex = mock(Vertex.class);
+    Task affTask = mock(Task.class);
+    TaskAttempt affAttempt = mock(TaskAttempt.class);
     ContainerId affCId = mock(ContainerId.class);
     when(affVertex.getTotalTasks()).thenReturn(2);
     when(affVertex.getTask(affTaskIndex)).thenReturn(affTask);
@@ -338,7 +338,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.start();
     
     String diagnostics = "Container preempted by RM.";
-    TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTask = mock(TaskAttempt.class);
     ContainerStatus mockStatus = mock(ContainerStatus.class);
     ContainerId mockCId = mock(ContainerId.class);
     AMContainer mockAMContainer = mock(AMContainer.class);
@@ -432,7 +432,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.start();
     
     String diagnostics = "NM disk failed.";
-    TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTask = mock(TaskAttempt.class);
     ContainerStatus mockStatus = mock(ContainerStatus.class);
     ContainerId mockCId = mock(ContainerId.class);
     AMContainer mockAMContainer = mock(AMContainer.class);
@@ -465,7 +465,7 @@ public class TestTaskSchedulerManager {
     schedulerHandler.start();
 
     String diagnostics = "Exceeded Physical Memory";
-    TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
+    TaskAttempt mockTask = mock(TaskAttempt.class);
     ContainerStatus mockStatus = mock(ContainerStatus.class);
     ContainerId mockCId = mock(ContainerId.class);
     AMContainer mockAMContainer = mock(AMContainer.class);
