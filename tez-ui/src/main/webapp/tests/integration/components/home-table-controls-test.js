@@ -66,7 +66,7 @@ test('countersLoaded test', function(assert) {
     })]
   });
   this.render(hbs`{{home-table-controls dataProcessor=dataProcessor}}`);
-  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), 2);
+  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), -1);
 
   this.set("dataProcessor", {
     processedRows: [Ember.Object.create({

@@ -25,8 +25,8 @@ export default Ember.Component.extend({
     var processedRows = this.get("dataProcessor.processedRows"),
         countersLoaded = true;
     if(processedRows) {
-      countersLoaded = processedRows.some(function (row) {
-        return Object.keys(row.get("counterGroupsHash")).length !== 0;
+      countersLoaded = !processedRows.any(function (row) {
+        return Object.keys(row.get("counterGroupsHash")).length === 0;
       });
     }
     return countersLoaded;
