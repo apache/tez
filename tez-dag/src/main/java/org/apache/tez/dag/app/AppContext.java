@@ -20,7 +20,7 @@ package org.apache.tez.dag.app;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -73,9 +73,6 @@ public interface AppContext {
   String getUser();
 
   DAG getCurrentDAG();
-
-  // For testing only!
-  ThreadPoolExecutor getThreadPool();
 
   ListeningExecutorService getExecService();
 
