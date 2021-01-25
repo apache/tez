@@ -645,6 +645,7 @@ public interface MRJobConfig {
       "mrr.vertex.";
 
   public static final String VERTEX_NAME = "mapreduce.task.vertex.name";
+  public static final String VERTEX_ID = "mapreduce.task.vertex.id";
 
   public static final String MR_TEZ_SPLITS_VIA_EVENTS = MR_TEZ_PREFIX + "splits.via.events";
   public static final boolean MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT = true;
