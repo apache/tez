@@ -691,8 +691,7 @@ public class DAGAppMaster extends AbstractService {
     state = DAGAppMasterState.ERROR;
     if (currentDAG != null) {
       _updateLoggers(currentDAG, "_post");
-      String errDiagnostics = errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID();
-      LOG.info(errDiagnostics);
+      LOG.info(errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID());
       // Inform the current DAG about the error
       sendEvent(new DAGEventInternalError(currentDAG.getID(), errDiagDagEvent));
     } else {
