@@ -20,6 +20,7 @@ package org.apache.tez.dag.app;
 
 
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -608,17 +609,14 @@ public class DAGAppMaster extends AbstractService {
 
     if (!versionMismatch) {
       if (isSession) {
-        FileInputStream sessionResourcesStream = null;
-        try {
-          sessionResourcesStream = new FileInputStream(
-              new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+        try (BufferedInputStream sessionResourcesStream =
+            new BufferedInputStream(
+                new FileInputStream(new File(workingDirectory,
+                    TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME)))) {
           PlanLocalResourcesProto amLocalResourceProto = PlanLocalResourcesProto
               .parseDelimitedFrom(sessionResourcesStream);
-          amResources.putAll(DagTypeConverters.convertFromPlanLocalResources(amLocalResourceProto));
-        } finally {
-          if (sessionResourcesStream != null) {
-            sessionResourcesStream.close();
-          }
+          amResources.putAll(DagTypeConverters
+              .convertFromPlanLocalResources(amLocalResourceProto));
         }
       }
     }
