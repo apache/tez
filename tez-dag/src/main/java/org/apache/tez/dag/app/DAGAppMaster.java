@@ -1034,7 +1034,7 @@ public class DAGAppMaster extends AbstractService {
 
     writeDebugArtifacts(dagPB, newDag);
     return newDag;
-  } // end createDag()
+  }
 
   private void writeDebugArtifacts(DAGPlan dagPB, DAGImpl newDag) {
     boolean debugArtifacts =
