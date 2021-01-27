@@ -24,13 +24,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezSharedExecutor;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
@@ -41,12 +46,15 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
+import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
+import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.OutputContext;
@@ -57,13 +65,16 @@ import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
 import org.apache.tez.runtime.api.impl.TaskSpec;
+import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.common.resources.ScalingAllocator;
+import org.apache.tez.runtime.task.TaskRunner2Callable;
 import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+
 import org.mockito.Mockito;
 
 public class TestLogicalIOProcessorRuntimeTask {
@@ -149,6 +160,39 @@ public class TestLogicalIOProcessorRuntimeTask {
 
   }
 
+  @Test
+  public void testEventsCantBeSentInCleanup() throws Exception {
+    TezDAGID dagId = createTezDagId();
+    TezVertexID vertexId = createTezVertexId(dagId);
+    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<>();
+    Multimap<String, String> startedInputsMap = HashMultimap.create();
+    TezUmbilical umbilical = mock(TezUmbilical.class);
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.set(TezConfiguration.TEZ_TASK_SCALE_MEMORY_ALLOCATOR_CLASS,
+        ScalingAllocator.class.getName());
+
+    TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);
+    TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1", 30,
+        RunExceptionProcessor.class.getName(),
+        TestOutputWithEvents.class.getName());
+
+    TezSharedExecutor sharedExecutor = new TezSharedExecutor(tezConf);
+    LogicalIOProcessorRuntimeTask lio =
+        new CleanupLogicalIOProcessorRuntimeTask(task1, 0, tezConf, null,
+            umbilical, serviceConsumerMetadata, new HashMap<String, String>(),
+            startedInputsMap, null, "", new ExecutionContextImpl("localhost"),
+            Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(),
+            sharedExecutor);
+
+    TaskRunner2Callable runner =
+        new TaskRunner2Callable(lio, UserGroupInformation.getCurrentUser(), umbilical);
+
+    runner.call();
+
+    // We verify that no events were sent
+    Mockito.verify(umbilical, Mockito.only()).addEvents(Collections.<TezEvent> emptyList());
+  }
+
   /**
    * We should expect no events being sent to the AM if an
    * exception happens in the close method of the processor
@@ -167,7 +211,7 @@ public class TestLogicalIOProcessorRuntimeTask {
 
     TezTaskAttemptID taId1 = createTaskAttemptID(vertexId, 1);
     TaskSpec task1 = createTaskSpec(taId1, "dag1", "vertex1", 30,
-        FaultyTestProcessor.class.getName(),
+        CloseExceptionProcessor.class.getName(),
         TestOutputWithEvents.class.getName());
 
     TezSharedExecutor sharedExecutor = new TezSharedExecutor(tezConf);
@@ -281,6 +325,31 @@ public class TestLogicalIOProcessorRuntimeTask {
     return TezDAGID.getInstance("2000", 100, 1);
   }
 
+  private static class CleanupLogicalIOProcessorRuntimeTask
+      extends LogicalIOProcessorRuntimeTask {
+    CleanupLogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
+        int appAttemptNumber, Configuration tezConf, String[] localDirs,
+        TezUmbilical tezUmbilical,
+        Map<String, ByteBuffer> serviceConsumerMetadata,
+        Map<String, String> envMap, Multimap<String, String> startedInputsMap,
+        ObjectRegistry objectRegistry, String pid,
+        org.apache.tez.runtime.api.ExecutionContext ExecutionContext,
+        long memAvailable, boolean updateSysCounters, HadoopShim hadoopShim,
+        TezExecutors sharedExecutor) throws IOException {
+      super(taskSpec, appAttemptNumber, tezConf, localDirs, tezUmbilical,
+          serviceConsumerMetadata, envMap, startedInputsMap, objectRegistry,
+          pid, ExecutionContext, memAvailable, updateSysCounters, hadoopShim,
+          sharedExecutor);
+    }
+
+    @Override public void cleanup() throws InterruptedException {
+      getOutputContexts().forEach(context
+          -> context.sendEvents(Arrays.asList(
+              CompositeDataMovementEvent.create(0, 0, null)
+      )));
+    }
+  }
+
   public static class TestProcessor extends AbstractLogicalIOProcessor {
 
     public static volatile int runCount = 0;
@@ -310,8 +379,30 @@ public class TestLogicalIOProcessorRuntimeTask {
 
   }
 
-  public static class FaultyTestProcessor extends TestProcessor {
-    public FaultyTestProcessor(ProcessorContext context) {
+  public static class RunExceptionProcessor
+      extends TestProcessor {
+
+    public RunExceptionProcessor(ProcessorContext context) {
+      super(context);
+    }
+
+    public void run(Map<String, LogicalInput> inputs,
+        Map<String, LogicalOutput> outputs)
+        throws Exception {
+      // This exception is thrown in purpose because we want to test this
+      throw new RuntimeException();
+    }
+
+    @Override
+    public void close() throws Exception {
+      // This exception is thrown because this method shouldn't be called
+      // if run has thrown an exception.
+      throw new RuntimeException();
+    }
+  }
+
+  public static class CloseExceptionProcessor extends TestProcessor {
+    public CloseExceptionProcessor(ProcessorContext context) {
       super(context);
     }
 

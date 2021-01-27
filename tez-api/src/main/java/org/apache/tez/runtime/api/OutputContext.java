@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.api;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.yarn.event.EventHandler;
 
 /**
  * Context handle for the Output to initialize itself.
@@ -47,5 +48,14 @@ public interface OutputContext extends TaskContext {
    * @return {@link OutputStatisticsReporter}
    */
   public OutputStatisticsReporter getStatisticsReporter();
+
+  /**
+   * Notify the context that at this point no more events should be sent.
+   * This is used as a safety measure to prevent events being sent after close
+   * or in cleanup. After this is called events being queued to be sent to the
+   * AM will instead be passed to the event handler.
+   * @param eventHandler should handle the events after the call.
+   */
+  void trapEvents(EventHandler eventHandler);
 
 }

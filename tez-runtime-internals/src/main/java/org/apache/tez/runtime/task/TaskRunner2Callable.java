@@ -24,6 +24,7 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,10 +47,16 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
 
   private volatile Thread ownThread;
 
+  /**
+   * Protocol to send the events.
+   */
+  private final TezUmbilical tezUmbilical;
+
   public TaskRunner2Callable(LogicalIOProcessorRuntimeTask task,
-                             UserGroupInformation ugi) {
+      final UserGroupInformation ugi, final TezUmbilical umbilical) {
     this.task = task;
     this.ugi = ugi;
+    this.tezUmbilical = umbilical;
   }
 
   @Override
@@ -109,6 +116,9 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
       // For a successful task, however, this should be almost no delay since close has already happened.
       maybeFixInterruptStatus();
       LOG.info("Cleaning up task {}, stopRequested={}", task.getTaskAttemptID(), stopRequested.get());
+      task.getOutputContexts().forEach(outputContext
+          -> outputContext.trapEvents(new TezTrapEventHandler(outputContext,
+          this.tezUmbilical)));
       task.cleanup();
     }
   }

@@ -29,7 +29,9 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezExecutors;
+import org.apache.tez.runtime.internals.api.TezTrapEvent;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -47,16 +49,27 @@ import org.apache.tez.runtime.common.resources.MemoryDistributor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("unchecked")
 public class TezOutputContextImpl extends TezTaskContextImpl
     implements OutputContext {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezOutputContextImpl.class);
 
   private volatile UserPayload userPayload;
+
+  /**
+   * Holds whether we can accept more events to send to the AM.
+   */
+  private volatile boolean trapEvents;
   private final String destinationVertexName;
   private final EventMetaData sourceInfo;
   private final int outputIndex;
   private final OutputStatisticsReporterImpl statsReporter;
+
+  /**
+   * Handler for the events after the trap flag is set.
+   */
+  private EventHandler<TezTrapEvent> trapEventHandler;
 
   class OutputStatisticsReporterImpl implements OutputStatisticsReporter {
 
@@ -71,7 +84,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     public void reportItemsProcessed(long items) {
       // this is a concurrent map. Plus we are not adding/deleting entries
       runtimeTask.getTaskStatistics().getIOStatistics().get(destinationVertexName)
-      .setItemsProcessed(items);;
+      .setItemsProcessed(items);
     }
     
   }
@@ -124,7 +137,11 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       TezEvent tEvt = new TezEvent(e, sourceInfo);
       tezEvents.add(tEvt);
     }
-    tezUmbilical.addEvents(tezEvents);
+    if (trapEvents) {
+      trapEventHandler.handle(new TezTrapEvent(tezEvents));
+    } else {
+      tezUmbilical.addEvents(tezEvents);
+    }
   }
 
   @Override
@@ -161,6 +178,15 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   @Override
   public OutputStatisticsReporter getStatisticsReporter() {
     return statsReporter;
+  }
+
+  /**
+   * This will monitor some of the events that will be sent.
+   */
+  @Override
+  public final void trapEvents(final EventHandler eventHandler) {
+    trapEvents = true;
+    this.trapEventHandler = eventHandler;
   }
 
   @Override

@@ -177,7 +177,8 @@ public class TezTaskRunner2 {
           // Safe to do this within a synchronized block because we're providing
           // the handler on which the Reporter will communicate back. Assuming
           // the register call doesn't end up hanging.
-          taskRunnerCallable = new TaskRunner2Callable(task, ugi);
+          taskRunnerCallable = new TaskRunner2Callable(task, ugi,
+              umbilicalAndErrorHandler);
           taskReporter.registerTask(task, umbilicalAndErrorHandler);
           future = executor.submit(taskRunnerCallable);
         }
