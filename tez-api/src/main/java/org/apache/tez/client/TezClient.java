@@ -39,7 +39,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.JavaOptsChecker;
-import org.apache.tez.common.RPCUtil;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.dag.api.TezConfigurationConstants;
@@ -75,10 +74,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusResponseProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
-import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
@@ -123,7 +119,8 @@ public class TezClient {
   private ApplicationId lastSubmittedAppId;
   @VisibleForTesting
   final AMConfiguration amConfig;
-  private FrameworkClient frameworkClient;
+  @VisibleForTesting
+  FrameworkClient frameworkClient;
   private String diagnostics;
   @VisibleForTesting
   final boolean isSession;
@@ -158,7 +155,7 @@ public class TezClient {
 
   private TezClient(String name, TezConfiguration tezConf) {
     this(name, tezConf, tezConf.getBoolean(
-        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT));    
+        TezConfiguration.TEZ_AM_SESSION_MODE, TezConfiguration.TEZ_AM_SESSION_MODE_DEFAULT));
   }
 
   @Private
@@ -549,7 +546,8 @@ public class TezClient {
     try {
       if (proxy == null) {
         try {
-          proxy = waitForProxy();
+          proxy = frameworkClient.waitForProxy(clientTimeout, amConfig.getTezConfiguration(),
+              sessionAppId, getUgi());
         } catch (InterruptedException e) {
           LOG.debug("Interrupted while trying to create a connection to the AM", e);
         } catch (SessionNotRunning e) {
@@ -629,7 +627,6 @@ public class TezClient {
     
     verifySessionStateForSubmission();
 
-    String dagId = null;
     String callerContextStr = "";
     if (dag.getCallerContext() != null) {
       callerContextStr = ", callerContext=" + dag.getCallerContext().contextAsSimpleString();
@@ -678,42 +675,8 @@ public class TezClient {
       }
     }
 
-    DAGClientAMProtocolBlockingPB proxy = null;
-    try {
-      proxy = waitForProxy();
-    } catch (InterruptedException e) {
-      throw new IOException("Interrupted while trying to create a connection to the AM", e);
-    }
-    if (proxy == null) {
-      try {
-        LOG.warn("DAG submission to session timed out, stopping session");
-        stop();
-      } catch (Throwable t) {
-        LOG.info("Got an exception when trying to stop session", t);
-      }
-      throw new DAGSubmissionTimedOut("Could not submit DAG to Tez Session"
-          + ", timed out after " + clientTimeout + " seconds");
-    }
-
-    try {
-      SubmitDAGResponseProto response = proxy.submitDAG(null, request);
-      // the following check is only for testing since the final class
-      // SubmitDAGResponseProto cannot be mocked
-      if (response != null) {
-        dagId = response.getDagId();
-      }
-    } catch (ServiceException e) {
-      RPCUtil.unwrapAndThrowException(e);
-    }
-
-    LOG.info("Submitted dag to TezSession"
-        + ", sessionName=" + clientName
-        + ", applicationId=" + sessionAppId
-        + ", dagId=" + dagId
-        + ", dagName=" + dag.getName());
-    return new DAGClientImpl(sessionAppId, dagId,
-        amConfig.getTezConfiguration(),
-        frameworkClient, getUgi());
+    return frameworkClient.submitDag(dag, request, clientName, sessionAppId, clientTimeout,
+        getUgi(), amConfig.getTezConfiguration());
   }
 
   private UserGroupInformation getUgi() throws IOException {
@@ -746,39 +709,34 @@ public class TezClient {
         sessionStopped.set(true);
         boolean sessionShutdownSuccessful = false;
         try {
-          DAGClientAMProtocolBlockingPB proxy = getAMProxy(sessionAppId);
-          if (proxy != null) {
-            ShutdownSessionRequestProto request =
-                ShutdownSessionRequestProto.newBuilder().build();
-            proxy.shutdownSession(null, request);
-            sessionShutdownSuccessful = true;
-            boolean asynchronousStop = amConfig.getTezConfiguration().getBoolean(
-                TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP,
-                TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT);
-            if (!asynchronousStop) {
-              LOG.info("Waiting until application is in a final state");
-              long currentTimeMillis = System.currentTimeMillis();
-              long timeKillIssued = currentTimeMillis;
-              long killTimeOut = amConfig.getTezConfiguration().getLong(
-                  TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS,
-                  TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS_DEFAULT);
-              ApplicationReport appReport = frameworkClient
-                  .getApplicationReport(sessionAppId);
-              while ((currentTimeMillis < timeKillIssued + killTimeOut)
-                  && !isJobInTerminalState(appReport.getYarnApplicationState())) {
-                try {
-                  Thread.sleep(1000L);
-                } catch (InterruptedException ie) {
-                  /** interrupted, just break */
-                  break;
-                }
-                currentTimeMillis = System.currentTimeMillis();
-                appReport = frameworkClient.getApplicationReport(sessionAppId);
+          sessionShutdownSuccessful = frameworkClient
+              .shutdownSession(amConfig.getTezConfiguration(), sessionAppId, getUgi());
+          boolean asynchronousStop = amConfig.getTezConfiguration().getBoolean(
+              TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP,
+              TezConfiguration.TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT);
+          if (!asynchronousStop && sessionShutdownSuccessful) {
+            LOG.info("Waiting until application is in a final state");
+            long currentTimeMillis = System.currentTimeMillis();
+            long timeKillIssued = currentTimeMillis;
+            long killTimeOut = amConfig.getTezConfiguration().getLong(
+                TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS,
+                TezConfiguration.TEZ_CLIENT_HARD_KILL_TIMEOUT_MS_DEFAULT);
+            ApplicationReport appReport = frameworkClient
+                .getApplicationReport(sessionAppId);
+            while ((currentTimeMillis < timeKillIssued + killTimeOut)
+                && !isJobInTerminalState(appReport.getYarnApplicationState())) {
+              try {
+                Thread.sleep(1000L);
+              } catch (InterruptedException ie) {
+                /** interrupted, just break */
+                break;
               }
+              currentTimeMillis = System.currentTimeMillis();
+              appReport = frameworkClient.getApplicationReport(sessionAppId);
+            }
 
-              if (!isJobInTerminalState(appReport.getYarnApplicationState())) {
-                frameworkClient.killApplication(sessionAppId);
-              }
+            if (!isJobInTerminalState(appReport.getYarnApplicationState())) {
+              frameworkClient.killApplication(sessionAppId);
             }
           }
         } catch (TezException e) {
@@ -873,14 +831,7 @@ public class TezClient {
         return TezAppMasterStatus.SHUTDOWN;
       case RUNNING:
         try {
-          DAGClientAMProtocolBlockingPB proxy = getAMProxy(appId);
-          if (proxy == null) {
-            return TezAppMasterStatus.INITIALIZING;
-          }
-          GetAMStatusResponseProto response = proxy.getAMStatus(null,
-              GetAMStatusRequestProto.newBuilder().build());
-          return DagTypeConverters.convertTezAppMasterStatusFromProto(
-              response.getStatus());
+          return frameworkClient.getAMStatus(amConfig.getTezConfiguration(), appId, getUgi());
         } catch (TezException e) {
           LOG.info("Failed to retrieve AM Status via proxy", e);
         } catch (ServiceException e) {
@@ -1057,32 +1008,6 @@ public class TezClient {
   @Private
   protected FrameworkClient createFrameworkClient() {
     return FrameworkClient.createFrameworkClient(amConfig.getTezConfiguration());
-  }
-
-  @VisibleForTesting
-  // for testing
-  protected DAGClientAMProtocolBlockingPB getAMProxy(ApplicationId appId)
-      throws TezException, IOException {
-    return TezClientUtils.getAMProxy(
-        frameworkClient, amConfig.getTezConfiguration(), appId, getUgi());
-  }
-
-  private DAGClientAMProtocolBlockingPB waitForProxy()
-      throws IOException, TezException, InterruptedException {
-    long startTime = System.currentTimeMillis();
-    long endTime = startTime + (clientTimeout * 1000);
-    DAGClientAMProtocolBlockingPB proxy = null;
-    while (true) {
-      proxy = getAMProxy(sessionAppId);
-      if (proxy != null) {
-        break;
-      }
-      Thread.sleep(100l);
-      if (clientTimeout != -1 && System.currentTimeMillis() > endTime) {
-        break;
-      }
-    }
-    return proxy;
   }
 
   private void verifySessionStateForSubmission() throws SessionNotRunning {

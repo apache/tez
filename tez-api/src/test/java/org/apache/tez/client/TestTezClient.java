@@ -56,6 +56,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
@@ -93,7 +94,6 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResp
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TezAppMasterStatusProto;
-import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
 import org.apache.tez.dag.api.records.DAGProtos.ProgressProto;
@@ -112,7 +112,6 @@ public class TestTezClient {
       TestTezClient.class.getName()).getAbsoluteFile();
 
   class TezClientForTest extends TezClient {
-    TezYarnClient mockTezYarnClient;
     DAGClientAMProtocolBlockingPB sessionAmProxy;
     YarnClient mockYarnClient;
     ApplicationId mockAppId;
@@ -120,23 +119,13 @@ public class TestTezClient {
     Long prewarmTimeoutMs;
 
     public TezClientForTest(String name, TezConfiguration tezConf,
-        @Nullable Map<String, LocalResource> localResources,
-        @Nullable Credentials credentials) {
+        @Nullable Map<String, LocalResource> localResources, @Nullable Credentials credentials) {
       super(name, tezConf, localResources, credentials);
     }
-    
+
     @Override
     protected FrameworkClient createFrameworkClient() {
-      return mockTezYarnClient;
-    }
-    
-    @Override
-    protected DAGClientAMProtocolBlockingPB getAMProxy(ApplicationId appId)
-        throws TezException, IOException {
-      if (!callRealGetSessionAMProxy) {
-        return sessionAmProxy;
-      }
-      return super.getAMProxy(appId);
+      return frameworkClient; // already initialized
     }
 
     public void setPrewarmTimeoutMs(Long prewarmTimeoutMs) {
@@ -148,7 +137,34 @@ public class TestTezClient {
       return prewarmTimeoutMs == null ? super.getPrewarmWaitTimeMs() : prewarmTimeoutMs;
     }
   }
-  
+
+  class TezYarnClientForTest extends TezYarnClient {
+    private TezClientForTest client;
+
+    protected TezYarnClientForTest(YarnClient yarnClient, TezClientForTest client) {
+      super(yarnClient);
+      this.client = client;
+    }
+
+    @Override
+    protected DAGClientAMProtocolBlockingPB waitForProxy(long clientTimeout, Configuration conf,
+        ApplicationId sessionAppId, UserGroupInformation ugi) throws TezException, IOException {
+      if (!client.callRealGetSessionAMProxy) {
+        return client.sessionAmProxy;
+      }
+      return super.getProxy(conf, sessionAppId, ugi);
+    }
+
+    @Override
+    protected DAGClientAMProtocolBlockingPB getProxy(Configuration conf, ApplicationId sessionAppId,
+        UserGroupInformation ugi) throws TezException, IOException {
+      if (!client.callRealGetSessionAMProxy) {
+        return client.sessionAmProxy;
+      }
+      return super.getProxy(conf, sessionAppId, ugi);
+    }
+  }
+
   TezClientForTest configureAndCreateTezClient() throws YarnException, IOException, ServiceException {
     return configureAndCreateTezClient(null);
   }
@@ -179,11 +195,11 @@ public class TestTezClient {
         .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.RUNNING).build());
 
     client.sessionAmProxy = sessionAmProxy;
-    client.mockTezYarnClient = new TezYarnClient(yarnClient);
+    client.frameworkClient = new TezYarnClientForTest(yarnClient, client);
     client.mockYarnClient = yarnClient;
     client.mockAppId = appId1;
-    
-    return client;    
+
+    return client;
   }
   
   @Test (timeout = 5000)
@@ -987,7 +1003,6 @@ public class TestTezClient {
     String val = "hostname:2181";
     conf.set("yarn.resourcemanager.zk-address", val);
 
-    ConfigurationProto confProto = null;
     //Test that Exception is not thrown by createFinalConfProtoForApp
     TezClientUtils.createFinalConfProtoForApp(conf, null);
   }

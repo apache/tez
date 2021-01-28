@@ -1749,6 +1749,19 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
 
   /**
+  * Boolean value. Enable local mode execution in Tez without using network for communicating with
+  * DAGAppMaster. This option only makes sense when {@link #TEZ_LOCAL_MODE} is true. When
+  * TEZ_LOCAL_MODE_WITHOUT_NETWORK is turned on, LocalClient will call DAGAppMaster's methods
+  * directly.
+  */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_LOCAL_MODE_WITHOUT_NETWORK =
+      TEZ_PREFIX + "local.mode.without.network";
+
+  public static final boolean TEZ_LOCAL_MODE_WITHOUT_NETWORK_DEFAULT = false;
+
+  /**
    * String value. TezLocalCacheManager uses this folder as a root for temp and localized files.
    */
   @ConfigurationScope(Scope.VERTEX)

@@ -38,7 +38,7 @@ public class MockLocalClient extends LocalClient {
   public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock) {
     this(mockAppLauncherGoFlag, clock, false, false, 1, 1);
   }
-  
+
   public MockLocalClient(AtomicBoolean mockAppLauncherGoFlag, Clock clock,
       boolean initFailFlag, boolean startFailFlag, int concurrency, int containers) {
     this.mockAppLauncherGoFlag = mockAppLauncherGoFlag;
@@ -60,7 +60,7 @@ public class MockLocalClient extends LocalClient {
         concurrency, containers);
     return mockApp;
   }
-  
+
   public MockDAGAppMaster getMockApp() {
     return mockApp;
   }

@@ -209,7 +209,7 @@ public class DAGClientImpl extends DAGClient {
     }
   }
 
-  private DAGStatus getDAGStatusInternal(@Nullable Set<StatusGetOpts> statusOptions,
+  protected DAGStatus getDAGStatusInternal(@Nullable Set<StatusGetOpts> statusOptions,
       long timeout) throws TezException, IOException {
 
     if (!dagCompleted) {

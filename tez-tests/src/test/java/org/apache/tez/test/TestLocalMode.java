@@ -68,14 +68,16 @@ public class TestLocalMode {
   private static FileSystem remoteFs;
 
   private final boolean useDfs;
+  private final boolean useLocalModeWithoutNetwork;
 
-  @Parameterized.Parameters(name = "useDFS:{0}")
+  @Parameterized.Parameters(name = "useDFS:{0} useLocalModeWithoutNetwork:{1}")
   public static Collection<Object[]> params() {
-    return Arrays.asList(new Object[][]{{false}, {true}});
+    return Arrays.asList(new Object[][]{{false, false}, {true, false}, {false, true}, {true, true}});
   }
 
-  public TestLocalMode(boolean useDfs) {
+  public TestLocalMode(boolean useDfs, boolean useLocalModeWithoutNetwork) {
     this.useDfs = useDfs;
+    this.useLocalModeWithoutNetwork = useLocalModeWithoutNetwork;
   }
 
   @BeforeClass
@@ -105,6 +107,8 @@ public class TestLocalMode {
   private TezConfiguration createConf() {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE_WITHOUT_NETWORK, useLocalModeWithoutNetwork);
+
     if (useDfs) {
       conf.set("fs.defaultFS", remoteFs.getUri().toString());
     } else {

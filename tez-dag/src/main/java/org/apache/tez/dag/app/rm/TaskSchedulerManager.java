@@ -641,7 +641,9 @@ public class TaskSchedulerManager extends AbstractService implements
   
   @Override
   public synchronized void serviceStart() throws Exception {
-    InetSocketAddress serviceAddr = clientService.getBindAddress();
+    // clientService is null in case of LocalDAGAppMaster
+    InetSocketAddress serviceAddr = clientService == null ? new InetSocketAddress("127.0.0.1", 0)
+        : clientService.getBindAddress();
     dagAppMaster = appContext.getAppMaster();
     // if web service is enabled then set tracking url. else disable it (value = "").
     // the actual url set on the rm web ui will be the proxy url set by WebAppProxyServlet, which

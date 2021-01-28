@@ -912,13 +912,12 @@ public class TezClientUtils {
     return textPath;
   }
 
-  static DAGClientAMProtocolBlockingPB getAMProxy(FrameworkClient yarnClient,
-      Configuration conf,
-      ApplicationId applicationId, UserGroupInformation ugi) throws TezException, IOException {
+  static DAGClientAMProtocolBlockingPB getAMProxy(FrameworkClient frameworkClient,
+      Configuration conf, ApplicationId applicationId, UserGroupInformation ugi)
+      throws TezException, IOException {
     ApplicationReport appReport;
     try {
-      appReport = yarnClient.getApplicationReport(
-          applicationId);
+      appReport = frameworkClient.getApplicationReport(applicationId);
 
       if(appReport == null) {
         throw new TezUncheckedException("Could not retrieve application report"
@@ -948,8 +947,9 @@ public class TezClientUtils {
     } catch (YarnException e) {
       throw new TezException(e);
     }
-    return getAMProxy(conf, appReport.getHost(),
-        appReport.getRpcPort(), appReport.getClientToAMToken(), ugi);
+
+    return getAMProxy(conf, appReport.getHost(), appReport.getRpcPort(),
+        appReport.getClientToAMToken(), ugi);
   }
 
   @Private
