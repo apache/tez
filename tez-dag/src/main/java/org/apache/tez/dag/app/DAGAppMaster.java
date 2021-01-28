@@ -866,10 +866,10 @@ public class DAGAppMaster extends AbstractService {
       taskCommunicatorManager.dagComplete(cleanupEvent.getDag());
       nodes.dagComplete(cleanupEvent.getDag());
       containers.dagComplete(cleanupEvent.getDag());
-      TezTaskAttemptID.clearCache();
-      TezTaskID.clearCache();
-      TezVertexID.clearCache();
-      TezDAGID.clearCache();
+
+      // Hint to the JVM to clean up anything no longer needed; be ready for the next DAG
+      System.gc();
+
       LOG.info("Completed cleanup for DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
           cleanupEvent.getDag().getID());
       synchronized (idleStateLock) {

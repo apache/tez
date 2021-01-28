@@ -28,6 +28,9 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
+
 /**
  * TaskID represents the immutable and unique identifier for
  * a Tez Task. Each TaskID encompasses multiple attempts made to
@@ -51,7 +54,7 @@ public class TezTaskID extends TezID {
     }
   };
 
-  private static TezIDCache<TezTaskID> tezTaskIDCache = new TezIDCache<>();
+  private static Interner<TezTaskID> tezTaskIDCache = Interners.newWeakInterner();
   private TezVertexID vertexId;
 
   /**
@@ -61,12 +64,7 @@ public class TezTaskID extends TezID {
    */
   public static TezTaskID getInstance(TezVertexID vertexID, int id) {
     Preconditions.checkArgument(vertexID != null, "vertexID cannot be null");
-    return tezTaskIDCache.getInstance(new TezTaskID(vertexID, id));
-  }
-
-  @InterfaceAudience.Private
-  public static void clearCache() {
-    tezTaskIDCache.clear();
+    return tezTaskIDCache.intern(new TezTaskID(vertexID, id));
   }
 
   private TezTaskID(TezVertexID vertexID, int id) {
