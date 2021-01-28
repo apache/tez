@@ -48,10 +48,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -303,7 +303,6 @@ public class DAGAppMaster extends AbstractService {
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
 
-  private ThreadPoolExecutor rawExecutor;
   private ListeningExecutorService execService;
 
   // TODO May not need to be a bidi map
@@ -621,9 +620,9 @@ public class DAGAppMaster extends AbstractService {
             TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT);
     // NOTE: LinkedBlockingQueue does not have a capacity Limit and can thus
     // occupy large memory chunks when numerous Runables are pending for execution
-    rawExecutor = new ThreadPoolExecutor(threadCount, threadCount,
-            60L, TimeUnit.SECONDS, new LinkedBlockingQueue(),
-            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("App Shared Pool - " + "#%d").build());
+    ExecutorService rawExecutor =
+        Executors.newFixedThreadPool(threadCount, new ThreadFactoryBuilder()
+            .setDaemon(true).setNameFormat("App Shared Pool - #%d").build());
     execService = MoreExecutors.listeningDecorator(rawExecutor);
 
     initServices(conf);
@@ -1501,14 +1500,6 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public DAG getCurrentDAG() {
       return dag;
-    }
-
-    @Override
-    // For Testing only!
-    public ThreadPoolExecutor getThreadPool() {
-      synchronized (DAGAppMaster.this) {
-        return rawExecutor;
-      }
     }
 
     @Override
