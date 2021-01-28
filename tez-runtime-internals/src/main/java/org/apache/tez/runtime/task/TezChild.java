@@ -172,7 +172,7 @@ public class TezChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("",token);
+        LOG.debug("{}", token);
       }
     }
 
