@@ -302,7 +302,6 @@ public class DAGAppMaster extends AbstractService {
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
 
-  private ExecutorService rawExecutor;
   private ListeningExecutorService execService;
 
   // TODO May not need to be a bidi map
@@ -623,7 +622,7 @@ public class DAGAppMaster extends AbstractService {
             TezConfiguration.TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT);
     // NOTE: LinkedBlockingQueue does not have a capacity Limit and can thus
     // occupy large memory chunks when numerous Runables are pending for execution
-    rawExecutor =
+    ExecutorService rawExecutor =
         Executors.newFixedThreadPool(threadCount, new ThreadFactoryBuilder()
             .setDaemon(true).setNameFormat("App Shared Pool - #%d").build());
     execService = MoreExecutors.listeningDecorator(rawExecutor);
