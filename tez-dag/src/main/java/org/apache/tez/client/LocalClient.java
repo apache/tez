@@ -47,6 +47,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.tez.common.AsyncDispatcher;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.DAGSubmissionTimedOut;
@@ -356,7 +357,7 @@ public class LocalClient extends FrameworkClient {
                   amCredentials, UserGroupInformation.getCurrentUser().getShortUserName());
           DAGAppMaster.initAndStartAppMaster(dagAppMaster, conf);
           clientHandler = new DAGClientHandler(dagAppMaster);
-
+          ((AsyncDispatcher)dagAppMaster.getDispatcher()).setDrainEventsOnStop();
         } catch (Throwable t) {
           LOG.error("Error starting DAGAppMaster", t);
           if (dagAppMaster != null) {

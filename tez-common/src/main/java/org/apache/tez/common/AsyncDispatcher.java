@@ -33,6 +33,7 @@ import org.apache.hadoop.yarn.event.Dispatcher;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,19 +143,34 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
     if (drainEventsOnStop) {
       blockNewEvents = true;
       LOG.info("AsyncDispatcher is draining to stop, ignoring any new events.");
+      long endTime = System.currentTimeMillis() + getConfig()
+          .getInt(TezConfiguration.TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT,
+              TezConfiguration.TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT_DEFAULT);
+
       synchronized (waitForDrained) {
-        while (!drained && eventHandlingThread.isAlive()) {
+        while (!drained && eventHandlingThread.isAlive() && System.currentTimeMillis() < endTime) {
           waitForDrained.wait(1000);
-          LOG.info("Waiting for AsyncDispatcher to drain.");
+          LOG.info(
+              "Waiting for AsyncDispatcher to drain. Current queue size: {}, handler thread state: {}",
+              eventQueue.size(), eventHandlingThread.getState());
         }
       }
-      
     }
     stopped = true;
     if (eventHandlingThread != null) {
       eventHandlingThread.interrupt();
       try {
-        eventHandlingThread.join();
+        /*
+         * The event handling thread can be alive at this point, but in BLOCKED state, which leads
+         * to app hang, as a BLOCKED thread might never finish under some circumstances
+         */
+        if (eventHandlingThread.getState() == Thread.State.BLOCKED) {
+          LOG.warn(
+              "eventHandlingThread is in BLOCKED state, let's not wait for it in order to prevent app hang");
+        } else {
+          eventHandlingThread.join();
+          LOG.info("joined event handling thread, state: {}", eventHandlingThread.getState());
+        }
       } catch (InterruptedException ie) {
         LOG.warn("Interrupted Exception while stopping", ie);
       }
