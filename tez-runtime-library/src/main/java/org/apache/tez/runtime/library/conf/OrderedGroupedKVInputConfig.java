@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -448,7 +447,7 @@ public class OrderedGroupedKVInputConfig {
     @Override
     public Builder setFromConfiguration(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
           Lists.newArrayList(OrderedGroupedKVInput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
@@ -460,7 +459,7 @@ public class OrderedGroupedKVInputConfig {
     @Override
     public Builder setFromConfigurationUnfiltered(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       ConfigUtils.mergeConfs(this.conf, conf);
       return this;
     }
@@ -494,10 +493,8 @@ public class OrderedGroupedKVInputConfig {
      */
     public Builder setKeySerializationClass(String serializationClassName,
         String comparatorClassName, @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
-      Preconditions.checkArgument(comparatorClassName != null,
-          "comparator cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
+      Objects.requireNonNull(comparatorClassName, "comparator cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       setKeyComparatorClass(comparatorClassName, null);
@@ -520,8 +517,7 @@ public class OrderedGroupedKVInputConfig {
      */
     public Builder setValueSerializationClass(String serializationClassName,
                                               @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       if (serializerConf != null) {

@@ -69,6 +69,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -242,11 +243,12 @@ public class ATSImportTool extends Configured implements Tool {
    * @throws IOException
    * @throws TezException
    * @throws JSONException
+   * @throws NullPointerException if {@code zos} is {@code null}
    */
   private void downloadJSONArrayFromATS(String url, ZipOutputStream zos, String tag)
       throws IOException, TezException, JSONException {
 
-    Preconditions.checkArgument(zos != null, "ZipOutputStream can not be null");
+    Objects.requireNonNull(zos, "ZipOutputStream can not be null");
 
     String baseUrl = url;
     JSONArray entities;

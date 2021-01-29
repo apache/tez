@@ -19,6 +19,7 @@
 package org.apache.tez.common;
 
 import java.io.File;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.log4j.FileAppender;
@@ -48,14 +49,14 @@ public class TezContainerLogAppender extends FileAppender {
    * The file will be created within the container's log directory.
    * 
    * @param fileName
+   * @throws NullPointerException if {@code fileName} is {@code null}
+   * @throws IllegalArgumentException if {@code fileName} is an absolute path
    */
   public void setLogFileName(String fileName) {
-    if (fileName == null || fileName.contains(File.pathSeparator)) {
-      throw new RuntimeException(
-          "Invalid filename specified: "
-              + fileName
-              + " . FileName should not have a path component and should not be empty.");
-    }
+    Objects.requireNonNull(fileName);
+    Preconditions.checkArgument(!fileName.contains(File.pathSeparator),
+        "Invalid filename specified: " + fileName
+            + " . FileName should not have a path component and should not be empty.");
     this.logFileName = fileName;
   }
 

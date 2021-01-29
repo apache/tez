@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -166,7 +167,7 @@ public abstract class TezSplitGrouper {
                                                       SplitLocationProviderWrapper locationProvider) throws
       IOException, InterruptedException {
     LOG.info("Grouping splits in Tez");
-    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
+    Objects.requireNonNull(originalSplits, "Splits must be specified");
 
     int configNumSplits = conf.getInt(TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -164,7 +165,7 @@ public class MultiMRInput extends MRInputBase {
   }
 
   private MRReader initFromEvent(InputDataInformationEvent event) throws IOException {
-    Preconditions.checkState(event != null, "Event must be specified");
+    Objects.requireNonNull(event, "Event must be specified");
     if (LOG.isDebugEnabled()) {
       LOG.debug(getContext().getSourceVertexName() + " initializing Reader: " + eventCount.get());
     }

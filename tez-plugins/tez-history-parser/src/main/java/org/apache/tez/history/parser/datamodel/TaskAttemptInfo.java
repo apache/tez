@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -169,8 +170,7 @@ public class TaskAttemptInfo extends BaseInfo {
   }
 
   void setTaskInfo(TaskInfo taskInfo) {
-    Preconditions.checkArgument(taskInfo != null, "Provide valid taskInfo");
-    this.taskInfo = taskInfo;
+    this.taskInfo = Objects.requireNonNull(taskInfo, "Provide valid taskInfo");
     taskInfo.addTaskAttemptInfo(this);
   }
 

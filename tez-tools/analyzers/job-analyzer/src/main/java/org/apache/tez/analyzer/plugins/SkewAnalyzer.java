@@ -18,7 +18,6 @@
 
 package org.apache.tez.analyzer.plugins;
 
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.conf.Configuration;
@@ -34,6 +33,7 @@ import org.apache.tez.history.parser.datamodel.VertexInfo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 /**
@@ -101,8 +101,7 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   @Override
   public void analyze(DagInfo dagInfo) throws TezException {
-    Preconditions.checkArgument(dagInfo != null, "DAG can't be null");
-    analyzeReducers(dagInfo);
+    analyzeReducers(Objects.requireNonNull(dagInfo, "DAG can't be null"));
   }
 
   private void analyzeReducers(DagInfo dagInfo) {

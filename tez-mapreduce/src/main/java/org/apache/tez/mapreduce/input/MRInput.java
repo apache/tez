@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -672,7 +673,7 @@ public class MRInput extends MRInputBase {
     if (LOG.isDebugEnabled()) {
       LOG.debug(getContext().getSourceVertexName() + " initializing RecordReader from event");
     }
-    Preconditions.checkState(initEvent != null, "InitEvent must be specified");
+    Objects.requireNonNull(initEvent, "InitEvent must be specified");
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(initEvent.getUserPayload()));
     Object splitObj = null;
     long splitLength = -1;

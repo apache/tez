@@ -21,10 +21,10 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.collect.Interner;
@@ -49,12 +49,13 @@ public class TezDAGID extends TezID {
    * Get a DAGID object from given {@link ApplicationId}.
    * @param applicationId Application that this dag belongs to
    * @param id the dag number
+   * @throws NullPointerException if {@code obj} is {@code applicationId}
    */
   public static TezDAGID getInstance(ApplicationId applicationId, int id) {
     // The newly created TezDAGIds are primarily for their hashCode method, and
     // will be short-lived.
     // Alternately the cache can be keyed by the hash of the incoming paramters.
-    Preconditions.checkArgument(applicationId != null, "ApplicationID cannot be null");
+    Objects.requireNonNull(applicationId, "ApplicationID cannot be null");
     return tezDAGIDCache.intern(new TezDAGID(applicationId, id));
   }
   
@@ -63,15 +64,16 @@ public class TezDAGID extends TezID {
    * @param yarnRMIdentifier YARN RM identifier
    * @param appId application number
    * @param id the dag number
+   * @throws NullPointerException if {@code yarnRMIdentifier} is {@code null}
    */
   public static TezDAGID getInstance(String yarnRMIdentifier, int appId, int id) {
     // The newly created TezDAGIds are primarily for their hashCode method, and
     // will be short-lived.
     // Alternately the cache can be keyed by the hash of the incoming paramters.
-    Preconditions.checkArgument(yarnRMIdentifier != null, "yarnRMIdentifier cannot be null");
+    Objects.requireNonNull(yarnRMIdentifier, "yarnRMIdentifier cannot be null");
     return tezDAGIDCache.intern(new TezDAGID(yarnRMIdentifier, appId, id));
   }
-  
+
   // Public for Writable serialization. Verify if this is actually required.
   public TezDAGID() {
   }
