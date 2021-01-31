@@ -197,6 +197,10 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
         throw new Exception("No handler for registered for " + type);
       }
     } catch (Throwable t) {
+      if (t instanceof InterruptedException) {
+        LOG.warn("Interrupted Exception while handling event: " + event.getType(), t);
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error in dispatcher thread", t);
       // If serviceStop is called, we should exit this thread gracefully.
       if (exitOnDispatchException
