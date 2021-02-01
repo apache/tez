@@ -24,6 +24,10 @@
   </parent>
   <artifactId>tez-runtime-library</artifactId>
 
+  <properties>
+    <enforcer.skip>true</enforcer.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.roaringbitmap</groupId>

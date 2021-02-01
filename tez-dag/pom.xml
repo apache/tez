@@ -21,6 +21,9 @@
     <artifactId>tez</artifactId>
     <version>0.10.1-SNAPSHOT</version>
   </parent>
+
+  <artifactId>tez-dag</artifactId>
+
   <properties>
     <tez.component>tez-dag</tez.component>
     <tez.dag.state.classes>org.apache.tez.dag.app.dag.impl.DAGImpl,
@@ -32,9 +35,9 @@
     <tez.graphviz.title>Tez</tez.graphviz.title>
     <tez.graphviz.output.file>Tez.gv</tez.graphviz.output.file>
     <test.log.dir>${project.build.directory}/logs</test.log.dir>
+    <enforcer.skip>true</enforcer.skip>
   </properties>
-  <artifactId>tez-dag</artifactId>
-
+  
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>

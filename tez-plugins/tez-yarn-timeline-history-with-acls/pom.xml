@@ -23,6 +23,10 @@
   </parent>
   <artifactId>tez-yarn-timeline-history-with-acls</artifactId>
 
+  <properties>
+    <enforcer.skip>true</enforcer.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>

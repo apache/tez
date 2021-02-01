@@ -20,12 +20,6 @@ package org.apache.tez.common;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -33,6 +27,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.tez.thirdparty.com.google.common.util.concurrent.ListenableFuture;
+import org.apache.tez.thirdparty.com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.tez.thirdparty.com.google.common.util.concurrent.MoreExecutors;
+import org.apache.tez.thirdparty.com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.junit.Test;
 
 public class TestEnvironmentUpdateUtils {
 

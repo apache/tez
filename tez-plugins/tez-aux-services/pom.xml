@@ -25,6 +25,10 @@
 
   <artifactId>tez-aux-services</artifactId>
 
+  <properties>
+    <enforcer.skip>true</enforcer.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

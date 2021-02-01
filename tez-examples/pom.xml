@@ -26,6 +26,10 @@
   <artifactId>tez-examples</artifactId>
   <packaging>jar</packaging>
 
+  <properties>
+    <enforcer.skip>true</enforcer.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>

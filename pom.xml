@@ -137,6 +137,11 @@
       </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
+        <artifactId>tez-thirdparty</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.tez</groupId>
         <artifactId>tez-common</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -730,6 +735,7 @@
 
   <modules>
     <module>hadoop-shim</module>
+    <module>tez-thirdparty</module>
     <module>tez-api</module>
     <module>tez-build-tools</module>
     <module>tez-common</module>
@@ -954,6 +960,29 @@
                 <version>2.18.0</version>
               </dependency>
             </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>enforce-banned-dependencies</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <bannedDependencies>
+                    <excludes>
+                      <exclude>com.google.guava:guava</exclude>
+                    </excludes>
+                    <searchTransitive>false</searchTransitive>
+                  </bannedDependencies>
+                </rules>
+                <fail>true</fail>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
