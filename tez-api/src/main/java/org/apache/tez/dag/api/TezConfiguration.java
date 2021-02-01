@@ -194,6 +194,17 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY_DEFAULT = 10;
 
   /**
+   * Integer value. Milliseconds while AsyncDispatcher should wait for events to be processed on
+   * serviceStop. The idea is borrowed from YARN-3999.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT = TEZ_AM_PREFIX
+      + "dispatcher.drain-events.timeout";
+  @Private
+  public static final int TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT_DEFAULT = 10000;
+
+  /**
    * Boolean value. Execution mode for the Tez application. True implies session mode. If the client
    * code is written according to best practices then the same code can execute in either mode based
    * on this configuration. Session mode is more aggressive in reserving execution resources and is
