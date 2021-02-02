@@ -1536,6 +1536,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     this.readLock.lock();
     try {
       VertexStatusBuilder status = new VertexStatusBuilder();
+      status.setId(getVertexId());
       status.setState(getInternalState());
       status.setDiagnostics(diagnostics);
       status.setProgress(getVertexProgress());

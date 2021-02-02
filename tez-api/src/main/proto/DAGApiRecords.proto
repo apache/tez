@@ -245,10 +245,11 @@ enum VertexStatusStateProto {
 }
 
 message VertexStatusProto {
-  optional VertexStatusStateProto state = 1;
-  repeated string diagnostics = 2;
-  optional ProgressProto progress = 3;
-  optional TezCountersProto vertexCounters = 4;
+  required string id = 1;
+  optional VertexStatusStateProto state = 2;
+  repeated string diagnostics = 3;
+  optional ProgressProto progress = 4;
+  optional TezCountersProto vertexCounters = 5;
 }
 
 enum DAGStatusStateProto {

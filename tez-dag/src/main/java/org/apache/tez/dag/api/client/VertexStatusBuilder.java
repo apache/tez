@@ -28,11 +28,16 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto.Builder;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.VertexState;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class VertexStatusBuilder extends VertexStatus {
 
   public VertexStatusBuilder() {
     super(VertexStatusProto.newBuilder());
+  }
+
+  public void setId(TezVertexID vertexId) {
+    getBuilder().setId(vertexId.toString());
   }
 
   public void setState(VertexState state) {

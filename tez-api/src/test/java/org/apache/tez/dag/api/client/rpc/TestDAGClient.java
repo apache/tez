@@ -152,6 +152,7 @@ public class TestDAGClient {
                     .build();
     
     vertexStatusProtoWithoutCounters = VertexStatusProto.newBuilder()
+                    .setId("vertex_1")
                     .addDiagnostics("V_Diagnostics_0")
                     .setProgress(vertexProgressProto)
                     .setState(VertexStatusStateProto.VERTEX_SUCCEEDED)  // make sure the waitForCompletion be able to finish
