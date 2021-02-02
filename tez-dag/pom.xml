@@ -37,7 +37,7 @@
     <test.log.dir>${project.build.directory}/logs</test.log.dir>
     <enforcer.skip>true</enforcer.skip>
   </properties>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
