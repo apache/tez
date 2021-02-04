@@ -410,9 +410,8 @@ public class LocalClient extends FrameworkClient {
         return TezAppMasterStatus.INITIALIZING;
       }
       return clientHandler.getTezAppMasterStatus();
-    } else {
-      return super.getAMStatus(configuration, appId, ugi);
     }
+    return super.getAMStatus(configuration, appId, ugi);
   }
 
   @Override
@@ -451,8 +450,7 @@ public class LocalClient extends FrameworkClient {
         clientHandler.shutdownAM();
       }
       return true;
-    } else {
-      return super.shutdownSession(configuration, sessionAppId, ugi);
     }
+    return super.shutdownSession(configuration, sessionAppId, ugi);
   }
 }
