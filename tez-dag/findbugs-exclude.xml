@@ -252,4 +252,16 @@
     <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
   </Match>
 
+  <!-- TEZ-4281 -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.impl.DAGImpl"/>
+    <Method name="getLogDirs"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Class name="org.apache.tez.dag.app.dag.impl.DAGImpl"/>
+    <Method name="setLogDirs"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
 </FindBugsFilter>

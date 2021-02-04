@@ -57,6 +57,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -67,6 +68,7 @@ import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.counters.AggregateTezCounters;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -225,6 +227,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption;
 
   private static final DagStateChangedCallback STATE_CHANGED_CALLBACK = new DagStateChangedCallback();
+  private String[] logDirs;
 
   @VisibleForTesting
   Map<OutputKey, ListenableFuture<Void>> commitFutures
@@ -1662,7 +1665,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     // which didn't have the priorities
     if (getConf().getBoolean(TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS,
         TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
-      Utils.generateDAGVizFile(this, jobPlan, dagScheduler);
+      Utils.generateDAGVizFile(this, jobPlan, logDirs, dagScheduler);
     }
     return DAGState.INITED;
   }
@@ -2509,5 +2512,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     public void onFailure(Throwable t) {
       eventHandler.handle(new DAGEventCommitCompleted(dagId, outputKey, false, t));
     }
+  }
+
+  public String[] getLogDirs() {
+    if (logDirs == null) {
+      logDirs = TezCommonUtils
+          .getTrimmedStrings(System.getenv(ApplicationConstants.Environment.LOG_DIRS.name()));
+    }
+    return logDirs;
+  }
+
+  public DAGImpl setLogDirs(String[] logDirs) {
+    this.logDirs = logDirs;
+    return this;
   }
 }

@@ -16,9 +16,7 @@ package org.apache.tez;
 
 import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.event.Event;
-import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.dag.DAG;
@@ -107,19 +105,6 @@ public class Utils {
     } else {
       LOG.warn("No current dag name provided. Not acting on " + message);
     }
-  }
-
-  /**
-   * Generate a visualization file.
-   * @param dag DAG.
-   * @param dagPB DAG plan.
-   * @param scheduler scheduler that provide the priorities of the vertexes.
-   */
-  public static void generateDAGVizFile(final DAG dag,
-      final DAGProtos.DAGPlan dagPB, @Nullable final DAGScheduler scheduler) {
-    generateDAGVizFile(dag, dagPB, TezCommonUtils.getTrimmedStrings(
-        System.getenv(ApplicationConstants.Environment.LOG_DIRS.name())),
-        scheduler);
   }
 
   /**
@@ -217,6 +202,9 @@ public class Utils {
     if (logDirs != null && logDirs.length != 0) {
       outputFile += logDirs[0];
       outputFile += File.separator;
+    } else {
+      LOG.warn("DAGVizFile will be created under current (.) directory: {},"
+          + " which is not expected and recommended", new File(".").getAbsolutePath());
     }
     outputFile += dagId.toString();
     // Means we have set the priorities
