@@ -266,15 +266,15 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_LOG_PATTERN_LAYOUT_AM = TEZ_PREFIX + "log.pattern.layout.am";
+  public static final String TEZ_LOG_PATTERN_LAYOUT_AM = TEZ_AM_PREFIX + "log.pattern.layout";
 
   /**
    * By this option, user can easily override the logging pattern which is applied in
    * TezContainerLogAppender in tasks, regardless of the environmental settings.
    */
-  @ConfigurationScope(Scope.AM)
+  @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty
-  public static final String TEZ_LOG_PATTERN_LAYOUT_TASK = TEZ_PREFIX + "log.pattern.layout.task";
+  public static final String TEZ_LOG_PATTERN_LAYOUT_TASK = TEZ_TASK_PREFIX + "log.pattern.layout";
 
   /**
    * Comma separated list of keys, which can used for defining keys in MDC. The corresponding values
@@ -286,10 +286,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_MDC_CUSTOM_KEYS_DEFAULT = "";
 
   /**
-   * Comma separated list of keys, which can used for defining keys in Configuration. Tez will try
-   * to fill MDC with key value pairs in a way that a key will be the nth item in
-   * tez.mdc.custom.keys and the value will be the value from a Configuration object pointed by the
-   * nth key of tez.mdc.custom.keys.values.from.
+   * Comma separated list of Configuration keys. Tez will try to fill MDC with key value pairs in a
+   * way that a key will be the nth item in tez.mdc.custom.keys and the value will be the value from
+   * a Configuration object pointed by the nth key of tez.mdc.custom.keys.values.from like below:
+   *
+   * tez.mdc.custom.keys=queryId,otherKey
+   * tez.mdc.custom.keys.values.from=awesome.sql.app.query.id,awesome.sql.app.other.key
+   *
+   * So MDC will contain key->value pairs as:
+   * queryId  -> conf.get("awesome.sql.app.query.id")
+   * otherKey -> conf.get("awesome.sql.app.other.key")
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
