@@ -30,7 +30,6 @@ import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
@@ -42,6 +41,7 @@ import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
+import org.apache.tez.util.StringInterner;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -167,7 +167,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
       }
     }
 
-    scheduler.addKnownMapOutput(StringInterner.weakIntern(shufflePayload.getHost()), shufflePayload.getPort(),
+    scheduler.addKnownMapOutput(StringInterner.intern(shufflePayload.getHost()), shufflePayload.getPort(),
         partitionId, srcAttemptIdentifier);
   }
 
@@ -200,7 +200,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
       }
     }
 
-    scheduler.addKnownMapOutput(StringInterner.weakIntern(shufflePayload.getHost()), shufflePayload.getPort(),
+    scheduler.addKnownMapOutput(StringInterner.intern(shufflePayload.getHost()), shufflePayload.getPort(),
         partitionId, compositeInputAttemptIdentifier);
   }
 
@@ -221,7 +221,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
    */
   private CompositeInputAttemptIdentifier constructInputAttemptIdentifier(int targetIndex, int targetIndexCount, int version,
                                                                           DataMovementEventPayloadProto shufflePayload) {
-    String pathComponent = (shufflePayload.hasPathComponent()) ? StringInterner.weakIntern(shufflePayload.getPathComponent()) : null;
+    String pathComponent = (shufflePayload.hasPathComponent()) ? StringInterner.intern(shufflePayload.getPathComponent()) : null;
     int spillEventId = shufflePayload.getSpillId();
     CompositeInputAttemptIdentifier srcAttemptIdentifier = null;
     if (shufflePayload.hasSpillId()) {

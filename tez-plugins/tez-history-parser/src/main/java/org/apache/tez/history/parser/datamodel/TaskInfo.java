@@ -31,9 +31,9 @@ import com.google.common.collect.Ordering;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.util.StringInterner;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -71,7 +71,7 @@ public class TaskInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ID));
 
-    taskId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
+    taskId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
@@ -106,10 +106,10 @@ public class TaskInfo extends BaseInfo {
     endTime = eTime;
 
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
-    successfulAttemptId = StringInterner.weakIntern(
-        otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID));
+    successfulAttemptId = StringInterner
+        .intern(otherInfoNode.optString(Constants.SUCCESSFUL_ATTEMPT_ID));
     scheduledTime = otherInfoNode.optLong(Constants.SCHEDULED_TIME);
-    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
+    status = StringInterner.intern(otherInfoNode.optString(Constants.STATUS));
   }
 
   @Override

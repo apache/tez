@@ -24,9 +24,10 @@ import java.util.Map;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.StringInterner;
 
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.util.StringInterner;
+
 import com.google.common.collect.Maps;
 
 public class TaskStatistics implements Writable {
@@ -40,7 +41,7 @@ public class TaskStatistics implements Writable {
   
   public void addIO(String edgeName, IOStatistics stats) {
     Preconditions.checkArgument(stats != null, edgeName);
-    ioStatistics.put(StringInterner.weakIntern(edgeName), stats);    
+    ioStatistics.put(StringInterner.intern(edgeName), stats);    
   }
   
   public Map<String, IOStatistics> getIOStatistics() {

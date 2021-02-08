@@ -23,8 +23,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.OutputDescriptor;
+import org.apache.tez.util.StringInterner;
 
 public class OutputSpec implements Writable {
 
@@ -37,7 +37,7 @@ public class OutputSpec implements Writable {
 
   public OutputSpec(String destinationVertexName,
       OutputDescriptor outputDescriptor, int physicalEdgeCount) {
-    this.destinationVertexName = StringInterner.weakIntern(destinationVertexName);
+    this.destinationVertexName = StringInterner.intern(destinationVertexName);
     this.outputDescriptor = outputDescriptor;
     this.physicalEdgeCount = physicalEdgeCount;
   }
@@ -64,7 +64,7 @@ public class OutputSpec implements Writable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    destinationVertexName = StringInterner.weakIntern(in.readUTF());
+    destinationVertexName = StringInterner.intern(in.readUTF());
     physicalEdgeCount = in.readInt();
     outputDescriptor = new OutputDescriptor();
     outputDescriptor.readFields(in);
