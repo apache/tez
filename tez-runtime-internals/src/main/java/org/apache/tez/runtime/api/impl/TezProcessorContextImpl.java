@@ -120,7 +120,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
-    return waitForAnyInputReady(inputs, -1);
+    return waitForAnyInputReady(inputs, -1L);
   }
 
   @Override
@@ -130,7 +130,7 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
-    waitForAllInputsReady(inputs, -1);
+    waitForAllInputsReady(inputs, -1L);
   }
 
   @Override

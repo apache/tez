@@ -18,165 +18,215 @@
 
 package org.apache.tez.runtime;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.concurrent.GuardedBy;
+
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
+/**
+ * A class for tracking a global list of ready {@code Inputs} and waiting for a
+ * certain subset of {@code Inputs} to appear in the global list.
+ */
 public class InputReadyTracker {
 
-  private final ConcurrentMap<Input, Boolean> readyInputs;
-  
-  private ConcurrentMap<Input, List<MergedLogicalInput>> inputToGroupMap;
+  @GuardedBy("lock")
+  private final Set<Input> readyInputs;
+
+  @GuardedBy("lock")
+  private Map<Input, List<MergedLogicalInput>> inputToGroupMap;
   
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition condition = lock.newCondition();
 
+  /**
+   * Constructor.
+   */
   public InputReadyTracker() {
-    readyInputs = Maps.newConcurrentMap();
+    readyInputs = new HashSet<>();
+    inputToGroupMap = Collections.emptyMap();
   }
 
-  // Called by the InputContext once it's ready.
+  /**
+   * Mark an input as being ready. If the same Input is marked as ready multiple
+   * times, all subsequent attempts will be ignored.
+   *
+   * @param input The input to consider as ready
+   */
   public void setInputIsReady(Input input) {
     lock.lock();
     try {
-      Boolean old = readyInputs.putIfAbsent(input, true);
-      if (old == null) {
+      boolean added = readyInputs.add(input);
+      if (added) {
         informGroupedInputs(input);
         condition.signalAll();
-      } else {
-        // Ignore duplicate inputReady from the same Input
       }
     } finally {
       lock.unlock();
     }
   }
 
-
   private void informGroupedInputs(Input input) {
-    if (inputToGroupMap != null) {
-      List<MergedLogicalInput> mergedInputList = inputToGroupMap.get(input);
-      if (mergedInputList != null) {
-        for (MergedLogicalInput mergedInput : mergedInputList) {
-          mergedInput.setConstituentInputIsReady(input);
-        }
-      }
+    List<MergedLogicalInput> mergedInputList =
+        inputToGroupMap.getOrDefault(input, Collections.emptyList());
+    for (MergedLogicalInput mergedInput : mergedInputList) {
+      mergedInput.setConstituentInputIsReady(input);
     }
   }
 
-  public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
-    return waitForAnyInputReady(inputs, -1);
-  }
-
+  /**
+   * Wait for any one of the specified inputs to be ready.
+   *
+   * @param inputs A collection of inputs to wait for
+   * @param timeoutMillis The amount of time to wait for any one {@code Input}
+   *          to be considered ready. A value less than zero indicates that it
+   *          should wait forever (or until interrupted).
+   * @return The first Input that was marked as ready
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
+   */
   public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, true);
-    try {
-      return inputReadyMonitor.awaitCondition(timeoutMillis);
-    } catch (TimeoutException e) {
-      return null;
-    }
+
+    boolean inputReady = timeoutMillis < 0L ? inputReadyMonitor.awaitCondition()
+        : inputReadyMonitor.awaitCondition(timeoutMillis,
+            TimeUnit.MILLISECONDS);
+    return inputReady
+        ? inputReadyMonitor.getReadyMonitorInputs().iterator().next()
+        : null;
   }
 
-  public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
-    waitForAllInputsReady(inputs, -1);
-  }
-
+  /**
+   * Wait for all of the specified inputs to be ready.
+   *
+   * @param inputs A collection of inputs to wait for
+   * @param timeoutMillis The amount of time to wait for all {@code Input} to be
+   *          considered ready. A value less than zero indicates that it should
+   *          wait forever (or until interrupted).
+   * @return True if all Inputs are considered ready before the timeout expired; false otherwise
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
+   */
   public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
-    boolean succeeded = true;
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, false);
+    return timeoutMillis < 0L ? inputReadyMonitor.awaitCondition()
+        : inputReadyMonitor.awaitCondition(timeoutMillis,
+            TimeUnit.MILLISECONDS);
+  }
 
+  /**
+   * Add grouped inputs.
+   *
+   * @param inputGroups The input groups to add
+   */
+  public void setGroupedInputs(Collection<MergedLogicalInput> inputGroups) {
+    lock.lock();
     try {
-      inputReadyMonitor.awaitCondition(timeoutMillis);
-    } catch (TimeoutException e) {
-      succeeded = false;
+      inputToGroupMap = new HashMap<>();
+      for (MergedLogicalInput mergedInput : inputGroups) {
+        for (Input dest : mergedInput.getInputs()) {
+          // Check already ready Inputs - may have become ready during
+          // initialize
+          if (readyInputs.contains(dest)) {
+            mergedInput.setConstituentInputIsReady(dest);
+          }
+          inputToGroupMap.computeIfAbsent(dest, in -> new ArrayList<>())
+              .add(mergedInput);
+        }
+      }
+    } finally {
+      lock.unlock();
     }
-    return succeeded;
   }
 
   private class InputReadyMonitor {
 
-    private final Set<Input> pendingInputs;
-    private final boolean selectOne;
+    @GuardedBy("lock")
+    private final Set<Input> pendingMonitorInputs;
+    private final Set<Input> readyMonitorInputs;
+    private final boolean selectAny;
 
-    public InputReadyMonitor(Collection<Input> inputs, boolean anyOne) {
-      pendingInputs = Collections.newSetFromMap(new ConcurrentHashMap<Input, Boolean>());
-      pendingInputs.addAll(inputs);
-      this.selectOne = anyOne;
+    public InputReadyMonitor(Collection<Input> inputs, boolean selectAny) {
+      this.pendingMonitorInputs = new HashSet<>(inputs);
+      this.readyMonitorInputs = new HashSet<>(selectAny ? 1 : inputs.size());
+      this.selectAny = selectAny;
     }
 
-    public Input awaitCondition(long timeoutMillis) throws InterruptedException, TimeoutException {
+    public boolean awaitCondition(long timeout, TimeUnit unit) throws InterruptedException {
+      long nanos = unit.toNanos(timeout);
       lock.lock();
       try {
-        while (pendingInputs.size() > 0) {
-          Iterator<Input> inputIter = pendingInputs.iterator();
+        while (!pendingMonitorInputs.isEmpty()) {
+          Iterator<Input> inputIter = pendingMonitorInputs.iterator();
           while (inputIter.hasNext()) {
             Input input = inputIter.next();
-            if (readyInputs.containsKey(input)) {
+            if (readyInputs.contains(input)) {
+              readyMonitorInputs.add(input);
               inputIter.remove();
               // Return early in case of an ANY request
-              if (selectOne) {
-                return input;
+              if (selectAny) {
+                return true;
               }
             }
           }
-          if (pendingInputs.size() > 0) {
-            if (timeoutMillis >= 0) {
-              boolean succeeded = condition.await(timeoutMillis, TimeUnit.MILLISECONDS);
-              if (!succeeded) {
-                throw new TimeoutException("pending Inputs timeout");
-              }
-            } else { // timeout < 0
-              condition.await();
+          if (!pendingMonitorInputs.isEmpty()) {
+            nanos = condition.awaitNanos(nanos);
+            if (nanos <= 0L) {
+              return false;
             }
           }
         }
       } finally {
         lock.unlock();
       }
-      return null;
+      return true;
     }
-  }
 
-  public void setGroupedInputs(Collection<MergedLogicalInput> inputGroups) {
-    lock.lock();
-    try {
-      if (inputGroups != null) {
-        inputToGroupMap = Maps.newConcurrentMap();
-        for (MergedLogicalInput mergedInput : inputGroups) {
-          for (Input dest : mergedInput.getInputs()) {
-            // Check already ready Inputs - may have become ready during initialize
-            if (readyInputs.containsKey(dest)) {
-              mergedInput.setConstituentInputIsReady(dest);
+    public boolean awaitCondition() throws InterruptedException {
+      lock.lock();
+      try {
+        while (!pendingMonitorInputs.isEmpty()) {
+          Iterator<Input> pendingInputIter = pendingMonitorInputs.iterator();
+          while (pendingInputIter.hasNext()) {
+            Input input = pendingInputIter.next();
+            if (readyInputs.contains(input)) {
+              readyMonitorInputs.add(input);
+              pendingInputIter.remove();
+              // Return early in case of an ANY request
+              if (selectAny) {
+                return true;
+              }
             }
-            List<MergedLogicalInput> mergedList = inputToGroupMap.get(dest);
-            if (mergedList == null) {
-              mergedList = Lists.newArrayList();
-              inputToGroupMap.put(dest, mergedList);
-            }
-            mergedList.add(mergedInput);
+          }
+          if (!pendingMonitorInputs.isEmpty()) {
+            condition.await();
           }
         }
+      } finally {
+        lock.unlock();
       }
-    } finally {
-      lock.unlock();
+      return true;
+    }
+
+    public Set<Input> getReadyMonitorInputs() {
+      return readyMonitorInputs;
     }
   }
 }
