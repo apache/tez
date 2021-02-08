@@ -34,6 +34,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -405,11 +406,30 @@ public class TezClient {
         LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
         sessionStarted.set(true);
       } catch (YarnException e) {
+        cleanStagingDir();
+        throw new TezException(e);
+      } catch (IOException e) {
+        cleanStagingDir();
         throw new TezException(e);
       }
 
       startClientHeartbeat();
       this.stagingFs = FileSystem.get(amConfig.getTezConfiguration());
+    }
+  }
+
+  private void cleanStagingDir() {
+    Configuration conf = amConfig.getTezConfiguration();
+    String appId = sessionAppId.toString();
+    Path stagingDir = TezCommonUtils.getTezSystemStagingPath(conf, appId);
+    boolean isStgDeleted = false;
+    try {
+      FileSystem fs = stagingDir.getFileSystem(conf);
+      isStgDeleted = fs.delete(stagingDir, true);
+    } catch (IOException ioe) {
+      LOG.error("Error deleting staging dir " + stagingDir, ioe);
+    } finally {
+      LOG.info("Staging dir {}, deleted:{} ", stagingDir, isStgDeleted);
     }
   }
 
@@ -453,6 +473,10 @@ public class TezClient {
       LOG.info("The url to track the Tez Session: " + appReport.getTrackingUrl());
       sessionStarted.set(true);
     } catch (YarnException e) {
+      cleanStagingDir();
+      throw new TezException(e);
+    } catch (IOException e) {
+      cleanStagingDir();
       throw new TezException(e);
     }
 
