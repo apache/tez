@@ -171,12 +171,13 @@ RUN pip2 install pylint==1.9.2
 RUN pip2 install python-dateutil==2.7.3
 
 ###
-# Install node.js for web UI framework (4.2.6 ships with Xenial)
+# Install node.js for web UI framework (8.10.0 ships with Bionic, let's override with 10.x)
 ###
-# hadolint ignore=DL3008, DL3016
-RUN apt-get -q update \
-    && apt-get install -y --no-install-recommends nodejs npm \
-    && apt-get clean \
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
+# hadolint ignore=DL3008, DL3015
+RUN apt-get install -y nodejs
+# hadolint ignore=DL3016
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && npm install npm@latest -g \
     && npm install -g jshint
