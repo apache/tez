@@ -20,6 +20,7 @@ package org.apache.tez.runtime.api;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.common.ProgressHelper;
@@ -77,10 +78,10 @@ public interface ProcessorContext extends TaskContext {
    * call. If invoking this method multiple times, it's recommended to remove
    * previously completed Inputs from the invocation list.
    * 
-   * @param inputs
-   *          the list of Inputs to monitor
-   * @return the Input which is ready for consumption
-   * @throws InterruptedException
+   * @param inputs the list of Inputs to monitor
+   * @return the {@cod Input} which is ready for consumption
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
    */
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException;
 
@@ -96,27 +97,26 @@ public interface ProcessorContext extends TaskContext {
    * call. If invoking this method multiple times, it's recommended to remove
    * previously completed Inputs from the invocation list.
    *
-   * @param inputs
-   *          the list of Inputs to monitor
-   * @param timeoutMillis
-   *          timeout to return in milliseconds. If this value is negative,
-   *          this function will wait forever until all inputs get ready
-   *          or interrupted.
-   * @return the Input which is ready for consumption. return null when timeout occurs.
-   * @throws InterruptedException
+   * @param inputs the list of Inputs to monitor
+   * @param time the maximum time to wait
+   * @param unit the time unit of the time argument
+   * @return the {@code Input} which is ready for consumption or null if timeout
+   *         occurs
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
    */
-  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException;
+  public Input waitForAnyInputReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
 
   /**
    * Blocking call which returns only after all of the specified Inputs are
    * ready for consumption.
-   * 
+   *
    * There can be multiple parallel invocations of this function - where each
    * invocation blocks on the Inputs that it specifies.
-   * 
-   * @param inputs
-   *          the list of Inputs to monitor
-   * @throws InterruptedException
+   *
+   * @param inputs the list of Inputs to monitor
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
    */
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException;
 
@@ -127,14 +127,12 @@ public interface ProcessorContext extends TaskContext {
    * There can be multiple parallel invocations of this function - where each
    * invocation blocks on the Inputs that it specifies.
    *
-   * @param inputs
-   *          the list of Inputs to monitor
-   * @param timeoutMillis
-   *          timeout to return in milliseconds. If this value is negative,
-   *          this function will wait forever until all inputs get ready
-   *          or interrupted.
+   * @param inputs the list of Inputs to monitor
+   * @param time the maximum time to wait
+   * @param unit the time unit of the time argument
    * @return Return true if all inputs are ready. Otherwise, return false.
-   * @throws InterruptedException
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
    */
-  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException;
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
 }
