@@ -90,45 +90,73 @@ public class InputReadyTracker {
   /**
    * Wait for any one of the specified inputs to be ready.
    *
-   * @param inputs A collection of inputs to wait for
-   * @param timeoutMillis The amount of time to wait for any one {@code Input}
-   *          to be considered ready. A value less than zero indicates that it
-   *          should wait forever (or until interrupted).
-   * @return The first Input that was marked as ready
+   * @param inputs a collection of {@code input} to wait for
+   * @param time the maximum time to wait
+   * @param unit the time unit of the time argument
+   * @return the {@code Input} which is ready for consumption or null if timeout
+   *         occurs
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
+  public Input waitForAnyInputReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, true);
 
-    boolean inputReady = timeoutMillis < 0L ? inputReadyMonitor.awaitCondition()
-        : inputReadyMonitor.awaitCondition(timeoutMillis,
-            TimeUnit.MILLISECONDS);
+    boolean inputReady = inputReadyMonitor.awaitCondition(time, unit);
     return inputReady
         ? inputReadyMonitor.getReadyMonitorInputs().iterator().next()
         : null;
   }
 
   /**
-   * Wait for all of the specified inputs to be ready.
+   * Wait for any one of the specified inputs to be ready.
    *
-   * @param inputs A collection of inputs to wait for
-   * @param timeoutMillis The amount of time to wait for all {@code Input} to be
-   *          considered ready. A value less than zero indicates that it should
-   *          wait forever (or until interrupted).
-   * @return True if all Inputs are considered ready before the timeout expired; false otherwise
+   * @param inputs a collection of {@code input} to wait for
+   * @return the {@code Input} which is ready for consumption
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
+  public Input waitForAnyInputReady(Collection<Input> inputs)
+      throws InterruptedException {
+    Preconditions.checkArgument(inputs != null && inputs.size() > 0,
+        "At least one input should be specified");
+    InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, true);
+    return inputReadyMonitor.awaitCondition().getReadyMonitorInputs().iterator()
+        .next();
+  }
+
+  /**
+   * Wait for all of the specified inputs to be ready.
+   *
+   * @param inputs A collection of inputs to wait for
+   * @param time the maximum time to wait
+   * @param unit the time unit of the time argument
+   * @return True if all Inputs are considered ready before the timeout expired;
+   *         false otherwise
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
+   */
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long time,
+      TimeUnit unit) throws InterruptedException {
     Preconditions.checkArgument(inputs != null && inputs.size() > 0,
         "At least one input should be specified");
     InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, false);
-    return timeoutMillis < 0L ? inputReadyMonitor.awaitCondition()
-        : inputReadyMonitor.awaitCondition(timeoutMillis,
-            TimeUnit.MILLISECONDS);
+    return inputReadyMonitor.awaitCondition(time, unit);
+  }
+
+  /**
+   * Wait for all of the specified inputs to be ready.
+   *
+   * @param inputs A collection of inputs to wait for
+   * @throws InterruptedException if the current thread is interrupted (and
+   *           interruption of thread suspension is supported)
+   */
+  public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
+    Preconditions.checkArgument(inputs != null && inputs.size() > 0,
+        "At least one input should be specified");
+    InputReadyMonitor inputReadyMonitor = new InputReadyMonitor(inputs, false);
+    inputReadyMonitor.awaitCondition();
   }
 
   /**
@@ -199,7 +227,7 @@ public class InputReadyTracker {
       return true;
     }
 
-    public boolean awaitCondition() throws InterruptedException {
+    public InputReadyMonitor awaitCondition() throws InterruptedException {
       lock.lock();
       try {
         while (!pendingMonitorInputs.isEmpty()) {
@@ -211,7 +239,7 @@ public class InputReadyTracker {
               pendingInputIter.remove();
               // Return early in case of an ANY request
               if (selectAny) {
-                return true;
+                return this;
               }
             }
           }
@@ -222,7 +250,7 @@ public class InputReadyTracker {
       } finally {
         lock.unlock();
       }
-      return true;
+      return this;
     }
 
     public Set<Input> getReadyMonitorInputs() {

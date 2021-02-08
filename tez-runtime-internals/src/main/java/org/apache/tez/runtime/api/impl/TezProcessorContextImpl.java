@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -120,22 +121,22 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
 
   @Override
   public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException {
-    return waitForAnyInputReady(inputs, -1L);
+    return inputReadyTracker.waitForAnyInputReady(inputs);
   }
 
   @Override
-  public Input waitForAnyInputReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
-    return inputReadyTracker.waitForAnyInputReady(inputs, timeoutMillis);
+  public Input waitForAnyInputReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException {
+    return inputReadyTracker.waitForAnyInputReady(inputs, time, unit);
   }
 
   @Override
   public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException {
-    waitForAllInputsReady(inputs, -1L);
+    inputReadyTracker.waitForAllInputsReady(inputs);
   }
 
   @Override
-  public boolean waitForAllInputsReady(Collection<Input> inputs, long timeoutMillis) throws InterruptedException {
-    return inputReadyTracker.waitForAllInputsReady(inputs, timeoutMillis);
+  public boolean waitForAllInputsReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException {
+    return inputReadyTracker.waitForAllInputsReady(inputs, time, unit);
   }
 
   @Override
