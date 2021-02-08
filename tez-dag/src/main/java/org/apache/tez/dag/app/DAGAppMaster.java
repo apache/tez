@@ -869,6 +869,7 @@ public class DAGAppMaster extends AbstractService {
 
       // Hint to the JVM to clean up anything no longer needed; be ready for the next DAG
       System.gc();
+      System.runFinalization();
 
       LOG.info("Completed cleanup for DAG: name=" + cleanupEvent.getDag().getName() + ", with id=" +
           cleanupEvent.getDag().getID());
