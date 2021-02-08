@@ -21,12 +21,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezReflectionException;
@@ -228,12 +228,12 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
       event.toProtoStream(codedOutputStream);
       codedOutputStream.flush();
       return event.getClass().getName() + ","
-          + Base64.encodeBase64String(out.toByteArray());
+          + Base64.getEncoder().withoutPadding().encodeToString(out.toByteArray());
     }
 
     private HistoryEvent decodeHistoryEvent(String eventClass, String base64)
         throws IOException {
-      CodedInputStream in = CodedInputStream.newInstance(Base64.decodeBase64(base64));
+      CodedInputStream in = CodedInputStream.newInstance(Base64.getDecoder().decode(base64));
       try {
         HistoryEvent event = ReflectionUtils.createClazzInstance(eventClass);
         event.fromProtoStream(in);
