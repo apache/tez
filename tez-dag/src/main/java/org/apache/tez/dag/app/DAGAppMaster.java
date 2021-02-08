@@ -1030,7 +1030,7 @@ public class DAGAppMaster extends AbstractService {
         new DAGImpl(dagId, amConf, dagPB, dispatcher.getEventHandler(),
             taskCommunicatorManager, dagCredentials, clock,
             appMasterUgi.getShortUserName(),
-            taskHeartbeatHandler, context);
+            taskHeartbeatHandler, context).setLogDirs(logDirs);
 
     try {
       if (LOG.isDebugEnabled()) {
