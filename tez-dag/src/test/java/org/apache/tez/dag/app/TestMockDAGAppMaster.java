@@ -958,7 +958,7 @@ public class TestMockDAGAppMaster {
       tezClient.start();
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertEquals("FailInit", e.getCause().getCause().getMessage());
+      Assert.assertEquals("FailInit", e.getCause().getCause().getCause().getMessage());
       MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
       // will timeout if DAGAppMasterShutdownHook is not invoked
       mockApp.waitForServiceToStop(Integer.MAX_VALUE);
@@ -974,7 +974,7 @@ public class TestMockDAGAppMaster {
       tezClient.start();
     } catch (Exception e) {
       e.printStackTrace();
-      Assert.assertEquals("FailStart", e.getCause().getCause().getMessage());
+      Assert.assertEquals("FailStart", e.getCause().getCause().getCause().getMessage());
       MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
       // will timeout if DAGAppMasterShutdownHook is not invoked
       mockApp.waitForServiceToStop(Integer.MAX_VALUE);
