@@ -20,11 +20,11 @@ package org.apache.tez.runtime.library.common.security;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Base64;
 
 import javax.crypto.SecretKey;
 
 import com.google.common.base.Charsets;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.WritableComparator;
@@ -46,7 +46,7 @@ public class SecureShuffleUtils {
    * @param msg
    */
   public static String generateHash(byte[] msg, SecretKey key) {
-    return new String(Base64.encodeBase64(generateByteHash(msg, key)), Charsets.UTF_8);
+    return Base64.getEncoder().withoutPadding().encodeToString(generateByteHash(msg, key));
   }
 
   /**
@@ -94,7 +94,8 @@ public class SecureShuffleUtils {
    */
   public static String hashFromString(String enc_str, JobTokenSecretManager mgr)
       throws IOException {
-    return new String(Base64.encodeBase64(mgr.computeHash(enc_str.getBytes(Charsets.UTF_8))), Charsets.UTF_8);
+    return Base64.getEncoder().withoutPadding()
+        .encodeToString(mgr.computeHash(enc_str.getBytes(Charsets.UTF_8)));
   }
 
   /**
@@ -109,7 +110,7 @@ public class SecureShuffleUtils {
    * @throws IOException
    */
   public static void verifyReply(String base64Hash, String msg, SecretKey key) throws IOException {
-    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
+    byte[] hash = Base64.getDecoder().decode(base64Hash.getBytes(Charsets.UTF_8));
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), key);
 
     if(res != true) {
@@ -125,7 +126,7 @@ public class SecureShuffleUtils {
    */
   public static void verifyReply(String base64Hash, String msg, JobTokenSecretManager mgr)
       throws IOException {
-    byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
+    byte[] hash = Base64.getDecoder().decode(base64Hash.getBytes(Charsets.UTF_8));
 
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), mgr);
 
