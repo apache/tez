@@ -157,7 +157,9 @@ public class LocalClient extends FrameworkClient {
   @Override
   public void killApplication(ApplicationId appId) {
     try {
-      clientHandler.shutdownAM();
+      if (clientHandler != null){
+        clientHandler.shutdownAM();
+      }
     } catch (TezException e) {
       throw new RuntimeException(e);
     }
@@ -403,7 +405,13 @@ public class LocalClient extends FrameworkClient {
   @Override
   public TezAppMasterStatus getAMStatus(Configuration configuration, ApplicationId appId,
       UserGroupInformation ugi) throws TezException, ServiceException, IOException {
-    return clientHandler.getTezAppMasterStatus();
+    if (isLocalWithoutNetwork) {
+      if (clientHandler == null) {
+        return TezAppMasterStatus.INITIALIZING;
+      }
+      return clientHandler.getTezAppMasterStatus();
+    }
+    return super.getAMStatus(configuration, appId, ugi);
   }
 
   @Override
@@ -438,10 +446,11 @@ public class LocalClient extends FrameworkClient {
   public boolean shutdownSession(Configuration configuration, ApplicationId sessionAppId,
       UserGroupInformation ugi) throws TezException, IOException, ServiceException {
     if (isLocalWithoutNetwork) {
-      clientHandler.shutdownAM();
+      if (clientHandler != null){
+        clientHandler.shutdownAM();
+      }
       return true;
-    } else {
-      return super.shutdownSession(configuration, sessionAppId, ugi);
     }
+    return super.shutdownSession(configuration, sessionAppId, ugi);
   }
 }
