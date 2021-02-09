@@ -191,7 +191,7 @@ public class InputReadyTracker {
     private final Set<Input> readyMonitorInputs;
     private final boolean selectAny;
 
-    public InputReadyMonitor(Collection<Input> inputs, boolean selectAny) {
+    InputReadyMonitor(Collection<Input> inputs, boolean selectAny) {
       this.pendingMonitorInputs = new HashSet<>(inputs);
       this.readyMonitorInputs = new HashSet<>(selectAny ? 1 : inputs.size());
       this.selectAny = selectAny;

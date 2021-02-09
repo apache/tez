@@ -64,7 +64,7 @@ public interface ProcessorContext extends TaskContext {
    * @return true if commit allowed
    * @throws IOException
    */
-  public boolean canCommit() throws IOException;
+  boolean canCommit() throws IOException;
 
   /**
    * Blocking call which returns when any of the specified Inputs is ready for
@@ -79,11 +79,11 @@ public interface ProcessorContext extends TaskContext {
    * previously completed Inputs from the invocation list.
    * 
    * @param inputs the list of Inputs to monitor
-   * @return the {@cod Input} which is ready for consumption
+   * @return the {@code Input} which is ready for consumption
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException;
+  Input waitForAnyInputReady(Collection<Input> inputs) throws InterruptedException;
 
   /**
    * Blocking call which returns when any of the specified Inputs is ready for
@@ -105,7 +105,7 @@ public interface ProcessorContext extends TaskContext {
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public Input waitForAnyInputReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
+  Input waitForAnyInputReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
 
   /**
    * Blocking call which returns only after all of the specified Inputs are
@@ -118,7 +118,7 @@ public interface ProcessorContext extends TaskContext {
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException;
+  void waitForAllInputsReady(Collection<Input> inputs) throws InterruptedException;
 
   /**
    * Blocking call which returns only after all of the specified Inputs are
@@ -134,5 +134,5 @@ public interface ProcessorContext extends TaskContext {
    * @throws InterruptedException if the current thread is interrupted (and
    *           interruption of thread suspension is supported)
    */
-  public boolean waitForAllInputsReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
+  boolean waitForAllInputsReady(Collection<Input> inputs, long time, TimeUnit unit) throws InterruptedException;
 }
