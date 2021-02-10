@@ -221,7 +221,9 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
    */
   private CompositeInputAttemptIdentifier constructInputAttemptIdentifier(int targetIndex, int targetIndexCount, int version,
                                                                           DataMovementEventPayloadProto shufflePayload) {
-    String pathComponent = (shufflePayload.hasPathComponent()) ? StringInterner.intern(shufflePayload.getPathComponent()) : null;
+    String pathComponent = (shufflePayload.hasPathComponent())
+        ? StringInterner.intern(shufflePayload.getPathComponent())
+        : null;
     int spillEventId = shufflePayload.getSpillId();
     CompositeInputAttemptIdentifier srcAttemptIdentifier = null;
     if (shufflePayload.hasSpillId()) {

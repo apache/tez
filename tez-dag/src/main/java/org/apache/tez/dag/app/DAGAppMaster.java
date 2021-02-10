@@ -84,8 +84,6 @@ import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.app.dag.event.DAGEventInternalError;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.history.events.DAGRecoveredEvent;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

@@ -41,7 +41,7 @@ public class TaskStatistics implements Writable {
   
   public void addIO(String edgeName, IOStatistics stats) {
     Preconditions.checkArgument(stats != null, edgeName);
-    ioStatistics.put(StringInterner.intern(edgeName), stats);    
+    ioStatistics.put(StringInterner.intern(edgeName), stats);
   }
   
   public Map<String, IOStatistics> getIOStatistics() {
