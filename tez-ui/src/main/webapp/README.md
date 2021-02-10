@@ -24,7 +24,7 @@ For more information on Tez and the Tez UI - Check the [Tez homepage](http://tez
 ## Configurations
 
 * By default timeline is expected at localhost:8188 & RM at localhost:8088
-* You can point the UI to custom locations by setting the environment variables in `src/main/webapp/config/configs.env`
+* You can point the UI to custom locations by setting the environment variables in `src/main/webapp/config/configs.js`
 
 ## Development
 
