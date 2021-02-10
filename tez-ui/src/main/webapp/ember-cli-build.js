@@ -44,7 +44,7 @@ module.exports = function(defaults) {
 
   var configEnv = new Funnel('config', {
      srcDir: '/',
-     include: ['*.env'],
+     include: ['configs.js'],
      destDir: '/config'
   });
   var zipWorker = new Funnel('bower_components/zip-js', {

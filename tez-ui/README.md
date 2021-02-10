@@ -32,8 +32,8 @@ For more information on Tez and the Tez UI - Check the [Tez homepage](http://tez
   * `yarn.timeline-service.enabled` : Enabled the timeline server for logging details
   * `yarn.timeline-service.webapp.address` : Value must be the IP:PORT on which timeline server is running
 
-### In configs.env
-  This environment configuration file can be found at `./src/main/webapp/config/configs.env`
+### In configs.js
+  This environment configuration file can be found at `./src/main/webapp/config/configs.js`
 
   * `ENV.hosts.timeline` : Timeline Server Address. By default TEZ UI looks for timeline server at http://localhost:8188.
   * `ENV.hosts.rm` : Resource Manager Address. By default RM REST APIs are expected to be at http://localhost:8088.
