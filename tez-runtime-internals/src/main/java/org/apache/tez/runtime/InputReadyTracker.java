@@ -69,21 +69,16 @@ public class InputReadyTracker {
   public void setInputIsReady(Input input) {
     lock.lock();
     try {
+      // returns false if this set already contains the specified input
       boolean added = readyInputs.add(input);
       if (added) {
-        informGroupedInputs(input);
+        inputToGroupMap.getOrDefault(input, Collections.emptyList())
+            .forEach(mergedLogicalInput -> mergedLogicalInput
+                .setConstituentInputIsReady(input));
         condition.signalAll();
       }
     } finally {
       lock.unlock();
-    }
-  }
-
-  private void informGroupedInputs(Input input) {
-    List<MergedLogicalInput> mergedInputList =
-        inputToGroupMap.getOrDefault(input, Collections.emptyList());
-    for (MergedLogicalInput mergedInput : mergedInputList) {
-      mergedInput.setConstituentInputIsReady(input);
     }
   }
 
