@@ -185,20 +185,12 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-j
     && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
+<<<<<<< HEAD
 ######
 # Install findbugs
 ######
 # hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y findbugs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-ENV FINDBUGS_HOME /usr
-
-######
-# Install maven
-######
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y maven \
+RUN apt-get -q update
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
