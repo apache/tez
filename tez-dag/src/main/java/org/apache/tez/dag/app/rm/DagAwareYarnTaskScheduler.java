@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.Time;
@@ -80,6 +79,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -95,7 +95,6 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private static final Logger LOG = LoggerFactory.getLogger(DagAwareYarnTaskScheduler.class);
   private static final Comparator<HeldContainer> PREEMPT_ORDER_COMPARATOR = new PreemptOrderComparator();
 
-  private final RandomDataGenerator random = new RandomDataGenerator();
   private AMRMClientAsyncWrapper client;
   private ScheduledExecutorService reuseExecutor;
   private ResourceCalculator resourceCalculator;
@@ -1544,7 +1543,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       if (idleExpirationTimestamp == 0) {
         if (idleContainerTimeoutMin > 0) {
           idleExpirationTimestamp = now + (idleContainerTimeoutMin == idleContainerTimeoutMax ? idleContainerTimeoutMin
-            : random.nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax));
+            : ThreadLocalRandom.current().nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax));
         } else {
           idleExpirationTimestamp = Long.MAX_VALUE;
         }
