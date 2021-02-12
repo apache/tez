@@ -110,8 +110,8 @@ test('containerLogs test', function(assert) {
   }), [], "No logs");
 
   assert.deepEqual(mapper({
-    otherinfo: {inProgressLogsURL_1: "foo", inProgressLogsURL_2: "bar"},
-  }), [{text: "1", href: "http://foo"}, {text: "2", href: "http://bar"}], "2 logs");
+	  otherinfo: {inProgressLogsURL_1: "http://foo", inProgressLogsURL_2: "https://bar"},
+  }), [{text: "1", href: "http://foo"}, {text: "2", href: "https://bar"}], "2 logs");
 });
 
 test('vertexIdNameMap test', function(assert) {
