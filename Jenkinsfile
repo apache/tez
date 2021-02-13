@@ -52,7 +52,7 @@ pipeline {
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: "${env.YETUS_VERSION}"]],
-                        userRemoteConfigs: [[ url: 'https://github.com/jteagles/yetus']]]
+                        userRemoteConfigs: [[ url: 'https://github.com/apache/yetus']]]
                     )
                 }
             }
@@ -61,8 +61,8 @@ pipeline {
         stage ('precommit-run') {
             steps {
                 withCredentials(
-                    [usernamePassword(credentialsId: 'apache-tez-at-github.com',
-                                        passwordVariable: 'GITHUB_PASSWD',
+                    [usernamePassword(credentialsId: 'apache-hadoop-at-github.com',
+                                        passwordVariable: 'GITHUB_TOKEN',
                                         usernameVariable: 'GITHUB_USER'),
                                         usernamePassword(credentialsId: 'tez-ci',
                                         passwordVariable: 'JIRA_PASSWORD',
@@ -106,7 +106,7 @@ pipeline {
 
                         # enable writing back to Github
                         YETUS_ARGS+=(--github-user="${GITHUB_USER}")
-                        YETUS_ARGS+=(--github-password="${GITHUB_PASSWD}")
+                        YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
 
                         # enable writing back to ASF JIRA
                         YETUS_ARGS+=(--jira-password="${JIRA_PASSWORD}")
@@ -152,6 +152,9 @@ pipeline {
 
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
+
+                        # use emoji vote so it is easier to find the broken line
+                        YETUS_ARGS+=("--github-use-emoji-vote")
 
                         # test with Java 8 and 11
                         YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
