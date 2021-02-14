@@ -94,6 +94,12 @@
           <skip>true</skip>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <excludePackageNames>org.apache.tez.tools.javadoc.doclet</excludePackageNames>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
