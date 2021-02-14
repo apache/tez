@@ -33,6 +33,6 @@ github:
     rebase:  false
 notifications:
   commits:      commits@tez.apache.org
-  issues:       dev@tez.apache.org
-  pullrequests: dev@tez.apache.org
+  issues:       issues@tez.apache.org
+  pullrequests: issues@tez.apache.org
   jira_options: link label worklog
