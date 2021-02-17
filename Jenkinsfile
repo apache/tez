@@ -35,14 +35,7 @@ pipeline {
         DOCKERFILE = "${SOURCEDIR}/build-tools/docker/Dockerfile"
         YETUS='yetus'
         // Branch or tag name.  Yetus release tags are 'rel/X.Y.Z'
-        YETUS_VERSION='rel/0.12.0'
-
-    }
-
-    parameters {
-        string(name: 'JIRA_ISSUE_KEY',
-               defaultValue: '',
-               description: 'The JIRA issue that has a patch needing pre-commit testing. Example: HADOOP-1234')
+        YETUS_VERSION='6ab19e71eaf3234863424c6f684b34c1d3dcc0ce'
     }
 
     stages {
@@ -52,7 +45,7 @@ pipeline {
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: "${env.YETUS_VERSION}"]],
-                        userRemoteConfigs: [[ url: 'https://github.com/jteagles/yetus']]]
+                        userRemoteConfigs: [[ url: 'https://github.com/apache/yetus']]]
                     )
                 }
             }
@@ -62,7 +55,7 @@ pipeline {
             steps {
                 withCredentials(
                     [usernamePassword(credentialsId: 'apache-tez-at-github.com',
-                                        passwordVariable: 'GITHUB_PASSWD',
+                                        passwordVariable: 'GITHUB_TOKEN',
                                         usernameVariable: 'GITHUB_USER'),
                                         usernamePassword(credentialsId: 'tez-ci',
                                         passwordVariable: 'JIRA_PASSWORD',
@@ -79,18 +72,6 @@ pipeline {
                         fi
                         mkdir -p "${WORKSPACE}/${PATCHDIR}"
 
-                        # if given a JIRA issue, process it. If CHANGE_URL is set
-                        # (e.g., Github Branch Source plugin), process it.
-                        # otherwise exit, because we don't want Hadoop to do a
-                        # full build.  We wouldn't normally do this check for smaller
-                        # projects. :)
-                        if [[ -n "${JIRA_ISSUE_KEY}" ]]; then
-                            YETUS_ARGS+=("${JIRA_ISSUE_KEY}")
-                        elif [[ -z "${CHANGE_URL}" ]]; then
-                            echo "Full build skipped" > "${WORKSPACE}/${PATCHDIR}/report.html"
-                            exit 0
-                        fi
-
                         YETUS_ARGS+=("--patch-dir=${WORKSPACE}/${PATCHDIR}")
 
                         # where the source is located
@@ -98,6 +79,7 @@ pipeline {
 
                         # our project defaults come from a personality file
                         YETUS_ARGS+=("--project=tez")
+                        YETUS_ARGS+=("--personality=${WORKSPACE}/${SOURCEDIR}/.yetus/personality.sh")
 
                         # lots of different output formats
                         YETUS_ARGS+=("--brief-report-file=${WORKSPACE}/${PATCHDIR}/brief.txt")
@@ -105,12 +87,14 @@ pipeline {
                         YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
 
                         # enable writing back to Github
-                        YETUS_ARGS+=(--github-user="${GITHUB_USER}")
-                        YETUS_ARGS+=(--github-password="${GITHUB_PASSWD}")
+                        YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
 
                         # enable writing back to ASF JIRA
                         YETUS_ARGS+=(--jira-password="${JIRA_PASSWORD}")
                         YETUS_ARGS+=(--jira-user="${JIRA_USER}")
+
+                        # enable everything
+                        YETUS_ARGS+=("--plugins=all")
 
                         # auto-kill any surefire stragglers during unit test runs
                         YETUS_ARGS+=("--reapermode=kill")
@@ -131,12 +115,6 @@ pipeline {
                         # (needs to match the archive bits below)
                         YETUS_ARGS+=("--build-url-artifacts=artifact/out")
 
-                        # plugins to enable
-                        YETUS_ARGS+=("--plugins=all")
-
-                        # use Hadoop's bundled shelldocs
-                        YETUS_ARGS+=("--shelldocs=${WORKSPACE}/${SOURCEDIR}/dev-support/bin/shelldocs")
-
                         # don't let these tests cause -1s because we aren't really paying that
                         # much attention to them
                         YETUS_ARGS+=("--tests-filter=checkstyle")
@@ -147,9 +125,6 @@ pipeline {
                         YETUS_ARGS+=("--dockerfile=${DOCKERFILE}")
                         YETUS_ARGS+=("--mvn-custom-repos")
 
-                        # effectively treat dev-suport as a custom maven module
-                        YETUS_ARGS+=("--skip-dirs=dev-support")
-
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
 
@@ -157,7 +132,6 @@ pipeline {
                         YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
                         YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-11-openjdk-amd64")
                         YETUS_ARGS+=("--multijdktests=compile")
-                        YETUS_ARGS+=("--debug")
 
                         "${TESTPATCHBIN}" "${YETUS_ARGS[@]}"
                         '''
@@ -170,6 +144,27 @@ pipeline {
     post {
         always {
           script {
+
+            // Publish status if it was missed
+            withCredentials([usernamePassword(credentialsId: 'apache-tez-at-github.com',
+                             passwordVariable: 'GITHUB_TOKEN',
+                             usernameVariable: 'GITHUB_USER')]) {
+                    sh '''#!/usr/bin/env bash
+
+                    # enable writing back to Github
+                    YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
+
+                    YETUS_ARGS+=("--patch-dir=${WORKSPACE}/${YETUS_RELATIVE_PATCHDIR}")
+
+                    # run test-patch from the source tree specified up above
+                    TESTPATCHBIN="${WORKSPACE}/${YETUS}/precommit/src/main/shell/github-status-recovery.sh"
+
+                    # execute! (we are using bash instead of the
+                    # bin in case the perms get messed up)
+                    /usr/bin/env bash "${TESTPATCHBIN}" "${YETUS_ARGS[@]}" || true
+                    '''
+            }
+
             // Yetus output
             archiveArtifacts "${env.PATCHDIR}/**"
             // Publish the HTML report so that it can be looked at
