@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -44,7 +45,6 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ExitUtil;
@@ -153,7 +153,6 @@ public class YarnTaskSchedulerService extends TaskScheduler
   
   Set<ContainerId> sessionMinHeldContainers = Sets.newHashSet();
   
-  RandomDataGenerator random = new RandomDataGenerator();
   private final Configuration conf;
 
   @VisibleForTesting
@@ -593,7 +592,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     long expireTime = (startTime + idleContainerTimeoutMin);
     if (idleContainerTimeoutMin != -1 && idleContainerTimeoutMin < idleContainerTimeoutMax) {
       long expireTimeMax = startTime + idleContainerTimeoutMax;
-      expireTime = random.nextLong(expireTime, expireTimeMax);
+      expireTime = ThreadLocalRandom.current().nextLong(expireTime, expireTimeMax);
     }
     
     return expireTime;
