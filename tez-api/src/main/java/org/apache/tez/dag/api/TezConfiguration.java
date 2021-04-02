@@ -33,6 +33,7 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.annotation.ConfigurationClass;
 import org.apache.tez.common.annotation.ConfigurationProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
@@ -343,8 +344,11 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
-  public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT =
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS_JDK8_DEFAULT =
       "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS_JDK9_DEFAULT =
+      "-verbose:gc -Xlog:gc*,safepoint::time,uptime -XX:+UseNUMA -XX:+UseParallelGC";
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT;
 
   /**
    * String value. Command line options which will be prepended to {@link
@@ -368,8 +372,21 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_TASK_LAUNCH_CMD_OPTS = TEZ_TASK_PREFIX
       + "launch.cmd-opts";
-  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT =
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_JDK8_DEFAULT =
       "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_JDK9_DEFAULT =
+      "-verbose:gc -Xlog:gc*,safepoint::time,uptime -XX:+UseNUMA -XX:+UseParallelGC";
+  public static final String TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT;
+
+  static {
+    if (TezCommonUtils.getJavaVersion() >= 9) {
+      TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = TEZ_AM_LAUNCH_CMD_OPTS_JDK9_DEFAULT;
+      TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = TEZ_TASK_LAUNCH_CMD_OPTS_JDK9_DEFAULT;
+    } else {
+      TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT = TEZ_AM_LAUNCH_CMD_OPTS_JDK8_DEFAULT;
+      TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT = TEZ_TASK_LAUNCH_CMD_OPTS_JDK8_DEFAULT;
+    }
+  }
 
   /**
    * Double value. Tez automatically determines the Xmx for the JVMs used to run
