@@ -78,7 +78,8 @@ public final class CodecUtils {
       throws IOException {
     String bufferSizeProp = TezRuntimeUtils.getBufferSizeProperty(codec);
     Configurable configurableCodec = (Configurable) codec;
-    int originalSize = configurableCodec.getConf().getInt(bufferSizeProp, DEFAULT_BUFFER_SIZE);
+    int originalSize = bufferSizeProp == null ? DEFAULT_BUFFER_SIZE :
+            configurableCodec.getConf().getInt(bufferSizeProp, DEFAULT_BUFFER_SIZE);
 
     CompressionInputStream in = null;
 
