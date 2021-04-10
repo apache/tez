@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.TaskContext;
@@ -269,7 +270,9 @@ public class TezRuntimeUtils {
   public static String getBufferSizeProperty(String className) {
     switch (className) {
     case "org.apache.hadoop.io.compress.DefaultCodec":
-      return "io.file.buffer.size";
+    case "org.apache.hadoop.io.compress.BZip2Codec":
+    case "org.apache.hadoop.io.compress.GzipCodec":
+      return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
     case "org.apache.hadoop.io.compress.SnappyCodec":
       return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
     case "org.apache.hadoop.io.compress.LzoCodec":
