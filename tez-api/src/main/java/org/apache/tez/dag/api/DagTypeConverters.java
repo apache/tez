@@ -624,23 +624,20 @@ public class DagTypeConverters {
   }
 
   public static DAGProtos.StatusGetOptsProto convertStatusGetOptsToProto(
-    StatusGetOpts statusGetOpts) {
+      StatusGetOpts statusGetOpts) {
     switch (statusGetOpts) {
-      case GET_COUNTERS:
-        return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
+    case GET_COUNTERS:
+      return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
     }
-    throw new TezUncheckedException("Could not convert StatusGetOpts to"
-      + " proto");
+    throw new TezUncheckedException("Could not convert StatusGetOpts to" + " proto");
   }
 
-  public static StatusGetOpts convertStatusGetOptsFromProto(
-    DAGProtos.StatusGetOptsProto proto) {
+  public static StatusGetOpts convertStatusGetOptsFromProto(DAGProtos.StatusGetOptsProto proto) {
     switch (proto) {
-      case GET_COUNTERS:
-        return StatusGetOpts.GET_COUNTERS;
+    case GET_COUNTERS:
+      return StatusGetOpts.GET_COUNTERS;
     }
-    throw new TezUncheckedException("Could not convert to StatusGetOpts from"
-      + " proto");
+    throw new TezUncheckedException("Could not convert to StatusGetOpts from" + " proto");
   }
 
   public static List<DAGProtos.StatusGetOptsProto> convertStatusGetOptsToProto(

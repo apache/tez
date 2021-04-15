@@ -59,6 +59,10 @@ public class VertexStatus {
     this.proxy = proxy;
   }
 
+  public String getId() {
+    return proxy.getId();
+  }
+
   public State getState() {
     return getState(proxy.getState());
   }

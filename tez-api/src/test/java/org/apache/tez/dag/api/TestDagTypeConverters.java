@@ -34,8 +34,10 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
+import org.apache.tez.dag.api.records.DAGProtos.StatusGetOptsProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
@@ -233,6 +235,23 @@ public class TestDagTypeConverters {
     aclInfo = DagTypeConverters.convertDAGAccessControlsToProto(dagAccessControls);
     assertSame(dagAccessControls, aclInfo);
     assertSame(DagTypeConverters.convertDAGAccessControlsFromProto(aclInfo), aclInfo);
+  }
+
+  /*
+   * This unit test can catch if a StatusGetOpts <-> StatusGetOptsProto value is not defined at any
+   * side.
+   */
+  @Test
+  public void testConvertStatusGetOptsToProtoCoverage() {
+    StatusGetOpts[] opts = StatusGetOpts.values();
+    for (StatusGetOpts opt : opts) {
+      DagTypeConverters.convertStatusGetOptsToProto(opt);
+    }
+
+    StatusGetOptsProto[] optProtos = StatusGetOptsProto.values();
+    for (StatusGetOptsProto proto : optProtos) {
+      DagTypeConverters.convertStatusGetOptsFromProto(proto);
+    }
   }
 
   private void assertSame(DAGAccessControls dagAccessControls, ACLInfo aclInfo) {
