@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.hadoop.io.nativeio.NativeIO.POSIX.POSIX_FADV_DONTNEED;
 
-import org.jboss.netty.channel.DefaultFileRegion;
+import io.netty.channel.DefaultFileRegion;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -54,6 +54,7 @@ public class FadvisedFileRegion extends DefaultFileRegion {
   private final FileChannel fileChannel;
 
   private ReadaheadRequest readaheadRequest;
+  private boolean transferred = false;
 
   public FadvisedFileRegion(RandomAccessFile file, long position, long count,
                             boolean manageOsCache, int readaheadLength, ReadaheadPool readaheadPool,
@@ -77,15 +78,40 @@ public class FadvisedFileRegion extends DefaultFileRegion {
       throws IOException {
     if (readaheadPool != null && readaheadLength > 0) {
       readaheadRequest = readaheadPool.readaheadStream(identifier, fd,
-          getPosition() + position, readaheadLength,
-          getPosition() + getCount(), readaheadRequest);
+          position() + position, readaheadLength,
+          position() + count(), readaheadRequest);
     }
 
+    long written = 0;
     if(this.shuffleTransferToAllowed) {
-      return super.transferTo(target, position);
+      written = super.transferTo(target, position);
     } else {
-      return customShuffleTransfer(target, position);
+      written = customShuffleTransfer(target, position);
     }
+    /*
+     * At this point, we can assume that the transfer was successful.
+     */
+    transferred = true;
+    return written;
+  }
+
+  /**
+   * Since Netty4, deallocate() is called automatically during cleanup, but before the
+   * ChannelFutureListeners. Deallocate calls FileChannel.close() and makes the file descriptor
+   * invalid, so every OS cache operation (e.g. posix_fadvice) with the original file descriptor
+   * will fail after this operation, so we need to take care of cleanup operations here (before
+   * deallocating) instead of listeners outside.
+   */
+  @Override
+  protected void deallocate() {
+    if (readaheadRequest != null) {
+      readaheadRequest.cancel();
+    }
+
+    if (transferred) {
+      transferSuccessful();
+    }
+    super.deallocate();
   }
 
   /**
@@ -142,24 +168,19 @@ public class FadvisedFileRegion extends DefaultFileRegion {
     return actualCount - trans;
   }
 
-
-  @Override
-  public void releaseExternalResources() {
-    if (readaheadRequest != null) {
-      readaheadRequest.cancel();
-    }
-    super.releaseExternalResources();
-  }
-
   /**
    * Call when the transfer completes successfully so we can advise the OS that
    * we don't need the region to be cached anymore.
    */
   public void transferSuccessful() {
-    if (manageOsCache && getCount() > 0) {
+    if (manageOsCache && count() > 0) {
       try {
-        NativeIO.POSIX.getCacheManipulator().posixFadviseIfPossible(identifier,
-            fd, getPosition(), getCount(), POSIX_FADV_DONTNEED);
+        if (fd.valid()) {
+          NativeIO.POSIX.getCacheManipulator().posixFadviseIfPossible(identifier, fd, position(),
+              count(), POSIX_FADV_DONTNEED);
+        } else {
+          LOG.debug("File descriptor is not valid anymore, skipping posix_fadvise: " + identifier);
+        }
       } catch (Throwable t) {
         LOG.warn("Failed to manage OS cache for " + identifier, t);
       }

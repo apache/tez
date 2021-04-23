@@ -58,7 +58,7 @@
 
     <clover.license>${user.home}/clover.license</clover.license>
     <hadoop.version>2.7.2</hadoop.version>
-    <netty.version>3.6.2.Final</netty.version>
+    <netty.version>4.0.52.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <slf4j.version>1.7.30</slf4j.version>
     <protobuf.version>2.5.0</protobuf.version>
@@ -254,7 +254,7 @@
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>
-        <artifactId>netty</artifactId>
+        <artifactId>netty-all</artifactId>
         <scope>compile</scope>
         <version>${netty.version}</version>
       </dependency>
@@ -333,12 +333,22 @@
             <groupId>commons-el</groupId>
             <artifactId>commons-el</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-auth</artifactId>
         <version>${hadoop.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -555,6 +565,10 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-server-common</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -570,6 +584,10 @@
           <exclusion>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -596,6 +614,10 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-common</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -604,6 +626,12 @@
         <scope>test</scope>
         <type>test-jar</type>
         <version>${hadoop.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -641,6 +669,10 @@
           <exclusion>
             <groupId>tomcat</groupId>
             <artifactId>jasper-runtime</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
