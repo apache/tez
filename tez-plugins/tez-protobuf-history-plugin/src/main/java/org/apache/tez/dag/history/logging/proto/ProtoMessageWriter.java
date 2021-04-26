@@ -30,6 +30,7 @@ import org.apache.hadoop.io.SequenceFile.Writer;
 
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
+import org.apache.tez.common.StreamHelper;
 
 public class ProtoMessageWriter<T extends MessageLite> implements Closeable {
   private final Path filePath;
@@ -61,7 +62,7 @@ public class ProtoMessageWriter<T extends MessageLite> implements Closeable {
   }
 
   public void hflush() throws IOException {
-    writer.hflush();
+    StreamHelper.hflushIfSupported(writer);
   }
 
   @Override
