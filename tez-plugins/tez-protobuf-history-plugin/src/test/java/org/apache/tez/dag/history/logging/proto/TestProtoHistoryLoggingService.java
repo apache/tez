@@ -277,6 +277,7 @@ public class TestProtoHistoryLoggingService {
     service.setAppContext(appContext);
     Configuration conf = new Configuration(false);
     String basePath = tempFolder.newFolder().getAbsolutePath();
+    conf.set("fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem");
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_BASE_DIR, basePath);
     conf.setBoolean(TezConfiguration.TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START, splitEvents);
     service.init(conf);

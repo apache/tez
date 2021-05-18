@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.yarn.util.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +139,9 @@ public class DatePartitionedLogger<T extends MessageLite> {
     }
     // Have to scan the directory to find min date greater than currentDir.
     String dirName = null;
-    for (FileStatus status : fileSystem.listStatus(basePath)) {
+    RemoteIterator<FileStatus> iter = fileSystem.listStatusIterator(basePath);
+    while (iter.hasNext()) {
+      FileStatus status = iter.next();
       String name = status.getPath().getName();
       // String comparison is good enough, since its of form date=yyyy-MM-dd
       if (name.compareTo(currentDir) > 0 && (dirName == null || name.compareTo(dirName) < 0)) {
@@ -160,7 +163,9 @@ public class DatePartitionedLogger<T extends MessageLite> {
     if (!fileSystem.exists(dirPath)) {
       return newFiles;
     }
-    for (FileStatus status : fileSystem.listStatus(dirPath)) {
+    RemoteIterator<FileStatus> iter = fileSystem.listStatusIterator(dirPath);
+    while (iter.hasNext()) {
+      FileStatus status = iter.next();
       String fileName = status.getPath().getName();
       Long offset = currentOffsets.get(fileName);
       // If the offset was never added or offset < fileSize.
