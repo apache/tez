@@ -46,7 +46,7 @@ public class SecureShuffleUtils {
    * @param msg
    */
   public static String generateHash(byte[] msg, SecretKey key) {
-    return Base64.getEncoder().withoutPadding().encodeToString(generateByteHash(msg, key));
+    return Base64.getEncoder().encodeToString(generateByteHash(msg, key));
   }
 
   /**
@@ -94,7 +94,7 @@ public class SecureShuffleUtils {
    */
   public static String hashFromString(String enc_str, JobTokenSecretManager mgr)
       throws IOException {
-    return Base64.getEncoder().withoutPadding()
+    return Base64.getEncoder()
         .encodeToString(mgr.computeHash(enc_str.getBytes(Charsets.UTF_8)));
   }
 

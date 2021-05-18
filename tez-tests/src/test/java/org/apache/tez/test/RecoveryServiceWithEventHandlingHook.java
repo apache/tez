@@ -228,7 +228,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
       event.toProtoStream(codedOutputStream);
       codedOutputStream.flush();
       return event.getClass().getName() + ","
-          + Base64.getEncoder().withoutPadding().encodeToString(out.toByteArray());
+          + Base64.getEncoder().encodeToString(out.toByteArray());
     }
 
     private HistoryEvent decodeHistoryEvent(String eventClass, String base64)
