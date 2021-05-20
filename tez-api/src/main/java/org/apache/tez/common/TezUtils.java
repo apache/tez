@@ -101,6 +101,12 @@ public class TezUtils {
     return UserPayload.create(ByteBuffer.wrap(createByteStringFromConf(conf).toByteArray()));
   }
 
+  private static DAGProtos.ConfigurationProto createConfProto(SnappyInputStream uncompressIs) throws IOException {
+    CodedInputStream in = CodedInputStream.newInstance(uncompressIs);
+    in.setSizeLimit(Integer.MAX_VALUE);
+    return DAGProtos.ConfigurationProto.parseFrom(in);
+  }
+
   /**
    * Convert a byte string to a Configuration object
    *
@@ -112,9 +118,7 @@ public class TezUtils {
   public static Configuration createConfFromByteString(ByteString byteString) throws IOException {
     Objects.requireNonNull(byteString, "ByteString must be specified");
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput());) {
-      CodedInputStream in = CodedInputStream.newInstance(uncompressIs);
-      in.setSizeLimit(Integer.MAX_VALUE);
-      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(in);
+      DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
       TezClassLoader.setupForConfiguration(conf);
@@ -129,7 +133,7 @@ public class TezUtils {
     UserPayload payload = context.getUserPayload();
     ByteString byteString = ByteString.copyFrom(payload.getPayload());
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
-      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       readConfFromPB(confProto, configuration);
       TezClassLoader.setupForConfiguration(configuration);
       return configuration;
@@ -139,7 +143,7 @@ public class TezUtils {
   public static void addToConfFromByteString(Configuration configuration, ByteString byteString)
       throws IOException {
     try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
-      DAGProtos.ConfigurationProto confProto = DAGProtos.ConfigurationProto.parseFrom(uncompressIs);
+      DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       readConfFromPB(confProto, configuration);
       TezClassLoader.setupForConfiguration(configuration);
     }

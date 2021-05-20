@@ -54,13 +54,10 @@ public class TestTezUtils {
     checkConf(conf);
   }
 
-  @Test (timeout=20000)
-  public void testByteStringToAndFromLargeConf() throws IOException {
-    Configuration conf = getConf();
+  private String constructLargeValue() {
     int largeSizeMinimum = 64 * 1024 * 1024;
     final String alphaString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     int largeSize = (largeSizeMinimum + alphaString.length() - 1) / alphaString.length();
-
     largeSize *= alphaString.length();
     assertTrue(largeSize >= alphaString.length());
     StringBuilder sb = new StringBuilder(largeSize);
@@ -71,12 +68,36 @@ public class TestTezUtils {
 
     String largeValue = sb.toString();
     Assert.assertEquals(largeSize, largeValue.length());
+    return largeValue;
+  }
+
+  private ByteString createByteString(Configuration conf, String largeValue) throws IOException {
     conf.set("testLargeValue", largeValue);
     Assert.assertEquals(conf.size(), 7);
-    ByteString bsConf = TezUtils.createByteStringFromConf(conf);
+    return TezUtils.createByteStringFromConf(conf);
+  }
+
+  @Test (timeout=20000)
+  public void testByteStringToAndFromLargeConf() throws IOException {
+    Configuration conf = getConf();
+    String largeValue = constructLargeValue();
+    ByteString bsConf = createByteString(conf, largeValue);
     conf.clear();
     Assert.assertEquals(conf.size(), 0);
     conf = TezUtils.createConfFromByteString(bsConf);
+    Assert.assertEquals(conf.size(), 7);
+    checkConf(conf);
+    Assert.assertEquals(conf.get("testLargeValue"), largeValue);
+  }
+
+  @Test (timeout=20000)
+  public void testByteStringAddToLargeConf() throws IOException {
+    Configuration conf = getConf();
+    String largeValue = constructLargeValue();
+    ByteString bsConf = createByteString(conf, largeValue);
+    conf.clear();
+    Assert.assertEquals(conf.size(), 0);
+    TezUtils.addToConfFromByteString(conf, bsConf);
     Assert.assertEquals(conf.size(), 7);
     checkConf(conf);
     Assert.assertEquals(conf.get("testLargeValue"), largeValue);
