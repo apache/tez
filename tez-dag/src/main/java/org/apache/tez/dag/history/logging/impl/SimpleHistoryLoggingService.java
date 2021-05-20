@@ -23,6 +23,7 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.tez.common.StreamHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -130,7 +131,7 @@ public class SimpleHistoryLoggingService extends HistoryLoggingService {
     }
     try {
       if (outputStream != null) {
-        outputStream.hflush();
+        StreamHelper.hflushIfSupported(outputStream);
         outputStream.close();
       }
     } catch (IOException ioe) {
