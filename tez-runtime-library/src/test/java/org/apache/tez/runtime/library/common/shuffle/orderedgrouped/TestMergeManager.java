@@ -21,7 +21,6 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -37,7 +36,6 @@ import java.util.UUID;
 
 import com.google.common.collect.Sets;
 
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.serializer.WritableSerialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -273,7 +271,8 @@ public class TestMergeManager {
     InputContext inputContext = createMockInputContext(UUID.randomUUID().toString());
 
     // Create a mock compressor. We will check if it is used.
-    CompressionCodec dummyCodec = spy(new DummyCompressionCodec());
+    DummyCompressionCodec dummyCodec = new DummyCompressionCodec();
+    dummyCodec.setConf(conf);
 
     MergeManager mergeManager =
             new MergeManager(conf, localFs, localDirAllocator, inputContext, null, null, null, null,
@@ -312,7 +311,7 @@ public class TestMergeManager {
     mo4.commit();
 
     mergeManager.close(true);
-    verify(dummyCodec, atLeastOnce()).createOutputStream(any(), any());
+    Assert.assertTrue(dummyCodec.createInputStreamCalled > 0);
   }
 
   @Test(timeout = 60000l)

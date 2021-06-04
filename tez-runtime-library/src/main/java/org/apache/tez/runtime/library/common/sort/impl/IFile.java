@@ -363,10 +363,10 @@ public class IFile {
     void setupOutputStream(CompressionCodec codec) throws IOException {
       this.checksumOut = new IFileOutputStream(this.rawOut);
       if (codec != null) {
-        this.compressor = CodecPool.getCompressor(codec);
+        this.compressor = CodecUtils.getCompressor(codec);
         if (this.compressor != null) {
           this.compressor.reset();
-          this.compressedOut = codec.createOutputStream(checksumOut, compressor);
+          this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor);
           this.out = new FSDataOutputStream(this.compressedOut,  null);
           this.compressOutput = true;
         } else {
@@ -773,9 +773,9 @@ public class IFile {
         checksumIn = new IFileInputStream(in, length, readAhead,
             readAheadLength/* , isCompressed */);
         if (isCompressed && codec != null) {
-          decompressor = CodecPool.getDecompressor(codec);
+          decompressor = CodecUtils.getDecompressor(codec);
           if (decompressor != null) {
-            this.in = codec.createInputStream(checksumIn, decompressor);
+            this.in = CodecUtils.createInputStream(codec, checksumIn, decompressor);
           } else {
             LOG.warn("Could not obtain decompressor from CodecPool");
             this.in = checksumIn;
@@ -818,7 +818,7 @@ public class IFile {
       in = checksumIn;
       Decompressor decompressor = null;
       if (isCompressed && codec != null) {
-        decompressor = CodecPool.getDecompressor(codec);
+        decompressor = CodecUtils.getDecompressor(codec);
         if (decompressor != null) {
           decompressor.reset();
           in = CodecUtils.getDecompressedInputStreamWithBufferSize(codec, checksumIn, decompressor,

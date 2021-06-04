@@ -18,11 +18,15 @@
 
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
+
+import com.google.common.annotations.VisibleForTesting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +37,10 @@ import static org.mockito.Mockito.mock;
 /**
  * A dummy codec. It passes everything to underlying stream
  */
-public class DummyCompressionCodec implements CompressionCodec {
+public class DummyCompressionCodec implements CompressionCodec, Configurable {
+  @VisibleForTesting
+  int createInputStreamCalled = 0;
+  private Configuration conf;
 
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
@@ -62,6 +69,7 @@ public class DummyCompressionCodec implements CompressionCodec {
 
   @Override
   public CompressionInputStream createInputStream(InputStream in, Decompressor decompressor) throws IOException {
+    createInputStreamCalled += 1;
     return new DummyCompressionInputStream(in);
   }
 
@@ -127,5 +135,15 @@ public class DummyCompressionCodec implements CompressionCodec {
     public void resetState() throws IOException {
       //no-op
     }
+  }
+
+  @Override
+  public void setConf(Configuration conf) {
+    this.conf = conf;
+  }
+
+  @Override
+  public Configuration getConf() {
+    return conf;
   }
 }

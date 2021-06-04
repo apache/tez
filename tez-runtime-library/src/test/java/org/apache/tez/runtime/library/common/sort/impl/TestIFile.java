@@ -57,7 +57,6 @@ import org.apache.hadoop.io.serializer.WritableSerialization;
 import org.apache.hadoop.util.NativeCodeLoader;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryReader;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.InMemoryWriter;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Reader;
@@ -66,6 +65,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFile
 import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 import org.apache.tez.runtime.library.utils.BufferUtils;
+import org.apache.tez.runtime.library.utils.CodecUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -734,7 +734,7 @@ public class TestIFile {
   public void testInMemoryBufferSize() throws IOException {
     Configurable configurableCodec = (Configurable) codec;
     int originalCodecBufferSize =
-        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), -1);
+        configurableCodec.getConf().getInt(CodecUtils.getBufferSizeProperty(codec), -1);
 
     // for smaller amount of data, codec buffer should be sized according to compressed data length
     List<KVPair> data = KVDataGen.generateTestData(false, rnd.nextInt(100));
@@ -742,7 +742,7 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
     Assert.assertEquals(originalCodecBufferSize, // original size is repaired
-        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+        configurableCodec.getConf().getInt(CodecUtils.getBufferSizeProperty(codec), 0));
 
     // buffer size cannot grow infinitely with compressed data size
     data = KVDataGen.generateTestDataOfKeySize(false, 20000, rnd.nextInt(100));
@@ -750,7 +750,7 @@ public class TestIFile {
     readAndVerifyData(writer.getRawLength(), writer.getCompressedLength(), data, codec);
 
     Assert.assertEquals(originalCodecBufferSize, // original size is repaired
-        configurableCodec.getConf().getInt(TezRuntimeUtils.getBufferSizeProperty(codec), 0));
+        configurableCodec.getConf().getInt(CodecUtils.getBufferSizeProperty(codec), 0));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -766,7 +766,7 @@ public class TestIFile {
     Configuration conf = new Configuration();
 
     System.out.println("trying with buffer size: " + bufferSize);
-    conf.set(TezRuntimeUtils.getBufferSizeProperty(codecClassName), Integer.toString(bufferSize));
+    conf.set(CodecUtils.getBufferSizeProperty(codecClassName), Integer.toString(bufferSize));
     CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
     CompressionCodec codecToTest =
         codecFactory.getCodecByClassName(codecClassName);
