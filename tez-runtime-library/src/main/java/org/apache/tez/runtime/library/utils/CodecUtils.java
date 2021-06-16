@@ -20,27 +20,33 @@ package org.apache.tez.runtime.library.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
+import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
-import org.apache.tez.runtime.library.common.TezRuntimeUtils;
-import org.apache.tez.runtime.library.common.sort.impl.IFile;
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public final class CodecUtils {
 
-  private static final Logger LOG = LoggerFactory.getLogger(IFile.class);
-  private static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
+  private static final Logger LOG = LoggerFactory.getLogger(CodecUtils.class);
+  @VisibleForTesting
+  static final int DEFAULT_BUFFER_SIZE = 256 * 1024;
 
   private CodecUtils() {
   }
@@ -76,20 +82,21 @@ public final class CodecUtils {
   public static InputStream getDecompressedInputStreamWithBufferSize(CompressionCodec codec,
       IFileInputStream checksumIn, Decompressor decompressor, int compressedLength)
       throws IOException {
-    String bufferSizeProp = TezRuntimeUtils.getBufferSizeProperty(codec);
-    Configurable configurableCodec = (Configurable) codec;
-    int originalSize = bufferSizeProp == null ? DEFAULT_BUFFER_SIZE :
-            configurableCodec.getConf().getInt(bufferSizeProp, DEFAULT_BUFFER_SIZE);
-
+    String bufferSizeProp = getBufferSizeProperty(codec);
     CompressionInputStream in = null;
 
     if (bufferSizeProp != null) {
+      Configurable configurableCodec = (Configurable) codec;
       Configuration conf = configurableCodec.getConf();
-      int newBufSize = Math.min(compressedLength, DEFAULT_BUFFER_SIZE);
-      LOG.trace("buffer size was set according to min(compressedLength, {}): {}={}",
-          DEFAULT_BUFFER_SIZE, bufferSizeProp, newBufSize);
 
-      synchronized (codec) {
+      synchronized (conf) {
+        int defaultBufferSize = getDefaultBufferSize(conf, codec);
+        int originalSize = conf.getInt(bufferSizeProp, defaultBufferSize);
+
+        int newBufSize = Math.min(compressedLength, defaultBufferSize);
+        LOG.debug("buffer size was set according to min({}, {}) => {}={}", compressedLength,
+            defaultBufferSize, bufferSizeProp, newBufSize);
+
         conf.setInt(bufferSizeProp, newBufSize);
 
         in = codec.createInputStream(checksumIn, decompressor);
@@ -117,12 +124,82 @@ public final class CodecUtils {
          * issues above for Compressor instances as well, even when we tried to leverage from
          * smaller buffer size only on decompression paths.
          */
-        configurableCodec.getConf().setInt(bufferSizeProp, originalSize);
+        conf.setInt(bufferSizeProp, originalSize);
       }
     } else {
       in = codec.createInputStream(checksumIn, decompressor);
     }
 
     return in;
+  }
+
+  public static Compressor getCompressor(CompressionCodec codec) {
+    synchronized (((Configurable) codec).getConf()) {
+      return CodecPool.getCompressor(codec);
+    }
+  }
+
+  public static Decompressor getDecompressor(CompressionCodec codec) {
+    synchronized (((Configurable) codec).getConf()) {
+      return CodecPool.getDecompressor(codec);
+    }
+  }
+
+  public static CompressionInputStream createInputStream(CompressionCodec codec,
+      InputStream checksumIn, Decompressor decompressor) throws IOException {
+    synchronized (((Configurable) codec).getConf()) {
+      return codec.createInputStream(checksumIn, decompressor);
+    }
+  }
+
+  public static CompressionOutputStream createOutputStream(CompressionCodec codec,
+      OutputStream checksumOut, Compressor compressor) throws IOException {
+    synchronized (((Configurable) codec).getConf()) {
+      return codec.createOutputStream(checksumOut, compressor);
+    }
+  }
+
+  public static String getBufferSizeProperty(CompressionCodec codec) {
+    return getBufferSizeProperty(codec.getClass().getName());
+  }
+
+  public static String getBufferSizeProperty(String codecClassName) {
+    switch (codecClassName) {
+    case "org.apache.hadoop.io.compress.DefaultCodec":
+    case "org.apache.hadoop.io.compress.BZip2Codec":
+    case "org.apache.hadoop.io.compress.GzipCodec":
+      return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
+    case "org.apache.hadoop.io.compress.SnappyCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
+    case "org.apache.hadoop.io.compress.LzoCodec":
+    case "com.hadoop.compression.lzo.LzoCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+    case "org.apache.hadoop.io.compress.Lz4Codec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
+    default:
+      return null;
+    }
+  }
+
+  public static int getDefaultBufferSize(Configuration conf, CompressionCodec codec) {
+    return getDefaultBufferSize(conf, codec.getClass().getName());
+  }
+
+  public static int getDefaultBufferSize(Configuration conf, String codecClassName) {
+    switch (codecClassName) {
+    case "org.apache.hadoop.io.compress.DefaultCodec":
+    case "org.apache.hadoop.io.compress.BZip2Codec":
+    case "org.apache.hadoop.io.compress.GzipCodec":
+      return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
+    case "org.apache.hadoop.io.compress.SnappyCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_DEFAULT;
+    case "org.apache.hadoop.io.compress.LzoCodec":
+    case "com.hadoop.compression.lzo.LzoCodec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_DEFAULT;
+    case "org.apache.hadoop.io.compress.Lz4Codec":
+      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_DEFAULT;
+    default:
+      return DEFAULT_BUFFER_SIZE;
+    }
   }
 }
