@@ -151,7 +151,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.cache.Weigher;
-import com.google.protobuf.ByteString;
 
 public class ShuffleHandler extends AuxiliaryService {
 
@@ -790,9 +789,10 @@ public class ShuffleHandler extends AuxiliaryService {
   private void recordJobShuffleInfo(JobID jobId, String user,
       Token<JobTokenIdentifier> jobToken) throws IOException {
     if (stateDb != null) {
+      // Discover type instead of assuming ByteString to allow for shading.
       TokenProto tokenProto = TokenProto.newBuilder()
-          .setIdentifier(ByteString.copyFrom(jobToken.getIdentifier()))
-          .setPassword(ByteString.copyFrom(jobToken.getPassword()))
+          .setIdentifier(TokenProto.getDefaultInstance().getIdentifier().copyFrom(jobToken.getIdentifier()))
+          .setPassword(TokenProto.getDefaultInstance().getPassword().copyFrom(jobToken.getPassword()))
           .setKind(jobToken.getKind().toString())
           .setService(jobToken.getService().toString())
           .build();

@@ -12,5 +12,10 @@
   limitations under the License. See accompanying LICENSE file.
 -->
 <FindBugsFilter>
-
+  <!-- TEZ-4298 -->
+  <Match>
+    <Class name="org.apache.tez.auxservices.ShuffleHandler"/>
+    <Method name="recordJobShuffleInfo"/>
+    <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+  </Match>
 </FindBugsFilter>
