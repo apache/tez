@@ -760,13 +760,6 @@ public class TezClientUtils {
   
   static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
     Objects.requireNonNull(vargs);
-    if (!vargs.isEmpty()) {
-      for (String arg : vargs) {
-        if (arg.contains(TezConstants.TEZ_ROOT_LOGGER_NAME)) {
-          return;
-        }
-      }
-    }
     TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
   }
 
@@ -829,8 +822,19 @@ public class TezClientUtils {
         + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
     vargs.add("-D" + YarnConfiguration.YARN_APP_CONTAINER_LOG_DIR + "="
         + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-    vargs.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
-        + "," + TezConstants.TEZ_CONTAINER_LOGGER_NAME);
+    boolean isRootLoggerPresent = false;
+    String rootLoggerArg = "-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + logLevel
+        + "," + TezConstants.TEZ_CONTAINER_LOGGER_NAME;
+    for (int i = 0; i < vargs.size(); i++) {
+      String arg = vargs.get(i);
+      if (arg.contains(TezConstants.TEZ_ROOT_LOGGER_NAME)) {
+        vargs.set(i, rootLoggerArg);
+        isRootLoggerPresent = true;
+      }
+    }
+    if (!isRootLoggerPresent) {
+      vargs.add(rootLoggerArg);
+    }
   }
 
   static ConfigurationProto createFinalConfProtoForApp(Configuration amConf,
