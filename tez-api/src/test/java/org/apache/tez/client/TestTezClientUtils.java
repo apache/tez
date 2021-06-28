@@ -680,6 +680,16 @@ public class TestTezClientUtils {
         javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
   }
 
+  @Test
+  public void testDefaultLoggingJavaOptsWithRootLogger() {
+    String origJavaOpts = "-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=INFO";
+    String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
+    Assert.assertNotNull(javaOpts);
+    Assert.assertTrue(javaOpts.contains("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FOOBAR"));
+    Assert.assertTrue(javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE)
+        && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
+  }
+
   @Test (timeout = 5000)
   public void testConfSerializationForAm() {
     Configuration conf =new Configuration(false);
