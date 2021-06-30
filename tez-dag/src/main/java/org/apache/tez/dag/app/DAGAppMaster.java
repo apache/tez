@@ -192,7 +192,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -226,7 +225,6 @@ public class DAGAppMaster extends AbstractService {
    * Priority of the DAGAppMaster shutdown hook.
    */
   public static final int SHUTDOWN_HOOK_PRIORITY = 30;
-  private static final Joiner PATH_JOINER = Joiner.on('/');
 
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
 
@@ -316,7 +314,6 @@ public class DAGAppMaster extends AbstractService {
   /**
    * set of already executed dag names.
    */
-  Set<String> dagNames = new HashSet<String>();
   Set<String> dagIDs = new HashSet<String>();
 
   protected boolean isLastAMRetry = false;
@@ -376,19 +373,16 @@ public class DAGAppMaster extends AbstractService {
         this.containerID.toString(), this.appMasterUgi.getShortUserName());
 
     LOG.info("Created DAGAppMaster for application " + applicationAttemptId
-        + ", versionInfo=" + dagVersionInfo.toString());
-
+        + ", versionInfo=" + dagVersionInfo);
   }
 
   // Pull this WebAppUtils function into Tez until YARN-4186
-  public static String getRunningLogURL(String nodeHttpAddress,
+  private static String getRunningLogURL(String nodeHttpAddress,
       String containerId, String user) {
-    if (nodeHttpAddress == null || nodeHttpAddress.isEmpty()
-        || containerId == null || containerId.isEmpty() || user == null
-        || user.isEmpty()) {
+    if (containerId.isEmpty() || user == null | user.isEmpty()) {
       return null;
     }
-    return PATH_JOINER.join(nodeHttpAddress, "node", "containerlogs",
+    return String.format("%s/node/containerlogs/%s/%s", nodeHttpAddress,
         containerId, user);
   }
   
@@ -691,8 +685,7 @@ public class DAGAppMaster extends AbstractService {
     state = DAGAppMasterState.ERROR;
     if (currentDAG != null) {
       _updateLoggers(currentDAG, "_post");
-      String errDiagnostics = errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID();
-      LOG.info(errDiagnostics);
+      LOG.info(errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID());
       // Inform the current DAG about the error
       sendEvent(new DAGEventInternalError(currentDAG.getID(), errDiagDagEvent));
     } else {
@@ -754,8 +747,8 @@ public class DAGAppMaster extends AbstractService {
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
-      System.err.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
-      System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId().toString());
+      System.err.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId());
+      System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId());
       // Stop vertex services if any
       stopVertexServices(currentDAG);
       if (!isSession) {
@@ -763,13 +756,11 @@ public class DAGAppMaster extends AbstractService {
         this.taskSchedulerManager.setShouldUnregisterFlag();
         _updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
-        LOG.info("Shutting down on completion of dag:" +
-              finishEvt.getDAGId().toString());
+        LOG.info("Shutting down on completion of dag:" + finishEvt.getDAGId());
         shutdownHandler.shutdown();
       } else {
-        LOG.info("DAG completed, dagId="
-            + finishEvt.getDAGId().toString()
-            + ", dagState=" + finishEvt.getDAGState());
+        LOG.info("DAG completed, dagId=" + finishEvt.getDAGId() + ", dagState="
+            + finishEvt.getDAGState());
         lastDAGCompletionTime = clock.getTime();
         _updateLoggers(currentDAG, "_post");
         if (this.historyEventHandler.hasRecoveryFailed()) {
@@ -1024,9 +1015,8 @@ public class DAGAppMaster extends AbstractService {
 
     try {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("JSON dump for submitted DAG, dagId=" + dagId.toString()
-            + ", json="
-            + DAGUtils.generateSimpleJSONPlan(dagPB).toString());
+        LOG.debug("JSON dump for submitted DAG, dagId=" + dagId + ", json="
+            + DAGUtils.generateSimpleJSONPlan(dagPB));
       }
     } catch (JSONException e) {
       LOG.warn("Failed to generate json for DAG", e);
@@ -1035,7 +1025,7 @@ public class DAGAppMaster extends AbstractService {
     generateDAGVizFile(dagId, dagPB, logDirs);
     writePBTextFile(newDag);
     return newDag;
-  } // end createDag()
+  }
 
   String getShortClassName(String className) {
     int pos = className.lastIndexOf(".");
@@ -1044,7 +1034,6 @@ public class DAGAppMaster extends AbstractService {
     }
     return className;
   }
-
 
   private String sanitizeLabelForViz(String label) {
     Matcher m = sanitizeLabelPattern.matcher(label);
@@ -1100,12 +1089,12 @@ public class DAGAppMaster extends AbstractService {
 
     try {
       LOG.info("Generating DAG graphviz file"
-          + ", dagId=" + dagId.toString()
+          + ", dagId=" + dagId
           + ", filePath=" + outputFile);
       graph.save(outputFile);
     } catch (Exception e) {
       LOG.warn("Error occurred when trying to save graph structure"
-          + " for dag " + dagId.toString(), e);
+          + " for dag " + dagId, e);
     }
   }
 
@@ -1114,7 +1103,7 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT)) {
 
       String logFile = logDirs[new Random().nextInt(logDirs.length)] + File.separatorChar +
-          dag.getID().toString()  + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
+          dag.getID() + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
 
       LOG.info("Writing DAG plan to: " + logFile);
       File outFile = new File(logFile);
@@ -1123,7 +1112,7 @@ public class DAGAppMaster extends AbstractService {
         printWriter.println(TezUtilsInternal.convertDagPlanToString(dag.getJobPlan()));
         printWriter.close();
       } catch (IOException e) {
-        LOG.warn("Failed to write TEZ_PLAN to " + outFile.toString(), e);
+        LOG.warn("Failed to write TEZ_PLAN to " + outFile, e);
       }
     }
   }
@@ -2307,15 +2296,6 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private static void validateInputParam(String value, String param)
-      throws IOException {
-    if (value == null) {
-      String msg = param + " is null";
-      LOG.error(msg);
-      throw new IOException(msg);
-    }
-  }
-
   private long checkAndHandleDAGClientTimeout() throws TezException {
     if (EnumSet.of(DAGAppMasterState.NEW, DAGAppMasterState.RECOVERING).contains(this.state)
         || sessionStopped.get()) {
@@ -2384,8 +2364,8 @@ public class DAGAppMaster extends AbstractService {
         clientVersion = VersionInfo.UNKNOWN;
       }
 
-      validateInputParam(appSubmitTimeStr,
-          ApplicationConstants.APP_SUBMIT_TIME_ENV);
+      Objects.requireNonNull(appSubmitTimeStr,
+          ApplicationConstants.APP_SUBMIT_TIME_ENV + " is null");
 
       ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
       ApplicationAttemptId applicationAttemptId =
