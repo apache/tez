@@ -22,7 +22,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -34,6 +33,7 @@ import org.apache.tez.dag.history.logging.EntityTypes;
 import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.datamodel.Event;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
+import org.apache.tez.util.StringInterner;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -106,7 +106,7 @@ public class Utils {
     for (int i=0; i<fields.length(); i++) {
       JSONObject eventMap = fields.getJSONObject(i);
       events.add(new DataDependencyEvent(
-          StringInterner.weakIntern(eventMap.optString(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())),
+          StringInterner.intern(eventMap.optString(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())),
           eventMap.optLong(Constants.TIMESTAMP)));
     }
     return events;

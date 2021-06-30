@@ -52,7 +52,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
@@ -78,6 +77,7 @@ import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
+import org.apache.tez.util.StringInterner;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -222,7 +222,7 @@ public class TestDefaultSorter {
       Text key = new Text(i + "");
       //Generate random size between 1 MB to 100 MB.
       int valSize = ThreadLocalRandom.current().nextInt(1 * 1024 * 1024, 100 * 1024 * 1024);
-      String val = StringInterner.weakIntern(StringUtils.repeat("v", valSize));
+      String val = StringInterner.intern(StringUtils.repeat("v", valSize));
       sorter.write(key, new Text(val));
       i = (i + 1) % 10;
     }

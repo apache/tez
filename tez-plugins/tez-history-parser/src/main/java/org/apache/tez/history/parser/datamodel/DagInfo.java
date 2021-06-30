@@ -32,10 +32,10 @@ import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.util.StringInterner;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -100,7 +100,7 @@ public class DagInfo extends BaseInfo {
     Preconditions.checkArgument(jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
         (Constants.TEZ_DAG_ID));
 
-    dagId = StringInterner.weakIntern(jsonObject.getString(Constants.ENTITY));
+    dagId = StringInterner.intern(jsonObject.getString(Constants.ENTITY));
 
     //Parse additional Info
     JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
@@ -140,7 +140,7 @@ public class DagInfo extends BaseInfo {
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     failedTasks = otherInfoNode.optInt(Constants.NUM_FAILED_TASKS);
     JSONObject dagPlan = otherInfoNode.optJSONObject(Constants.DAG_PLAN);
-    name = StringInterner.weakIntern((dagPlan != null) ? (dagPlan.optString(Constants.DAG_NAME)) : null);
+    name = StringInterner.intern((dagPlan != null) ? (dagPlan.optString(Constants.DAG_NAME)) : null);
     if (dagPlan != null) {
       JSONArray vertices = dagPlan.optJSONArray(Constants.VERTICES);
       if (vertices != null) {
@@ -152,7 +152,7 @@ public class DagInfo extends BaseInfo {
     } else {
       numVertices = 0;
     }
-    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
+    status = StringInterner.intern(otherInfoNode.optString(Constants.STATUS));
 
     //parse name id mapping
     JSONObject vertexIDMappingJson = otherInfoNode.optJSONObject(Constants.VERTEX_NAME_ID_MAPPING);
