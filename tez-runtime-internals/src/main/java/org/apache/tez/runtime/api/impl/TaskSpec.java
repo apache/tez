@@ -29,9 +29,9 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.util.StringInterner;
 
 import com.google.common.collect.Lists;
 
@@ -80,8 +80,8 @@ public class TaskSpec implements Writable {
     Objects.requireNonNull(inputSpecList, "inputSpecList is null");
     Objects.requireNonNull(outputSpecList, "outputSpecList is null");
     this.taskAttemptId = null;
-    this.dagName = StringInterner.weakIntern(dagName);
-    this.vertexName = StringInterner.weakIntern(vertexName);
+    this.dagName = StringInterner.intern(dagName);
+    this.vertexName = StringInterner.intern(vertexName);
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
@@ -113,8 +113,8 @@ public class TaskSpec implements Writable {
     Objects.requireNonNull(inputSpecList, "inputSpecList is null");
     Objects.requireNonNull(outputSpecList, "outputSpecList is null");
     this.taskAttemptId = taskAttemptID;
-    this.dagName = StringInterner.weakIntern(dagName);
-    this.vertexName = StringInterner.weakIntern(vertexName);
+    this.dagName = StringInterner.intern(dagName);
+    this.vertexName = StringInterner.intern(vertexName);
     this.processorDescriptor = processorDescriptor;
     this.inputSpecList = inputSpecList;
     this.outputSpecList = outputSpecList;
@@ -198,8 +198,8 @@ public class TaskSpec implements Writable {
   @Override
   public void readFields(DataInput in) throws IOException {
     taskAttemptId = TezTaskAttemptID.readTezTaskAttemptID(in);
-    dagName = StringInterner.weakIntern(in.readUTF());
-    vertexName = StringInterner.weakIntern(in.readUTF());
+    dagName = StringInterner.intern(in.readUTF());
+    vertexName = StringInterner.intern(in.readUTF());
     vertexParallelism = in.readInt();
     // TODO TEZ-305 convert this to PB
     processorDescriptor = new ProcessorDescriptor();

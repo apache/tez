@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
@@ -54,8 +53,8 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final Logger LOG = LoggerFactory.getLogger(CriticalPathAnalyzer.class);
 
-  String succeededState = StringInterner.weakIntern(TaskAttemptState.SUCCEEDED.name());
-  String failedState = StringInterner.weakIntern(TaskAttemptState.FAILED.name());
+  private static final String SUCCEEDED_STATE = TaskAttemptState.SUCCEEDED.name();
+  private static final String FAILED_STATE = TaskAttemptState.FAILED.name();
 
   public enum CriticalPathDependency {
     DATA_DEPENDENCY,
@@ -130,8 +129,8 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       for (TaskInfo task : vertex.getTasks()) {
         for (TaskAttemptInfo attempt : task.getTaskAttempts()) { 
           attempts.put(attempt.getTaskAttemptId(), attempt);
-          if (attempt.getStatus().equals(succeededState) ||
-              attempt.getStatus().equals(failedState)) {
+          if (attempt.getStatus().equals(SUCCEEDED_STATE) ||
+              attempt.getStatus().equals(FAILED_STATE)) {
             if (lastAttemptFinishTime < attempt.getFinishTime()) {
               lastAttempt = attempt;
               lastAttemptFinishTime = attempt.getFinishTime();

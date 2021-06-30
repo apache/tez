@@ -28,6 +28,9 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
+
 /**
  * TezVertexID represents the immutable and unique identifier for
  * a Vertex in a Tez DAG. Each TezVertexID encompasses multiple Tez Tasks.
@@ -53,7 +56,7 @@ public class TezVertexID extends TezID {
     }
   };
 
-  private static TezIDCache<TezVertexID> tezVertexIDCache = new TezIDCache<>();
+  private static Interner<TezVertexID> tezVertexIDCache = Interners.newWeakInterner();
   private TezDAGID dagId;
 
   // Public for Writable serialization. Verify if this is actually required.
@@ -67,12 +70,7 @@ public class TezVertexID extends TezID {
    */
   public static TezVertexID getInstance(TezDAGID dagId, int id) {
     Preconditions.checkArgument(dagId != null, "DagID cannot be null");
-    return tezVertexIDCache.getInstance(new TezVertexID(dagId, id));
-  }
-
-  @InterfaceAudience.Private
-  public static void clearCache() {
-    tezVertexIDCache.clear();
+    return tezVertexIDCache.intern(new TezVertexID(dagId, id));
   }
 
   private TezVertexID(TezDAGID dagId, int id) {

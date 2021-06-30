@@ -25,6 +25,9 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
+
 /**
  * TezTaskAttemptID represents the immutable and unique identifier for
  * a task attempt. Each task attempt is one particular instance of a Tez Task
@@ -46,7 +49,7 @@ public class TezTaskAttemptID extends TezID {
   public static final String ATTEMPT = "attempt";
   private TezTaskID taskId;
 
-  private static TezIDCache<TezTaskAttemptID> tezTaskAttemptIDCache = new TezIDCache<>();
+  private static Interner<TezTaskAttemptID> tezTaskAttemptIDCache = Interners.newWeakInterner();
 
   // Public for Writable serialization. Verify if this is actually required.
   public TezTaskAttemptID() {
@@ -58,12 +61,7 @@ public class TezTaskAttemptID extends TezID {
    * @param id the task attempt number
    */
   public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {
-    return tezTaskAttemptIDCache.getInstance(new TezTaskAttemptID(taskID, id));
-  }
-
-  @InterfaceAudience.Private
-  public static void clearCache() {
-    tezTaskAttemptIDCache.clear();
+    return tezTaskAttemptIDCache.intern(new TezTaskAttemptID(taskID, id));
   }
 
   private TezTaskAttemptID(TezTaskID taskId, int id) {

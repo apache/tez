@@ -30,9 +30,9 @@ import com.google.common.collect.Ordering;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.util.StringInterner;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -91,7 +91,7 @@ public class VertexInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_VERTEX_ID));
 
-    vertexId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
+    vertexId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
     taskInfoMap = Maps.newHashMap();
 
     inEdgeList = Lists.newLinkedList();
@@ -149,9 +149,9 @@ public class VertexInfo extends BaseInfo {
     killedTasks = otherInfoNode.optInt(Constants.NUM_KILLED_TASKS);
     numFailedTaskAttempts =
         otherInfoNode.optInt(Constants.NUM_FAILED_TASKS_ATTEMPTS);
-    vertexName = StringInterner.weakIntern(otherInfoNode.optString(Constants.VERTEX_NAME));
-    processorClass = StringInterner.weakIntern(otherInfoNode.optString(Constants.PROCESSOR_CLASS_NAME));
-    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
+    vertexName = StringInterner.intern(otherInfoNode.optString(Constants.VERTEX_NAME));
+    processorClass = StringInterner.intern(otherInfoNode.optString(Constants.PROCESSOR_CLASS_NAME));
+    status = StringInterner.intern(otherInfoNode.optString(Constants.STATUS));
   }
 
   public static VertexInfo create(JSONObject vertexInfoObject) throws

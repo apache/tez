@@ -22,11 +22,13 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
+
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 
 /**
  * TezDAGID represents the immutable and unique identifier for
@@ -40,7 +42,7 @@ import org.apache.tez.util.FastNumberFormat;
  */
 public class TezDAGID extends TezID {
 
-  private static TezIDCache<TezDAGID> tezDAGIDCache = new TezIDCache<>();
+  private static Interner<TezDAGID> tezDAGIDCache = Interners.newWeakInterner();
   private ApplicationId applicationId;
 
   /**
@@ -53,12 +55,7 @@ public class TezDAGID extends TezID {
     // will be short-lived.
     // Alternately the cache can be keyed by the hash of the incoming paramters.
     Preconditions.checkArgument(applicationId != null, "ApplicationID cannot be null");
-    return tezDAGIDCache.getInstance(new TezDAGID(applicationId, id));
-  }
-
-  @InterfaceAudience.Private
-  public static void clearCache() {
-    tezDAGIDCache.clear();
+    return tezDAGIDCache.intern(new TezDAGID(applicationId, id));
   }
   
   /**
@@ -72,7 +69,7 @@ public class TezDAGID extends TezID {
     // will be short-lived.
     // Alternately the cache can be keyed by the hash of the incoming paramters.
     Preconditions.checkArgument(yarnRMIdentifier != null, "yarnRMIdentifier cannot be null");
-    return tezDAGIDCache.getInstance(new TezDAGID(yarnRMIdentifier, appId, id));
+    return tezDAGIDCache.intern(new TezDAGID(yarnRMIdentifier, appId, id));
   }
   
   // Public for Writable serialization. Verify if this is actually required.

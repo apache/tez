@@ -25,8 +25,8 @@ import java.util.List;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.dag.api.InputDescriptor;
+import org.apache.tez.util.StringInterner;
 
 import com.google.common.collect.Lists;
 
@@ -53,7 +53,7 @@ public class GroupInputSpec implements Writable{
   }
   
   public GroupInputSpec(String groupName, List<String> groupVertices, InputDescriptor inputDescriptor) {
-    this.groupName = StringInterner.weakIntern(groupName);
+    this.groupName = StringInterner.intern(groupName);
     this.groupVertices = groupVertices;
     this.mergedInputDescriptor = inputDescriptor;
   }
@@ -70,11 +70,11 @@ public class GroupInputSpec implements Writable{
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    groupName = StringInterner.weakIntern(Text.readString(in));
+    groupName = StringInterner.intern(Text.readString(in));
     int numMembers = in.readInt();
     groupVertices = Lists.newArrayListWithCapacity(numMembers);
     for (int i=0; i<numMembers; ++i) {
-      groupVertices.add(StringInterner.weakIntern(Text.readString(in)));
+      groupVertices.add(StringInterner.intern(Text.readString(in)));
     }
     mergedInputDescriptor = new InputDescriptor();
     mergedInputDescriptor.readFields(in);

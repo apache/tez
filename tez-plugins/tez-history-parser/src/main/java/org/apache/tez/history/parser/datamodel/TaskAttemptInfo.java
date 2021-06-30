@@ -26,7 +26,6 @@ import com.google.common.collect.Ordering;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.tez.common.ATSConstants;
 import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TaskCounter;
@@ -34,6 +33,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.history.parser.utils.Utils;
+import org.apache.tez.util.StringInterner;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -51,7 +51,7 @@ public class TaskAttemptInfo extends BaseInfo {
 
   private static final Log LOG = LogFactory.getLog(TaskAttemptInfo.class);
 
-  private static final String SUCCEEDED = StringInterner.weakIntern(TaskAttemptState.SUCCEEDED.name());
+  private static final String SUCCEEDED = TaskAttemptState.SUCCEEDED.name();
 
   private final String taskAttemptId;
   private final long startTime;
@@ -96,7 +96,7 @@ public class TaskAttemptInfo extends BaseInfo {
         jsonObject.getString(Constants.ENTITY_TYPE).equalsIgnoreCase
             (Constants.TEZ_TASK_ATTEMPT_ID));
 
-    taskAttemptId = StringInterner.weakIntern(jsonObject.optString(Constants.ENTITY));
+    taskAttemptId = StringInterner.intern(jsonObject.optString(Constants.ENTITY));
 
     //Parse additional Info
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
@@ -132,15 +132,15 @@ public class TaskAttemptInfo extends BaseInfo {
 
     diagnostics = otherInfoNode.optString(Constants.DIAGNOSTICS);
     creationTime = otherInfoNode.optLong(Constants.CREATION_TIME);
-    creationCausalTA = StringInterner.weakIntern(
+    creationCausalTA = StringInterner.intern(
         otherInfoNode.optString(Constants.CREATION_CAUSAL_ATTEMPT));
     allocationTime = otherInfoNode.optLong(Constants.ALLOCATION_TIME);
-    containerId = StringInterner.weakIntern(otherInfoNode.optString(Constants.CONTAINER_ID));
+    containerId = StringInterner.intern(otherInfoNode.optString(Constants.CONTAINER_ID));
     String id = otherInfoNode.optString(Constants.NODE_ID);
-    nodeId = StringInterner.weakIntern((id != null) ? (id.split(":")[0]) : "");
+    nodeId = StringInterner.intern((id != null) ? (id.split(":")[0]) : "");
     logUrl = otherInfoNode.optString(Constants.COMPLETED_LOGS_URL);
 
-    status = StringInterner.weakIntern(otherInfoNode.optString(Constants.STATUS));
+    status = StringInterner.intern(otherInfoNode.optString(Constants.STATUS));
     container = new Container(containerId, nodeId);
     if (otherInfoNode.has(Constants.LAST_DATA_EVENTS)) {
       List<DataDependencyEvent> eventInfo = Utils.parseDataEventDependencyFromJSON(
@@ -154,7 +154,7 @@ public class TaskAttemptInfo extends BaseInfo {
       }
     }
     terminationCause = StringInterner
-        .weakIntern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
+        .intern(otherInfoNode.optString(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     executionTimeInterval = (endTime > startTime) ? (endTime - startTime) : 0;
   }
   

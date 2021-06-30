@@ -52,7 +52,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.service.ServiceOperations;
 import org.apache.hadoop.service.ServiceStateException;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
@@ -189,6 +188,7 @@ import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
+import org.apache.tez.util.StringInterner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -964,7 +964,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       StateChangeNotifier entityStatusTracker, Configuration dagOnlyConf) {
     this.vertexId = vertexId;
     this.vertexPlan = vertexPlan;
-    this.vertexName = StringInterner.weakIntern(vertexName);
+    this.vertexName = StringInterner.intern(vertexName);
     this.vertexConf = new Configuration(dagConf);
     this.vertexOnlyConf = new Configuration(dagOnlyConf);
     if (vertexPlan.hasVertexConf()) {
@@ -4517,7 +4517,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
   }
   
   void addIO(String name) {
-    ioIndices.put(StringInterner.weakIntern(name), ioIndices.size());
+    ioIndices.put(StringInterner.intern(name), ioIndices.size());
   }
 
   @VisibleForTesting

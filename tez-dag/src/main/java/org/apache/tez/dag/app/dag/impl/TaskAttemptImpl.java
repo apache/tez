@@ -40,11 +40,11 @@ import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.util.StringInterner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.util.StringInterner;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -1358,7 +1358,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.container = container;
         ta.containerId = tEvent.getContainerId();
         ta.containerNodeId = container.getNodeId();
-        ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
+        ta.nodeHttpAddress = StringInterner.intern(container.getNodeHttpAddress());
       }
 
       if (event instanceof TaskAttemptEventContainerTerminatedBySystem) {
@@ -1370,7 +1370,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         ta.container = container;
         ta.containerId = tEvent.getContainerId();
         ta.containerNodeId = container.getNodeId();
-        ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
+        ta.nodeHttpAddress = StringInterner.intern(container.getNodeHttpAddress());
       }
 
       if (ta.recoveryData == null ||
@@ -1411,8 +1411,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       ta.container = container;
       ta.containerId = event.getContainerId();
       ta.containerNodeId = container.getNodeId();
-      ta.nodeHttpAddress = StringInterner.weakIntern(container.getNodeHttpAddress());
-      ta.nodeRackName = StringInterner.weakIntern(RackResolver.resolve(ta.containerNodeId.getHost())
+      ta.nodeHttpAddress = StringInterner.intern(container.getNodeHttpAddress());
+      ta.nodeRackName = StringInterner.intern(RackResolver.resolve(ta.containerNodeId.getHost())
           .getNetworkLocation());
       ta.lastNotifyProgressTimestamp = ta.clock.getTime();
 
@@ -1421,7 +1421,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // TODO Resolve to host / IP in case of a local address.
       InetSocketAddress nodeHttpInetAddr = NetUtils
           .createSocketAddr(ta.nodeHttpAddress); // TODO: Costly?
-      ta.trackerName = StringInterner.weakIntern(nodeHttpInetAddr.getHostName());
+      ta.trackerName = StringInterner.intern(nodeHttpInetAddr.getHostName());
       ta.httpPort = nodeHttpInetAddr.getPort();
       ta.sendEvent(createDAGCounterUpdateEventTALaunched(ta));
 

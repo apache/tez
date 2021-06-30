@@ -21,8 +21,6 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.util.WeakHashMap;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -41,25 +39,6 @@ import org.apache.hadoop.io.WritableComparable;
 public abstract class TezID implements WritableComparable<TezID> {
   public static final char SEPARATOR = '_';
   protected int id;
-
-  public static class TezIDCache<T> {
-    private final WeakHashMap<T, WeakReference<T>> cache = new WeakHashMap<>();
-
-    synchronized T getInstance(final T id) {
-      final WeakReference<T> cached = cache.get(id);
-      if (cached != null) {
-        final T value = cached.get();
-        if (value != null)
-          return value;
-      }
-      cache.put(id, new WeakReference<T>(id));
-      return id;
-    }
-
-    synchronized void clear() {
-      cache.clear();
-    }
-  }
 
   /** constructs an ID object from the given int */
   public TezID(int id) {
