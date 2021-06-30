@@ -40,7 +40,6 @@ DIFF=${DIFF:-diff}
 JIRACLI=${JIRA:-jira}
 SED=${SED:-sed}
 CURL=${CURL:-curl}
-FINDBUGS_HOME=${FINDBUGS_HOME}
 
 ###############################################################################
 printUsage() {
@@ -60,7 +59,7 @@ printUsage() {
   echo "--grep-cmd=<cmd>       The 'grep' command to use (default 'grep')"
   echo "--patch-cmd=<cmd>      The 'patch' command to use (default 'patch')"
   echo "--diff-cmd=<cmd>       The 'diff' command to use (default 'diff')"
-  echo "--findbugs-home=<path> Findbugs home directory (default FINDBUGS_HOME environment variable)"
+  echo "--spotbugs-home=<path> SpotsBugs home directory (default SPOTBUGS_HOME environment variable)"
   echo "--dirty-workspace      Allow the local git workspace to have uncommitted changes"
   echo "--run-tests            Run all tests below the base directory"
   echo
@@ -115,8 +114,8 @@ parseArgs() {
     --jira-password=*)
       JIRA_PASSWD=${i#*=}
       ;;
-    --findbugs-home=*)
-      FINDBUGS_HOME=${i#*=}
+    --spotbugs-home=*)
+      SPOTBUGS_HOME=${i#*=}
       ;;
     --dirty-workspace)
       DIRTY_WORKSPACE=true
@@ -507,7 +506,7 @@ $JIRA_COMMENT_FOOTER"
 
 
 ###############################################################################
-### Install the new jars so tests and findbugs can find all of the updated jars
+### Install the new jars so tests and SpotsBugs can find all of the updated jars
 buildAndInstall () {
   echo ""
   echo ""
@@ -525,67 +524,67 @@ buildAndInstall () {
 
 
 ###############################################################################
-### Check there are no changes in the number of Findbugs warnings
-checkFindbugsWarnings () {
+### Check there are no changes in the number of SpotBugs warnings
+checkSpotBugsWarnings () {
   echo ""
   echo ""
   echo "======================================================================"
   echo "======================================================================"
-  echo "    Determining number of patched Findbugs warnings."
+  echo "    Determining number of patched SpotBugs warnings."
   echo "======================================================================"
   echo "======================================================================"
   echo ""
   echo ""
 
   rc=0
-  echo " Running findbugs "
-  echo "$MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1"
-  $MVN clean test findbugs:findbugs -DskipTests < /dev/null > $PATCH_DIR/patchFindBugsOutput.txt 2>&1
+  echo " Running SpotBugs "
+  echo "$MVN clean test spotbugs:spotbugs -DskipTests < /dev/null > $PATCH_DIR/patchSpotBugsOutput.txt 2>&1"
+  $MVN clean test spotbugs:spotbugs -DskipTests < /dev/null > $PATCH_DIR/patchSpotBugsOutput.txt 2>&1
   rc=$?
-  findbugs_version=$(${AWK} 'match($0, /findbugs-maven-plugin:[^:]*:findbugs/) { print substr($0, RSTART + 22, RLENGTH - 31); exit }' "${PATCH_DIR}/patchFindBugsOutput.txt")
+  spotbugs_version=$(${AWK} 'match($0, /spotbugs-maven-plugin:[^:]*:spotbugs/) { print substr($0, RSTART + 22, RLENGTH - 31); exit }' "${PATCH_DIR}/patchSpotBugsOutput.txt")
 
   if [ $rc != 0 ] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
-    {color:red}-1 findbugs{color}.  The patch appears to cause Findbugs (version ${findbugs_version}) to fail."
+    {color:red}-1 spotbugs{color}.  The patch appears to cause SpotsBugs (version ${spotbugs_version}) to fail."
     return 1
   fi
 
-  findbugsWarnings=0
-  for file in $(find $BASEDIR -name findbugsXml.xml)
+  spotbugsWarnings=0
+  for file in $(find $BASEDIR -name spotbugsXml.xml)
   do
     relative_file=${file#$BASEDIR/} # strip leading $BASEDIR prefix
-    if [ ! $relative_file == "target/findbugsXml.xml" ]; then
-      module_suffix=${relative_file%/target/findbugsXml.xml} # strip trailing path
+    if [ ! $relative_file == "target/spotbugsXml.xml" ]; then
+      module_suffix=${relative_file%/target/spotbugsXml.xml} # strip trailing path
       module_suffix=`basename ${module_suffix}`
     fi
 
-    cp $file $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
-    $FINDBUGS_HOME/bin/setBugDatabaseInfo -timestamp "01/01/2000" \
-      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml
-    newFindbugsWarnings=`$FINDBUGS_HOME/bin/filterBugs -first "01/01/2000" $PATCH_DIR/patchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml | $AWK '{print $1}'`
-    echo "Found $newFindbugsWarnings Findbugs warnings ($file)"
-    findbugsWarnings=$((findbugsWarnings+newFindbugsWarnings))
-    $FINDBUGS_HOME/bin/convertXmlToText -html \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.xml \
-      $PATCH_DIR/newPatchFindbugsWarnings${module_suffix}.html
-    if [[ $newFindbugsWarnings > 0 ]] ; then
-      JIRA_COMMENT_FOOTER="Findbugs warnings: $BUILD_URL/artifact/patchprocess/newPatchFindbugsWarnings${module_suffix}.html
+    cp $file $PATCH_DIR/patchSpotbugsWarnings${module_suffix}.xml
+    $SPOTBUGS_HOME/bin/setBugDatabaseInfo -timestamp "01/01/2000" \
+      $PATCH_DIR/patchSpotbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/patchSpotbugsWarnings${module_suffix}.xml
+    newSpotbugsWarnings=`$SPOTBUGS_HOME/bin/filterBugs -first "01/01/2000" $PATCH_DIR/patchSpotbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/newPatchSpotbugsWarnings${module_suffix}.xml | $AWK '{print $1}'`
+    echo "Found $newSpotbugsWarnings SpotBugs warnings ($file)"
+    spotbugsWarnings=$((spotbugsWarnings+newSpotbugsWarnings))
+    $SPOTBUGS_HOME/bin/convertXmlToText -html \
+      $PATCH_DIR/newPatchSpotbugsWarnings${module_suffix}.xml \
+      $PATCH_DIR/newPatchSpotbugsWarnings${module_suffix}.html
+    if [[ $newSpotbugsWarnings > 0 ]] ; then
+      JIRA_COMMENT_FOOTER="SpotBugs warnings: $BUILD_URL/artifact/patchprocess/newPatchSpotbugsWarnings${module_suffix}.html
 $JIRA_COMMENT_FOOTER"
     fi
   done
 
-  if [[ $findbugsWarnings -gt 0 ]] ; then
+  if [[ $spotbugsWarnings -gt 0 ]] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
-    {color:red}-1 findbugs{color}.  The patch appears to introduce $findbugsWarnings new Findbugs (version ${findbugs_version}) warnings."
+    {color:red}-1 spotbugs{color}.  The patch appears to introduce $spotbugsWarnings new SpotBugs (version ${spotbugs_version}) warnings."
     return 1
   fi
   JIRA_COMMENT="$JIRA_COMMENT
 
-    {color:green}+1 findbugs{color}.  The patch does not introduce any new Findbugs (version ${findbugs_version}) warnings."
+    {color:green}+1 spotbugs{color}.  The patch does not introduce any new SpotBugs (version ${spotbugs_version}) warnings."
   return 0
 }
 
@@ -805,7 +804,7 @@ fi
 checkJavadocWarnings
 (( RESULT = RESULT + $? ))
 buildAndInstall
-checkFindbugsWarnings
+checkSpotBugsWarnings
 (( RESULT = RESULT + $? ))
 checkReleaseAuditWarnings
 (( RESULT = RESULT + $? ))
