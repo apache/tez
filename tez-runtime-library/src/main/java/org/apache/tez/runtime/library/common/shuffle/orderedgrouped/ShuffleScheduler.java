@@ -1044,12 +1044,13 @@ class ShuffleScheduler {
         && !fetcherHealthy
         && (!reducerProgressedEnough || reducerStalled)) {
       String errorMsg = (srcNameTrimmed + ": "
-          + "Shuffle failed with too many fetch failures and insufficient progress!"
-          + "failureCounts=" + failureCounts.size()
+          + "Shuffle failed with too many fetch failures and insufficient progress: "
+          + "[failureCounts=" + failureCounts.size()
           + ", pendingInputs=" + (numInputs - doneMaps)
           + ", fetcherHealthy=" + fetcherHealthy
           + ", reducerProgressedEnough=" + reducerProgressedEnough
-          + ", reducerStalled=" + reducerStalled);
+          + ", reducerStalled=" + reducerStalled)
+          + "]";
       LOG.error(errorMsg);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Host failures=" + hostFailures.keySet());
@@ -1109,7 +1110,7 @@ class ShuffleScheduler {
       }
       IOException exception = new IOException(srcAttempt + " is marked as obsoleteInput, but it "
           + "exists in shuffleInfoEventMap. Some data could have been already merged "
-          + "to memory/disk outputs.  Failing the fetch early. eventInfo:" + eventInfo.toString());
+          + "to memory/disk outputs. Failing the fetch early. eventInfo: " + eventInfo);
       String message = "Got obsolete event. Killing self as attempt's data could have been consumed";
       killSelf(exception, message);
       return;
@@ -1379,7 +1380,7 @@ class ShuffleScheduler {
             } catch (InterruptedException e) {
               if (isShutdown.get()) {
                 LOG.info(srcNameTrimmed + ": " +
-                    "Interrupted while waiting for fetchers to complete" +
+                    "Interrupted while waiting for fetchers to complete " +
                     "and hasBeenShutdown. Breaking out of ShuffleSchedulerCallable loop");
                 Thread.currentThread().interrupt();
                 break;
