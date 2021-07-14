@@ -65,6 +65,7 @@
     <slf4j.version>1.7.30</slf4j.version>
     <protobuf.version>2.5.0</protobuf.version>
     <roaringbitmap.version>0.7.45</roaringbitmap.version>
+    <snappy-java.version>1.1.8.4</snappy-java.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <frontend-maven-plugin.version>1.4</frontend-maven-plugin.version>
@@ -344,6 +345,10 @@
           <exclusion>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -752,6 +757,11 @@
         <groupId>org.fusesource.leveldbjni</groupId>
         <artifactId>leveldbjni-all</artifactId>
         <version>1.8</version>
+      </dependency>
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>${snappy-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
