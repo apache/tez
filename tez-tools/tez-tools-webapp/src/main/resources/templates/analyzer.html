@@ -1,0 +1,193 @@
+<!--
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+-->
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+  rel="stylesheet">
+
+<link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+
+<title>Tez analyzers</title>
+</head>
+<body>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <div class="container-fluid">
+    <div class="row flex-nowrap">
+      <div th:replace="fragments/menu">...</div>
+      <div class="col py-3">
+        <div class="container">
+          <h1>Tez analyzers</h1>
+
+          <form method='post' action='/analyzer'
+            enctype="multipart/form-data" id="analyzerForm">
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="">Files</label> <input class="form-control"
+                type="file" id="dagFiles" name="dagFiles" multiple /> <small
+                id="dagIdHelp" class="form-text text-muted">History
+                file(s) - simple / proto / ATS zip</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="dagId">DAG id</label> <input type="text"
+                class="form-control" id="dagId" name="dagId"
+                aria-describedby="dagIdHelp" placeholder="dag_*_*_*"> <small
+                id="dagIdHelp" class="form-text text-muted">DAG id to
+                look for</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="dagId">Report output format</label>
+              <div class="custom-control custom-radio custom-control-inline">
+                <input type="radio" id="outputFormatCSV" name="outputFormat"
+                  class="custom-control-input" checked> <label
+                  class="custom-control-label" for="outputFormatCSV">CSV</label>
+              </div>
+              <div class="custom-control custom-radio custom-control-inline">
+                <input type="radio" id="outputFormatXLSX" name="outputFormat"
+                  class="custom-control-input"> <label
+                  class="custom-control-label" for="outputFormatXLSX">XLSX</label>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label for="">Analyzers to run</label><br />
+              <button type="button" id="selectAllAnalyzers"
+                class="btn btn-primary">Select all</button>
+              <button type="button" id="clearAllAnalyzers"
+                class="btn btn-secondary">Clear all</button>
+              <div class="form-check" th:each="analyzer: ${analyzers}">
+                <input class="form-check-input check-analyzer" type="checkbox"
+                  value=""
+                  th:id="'check_analyzer_' + ${analyzer.class.simpleName}"
+                  th:name="'check_analyzer_' + ${analyzer.class.simpleName}">
+                <label class="form-check-label"
+                  th:for="'check_analyzer_' + ${analyzer.class.simpleName}"
+                  th:text="${analyzer.class.simpleName}"> </label> <small
+                  id="dagIdHelp" class="form-text text-muted"
+                  th:text="${analyzer.description}"></small>
+                <div th:each="config: ${analyzer.configProperties}">
+                  <label class="form-check-label"
+                    th:for="'config_analyzer_' + ${config}" th:text="${config}">
+                  </label> <input type="text" value=""
+                    th:id="'config_analyzer_' + ${config}"
+                    th:name="'config_analyzer_' + ${config}">
+                </div>
+              </div>
+            </div>
+            <button id="formSubmitButton" type="button"
+              class="btn btn-success">Analyze</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+
+    $("#formSubmitButton" ).click(function() {
+      var formData = new FormData($("#analyzerForm")[0]);
+      formData.set("outputFormat", $("#outputFormatCSV").is(':checked') ? "CSV" : "XLSX");
+      $("button").attr('disabled','disabled');
+
+      $.ajax({
+          url: '/analyzer',
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          xhrFields: {
+              responseType: 'blob' // to avoid binary data being mangled on charset conversion
+          },
+          success: function(blob, status, xhr) {
+              // check for a filename
+              var filename = "";
+              var disposition = xhr.getResponseHeader('Content-Disposition');
+              if (disposition && disposition.indexOf('attachment') !== -1) {
+                  var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                  var matches = filenameRegex.exec(disposition);
+                  if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+              }
+
+              var URL = window.URL || window.webkitURL;
+              var downloadUrl = URL.createObjectURL(blob);
+
+              if (filename) {
+                  // use HTML5 a[download] attribute to specify filename
+                  var a = document.createElement("a");
+                  // safari doesn't support this yet
+                  if (typeof a.download === 'undefined') {
+                      window.location.href = downloadUrl;
+                  } else {
+                      a.href = downloadUrl;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                  }
+              } else {
+                  window.location.href = downloadUrl;
+              }
+
+              setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
+          },
+          complete: function(){
+            $("button").attr('disabled',false);
+          }
+      });
+  });
+
+    $('#dagFiles').on('change',function(){
+      const files = Array.from(this.files);
+      const dagIdRegex = "dag_[0-9]+_[0-9]+_[0-9]+";
+
+      for (var i = 0; i < files.length; i++){
+        if (files[i].name.match(dagIdRegex) != null){
+          $("#dagId").val(files[i].name.match(dagIdRegex)[0]);
+          break;
+        }
+      }
+      // at this point, we haven't managed to parse dag_id from file name,
+      // but we can still check the file if it's a simple history logging text file
+      var fr = new FileReader();
+      fr.onload = function(){
+        var dagIdMatch = fr.result.match(dagIdRegex);
+        if (dagIdMatch != null){
+          $("#dagId").val(dagIdMatch[0]);
+        }
+      }
+      fr.readAsText($('#dagFiles')[0].files[0]);
+      $(this).next('.form-label').html(files.map(item => item.name).join(", "));
+    })
+    $( "#selectAllAnalyzers" ).click(function() {
+      $(".check-analyzer").prop('checked', true);
+    });
+    $( "#clearAllAnalyzers" ).click(function() {
+      $(".check-analyzer").prop('checked', false);
+    });
+  </script>
+</body>
+</html>

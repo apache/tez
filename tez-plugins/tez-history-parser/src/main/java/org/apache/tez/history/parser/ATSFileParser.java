@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -82,6 +83,55 @@ public class ATSFileParser extends BaseParser implements ATSData {
     } catch (InterruptedException e) {
       throw new TezException(e);
     }
+  }
+
+  public List<JSONObject> dumpAllEvents() throws Exception {
+    List<JSONObject> dumpedEvents = new ArrayList<>();
+
+    ZipFile atsZipFileToIterate = new ZipFile(this.atsZipFile);
+    try {
+      Enumeration<? extends ZipEntry> zipEntries = atsZipFileToIterate.entries();
+      while (zipEntries.hasMoreElements()) {
+        ZipEntry zipEntry = zipEntries.nextElement();
+        InputStream inputStream = atsZipFileToIterate.getInputStream(zipEntry);
+        JSONObject jsonObject = readJson(inputStream);
+
+        //This json can contain dag, vertices, tasks, task_attempts
+        JSONObject dagJson = jsonObject.optJSONObject(Constants.DAG);
+        if (dagJson != null) {
+          dumpedEvents.add(dagJson);
+        }
+
+        JSONArray vertexJson = jsonObject.optJSONArray(Constants.VERTICES);
+        if (vertexJson != null) {
+          for (int i = 0; i < vertexJson.length(); i++) {
+            dumpedEvents.add(vertexJson.getJSONObject(i));
+          }
+        }
+
+        JSONArray taskJson = jsonObject.optJSONArray(Constants.TASKS);
+        if (taskJson != null) {
+          for (int i = 0; i < taskJson.length(); i++) {
+            dumpedEvents.add(taskJson.getJSONObject(i));
+          }
+        }
+
+        JSONArray attemptsJson = jsonObject.optJSONArray(Constants.TASK_ATTEMPTS);
+        if (attemptsJson != null) {
+          for (int i = 0; i < attemptsJson.length(); i++) {
+            dumpedEvents.add(attemptsJson.getJSONObject(i));
+          }
+        }
+
+        JSONObject tezAppJson = jsonObject.optJSONObject(Constants.APPLICATION);
+        if (tezAppJson != null) {
+          dumpedEvents.add(tezAppJson);
+        }
+      }
+    } finally {
+      atsZipFileToIterate.close();
+    }
+    return dumpedEvents;
   }
 
   /**
