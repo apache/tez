@@ -169,12 +169,7 @@ public class TezChild {
     this.objectRegistry = objectRegistry;
 
 
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Executing with tokens:");
-      for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("{}", token);
-      }
-    }
+    LOG.info("Executing with tokens: {}", credentials.getAllTokens());
 
     UserGroupInformation taskOwner = UserGroupInformation.createRemoteUser(tokenIdentifier);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
