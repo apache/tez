@@ -53,8 +53,7 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
   public void routeDataMovementEventToDestination(DataMovementEvent event,
       int sourceTaskIndex, int sourceOutputIndex, 
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
-    List<Integer> inputIndices = 
-        Collections.unmodifiableList(Collections.singletonList(sourceTaskIndex));
+    List<Integer> inputIndices = Collections.singletonList(sourceTaskIndex);
     // for each task make the i-th source task as the i-th physical input
     for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, inputIndices);
@@ -93,8 +92,7 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
       Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
-    List<Integer> inputIndices = 
-        Collections.unmodifiableList(Collections.singletonList(sourceTaskIndex));
+    List<Integer> inputIndices = Collections.singletonList(sourceTaskIndex);
     // for each task make the i-th source task as the i-th physical input
     for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, inputIndices);
