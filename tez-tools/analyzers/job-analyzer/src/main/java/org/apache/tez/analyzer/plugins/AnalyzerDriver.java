@@ -58,7 +58,7 @@ public class AnalyzerDriver {
           "Find out schedule misses in 1:1 edges in a DAG");
       pgd.addClass("DagOverviewAnalyzer", DagOverviewAnalyzer.class,
           "Print basic dag information (dag/vertex events)");
-      pgd.addClass("TaskHangAnalyzer", TaskHangAnalyzer.class,
+      pgd.addClass("TaskHangAnalyzer", HungTaskAnalyzer.class,
           "Print all vertices/tasks and their last attempts with status/duration/node");
       exitCode = pgd.run(argv);
     } catch(Throwable e){

@@ -31,7 +31,7 @@ import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
 /**
- * This analyzer is support to collect which nodes can be blamed for shuffle read errors.
+ * Helps finding the root cause of shuffle errors, e.g. which node(s) can be blamed for them.
  */
 public class InputReadErrorAnalyzer extends TezAnalyzerBase implements Analyzer {
   private final String[] headers = { "vertex:attempt", "status", "time", "node", "diagnostics" };

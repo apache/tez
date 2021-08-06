@@ -236,12 +236,11 @@ public class SimpleHistoryParser extends BaseParser {
         // time etc).
         if (dagJson == null) {
           dagJson = jsonObject;
-        } else{
-          if (dagJson.optJSONObject(ATSConstants.OTHER_INFO)
-              .optJSONObject(ATSConstants.DAG_PLAN) == null) {
+        } else {
+          if (dagJson.optJSONObject(ATSConstants.OTHER_INFO).optJSONObject(ATSConstants.DAG_PLAN) == null) {
             // if DAG_PLAN is not filled already, let's try to fetch it from other
-            dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN, jsonObject
-                .getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
+            dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN,
+                jsonObject.getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
           }
           mergeSubJSONArray(jsonObject, dagJson, Constants.EVENTS);
         }

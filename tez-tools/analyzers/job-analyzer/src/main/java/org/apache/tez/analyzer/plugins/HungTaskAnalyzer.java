@@ -24,6 +24,7 @@ import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.analyzer.Result;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
@@ -33,14 +34,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Get the Task assignments on different nodes of the cluster.
+ * Gives insights about hanging task attempts by providing details about last attempts of all tasks.
  */
-public class TaskHangAnalyzer extends TezAnalyzerBase implements Analyzer {
+public class HungTaskAnalyzer extends TezAnalyzerBase implements Analyzer {
   private final String[] headers = { "vertex", "task", " number_of_attempts", "last_attempt_id",
       "last_attempt_status", "last_attempt_duration_ms", "last_attempt_node" };
   private final CSVResult csvResult;
 
-  public TaskHangAnalyzer(Configuration config) {
+  private static final String HEADER_NUM_ATTEMPTS = "num_attempts";
+  private static final String HEADER_LAST_ATTEMPT_ID_AND_STATUS = "last_attempt_id_and_status";
+  private static final String HEADER_LAST_ATTEMPT_STATUS = "last_attempt_status";
+  private static final String HEADER_LAST_ATTEMPT_NODE = "last_attempt_node";
+  private static final String HEADER_LAST_ATTEMPT_DURATION_MS = "last_attempt_duration_ms";
+
+  public HungTaskAnalyzer(Configuration config) {
     super(config);
     csvResult = new CSVResult(headers);
   }
@@ -58,27 +65,26 @@ public class TaskHangAnalyzer extends TezAnalyzerBase implements Analyzer {
 
         if (thisTaskData == null) {
           thisTaskData = new HashMap<>();
-          thisTaskData.put("num_attempts", Integer.toString(numAttemptsForTask));
+          thisTaskData.put(HEADER_NUM_ATTEMPTS, Integer.toString(numAttemptsForTask));
           taskData.put(taskId, thisTaskData);
         }
 
-        // attempt_1599682376162_0006_27_00_000086_1
-        int attemptNumber = Integer.parseInt(attempt.getTaskAttemptId().split("_")[6]);
+        int attemptNumber = TezTaskAttemptID.fromString(attempt.getTaskAttemptId()).getId();
         if (attemptNumber == numAttemptsForTask - 1) {
-          thisTaskData.put("last_attempt_id", attempt.getTaskAttemptId());
-          thisTaskData.put("last_attempt_status", attempt.getDetailedStatus());
-          thisTaskData.put("last_attempt_node", attempt.getNodeId());
+          thisTaskData.put(HEADER_LAST_ATTEMPT_ID_AND_STATUS, String.format("%s/%s", attempt.getTaskAttemptId(), attempt.getStatus()));
+          thisTaskData.put(HEADER_LAST_ATTEMPT_STATUS, attempt.getDetailedStatus());
+          thisTaskData.put(HEADER_LAST_ATTEMPT_NODE, attempt.getNodeId());
 
-          thisTaskData.put("last_attempt_duration_ms",
+          thisTaskData.put(HEADER_LAST_ATTEMPT_DURATION_MS,
               (attempt.getFinishTime() == 0 || attempt.getStartTime() == 0) ? "-1"
                 : Long.toString(attempt.getFinishTime() - attempt.getStartTime()));
         }
       }
       for (Map.Entry<String, Map<String, String>> task : taskData.entrySet()) {
-        addARecord(vertex.getVertexName(), task.getKey(), task.getValue().get("num_attempts"),
-            task.getValue().get("last_attempt_id"), task.getValue().get("last_attempt_status"),
-            task.getValue().get("last_attempt_duration_ms"),
-            task.getValue().get("last_attempt_node"));
+        addARecord(vertex.getVertexName(), task.getKey(), task.getValue().get(HEADER_NUM_ATTEMPTS),
+            task.getValue().get(HEADER_LAST_ATTEMPT_ID_AND_STATUS), task.getValue().get(HEADER_LAST_ATTEMPT_STATUS),
+            task.getValue().get(HEADER_LAST_ATTEMPT_DURATION_MS),
+            task.getValue().get(HEADER_LAST_ATTEMPT_NODE));
       }
     }
 
@@ -118,18 +124,18 @@ public class TaskHangAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   @Override
   public String getName() {
-    return "Task Hang Analyzer";
+    return "Hung Task Analyzer";
   }
 
   @Override
   public String getDescription() {
-    return "TaskHandAnalyzer can give quick insights about hanging tasks/task attempts"
+    return "TaskHandAnalyzer can give quick insights about hanging task attempts"
         + " by giving an overview of all tasks and their last attempts' status, duration, etc.";
   }
 
   public static void main(String[] args) throws Exception {
     Configuration config = new Configuration();
-    TaskHangAnalyzer analyzer = new TaskHangAnalyzer(config);
+    HungTaskAnalyzer analyzer = new HungTaskAnalyzer(config);
     int res = ToolRunner.run(config, analyzer, args);
     analyzer.printResults();
     System.exit(res);
