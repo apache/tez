@@ -212,7 +212,7 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
       if (vertexNumTasks > 1) {
         if (ratio > maxRatio) {
           //input records > 60% of vertex level record count
-          if (inputRecordsCount > (vertexLevelInputRecordsCount * 0.60)) {
+          if (inputRecordsCount > (vertexLevelInputRecordsCount * 0.6f)) {
             List<String> result = Lists.newLinkedList();
             result.add(attemptInfo.getTaskInfo().getVertexInfo().getVertexName());
             result.add(attemptInfo.getTaskAttemptId());

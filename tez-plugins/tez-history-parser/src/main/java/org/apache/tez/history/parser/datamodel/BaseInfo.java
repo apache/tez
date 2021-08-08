@@ -44,8 +44,20 @@ public abstract class BaseInfo {
   BaseInfo(JSONObject jsonObject) throws JSONException {
     final JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
     //parse tez counters
-    tezCounters = Utils.parseTezCountersFromJSON(
-        otherInfoNode.optJSONObject(Constants.COUNTERS));
+    JSONObject countersObj = otherInfoNode.optJSONObject(Constants.COUNTERS);
+    if (countersObj == null) {
+      /*
+       * This is a workaround for formatting differences, where a TaskFinishedEvent's
+       * counter is a correct json object shown as string, but VertexFinishedEvent's
+       * counter is an encoded json string, so the latter is interpreted as a String
+       * while parsing. The issue might be somewhere while converting these event objects
+       * to proto (HistoryEventProtoConverter). Even if should be fixed there,
+       * already generated events should be parsed correctly, hence this workaround.
+       * Will be investigated in the scope of TEZ-4324.
+       */
+      countersObj = new JSONObject(otherInfoNode.optString(Constants.COUNTERS));
+    }
+    tezCounters = Utils.parseTezCountersFromJSON(countersObj);
 
     //parse events
     eventList = Lists.newArrayList();
