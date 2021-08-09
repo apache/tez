@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.tez.analyzer.plugins;
+
+import java.util.Comparator;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ToolRunner;
@@ -25,50 +26,47 @@ import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.analyzer.Result;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
+import org.apache.tez.history.parser.datamodel.Event;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * Get the Task assignments on different nodes of the cluster.
+ * Helps finding the root cause of shuffle errors, e.g. which node(s) can be blamed for them.
  */
-public class TaskAssignmentAnalyzer extends TezAnalyzerBase
-    implements Analyzer {
-  private final String[] headers = { "vertex", "node", "numTaskAttempts", "load" };
+public class InputReadErrorAnalyzer extends TezAnalyzerBase implements Analyzer {
+  private final String[] headers = { "vertex:attempt", "status", "time", "node", "diagnostics" };
   private final CSVResult csvResult;
 
-  public TaskAssignmentAnalyzer(Configuration config) {
+  public InputReadErrorAnalyzer(Configuration config) {
     super(config);
     csvResult = new CSVResult(headers);
   }
 
   @Override
   public void analyze(DagInfo dagInfo) throws TezException {
-    Map<String, Integer> taskAttemptsPerNode = new HashMap<>();
     for (VertexInfo vertex : dagInfo.getVertices()) {
-      taskAttemptsPerNode.clear();
       for (TaskAttemptInfo attempt : vertex.getTaskAttempts()) {
-        Integer previousValue = taskAttemptsPerNode.get(attempt.getNodeId());
-        taskAttemptsPerNode.put(attempt.getNodeId(), previousValue == null ? 1 : previousValue + 1);
-      }
-      double mean = vertex.getTaskAttempts().size() / Math.max(1.0, taskAttemptsPerNode.size());
-      for (Map.Entry<String, Integer> assignment : taskAttemptsPerNode.entrySet()) {
-        addARecord(vertex.getVertexName(), assignment.getKey(), assignment.getValue(),
-            assignment.getValue() * 100 / mean);
+        String terminationCause = attempt.getTerminationCause();
+        if ("INPUT_READ_ERROR".equalsIgnoreCase(terminationCause)
+            || "OUTPUT_LOST".equalsIgnoreCase(terminationCause)
+            || "NODE_FAILED".equalsIgnoreCase(terminationCause)) {
+          for (Event event : attempt.getEvents()) {
+            if (event.getType().equalsIgnoreCase("TASK_ATTEMPT_FINISHED")) {
+              csvResult.addRecord(new String[] {
+                  vertex.getVertexName() + ":" + attempt.getTaskAttemptId(),
+                  attempt.getDetailedStatus(), String.valueOf(event.getTime()), attempt.getNodeId(),
+                  attempt.getDiagnostics().replaceAll(",", " ").replaceAll("\n", " ") });
+            }
+          }
+        }
       }
     }
-  }
 
-  private void addARecord(String vertexName, String node, int numTasks,
-      double load) {
-    String[] record = new String[4];
-    record[0] = vertexName;
-    record[1] = node;
-    record[2] = String.valueOf(numTasks);
-    record[3] = String.format("%.2f", load);
-    csvResult.addRecord(record);
+    csvResult.sort(new Comparator<String[]>() {
+      public int compare(String[] first, String[] second) {
+        return (int) (Long.parseLong(second[2]) - Long.parseLong(first[2]));
+      }
+    });
   }
 
   @Override
@@ -78,17 +76,17 @@ public class TaskAssignmentAnalyzer extends TezAnalyzerBase
 
   @Override
   public String getName() {
-    return "Task Assignment Analyzer";
+    return "Input read error analyzer";
   }
 
   @Override
   public String getDescription() {
-    return "Get the Task assignments on different nodes of the cluster";
+    return "Prints every task attempt (with node) which are related to input read errors";
   }
 
   public static void main(String[] args) throws Exception {
     Configuration config = new Configuration();
-    TaskAssignmentAnalyzer analyzer = new TaskAssignmentAnalyzer(config);
+    InputReadErrorAnalyzer analyzer = new InputReadErrorAnalyzer(config);
     int res = ToolRunner.run(config, analyzer, args);
     analyzer.printResults();
     System.exit(res);

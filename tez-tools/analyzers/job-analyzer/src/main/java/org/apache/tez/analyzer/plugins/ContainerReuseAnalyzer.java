@@ -39,15 +39,13 @@ import java.util.List;
  */
 public class ContainerReuseAnalyzer extends TezAnalyzerBase implements Analyzer {
 
-  private final Configuration config;
-
   private static final String[] headers =
       { "vertexName", "taskAttempts", "node", "containerId", "reuseCount" };
 
   private final CSVResult csvResult;
 
   public ContainerReuseAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
     this.csvResult = new CSVResult(headers);
   }
 
@@ -80,11 +78,6 @@ public class ContainerReuseAnalyzer extends TezAnalyzerBase implements Analyzer 
   @Override
   public String getDescription() {
     return "Get details on container reuse analysis";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {

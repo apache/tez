@@ -44,11 +44,10 @@ import org.apache.tez.history.parser.datamodel.VertexInfo;
 public class TaskAttemptResultStatisticsAnalyzer extends TezAnalyzerBase implements Analyzer {
   private final String[] headers =
       { "vertex (+task stats: all/succeeded/failed/killed)", "node", "status", "numAttempts" };
-  private final Configuration config;
   private final CSVResult csvResult;
 
   public TaskAttemptResultStatisticsAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
     csvResult = new CSVResult(headers);
   }
 
@@ -71,7 +70,8 @@ public class TaskAttemptResultStatisticsAnalyzer extends TezAnalyzerBase impleme
     }
 
     map.forEach((key, value) -> {
-      addARecord(key.split("#")[0], key.split("#")[1], key.split("#")[2], value);
+      String[] keys = key.split("#");
+      addARecord(keys[0], keys[1], keys.length > 2 ? keys[2] : "", value);
     });
 
     csvResult.sort(new Comparator<String[]>() {
@@ -108,11 +108,6 @@ public class TaskAttemptResultStatisticsAnalyzer extends TezAnalyzerBase impleme
   @Override
   public String getDescription() {
     return "Get statistics about task attempts states in vertex:node:status level";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {

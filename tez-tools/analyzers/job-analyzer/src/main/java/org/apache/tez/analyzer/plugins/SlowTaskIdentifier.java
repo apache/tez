@@ -51,10 +51,8 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
   private static final String NO_OF_TASKS = "tez.slow-task-analyzer.task.count";
   private static final int NO_OF_TASKS_DEFAULT = 100;
 
-  private final Configuration config;
-
   public SlowTaskIdentifier(Configuration config) {
-    this.config = config;
+    super(config);
     this.csvResult = new CSVResult(headers);
   }
 
@@ -75,7 +73,7 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
     });
 
     int limit = Math.min(taskAttempts.size(),
-        Math.max(0, config.getInt(NO_OF_TASKS, NO_OF_TASKS_DEFAULT)));
+        Math.max(0, getConf().getInt(NO_OF_TASKS, NO_OF_TASKS_DEFAULT)));
 
     if (limit == 0) {
       return;
@@ -109,11 +107,6 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
   @Override
   public String getDescription() {
     return "Identifies slow tasks in the DAG";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {

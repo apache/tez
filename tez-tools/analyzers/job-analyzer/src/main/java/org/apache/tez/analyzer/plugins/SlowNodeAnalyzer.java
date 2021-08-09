@@ -59,10 +59,8 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private final CSVResult csvResult = new CSVResult(headers);
 
-  private final Configuration config;
-
   public SlowNodeAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
   }
 
   @Override
@@ -180,11 +178,6 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
         + "nodes due to network, it might be worthwhile to consider the shuffle performance "
         + "analyzer tool in tez-tools").append("\n");
     return sb.toString();
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {

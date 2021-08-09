@@ -556,12 +556,12 @@ public final class HistoryEventProtoJsonConversion {
     events.put(finishEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
 
-    long startTime = getLongDataValueByKey(event, ATSConstants.START_TIME);
+    long timeTaken = getLongDataValueByKey(event, ATSConstants.TIME_TAKEN);
 
     JSONObject otherInfo = new JSONObject();
-    otherInfo.put(ATSConstants.START_TIME, startTime);
+    otherInfo.put(ATSConstants.START_TIME, event.getEventTime() - timeTaken);
     otherInfo.put(ATSConstants.FINISH_TIME, event.getEventTime());
-    otherInfo.put(ATSConstants.TIME_TAKEN, event.getEventTime() - startTime);
+    otherInfo.put(ATSConstants.TIME_TAKEN, timeTaken);
 
     otherInfo.put(ATSConstants.STATUS, getDataValueByKey(event, ATSConstants.STATUS));
     otherInfo.put(ATSConstants.DIAGNOSTICS, getDataValueByKey(event, ATSConstants.DIAGNOSTICS));
@@ -620,11 +620,13 @@ public final class HistoryEventProtoJsonConversion {
     events.put(finishEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
 
-    long startTime = getLongDataValueByKey(event, ATSConstants.START_TIME);
+    long timeTaken = getLongDataValueByKey(event, ATSConstants.TIME_TAKEN);
 
     JSONObject otherInfo = new JSONObject();
+    otherInfo.put(ATSConstants.START_TIME, event.getEventTime() - timeTaken);
     otherInfo.put(ATSConstants.FINISH_TIME, event.getEventTime());
-    otherInfo.put(ATSConstants.TIME_TAKEN, (event.getEventTime() - startTime));
+    otherInfo.put(ATSConstants.TIME_TAKEN, timeTaken);
+
     otherInfo.put(ATSConstants.STATUS, getDataValueByKey(event, ATSConstants.STATUS));
     otherInfo.put(ATSConstants.DIAGNOSTICS, getDataValueByKey(event, ATSConstants.DIAGNOSTICS));
     otherInfo.put(ATSConstants.COUNTERS, getJSONDataValueByKey(event, ATSConstants.COUNTERS));

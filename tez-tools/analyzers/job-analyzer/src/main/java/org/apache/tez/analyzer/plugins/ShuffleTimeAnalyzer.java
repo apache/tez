@@ -66,14 +66,12 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private final CSVResult csvResult = new CSVResult(headers);
 
-  private final Configuration config;
-
   private final float realWorkDoneRatio;
   private final long minShuffleRecords;
 
 
   public ShuffleTimeAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
 
     realWorkDoneRatio = config.getFloat
         (REAL_WORK_DONE_RATIO, REAL_WORK_DONE_RATIO_DEFAULT);
@@ -206,11 +204,6 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
   public String getDescription() {
     return "Analyze the time taken for shuffle, merge "
         + "and the real work done in the task";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   public static void main(String[] args) throws Exception {

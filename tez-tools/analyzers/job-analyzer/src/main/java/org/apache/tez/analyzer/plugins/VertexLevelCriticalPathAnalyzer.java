@@ -44,8 +44,6 @@ import java.util.Map;
  * Identify a set of vertices which fall in the critical path in a DAG.
  */
 public class VertexLevelCriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
-  private final Configuration config;
-
   private static final String[] headers = { "CriticalPath", "Score" };
 
   private final CSVResult csvResult;
@@ -58,7 +56,7 @@ public class VertexLevelCriticalPathAnalyzer extends TezAnalyzerBase implements 
   private static final String CONNECTOR = "-->";
 
   public VertexLevelCriticalPathAnalyzer(Configuration config) {
-    this.config = config;
+    super(config);
     this.csvResult = new CSVResult(headers);
     this.dotFileLocation = config.get(DOT_FILE_DIR, DOT_FILE_DIR_DEFAULT);
   }
@@ -103,11 +101,6 @@ public class VertexLevelCriticalPathAnalyzer extends TezAnalyzerBase implements 
   @Override
   public String getDescription() {
     return "Analyze vertex level critical path of the DAG";
-  }
-
-  @Override
-  public Configuration getConfiguration() {
-    return config;
   }
 
   private static Map<String, Long> sortByValues(Map<String, Long> result) {

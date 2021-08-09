@@ -18,7 +18,6 @@
 
 package org.apache.tez.analyzer;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
@@ -54,11 +53,4 @@ public interface Analyzer {
    * @return description of analyzer
    */
   public String getDescription();
-
-  /**
-   * Get config properties related to this analyzer
-   *
-   * @return config related to analyzer
-   */
-  public Configuration getConfiguration();
 }
