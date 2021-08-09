@@ -298,8 +298,7 @@ public class TestMockDAGAppMaster {
   }
   
   public static class LegacyEdgeTestEdgeManager extends EdgeManagerPlugin {
-    List<Integer> destinationInputIndices = 
-        Collections.unmodifiableList(Collections.singletonList(0));
+    List<Integer> destinationInputIndices = Collections.singletonList(0);
     public LegacyEdgeTestEdgeManager(EdgeManagerPluginContext context) {
       super(context);
     }
