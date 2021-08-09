@@ -34,8 +34,7 @@ import org.apache.tez.common.Preconditions;
 
 public class OneToOneEdgeManagerOnDemand extends EdgeManagerPluginOnDemand {
 
-  final List<Integer> destinationInputIndices =
-      Collections.unmodifiableList(Collections.singletonList(0));
+  final List<Integer> destinationInputIndices = Collections.singletonList(0);
   final AtomicBoolean stateChecked = new AtomicBoolean(false);
  
   final EventRouteMetadata commonRouteMeta = 

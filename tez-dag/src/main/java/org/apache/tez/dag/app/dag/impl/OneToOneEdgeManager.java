@@ -32,8 +32,7 @@ import org.apache.tez.common.Preconditions;
 
 public class OneToOneEdgeManager extends EdgeManagerPlugin {
 
-  final List<Integer> destinationInputIndices =
-      Collections.unmodifiableList(Collections.singletonList(0));
+  final List<Integer> destinationInputIndices = Collections.singletonList(0);
   final AtomicBoolean stateChecked = new AtomicBoolean(false);
 
   public OneToOneEdgeManager(EdgeManagerPluginContext context) {
