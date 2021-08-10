@@ -61,7 +61,7 @@ pipeline {
         stage ('precommit-run') {
             steps {
                 withCredentials(
-                    [usernamePassword(credentialsId: 'apache-hadoop-at-github.com',
+                    [usernamePassword(credentialsId: 'apache-tez-at-github.com',
                                         passwordVariable: 'GITHUB_TOKEN',
                                         usernameVariable: 'GITHUB_USER'),
                                         usernamePassword(credentialsId: 'tez-ci',
