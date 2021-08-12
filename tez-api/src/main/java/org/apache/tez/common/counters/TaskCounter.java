@@ -216,6 +216,11 @@ public enum TaskCounter {
   MERGE_PHASE_TIME,
 
   /**
+   * Time taken to sort data in milliseconds.
+   */
+  SORT_TIME,
+
+  /**
    * First event received from source relative to task start time.
    *
    * Represented in milliseconds

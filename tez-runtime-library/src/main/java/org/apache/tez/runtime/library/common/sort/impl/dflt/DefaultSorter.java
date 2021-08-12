@@ -859,7 +859,11 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       throws IOException, InterruptedException {
     final int mstart = getMetaStart();
     final int mend = getMetaEnd();
+
+    long start = System.currentTimeMillis();
     sorter.sort(this, mstart, mend, progressable);
+    sortTimeMsCounter.increment(System.currentTimeMillis() - start);
+
     spill(mstart, mend, sameKeyCount, totalKeysCount);
   }
 
