@@ -1,0 +1,45 @@
+{{!
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+}}
+
+<ol class="breadcrumb">
+  {{#each normalizedItems key="text" as |item|}}
+    <li class={{item.classNames}} title="{{item.text}}" style={{itemStyle}}>
+      {{#if item.routeName}}
+        {{#if item.queryParams}}
+          {{#link-to item.routeName item.queryParams}}
+            {{item.text}}
+          {{/link-to}}
+        {{else if item.model}}
+          {{#link-to item.routeName item.model}}
+            {{item.text}}
+          {{/link-to}}
+        {{else}}
+          {{#link-to item.routeName}}
+            {{item.text}}
+          {{/link-to}}
+        {{/if}}
+      {{else if item.href}}
+        <a href={{item.href}}>
+          {{item.text}}
+        </a>
+      {{else}}
+        {{item.text}}
+      {{/if}}
+    </li>
+  {{/each}}
+</ol>
