@@ -1391,16 +1391,6 @@ ee-first@1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
 
-em-table@0.11.3:
-  version "0.11.3"
-  resolved "https://registry.yarnpkg.com/em-table/-/em-table-0.11.3.tgz#20e605cc3814214e644199399a2383cee8d23eeb"
-  dependencies:
-    ember-cli-htmlbars "^1.0.1"
-    ember-cli-less "^1.4.0"
-    source-map "^0.5.6"
-  optionalDependencies:
-    phantomjs-prebuilt "2.1.13"
-
 em-tgraph@0.0.14:
   version "0.0.14"
   resolved "https://registry.yarnpkg.com/em-tgraph/-/em-tgraph-0.0.14.tgz#4d48b911760f85dec41904e4056ec52542391cc1"
