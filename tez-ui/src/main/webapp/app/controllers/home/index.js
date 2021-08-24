@@ -19,8 +19,8 @@
 import Ember from 'ember';
 
 import TableController from '../table';
-import ColumnDefinition from 'em-table/utils/column-definition';
-import TableDefinition from 'em-table/utils/table-definition';
+import ColumnDefinition from '../../utils/column-definition';
+import TableDefinition from '../../utils/table-definition';
 
 export default TableController.extend({
 

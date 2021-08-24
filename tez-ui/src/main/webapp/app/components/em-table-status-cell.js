@@ -17,8 +17,10 @@
  */
 
 import Ember from 'ember';
+import layout from '../templates/components/em-table-status-cell';
 
 export default Ember.Component.extend({
+  layout: layout,
 
   content: null,
 
