@@ -39,6 +39,10 @@ module.exports = function(environment) {
       'child-src': "'self' 'unsafe-inline'",
       'style-src': "'self' 'unsafe-inline'",
       'script-src': "'self' 'unsafe-inline'"
+    },
+
+    moment: {
+      includeTimezone: '2010-2020'
     }
   };
 
