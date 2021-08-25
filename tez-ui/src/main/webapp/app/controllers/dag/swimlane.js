@@ -22,7 +22,7 @@ import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
 import VertexProcess from '../../utils/vertex-process';
 
-import fullscreen from 'em-tgraph/utils/fullscreen';
+import fullscreen from '../../utils/fullscreen';
 
 export default MultiTableController.extend({
 

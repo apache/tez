@@ -61,6 +61,5 @@
     "phantomjs-prebuilt": "2.1.13"
   },
   "dependencies": {
-    "em-tgraph": "0.0.14"
   }
 }
