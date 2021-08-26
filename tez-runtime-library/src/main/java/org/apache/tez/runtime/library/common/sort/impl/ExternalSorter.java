@@ -162,6 +162,9 @@ public abstract class ExternalSorter {
   protected final TezCounter numAdditionalSpills;
   // Number of files offered via shuffle-handler to consumers.
   protected final TezCounter numShuffleChunks;
+  // Time (in ms) spent with sorting (includes only the actual sorting time, doesn't include Span related operations)
+  protected final TezCounter sortTimeMsCounter;
+
   // How partition stats should be reported.
   final ReportPartitionStats reportPartitionStats;
 
@@ -220,6 +223,7 @@ public abstract class ExternalSorter {
     additionalSpillBytesRead = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILLS_BYTES_READ);
     numAdditionalSpills = outputContext.getCounters().findCounter(TaskCounter.ADDITIONAL_SPILL_COUNT);
     numShuffleChunks = outputContext.getCounters().findCounter(TaskCounter.SHUFFLE_CHUNK_COUNT);
+    sortTimeMsCounter = outputContext.getCounters().findCounter(TaskCounter.SORT_TIME);
 
     // compression
     this.codec = CodecUtils.getCodec(conf);

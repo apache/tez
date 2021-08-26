@@ -966,8 +966,10 @@ public class PipelinedSorter extends ExternalSorter {
       if(length() > 1) {
         sorter.sort(this, 0, length(), progressable);
       }
+      long sortTime = System.currentTimeMillis() - start;
       LOG.info(outputContext.getDestinationVertexName() + ": " + "done sorting span=" + index + ", length=" + length() + ", "
-          + "time=" + (System.currentTimeMillis() - start));
+          + "time=" + sortTime);
+      sortTimeMsCounter.increment(sortTime);
       return new SpanIterator((SortSpan)this);
     }
 
