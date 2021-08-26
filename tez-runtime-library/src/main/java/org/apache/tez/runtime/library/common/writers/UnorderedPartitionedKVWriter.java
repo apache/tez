@@ -1045,8 +1045,9 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         outputFilePath = outputFileHandler.getSpillFileForWrite(spillNumber, spillSize);
       }
     } else {
-      outputFilePath = outputFileHandler.getSpillFileForWrite(spillNumber, spillSize);
-      indexFilePath  = outputFileHandler.getSpillIndexFileForWrite(spillNumber, indexFileSizeEstimate);
+      outputFilePath = outputFileHandler
+          .getSpillFileForWrite(spillNumber, spillSize + indexFileSizeEstimate);
+      indexFilePath  = outputFileHandler.getSpillIndexFileForWriteInVolume(outputFilePath);
     }
 
     return new SpillPathDetails(outputFilePath, indexFilePath, spillNumber);

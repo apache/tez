@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -63,7 +64,9 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -75,7 +78,8 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 public class TestPipelinedSorter {
   private static Configuration conf;
   private static FileSystem localFs = null;
-  private static Path workDir = null;
+  private static Path workBaseDir;
+  private static List<Path> workDirs;
   private static LocalDirAllocator dirAllocator;
   private OutputContext outputContext;
 
@@ -89,10 +93,10 @@ public class TestPipelinedSorter {
     conf = getConf();
     try {
       localFs = FileSystem.getLocal(conf);
-      workDir = new Path(
-          new Path(System.getProperty("test.build.data", "/tmp")),
-          TestPipelinedSorter.class.getName())
+      final String tmpDir = System.getProperty("test.build.data", "/tmp");
+      workBaseDir = new Path(tmpDir, TestPipelinedSorter.class.getName())
           .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
+      workDirs = ImmutableList.of(new Path(workBaseDir, "dir1"), new Path(workBaseDir, "dir2"));
       dirAllocator = new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -101,7 +105,7 @@ public class TestPipelinedSorter {
 
   @AfterClass
   public static void cleanup() throws IOException {
-    localFs.delete(workDir, true);
+    localFs.delete(workBaseDir, true);
   }
 
   @Before
@@ -129,8 +133,8 @@ public class TestPipelinedSorter {
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, true);
 
     //Setup localdirs
-    if (workDir != null) {
-      String localDirs = workDir.toString();
+    if (workBaseDir != null) {
+      String[] localDirs = workDirs.stream().map(Path::toString).toArray(String[]::new);
       conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
     }
     return conf;
@@ -139,7 +143,9 @@ public class TestPipelinedSorter {
   @After
   public void reset() throws IOException {
     cleanup();
-    localFs.mkdirs(workDir);
+    for (Path workDir : workDirs) {
+      localFs.mkdirs(workDir);
+    }
   }
 
   @Test
@@ -158,6 +164,53 @@ public class TestPipelinedSorter {
     //# partition, # of keys, size per key, InitialMem, blockSize
     basicTest(1, 0, 0, (10 * 1024l * 1024l), 3 << 20);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS, true);
+  }
+
+  @Test
+  public void testSpillLocations() throws IOException {
+    int partitions = 3;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, partitions,
+        initialAvailableMem);
+
+    writeData(sorter, 3000, 500, false);
+
+    final Map<Integer, Path> spillFiles = sorter.spillFilePaths;
+    final Map<Integer, Path> spillFileIndexes = sorter.spillFileIndexPaths;
+    assertEquals(3, sorter.numSpills);
+    assertEquals(sorter.numSpills, spillFiles.size());
+    assertEquals(sorter.numSpills, spillFileIndexes.size());
+    assertEquals(spillFiles.get(0).getParent(), spillFileIndexes.get(0).getParent());
+    assertEquals(spillFiles.get(1).getParent(), spillFileIndexes.get(1).getParent());
+    assertEquals(spillFiles.get(2).getParent(), spillFileIndexes.get(2).getParent());
+    // PipelinedSorter#spill picks up a local directory in a totally round-robin fashion
+    // when there are two directories
+    Path firstSpillFile = spillFiles.get(0).getParent().getParent().getParent();
+    Path secondSpillFile = spillFiles.get(1).getParent().getParent().getParent();
+    Path thirdSpillFile = spillFiles.get(2).getParent().getParent().getParent();
+    assertNotEquals(firstSpillFile, secondSpillFile);
+    assertEquals(firstSpillFile, thirdSpillFile);
+  }
+
+  @Test
+  public void testSpillSingleRecordLocations() throws IOException {
+    int partitions = 3;
+    this.initialAvailableMem = 1 *1024 * 1024;
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf, partitions,
+        initialAvailableMem);
+
+    writeData(sorter, 3, 1000000, false);
+
+    final Map<Integer, Path> spillFiles = sorter.spillFilePaths;
+    final Map<Integer, Path> spillFileIndexes = sorter.spillFileIndexPaths;
+    assertEquals(3, sorter.numSpills);
+    assertEquals(sorter.numSpills, spillFiles.size());
+    assertEquals(sorter.numSpills, spillFileIndexes.size());
+    assertEquals(spillFiles.get(0).getParent(), spillFileIndexes.get(0).getParent());
+    assertEquals(spillFiles.get(1).getParent(), spillFileIndexes.get(1).getParent());
+    assertEquals(spillFiles.get(2).getParent(), spillFileIndexes.get(2).getParent());
+    // Unlike PipelinedSorter#spill,
+    // spillSingleRecord picks up a local directory based on available space
   }
 
   @Test
@@ -965,8 +1018,10 @@ public class TestPipelinedSorter {
     doReturn(1).when(outputContext).getTaskVertexIndex();
     doReturn("vertexName").when(outputContext).getTaskVertexName();
     doReturn(uniqueId).when(outputContext).getUniqueIdentifier();
-    Path outDirBase = new Path(workDir, "outDir_" + uniqueId);
-    String[] outDirs = new String[] { outDirBase.toString() };
+    String[] outDirs = workDirs
+        .stream()
+        .map(workDir -> new Path(workDir, "outDir_" + uniqueId).toString())
+        .toArray(String[]::new);
     doReturn(outDirs).when(outputContext).getWorkDirs();
     return outputContext;
   }
