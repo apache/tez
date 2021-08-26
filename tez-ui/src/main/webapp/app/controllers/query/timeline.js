@@ -19,7 +19,7 @@
 
 import Ember from 'ember';
 import TableController from '../table';
-import ColumnDefinition from 'em-table/utils/column-definition';
+import ColumnDefinition from '../../utils/column-definition';
 
 var MoreObject = more.Object;
 

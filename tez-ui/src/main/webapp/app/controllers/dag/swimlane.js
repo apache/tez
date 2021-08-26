@@ -19,7 +19,7 @@
 import Ember from 'ember';
 
 import MultiTableController from '../multi-table';
-import ColumnDefinition from 'em-table/utils/column-definition';
+import ColumnDefinition from '../../utils/column-definition';
 import VertexProcess from '../../utils/vertex-process';
 
 import fullscreen from 'em-tgraph/utils/fullscreen';

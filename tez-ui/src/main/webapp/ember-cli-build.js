@@ -71,6 +71,7 @@ module.exports = function(defaults) {
   app.import('bower_components/codemirror/mode/sql/sql.js');
   app.import('bower_components/codemirror/mode/pig/pig.js');
   app.import('bower_components/codemirror/lib/codemirror.css');
+  app.import('bower_components/alasql/dist/alasql.js');
 
   return app.toTree(new MergeTrees([configEnv, zipWorker, copyFonts]));
 };

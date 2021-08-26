@@ -1,0 +1,344 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Imports
+@import (once) "bower_components/bootstrap/less/bootstrap";
+
+@import (once) "bower_components/snippet-ss/less/use";
+@import (once) "bower_components/snippet-ss/less/background";
+@import (once) "bower_components/snippet-ss/less/effects";
+
+@import "./variables";
+@import "./shared";
+
+@import "./search-ui";
+@import "./pagination-ui";
+
+@import "./progress-cell";
+
+@import "./em-table-facet-panel";
+
+.em-table {
+  font-size: @font-size;
+  color: @text-color;
+
+  margin: 10px 0px;
+  overflow: hidden;
+
+  .table-header {
+    .clear-fix;
+  }
+
+  .table-mid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-content: stretch;
+    align-items: flex-start;
+
+    .table-panel-left, table-panel-right, .table-body-left, .table-body-right {
+      order: 0;
+      flex: 0 1 auto;
+      align-self: auto;
+    }
+
+    .table-body, .table-message {
+      order: 0;
+      flex: 1 1 auto;
+      align-self: auto;
+      border: 1px solid @border-color;
+
+      margin-top: 5px;
+    }
+
+    &>div:nth-child(2) {
+      border-top-left-radius: @border-radius;
+      border-bottom-left-radius: @border-radius;
+      border-left: 1px solid @border-color;
+    }
+
+    &>div:nth-last-child(2) {
+      border-top-right-radius: @border-radius;
+      border-bottom-right-radius: @border-radius;
+      border-right: 1px solid @border-color;
+    }
+  }
+
+  .table-footer {
+    .clear-fix;
+  }
+
+  .table-body-left, .table-body-right, .table-body {
+    border-top: 1px solid @border-color;
+    border-bottom: 1px solid @border-color;
+    background-color: @table-bg;
+  }
+
+  .table-message {
+    border-radius: @border-radius;
+    background-color: @table-bg;
+
+    text-align: center;
+    padding: 10px;
+  }
+
+  .table-body-left, .table-body-right, .table-body {
+    margin: 5px 0px;
+  }
+
+  .table-body-left, .table-body-right {
+    white-space: nowrap;
+    font-size: 0; // If not set, each column will have a space in between
+  }
+
+  .table-body{
+    .force-scrollbar;
+
+    .table-scroll-body {
+      //Adding this here will keep the column, and table background same white
+      //making the UI look better when scroll bar is shown
+      .dotted-bg;
+
+      white-space: nowrap;
+      font-size: 0; // If not set, each column will have a space in between
+    }
+  }
+
+  &.show-scroll-shadow {
+    .left-scroll-shadow, .right-scroll-shadow {
+      order: 0;
+      flex: 0 1 auto;
+      align-self: stretch;
+      position: relative;
+
+      opacity: 0;
+      transition: opacity 0.3s;
+
+      width: 0px;
+      z-index: 99;
+
+      pointer-events: none;
+
+      .shadow-container {
+        position: absolute;
+        overflow: hidden;
+
+        top: 0px;
+        bottom: 0px;
+        width: 50px;
+
+        &:before {
+          content: "";
+          position: absolute;
+
+          top: 10px;
+          bottom: 15px;
+          width: 50px;
+        }
+      }
+    }
+    .left-scroll-shadow {
+      .shadow-container {
+        &:before {
+          left: -50px;
+          box-shadow: 12px 0 40px -4px rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+    .right-scroll-shadow {
+      .shadow-container {
+        right: 0px;
+        &:before {
+          left: 50px;
+          box-shadow: -12px 0 40px -4px rgba(0, 0, 0, 0.2);
+        }
+      }
+    }
+
+    &.show-left-scroll-shadow {
+      .left-scroll-shadow {
+        opacity: 1;
+      }
+    }
+    &.show-right-scroll-shadow {
+      .right-scroll-shadow {
+        opacity: 1;
+      }
+    }
+  }
+
+  .table-column {
+    .use-border-padding-in-width-height;
+
+    background-color: @table-bg;
+
+    vertical-align: top;
+    overflow: hidden;
+    display: inline-block;
+    min-width: 150px;
+
+    &.inner {
+      border-left: 1px solid @border-color;
+    }
+
+    // Just the shaded header
+    .table-header-cell {
+      background-color: @bg-grey;
+      border-bottom: 1px solid @border-color;
+
+      &.is-sorting {
+        .animated-stripes;
+      }
+    }
+
+    .header-body, .table-cell {
+      font-size: @font-size;
+      white-space: nowrap;
+
+      text-overflow: ellipsis;
+      overflow: hidden;
+
+      height: 2.1em;
+      padding: 5px;
+
+      .ember-view {
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+    }
+
+    .header-body {
+      font-weight: bold;
+
+      padding-right: 1.1em; // To compensate space occupied by sort/resize buttons
+      position: relative; // So that buttons can be positioned
+
+      .sort-bar {
+        cursor: pointer;
+        position: absolute;
+
+        left: 0;
+        right: .5em;
+        top: 0;
+        bottom: 0;
+      }
+
+      .sort-icon {
+        cursor: pointer;
+        position: absolute;
+        right: .5em;
+        top: .2em;
+
+        &:before, &:after {
+          font-size: .7em;
+          opacity: .5;
+          position: absolute;
+        }
+
+        &:before {
+          content: "\25B2";
+
+          top: 0em;
+          right: 0px;
+        }
+
+        &:after {
+          content: "\25BC";
+
+          top: 1em;
+          right: 0px;
+        }
+
+        &.asc{
+          &:before {
+            opacity: 1;
+          }
+          &:after {
+            opacity: .5;
+          }
+        }
+
+        &.desc {
+          &:before {
+            opacity: .5;
+          }
+          &:after {
+            opacity: 1;
+          }
+        }
+      }
+
+      .resize-column:after {
+        content: "\22EE";
+        cursor: col-resize;
+        opacity: .3;
+
+        position: absolute;
+        right: 2px;
+        top: 6px;
+      }
+    }
+
+    .table-cell {
+      position: relative;
+
+      .comment-indicator {
+        position: absolute;
+
+        color: white;
+        font-size: 10px;
+        padding-left: 4px;
+
+        top: -4px;
+        right: -4px;
+
+        width: 10px;
+        height: 10px;
+        background-color: orange;
+        border-radius: 10px;
+
+        opacity: 0.6;
+
+        &:hover {
+          top: -2px;
+          right: -2px;
+        }
+      }
+
+      &.bg-transition {
+        -webkit-transition: box-shadow 500ms ease-out 500ms;
+        -moz-transition: box-shadow 500ms ease-out 500ms;
+        -o-transition: box-shadow 500ms ease-out 500ms;
+        transition: box-shadow 500ms ease-out 500ms;
+      }
+
+      &.highlight {
+        box-shadow: 0 0 60px lighten(@brand-primary, 10%) inset;
+      }
+      &.is-waiting {
+        .animated-stripes;
+      }
+      &.inner {
+        border-top: 1px dotted @border-color;
+        margin-top: -1px;
+      }
+    }
+  }
+
+}
