@@ -1,0 +1,106 @@
+{{!
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+}}
+
+{{!--To add CSS rules at runtime!--}}
+<style></style>
+
+{{!--Header--}}
+<div class='table-header'>
+  {{#each headerComponentNames as |componentName|}}
+    {{component componentName tableDefinition=_definition dataProcessor=_dataProcessor}}
+  {{/each}}
+</div>
+
+<div class="table-mid">
+  <div class='table-panel-left'>
+    {{#if leftPanelComponentName}}
+      {{component leftPanelComponentName tableDefinition=_definition dataProcessor=_dataProcessor}}
+    {{/if}}
+  </div>
+
+  {{#if message}}
+    <h4 class="table-message">{{message}}</h4>
+  {{else}}
+    {{!--Body--}}
+    {{#if _columns.left.length}}
+      <div class='table-body-left'>
+        {{#each _columns.left as |column colIndex|}}
+          {{em-table-column
+          rows=_dataProcessor.processedRows
+          definition=column.definition
+          defaultWidth=column.width
+          tableDefinition=_definition
+          dataProcessor=_dataProcessor
+          index=colIndex
+          }}
+        {{/each}}
+      </div>
+    {{/if}}
+
+    <span class='left-scroll-shadow'>
+      <span class='shadow-container'></span>
+    </span>
+    <div class='table-body'>
+      <div class='table-scroll-body'>
+        {{#each _columns.center as |column colIndex|}}
+          {{em-table-column
+          rows=_dataProcessor.processedRows
+          definition=column.definition
+          defaultWidth=column.width
+          tableDefinition=_definition
+          dataProcessor=_dataProcessor
+          index=colIndex
+          }}
+        {{/each}}
+      </div>
+    </div>
+    <span class='right-scroll-shadow'>
+      <span class='shadow-container'></span>
+    </span>
+
+    {{#if _columns.right.length}}
+      <div class='table-body-right'>
+        {{#each _columns.right as |column colIndex|}}
+          {{em-table-column
+          rows=_dataProcessor.processedRows
+          definition=column.definition
+          defaultWidth=column.width
+          tableDefinition=_definition
+          dataProcessor=_dataProcessor
+          index=colIndex
+          }}
+        {{/each}}
+      </div>
+    {{/if}}
+  {{/if}}
+
+  <div class='table-panel-right'>
+    {{#if rightPanelComponentName}}
+      {{component rightPanelComponentName tableDefinition=_definition dataProcessor=_dataProcessor}}
+    {{/if}}
+  </div>
+</div>
+
+{{!--Footer--}}
+{{#if displayFooter}}
+  <div class='table-footer'>
+    {{#each footerComponentNames as |componentName|}}
+      {{component componentName tableDefinition=_definition dataProcessor=_dataProcessor}}
+    {{/each}}
+  </div>
+{{/if}}

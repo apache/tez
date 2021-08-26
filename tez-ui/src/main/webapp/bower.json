@@ -1,6 +1,7 @@
 {
   "name": "tez-ui",
   "dependencies": {
+    "alasql": "^0.4.0",
     "ember": "2.2.0",
     "ember-cli-shims": "0.0.6",
     "ember-cli-test-loader": "0.2.1",

@@ -1,0 +1,218 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.em-table-facet-panel {
+  width: 160px;
+
+  margin: 5px 5px 0 0;
+
+  border: 1px solid @border-color;
+  border-radius: @border-radius;
+
+  padding: 5px 10px 10px 10px;
+
+  background-color: @table-bg;
+
+  overflow: hidden;
+
+  .field-filter-box {
+    width: 100%;
+  }
+
+  &.hide-filter {
+    .field-filter-box {
+      display: none;
+    }
+  }
+
+  .filter-message {
+    color: #999;
+  }
+
+  h4 {
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 0px;
+  }
+
+  ul {
+    list-style-type: none;
+  }
+
+  li {
+    margin: 2px 0;
+  }
+
+  ul.field-list {
+    padding-top: 5px;
+    padding-left: 0px;
+
+    .em-table-facet-panel-values {
+
+      position: relative;
+
+      .field-name {
+        .no-select;
+
+        padding-right: 20px;
+
+        cursor: pointer;
+        display: flex;
+
+        &::before {
+          content: "\25bc";
+          font-size: .7em;
+          color: @text-light;
+          margin-top: 5px;
+        }
+
+        .field-title {
+          overflow-x: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          margin: 0 3px;
+        }
+
+        .field-count {
+          color: @text-light;
+          white-space: nowrap;
+        }
+
+        .all-button {
+          margin-left: 5px;
+          position: absolute;
+          right: 0px;
+        }
+      }
+
+      &.hide-select-all {
+        .field-name {
+          padding-right: 0px;
+
+          .all-button {
+            display: none;
+          }
+        }
+      }
+
+      .value-list {
+        overflow: hidden;
+
+        padding-left: 10px;
+
+        .filter-box {
+          width: 100%;
+        }
+
+        li {
+          display: flex;
+
+          .checkbox-container {
+            order: 0;
+            flex: 0 1 auto;
+            align-self: auto;
+
+            padding-right: 5px;
+          }
+
+          .facet-value {
+            order: 0;
+            flex: 1 1 auto;
+            align-self: auto;
+            padding-right: 2px;
+
+            overflow-x: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .only-button {
+            order: 0;
+            flex: 0 1 auto;
+            align-self: auto;
+
+            cursor: pointer;
+
+            display: none;
+            padding: 0 5px;
+          }
+
+          .facet-count {
+            order: 0;
+            flex: 0 1 auto;
+            align-self: auto;
+
+            &:hover{
+              text-decoration: none;
+            }
+          }
+
+          &:hover {
+            .only-button {
+              display: inline;
+            }
+          }
+        }
+
+        .pagination-controls {
+          padding-top: 5px;
+
+          position: relative;
+
+          .arrows {
+            position: absolute;
+            top: 5px;
+            right: 0px;
+          }
+
+          span {
+            user-select: none;
+            color: lightgrey;
+
+            &.active {
+              cursor: pointer;
+              color: #3B99FC;
+            }
+          }
+        }
+
+      }
+
+      &.hide-values {
+        .value-list {
+          display: none;
+        }
+
+        .field-name::before {
+          transform: rotate(-90deg) translate(2px, 2px);
+        }
+
+        .field-name .all-button {
+          display: none;
+        }
+      }
+
+      &.hide-filter {
+        .filter-box {
+          display: none;
+        }
+      }
+
+    }
+  }
+}

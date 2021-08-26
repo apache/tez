@@ -17,7 +17,7 @@
  */
 
 import MultiTableController from '../multi-table';
-import ColumnDefinition from 'em-table/utils/column-definition';
+import ColumnDefinition from '../../utils/column-definition';
 
 import AutoCounterColumn from '../../mixins/auto-counter-column';
 

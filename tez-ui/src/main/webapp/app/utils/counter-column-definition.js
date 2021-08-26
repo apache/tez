@@ -19,7 +19,7 @@
 import Ember from 'ember';
 
 import isIOCounter from '../utils/misc';
-import ColumnDefinition from 'em-table/utils/column-definition';
+import ColumnDefinition from './column-definition';
 
 /*
  * Returns a counter value from for a row

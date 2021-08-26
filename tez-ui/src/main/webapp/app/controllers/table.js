@@ -20,7 +20,7 @@
 import Ember from 'ember';
 
 import AbstractController from './abstract';
-import TableDefinition from 'em-table/utils/table-definition';
+import TableDefinition from '../utils/table-definition';
 import isIOCounter from '../utils/misc';
 
 import CounterColumnDefinition from '../utils/counter-column-definition';
