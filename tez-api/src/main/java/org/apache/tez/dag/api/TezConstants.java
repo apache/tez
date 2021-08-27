@@ -52,6 +52,7 @@ public class TezConstants {
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
   public static final String TEZ_PB_PLAN_BINARY_NAME = "tez-dag.pb";
   public static final String TEZ_PB_PLAN_TEXT_NAME = "tez-dag.pb.txt";
+  public static final String TEZ_PB_PLAN_JSON_NAME = "tez-dag.pb.json";
 
   /*
    * Logger properties

@@ -1038,6 +1038,7 @@ public class DAGAppMaster extends AbstractService {
     if (debugArtifacts) {
       Utils.generateDAGVizFile(newDag, dagPB, logDirs, newDag.getDAGScheduler());
       writePBTextFile(newDag);
+      writePBJsonFile(dagPB, newDag);
     }
   }
 
@@ -1053,6 +1054,21 @@ public class DAGAppMaster extends AbstractService {
       printWriter.close();
     } catch (IOException e) {
       LOG.warn("Failed to write TEZ_PLAN to " + outFile, e);
+    }
+  }
+
+  private void writePBJsonFile(DAGPlan dagPB, DAGImpl newDag) {
+    String logFile = logDirs[new Random().nextInt(logDirs.length)] + File.separatorChar + newDag.getID() + "-"
+        + TezConstants.TEZ_PB_PLAN_JSON_NAME;
+
+    LOG.info("Writing DAG JSON plan to: " + logFile);
+    File outFile = new File(logFile);
+    try {
+      PrintWriter printWriter = new PrintWriter(outFile, "UTF-8");
+      printWriter.println(DAGUtils.generateSimpleJSONPlan(dagPB));
+      printWriter.close();
+    } catch (IOException | JSONException e) {
+      LOG.warn("Failed to write TEZ_PLAN JSON to " + outFile, e);
     }
   }
 
