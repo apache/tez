@@ -16,36 +16,32 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | page', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:page', 'Unit | Controller | page', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:page').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.ok(controller);
+    assert.false(controller.isMyLoading);
   });
 
-  assert.ok(controller);
-  assert.ok(controller.loaded);
+  test('loaded test', function(assert) {
+    let controller = this.owner.factoryFor('controller:page').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-  assert.equal(controller.isLoading, false);
-});
-
-test('loaded test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.notOk(controller.loaded);
+    controller.set("model", true);
+    assert.ok(controller.loaded);
+    controller.set("isMyLoading", true);
+    assert.notOk(controller.loaded);
   });
-
-  assert.notOk(controller.get("loaded"));
-  controller.set("model", true);
-  assert.ok(controller.get("loaded"));
-  controller.set("isLoading", true);
-  assert.notOk(controller.get("loaded"));
 });

@@ -16,29 +16,27 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var app = this.modelFor("app"),
       entityID = app.get("entityID");
     return `Application Configuration: ${entityID}`;
-  }).volatile(),
+  },
 
   loaderNamespace: "app",
-
   canPoll: false,
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
     var ID = "tez_" + this.modelFor("app").get("entityID");
-    return this.get("loader").queryRecord('app', ID, options).catch(function () {
+    return this.loader.queryRecord('app', ID, options).catch(function () {
       return [];
     });
-  },
+  }
 });

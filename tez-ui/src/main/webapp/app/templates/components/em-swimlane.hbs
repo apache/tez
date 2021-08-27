@@ -17,47 +17,29 @@
 }}
 
 <div class="process-names">
-  {{#each normalizedProcesses key="_id" as |process|}}
-    {{component nameComponent
-      process=process
-      showTooltip="showTooltip"
-      hideTooltip="hideTooltip"
-      click="click"
-    }}
+  {{#each this.normalizedProcesses key="_id" as |process|}}
+    {{component this.nameComponent process=process showSwimlaneTooltip=this.showSwimlaneTooltip hideSwimlaneTooltip=this.hideSwimlaneTooltip routeToVertex=this.routeToVertex}}
   {{/each}}
   <div class="consolidated-view-label">
     Consolidated
   </div>
-</div><div class="process-visuals">
+</div><div class="process-visuals" {{action 'routeToVertex'}}>
   <div class="zoom-panel">
-    {{#each normalizedProcesses key="_id" as |process|}}
-      {{component visualComponent
-        process=process
-        processor=processor
-        showTooltip="showTooltip"
-        hideTooltip="hideTooltip"
-        click="click"
-      }}
+    {{#each this.normalizedProcesses key="_id" as |process|}}
+      {{component this.visualComponent process=process processor=this.processor showSwimlaneTooltip=this.showSwimlaneTooltip hideSwimlaneTooltip=this.hideSwimlaneTooltip routeToVertex=this.routeToVertex}}
     {{/each}}
 
-    {{#if consolidate}}
+    {{#if this.consolidate}}
       <div class="consolidated-view">
-        {{#each normalizedProcesses key="_id" as |process|}}
-          {{em-swimlane-consolidated-process
-            focusedProcess=focusedProcess
-            process=process
-            processor=processor
-            showTooltip="showTooltip"
-            hideTooltip="hideTooltip"
-            click="click"
-          }}
+        {{#each this.normalizedProcesses key="_id" as |process|}}
+          <EmSwimlaneConsolidatedProcess @focusedProcess={{this.focusedProcess}} @process={{process}} @processor={{this.processor}} @showSwimlaneTooltip={{this.showSwimlaneTooltip}} @hideSwimlaneTooltip={{this.hideSwimlaneTooltip}}  @routeToVertex={{this.routeToVertex}}/>
         {{/each}}
       </div>
     {{/if}}
 
-    {{em-swimlane-ruler scroll=scroll processor=processor zoom=zoom}}
+    <EmSwimlaneRuler @scroll={{this.scroll}} @processor={{this.processor}} @zoom={{this.zoom}} />
 
   </div>
 </div>
 
-{{em-tooltip contents=tooltipContents}}
+<EmTooltip @contents={{this.tooltipContents}} />

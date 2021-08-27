@@ -16,15 +16,17 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-search-ui', 'Integration | Component | em table search ui', {
-  integration: true
-});
+module('Integration | Component | em table search ui', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic rendering test', function(assert) {
-  this.render(hbs`{{em-table-search-ui}}`);
+  test('Basic rendering test', async function(assert) {
+    await render(hbs`{{em-table-search-ui}}`);
 
-  assert.equal(this.$().text().trim(), 'Search');
+    assert.equal(this.element.textContent.trim(), 'Search');
+  });
 });

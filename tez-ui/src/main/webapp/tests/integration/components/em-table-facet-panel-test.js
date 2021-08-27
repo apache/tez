@@ -16,28 +16,30 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-facet-panel', 'Integration | Component | em table facet panel', {
-  integration: true
-});
+module('Integration | Component | em table facet panel', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic renders', function(assert) {
+  test('Basic renders', async function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-  this.render(hbs`{{em-table-facet-panel}}`);
+    await render(hbs`{{em-table-facet-panel}}`);
 
-  assert.equal(this.$().text().replace(/\n|\r\n|\r| /g, '').trim(), 'NotAvailable!');
+    assert.equal(this.element.textContent.replace(/\n|\r\n|\r| /g, '').trim(), 'NotAvailable!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-facet-panel}}
-      template block text
-    {{/em-table-facet-panel}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-table-facet-panel}}
+        template block text
+      {{/em-table-facet-panel}}
+    `);
 
-  assert.equal(this.$().text().replace(/\n|\r\n|\r| /g, '').trim(), 'NotAvailable!');
+    assert.equal(this.element.textContent.replace(/\n|\r\n|\r| /g, '').trim(), 'NotAvailable!');
+  });
 });

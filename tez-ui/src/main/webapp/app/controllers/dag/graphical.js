@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed } from '@ember/object';
 
 import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
@@ -25,10 +25,10 @@ export default MultiTableController.extend({
 
   columnSelectorTitle: 'Customize vertex tooltip',
 
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "Graphical View",
     routeName: "dag.graphical",
-  }],
+  }]}),
 
   columns: ColumnDefinition.make([{
     id: 'name',
@@ -126,30 +126,28 @@ export default MultiTableController.extend({
     }
   },
 
-  actions: {
-    entityClicked: function (details) {
+  entityClicked: action(function (details) {
 
-      /**
-       * In IE 11 under Windows 7, mouse events are not delivered to the page
-       * anymore at all after a SVG use element that was under the mouse is
-       * removed from the DOM in the event listener in response to a mouse click.
-       * See https://connect.microsoft.com/IE/feedback/details/796745
-       *
-       * This condition and related actions must be removed once the bug is fixed
-       * in all supported IE versions
-       */
-      if(this.get("env.ENV.isIE")) {
-        var pageType = details.type === "io" ? "additionals" : details.type,
-            message = `You will be redirected to ${pageType} page`;
+    /**
+     * In IE 11 under Windows 7, mouse events are not delivered to the page
+     * anymore at all after a SVG use element that was under the mouse is
+     * removed from the DOM in the event listener in response to a mouse click.
+     * See https://connect.microsoft.com/IE/feedback/details/796745
+     *
+     * This condition and related actions must be removed once the bug is fixed
+     * in all supported IE versions
+     */
+    if(this.get("env.ENV.isIE")) {
+      var pageType = details.type === "io" ? "additionals" : details.type,
+        message = `You will be redirected to ${pageType} page`;
 
-        alert(message);
-      }
-      this.redirect(details);
+      alert(message);
     }
-  },
+    this.redirect(details);
+  }),
 
-  viewData: Ember.computed("model", function () {
-    var model = this.get("model"),
+  viewData: computed('model.firstObject.dag.vertices', function () {
+    var model = this.model,
         dag, vertices, entities;
 
     if(!model) {

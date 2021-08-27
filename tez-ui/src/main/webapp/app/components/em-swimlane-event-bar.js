@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed, observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   bar: null,
   barIndex: 0,
@@ -28,14 +30,14 @@ export default Ember.Component.extend({
 
   classNames: ["em-swimlane-event-bar"],
 
-  fromEvent: Ember.computed("process.events.@each.name", "bar.fromEvent", function () {
+  fromEvent: computed("process.events.@each.name", "bar.fromEvent", function () {
     var events = this.get("process.events"),
         fromEventName = this.get("bar.fromEvent");
     return events.find(function (event) {
       return event.name === fromEventName;
     });
   }),
-  toEvent: Ember.computed("process.events.@each.name", "bar.toEvent", function () {
+  toEvent: computed("process.events.@each.name", "bar.toEvent", function () {
     var events = this.get("process.events"),
         toEventName = this.get("bar.toEvent");
     return events.find(function (event) {
@@ -43,49 +45,62 @@ export default Ember.Component.extend({
     });
   }),
 
-  didInsertElement: Ember.observer("fromEvent.time", "toEvent.time",
-      "barIndex", "processor.timeWindow", function () {
+  didInsertElement: observer("fromEvent.time", "toEvent.time", "barIndex", "processor.timeWindow", function () {
 
-    var processor = this.get("processor"),
-        fromEventPos = processor.timeToPositionPercent(this.get("fromEvent.time")),
-        toEventPos = processor.timeToPositionPercent(this.get("toEvent.time")),
-        color = this.get("bar.color") || this.get("process").getBarColor(this.get("barIndex"));
+    var processor = this.processor,
+      fromEventPos = processor.timeToPositionPercent(this.get("fromEvent.time")),
+      toEventPos = processor.timeToPositionPercent(this.get("toEvent.time")),
+      color = this.get("bar.color") || this.process.getBarColor(this.barIndex);
 
-    Ember.run.scheduleOnce('afterRender', this, function() {
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
+
+    scheduleOnce('afterRender', this, function() {
       if(fromEventPos && toEventPos) {
-        this.$().show();
-        this.$(".event-bar").css({
-          left: fromEventPos + "%",
-          right: (100 - toEventPos) + "%",
-          "background-color": color,
-          "border-color": this.get("process").getColor()
-        });
+        this.element.style.display = 'block';
+        let eventBar = this.element.querySelector('.event-bar');
+        eventBar.style.left = fromEventPos + "%";
+        eventBar.style.right = (100 - toEventPos) + "%";
+        eventBar.style.backgroundColor = color;
+        eventBar.style.borderColor = this.process.getColor();
       }
       else {
-        this.$().hide();
+        this.element.style.display = 'none';
       }
     });
   }),
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "event-bar", this.get("process"), {
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showTooltip("event-bar", this.process, {
       mouseEvent: mouseEvent,
-      bar: this.get("bar"),
-      fromEvent: this.get("fromEvent"),
-      toEvent: this.get("toEvent")
+      bar: this.bar,
+      fromEvent: this.fromEvent,
+      toEvent: this.toEvent
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function () {
+    this.hideTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
-  mouseUp: function (mouseEvent) {
-    this.sendMouseAction("click", mouseEvent);
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
   }
-
 });

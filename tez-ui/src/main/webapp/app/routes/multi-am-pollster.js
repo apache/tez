@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed } from '@ember/object';
 import AmPollsterRoute from './am-pollster';
 
 export default AmPollsterRoute.extend({
 
-  canPoll: Ember.computed("polledRecords.0.dag.isComplete", "polledRecords.0.app.isComplete", "loadedValue", function () {
+  canPoll: computed("polledRecords.0.dag.isComplete", "polledRecords.0.app.isComplete", "loadedValue", function () {
     var isComplete = this.get("polledRecords.0.dag.isComplete");
     if(isComplete === undefined) {
       isComplete = this.get("polledRecords.0.app.isComplete");
@@ -29,10 +29,7 @@ export default AmPollsterRoute.extend({
     return isComplete === false && this._super();
   }),
 
-  actions: {
-    setPollingRecords: function (records) {
-      this.set("polledRecords", records);
-    }
-  }
-
+  setPollingRecords: action(function (records) {
+    this.set("polledRecords", records);
+  })
 });

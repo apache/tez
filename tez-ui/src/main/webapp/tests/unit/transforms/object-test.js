@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('transform:object', 'Unit | Transform | object', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+module('Unit | Transform | object', function(hooks) {
+  setupTest(hooks);
 
-// Replace this with your real tests.
-test('it exists', function(assert) {
-  let transform = this.subject();
-  assert.ok(transform);
+  // Replace this with your real tests.
+  test('it exists', function(assert) {
+    let transform = this.owner.lookup('transform:object');
+    assert.ok(transform);
+  });
 });

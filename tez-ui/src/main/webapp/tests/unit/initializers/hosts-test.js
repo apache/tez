@@ -16,23 +16,24 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import HostsInitializer from '../../../initializers/hosts';
+import Application from '@ember/application';
+import { run } from '@ember/runloop';
 import { module, test } from 'qunit';
+import HostsInitializer from '../../../initializers/hosts';
 
 let application;
 
-module('Unit | Initializer | hosts', {
-  beforeEach() {
-    Ember.run(function() {
-      application = Ember.Application.create();
+module('Unit | Initializer | hosts', function(hooks) {
+  hooks.beforeEach(function() {
+    run(function() {
+      application = Application.create();
       application.deferReadiness();
     });
-  }
-});
+  });
 
-test('it works', function(assert) {
-  HostsInitializer.initialize(application);
+  test('it works', function(assert) {
+    HostsInitializer.initialize(application);
 
-  assert.ok(true);
+    assert.ok(true);
+  });
 });

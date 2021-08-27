@@ -16,26 +16,26 @@
  * limitations under the License.
 }}
 
-{{#if isWaiting}}
+{{#if this.isWaiting}}
   Waiting...
 {{else}}
-  {{#if columnDefinition.cellComponentName}}
-    {{component columnDefinition.cellComponentName content=_cellContent definition=columnDefinition.cellDefinition}}
+  {{#if this.columnDefinition.cellComponentName}}
+    {{component this.columnDefinition.cellComponentName content=this._cellContent definition=this.columnDefinition.cellDefinition}}
   {{else}}
-    {{#unless columnDefinition.cellDefinition}}
-      {{txt _cellContent}}
+    {{#unless this.columnDefinition.cellDefinition}}
+      {{txt this._cellContent}}
     {{else}}
-      {{txt _cellContent
-        type=columnDefinition.cellDefinition.type
-        format=columnDefinition.cellDefinition.format
-        timeZone=columnDefinition.cellDefinition.timeZone
-        valueFormat=columnDefinition.cellDefinition.valueFormat
-        valueTimeZone=columnDefinition.cellDefinition.valueTimeZone
-        valueUnit=columnDefinition.cellDefinition.valueUnit
+      {{txt this._cellContent
+        type=this.columnDefinition.cellDefinition.type
+        format=this.columnDefinition.cellDefinition.format
+        timeZone=this.columnDefinition.cellDefinition.timeZone
+        valueFormat=this.columnDefinition.cellDefinition.valueFormat
+        valueTimeZone=this.columnDefinition.cellDefinition.valueTimeZone
+        valueUnit=this.columnDefinition.cellDefinition.valueUnit
       }}
     {{/unless}}
   {{/if}}
-  {{#if _comment}}
-    <div title="{{_comment}}" class="comment-indicator"></div>
+  {{#if this._comment}}
+    <div title="{{this._comment}}" class="comment-indicator"></div>
   {{/if}}
 {{/if}}

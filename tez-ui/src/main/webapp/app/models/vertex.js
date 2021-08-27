@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import AMTimelineModel from './am-timeline';
 
@@ -61,99 +61,99 @@ export default AMTimelineModel.extend({
     }
   },
 
-  name: DS.attr('string'),
+  name: attr('string'),
 
-  _initTime: DS.attr('number'),
-  _startTime: DS.attr('number'),
-  _endTime: DS.attr('number'),
-  _firstTaskStartTime: DS.attr('number'),
-  _lastTaskFinishTime: DS.attr('number'),
+  _initTime: attr('number'),
+  _startTime: attr('number'),
+  _endTime: attr('number'),
+  _firstTaskStartTime: attr('number'),
+  _lastTaskFinishTime: attr('number'),
 
-  initTime: Ember.computed("am.initTime", "_initTime",
+  initTime: computed("am.initTime", "_initTime",
     valueComputerFactory("am.initTime", "_initTime")
   ),
-  startTime: Ember.computed("firstTaskStartTime", "am.startTime", "_startTime",
+  startTime: computed("firstTaskStartTime", "am.startTime", "_startTime",
     valueComputerFactory("firstTaskStartTime", "am.startTime", "_startTime")
   ),
-  endTime: Ember.computed("am.endTime", "_endTime",
+  endTime: computed("am.endTime", "_endTime",
     valueComputerFactory("am.endTime", "_endTime")
   ),
-  firstTaskStartTime: Ember.computed("am.firstTaskStartTime", "_firstTaskStartTime",
+  firstTaskStartTime: computed("am.firstTaskStartTime", "_firstTaskStartTime",
     valueComputerFactory("am.firstTaskStartTime", "_firstTaskStartTime")
   ),
-  lastTaskFinishTime: Ember.computed("am.lastTaskFinishTime", "_lastTaskFinishTime",
+  lastTaskFinishTime: computed("am.lastTaskFinishTime", "_lastTaskFinishTime",
     valueComputerFactory("am.lastTaskFinishTime", "_lastTaskFinishTime")
   ),
 
-  totalTasks: DS.attr('number'),
-  _failedTasks: DS.attr('number'),
-  _succeededTasks: DS.attr('number'),
-  _killedTasks: DS.attr('number'),
+  totalTasks: attr('number'),
+  _failedTasks: attr('number'),
+  _succeededTasks: attr('number'),
+  _killedTasks: attr('number'),
 
-  failedTasks: Ember.computed("am.failedTasks", "_failedTasks",
+  failedTasks: computed("am.failedTasks", "_failedTasks",
     valueComputerFactory("am.failedTasks", "_failedTasks")
   ),
-  succeededTasks: Ember.computed("am.succeededTasks", "_succeededTasks",
+  succeededTasks: computed("am.succeededTasks", "_succeededTasks",
     valueComputerFactory("am.succeededTasks", "_succeededTasks")
   ),
-  killedTasks: Ember.computed("am.killedTasks", "_killedTasks",
+  killedTasks: computed("am.killedTasks", "_killedTasks",
     valueComputerFactory("am.killedTasks", "_killedTasks")
   ),
 
-  finalStatus: Ember.computed("status", "failedTaskAttempts", function () {
-    var status = this.get("status");
-    if(status === "SUCCEEDED" && this.get("failedTaskAttempts")) {
+  finalStatus: computed("status", "failedTaskAttempts", function () {
+    var status = this.status;
+    if(status === "SUCCEEDED" && this.failedTaskAttempts) {
       status = "SUCCEEDED_WITH_FAILURES";
     }
     return status;
   }),
 
-  runningTasks: Ember.computed("am.runningTasks", "status", function () {
+  runningTasks: computed("am.runningTasks", "status", function () {
     var runningTasks = this.get("am.runningTasks");
     if(runningTasks === undefined) {
-      runningTasks = this.get("status") === 'SUCCEEDED' ? 0 : null;
+      runningTasks = this.status === 'SUCCEEDED' ? 0 : null;
     }
     return  runningTasks;
   }),
-  pendingTasks: Ember.computed("totalTasks", "succeededTasks", "runningTasks", function () {
+  pendingTasks: computed("totalTasks", "succeededTasks", "runningTasks", function () {
     var pendingTasks = null,
-        runningTasks = this.get("runningTasks"),
-        totalTasks = this.get("totalTasks");
+        runningTasks = this.runningTasks,
+        totalTasks = this.totalTasks;
     if(totalTasks!== null && runningTasks !== null) {
-      pendingTasks = totalTasks - this.get("succeededTasks") - runningTasks;
+      pendingTasks = totalTasks - this.succeededTasks - runningTasks;
     }
     return pendingTasks;
   }),
 
-  _failedTaskAttempts: DS.attr('number'),
-  _killedTaskAttempts: DS.attr('number'),
-  failedTaskAttempts: Ember.computed("am.failedTaskAttempts", "_failedTaskAttempts",
+  _failedTaskAttempts: attr('number'),
+  _killedTaskAttempts: attr('number'),
+  failedTaskAttempts: computed("am.failedTaskAttempts", "_failedTaskAttempts",
     valueComputerFactory("am.failedTaskAttempts", "_failedTaskAttempts")
   ),
-  killedTaskAttempts: Ember.computed("am.killedTaskAttempts", "_killedTaskAttempts",
+  killedTaskAttempts: computed("am.killedTaskAttempts", "_killedTaskAttempts",
     valueComputerFactory("am.killedTaskAttempts", "_killedTaskAttempts")
   ),
 
-  minDuration: DS.attr('number'),
-  maxDuration: DS.attr('number'),
-  avgDuration: DS.attr('number'),
+  minDuration: attr('number'),
+  maxDuration: attr('number'),
+  avgDuration: attr('number'),
 
-  firstTasksToStart: DS.attr("object"),
-  lastTasksToFinish: DS.attr("object"),
-  shortestDurationTasks: DS.attr("object"),
-  longestDurationTasks: DS.attr("object"),
+  firstTasksToStart: attr("object"),
+  lastTasksToFinish: attr("object"),
+  shortestDurationTasks: attr("object"),
+  longestDurationTasks: attr("object"),
 
-  processorClassName: DS.attr('string'),
+  processorClassName: attr('string'),
 
-  dagID: DS.attr('string'),
-  dag: DS.attr('object'), // Auto-loaded by need
+  dagID: attr('string'),
+  dag: attr('object'), // Auto-loaded by need
 
-  description: Ember.computed("dag.vertices", "name", function () {
+  description: computed("dag.vertices", "name", function () {
     try {
-      let vertex = this.get("dag.vertices").findBy("vertexName", this.get("name"));
+      let vertex = this.get("dag.vertices").findBy("vertexName", this.name);
       return JSON.parse(vertex.userPayloadAsText).desc;
     }catch(e) {}
   }),
 
-  servicePlugin: DS.attr('object'),
+  servicePlugin: attr('object'),
 });

@@ -16,65 +16,66 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { setupRenderingTest } from 'ember-qunit';
+import { hbs } from 'ember-cli-htmlbars';
+import EmberObject from '@ember/object';
 
-import Ember from 'ember';
+module('Integration | Component | home table controls', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('home-table-controls', 'Integration | Component | home table controls', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
+    await render(hbs`<HomeTableControls/>`);
 
-test('Basic creation test', function(assert) {
-  this.render(hbs`{{home-table-controls}}`);
+    assert.dom(this.element).hasText('Load Counters');
+    assert.dom('button').hasClass("no-visible");
 
-  assert.equal(this.$().text().trim(), 'Load Counters');
-  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), 2);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <HomeTableControls>
+        template block text
+      </HomeTableControls>
+    `);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#home-table-controls}}
-      template block text
-    {{/home-table-controls}}
-  `);
-
-  assert.equal(this.$().text().trim(), 'Load Counters');
-});
-
-test('countersLoaded test', function(assert) {
-  this.set("dataProcessor", {
-    processedRows: [Ember.Object.create({
-      counterGroupsHash: {
-        counter: {}
-      }
-    }), Ember.Object.create({
-      counterGroupsHash: {
-        counter: {}
-      }
-    })]
+    assert.dom(this.element).hasText('Load Counters');
   });
-  this.render(hbs`{{home-table-controls dataProcessor=dataProcessor}}`);
-  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), 2);
 
-  this.set("dataProcessor", {
-    processedRows: [Ember.Object.create({
-      counterGroupsHash: {}
-    }), Ember.Object.create({
-      counterGroupsHash: {
-        counter: {}
-      }
-    })]
-  });
-  this.render(hbs`{{home-table-controls dataProcessor=dataProcessor}}`);
-  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), -1);
+  test('countersLoaded test', async function(assert) {
+    this.set("dataProcessor", {
+      processedRows: [EmberObject.create({
+        counterGroupsHash: {
+          counter: {}
+        }
+      }), EmberObject.create({
+        counterGroupsHash: {
+          counter: {}
+        }
+      })]
+    });
+    await render(hbs`<HomeTableControls @dataProcessor={{this.dataProcessor}}/>`);
+    assert.dom('button').hasClass("no-visible");
 
-  this.set("dataProcessor", {
-    processedRows: [Ember.Object.create({
-      counterGroupsHash: {}
-    }), Ember.Object.create({
-      counterGroupsHash: {}
-    })]
+    this.set("dataProcessor", {
+      processedRows: [EmberObject.create({
+        counterGroupsHash: {}
+      }), EmberObject.create({
+        counterGroupsHash: {
+          counter: {}
+        }
+      })]
+    });
+    await render(hbs`<HomeTableControls @dataProcessor={{this.dataProcessor}}/>`);
+    assert.dom('button').doesNotHaveClass("no-visible");
+
+    this.set("dataProcessor", {
+      processedRows: [EmberObject.create({
+        counterGroupsHash: {}
+      }), EmberObject.create({
+        counterGroupsHash: {}
+      })]
+    });
+    await render(hbs`<HomeTableControls @dataProcessor={{this.dataProcessor}}/>`);
+    assert.dom('button').doesNotHaveClass("no-visible");
   });
-  this.render(hbs`{{home-table-controls dataProcessor=dataProcessor}}`);
-  assert.equal(this.$().find("button").attr("class").split(" ").indexOf("no-visible"), -1);
 });

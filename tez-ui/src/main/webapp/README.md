@@ -47,6 +47,12 @@ You will need the following things properly installed on your computer.
 
 * `yarn test`
 
+### Linting
+
+* `yarn lint:hbs`
+* `yarn lint:js`
+* `yarn lint:js --fix`
+
 ### Building
 
 * `yarn run build` (production)

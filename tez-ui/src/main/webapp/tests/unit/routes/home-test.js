@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:home', 'Unit | Route | home', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | home', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:home');
 
-  assert.ok(route);
-  assert.equal(route.get("title"), "Home");
-  assert.ok(route.get("actions.setLoadTime"));
+    assert.ok(route);
+    assert.equal(route.title, "Home");
+    assert.ok(route.get("actions.setLoadTime"));
+  });
 });

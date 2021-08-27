@@ -16,66 +16,66 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 
-moduleForComponent('em-swimlane-vertex-name', 'Integration | Component | em swimlane vertex name', {
-  integration: true
-});
+module('Integration | Component | em swimlane vertex name', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  this.render(hbs`{{em-swimlane-vertex-name}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    await render(hbs`{{em-swimlane-vertex-name}}`);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-vertex-name}}
-      template block text
-    {{/em-swimlane-vertex-name}}
-  `);
-  assert.equal(this.$().text().trim(), 'Not Available!');
-});
-
-test('Name test', function(assert) {
-  this.set("process", Process.create({
-    name: "TestName"
-  }));
-
-  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
-  return wait().then(() => {
-    var content = this.$().text().trim();
-    assert.equal(content.substr(content.length - 8), 'TestName');
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-vertex-name}}
+        template block text
+      {{/em-swimlane-vertex-name}}
+    `);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
   });
-});
 
-test('Progress test', function(assert) {
-  this.set("process", Process.create({
-    vertex: {
-      finalStatus: "RUNNING",
-      progress: 0.5
-    }
-  }));
+  test('Name test', async function(assert) {
+    this.set("process", Process.create({
+      name: "TestName"
+    }));
 
-  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
-  return wait().then(() => {
-    assert.equal(this.$(".progress-text").text().trim(), '50%');
+    await render(hbs`{{em-swimlane-vertex-name process=process}}`);
+    return settled().then(() => {
+      var content = this.element.textContent.trim();
+      assert.equal(content.substr(content.length - 8), 'TestName');
+    });
   });
-});
 
-test('finalStatus test', function(assert) {
-  this.set("process", Process.create({
-    vertex: {
-      finalStatus: "STAT"
-    }
-  }));
+  test('Progress test', async function(assert) {
+    this.set("process", Process.create({
+      vertex: {
+        finalStatus: "RUNNING",
+        progress: 0.5
+      }
+    }));
 
-  this.render(hbs`{{em-swimlane-vertex-name process=process}}`);
-  return wait().then(() => {
-    assert.equal(this.$().text().trim(), 'STAT');
+    await render(hbs`{{em-swimlane-vertex-name process=process}}`);
+    return settled().then(() => {
+      assert.equal(find(".progress-text").textContent.trim(), '50%');
+    });
+  });
+
+  test('finalStatus test', async function(assert) {
+    this.set("process", Process.create({
+      vertex: {
+        finalStatus: "STAT"
+      }
+    }));
+
+    await render(hbs`{{em-swimlane-vertex-name process=process}}`);
+    return settled().then(() => {
+      assert.equal(this.element.textContent.trim(), 'STAT');
+    });
   });
 });

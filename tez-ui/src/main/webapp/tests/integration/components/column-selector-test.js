@@ -16,92 +16,93 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+module('Integration | Component | column selector', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('column-selector', 'Integration | Component | column selector', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
 
-test('Basic creation test', function(assert) {
-
-  this.set("content", {
-    columns: [Ember.Object.create({
-      headerTitle: "Test Column"
-    })]
-  });
-  this.render(hbs`{{column-selector content=content}}`);
-
-  assert.equal(this.$(".select-option ").text().trim(), 'Test Column');
-
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#column-selector content=content}}
-      template block text
-    {{/column-selector}}
-  `);
-
-  assert.equal(this.$(".select-option ").text().trim(), 'Test Column');
-});
-
-test('visibleColumnIDs test', function(assert) {
-
-  this.setProperties({
-    content: {
-      visibleColumnIDs: {
-        testID: true,
-      },
-      columns: [Ember.Object.create({
-        id: "testID",
+    this.set("content", {
+      columns: [EmberObject.create({
         headerTitle: "Test Column"
       })]
-    }
+    });
+    await render(hbs`<ColumnSelector @content={{this.content}}/>`);
+
+    assert.dom('.select-option').hasText('Test Column');
+
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <ColumnSelector @content={{this.content}}>
+        template block text
+      </ColumnSelector>
+    `);
+
+    assert.dom('.select-option').hasText('Test Column');
   });
 
-  this.render(hbs`{{column-selector content=content}}`);
+  test('visibleColumnIDs test', async function(assert) {
 
-  assert.equal(this.$(".select-option").text().trim(), 'Test Column');
-  assert.equal(this.$(".select-option input")[0].checked, true);
-});
+    this.setProperties({
+      content: {
+        visibleColumnIDs: {
+          testID: true,
+        },
+        columns: [EmberObject.create({
+          id: "testID",
+          headerTitle: "Test Column"
+        })]
+      }
+    });
 
-test('searchText test', function(assert) {
+    await render(hbs`<ColumnSelector @content={{this.content}}/>`);
 
-  this.setProperties({
-    searchText: "nothing",
-    content: {
-      visibleColumnIDs: {
-        testID: true,
-      },
-      columns: [Ember.Object.create({
-        id: "testID",
-        headerTitle: "Test Column"
-      })]
-    }
+    assert.dom('.select-option').hasText('Test Column');
+    assert.true(find(".select-option input").checked);
   });
 
-  this.render(hbs`{{column-selector content=content searchText=searchText}}`);
+  test('searchText no results test', async function(assert) {
 
-  assert.equal(this.$(".select-option").text().trim(), '');
-});
+    this.setProperties({
+      searchText: "nothing",
+      content: {
+        visibleColumnIDs: {
+          testID: true,
+        },
+        columns: [EmberObject.create({
+          id: "testID",
+          headerTitle: "Test Column"
+        })]
+      }
+    });
 
-test('case-insensitive searchText test', function(assert) {
+    await render(hbs`<ColumnSelector @content={{this.content}} @searchText={{this.searchText}}/>`);
 
-  this.setProperties({
-    searchText: "test",
-    content: {
-      visibleColumnIDs: {
-        testID: true,
-      },
-      columns: [Ember.Object.create({
-        id: "testID",
-        headerTitle: "Test Column"
-      })]
-    }
+    assert.equal(find(".select-option"), null);
   });
 
-  this.render(hbs`{{column-selector content=content searchText=searchText}}`);
+  test('case-insensitive searchText test', async function(assert) {
 
-  assert.equal(this.$(".select-option").text().trim(), 'Test Column');
+    this.setProperties({
+      searchText: "test",
+      content: {
+        visibleColumnIDs: {
+          testID: true,
+        },
+        columns: [EmberObject.create({
+          id: "testID",
+          headerTitle: "Test Column"
+        })]
+      }
+    });
+
+    await render(hbs`<ColumnSelector @content={{this.content}} @searchText={{this.searchText}}/>`);
+
+    assert.dom('.select-option').hasText('Test Column');
+  });
 });

@@ -16,84 +16,73 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import Ember from 'ember';
+module('Unit | Route | app/index', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:app/index', 'Unit | Route | app/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:app/index');
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
-
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-});
-
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'app');
-      return Ember.Object.create({
-        entityID: 'app_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
-});
+  test('setupController test', function(assert) {
+    assert.expect(1);
 
-test('Test load', function(assert) {
-  let testID = "123",
-      testOptions = {},
-      testErr = {},
-      route = this.subject({
-        modelFor: function (type) {
-          assert.equal(type, "app");
-          return Ember.Object.create({
-            entityID: testID
-          });
-        },
-        get: function () {
-          return { // loader
-            queryRecord: function (type, id, options) {
-              assert.equal(type, "app");
-              assert.equal(id, "tez_123");
-              assert.equal(options, testOptions);
-              return {
-                catch: function (callback) {
-                  return callback(testErr);
-                }
-              };
-            },
-            query: function (type, query, options) {
-              assert.equal(type, "dag");
-              assert.equal(query.appID, testID);
-              assert.equal(query.limit, 1);
-              assert.equal(options, testOptions);
-              return {
-                then: function (callback) {
-                  return callback([]);
-                }
-              };
-            }
-          };
-        }
-      });
+    let route = this.owner.factoryFor('route:app/index').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
 
-  assert.expect(1 + 3 + 4 + 1);
+    route.setupController({}, {});
+  });
 
-  assert.throws(function () {
-    route.load(null, null, testOptions);
+  test('Test load', function(assert) {
+    let testID = "123",
+        testOptions = {},
+        testErr = {},
+        route = this.owner.factoryFor('route:app/index').create({
+          modelFor: function (type) {
+            assert.equal(type, "app");
+            return EmberObject.create({
+              entityID: testID
+            });
+          },
+          get: function (name) {
+            return { // injecting our own mock loader by overriding get
+              queryRecord: function (type, id, options) {
+                assert.equal(type, "app");
+                assert.equal(id, "tez_123");
+                assert.equal(options, testOptions);
+                return {
+                  catch: function (callback) {
+                    return callback(testErr);
+                  }
+                };
+              },
+              query: function (type, query, options) {
+                assert.equal(type, "dag");
+                assert.equal(query.appID, testID);
+                assert.equal(query.limit, 1);
+                assert.equal(options, testOptions);
+                return {
+                  then: function (callback) {
+                    return callback([]);
+                  }
+                };
+              }
+            };
+          }
+        });
+
+    assert.expect(1 + 3 + 4 + 1);
+
+    assert.throws(function () {
+      route.load(null, null, testOptions);
+    });
   });
 });

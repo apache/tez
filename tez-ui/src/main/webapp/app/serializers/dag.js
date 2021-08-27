@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,18 +16,17 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
+import MoreObject from '../utils/more-object';
 
 import DAGInfoSerializer from './dag-info';
 
-var MoreObject = more.Object;
-
 function getStatus(source) {
-  var status = Ember.get(source, 'otherinfo.status') || Ember.get(source, 'primaryfilters.status.0'),
+  var status = get(source, 'otherinfo.status') || get(source, 'primaryfilters.status.0'),
       event = source.events;
 
   if(!status && event) {
-    if(event.findBy('eventtype', 'DAG_STARTED')) {
+    if(event.find(({eventtype}) => eventtype === 'DAG_STARTED')) {
       status = 'RUNNING';
     }
   }
@@ -37,11 +35,11 @@ function getStatus(source) {
 }
 
 function getStartTime(source) {
-  var time = Ember.get(source, 'otherinfo.startTime'),
+  var time = get(source, 'otherinfo.startTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'DAG_STARTED');
+    event = event.find(({eventtype}) => eventtype === 'DAG_STARTED');
     if(event) {
       time = event.timestamp;
     }
@@ -51,11 +49,11 @@ function getStartTime(source) {
 }
 
 function getEndTime(source) {
-  var time = Ember.get(source, 'otherinfo.endTime'),
+  var time = get(source, 'otherinfo.endTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'DAG_FINISHED');
+    event = event.find(({eventtype}) => eventtype === 'DAG_FINISHED');
     if(event) {
       time = event.timestamp;
     }
@@ -66,7 +64,7 @@ function getEndTime(source) {
 
 function getContainerLogs(source) {
   var containerLogs = [],
-      otherinfo = Ember.get(source, 'otherinfo');
+      otherinfo = source.otherinfo;
 
   if(!otherinfo) {
     return undefined;
@@ -74,7 +72,7 @@ function getContainerLogs(source) {
 
   for (var key in otherinfo) {
     if (key.indexOf('inProgressLogsURL_') === 0) {
-      let logs = Ember.get(source, 'otherinfo.' + key);
+      let logs = get(source, 'otherinfo.' + key);
       if (logs.indexOf("://") === -1) {
         let yarnProtocol = this.get('env.app.yarnProtocol');
         logs = yarnProtocol + '://' + logs;
@@ -91,7 +89,7 @@ function getContainerLogs(source) {
 }
 
 function getIdNameMap(source) {
-  var nameIdMap = Ember.get(source, 'otherinfo.vertexNameIdMapping'),
+  var nameIdMap = get(source, 'otherinfo.vertexNameIdMapping'),
       idNameMap = {};
 
   if(nameIdMap) {

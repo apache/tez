@@ -16,28 +16,30 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-progress-cell', 'Integration | Component | em table progress cell', {
-  integration: true
-});
+module('Integration | Component | em table progress cell', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-  this.render(hbs`{{em-table-progress-cell content=0.5}}`);
+    await render(hbs`{{em-table-progress-cell content=0.5}}`);
 
-  assert.equal(this.$().text().trim(), '50%');
+    assert.equal(this.element.textContent.trim(), '50%');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-progress-cell content=0.5}}
-      template block text
-    {{/em-table-progress-cell}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-table-progress-cell content=0.5}}
+        template block text
+      {{/em-table-progress-cell}}
+    `);
 
-  assert.equal(this.$().text().trim(), '50%');
+    assert.equal(this.element.textContent.trim(), '50%');
+  });
 });

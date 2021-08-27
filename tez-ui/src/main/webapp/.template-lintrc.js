@@ -16,24 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import JqueryInitializer from '../../../initializers/jquery';
-import { module, test } from 'qunit';
+'use strict';
 
-let application;
-
-module('Unit | Initializer | jquery', {
-  beforeEach() {
-    Ember.run(function() {
-      application = Ember.Application.create();
-      application.deferReadiness();
-    });
-  }
-});
-
-test('Basic creation test', function(assert) {
-  JqueryInitializer.initialize(application);
-
-  assert.ok(Ember.$(document).tooltip( "instance" ));
-  assert.equal(Ember.$.ajaxSetup().cache, false);
-});
+module.exports = {
+  extends: 'octane',
+};

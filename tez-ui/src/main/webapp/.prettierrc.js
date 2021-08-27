@@ -16,19 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+'use strict';
 
-export function initialize(/* application */) {
-  Ember.$(document).tooltip({
-    tooltipClass: 'generic-tooltip'
-  });
-
-  Ember.$.ajaxSetup({
-    cache: false
-  });
-}
-
-export default {
-  name: 'jquery',
-  initialize
+module.exports = {
+  singleQuote: true,
 };

@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject, { computed, observer } from '@ember/object';
 
-export default Ember.Object.extend({
+export default EmberObject.extend({
 
   recordType: "",
 
@@ -45,7 +45,7 @@ export default Ember.Object.extend({
   enablePagination: true,
   pageNum: 1,
   rowCount: 10,
-  rowCountOptions: [5, 10, 25, 50, 100],
+  rowCountOptions: computed(function() { return [5, 10, 25, 50, 100] }),
 
   enableColumnResize: true,
   showScrollShadow: false,
@@ -54,7 +54,7 @@ export default Ember.Object.extend({
 
   columns: [],
 
-  _pageNumResetObserver: Ember.observer('searchText', 'facetConditions', 'rowCount', function () {
+  _pageNumResetObserver: observer('searchText', 'facetConditions', 'rowCount', function () {
     this.set('pageNum', 1);
   }),
 

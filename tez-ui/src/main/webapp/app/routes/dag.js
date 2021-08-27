@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+import { action } from '@ember/object';
 import AbstractRoute from './abstract';
 
 export default AbstractRoute.extend({
@@ -26,13 +27,11 @@ export default AbstractRoute.extend({
   },
 
   model: function (params) {
-    return this.get("loader").queryRecord('dag', this.queryFromParams(params).id).
+    return this.loader.queryRecord('dag', this.queryFromParams(params).id).
       catch(this.onLoadFailure.bind(this));
   },
 
-  actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    }
-  }
+  setLoadTime: action(function (time) {
+    this.set("controller.loadTime", time);
+  })
 });

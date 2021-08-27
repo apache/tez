@@ -29,7 +29,8 @@
   <properties>
     <webappDir>src/main/webapp</webappDir>
 
-    <nodeVersion>v5.12.0</nodeVersion>
+    <nodeVersion>v14.18.1</nodeVersion>
+    <yarnVersion>v1.22.15</yarnVersion>
     <nodeExecutable>${basedir}/src/main/webapp/node/node</nodeExecutable>
 
     <packageManagerScript>node/yarn/dist/bin/yarn.js</packageManagerScript>
@@ -232,9 +233,6 @@
                 <fileset>
                   <directory>${webappDir}/node_modules</directory>
                 </fileset>
-                <fileset>
-                  <directory>${webappDir}/bower_components</directory>
-                </fileset>
               </filesets>
             </configuration>
           </plugin>
@@ -332,26 +330,30 @@
           <excludes>
             <exclude>src/main/webapp/node/**/*</exclude>
             <exclude>src/main/webapp/node_modules/**/*</exclude>
-            <exclude>src/main/webapp/bower_components/**/*</exclude>
             <exclude>src/main/webapp/.tmp/**/*</exclude>
             <exclude>src/main/webapp/dist/**/*</exclude>
             <exclude>src/main/webapp/tmp/**/*</exclude>
-            <exclude>src/main/webapp/.bowerrc</exclude>
             <exclude>src/main/webapp/.editorconfig</exclude>
             <exclude>src/main/webapp/.ember-cli</exclude>
+            <exclude>src/main/webapp/.eslintignore</exclude>
             <exclude>src/main/webapp/.gitignore</exclude>
             <exclude>src/main/webapp/.jshintrc</exclude>
+            <exclude>src/main/webapp/.jshintignore</exclude>
+            <exclude>src/main/webapp/.prettierignore</exclude>
+            <exclude>src/main/webapp/.travis.yml</exclude>
+            <exclude>src/main/webapp/config/optional-features.json</exclude>
+            <exclude>src/main/webapp/config/ember-cli-update.json</exclude>
             <exclude>src/main/webapp/tests/.jshintrc</exclude>
             <exclude>src/main/webapp/blueprints/.jshintrc</exclude>
             <exclude>src/main/webapp/.watchmanconfig</exclude>
-            <exclude>src/main/webapp/bower.json</exclude>
-            <exclude>src/main/webapp/bower-shrinkwrap.json</exclude>
             <exclude>src/main/webapp/ember-cli-build.js</exclude>
             <exclude>src/main/webapp/package.json</exclude>
             <exclude>src/main/webapp/yarn.lock</exclude>
+            <exclude>src/main/webapp/tests/helpers/.gitkeep</exclude>
             <exclude>src/main/webapp/testem.json</exclude>
             <exclude>src/main/webapp/public/assets/images/*</exclude>
             <exclude>src/main/webapp/WEB-INF/wro.xml</exclude>
+            <exclude>src/main/webapp/WEB-INF/wro.properties</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -374,7 +376,7 @@
             </goals>
             <configuration>
               <nodeVersion>${nodeVersion}</nodeVersion>
-              <yarnVersion>v0.21.3</yarnVersion>
+              <yarnVersion>${yarnVersion}</yarnVersion>
             </configuration>
           </execution>
           <execution>
@@ -386,16 +388,6 @@
             <configuration>
               <arguments>install</arguments>
             </configuration>
-          </execution>
-          <execution>
-            <phase>generate-resources</phase>
-            <id>bower install</id>
-            <configuration>
-              <arguments>install ${allow-root-build}</arguments>
-            </configuration>
-            <goals>
-              <goal>bower</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>

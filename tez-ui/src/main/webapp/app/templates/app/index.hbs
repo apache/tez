@@ -16,34 +16,34 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{#if model.app.entityID}}
+{{#if this.loaded}}
+  {{#if this.model.app.entityID}}
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>YARN App Details</th>
+        <th colspan="2">YARN App Details</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Status</td>
-        <td>{{em-table-status-cell content=model.app.status}}</td>
+        <td><EmTableStatusCell @content={{this.model.app.status}} /></td>
       </tr>
       <tr>
         <td>Final Status</td>
-        <td>{{em-table-status-cell content=model.app.finalStatus}}</td>
+        <td><EmTableStatusCell @content={{this.model.app.finalStatus}} /></td>
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{date-formatter content=model.app.startTime}}</td>
+        <td><DateFormatter @content={{this.model.app.startTime}} /></td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{date-formatter content=model.app.endTime}}</td>
+        <td><DateFormatter @content={{this.model.app.endTime}} /></td>
       </tr>
       <tr>
         <td>Duration</td>
-        <td>{{txt model.app.duration type="duration"}}</td>
+        <td>{{txt this.model.app.duration type="duration"}}</td>
       </tr>
       </tbody>
     </table>
@@ -51,53 +51,53 @@
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>YARN App Description</th>
+        <th colspan="2">YARN App Description</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Application Tracking URL</td>
-        <td><a href={{trackingURL}} target="_blank">{{model.app.entityID}}</a></td>
+        <td><a href={{this.trackingURL}} target="_blank" rel="noopener noreferrer">{{this.model.app.entityID}}</a></td>
       </tr>
       <tr>
         <td>Application Name</td>
-        <td>{{model.app.name}}</td>
+        <td>{{this.model.app.name}}</td>
       </tr>
       <tr>
         <td>Queue</td>
-        <td>{{model.app.queue}}</td>
+        <td>{{this.model.app.queue}}</td>
       </tr>
       <tr>
         <td>Application Type</td>
-        <td>{{model.app.type}}</td>
+        <td>{{this.model.app.type}}</td>
       </tr>
       <tr>
         <td>User</td>
-        <td>{{model.app.user}}</td>
+        <td>{{this.model.app.user}}</td>
       </tr>
       </tbody>
     </table>
   {{/if}}
 
-  {{#if model.entityID}}
+  {{#if this.model.entityID}}
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>Tez Details</th>
+        <th colspan="2">Tez Details</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Entity ID</td>
-        <td>{{model.entityID}}</td>
+        <td>{{this.model.entityID}}</td>
       </tr>
       <tr>
         <td>Domain</td>
-        <td>{{model.domain}}</td>
+        <td>{{this.model.domain}}</td>
       </tr>
       <tr>
         <td>User</td>
-        <td>{{model.user}}</td>
+        <td>{{this.model.user}}</td>
       </tr>
       </tbody>
     </table>
@@ -105,38 +105,38 @@
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>Version Details</th>
+        <th colspan="2">Version Details</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Build Version</td>
-        <td>{{model.tezVersion}}</td>
+        <td>{{this.model.tezVersion}}</td>
       </tr>
       <tr>
         <td>Build Revision</td>
-        <td>{{model.tezRevision}}</td>
+        <td>{{this.model.tezRevision}}</td>
       </tr>
       <tr>
         <td>Build Time</td>
-        <td>{{model.buildTime}}</td>
+        <td>{{this.model.buildTime}}</td>
       </tr>
       </tbody>
     </table>
   {{/if}}
 
-  {{#unless (and model.entityID model.app.entityID)}}
+  {{#unless (and this.model.entityID this.model.app.entityID)}}
     <h2>Some data is not available!</h2>
     <h5>No data returned from URL:
       <i>
-        {{#unless model.entityID}}
-          {{hosts.timeline}}/{{env.app.namespaces.webService.timeline}}/{{env.app.paths.timeline.app}}/tez_{{model.appID}}
+        {{#unless this.model.entityID}}
+          {{this.hosts.timeline}}/{{this.env.app.namespaces.webService.timeline}}/{{this.env.app.paths.timeline.app}}/tez_{{this.model.appID}}
         {{/unless}}
-        {{#unless model.app.entityID}}
-          {{#unless model.entityID}}
+        {{#unless this.model.app.entityID}}
+          {{#unless this.model.entityID}}
             &
           {{/unless}}
-          {{hosts.timeline}}/{{env.app.namespaces.webService.appHistory}}/apps/{{model.appID}}
+          {{this.hosts.timeline}}/{{this.env.app.namespaces.webService.appHistory}}/apps/{{this.model.appID}}
         {{/unless}}
       </i>.
       The data may not be available in YARN Timeline or you may not have the necessary permissions to view this data.
@@ -144,5 +144,5 @@
   {{/unless}}
 
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

@@ -17,28 +17,28 @@
 }}
 
 <ul class="nav nav-tabs">
-  {{#each normalizedTabs as |tab|}}
+  {{#each this.normalizedTabs as |tab|}}
     <li class="{{if tab.active 'active'}}">
-      {{#link-to tab.routeName}}
+      <LinkTo @route={{tab.routeName}}>
         {{tab.text}}
-      {{/link-to}}
+      </LinkTo>
     </li>
   {{/each}}
 </ul>
 <div class="refresh-ui">
   <span class="text-elements">
-    <span class="auto-refresh {{unless autoRefreshVisible 'no-visible'}}">
-      {{input type="checkbox" name="autoEnabled" checked=autoRefreshEnabled}}
+    <span class="auto-refresh {{unless this.autoRefreshVisible 'no-visible'}}">
+      <Input @type="checkbox" name="autoEnabled" @checked={{this.autoRefreshEnabled}} aria-label="Enable auto-refresh"/>
       Auto Refresh
       <br/>
     </span>
-    {{#if loadTime}}
-      Last refreshed at <b>{{date-formatter content=loadTime}}</b>
+    {{#if this.loadTime}}
+      Last refreshed at <b><DateFormatter @content={{this.loadTime}} /></b>
     {{else}}
       Load time not available!
     {{/if}}
   </span>
   <button type="button" class="btn btn-success" {{action "refresh"}}>
-    <i class='fa fa-refresh'></i> Refresh
+    <i class='fas fa-sync'></i> Refresh
   </button>
 </div>

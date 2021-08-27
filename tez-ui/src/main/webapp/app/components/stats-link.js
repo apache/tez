@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { oneWay } from '@ember/object/computed';
 
-export default Ember.Component.extend({
+export default Component.extend({
   value: null,
   routeName: null,
   statsType: null,
 
-  searchText: Ember.computed.oneWay("statsType"),
+  searchText: oneWay("statsType"),
 });

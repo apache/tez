@@ -1,6 +1,3 @@
-/*jshint node:true*/
-/* global require, module */
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,23 +17,44 @@
  */
 
 var Funnel = require("broccoli-funnel");
-var EmberApp = require('ember-cli/lib/broccoli/ember-app');
+const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 var MergeTrees = require('broccoli-merge-trees');
 
-module.exports = function(defaults) {
+module.exports = function (defaults) {
   var isProd = EmberApp.env() === 'production';
-  var app = new EmberApp(defaults, {
+  let app = new EmberApp(defaults, {
+    autoImport: {
+      // customize ember-auto-import for Content Security Policy
+      forbidEval: true,
+      webpack: {
+        node: {
+          global: true,
+          fs: 'empty'
+        },
+        module: {
+          noParse: /alasql/
+        }
+      },
+    },
     storeConfigInMeta: false,
+
+    lessOptions: {
+      paths: ['node_modules/bootstrap-less/bootstrap/'],
+    },
+
     minifyCSS: {
       enabled: isProd
     },
+
     minifyJS: {
       // Will be minified by wro4j-maven-plugin for performance
       enabled: false,
     },
+
     fingerprint: {
       enabled: false
     },
+
     sourcemaps: {
       enabled: !isProd
     }
@@ -47,31 +65,19 @@ module.exports = function(defaults) {
      include: ['configs.js'],
      destDir: '/config'
   });
-  var zipWorker = new Funnel('bower_components/zip-js', {
+
+  app.import('node_modules/zip-js/WebContent/zip.js');
+  var zipWorker = new Funnel('node_modules/zip-js', {
      srcDir: '/WebContent',
      include: ['z-worker.js', 'deflate.js', 'inflate.js'],
      destDir: '/assets/zip'
   });
-  var copyFonts = new Funnel('bower_components/font-awesome/', {
-     srcDir: '/fonts',
-     include: ['*.*'],
-     destDir: '/fonts'
+
+  var copyFonts = new Funnel('node_modules/@fortawesome/fontawesome-free/', {
+     srcDir: '/webfonts',
+     include: ['*.woff2'],
+     destDir: '/webfonts'
   });
-
-  app.import('bower_components/bootstrap/dist/js/bootstrap.js');
-  app.import('bower_components/jquery-ui/jquery-ui.js');
-  app.import('bower_components/jquery-ui/ui/tooltip.js');
-
-  app.import('bower_components/more-js/dist/more.js');
-
-  app.import('bower_components/file-saver.js/FileSaver.js');
-  app.import('bower_components/zip-js/WebContent/zip.js');
-
-  app.import('bower_components/codemirror/lib/codemirror.js');
-  app.import('bower_components/codemirror/mode/sql/sql.js');
-  app.import('bower_components/codemirror/mode/pig/pig.js');
-  app.import('bower_components/codemirror/lib/codemirror.css');
-  app.import('bower_components/alasql/dist/alasql.js');
 
   return app.toTree(new MergeTrees([configEnv, zipWorker, copyFonts]));
 };

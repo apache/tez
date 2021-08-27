@@ -15,38 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('route:attempt/index', 'Unit | Route | attempt/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+module('Unit | Route | attempt/index', function(hooks) {
+  setupTest(hooks);
 
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:attempt/index');
 
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'attempt');
-      return Ember.Object.create({
-        entityID: 'attempt_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
+  test('setupController test', function(assert) {
+    assert.expect(1);
+
+    let route = this.owner.factoryFor('route:attempt/index').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
+
+    route.setupController({}, {});
+  });
 });

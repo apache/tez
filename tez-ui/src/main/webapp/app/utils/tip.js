@@ -16,16 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
 /**
  * Displays a tooltip over an svg element.
  */
-var _element = null,  // jQuery tooltip DOM element
+var _element = null,  // DOM element
     _bubble = null,   // Tooltip bubble in _element
-    _svg = null,      // HTML svg tag that contains the element
     _svgPoint = null, // A SVGPoint object
-    _window = Ember.$(window),
+    _window = window,
 
     _data = null, // Last displayed data, for re-render
     _node = null; // Last node over which tooltip was displayed
@@ -45,7 +42,7 @@ function _createList(list) {
   if(list) {
     listContent.push("<table>");
 
-    Ember.$.each(list, function (property, value) {
+    for (const [property, value] of Object.entries(list)) {
       listContent.push(
         "<tr><td>",
         property,
@@ -53,7 +50,7 @@ function _createList(list) {
         value,
         "</td></tr>"
       );
-    });
+    }
     listContent.push("</table>");
 
     return listContent.join("");
@@ -75,28 +72,27 @@ function _createList(list) {
  * }
  */
 function _setData(data) {
-  _element.find('.tip-title').html(data.title || "");
-  _element.find('.tip-text').html(data.text || "");
-  _element.find('.tip-text')[data.text ? 'show' : 'hide']();
-  _element.find('.tip-list').html(_createList(data.kvList) || "");
+  _element.querySelector('.tip-title').innerHTML = data.title || "";
+  _element.querySelector('.tip-text').innerHTML = data.text || "";
+  _element.querySelector('.tip-text').style.display = data.text ? 'block' : 'none';
+  _element.querySelector('.tip-list').innerHTML = _createList(data.kvList) || "";
 }
 
 var Tip = {
   /**
    * Set the tip defaults
-   * @param tipElement {$} jQuery reference to the tooltip DOM element.
+   * @param tipElement {$} reference to the tooltip DOM element.
    *    The element must contain 3 children with class tip-title, tip-text & tip-list.
-   * @param svg {$} jQuery reference to svg html element
+   * @param svg {$} reference to svg html element
    */
   init: function (tipElement, svg) {
     _element = tipElement;
-    _bubble = _element.find('.bubble');
-    _svg = svg;
-    _svgPoint = svg[0].createSVGPoint();
+    _bubble = _element.querySelector('.bubble');
+    _svgPoint = svg.createSVGPoint();
   },
   showTip: function () {
     if(_data) {
-      _element.addClass('show');
+      _element.classList.add('show');
     }
   },
   /**
@@ -122,8 +118,8 @@ var Tip = {
           y: event.y
         }),
 
-        windMid = _window.height() >> 1,
-        winWidth = _window.width(),
+        windMid = _window.innerHeight >> 1,
+        winWidth = _window.innerWidth,
 
         showAbove = point.y < windMid,
         offsetX = 0,
@@ -136,18 +132,19 @@ var Tip = {
       _setData(data);
     }
 
+    _element.classList.add('show');
     if(showAbove) {
-      _element.removeClass('below');
-      _element.addClass('above');
+      _element.classList.remove('below');
+      _element.classList.add('above');
     }
     else {
-      _element.removeClass('above');
-      _element.addClass('below');
+      _element.classList.remove('above');
+      _element.classList.add('below');
 
-      point.y -= _element.height();
+      point.y -= parseFloat(getComputedStyle(_element, null).height.replace("px", ""));
     }
 
-    width = _element.width();
+    width = parseFloat(getComputedStyle(_element, null).width.replace("px", ""))
     offsetX = (width - 11) >> 1;
 
     if(point.x - offsetX < 0) {
@@ -157,16 +154,9 @@ var Tip = {
       offsetX = point.x - (winWidth - 10 - width);
     }
 
-    _bubble.css({
-      left: -offsetX
-    });
-
-    Ember.run.debounce(Tip, "showTip", 500);
-
-    _element.css({
-      left: point.x,
-      top: point.y
-    });
+    _bubble.style.left = `-${offsetX}px`;
+    _element.style.left = `${point.x}px`;
+    _element.style.top = `${point.y}px`;
   },
   /**
    * Reposition the tooltip based on last passed data & node.
@@ -181,7 +171,7 @@ var Tip = {
    */
   hide: function () {
     _data = _node = null;
-    _element.removeClass('show');
+    _element.classList.remove('show');
   }
 };
 

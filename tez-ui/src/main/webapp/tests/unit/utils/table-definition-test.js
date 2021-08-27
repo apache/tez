@@ -16,37 +16,42 @@
  * limitations under the License.
  */
 
-import TableDefinition from '../../../utils/table-definition';
 import { module, test } from 'qunit';
+import { settled } from '@ember/test-helpers';
+import TableDefinition from '../../../utils/table-definition';
 
-module('Unit | Utility | table definition');
+module('Unit | Utility | table definition', function() {
+  test('Class creation test', function(assert) {
+    assert.ok(TableDefinition);
+  });
 
-test('Class creation test', function(assert) {
-  assert.ok(TableDefinition);
-});
+  test('Default instance test', function(assert) {
+    var definition = TableDefinition.create();
 
-test('Default instance test', function(assert) {
-  var definition = TableDefinition.create();
+    assert.ok(definition);
 
-  assert.ok(definition);
+    assert.equal(definition.pageNum, 1);
+    assert.equal(definition.rowCount, 10);
+    assert.equal(definition.minRowsForFooter, 25);
+  });
 
-  assert.equal(definition.pageNum, 1);
-  assert.equal(definition.rowCount, 10);
-  assert.equal(definition.minRowsForFooter, 25);
-});
+  test('Page-num reset test', async function(assert) {
+    var definition = TableDefinition.create();
 
-test('Page-num reset test', function(assert) {
-  var definition = TableDefinition.create();
+    await settled();
+    assert.equal(definition.pageNum, 1);
 
-  assert.equal(definition.pageNum, 1);
+    definition.set("pageNum", 5);
+    await settled();
+    assert.equal(definition.pageNum, 5);
 
-  definition.set("pageNum", 5);
-  assert.equal(definition.pageNum, 5);
+    definition.set("searchText", "x");
+    await settled();
+    assert.equal(definition.pageNum, 1);
 
-  definition.set("searchText", "x");
-  assert.equal(definition.pageNum, 1);
-
-  definition.set("pageNum", 5);
-  definition.set("rowCount", 5);
-  assert.equal(definition.pageNum, 1);
+    definition.set("pageNum", 5);
+    definition.set("rowCount", 5);
+    await settled();
+    assert.equal(definition.pageNum, 1);
+  });
 });

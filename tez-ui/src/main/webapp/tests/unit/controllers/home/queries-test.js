@@ -16,133 +16,133 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:home/queries', 'Unit | Controller | home/queries', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | home/queries', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:home/queries').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
+
+    assert.ok(controller.queryParams);
+    assert.equal(controller.queryParams.length, 9 + 5);
+
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.headerComponentNames);
+    assert.equal(controller.headerComponentNames.length, 3);
+    assert.equal(controller.footerComponentNames.length, 1);
+
+    assert.ok(controller.definition);
+    assert.ok(controller.columns);
+    assert.equal(controller.columns.length, 17);
+
+    assert.ok(controller.getCounterColumns);
+
+    assert.ok(controller.actions.search);
+    assert.ok(controller.actions.pageChanged);
+
+    assert.equal(controller.pageNum, 1);
   });
 
-  assert.ok(controller);
+  test('definition test', function(assert) {
+    let controller = this.owner.factoryFor('controller:home/queries').create({
+          initVisibleColumns() {},
+          beforeSort: {bind() {}},
+          send() {}
+        }),
+        definition = controller.definition,
 
-  assert.ok(controller.queryParams);
-  assert.equal(controller.queryParams.length, 9 + 5);
+        testQueryID = "QueryID",
+        testDagID = "DagID",
+        testAppID = "AppID",
+        testExecutionMode = "ExecutionMode",
+        testUser = "User",
+        testRequestUser = "RequestUser",
+        testTablesRead = "TablesRead",
+        testTablesWritten = "TablesWritten",
+        testQueue = "queue",
 
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.headerComponentNames);
-  assert.equal(controller.headerComponentNames.length, 3);
-  assert.equal(controller.footerComponentNames.length, 1);
+        testPageNum = 10,
+        testMoreAvailable = true,
+        testLoadingMore = true;
 
-  assert.ok(controller.definition);
-  assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 17);
+    assert.equal(definition.get("queryID"), "");
+    assert.equal(definition.get("dagID"), "");
+    assert.equal(definition.get("appID"), "");
+    assert.equal(definition.get("executionMode"), "");
+    assert.equal(definition.get("user"), "");
+    assert.equal(definition.get("requestUser"), "");
+    assert.equal(definition.get("tablesRead"), "");
+    assert.equal(definition.get("tablesWritten"), "");
+    assert.equal(definition.get("queue"), "");
 
-  assert.ok(controller.getCounterColumns);
+    assert.equal(definition.get("pageNum"), 1);
 
-  assert.ok(controller.actions.search);
-  assert.ok(controller.actions.pageChanged);
+    assert.false(definition.get("moreAvailable"));
+    assert.false(definition.get("loadingMore"));
 
-  assert.equal(controller.get("pageNum"), 1);
-});
+    run(function () {
+      controller.set("queryID", testQueryID);
+      assert.equal(controller.get("definition.queryID"), testQueryID);
 
-test('definition test', function(assert) {
-  let controller = this.subject({
-        initVisibleColumns: Ember.K,
-        beforeSort: {bind: Ember.K},
-        send: Ember.K
-      }),
-      definition = controller.get("definition"),
+      controller.set("dagID", testDagID);
+      assert.equal(controller.get("definition.dagID"), testDagID);
 
-      testQueryID = "QueryID",
-      testDagID = "DagID",
-      testAppID = "AppID",
-      testExecutionMode = "ExecutionMode",
-      testUser = "User",
-      testRequestUser = "RequestUser",
-      testTablesRead = "TablesRead",
-      testTablesWritten = "TablesWritten",
-      testQueue = "queue",
+      controller.set("appID", testAppID);
+      assert.equal(controller.get("definition.appID"), testAppID);
 
-      testPageNum = 10,
-      testMoreAvailable = true,
-      testLoadingMore = true;
+      controller.set("executionMode", testExecutionMode);
+      assert.equal(controller.get("definition.executionMode"), testExecutionMode);
 
-  assert.equal(definition.get("queryID"), "");
-  assert.equal(definition.get("dagID"), "");
-  assert.equal(definition.get("appID"), "");
-  assert.equal(definition.get("executionMode"), "");
-  assert.equal(definition.get("user"), "");
-  assert.equal(definition.get("requestUser"), "");
-  assert.equal(definition.get("tablesRead"), "");
-  assert.equal(definition.get("tablesWritten"), "");
-  assert.equal(definition.get("queue"), "");
+      controller.set("user", testUser);
+      assert.equal(controller.get("definition.user"), testUser);
 
-  assert.equal(definition.get("pageNum"), 1);
+      controller.set("requestUser", testRequestUser);
+      assert.equal(controller.get("definition.requestUser"), testRequestUser);
 
-  assert.equal(definition.get("moreAvailable"), false);
-  assert.equal(definition.get("loadingMore"), false);
+      controller.set("tablesRead", testTablesRead);
+      assert.equal(controller.get("definition.tablesRead"), testTablesRead);
 
-  Ember.run(function () {
-    controller.set("queryID", testQueryID);
-    assert.equal(controller.get("definition.queryID"), testQueryID);
+      controller.set("tablesWritten", testTablesWritten);
+      assert.equal(controller.get("definition.tablesWritten"), testTablesWritten);
 
-    controller.set("dagID", testDagID);
-    assert.equal(controller.get("definition.dagID"), testDagID);
+      controller.set("queue", testQueue);
+      assert.equal(controller.get("definition.queue"), testQueue);
 
-    controller.set("appID", testAppID);
-    assert.equal(controller.get("definition.appID"), testAppID);
+      controller.set("pageNum", testPageNum);
+      assert.equal(controller.get("definition.pageNum"), testPageNum);
 
-    controller.set("executionMode", testExecutionMode);
-    assert.equal(controller.get("definition.executionMode"), testExecutionMode);
+      controller.set("moreAvailable", testMoreAvailable);
+      assert.equal(controller.get("definition.moreAvailable"), testMoreAvailable);
 
-    controller.set("user", testUser);
-    assert.equal(controller.get("definition.user"), testUser);
-
-    controller.set("requestUser", testRequestUser);
-    assert.equal(controller.get("definition.requestUser"), testRequestUser);
-
-    controller.set("tablesRead", testTablesRead);
-    assert.equal(controller.get("definition.tablesRead"), testTablesRead);
-
-    controller.set("tablesWritten", testTablesWritten);
-    assert.equal(controller.get("definition.tablesWritten"), testTablesWritten);
-
-    controller.set("queue", testQueue);
-    assert.equal(controller.get("definition.queue"), testQueue);
-
-    controller.set("pageNum", testPageNum);
-    assert.equal(controller.get("definition.pageNum"), testPageNum);
-
-    controller.set("moreAvailable", testMoreAvailable);
-    assert.equal(controller.get("definition.moreAvailable"), testMoreAvailable);
-
-    controller.set("loadingMore", testLoadingMore);
-    assert.equal(controller.get("definition.loadingMore"), testLoadingMore);
+      controller.set("loadingMore", testLoadingMore);
+      assert.equal(controller.get("definition.loadingMore"), testLoadingMore);
+    });
   });
-});
 
-test('breadcrumbs test', function(assert) {
-  let breadcrumbs = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  }).get("breadcrumbs");
+  test('breadcrumbs test', function(assert) {
+    let breadcrumbs = this.owner.factoryFor('controller:home/queries').create({
+      send() {},
+      initVisibleColumns() {}
+    }).get("breadcrumbs");
 
-  assert.equal(breadcrumbs.length, 1);
-  assert.equal(breadcrumbs[0].text, "All Queries");
-});
+    assert.equal(breadcrumbs.length, 1);
+    assert.equal(breadcrumbs[0].text, "All Queries");
+  });
 
-test('getCounterColumns test', function(assert) {
-  let getCounterColumns = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  }).get("getCounterColumns");
+  test('getCounterColumns test', function(assert) {
+    let getCounterColumns = this.owner.factoryFor('controller:home/queries').create({
+      send() {},
+      initVisibleColumns() {}
+    }).get("getCounterColumns");
 
-  assert.equal(getCounterColumns().length, 0);
+    assert.equal(getCounterColumns().length, 0);
+  });
 });

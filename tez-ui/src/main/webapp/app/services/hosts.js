@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
+import Service, { inject as service } from '@ember/service';
 
-export default Ember.Service.extend({
+export default Service.extend({
 
-  env: Ember.inject.service("env"),
+  env: service("env"),
 
   correctProtocol: function (url, localProto) {
     var index = url.indexOf("://");
@@ -47,15 +48,15 @@ export default Ember.Service.extend({
     return url;
   },
 
-  timeline: Ember.computed(function () {
+  timeline: computed('env.app.hosts.timeline', function () {
     return this.normalizeURL(this.get("env.app.hosts.timeline"));
   }),
 
-  rm: Ember.computed(function () {
+  rm: computed('env.app.hosts.rm', function () {
     return this.normalizeURL(this.get("env.app.hosts.rm"));
   }),
 
-  am: Ember.computed(function () {
+  am: computed('env.app.hosts.{rm,rmProxy}', function () {
     var url = this.get("env.app.hosts.rmProxy") || this.get("env.app.hosts.rm");
     return this.normalizeURL(url);
   }),

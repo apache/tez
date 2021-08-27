@@ -1,4 +1,3 @@
-/*global alasql*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,13 +16,13 @@
  * limitations under the License.
  */
 
-
-import Ember from 'ember';
+import alasql from 'alasql';
+import EmberObject from '@ember/object';
 
 /*
  * A wrapper around AlaSQL
  */
-export default Ember.Object.extend({
+export default EmberObject.extend({
 
   constructQuery: function(clause) {
     return `SELECT * FROM ? WHERE ${clause}`;
@@ -50,7 +49,7 @@ export default Ember.Object.extend({
     if(conditions && columns) {
       return columns.map(function (column) {
         if(column.get("facetType")) {
-          return column.get("facetType.toClause")(column, conditions[Ember.get(column, "id")]);
+          return column.get("facetType.toClause")(column, conditions[column.id]);
         }
       }).filter(clause => clause).join(" AND ");
     }

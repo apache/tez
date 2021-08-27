@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import Model, { attr } from '@ember-data/model';
 
-export default DS.Model.extend({
+export default Model.extend({
   loadTime: null,
 
   mergedProperties: ["needs"],
@@ -34,20 +34,20 @@ export default DS.Model.extend({
     return this._super(keys);
   },
 
-  didLoad: function () {
-    this.refreshLoadTime();
-  },
+  dataReady: computed("isLoaded", function () {
+    return this.refreshLoadTime();
+  }),
 
-  entityID: DS.attr("string"),
+  entityID: attr("string"),
 
-  index: Ember.computed("entityID", function () {
-    var id = this.get("entityID") || "";
+  index: computed("entityID", function () {
+    var id = this.entityID || "";
     return id.substr(id.lastIndexOf('_') + 1);
   }),
 
-  status: DS.attr("string"),
-  isComplete: Ember.computed("status", function () {
-    switch(this.get("status")) {
+  status: attr("string"),
+  isComplete: computed("status", function () {
+    switch(this.status) {
       case "SUCCEEDED":
       case "FINISHED":
       case "FAILED":

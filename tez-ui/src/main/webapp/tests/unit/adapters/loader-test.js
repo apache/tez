@@ -16,124 +16,123 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve } from 'rsvp';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Adapter | loader', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('adapter:loader', 'Unit | Adapter | loader', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+  test('Basic creation', function(assert) {
+    let adapter = this.owner.lookup('adapter:loader');
 
-test('Basic creation', function(assert) {
-  let adapter = this.subject();
+    assert.ok(adapter);
+    assert.ok(adapter._isLoader);
+    assert.ok(adapter.buildURL);
+    assert.ok(adapter._loaderAjax);
+    assert.ok(adapter.queryRecord);
+    assert.ok(adapter.query);
 
-  assert.ok(adapter);
-  assert.ok(adapter._isLoader);
-  assert.ok(adapter.buildURL);
-  assert.ok(adapter._loaderAjax);
-  assert.ok(adapter.queryRecord);
-  assert.ok(adapter.query);
-
-  assert.equal(adapter.get("name"), "loader");
-});
-
-test('buildURL test', function(assert) {
-  let adapter = this.subject();
-
-  assert.equal(adapter.buildURL("dag"), "/dags");
-  assert.equal(adapter.buildURL("dag", "dag1"), "/dags/dag1");
-  assert.equal(adapter.buildURL("{x}dag", "dag1", null, null, null, {x: "x_x"}), "/x_xdags/dag1", "Test for substitution");
-});
-
-test('_loaderAjax test', function(assert) {
-  let adapter = this.subject(),
-      testURL = "/dags",
-      testQueryParams = { x:1 },
-      testRecord = {},
-      testNameSpace = "ns";
-
-  assert.expect(2 + 1 + 2);
-
-  adapter.ajax = function (url, method/*, options*/) {
-
-    assert.equal(url, testURL);
-    assert.equal(method, "GET");
-
-    return Ember.RSVP.resolve(testRecord);
-  };
-
-  adapter.sortQueryParams = function (queryParams) {
-    assert.ok(queryParams, "sortQueryParams was called with query params");
-  };
-
-  adapter._loaderAjax(testURL, testQueryParams, testNameSpace).then(function (data) {
-    assert.equal(data.nameSpace, testNameSpace, "Namespace returned");
-    assert.equal(data.data, testRecord, "Test record returned");
+    assert.equal(adapter.get("name"), "loader");
   });
-});
 
-test('queryRecord test', function(assert) {
-  let adapter = this.subject(),
-      testURL = "/dags",
-      testModel = { modelName: "testModel" },
-      testStore = {},
-      testQuery = {
-        id: "test1",
-        params: {},
-        urlParams: {},
-        nameSpace: "ns"
-      };
+  test('buildURL test', function(assert) {
+    let adapter = this.owner.lookup('adapter:loader');
 
-  assert.expect(4 + 3);
+    assert.equal(adapter.buildURL("dag"), "/dags");
+    assert.equal(adapter.buildURL("dag", "dag1"), "/dags/dag1");
+    assert.equal(adapter.buildURL("{x}dag", "dag1", null, null, null, {x: "x_x"}), "/x_xdags/dag1", "Test for substitution");
+  });
 
-  adapter.buildURL = function (modelName, id, snapshot, requestType, query, params) {
-    assert.equal(modelName, testModel.modelName);
-    assert.equal(id, testQuery.id);
-    assert.equal(query, testQuery.params);
-    assert.equal(params, testQuery.urlParams);
+  test('_loaderAjax test', function(assert) {
+    let adapter = this.owner.lookup('adapter:loader'),
+        testURL = "/dags",
+        testQueryParams = { x:1 },
+        testRecord = {},
+        testNameSpace = "ns";
 
-    return testURL;
-  };
+    assert.expect(2 + 1 + 2);
 
-  adapter._loaderAjax = function (url, queryParams, nameSpace) {
-    assert.equal(url, testURL);
-    assert.equal(queryParams, testQuery.params);
-    assert.equal(nameSpace, testQuery.nameSpace);
-  };
+    adapter.ajax = function (url, method/*, options*/) {
 
-  adapter.queryRecord(testStore, testModel, testQuery);
-});
+      assert.equal(url, testURL);
+      assert.equal(method, "GET");
 
-test('query test', function(assert) {
-  let adapter = this.subject(),
-      testURL = "/dags",
-      testModel = { modelName: "testModel" },
-      testStore = {},
-      testQuery = {
-        id: "test1",
-        params: {},
-        urlParams: {},
-        nameSpace: "ns"
-      };
+      return resolve(testRecord);
+    };
 
-  assert.expect(5 + 3);
+    adapter.sortQueryParams = function (queryParams) {
+      assert.ok(queryParams, "sortQueryParams was called with query params");
+    };
 
-  adapter.buildURL = function (modelName, id, snapshot, requestType, query, params) {
-    assert.equal(modelName, testModel.modelName);
-    assert.equal(id, null);
-    assert.equal(requestType, "query");
-    assert.equal(query, testQuery.params);
-    assert.equal(params, testQuery.urlParams);
+    adapter._loaderAjax(testURL, testQueryParams, testNameSpace).then(function (data) {
+      assert.equal(data.nameSpace, testNameSpace, "Namespace returned");
+      assert.equal(data.data, testRecord, "Test record returned");
+    });
+  });
 
-    return testURL;
-  };
+  test('queryRecord test', function(assert) {
+    let adapter = this.owner.lookup('adapter:loader'),
+        testURL = "/dags",
+        testModel = { modelName: "testModel" },
+        testStore = {},
+        testQuery = {
+          id: "test1",
+          params: {},
+          urlParams: {},
+          nameSpace: "ns"
+        };
 
-  adapter._loaderAjax = function (url, queryParams, nameSpace) {
-    assert.equal(url, testURL);
-    assert.equal(queryParams, testQuery.params);
-    assert.equal(nameSpace, testQuery.nameSpace);
-  };
+    assert.expect(4 + 3);
 
-  adapter.query(testStore, testModel, testQuery);
+    adapter.buildURL = function (modelName, id, snapshot, requestType, query, params) {
+      assert.equal(modelName, testModel.modelName);
+      assert.equal(id, testQuery.id);
+      assert.equal(query, testQuery.params);
+      assert.equal(params, testQuery.urlParams);
+
+      return testURL;
+    };
+
+    adapter._loaderAjax = function (url, queryParams, nameSpace) {
+      assert.equal(url, testURL);
+      assert.equal(queryParams, testQuery.params);
+      assert.equal(nameSpace, testQuery.nameSpace);
+    };
+
+    adapter.queryRecord(testStore, testModel, testQuery);
+  });
+
+  test('query test', function(assert) {
+    let adapter = this.owner.lookup('adapter:loader'),
+        testURL = "/dags",
+        testModel = { modelName: "testModel" },
+        testStore = {},
+        testQuery = {
+          id: "test1",
+          params: {},
+          urlParams: {},
+          nameSpace: "ns"
+        };
+
+    assert.expect(5 + 3);
+
+    adapter.buildURL = function (modelName, id, snapshot, requestType, query, params) {
+      assert.equal(modelName, testModel.modelName);
+      assert.equal(id, null);
+      assert.equal(requestType, "query");
+      assert.equal(query, testQuery.params);
+      assert.equal(params, testQuery.urlParams);
+
+      return testURL;
+    };
+
+    adapter._loaderAjax = function (url, queryParams, nameSpace) {
+      assert.equal(url, testURL);
+      assert.equal(queryParams, testQuery.params);
+      assert.equal(nameSpace, testQuery.nameSpace);
+    };
+
+    adapter.query(testStore, testModel, testQuery);
+  });
 });

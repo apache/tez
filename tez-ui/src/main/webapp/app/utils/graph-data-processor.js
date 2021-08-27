@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { assign } from '@ember/polyfills';
 
 /**
  * The data processing part of Dag View.
@@ -198,7 +199,7 @@ function centericMap(array, callback) {
 /**
  * Abstract class for all types of data nodes
  */
-var DataNode = Ember.Object.extend({
+var DataNode = EmberObject.extend({
       init: function (data) {
         this._super(data);
         this._init(data);
@@ -230,7 +231,7 @@ var DataNode = Ember.Object.extend({
        * @param children {Array} Array of DataNodes to be set
        */
       setChildren: function (children) {
-        var allChildren = this.get('allChildren');
+        var allChildren = this.allChildren;
         if(allChildren) {
           this._setChildren(allChildren.filter(function (child) {
             return children.indexOf(child) !== -1; // true if child is in children
@@ -242,7 +243,7 @@ var DataNode = Ember.Object.extend({
        * @param childrenToRemove {Array} Array of DataNodes to be removed
        */
       removeChildren: function (childrenToRemove) {
-        var children = this.get('children');
+        var children = this.children;
         if(children) {
           children = children.filter(function (child) {
             return childrenToRemove.indexOf(child) === -1; // false if child is in children
@@ -298,7 +299,7 @@ var DataNode = Ember.Object.extend({
       depth: 0,    // Depth of the node in the tree structure
 
       _init: function () {
-        this._setChildren([this.get('dummy')]);
+        this._setChildren([this.dummy]);
       }
     }),
     VertexDataNode = DataNode.extend({
@@ -311,7 +312,7 @@ var DataNode = Ember.Object.extend({
 
         // Initialize data members
         this.setProperties({
-          id: this.get('vertexName'),
+          id: this.vertexName,
           inputs: [], // Array of sources
           outputs: [] // Array of sinks
         });
@@ -333,7 +334,7 @@ var DataNode = Ember.Object.extend({
         this.set('depth', depth);
 
         depth++;
-        this.get('inputs').forEach(function (input) {
+        this.inputs.forEach(function (input) {
           input.set('depth', depth);
         });
       },
@@ -350,11 +351,11 @@ var DataNode = Ember.Object.extend({
        * Include sources and sinks in the children list, so that they are displayed
        */
       includeAdditionals: function() {
-        this.setChildren(this.get('inputs').concat(this.get('children') || []));
+        this.setChildren(this.inputs.concat(this.children || []));
 
         var ancestor = this.get('parent.parent');
         if(ancestor) {
-          ancestor.setChildren(this.get('outputs').concat(ancestor.get('children') || []));
+          ancestor.setChildren(this.outputs.concat(ancestor.get('children') || []));
         }
         this.set('_additionalsIncluded', true);
       },
@@ -362,11 +363,11 @@ var DataNode = Ember.Object.extend({
        * Exclude sources and sinks in the children list, so that they are hidden
        */
       excludeAdditionals: function() {
-        this.removeChildren(this.get('inputs'));
+        this.removeChildren(this.inputs);
 
         var ancestor = this.get('parent.parent');
         if(ancestor) {
-          ancestor.removeChildren(this.get('outputs'));
+          ancestor.removeChildren(this.outputs);
         }
         this.set('_additionalsIncluded', false);
       },
@@ -374,7 +375,7 @@ var DataNode = Ember.Object.extend({
        * Toggle inclusion/display of sources and sinks.
        */
       toggleAdditionalInclusion: function () {
-        var include = !this.get('_additionalsIncluded');
+        var include = !this._additionalsIncluded;
         this.set('_additionalsIncluded', include);
 
         if(include) {
@@ -385,17 +386,17 @@ var DataNode = Ember.Object.extend({
         }
       }
     }),
-    InputDataNode = Ember.$.extend(DataNode.extend({
+    InputDataNode = assign(DataNode.extend({
       type: types.INPUT,
       vertex: null, // The vertex DataNode to which this node is linked
 
       _init: function () {
-        var vertex = this.get('vertex');
+        var vertex = this.vertex;
         this._super();
 
         // Initialize data members
         this.setProperties({
-          id: vertex.get('vertexName') + this.get('name'),
+          id: vertex.get('vertexName') + this.name,
           depth: vertex.get('depth') + 1
         });
       }
@@ -406,13 +407,13 @@ var DataNode = Ember.Object.extend({
        * @param data {Object}
        */
       instantiate: function (vertex, data) {
-        return InputDataNode.create(Ember.$.extend(data, {
+        return InputDataNode.create(assign(data, {
           treeParent: vertex,
           vertex: vertex
         }));
       }
     }),
-    OutputDataNode = Ember.$.extend(DataNode.extend({
+    OutputDataNode = assign(DataNode.extend({
       type: types.OUTPUT,
       vertex: null, // The vertex DataNode to which this node is linked
 
@@ -421,7 +422,7 @@ var DataNode = Ember.Object.extend({
 
         // Initialize data members
         this.setProperties({
-          id: this.get('vertex.vertexName') + this.get('name')
+          id: this.get('vertex.vertexName') + this.name
         });
       }
     }), {
@@ -435,7 +436,7 @@ var DataNode = Ember.Object.extend({
          * We will have an idea about the treeParent & depth only after creating the
          * tree structure.
          */
-        return OutputDataNode.create(Ember.$.extend(data, {
+        return OutputDataNode.create(assign(data, {
           vertex: vertex
         }));
       }
@@ -625,13 +626,13 @@ function _getLinks(node) {
   });
 
   if(node.type === types.INPUT) {
-    links.push(Ember.Object.create({
+    links.push(EmberObject.create({
       sourceId: node.get('id'),
       targetId: node.get('vertex.id')
     }));
   }
   else if(node.type === types.OUTPUT) {
-    links.push(Ember.Object.create({
+    links.push(EmberObject.create({
       sourceId: node.get('vertex.id'),
       targetId: node.get('id')
     }));
@@ -679,7 +680,7 @@ function _getGraphDetails(tree) {
  * @return {Object} An object with vertices hash, edges hash and array of root vertices.
  */
 function _normalizeRawData(data) {
-  var EmObj = Ember.Object,
+  var EmObj = EmberObject,
       vertices,          // Hash of vertices
       edges,             // Hash of edges
       rootVertices = []; // Vertices without out-edges are considered root vertices

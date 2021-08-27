@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,29 +16,32 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { get } from '@ember/object';
+import { assert } from '@ember/debug';
+import JSONSerializer from '@ember-data/serializer/json';
+import MoreObject from '../utils/more-object';
 
-var MoreObject = more.Object;
-
-// TODO - Move to more js
 function mapObject(hash, map, thisArg) {
-  var mappedObject = Ember.Object.create();
-  MoreObject.forEach(map, function (key, value) {
+  let mappedObject = {};
+
+  let keys = Object.keys(map);
+  for (let i = 0, len = keys.length; i < len; i++) {
+    let key = keys[i];
+    let value = map[key];
     if(MoreObject.isString(value)) {
-      mappedObject.set(key, Ember.get(hash, value));
+      mappedObject[key] = get(hash, value);
     }
     else if (MoreObject.isFunction(value)) {
-      mappedObject.set(key, value.call(thisArg, hash));
+      mappedObject[key] = value.call(thisArg, hash);
     }
     else {
-      Ember.assert("Unknown mapping value");
+      assert("Unknown mapping value");
     }
-  });
+  }
   return mappedObject;
 }
 
-export default DS.JSONSerializer.extend({
+export default JSONSerializer.extend({
   _isLoader: true,
 
   mergedProperties: ["maps"],
@@ -55,7 +57,7 @@ export default DS.JSONSerializer.extend({
     return id;
   },
   extractAttributes: function (modelClass, resourceHash) {
-    var maps = this.get('maps'),
+    var maps = this.maps,
         data = resourceHash.data;
     return this._super(modelClass, maps ? mapObject(data, maps, this) : data);
   },
@@ -80,14 +82,15 @@ export default DS.JSONSerializer.extend({
 
     // convert into a _normalizeResponse friendly format
     payload = this.extractArrayPayload(payload.data);
-    Ember.assert("Loader expects an array in return for a query", Array.isArray(payload));
-    payload = payload.map(function (item) {
-      return {
+    assert("Loader expects an array in return for a query", Array.isArray(payload));
+    let payloadNamespace = new Array(payload.length);
+    for (let i = 0, l = payload.length; i < l; i++) {
+      payloadNamespace[i] = {
         nameSpace: nameSpace,
-        data: item
-      };
-    });
+        data: payload[i]
+      }
+    }
 
-    return this._super(store, primaryModelClass, payload, id, requestType);
+    return this._super(store, primaryModelClass, payloadNamespace, id, requestType);
   }
 });

@@ -16,80 +16,69 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve } from 'rsvp';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Route | dag/tasks', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:dag/tasks', 'Unit | Route | dag/tasks', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:dag/tasks');
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
-
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-  assert.ok(route.actions.logCellClicked);
-});
-
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'dag');
-      return Ember.Object.create({
-        entityID: 'dag_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
-});
+  test('setupController test', function(assert) {
+    assert.expect(1);
 
-test('logCellClicked test', function(assert) {
-  assert.expect(2 * 3 + 2 + 2 + 1);
+    let route = this.owner.factoryFor('route:dag/tasks').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
 
-  let testID = "attempt_1",
-      testLogURL = "http://abc.com/xyz",
-      route = this.subject(),
-      attemptRecord = Ember.Object.create({
-        logURL: testLogURL,
-        entityID: testID
-      });
-
-  route.loader = {
-    queryRecord: function (type, id) {
-      assert.equal(type, "attempt");
-      assert.equal(id, testID);
-
-      return Ember.RSVP.resolve(attemptRecord);
-    }
-  };
-  route.send = function (actionName) {
-    assert.equal(actionName, "openModal");
-  };
-
-  // Download false
-  route.actions.logCellClicked.call(route, testID, false).then(function (virtualAnchorInstance) {
-    assert.equal(virtualAnchorInstance.href, testLogURL);
-    assert.notOk(virtualAnchorInstance.download);
+    route.setupController({}, {});
   });
 
-  // Download true
-  route.actions.logCellClicked.call(route, testID, true).then(function (virtualAnchorInstance) {
-    assert.equal(virtualAnchorInstance.href, testLogURL);
-    assert.equal(virtualAnchorInstance.download, testID);
-  });
+  test('logCellClicked test', function(assert) {
+    assert.expect(2 * 3 + 2 + 2 + 1);
 
-  // No log
-  attemptRecord = Ember.Object.create();
-  route.actions.logCellClicked.call(route, testID, true);
+    let testID = "attempt_1",
+        testLogURL = "http://abc.com/xyz",
+        route = this.owner.lookup('route:dag/tasks'),
+        attemptRecord = EmberObject.create({
+          logURL: testLogURL,
+          entityID: testID
+        });
+
+    route.loader = {
+      queryRecord: function (type, id) {
+        assert.equal(type, "attempt");
+        assert.equal(id, testID);
+
+        return resolve(attemptRecord);
+      }
+    };
+    route.send = function (actionName) {
+      assert.equal(actionName, "openModal");
+    };
+
+    // Download false
+    route.actions.logCellClicked.call(route, testID, false).then(function (virtualAnchorInstance) {
+      assert.equal(virtualAnchorInstance.href, testLogURL);
+      assert.notOk(virtualAnchorInstance.download);
+    });
+
+    // Download true
+    route.actions.logCellClicked.call(route, testID, true).then(function (virtualAnchorInstance) {
+      assert.equal(virtualAnchorInstance.href, testLogURL);
+      assert.equal(virtualAnchorInstance.download, testID);
+    });
+
+    // No log
+    attemptRecord = EmberObject.create();
+    route.actions.logCellClicked.call(route, testID, true);
+  });
 });

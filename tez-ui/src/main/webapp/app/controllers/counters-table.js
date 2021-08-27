@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,16 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import EmberObject, { observer } from '@ember/object';
+import MoreObject from '../utils/more-object';
 
 import TableController from './table';
 import ColumnDefinition from '../utils/column-definition';
 
-var MoreObject = more.Object;
-
 export default TableController.extend({
-  counters: Ember.A(),
-  countersCount: 0, // Because Ember.Array doesn't handle length well
+  counters: A(),
+  countersCount: 0, // Because Ember Array doesn't handle length well
 
   columns: ColumnDefinition.make([{
     id: 'groupName',
@@ -43,9 +42,9 @@ export default TableController.extend({
     observePath: true
   }]),
 
-  _countersObserver: Ember.observer("model.counterGroupsHash", function () {
+  _countersObserver: observer("model.counterGroupsHash", function () {
     var counterGroupsHash = this.get("model.counterGroupsHash"),
-        counters = this.get("counters"),
+        counters = this.counters,
         counterIndex = 0;
 
     if(counterGroupsHash) {
@@ -54,7 +53,7 @@ export default TableController.extend({
           MoreObject.forEach(countersHash, function (counterName, counterValue) {
             let counterRow = counters.get(counterIndex);
             if(!counterRow) {
-              counterRow = Ember.Object.create();
+              counterRow = EmberObject.create();
               counters.push(counterRow);
             }
 

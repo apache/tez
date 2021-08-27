@@ -16,23 +16,15 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:dag/graphical', 'Unit | Route | dag/graphical', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | dag/graphical', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:dag/graphical');
 
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-  assert.ok(route._loadedValueObserver);
-  assert.ok(route.setViewHeight);
-  assert.ok(route.actions.didTransition);
-  assert.ok(route.actions.willTransition);
+    assert.ok(route);
+  });
 });

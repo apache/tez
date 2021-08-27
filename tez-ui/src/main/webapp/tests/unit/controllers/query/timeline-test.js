@@ -16,48 +16,47 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:query/timeline', 'Unit | Controller | query/timeline', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | query/timeline', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:query/timeline').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
+
+    assert.ok(controller.columns);
+    assert.equal(controller.columns.length, 2);
+
+    assert.ok(controller.rows);
   });
 
-  assert.ok(controller);
-
-  assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 2);
-
-  assert.ok(controller.rows);
-});
-
-test('rows test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K,
-    model: {
-      perf: {
-        x: 1,
-        y: 2,
-        z: 3
+  test('rows test', function(assert) {
+    let controller = this.owner.factoryFor('controller:query/timeline').create({
+      send() {},
+      initVisibleColumns() {},
+      model: {
+        perf: {
+          x: 1,
+          y: 2,
+          z: 3
+        }
       }
-    }
-  }),
-  rows = controller.get("rows");
+    }),
+    rows = controller.rows;
 
-  assert.equal(rows[0].perfLogName, "x");
-  assert.equal(rows[0].perfLogValue, 1);
+    assert.equal(rows[0].perfLogName, "x");
+    assert.equal(rows[0].perfLogValue, 1);
 
-  assert.equal(rows[1].perfLogName, "y");
-  assert.equal(rows[1].perfLogValue, 2);
+    assert.equal(rows[1].perfLogName, "y");
+    assert.equal(rows[1].perfLogValue, 2);
 
-  assert.equal(rows[2].perfLogName, "z");
-  assert.equal(rows[2].perfLogValue, 3);
+    assert.equal(rows[2].perfLogName, "z");
+    assert.equal(rows[2].perfLogValue, 3);
+  });
 });

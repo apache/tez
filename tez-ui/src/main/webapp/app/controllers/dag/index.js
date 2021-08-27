@@ -16,12 +16,16 @@
  * limitations under the License.
  */
 
+import { action } from '@ember/object';
 import PageController from '../page';
 
 export default PageController.extend({
 
   logLinkDefinition: {
     target: "_blank"
-  }
+  },
 
+  downloadDag: action(function () {
+    this.send("downloadDagRoute");
+  })
 });

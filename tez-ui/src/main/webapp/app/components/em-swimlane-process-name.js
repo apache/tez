@@ -16,30 +16,47 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
 
   classNames: ["em-swimlane-process-name"],
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "process-name", this.get("process"), {
+  didInsertElement: function () {
+
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+
+  },
+
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showTooltip("process-name", this.process, {
       mouseEvent: mouseEvent,
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function (mouseEvent) {
+    this.hideTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
+  /*
   mouseUp: function (mouseEvent) {
     this.sendMouseAction("click", mouseEvent);
   }
+  */
 
 });

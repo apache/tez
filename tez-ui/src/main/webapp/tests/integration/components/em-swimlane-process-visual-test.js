@@ -16,62 +16,62 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, findAll, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-process-visual', 'Integration | Component | em swimlane process visual', {
-  integration: true
-});
+module('Integration | Component | em swimlane process visual', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
+  test('Basic creation test', async function(assert) {
+    this.set("process", Process.create());
+    this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-process-visual process=process processor=processor}}`);
+    await render(hbs`<EmSwimlaneProcessVisual @process={{this.process}} @processor={{this.processor}}/>`);
 
-  assert.ok(this.$(".base-line"));
-  assert.ok(this.$(".event-window"));
+    assert.ok(find(".base-line"));
+    assert.ok(find(".process-line"));
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-process-visual processor=processor process=process}}
-      template block text
-    {{/em-swimlane-process-visual}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <EmSwimlaneProcessVisual @process={{this.process}} @processor={{this.processor}}>
+        template block text
+      </EmSwimlaneProcessVisual>}
+    `);
 
-  assert.ok(this.$(".base-line"));
-  assert.ok(this.$(".event-window"));
-});
+    assert.ok(find(".base-line"));
+    assert.ok(find(".process-line"));
+  });
 
-test('Events test', function(assert) {
-  this.set("process", Process.create({
-    events: [{
-      name: "event1",
-      time: 5
-    }, {
-      name: "event2",
-      time: 7
-    }]
-  }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
+  test('Events test', async function(assert) {
+    this.set("process", Process.create({
+      events: [{
+        name: "event1",
+        time: 5
+      }, {
+        name: "event2",
+        time: 7
+      }]
+    }));
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
 
-  this.render(hbs`{{em-swimlane-process-visual processor=processor process=process startTime=0 timeWindow=10}}`);
+    await render(hbs`<EmSwimlaneProcessVisual @process={{this.process}} @processor={{this.processor}} />`);
 
-  return wait().then(() => {
-    var events = this.$(".em-swimlane-event");
+    var events = findAll(".em-swimlane-event");
 
     assert.equal(events.length, 2);
-    assert.equal(events.eq(0).attr("style").trim(), "left: 50%;", "em-swimlane-event 1 left");
-    assert.equal(events.eq(1).attr("style").trim(), "left: 70%;", "em-swimlane-event 2 left");
-
-    assert.equal(this.$(".process-line").eq(0).attr("style").trim(), "left: 50%; right: 30%;", "process-line");
+    assert.equal(events[0].style.left, '50%');
+    assert.equal(events[1].style.left, '70%');
+    let processLine = find('.process-line');
+    assert.ok(processLine);
+    assert.equal(processLine.style.left, '50%');
+    assert.equal(processLine.style.right, '30%');
   });
 });

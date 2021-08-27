@@ -16,94 +16,74 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleForModel('attempt', 'Unit | Model | attempt', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | attempt', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('attempt'));
 
-  assert.ok(model);
-
-  assert.ok(model.needs.dag);
-  assert.ok(model.needs.am);
-
-  assert.ok(model.taskID);
-  assert.ok(model.taskIndex);
-
-  assert.ok(model.vertexID);
-  assert.ok(model.vertexIndex);
-  assert.ok(model.vertexName);
-
-  assert.ok(model.dagID);
-  assert.ok(model.dag);
-
-  assert.ok(model.containerID);
-  assert.ok(model.nodeID);
-
-  assert.ok(model.inProgressLogsURL);
-  assert.ok(model.completedLogsURL);
-  assert.ok(model.logURL);
-  assert.ok(model.containerLogURL);
-});
-
-test('index test', function(assert) {
-  let model = this.subject({
-    entityID: "1_2_3"
+    assert.ok(model);
   });
 
-  assert.equal(model.get("index"), "3");
-});
+  test('index test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('attempt', {
+      entityID: "1_2_3"
+    }));
 
-test('taskIndex test', function(assert) {
-  let model = this.subject({
-        taskID: "1_2_3",
-      });
+    assert.equal(model.get("index"), "3");
+  });
 
-  assert.equal(model.get("taskIndex"), "3");
-});
+  test('taskIndex test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('attempt', {
+          taskID: "1_2_3",
+        }));
 
-test('vertexName test', function(assert) {
-  let testVertexName = "Test Vertex",
-      model = this.subject({
-        vertexID: "1_2",
-        dag: {
-          vertexIdNameMap: {
-            "1_2": testVertexName
+    assert.equal(model.get("taskIndex"), "3");
+  });
+
+  test('vertexName test', function(assert) {
+    let testVertexName = "Test Vertex",
+        model = run(() => this.owner.lookup('service:store').createRecord('attempt', {
+          vertexID: "1_2",
+          dag: {
+            vertexIdNameMap: {
+              "1_2": testVertexName
+            }
           }
-        }
-      });
+        }));
 
-  assert.equal(model.get("vertexName"), testVertexName);
-});
+    assert.equal(model.get("vertexName"), testVertexName);
+  });
 
-test('logURL test', function(assert) {
-  let model = this.subject({
-        entityID: "id_1",
-        dag: Ember.Object.create(),
-        env: {
-          app: {
-            yarnProtocol: "ptcl"
-          }
-        },
-        completedLogsURL: "http://abc.com/completed/link.log.done"
-      });
+  test('logURL test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('attempt', {
+          entityID: "id_1",
+          dag: EmberObject.create(),
+          env: {
+            app: {
+              yarnProtocol: "ptcl"
+            }
+          },
+          completedLogsURL: "http://abc.com/completed/link.log.done"
+        }));
 
-  Ember.run(function () {
-    // Normal Tez log link
-    model.set("inProgressLogsURL", "abc.com/test/link");
-    assert.equal(model.get("logURL"), "ptcl://abc.com/test/link/syslog_id_1");
+    run(function () {
+      // Normal Tez log link
+      model.set("inProgressLogsURL", "abc.com/test/link");
+      assert.equal(model.get("logURL"), "ptcl://abc.com/test/link/syslog_id_1");
 
-    // LLAP log link - In Progress
-    model.set("inProgressLogsURL", "http://abc.com/in-progress/link.log");
-    assert.equal(model.get("logURL"), "http://abc.com/in-progress/link.log");
+      // LLAP log link - In Progress
+      model.set("inProgressLogsURL", "http://abc.com/in-progress/link.log");
+      assert.equal(model.get("logURL"), "http://abc.com/in-progress/link.log");
 
-    // LLAP log link - Completed
-    model.set("dag.isComplete", true);
-    assert.equal(model.get("logURL"), "http://abc.com/completed/link.log.done");
+      // LLAP log link - Completed
+      model.set("dag.isComplete", true);
+      assert.equal(model.get("logURL"), "http://abc.com/completed/link.log.done");
+    });
   });
 });

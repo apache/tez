@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,30 +16,29 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
-
+import { computed } from '@ember/object';
+import { assign } from '@ember/polyfills';
+import { attr } from '@ember-data/model';
+import MoreObject from '../utils/more-object';
 import TimelineModel from './timeline';
-
-var MoreObject = more.Object;
 
 // For all AM related entities that can be updated from AM
 export default TimelineModel.extend({
 
-  am: DS.attr("object"), // Represents data from am
+  am: attr("object"), // Represents data from am
 
-  status: Ember.computed("am.status", "atsStatus", "app.status", "app.finalStatus", function () {
+  status: computed("am.status", "atsStatus", "app.status", "app.finalStatus", function () {
     return this.get("am.status") || this._super();
   }),
 
-  progress: Ember.computed("am.progress", "status", function () {
+  progress: computed("am.progress", "status", function () {
     var progress = this.get("am.progress");
     return MoreObject.isNumber(progress) ? progress : this._super();
   }),
 
-  counterGroupsHash: Ember.computed("am.counterGroupsHash", "_counterGroups", function () {
+  counterGroupsHash: computed("am.counterGroupsHash", "_counterGroups", function () {
     var amCounters = this.get("am.counterGroupsHash"),
         atsCounters = this._super();
-    return amCounters ? Ember.$.extend({}, atsCounters, amCounters) : atsCounters;
+    return amCounters ? assign({}, atsCounters, amCounters) : atsCounters;
   })
 });

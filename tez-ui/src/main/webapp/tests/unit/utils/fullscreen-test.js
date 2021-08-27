@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-import fullscreen from '../../../utils/fullscreen';
 import { module, test } from 'qunit';
+import fullscreen from '../../../utils/fullscreen';
 
-module('Unit | Utility | fullscreen');
+module('Unit | Utility | fullscreen', function() {
+  test('Basic creation test', function(assert) {
 
-test('Basic creation test', function(assert) {
+    assert.ok(fullscreen);
+    assert.ok(fullscreen.inFullscreenMode);
+    assert.ok(fullscreen.toggle);
 
-  assert.ok(fullscreen);
-  assert.ok(fullscreen.inFullscreenMode);
-  assert.ok(fullscreen.toggle);
-
+  });
 });

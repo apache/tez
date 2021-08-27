@@ -16,40 +16,40 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['dags-page-search'],
 
-  dagName: Ember.computed.oneWay("tableDefinition.dagName"),
-  dagID: Ember.computed.oneWay("tableDefinition.dagID"),
-  submitter: Ember.computed.oneWay("tableDefinition.submitter"),
-  status: Ember.computed.oneWay("tableDefinition.status"),
-  appID: Ember.computed.oneWay("tableDefinition.appID"),
-  callerID: Ember.computed.oneWay("tableDefinition.callerID"),
-  queue: Ember.computed.oneWay("tableDefinition.queue"),
+  dagName: oneWay("tableDefinition.dagName"),
+  dagID: oneWay("tableDefinition.dagID"),
+  submitter: oneWay("tableDefinition.submitter"),
+  status: oneWay("tableDefinition.status"),
+  appID: oneWay("tableDefinition.appID"),
+  callerID: oneWay("tableDefinition.callerID"),
+  queue: oneWay("tableDefinition.queue"),
 
   sendSearch: function () {
-    this.get('parentView').sendAction('search', {
-      dagName: this.get("dagName"),
-      dagID: this.get("dagID"),
-      submitter: this.get("submitter"),
-      status: this.get("status"),
-      appID: this.get("appID"),
-      callerID: this.get("callerID"),
-      queue: this.get("queue"),
+    this.homeSearch({
+      dagName: this.dagName,
+      dagID: this.dagID,
+      submitter: this.submitter,
+      status: this.status,
+      appID: this.appID,
+      callerID: this.callerID,
+      queue: this.queue,
     });
   },
 
-  actions: {
-    statusChanged: function (value) {
-      this.set("status", value);
-    },
-    statusKeyPress: function () {
-      this.sendSearch();
-    },
-    search: function () {
-      this.sendSearch();
-    }
-  }
+  statusChanged: action(function (value) {
+    this.set("status", value);
+  }),
+  statusKeyPress: action(function () {
+    this.sendSearch();
+  }),
+  dagSearch: action(function () {
+    this.sendSearch();
+  })
 });

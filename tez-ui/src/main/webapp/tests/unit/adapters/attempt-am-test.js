@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('adapter:attempt-am', 'Unit | Adapter | attempt am', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+module('Unit | Adapter | attempt am', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
-  assert.ok(adapter);
+  test('Basic creation test', function(assert) {
+    let adapter = this.owner.lookup('adapter:attempt-am');
+    assert.ok(adapter);
+  });
 });

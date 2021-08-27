@@ -16,78 +16,78 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('adapter:timeline', 'Unit | Adapter | timeline', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+module('Unit | Adapter | timeline', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  test('Basic creation test', function(assert) {
+    let adapter = this.owner.lookup('adapter:timeline');
 
-  assert.ok(adapter);
-  assert.ok(adapter.filters);
-  assert.ok(adapter.stringifyFilters);
-  assert.ok(adapter.normalizeQuery);
-  assert.ok(adapter.query);
+    assert.ok(adapter);
+    assert.ok(adapter.filters);
+    assert.ok(adapter.stringifyFilters);
+    assert.ok(adapter.normalizeQuery);
+    assert.ok(adapter.query);
 
-  assert.equal(adapter.serverName, "timeline");
-});
-
-test('filters test', function(assert) {
-  let filters = this.subject().filters;
-  assert.equal(Object.keys(filters).length, 8 + 8 + 4);
-});
-
-test('stringifyFilters test', function(assert) {
-  let adapter = this.subject();
-
-  assert.equal(adapter.stringifyFilters({a: 1, b: 2}), 'a:"1",b:"2"');
-  assert.throws(function () {
-    adapter.stringifyFilters();
+    assert.equal(adapter.serverName, "timeline");
   });
 
-  assert.equal(adapter.stringifyFilters({a: "123", b: "abc"}), 'a:"123",b:"abc"');
-  assert.equal(adapter.stringifyFilters({a: '123', b: 'abc'}), 'a:"123",b:"abc"');
-  assert.equal(adapter.stringifyFilters({a: '123"abc'}), 'a:"123\\"abc"');
-});
-
-test('normalizeQuery test', function(assert) {
-  let adapter = this.subject(),
-      normalQuery;
-
-  adapter.set("filters", {
-    a: "A_ID",
-    b: "B_ID",
+  test('filters test', function(assert) {
+    let filters = this.owner.lookup('adapter:timeline').filters;
+    assert.equal(Object.keys(filters).length, 8 + 8 + 4);
   });
 
-  normalQuery = adapter.normalizeQuery({a: 1, b: 2, c: 3, d: 4});
+  test('stringifyFilters test', function(assert) {
+    let adapter = this.owner.lookup('adapter:timeline');
 
-  assert.deepEqual(normalQuery.primaryFilter, 'A_ID:"1"');
-  assert.deepEqual(normalQuery.secondaryFilter, 'B_ID:"2"');
-  assert.deepEqual(normalQuery.c, 3);
-  assert.deepEqual(normalQuery.d, 4);
-});
+    assert.equal(adapter.stringifyFilters({a: 1, b: 2}), 'a:"1",b:"2"');
+    assert.throws(function () {
+      adapter.stringifyFilters();
+    });
 
-test('query test', function(assert) {
-  let adapter = this.subject(),
-      normalQuery = {},
-      testStore = {},
-      testType = "ts",
-      testQuery = {};
+    assert.equal(adapter.stringifyFilters({a: "123", b: "abc"}), 'a:"123",b:"abc"');
+    assert.equal(adapter.stringifyFilters({a: '123', b: 'abc'}), 'a:"123",b:"abc"');
+    assert.equal(adapter.stringifyFilters({a: '123"abc'}), 'a:"123\\"abc"');
+  });
 
-  assert.expect(1 + 1);
+  test('normalizeQuery test', function(assert) {
+    let adapter = this.owner.lookup('adapter:timeline'),
+        normalQuery;
 
-  adapter.normalizeQuery = function (params) {
-    assert.equal(params, testQuery);
-    return normalQuery;
-  };
-  adapter._loaderAjax = function (url, queryParams) {
-    assert.equal(queryParams, normalQuery);
-  };
+    adapter.set("filters", {
+      a: "A_ID",
+      b: "B_ID",
+    });
 
-  adapter.query(testStore, testType, {
-    params: testQuery
+    normalQuery = adapter.normalizeQuery({a: 1, b: 2, c: 3, d: 4});
+
+    assert.deepEqual(normalQuery.primaryFilter, 'A_ID:"1"');
+    assert.deepEqual(normalQuery.secondaryFilter, 'B_ID:"2"');
+    assert.deepEqual(normalQuery.c, 3);
+    assert.deepEqual(normalQuery.d, 4);
+  });
+
+  test('query test', function(assert) {
+    let adapter = this.owner.lookup('adapter:timeline'),
+        normalQuery = {},
+        testStore = {},
+        testType = "ts",
+        testQuery = {};
+
+    assert.expect(1 + 1);
+
+    adapter.normalizeQuery = function (params) {
+      assert.equal(params, testQuery);
+      return normalQuery;
+    };
+    adapter._loaderAjax = function (url, queryParams) {
+      assert.equal(queryParams, normalQuery);
+    };
+
+    adapter.query(testStore, testType, {
+      params: testQuery
+    });
   });
 });

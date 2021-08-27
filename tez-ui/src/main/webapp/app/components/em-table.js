@@ -16,17 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import EmberObject, { action, computed, observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { pluralize } from 'ember-inflector';
 import Definition from '../utils/table-definition';
 import ColumnDefinition from '../utils/column-definition';
 import DataProcessor from '../utils/data-processor';
 
 import layout from '../templates/components/em-table';
 
-const DEFAULT_ROW_HIGHLIGHT_COLOR = "#EEE";
-
 function createAssigner(targetPath, targetKey, sourcePath) {
-  return Ember.on("init", Ember.observer(targetPath, sourcePath, function () {
+  return on("init", observer(targetPath, sourcePath, function () {
     var target = this.get(targetPath),
         source = this.get(sourcePath);
     if(target && source !== undefined) {
@@ -35,27 +36,7 @@ function createAssigner(targetPath, targetKey, sourcePath) {
   }));
 }
 
-const HANDLERS = {
-  // Mouse handlers
-  mouseOver: function(event) {
-    var index = Ember.$(this).index() + 1;
-    event.data.highlightRow(index);
-  },
-  mouseLeave: function(event) {
-    event.data.highlightRow(-1);
-  },
-
-  // Scroll handler
-  onScroll: function(event) {
-    var tableBody = event.currentTarget,
-        scrollValues = event.data.get("scrollValues");
-
-    scrollValues.set("left", tableBody.scrollLeft);
-    scrollValues.set("width", tableBody.scrollWidth);
-  }
-};
-
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   classNames: ["em-table"],
@@ -64,23 +45,37 @@ export default Ember.Component.extend({
   definition: null,
   dataProcessor: null,
 
-  highlightRowOnMouse: false, // Could be true or {color: "#XYZ"}
-
-  headerComponentNames: ['em-table-search-ui', 'em-table-pagination-ui'],
-  footerComponentNames: ['em-table-pagination-ui'],
+  headerComponentNames: computed( {
+    get() {
+      if (this._headerComponentNames) {
+        return this._headerComponentNames;
+      }
+      return ['em-table-search-ui', 'em-table-pagination-ui'];
+    },
+    set(key, value) {
+      return this._headerComponentNames = value;
+    }
+  }),
+  footerComponentNames: computed( {
+    get() {
+      if (this._footerComponentNames) {
+        return this._footerComponentNames;
+      }
+      return ['em-table-pagination-ui'];
+    },
+    set(key, value) {
+      return this._footerComponentNames = value;
+    }
+  }),
 
   leftPanelComponentName: "em-table-facet-panel",
   rightPanelComponentName: "",
 
-  columnWidthChangeAction: null,
-
-  scrollChangeAction: null,
-  scrollValues: null,
-  _widthTrackerTimer: null,
+  //columnWidthChangeAction: null,
 
   init: function() {
-    this._super();
-    this.set("scrollValues", Ember.Object.create({
+    this._super(...arguments);
+    this.set("scrollValues", EmberObject.create({
       left: 0,
       width: 0,
       viewPortWidth: 0
@@ -100,19 +95,22 @@ export default Ember.Component.extend({
   assignEnablePaginationInDefinition: createAssigner('_definition', 'enablePagination', 'enablePagination'),
   assignRowCountInDefinition: createAssigner('_definition', 'rowCount', 'rowCount'),
 
-  _definition: Ember.computed('definition', 'definitionClass', function () {
-    return this.get('definition') || (this.get('definitionClass') || Definition).create();
+  _definition: computed('definition', 'definitionClass', function () {
+    return this.definition || (this.definitionClass || Definition).create();
   }),
-  _dataProcessor: Ember.computed('dataProcessor', 'dataProcessorClass', function () {
-    return this.get('dataProcessor') || (this.get('dataProcessorClass') || DataProcessor).create();
+  _dataProcessor: computed('dataProcessor', 'dataProcessorClass', function () {
+    return this.dataProcessor || (this.dataProcessorClass || DataProcessor).create();
   }),
 
-  displayFooter: Ember.computed("_definition.minRowsForFooter", "_dataProcessor.processedRows.length", function () {
+  displayFooter: computed("_definition.minRowsForFooter", "_dataProcessor.processedRows.length", function () {
     return this.get("_definition.minRowsForFooter") <= this.get("_dataProcessor.processedRows.length");
   }),
 
-  _processedRowsObserver: Ember.observer('_dataProcessor.processedRows', function () {
-    this.sendAction('rowsChanged', this.get('_dataProcessor.processedRows'));
+  _processedRowsObserver: observer('_dataProcessor.processedRows', function () {
+    // TODO Counters have issues
+    if (this.rowsChanged) {
+      this.rowsChanged(this.get('_dataProcessor.processedRows'));
+    }
   }),
 
   _setColumnWidth: function (columns) {
@@ -124,7 +122,7 @@ export default Ember.Component.extend({
     });
   },
 
-  _columns: Ember.computed('_definition.columns', function () {
+  _columns: computed('_definition.columns', function () {
     var rawColumns = this.get('_definition.columns'),
         normalisedColumns = {
           left: [],
@@ -151,7 +149,7 @@ export default Ember.Component.extend({
     return normalisedColumns;
   }),
 
-  message: Ember.computed('_dataProcessor.message', '_columns.length', '_dataProcessor.processedRows.length', function () {
+  message: computed('_columns.length', '_dataProcessor.message', '_dataProcessor.processedRows.length', '_definition.recordType', function () {
     var message = this.get("_dataProcessor.message");
     if(message) {
       return message;
@@ -160,122 +158,26 @@ export default Ember.Component.extend({
       return "No columns available!";
     }
     else if(!this.get("_dataProcessor.processedRows.length")) {
-      let identifiers = Ember.String.pluralize(this.get('_definition.recordType') || "record");
+      let identifiers = pluralize(this.get('_definition.recordType') || "record");
       return `No ${identifiers} available!`;
     }
   }),
 
-  highlightRow: function (index) {
-    var element = Ember.$(this.get("element")),
-        sheet = element.find("style")[0].sheet,
-        elementID = element.attr("id"),
-        color = this.get("highlightRowOnMouse.color") || DEFAULT_ROW_HIGHLIGHT_COLOR;
-
-    try {
-      sheet.deleteRule(0);
-    }catch(e){}
-
-    if(index >= 0) {
-      sheet.insertRule(`#${elementID} .table-cell:nth-child(${index}){ background-color: ${color}; }`, 0);
-    }
-  },
-
-  didInsertElement: function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      this.highlightRowOnMouseObserver();
-      this.scrollChangeActionObserver();
-    });
-  },
-
-  highlightRowOnMouseObserver: Ember.observer("highlightRowOnMouse", function () {
-    var highlightRowOnMouse = this.get("highlightRowOnMouse"),
-        element = this.get("element");
-
-    if(element) {
-      element = Ember.$(element).find(".table-mid");
-
-      if(highlightRowOnMouse) {
-        element.on('mouseover', '.table-cell', this, HANDLERS.mouseOver);
-        element.on('mouseleave', this, HANDLERS.mouseLeave);
-      }
-      else {
-        element.off('mouseover', '.table-cell', HANDLERS.mouseOver);
-        element.off('mouseleave', HANDLERS.mouseLeave);
-      }
-    }
+  search: action(function (searchText, actualSearchType) {
+    this.set('_definition.searchText', searchText);
+    this.set('_definition._actualSearchType', actualSearchType);
   }),
-
-  scrollValuesObserver: Ember.observer("scrollValues.left", "scrollValues.width", "scrollValues.viewPortWidth", function () {
-    var scrollValues = this.get("scrollValues");
-
-    this.sendAction("scrollChangeAction", scrollValues);
-
-
-    this.set("showLeftScrollShadow", scrollValues.left > 1);
-    this.set("showRightScrollShadow", scrollValues.left < (scrollValues.width - scrollValues.viewPortWidth));
-  }),
-
-  scrollChangeActionObserver: Ember.observer("scrollChangeAction", "message", "showScrollShadow", function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      var addScrollListener = this.get("scrollChangeAction") || this.get("showScrollShadow"),
-          element = this.$().find(".table-body"),
-          scrollValues = this.get("scrollValues");
-
-      if(addScrollListener && element) {
-        element = element.get(0);
-
-        clearInterval(this.get("_widthTrackerTimer"));
-
-        if(element) {
-          if(addScrollListener) {
-            Ember.$(element).on('scroll', this, HANDLERS.onScroll);
-
-            this.set("_widthTrackerTimer", setInterval(function () {
-              scrollValues.setProperties({
-                width: element.scrollWidth,
-                viewPortWidth: element.offsetWidth
-              });
-            }, 1000));
-          }
-          else {
-            element.off('scroll', HANDLERS.onScroll);
-          }
-        }
-      }
+  sort: action(function (sortColumnId, sortOrder) {
+    this._definition.setProperties({
+      sortColumnId,
+      sortOrder
     });
   }),
-
-  willDestroyElement: function () {
-    this._super();
-    clearInterval(this.get("_widthTrackerTimer"));
-    Ember.$(this.$().find(".table-body")).off();
-    Ember.$(this.$().find(".table-mid")).off();
-    Ember.$(this.$()).off();
-  },
-
-  actions: {
-    search: function (searchText, actualSearchType) {
-      this.set('_definition.searchText', searchText);
-      this.set('_definition._actualSearchType', actualSearchType);
-      this.sendAction("searchAction", searchText);
-    },
-    sort: function (sortColumnId, sortOrder) {
-      this.get("_definition").setProperties({
-        sortColumnId,
-        sortOrder
-      });
-      this.sendAction("sortAction", sortColumnId, sortOrder);
-    },
-    rowChanged: function (rowCount) {
-      this.set('_definition.rowCount', rowCount);
-      this.sendAction("rowAction", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set('_definition.pageNum', pageNum);
-      this.sendAction("pageAction", pageNum);
-    },
-    columnWidthChanged: function (width, columnDefinition, index) {
-      this.sendAction("columnWidthChangeAction", width, columnDefinition, index);
-    }
-  }
+  rowChanged: action(function (rowCount) {
+    this.set('_definition.rowCount', rowCount);
+    this.rowCountChanged(rowCount);
+  }),
+  pageChanged: action(function (pageNum) {
+    this.set('_definition.pageNum', pageNum);
+  }),
 });

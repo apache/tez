@@ -16,65 +16,64 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
-
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 import environment from '../../../config/environment';
 
-moduleFor('service:env', 'Unit | Service | env', {
-  // Specify the other units that are required for this test.
-  // needs: ['service:foo']
-});
+module('Unit | Service | env', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let service = this.subject();
+  test('Basic creation test', function(assert) {
+    let service = this.owner.lookup('service:env');
 
-  assert.ok(service);
-  assert.ok(service.ENV);
-  assert.ok(service.collateConfigs);
-  assert.ok(service.app);
-  assert.ok(service.setComputedENVs);
-});
+    assert.ok(service);
+    assert.ok(service.ENV);
+    assert.ok(service.collateConfigs);
+    assert.ok(service.app);
+    assert.ok(service.setComputedENVs);
+  });
 
-test('collateConfigs test', function(assert) {
-  let service = this.subject(),
-      APP = environment.APP;
+  test('collateConfigs test', function(assert) {
+    let service = this.owner.lookup('service:env'),
+        APP = environment.APP;
 
-  APP.a = 11;
-  APP.b = 22;
-  window.ENV = {
-    a: 1
-  };
+    APP.a = 11;
+    APP.b = 22;
+    window.ENV = {
+      a: 1
+    };
 
-  service.collateConfigs();
+    service.collateConfigs();
 
-  APP = service.get("app");
-  assert.equal(APP.a, 1, "Test window.ENV merge onto environment.APP");
-  assert.equal(APP.b, 22);
-});
+    APP = service.get("app");
+    assert.equal(APP.a, 1, "Test window.ENV merge onto environment.APP");
+    assert.equal(APP.b, 22);
+  });
 
-test('app computed property test', function(assert) {
-  let service = this.subject(),
-      ENV = {
-        b: 2
-      };
+  test('app computed property test', function(assert) {
+    let service = this.owner.lookup('service:env'),
+        ENV = {
+          b: 2
+        };
 
-  window.ENV = ENV;
-  environment.APP.a = 11;
-  service.collateConfigs();
-  assert.equal(service.get("app.a"), environment.APP.a);
-  assert.equal(service.get("app.b"), ENV.b);
-});
+    window.ENV = ENV;
+    environment.APP.a = 11;
+    service.collateConfigs();
+    assert.equal(service.get("app.a"), environment.APP.a);
+    assert.equal(service.get("app.b"), ENV.b);
+  });
 
-test('setComputedENVs test', function(assert) {
-  let service = this.subject();
+  test('setComputedENVs test', function(assert) {
+    let service = this.owner.lookup('service:env');
 
-  assert.equal(service.ENV.isIE, false);
-});
+    assert.false(service.ENV.isIE);
+  });
 
-test('Validate config/default-app-conf.js', function(assert) {
-  let service = this.subject();
+  test('Validate config/default-app-conf.js', function(assert) {
+    let service = this.owner.lookup('service:env');
 
-  assert.equal(service.get("app.hosts.timeline"), "localhost:8188");
-  assert.equal(service.get("app.namespaces.webService.timeline"), "ws/v1/timeline");
-  assert.equal(service.get("app.paths.timeline.dag"), "TEZ_DAG_ID");
+    assert.equal(service.get("app.hosts.timeline"), "localhost:8188");
+    assert.equal(service.get("app.namespaces.webService.timeline"), "ws/v1/timeline");
+    assert.equal(service.get("app.paths.timeline.dag"), "TEZ_DAG_ID");
+  });
 });

@@ -18,69 +18,37 @@
 
 <div class="form-group">
   <div class="search-element">
-    <label for="pwd">Query ID:</label>
-    {{input value=queryID
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Query ID:
+    <Input @value={{this.queryID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">User:</label>
-    {{input value=requestUser
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>User:
+    <Input @value={{this.requestUser}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">DAG ID:</label>
-    {{input value=dagID
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>DAG ID:
+    <Input @value={{this.dagID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Tables Read:</label>
-    {{input value=tablesRead
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Tables Read:
+    <Input @value={{this.tablesRead}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Tables Written:</label>
-    {{input value=tablesWritten
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Tables Written:
+    <Input @value={{this.tablesWritten}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">App ID:</label>
-    {{input value=appID
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>App ID:
+    <Input @value={{this.appID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Queue:</label>
-    {{input value=queue
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Queue:
+    <Input @value={{this.queue}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Execution Mode:</label>
-    {{input value=executionMode
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Execution Mode:
+    <Input @value={{this.executionMode}} @type="text" class="form-control input-sm" placeholder="Search..." @enter="search" />
+    </label>
   </div>
 </div>
 <button type="button" class="btn btn-success" {{action 'search'}}>

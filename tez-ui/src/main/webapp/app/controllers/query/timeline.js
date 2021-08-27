@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,11 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import EmberObject, { computed } from '@ember/object';
 import TableController from '../table';
 import ColumnDefinition from '../../utils/column-definition';
-
-var MoreObject = more.Object;
+import MoreObject from '../../utils/more-object';
 
 export default TableController.extend({
 
@@ -38,20 +37,20 @@ export default TableController.extend({
     }
   }]),
 
-  rows: Ember.computed("model.perf", function () {
+  rows: computed("model.perf", function () {
     var perf = this.get("model.perf"),
         rows = [];
 
     if(perf) {
       MoreObject.forEach(perf, function (key, value) {
-        rows.push(Ember.Object.create({
+        rows.push(EmberObject.create({
           perfLogName: key,
           perfLogValue: value
         }));
       });
     }
 
-    return Ember.A(rows);
+    return A(rows);
   })
 
 });

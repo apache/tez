@@ -17,29 +17,35 @@
 }}
 
 <ul class="page-list">
-  {{#if showFirst}}
+  {{#if this.showFirst}}
     <li title="Go to first page" class="clickable" {{action 'changePage' 1}}>
       First
     </li>
   {{/if}}
-  {{#each _possiblePages as |page|}}
+  {{#each this._possiblePages as |page|}}
     <li class="{{if page.isCurrent 'is-current' 'clickable'}}" {{action 'changePage' page.pageNum}}>
       {{page.pageNum}}
     </li>
   {{/each}}
-  {{#if showLast}}
-    <li title="Go to last page, {{dataProcessor.totalPages}} page(s) available in total"  class="clickable" {{action 'changePage' dataProcessor.totalPages}}>
-      Last - {{dataProcessor.totalPages}}
+  {{#if this.showLast}}
+    <li title="Go to last page, {{this.dataProcessor.totalPages}} page(s) available in total"  class="clickable" {{action 'changePage' this.dataProcessor.totalPages}}>
+      Last - {{this.dataProcessor.totalPages}}
     </li>
   {{/if}}
 </ul>
 
 <div class='row-select'>
-  <select title="Select rows to display" class="form-control" onchange={{action "rowSelected" value="target.value"}}>
-    {{#each rowCountOptions as |option|}}
-      <option value={{option.value}} selected={{option.selected}}>
-        {{option.value}} Rows
-      </option>
+  <select title="Select rows to display" class="form-control" onchange={{action "rowSelected" value="target.value"}} aria-label="Number of rows per page">
+    {{#each this.rowCountOptions as |rowCountOption|}}
+      {{#if rowCountOption.selected}}
+        <option value={{rowCountOption.value}} selected>
+        {{rowCountOption.value}} Rows
+        </option>
+      {{else}}
+        <option value={{rowCountOption.value}}>
+        {{rowCountOption.value}} Rows
+        </option>
+      {{/if}}
     {{/each}}
   </select>
 </div>

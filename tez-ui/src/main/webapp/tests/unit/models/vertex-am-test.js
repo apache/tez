@@ -16,22 +16,16 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { run } from '@ember/runloop';
 
-moduleForModel('vertex-am', 'Unit | Model | vertex am', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | vertex am', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
-  // let store = this.store();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('vertex-am'));
 
-  assert.ok(!!model);
-
-  assert.ok(model.initTime);
-  assert.ok(model.startTime);
-  assert.ok(model.endTime);
-  assert.ok(model.firstTaskStartTime);
-  assert.ok(model.lastTaskFinishTime);
+    assert.ok(model);
+  });
 });

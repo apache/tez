@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-import GraphDataProcessor from '../../../utils/graph-data-processor';
 import { module, test } from 'qunit';
+import GraphDataProcessor from '../../../utils/graph-data-processor';
 
-module('Unit | Utility | graph data processor');
+module('Unit | Utility | graph data processor', function() {
+  test('Basic creation test', function(assert) {
 
-test('Basic creation test', function(assert) {
+    assert.ok(GraphDataProcessor);
+    assert.ok(GraphDataProcessor.types);
+    assert.ok(GraphDataProcessor.graphifyData);
 
-  assert.ok(GraphDataProcessor);
-  assert.ok(GraphDataProcessor.types);
-  assert.ok(GraphDataProcessor.graphifyData);
-
+  });
 });

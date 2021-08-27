@@ -16,102 +16,105 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-blocking-event', 'Integration | Component | em swimlane blocking event', {
-  integration: true
-});
+module('Integration | Component | em swimlane blocking event', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
+  test('Basic creation test', async function(assert) {
+    this.set("process", Process.create());
+    this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-blocking-event processor=processor process=process}}`);
+    await render(hbs`{{em-swimlane-blocking-event processor=processor process=process}}`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.equal(this.element.textContent.trim(), '');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-blocking-event processor=processor process=process}}
-      template block text
-    {{/em-swimlane-blocking-event}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-blocking-event processor=processor process=process}}
+        template block text
+      {{/em-swimlane-blocking-event}}
+    `);
 
-  assert.equal(this.$().text().trim(), '');
-});
-
-test('Blocking test', function(assert) {
-  var blockingEventName = "blockingEvent",
-      processIndex = 5,
-      blockingIndex = 7,
-      processColor = "#123456";
-
-  this.set("process", Process.create({
-    blockingEventName: blockingEventName,
-    index: processIndex,
-    getColor: function () {
-      return processColor;
-    },
-    events: [{
-      name: blockingEventName,
-      time: 2
-    }]
-  }));
-  this.set("blocking", Process.create({
-    index: blockingIndex,
-    endEvent: {
-      time: 5
-    }
-  }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
-
-  this.render(hbs`{{em-swimlane-blocking-event processor=processor process=process blocking=blocking}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$(".em-swimlane-blocking-event").attr("style").trim(), 'left: 20%;');
-    assert.equal(this.$(".event-line").css("height"), ((blockingIndex - processIndex) * 30) + "px");
+    assert.equal(this.element.textContent.trim(), '');
   });
-});
 
-test('Blocking test with blocking.endEvent.time < blockTime', function(assert) {
-  var blockingEventName = "blockingEvent",
-      processIndex = 5,
-      blockingIndex = 7,
-      processColor = "#123456";
+  test('Blocking test', async function(assert) {
+    var blockingEventName = "blockingEvent",
+        processIndex = 5,
+        blockingIndex = 7,
+        processColor = "#123456";
 
-  this.set("process", Process.create({
-    blockingEventName: blockingEventName,
-    index: processIndex,
-    getColor: function () {
-      return processColor;
-    },
-    events: [{
-      name: blockingEventName,
-      time: 5
-    }]
-  }));
-  this.set("blocking", Process.create({
-    index: blockingIndex,
-    endEvent: {
-      time: 2
-    }
-  }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
+    this.set("process", Process.create({
+      blockingEventName: blockingEventName,
+      index: processIndex,
+      getColor: function () {
+        return processColor;
+      },
+      events: [{
+        name: blockingEventName,
+        time: 2
+      }]
+    }));
+    this.set("blocking", Process.create({
+      index: blockingIndex,
+      endEvent: {
+        time: 5
+      }
+    }));
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
 
-  this.render(hbs`{{em-swimlane-blocking-event processor=processor process=process blocking=blocking}}`);
+    await render(hbs`{{em-swimlane-blocking-event processor=processor process=process blocking=blocking}}`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".em-swimlane-blocking-event").attr("style"), undefined);
+    return settled().then(() => {
+      assert.equal(find(".em-swimlane-blocking-event").getAttribute("style").trim(), 'left: 20%;');
+      assert.dom('.event-line').hasStyle({
+        height: ((blockingIndex - processIndex) * 30) + "px",
+      });
+    });
+  });
+
+  test('Blocking test with blocking.endEvent.time < blockTime', async function(assert) {
+    var blockingEventName = "blockingEvent",
+        processIndex = 5,
+        blockingIndex = 7,
+        processColor = "#123456";
+
+    this.set("process", Process.create({
+      blockingEventName: blockingEventName,
+      index: processIndex,
+      getColor: function () {
+        return processColor;
+      },
+      events: [{
+        name: blockingEventName,
+        time: 5
+      }]
+    }));
+    this.set("blocking", Process.create({
+      index: blockingIndex,
+      endEvent: {
+        time: 2
+      }
+    }));
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
+
+    await render(hbs`{{em-swimlane-blocking-event processor=processor process=process blocking=blocking}}`);
+
+    return settled().then(() => {
+      assert.equal(find(".em-swimlane-blocking-event").getAttribute("style"), undefined);
+    });
   });
 });

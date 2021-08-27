@@ -16,29 +16,34 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-status-cell', 'Integration | Component | em table status cell', {
-  integration: true
-});
+module('Integration | Component | em table status cell', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic render test', function(assert) {
+  test('Basic render test', async function(assert) {
 
-  this.render(hbs`{{em-table-status-cell}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    await render(hbs`<EmTableStatusCell/>`);
+    assert.dom(this.element).hasText('Not Available!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-status-cell}}
-      template block text
-    {{/em-table-status-cell}}
-  `);
-  assert.equal(this.$().text().trim(), 'Not Available!');
-});
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <EmTableStatusCell>
+        template block text
+      </EmTableStatusCell>
+    `);
+    assert.dom(this.element).hasText('Not Available!');
+  });
 
-test('Basic test', function(assert) {
-  this.render(hbs`{{em-table-status-cell content="inited"}}`);
-  assert.equal(this.$().text().trim(), 'inited');
-  assert.equal(this.$("span")[0].className, 'status status-inited');
+  test('Basic test', async function(assert) {
+    await render(hbs`<EmTableStatusCell @content='inited'/>`);
+    assert.dom(this.element).hasText('inited');
+    let span = find("span");
+    assert.ok(span);
+    assert.dom(span).hasClass('status');
+    assert.dom(span).hasClass('status-inited');
+  });
 });

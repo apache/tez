@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import AbstractModel from './abstract';
 
@@ -40,44 +40,44 @@ export default AbstractModel.extend({
     }
   },
 
-  queryText: DS.attr("string"),
+  queryText: attr("string"),
 
-  dag: DS.attr('object'),
+  dag: attr('object'),
 
-  dagID: DS.attr('string'),
-  appID: DS.attr('string'),
-  sessionID: DS.attr('string'),
-  operationID: DS.attr('string'),
-  llapAppID: DS.attr('string'),
+  dagID: attr('string'),
+  appID: attr('string'),
+  sessionID: attr('string'),
+  operationID: attr('string'),
+  llapAppID: attr('string'),
 
-  instanceType: DS.attr('string'),
-  executionMode: DS.attr('string'), // Would be ideally TEZ
+  instanceType: attr('string'),
+  executionMode: attr('string'), // Would be ideally TEZ
 
-  domain: DS.attr('string'),
-  threadName: DS.attr('string'),
-  queue: DS.attr('string'),
-  version: DS.attr('string'),
+  domain: attr('string'),
+  threadName: attr('string'),
+  queue: attr('string'),
+  version: attr('string'),
 
-  hiveAddress: DS.attr('string'),
-  clientAddress: DS.attr('string'),
+  hiveAddress: attr('string'),
+  clientAddress: attr('string'),
 
-  user: DS.attr('string'),
-  requestUser: DS.attr('string'),
+  user: attr('string'),
+  requestUser: attr('string'),
 
-  tablesRead: DS.attr('object'),
-  tablesWritten: DS.attr('object'),
+  tablesRead: attr('object'),
+  tablesWritten: attr('object'),
 
-  status: DS.attr('string'),
+  status: attr('string'),
 
-  configsJSON: DS.attr("string"),
+  configsJSON: attr("string"),
 
-  startTime: DS.attr("number"),
-  endTime: DS.attr("number"),
-  duration: Ember.computed("startTime", "endTime", function () {
-    var duration = this.get("endTime") - this.get("startTime");
+  startTime: attr("number"),
+  endTime: attr("number"),
+  duration: computed("startTime", "endTime", function () {
+    var duration = this.endTime - this.startTime;
     return duration > 0 ? duration : null;
   }),
 
-  perf: DS.attr("Object"),
+  perf: attr("Object"),
 
 });

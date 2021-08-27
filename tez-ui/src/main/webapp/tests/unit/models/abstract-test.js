@@ -16,75 +16,43 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleForModel, test } from 'ember-qunit';
+module('Unit | Model | abstract', function(hooks) {
+  setupTest(hooks);
 
-moduleForModel('abstract', 'Unit | Model | abstract', {
-  // Specify the other units that are required for this test.
-  // needs: []
-});
+  test('Basic test for existence', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('abstract'));
 
-test('Basic test for existence', function(assert) {
-  let model = this.subject();
-
-  assert.ok(model);
-  assert.ok(model.mergedProperties);
-  assert.ok(model.refreshLoadTime);
-
-  assert.ok(model._notifyProperties);
-  assert.ok(model.didLoad);
-
-  assert.ok(model.entityID);
-  assert.ok(model.index);
-  assert.ok(model.status);
-  assert.ok(model.isComplete);
-});
-
-test('isComplete test', function(assert) {
-  let model = this.subject();
-  assert.equal(model.get("isComplete"), false);
-
-  Ember.run(function () {
-    model.set("status", "SUCCEEDED");
-    assert.equal(model.get("isComplete"), true);
-
-    model.set("status", null);
-    assert.equal(model.get("isComplete"), false);
-    model.set("status", "FINISHED");
-    assert.equal(model.get("isComplete"), true);
-
-    model.set("status", null);
-    model.set("status", "FAILED");
-    assert.equal(model.get("isComplete"), true);
-
-    model.set("status", null);
-    model.set("status", "KILLED");
-    assert.equal(model.get("isComplete"), true);
-
-    model.set("status", null);
-    model.set("status", "ERROR");
-    assert.equal(model.get("isComplete"), true);
+    assert.ok(model);
   });
-});
 
-test('_notifyProperties test - will fail if _notifyProperties implementation is changed in ember-data', function(assert) {
-  let model = this.subject();
+  test('isComplete test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('abstract'));
+    assert.false(model.get("isComplete"));
 
-  Ember._beginPropertyChanges = Ember.beginPropertyChanges;
+    run(function () {
+      model.set("status", "SUCCEEDED");
+      assert.true(model.get("isComplete"));
 
-  assert.expect(1 + 1);
-  // refreshLoadTime will be called by us & beginPropertyChanges by ember data
+      model.set("status", null);
+      assert.false(model.get("isComplete"));
+      model.set("status", "FINISHED");
+      assert.true(model.get("isComplete"));
 
-  Ember.beginPropertyChanges = function () {
-    assert.ok(true);
-    Ember._beginPropertyChanges();
-  };
-  model.refreshLoadTime = function () {
-    assert.ok(true);
-  };
+      model.set("status", null);
+      model.set("status", "FAILED");
+      assert.true(model.get("isComplete"));
 
-  model._notifyProperties([]);
+      model.set("status", null);
+      model.set("status", "KILLED");
+      assert.true(model.get("isComplete"));
 
-  Ember.beginPropertyChanges = Ember._beginPropertyChanges;
+      model.set("status", null);
+      model.set("status", "ERROR");
+      assert.true(model.get("isComplete"));
+    });
+  });
 });

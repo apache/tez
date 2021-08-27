@@ -16,95 +16,82 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleForModel('timeline', 'Unit | Model | timeline', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | timeline', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timeline'));
 
-  assert.ok(!!model);
-
-  assert.ok(model.needs);
-
-  assert.ok(model.entityID);
-  assert.ok(model.appID);
-  assert.ok(model.app);
-
-  assert.ok(model.atsStatus);
-  assert.ok(model.status);
-  assert.ok(model.progress);
-
-  assert.ok(model._counterGroups);
-  assert.ok(model.counterGroupsHash);
-});
-
-test('appID test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("entityID", "a_1_2_3");
-    assert.equal(model.get("appID"), "application_1_2");
+    assert.ok(model);
   });
-});
 
-test('status test', function(assert) {
-  let model = this.subject();
+  test('appID test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timeline'));
 
-  Ember.run(function () {
-    model.set("atsStatus", "RUNNING");
-    assert.equal(model.get("status"), "RUNNING");
-
-    model.set("app", {
-      status: "FAILED"
+    run(function () {
+      model.set("entityID", "a_1_2_3");
+      assert.equal(model.get("appID"), "application_1_2");
     });
-    assert.equal(model.get("status"), "FAILED");
   });
-});
 
-test('progress test', function(assert) {
-  let model = this.subject();
+  test('status test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timeline'));
 
-  Ember.run(function () {
-    model.set("status", "RUNNING");
-    assert.equal(model.get("progress"), null);
+    run(function () {
+      model.set("atsStatus", "RUNNING");
+      assert.equal(model.get("status"), "RUNNING");
 
-    model.set("status", "SUCCEEDED");
-    assert.equal(model.get("progress"), 1);
+      model.set("app", {
+        status: "FAILED"
+      });
+      assert.equal(model.get("status"), "FAILED");
+    });
   });
-});
 
-test('counterGroupsHash test', function(assert) {
-  let model = this.subject(),
-      testCounterGroup = [{
-        counterGroupName: "group_1",
-        counters: [{
-          counterName: "counter_1_1",
-          counterValue: "value_1_1"
-        },{
-          counterName: "counter_1_2",
-          counterValue: "value_1_2"
-        }]
-      },{
-        counterGroupName: "group_2",
-        counters: [{
-          counterName: "counter_2_1",
-          counterValue: "value_2_1"
-        },{
-          counterName: "counter_2_2",
-          counterValue: "value_2_2"
-        }]
-      }];
+  test('progress test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timeline'));
 
-  Ember.run(function () {
-    model.set("_counterGroups", testCounterGroup);
-    assert.equal(model.get("counterGroupsHash.group_1.counter_1_1"), "value_1_1");
-    assert.equal(model.get("counterGroupsHash.group_1.counter_1_2"), "value_1_2");
-    assert.equal(model.get("counterGroupsHash.group_2.counter_2_1"), "value_2_1");
-    assert.equal(model.get("counterGroupsHash.group_2.counter_2_2"), "value_2_2");
+    run(function () {
+      model.set("status", "RUNNING");
+      assert.equal(model.get("progress"), null);
+
+      model.set("status", "SUCCEEDED");
+      assert.equal(model.get("progress"), 1);
+    });
+  });
+
+  test('counterGroupsHash test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timeline')),
+        testCounterGroup = [{
+          counterGroupName: "group_1",
+          counters: [{
+            counterName: "counter_1_1",
+            counterValue: "value_1_1"
+          },{
+            counterName: "counter_1_2",
+            counterValue: "value_1_2"
+          }]
+        },{
+          counterGroupName: "group_2",
+          counters: [{
+            counterName: "counter_2_1",
+            counterValue: "value_2_1"
+          },{
+            counterName: "counter_2_2",
+            counterValue: "value_2_2"
+          }]
+        }];
+
+    run(function () {
+      model.set("_counterGroups", testCounterGroup);
+      assert.equal(model.get("counterGroupsHash.group_1.counter_1_1"), "value_1_1");
+      assert.equal(model.get("counterGroupsHash.group_1.counter_1_2"), "value_1_2");
+      assert.equal(model.get("counterGroupsHash.group_2.counter_2_1"), "value_2_1");
+      assert.equal(model.get("counterGroupsHash.group_2.counter_2_2"), "value_2_2");
+    });
   });
 });

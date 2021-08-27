@@ -16,27 +16,29 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('caller-info', 'Integration | Component | caller info', {
-  integration: true
-});
+module('Integration | Component | caller info', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  var testType = "Typ",
-      heading = "Additional Info from " + testType;
+  test('Basic creation test', async function(assert) {
+    var testType = "Typ",
+        heading = "Additional Info from " + testType;
 
-  this.set("type", testType);
+    this.set("type", testType);
 
-  this.render(hbs`{{caller-info type=type}}`);
-  assert.equal(this.$(".panel-heading").text().trim(), heading);
+    await render(hbs`{{caller-info type=type}}`);
+    assert.equal(find(".panel-heading").textContent.trim(), heading);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#caller-info type=type}}
-      template block text
-    {{/caller-info}}
-  `);
-  assert.equal(this.$(".panel-heading").text().trim(), heading);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#caller-info type=type}}
+        template block text
+      {{/caller-info}}
+    `);
+    assert.equal(find(".panel-heading").textContent.trim(), heading);
+  });
 });

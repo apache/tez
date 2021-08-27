@@ -16,23 +16,23 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import { attr } from '@ember-data/model';
 
 import AMModel from './am';
 
 export default AMModel.extend({
 
-  totalTasks: DS.attr("number"),
-  succeededTasks: DS.attr("number"),
-  runningTasks: DS.attr("number"),
-  pendingTasks: DS.attr("number"),
-  failedTaskAttempts: DS.attr("number"),
-  killedTaskAttempts: DS.attr("number"),
+  totalTasks: attr("number"),
+  succeededTasks: attr("number"),
+  runningTasks: attr("number"),
+  pendingTasks: attr("number"),
+  failedTaskAttempts: attr("number"),
+  killedTaskAttempts: attr("number"),
 
-  initTime: DS.attr('number'),
-  startTime: DS.attr('number'),
-  endTime: DS.attr('number'),
-  firstTaskStartTime: DS.attr('number'),
-  lastTaskFinishTime: DS.attr('number'),
+  initTime: attr('number'),
+  startTime: attr('number'),
+  endTime: attr('number'),
+  firstTaskStartTime: attr('number'),
+  lastTaskFinishTime: attr('number'),
 
 });

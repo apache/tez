@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed, observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
   processor: null,
@@ -27,65 +29,78 @@ export default Ember.Component.extend({
   classNames: ["em-swimlane-consolidated-process"],
   classNameBindings: ['focused'],
 
-  focused: Ember.computed("process", "focusedProcess", function () {
-    return this.get("process") === this.get("focusedProcess");
+  focused: computed("process", "focusedProcess", function () {
+    return this.process === this.focusedProcess;
   }),
 
-  fromPos: Ember.computed("process.consolidateStartTime", "processor.timeWindow", function () {
+  fromPos: computed("process.consolidateStartTime", "processor.timeWindow", function () {
     var time = this.get("process.consolidateStartTime");
     if(time) {
-      return this.get("processor").timeToPositionPercent(time);
+      return this.processor.timeToPositionPercent(time);
     }
   }),
 
-  toPos: Ember.computed("process.consolidateEndTime", "processor.timeWindow", function () {
+  toPos: computed("process.consolidateEndTime", "processor.timeWindow", function () {
     var time = this.get("process.consolidateEndTime");
     if(time) {
-      return this.get("processor").timeToPositionPercent(time);
+      return this.processor.timeToPositionPercent(time);
     }
   }),
 
-  didInsertElement: Ember.observer("fromPos", "toPos", function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      var fromPos = this.get("fromPos"),
-          toPos = this.get("toPos"),
-          thisElement = this.$();
+  didInsertElement: observer("fromPos", "toPos", function () {
+
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
+
+    scheduleOnce('afterRender', this, function() {
+      var fromPos = this.fromPos,
+          toPos = this.toPos;
 
       if(fromPos && toPos) {
-        thisElement.show();
-        thisElement.css({
-          left: fromPos + "%",
-          right: (100 - toPos) + "%",
-          "background-color": this.get("process").getConsolidateColor(),
-          "z-index": parseInt(toPos - fromPos)
-        });
+        this.element.style.display = 'block';
+        this.element.style.left = fromPos + "%";
+        this.element.style.right = (100 - toPos) + "%";
+        this.element.style.backgroundColor = this.process.getConsolidateColor();
+        this.element.style.zIndex = parseInt(toPos - fromPos);
       }
       else {
-        thisElement.hide();
+        this.element.style.display = 'none';
       }
     });
   }),
 
-  sendMouseAction: function (name, mouseEvent) {
-    var fromPos = this.get("fromPos") || 0,
-        toPos = this.get("toPos") || 0;
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
 
-    this.sendAction(name, "consolidated-process", this.get("process"), {
+  handleMouseEnter: function (mouseEvent) {
+
+    var fromPos = this.fromPos || 0,
+        toPos = this.toPos || 0;
+
+    this.showSwimlaneTooltip("consolidated-process", this.process, {
       mouseEvent: mouseEvent,
       contribution: parseInt(toPos - fromPos)
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function () {
+    this.hideSwimlaneTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
-  mouseUp: function (mouseEvent) {
-    this.sendMouseAction("click", mouseEvent);
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
   }
-
 });

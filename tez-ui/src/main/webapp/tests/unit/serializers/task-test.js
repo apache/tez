@@ -16,18 +16,18 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:task', 'Unit | Serializer | task', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:task']
-});
+module('Unit | Serializer | task', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:task');
 
-  assert.ok(serializer);
-  assert.ok(serializer.maps);
+    assert.ok(serializer);
+    assert.ok(serializer.maps);
 
-  assert.equal(Object.keys(serializer.maps).length, 5 + 7); // 5 own and 7 inherited
+    assert.equal(Object.keys(serializer.maps).length, 5 + 7); // 5 own and 7 inherited
+  });
 });

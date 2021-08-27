@@ -16,83 +16,72 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve } from 'rsvp';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Route | vertex/tasks', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:vertex/tasks', 'Unit | Route | vertex/tasks', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.factoryFor('route:vertex/tasks').create({
+      initVisibleColumns() {},
+      getCounterColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let route = this.subject({
-    initVisibleColumns: Ember.K,
-    getCounterColumns: Ember.K
+    assert.ok(route);
   });
 
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-  assert.ok(route.actions.logCellClicked);
-});
+  test('setupController test', function(assert) {
+    assert.expect(1);
 
-test('setupController test', function(assert) {
-  assert.expect(2);
+    let route = this.owner.factoryFor('route:vertex/tasks').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
 
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'vertex');
-      return Ember.Object.create({
-        entityID: 'vertex_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    route.setupController({}, {});
   });
 
-  route.setupController({}, {});
-});
+  test('logCellClicked test', function(assert) {
+    assert.expect(2 * 3 + 2 + 2 + 1);
 
-test('logCellClicked test', function(assert) {
-  assert.expect(2 * 3 + 2 + 2 + 1);
+    let testID = "attempt_1",
+        testLogURL = "http://abc.com/xyz",
+        route = this.owner.lookup('route:vertex/tasks'),
+        attemptRecord = EmberObject.create({
+          logURL: testLogURL,
+          entityID: testID
+        });
 
-  let testID = "attempt_1",
-      testLogURL = "http://abc.com/xyz",
-      route = this.subject(),
-      attemptRecord = Ember.Object.create({
-        logURL: testLogURL,
-        entityID: testID
-      });
+    route.loader = {
+      queryRecord: function (type, id) {
+        assert.equal(type, "attempt");
+        assert.equal(id, testID);
 
-  route.loader = {
-    queryRecord: function (type, id) {
-      assert.equal(type, "attempt");
-      assert.equal(id, testID);
+        return resolve(attemptRecord);
+      }
+    };
+    route.send = function (actionName) {
+      assert.equal(actionName, "openModal");
+    };
 
-      return Ember.RSVP.resolve(attemptRecord);
-    }
-  };
-  route.send = function (actionName) {
-    assert.equal(actionName, "openModal");
-  };
+    // Download false
+    route.actions.logCellClicked.call(route, testID, false).then(function (virtualAnchorInstance) {
+      assert.equal(virtualAnchorInstance.href, testLogURL);
+      assert.notOk(virtualAnchorInstance.download);
+    });
 
-  // Download false
-  route.actions.logCellClicked.call(route, testID, false).then(function (virtualAnchorInstance) {
-    assert.equal(virtualAnchorInstance.href, testLogURL);
-    assert.notOk(virtualAnchorInstance.download);
+    // Download true
+    route.actions.logCellClicked.call(route, testID, true).then(function (virtualAnchorInstance) {
+      assert.equal(virtualAnchorInstance.href, testLogURL);
+      assert.equal(virtualAnchorInstance.download, testID);
+    });
+
+    // No log
+    attemptRecord = EmberObject.create();
+    route.actions.logCellClicked.call(route, testID, true);
   });
-
-  // Download true
-  route.actions.logCellClicked.call(route, testID, true).then(function (virtualAnchorInstance) {
-    assert.equal(virtualAnchorInstance.href, testLogURL);
-    assert.equal(virtualAnchorInstance.download, testID);
-  });
-
-  // No log
-  attemptRecord = Ember.Object.create();
-  route.actions.logCellClicked.call(route, testID, true);
 });

@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Service from '@ember/service';
 
-export default Ember.Service.extend({
+export default Service.extend({
   getStoreKey: function (key) {
     return "tez-ui:" + key;
   },

@@ -16,19 +16,19 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import AbstractModel from './abstract';
 
 export default AbstractModel.extend({
 
-  startTime: DS.attr('number'),
-  endTime: DS.attr('number'),
+  startTime: attr('number'),
+  endTime: attr('number'),
 
-  duration: Ember.computed("startTime", "endTime", function () {
-    var startTime = this.get("startTime"),
-        endTime = this.get("endTime");
+  duration: computed("startTime", "endTime", function () {
+    var startTime = this.startTime,
+        endTime = this.endTime;
 
     if(startTime > 0 && endTime > 0) {
       if(startTime > endTime) {

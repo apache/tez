@@ -16,16 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { getOwner } from '@ember/application';
+import Component from '@ember/component';
+import EmberObject, { computed } from '@ember/object';
 import layout from '../templates/components/em-table-progress-cell';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   content: null,
 
-  message: Ember.computed("content", function () {
-    var content = this.get("content");
+  message: computed("content", function () {
+    var content = this.content;
 
     if(content === undefined || content === null) {
       return "Not Available!";
@@ -35,12 +37,14 @@ export default Ember.Component.extend({
     }
   }),
 
-  _definition: Ember.computed("definition", function () {
-    return Ember.Object.extend({
+  _definition: computed("definition", function () {
+    var object = EmberObject.extend({
       valueMin: 0,
       valueMax: 1,
       striped: true,
       style: null
-    }).create(this.get("definition"));
+    }).create();
+    // TODO}).create(getOwner(this).ownerInjection(), this.definition);
+    return object;
   })
 });

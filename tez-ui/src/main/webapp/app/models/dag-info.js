@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import { attr } from '@ember-data/model';
 
 import AMTimelineModel from './am-timeline';
 
 export default AMTimelineModel.extend({
 
-  dagPlan: DS.attr('object'),
-  callerData: DS.attr('object'),
+  dagPlan: attr('object'),
+  callerData: attr('object'),
 
 });

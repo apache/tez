@@ -16,25 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed } from '@ember/object';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['home-table-controls'],
+  dataProcessor: null,
 
-  countersLoaded: Ember.computed("dataProcessor.processedRows.@each.counterGroupsHash", function () {
+  countersLoaded: computed("dataProcessor.processedRows.@each.counterGroupsHash", function () {
     var processedRows = this.get("dataProcessor.processedRows"),
         countersLoaded = true;
     if(processedRows) {
       countersLoaded = !processedRows.any(function (row) {
-        return Object.keys(row.get("counterGroupsHash")).length === 0;
+        let counters = Object.keys(row.get("counterGroupsHash"))
+        return counters.length === 0;
       });
     }
     return countersLoaded;
   }),
 
-  actions: {
-    loadCounters: function () {
-      this.get('targetObject.targetObject').send('loadCounters');
-    }
-  }
+  loadCounters: action(function () {
+    this.get('targetObject.targetObject').send('loadCounters');
+  })
 });

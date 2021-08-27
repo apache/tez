@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import EmberObject, { action, computed, observer, set } from '@ember/object';
 
 import isIOCounter from '../utils/misc';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   classNames: ['column-selector'],
 
@@ -29,7 +30,7 @@ export default Ember.Component.extend({
 
   content: null,
 
-  options: Ember.computed("content.columns", "content.visibleColumnIDs", function () {
+  options: computed("content.columns", "content.visibleColumnIDs", function () {
     var group,
         highlight = false,
         visibleColumnIDs = this.get('content.visibleColumnIDs') || {};
@@ -37,8 +38,8 @@ export default Ember.Component.extend({
     return this.get('content.columns').map(function (definition) {
       var css = '';
 
-      highlight = highlight ^ (Ember.get(definition, "counterGroupName") !== group);
-      group = Ember.get(definition, "counterGroupName");
+      highlight = highlight ^ (definition.counterGroupName !== group);
+      group = definition.counterGroupName;
 
       if(highlight) {
         css += ' highlight';
@@ -47,18 +48,18 @@ export default Ember.Component.extend({
         css += ' per-io';
       }
 
-      return Ember.Object.create({
-        id: Ember.get(definition, "id"),
-        displayText: Ember.get(definition, "headerTitle"),
+      return EmberObject.create({
+        id: definition.id,
+        displayText: definition.headerTitle,
         css: css,
-        selected: visibleColumnIDs[Ember.get(definition, "id")]
+        selected: visibleColumnIDs[definition.id]
       });
     });
   }),
 
-  filteredOptions: Ember.computed("options", "searchText", function () {
-    var options = this.get('options'),
-        searchText = this.get('searchText');
+  filteredOptions: computed("options", "searchText", function () {
+    var options = this.options,
+        searchText = this.searchText;
 
     if (!searchText) {
       return options;
@@ -69,36 +70,35 @@ export default Ember.Component.extend({
     });
   }),
 
-  selectedColumnIDs: Ember.computed("options", function () {
+  selectedColumnIDs: computed("options", function () {
     var columnIds = {};
-    this.get('options').forEach(function (option) {
+    this.options.forEach(function (option) {
       columnIds[option.get("id")] = option.get('selected');
     });
 
     return columnIds;
   }),
 
-  _selectObserver: Ember.observer('filteredOptions.@each.selected', function () {
+  _selectObserver: observer('filteredOptions.@each.selected', function () {
     var selectedCount = 0;
-    this.get('filteredOptions').forEach(function (option) {
-      if(Ember.get(option, 'selected')) {
+    this.filteredOptions.forEach(function (option) {
+      if(option.selected) {
         selectedCount++;
       }
     });
     this.set('selectAll', selectedCount > 0 && selectedCount === this.get('filteredOptions.length'));
   }),
 
-  actions: {
-    selectAll: function (checked) {
-      this.get('filteredOptions').forEach(function (option) {
-        Ember.set(option, 'selected', checked);
-      });
-    },
-    closeModal: function () {
-      this.get("targetObject").send("closeModal");
-    },
-    ok: function () {
-      this.get("targetObject").send("columnsSelected", this.get("selectedColumnIDs"));
-    }
-  }
+  selectAllAction: action(function (checked) {
+    this.filteredOptions.forEach(function (option) {
+      set(option, 'selected', checked);
+    });
+  }),
+  mycloseModal: action(function () {
+    this.targetObject.send("closeModal");
+  }),
+  ok: action(function () {
+    this.targetObject.send("columnsSelected", this.selectedColumnIDs);
+    this.targetObject.send("closeModal");
+  })
 });

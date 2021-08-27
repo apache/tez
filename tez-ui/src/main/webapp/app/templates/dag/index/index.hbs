@@ -16,68 +16,52 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{#if model.length}}
+{{#if this.loaded}}
+  {{#if this.model.length}}
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>Stats</th>
+        <th colspan="2">Stats</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Total Vertices</td>
-        <td>{{stats-link value=stats.totalVertices routeName="dag.vertices"}}</td>
+        <td><StatsLink @value={{this.stats.totalVertices}} @routeName="dag.vertices" /></td>
       </tr>
       <tr>
         <td>Succeeded Vertices</td>
-        <td>{{stats-link value=stats.succeededVertices routeName="dag.vertices" statsType="SUCCEEDED"}}</td>
+        <td><StatsLink @value={{this.stats.succeededVertices}} @routeName="dag.vertices" @statsType="SUCCEEDED" /></td>
       </tr>
       <tr>
         <td>Total Tasks</td>
-        <td>{{stats-link value=stats.totalTasks routeName="dag.tasks"}}</td>
+        <td><StatsLink @value={{this.stats.totalTasks}} @routeName="dag.tasks" /></td>
       </tr>
       <tr>
         <td>Succeeded Tasks</td>
-        <td>{{stats-link value=stats.succeededTasks routeName="dag.tasks" statsType="SUCCEEDED"}}</td>
+        <td><StatsLink @value={{this.stats.succeededTasks}} @routeName="dag.tasks" @statsType="SUCCEEDED" /></td>
       </tr>
       <tr>
         <td>Failed Tasks</td>
-        <td>{{stats-link value=stats.failedTasks routeName="dag.tasks" statsType="FAILED"}}</td>
+        <td><StatsLink @value={{this.stats.failedTasks}} @routeName="dag.tasks" @statsType="FAILED" /></td>
       </tr>
       <tr>
         <td>Killed Tasks</td>
-        <td>{{stats-link value=stats.killedTasks routeName="dag.tasks" statsType="KILLED"}}</td>
+        <td><StatsLink @value={{this.stats.killedTasks}} @routeName="dag.tasks" @statsType="KILLED" /></td>
       </tr>
       <tr>
         <td>Failed Task Attempts</td>
-        <td>{{stats-link value=stats.failedTaskAttempts routeName="dag.attempts" statsType="FAILED"}}</td>
+        <td><StatsLink @value={{this.stats.failedTaskAttempts}} @routeName="dag.attempts" @statsType="FAILED" /></td>
       </tr>
       <tr>
         <td>Killed Task Attempts</td>
-        <td>{{stats-link value=stats.killedTaskAttempts routeName="dag.attempts" statsType="KILLED"}}</td>
+        <td><StatsLink @value={{this.stats.killedTaskAttempts}} @routeName="dag.attempts" @statsType="KILLED" /></td>
       </tr>
       </tbody>
     </table>
   {{/if}}
 
-  {{em-table
-    columns=visibleColumns
-    rows=model
-
-    definition=definition
-
-    enableSearch=false
-    enablePagination=false
-
-    rowCount=model.length
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    rowAction="rowCountChanged"
-    pageAction="pageChanged"
-
-    rowsChanged="rowsChanged"
-  }}
+  <EmTable @columns={{this.visibleColumns}} @rows={{this.model}} @definition={{this.definition}} @enableSearch={{false}} @enablePagination={{false}} @rowCount={{this.model.length}} @searchAction="searchChanged" @sortAction="sortChanged" @rowCountChanged={{this.rowCountChanged}} @rowsChanged={{this.rowsChanged}} />
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

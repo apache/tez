@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-import isIOCounter from '../../../utils/misc';
 import { module, test } from 'qunit';
+import isIOCounter from '../../../utils/misc';
 
-module('Unit | Utility | misc');
-
-test('Basic creation test', function(assert) {
-  assert.ok(isIOCounter);
+module('Unit | Utility | misc', function() {
+  test('Basic creation test', function(assert) {
+    assert.ok(isIOCounter);
+  });
 });

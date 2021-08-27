@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed, get } from '@ember/object';
 
 import isIOCounter from '../utils/misc';
 import ColumnDefinition from './column-definition';
@@ -27,12 +27,12 @@ import ColumnDefinition from './column-definition';
  * @return value
  */
 function getCounterContent(row) {
-  var counter = Ember.get(row, this.get("contentPath"));
+  var counter = get(row, this.contentPath);
 
   if(counter) {
-    counter = counter[this.get("counterGroupName")];
+    counter = counter[this.counterGroupName];
     if(counter) {
-      return counter[this.get("counterName")] || null;
+      return counter[this.counterName] || null;
     }
     return null;
   }
@@ -49,14 +49,14 @@ var CounterColumnDefinition = ColumnDefinition.extend({
   getSearchValue: getCounterContent,
   getSortValue: getCounterContent,
 
-  id: Ember.computed("counterName", "counterGroupName", function () {
-    var groupName = this.get("counterGroupName"),
-        counterName = this.get("counterName");
+  id: computed("counterName", "counterGroupName", function () {
+    var groupName = this.counterGroupName,
+        counterName = this.counterName;
     return `${groupName}/${counterName}`;
   }),
 
-  groupDisplayName: Ember.computed("counterGroupName", function () {
-    var displayName = this.get("counterGroupName");
+  groupDisplayName: computed("counterGroupName", function () {
+    var displayName = this.counterGroupName;
 
     // Prune dotted path
     displayName = displayName.substr(displayName.lastIndexOf('.') + 1);
@@ -73,9 +73,9 @@ var CounterColumnDefinition = ColumnDefinition.extend({
     return displayName;
   }),
 
-  headerTitle: Ember.computed("groupDisplayName", "counterName", function () {
-    var groupName = this.get("groupDisplayName"),
-        counterName = this.get("counterName");
+  headerTitle: computed("groupDisplayName", "counterName", function () {
+    var groupName = this.groupDisplayName,
+        counterName = this.counterName;
     return `${groupName} - ${counterName}`;
   }),
 });

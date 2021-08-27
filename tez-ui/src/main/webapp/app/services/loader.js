@@ -16,47 +16,52 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { assert, inspect } from '@ember/debug';
+import EmberObject from '@ember/object';
+import { assign } from '@ember/polyfills';
+import Service, { inject as service } from '@ember/service';
+import { dasherize } from '@ember/string';
+import { getOwner } from '@ember/application';
 
-export default Ember.Service.extend({
+export default Service.extend({
 
   nameSpace: '',
-  store: Ember.inject.service('store'),
+  store: service('store'),
   cache: null,
 
   _setOptions: function (options) {
     var nameSpace = options.nameSpace;
     if(nameSpace) {
       // We need to validate only if nameSpace is passed. Else it would be stored in the global space
-      Ember.assert(`Invalid nameSpace. Please pass a string instead of ${Ember.inspect(nameSpace)}`, typeof nameSpace === 'string');
+      assert(`Invalid nameSpace. Please pass a string instead of ${inspect(nameSpace)}`, typeof nameSpace === 'string');
       this.set("nameSpace", nameSpace);
     }
   },
 
   init: function (options) {
-    this._super();
+    this._super(...arguments);
     this._setOptions(options || {});
-    this.set("cache", Ember.Object.create());
+    this.set("cache", EmberObject.create());
   },
 
   checkRequisite: function (type) {
-    var store = this.get("store"),
+    var store = this.store,
         adapter = store.adapterFor(type),
         serializer = store.serializerFor(type);
 
-    Ember.assert(
+    assert(
       `No loader adapter found for type ${type}. Either extend loader and create a custom adapter or extend ApplicationAdapter from loader.`,
       adapter && adapter._isLoader
     );
-    Ember.assert(
+    assert(
       `No loader serializer found for type ${type}. Either extend loader and create a custom serializer or extend ApplicationSerializer from loader.`,
       serializer && serializer._isLoader
     );
   },
 
   lookup: function (type, name, options) {
-    name = Ember.String.dasherize(name);
-    return this.get("container").lookup(type + ":" + name, options);
+    name = dasherize(name);
+    return getOwner(this).lookup(type + ":" + name, options);
   },
 
   entityFor: function (entityName) {
@@ -78,7 +83,7 @@ export default Ember.Service.extend({
       parts.push(JSON.stringify(query));
     }
 
-    return parts.join(":").replace(/\./g, ":");
+    return parts.join(":");
   },
 
   loadNeed: function (record, needName, options, queryParams, urlParams) {
@@ -90,8 +95,8 @@ export default Ember.Service.extend({
     options = options || {};
 
     if(!options.cache){
-      options = Ember.$.extend({}, options);
-      options.cache = options.reload ? Ember.Object.create() : this.get("cache");
+      options = assign({}, options);
+      options.cache = options.reload ? EmberObject.create() : this.cache;
     }
 
     return options;
@@ -137,8 +142,8 @@ export default Ember.Service.extend({
   },
 
   unloadAll: function (type, skipID) {
-    var store = this.get("store"),
-        loaderNS = this.get("nameSpace");
+    var store = this.store,
+        loaderNS = this.nameSpace;
 
     store.peekAll(type).forEach(function (record) {
       var id = record.get("id");

@@ -16,31 +16,32 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import SingleAmPollsterRoute from '../single-am-pollster';
+import EmberObject, { action } from '@ember/object';
+import { assign } from '@ember/polyfills';
 
+import SingleAmPollsterRoute from '../single-am-pollster';
 import downloadDAGZip from '../../utils/download-dag-zip';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var dag = this.modelFor("dag"),
       name = dag.get("name"),
       entityID = dag.get("entityID");
     return `DAG: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "dag",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    options = Ember.$.extend({
+    options = assign({
       demandNeeds: ["info"]
     }, options);
-    return this.get("loader").queryRecord('dag', this.modelFor("dag").get("id"), options);
+    return this.loader.queryRecord('dag', this.modelFor("dag").get("id"), options);
   },
 
   getCallerInfo: function (dag) {
@@ -62,25 +63,23 @@ export default SingleAmPollsterRoute.extend({
     };
   },
 
-  actions: {
-    downloadDagJson: function () {
-      var dag = this.get("loadedValue"),
-          downloader = downloadDAGZip(dag, {
-            batchSize: 500,
-            timelineHost: this.get("hosts.timeline"),
-            timelineNamespace: this.get("env.app.namespaces.webService.timeline"),
-            callerInfo: this.getCallerInfo(dag)
-          }),
-          modalContent = Ember.Object.create({
-            dag: dag,
-            downloader: downloader
-          });
-
-      this.send("openModal", "zip-download-modal", {
-        title: "Download data",
-        content: modalContent
+  downloadDagRoute: action(function () {
+    var dag = this.loadedValue,
+      downloader = downloadDAGZip(dag, {
+        batchSize: 500,
+        timelineHost: this.get("hosts.timeline"),
+        timelineNamespace: this.get("env.app.namespaces.webService.timeline"),
+        callerInfo: this.getCallerInfo(dag)
+      }),
+      modalContent = EmberObject.create({
+        dag: dag,
+        downloader: downloader
       });
-    }
-  }
 
+    this.send("openModal", "zip-download-modal", {
+      title: "Download data",
+      targetObject: this,
+      content: modalContent
+    });
+  })
 });

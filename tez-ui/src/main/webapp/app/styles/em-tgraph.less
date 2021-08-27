@@ -16,11 +16,6 @@
  * limitations under the License.
  */
 
-@import "bower_components/bootstrap/less/bootstrap";
-@import "bower_components/font-awesome/less/font-awesome";
-
-@import "bower_components/snippet-ss/less/no";
-
 @import "colors";
 
 .fa-icon(@name) {
@@ -81,8 +76,8 @@
 
     // Toggle buttons
     .tgl-orientation, .tgl-additionals, .config, .timeline, .fit-graph, .tgl-fullscreen {
-      .fa;
-      .fa-border;
+      .fas;
+      //.fas-border;
       font-size: 20px;
       border-radius: 5px;
 
@@ -97,26 +92,33 @@
       }
     }
     .tgl-orientation {
+      .fas;
       .fa-icon(share-alt);
     }
     .tgl-additionals {
+      .fas;
       .fa-icon(circle);
 
       &.hide-additionals {
-        .fa-icon(circle-o);
+        .far;
+        .fa-icon(circle);
       }
     }
     .config {
+      .fas;
       .fa-icon(cog);
     }
     .timeline {
-      .fa-icon(clock-o);
+      .far;
+      .fa-icon(clock);
     }
     .fit-graph {
+      .fas;
       .fa-icon(arrows-alt);
     }
     .tgl-fullscreen {
-      .fa-icon(expand);
+      .fas;
+      .fa-icon(expand-alt);
     }
 
     .seperator {
@@ -134,7 +136,8 @@
     }
 
     .tgl-fullscreen {
-      .fa-icon(compress);
+      .fas;
+      .fa-icon(compress-alt);
     }
   }
 
@@ -216,9 +219,9 @@
     opacity: 0;
     //pointer-events: none;
 
-    -moz-transition: opacity .5s ease-in-out;
-    -webkit-transition: opacity .5s ease-in-out;
-    transition: opacity .5s ease-in-out;
+    -moz-transition: opacity .2s ease-in-out;
+    -webkit-transition: opacity .2s ease-in-out;
+    transition: opacity .2s ease-in-out;
 
     text {
       text-anchor: middle;

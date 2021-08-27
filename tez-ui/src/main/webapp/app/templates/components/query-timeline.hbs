@@ -43,22 +43,22 @@
 <table class='detail-list'>
   <thead>
   <tr>
-    <th colspan=2>Pre-Execution + DAG construction : {{txt normalizedPerf.groupTotal.pre type="duration"}}</th>
+    <th colspan="2">Pre-Execution + DAG construction : {{txt this.normalizedPerf.groupTotal.pre type="duration"}}</th>
   </tr>
   </thead>
 
   <tbody>
   <tr>
     <td><i></i>Compile</td>
-    <td>{{txt normalizedPerf.compile type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.compile type="duration"}}</td>
   </tr>
   <tr>
     <td><i></i>Parse</td>
-    <td>{{txt normalizedPerf.parse type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.parse type="duration"}}</td>
   </tr>
   <tr>
     <td><i></i>Build Dag</td>
-    <td>{{txt normalizedPerf.TezBuildDag type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.TezBuildDag type="duration"}}</td>
   </tr>
   </tbody>
 </table>
@@ -66,17 +66,17 @@
 <table class='detail-list'>
   <thead>
   <tr>
-    <th colspan=2>DAG Submission : {{txt normalizedPerf.groupTotal.submit type="duration"}}</th>
+    <th colspan="2">DAG Submission : {{txt this.normalizedPerf.groupTotal.submit type="duration"}}</th>
   </tr>
   </thead>
   <tbody>
   <tr>
     <td><i></i>Submit Dag</td>
-    <td>{{txt normalizedPerf.TezSubmitDag type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.TezSubmitDag type="duration"}}</td>
   </tr>
   <tr>
     <td><i></i>Submit To Running</td>
-    <td>{{txt normalizedPerf.TezSubmitToRunningDag type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.TezSubmitToRunningDag type="duration"}}</td>
   </tr>
   </tbody>
 </table>
@@ -84,13 +84,13 @@
 <table class='detail-list'>
   <thead>
   <tr>
-    <th colspan=2>DAG Runtime : {{txt normalizedPerf.groupTotal.running type="duration"}}</th>
+    <th colspan="2">DAG Runtime : {{txt this.normalizedPerf.groupTotal.running type="duration"}}</th>
   </tr>
   </thead>
   <tbody>
   <tr>
     <td><i></i>Run Dag</td>
-    <td>{{txt normalizedPerf.TezRunDag type="duration"}}</td>
+    <td>{{txt this.normalizedPerf.TezRunDag type="duration"}}</td>
   </tr>
   </tbody>
 </table>
@@ -98,26 +98,26 @@
 <table class='detail-list'>
   <thead>
   <tr>
-    <th colspan=2>Post Execution : {{txt normalizedPerf.groupTotal.post type="duration"}}</th>
+    <th colspan="2">Post Execution : {{txt this.normalizedPerf.groupTotal.post type="duration"}}</th>
   </tr>
   </thead>
   <tbody>
-  {{#if normalizedPerf.RemoveTempOrDuplicateFiles}}
+  {{#if this.normalizedPerf.RemoveTempOrDuplicateFiles}}
     <tr>
       <td><i></i>Post ATS Hook</td>
-      <td>{{txt normalizedPerf.PostATSHook type="duration"}}</td>
+      <td>{{txt this.normalizedPerf.PostATSHook type="duration"}}</td>
     </tr>
   {{/if}}
-  {{#if normalizedPerf.RemoveTempOrDuplicateFiles}}
+  {{#if this.normalizedPerf.RemoveTempOrDuplicateFiles}}
     <tr>
       <td><i></i>Remove Files</td>
-      <td>{{txt normalizedPerf.RemoveTempOrDuplicateFiles type="duration"}}</td>
+      <td>{{txt this.normalizedPerf.RemoveTempOrDuplicateFiles type="duration"}}</td>
     </tr>
   {{/if}}
-  {{#if normalizedPerf.RenameOrMoveFiles}}
+  {{#if this.normalizedPerf.RenameOrMoveFiles}}
     <tr>
       <td><i></i>Rename Or Move Files</td>
-      <td>{{txt normalizedPerf.RenameOrMoveFiles type="duration"}}</td>
+      <td>{{txt this.normalizedPerf.RenameOrMoveFiles type="duration"}}</td>
     </tr>
   {{/if}}
   </tbody>

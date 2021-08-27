@@ -16,97 +16,99 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
+{{#if this.loaded}}
   <table class='detail-list'>
     <thead>
       <tr>
-        <th colspan=2>Details</th>
+        <th colspan="2">Details</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td colspan="2">
-          {{bs-button icon="fa fa-download" title="Download data" defaultText="Download data" type="info" action="downloadDagJson"}}
+        <button type="button" class="btn btn-info" {{action "downloadDag"}}>
+          <i class='fa fa-download'></i> Download data
+        </button>
         </td>
       </tr>
       <tr>
         <td>Application ID</td>
         <td>
-          {{#link-to 'app' model.appID class='ember-table-content'}}
-            {{model.appID}}
-          {{/link-to}}
+          <LinkTo @route="app" @model={{this.model.appID}} class="ember-table-content">
+            {{this.model.appID}}
+          </LinkTo>
         </td>
       </tr>
       <tr>
         <td>ID</td>
-        <td>{{model.entityID}}</td>
+        <td>{{this.model.entityID}}</td>
       </tr>
       <tr>
         <td>Name</td>
-        <td>{{model.name}}</td>
+        <td>{{this.model.name}}</td>
       </tr>
       <tr>
         <td>Submitter</td>
-        <td>{{model.submitter}}</td>
+        <td>{{this.model.submitter}}</td>
       </tr>
       <tr>
         <td>Status</td>
-        <td>{{em-table-status-cell content=model.finalStatus}}</td>
+        <td><EmTableStatusCell @content={{this.model.finalStatus}} /></td>
       </tr>
       <tr>
         <td>Progress</td>
-        <td>{{em-table-progress-cell content=model.progress}}</td>
+        <td><EmTableProgressCell @content={{this.model.progress}} /></td>
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{date-formatter content=model.startTime}}</td>
+        <td><DateFormatter @content={{this.model.startTime}} /></td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{date-formatter content=model.endTime}}</td>
+        <td><DateFormatter @content={{this.model.endTime}} /></td>
       </tr>
       <tr>
         <td>Duration</td>
-        <td>{{txt model.duration type="duration"}}</td>
+        <td>{{txt this.model.duration type="duration"}}</td>
       </tr>
       <tr>
         <td>Queue</td>
-        <td>{{txt model.queue}}</td>
+        <td>{{txt this.model.queue}}</td>
       </tr>
       <tr>
         <td>Logs</td>
         <td>
-          {{em-table-linked-cell content=model.containerLogs definition=logLinkDefinition}}
+          <EmTableLinkedCell @content={{this.model.containerLogs}} @definition={{this.logLinkDefinition}} />
         </td>
       </tr>
     </tbody>
   </table>
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}
 
-<!--
+{{!--
   * Splitting the conditional blocks so that stats from inside the outlet,
     is aligned with the details table.
   * Keeping outlet outside the conditional block so that the loading of DAG
     details doesn’t affect the outlet content.
--->
-<span class="{{unless loaded 'no-visible'}}">
+--}}
+<span class="{{unless this.loaded 'no-visible'}}">
   {{outlet}}
 </span>
 
-{{#if loaded}}
-  {{#if model.callerDescription}}
-    {{caller-info type=model.callerContext info=model.callerDescription}}
+{{#if this.loaded}}
+  {{#if this.model.callerDescription}}
+    <CallerInfo @type={{this.model.callerContext}} @info={{this.model.callerDescription}} />
   {{/if}}
 
-  {{#if model.diagnostics}}
+  {{#if this.model.diagnostics}}
     <div class="panel panel-danger">
       <div class="panel-heading">
         Diagnostics
       </div>
       <div class="diagnostics">
-        {{{model.diagnostics}}}
+        {{this.model.diagnostics}}
       </div>
     </div>
   {{/if}}

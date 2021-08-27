@@ -16,34 +16,34 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:vertex', 'Unit | Serializer | vertex', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:vertex']
-});
+module('Unit | Serializer | vertex', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:vertex');
 
-  assert.ok(serializer);
-  assert.ok(serializer.maps);
-  assert.ok(serializer.maps.processorClassName);
-});
+    assert.ok(serializer);
+    assert.ok(serializer.maps);
+    assert.ok(serializer.maps.processorClassName);
+  });
 
-test('processorClassName test', function(assert) {
-  let serializer = this.subject(),
-      processorClassName = serializer.maps.processorClassName;
+  test('processorClassName test', function(assert) {
+    let serializer = this.owner.lookup('serializer:vertex'),
+        processorClassName = serializer.maps.processorClassName;
 
-  assert.equal(processorClassName({}), "");
-  assert.equal(processorClassName({
-    otherinfo: {
-      processorClassName: "foo"
-    }
-  }), "foo");
-  assert.equal(processorClassName({
-    otherinfo: {
-      processorClassName: "a.b.foo"
-    }
-  }), "foo");
+    assert.equal(processorClassName({}), "");
+    assert.equal(processorClassName({
+      otherinfo: {
+        processorClassName: "foo"
+      }
+    }), "foo");
+    assert.equal(processorClassName({
+      otherinfo: {
+        processorClassName: "a.b.foo"
+      }
+    }), "foo");
+  });
 });

@@ -16,52 +16,29 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:application', 'Unit | Route | application', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | application', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:application');
 
-  assert.ok(route);
-  assert.ok(route.pageReset);
-  assert.ok(route.actions.didTransition);
-  assert.ok(route.actions.bubbleBreadcrumbs);
+    assert.ok(route);
+  });
 
-  assert.ok(route.actions.error);
+  test('Test bubbleBreadcrumbs action', function(assert) {
+    let route = this.owner.lookup('route:application'),
+        testController = {
+          breadcrumbs: null
+        },
+        testBreadcrumbs = [{}];
 
-  assert.ok(route.actions.openModal);
-  assert.ok(route.actions.closeModal);
-  assert.ok(route.actions.destroyModal);
+    route.controller = testController;
 
-  assert.ok(route.actions.resetTooltip);
-});
-
-test('Test didTransition action', function(assert) {
-  let route = this.subject();
-
-  assert.expect(1);
-
-  route.pageReset = function () {
-    assert.ok(true);
-  };
-
-  route.send("didTransition");
-});
-
-test('Test bubbleBreadcrumbs action', function(assert) {
-  let route = this.subject(),
-      testController = {
-        breadcrumbs: null
-      },
-      testBreadcrumbs = [{}];
-
-  route.controller = testController;
-
-  assert.notOk(route.get("controller.breadcrumbs"));
-  route.send("bubbleBreadcrumbs", testBreadcrumbs);
-  assert.equal(route.get("controller.breadcrumbs"), testBreadcrumbs);
+    assert.notOk(route.get("controller.breadcrumbs"));
+    route.send("bubbleBreadcrumbs", testBreadcrumbs);
+    assert.equal(route.get("controller.breadcrumbs"), testBreadcrumbs);
+  });
 });

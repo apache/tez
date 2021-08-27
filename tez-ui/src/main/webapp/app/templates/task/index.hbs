@@ -16,55 +16,55 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
+{{#if this.loaded}}
   <table class='detail-list'>
     <thead>
       <tr>
-        <th colspan=2>Details</th>
+        <th colspan="2">Details</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>Task ID</td>
-        <td>{{model.entityID}}</td>
+        <td>{{this.model.entityID}}</td>
       </tr>
       <tr>
         <td>Vertex ID</td>
-        <td>{{model.vertexID}}</td>
+        <td>{{this.model.vertexID}}</td>
       </tr>
       <tr>
         <td>Status</td>
-        <td>{{em-table-status-cell content=model.status}}</td>
+        <td><EmTableStatusCell @content={{this.model.status}} /></td>
       </tr>
       <tr>
         <td>Progress</td>
-        <td>{{em-table-progress-cell content=model.progress}}</td>
+        <td><EmTableProgressCell @content={{this.model.progress}} /></td>
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{date-formatter content=model.startTime}}</td>
+        <td><DateFormatter @content={{this.model.startTime}} /></td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{date-formatter content=model.endTime}}</td>
+        <td><DateFormatter @content={{this.model.endTime}} /></td>
       </tr>
       <tr>
         <td>Duration</td>
-        <td>{{txt model.duration type="duration"}}</td>
+        <td>{{txt this.model.duration type="duration"}}</td>
       </tr>
       <tr>
         <td>Logs</td>
         <td>
-          {{#if attempts}}
-            {{#each attempts as |attempt|}}
+          {{#if this.attempts}}
+            {{#each this.attempts as |attempt|}}
               <dag class="display-block">
                 Attempt {{attempt.index}} :&nbsp;
                 {{#if attempt.logURL}}
-                  <a href={{attempt.logURL}} target="_blank">
+                  <a href={{attempt.logURL}} target="_blank" rel="noopener noreferrer">
                     <i class="fa fa-file-o" aria-hidden="true"></i> View
                   </a>
                   &nbsp;
-                  <a href={{attempt.logURL}} target="_blank" download>
+                  <a href={{attempt.logURL}} target="_blank" download rel="noopener noreferrer">
                     <i class="fa fa-download" aria-hidden="true"></i> Download
                   </a>
                 {{else}}
@@ -80,16 +80,16 @@
       <tr>
         <td>Container Logs</td>
         <td>
-          {{#if attempts}}
-            {{#each attempts as |attempt|}}
+          {{#if this.attempts}}
+            {{#each this.attempts as |attempt|}}
               <dag class="display-block">
                 Attempt {{attempt.index}} :&nbsp;
                 {{#if attempt.containerLogURL}}
-                  <a href={{attempt.containerLogURL}} target="_blank">
+                  <a href={{attempt.containerLogURL}} target="_blank" rel="noopener noreferrer">
                     <i class="fa fa-file-o" aria-hidden="true"></i> View
                   </a>
                   &nbsp;
-                  <a href={{attempt.containerLogURL}} target="_blank" download>
+                  <a href={{attempt.containerLogURL}} target="_blank" download rel="noopener noreferrer">
                     <i class="fa fa-download" aria-hidden="true"></i> Download
                   </a>
                 {{else}}
@@ -108,28 +108,28 @@
   <table class='detail-list'>
     <thead>
     <tr>
-      <th colspan=2>Stats</th>
+      <th colspan="2">Stats</th>
     </tr>
     </thead>
     <tbody>
       <tr>
         <td>Failed Task Attempts</td>
-        <td>{{stats-link value=model.failedTaskAttempts routeName="task.attempts" statsType="FAILED"}}</td>
+        <td><StatsLink @value={{this.model.failedTaskAttempts}} @routeName="this.task.attempts" @statsType="FAILED" /></td>
       </tr>
     </tbody>
   </table>
 
-  {{#if model.diagnostics}}
+  {{#if this.model.diagnostics}}
     <div class="panel panel-danger">
       <div class="panel-heading">
         Diagnostics
       </div>
       <div class="diagnostics">
-        {{{model.diagnostics}}}
+        {{this.model.diagnostics}}
       </div>
     </div>
   {{/if}}
 
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

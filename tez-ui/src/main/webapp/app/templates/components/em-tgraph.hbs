@@ -16,9 +16,9 @@
  * limitations under the License.
 }}
 
-{{#if errMessage}}
+{{#if this.errMessage}}
   <div class="text-align-center">
-    <h1>Rendering failed! </h1><h5>{{errMessage}}</h5>
+    <h1>Rendering failed! </h1><h5>{{this.errMessage}}</h5>
   </div>
 {{else}}
   <div class="svg-container">
@@ -27,24 +27,24 @@
 
         <rect id="vertex-bg"
               class="vertex-node-bg"
-              style={{styles.vertex}}
+              style={{this.styles.vertex}}
               rx="5" ry="5" width="80" height="30" x="-40" y="-15"/>
         <rect id="input-bg"
               class="input-node-bg"
-              style={{styles.input}}
+              style={{this.styles.input}}
               rx="15" ry="15" width="80" height="30" x="-40" y="-15"/>
         <rect id="output-bg"
               class="output-node-bg"
-              style={{styles.output}}
+              style={{this.styles.output}}
               rx="15" ry="15" width="80" height="30" x="-40" y="-15"/>
         <circle id="task-bubble" class="task-bubble-bg"
-                style={{styles.task}}
+                style={{this.styles.task}}
                 r="10"/>
         <circle id="io-bubble" class="input-node-bg"
-                style={{styles.io}}
+                style={{this.styles.io}}
                 r="10"/>
         <circle id="group-bubble" class="group-bubble-bg"
-                style={{styles.group}}
+                style={{this.styles.group}}
                 r="8"/>
 
         <marker id="arrow-marker" viewBox="0 -5 10 10" markerWidth="2" markerHeight="2" orient="auto">
@@ -92,11 +92,11 @@
     </svg>
   </div>
   <div class="button-panel">
-    <i class="tgl-additionals {{if hideAdditionals 'hide-additionals'}}" {{action 'tglAdditionals'}} title="Toggle source/sink visibility"></i>
-    <i class="config jq-tooltip" {{action 'configure'}} title="Customize vertex tooltip"></i>
-    <i class="timeline no-display" {{action 'configure'}} title="Toggle Timeline"></i>
+    <i class="tgl-additionals {{if this.hideAdditionals 'hide-additionals'}}" {{action 'tglAdditionals'}} title="Toggle source/sink visibility"></i>
+    <i class="config jq-tooltip" {{action 'cogClicked'}} title="Customize vertex tooltip"></i>
+    <i class="timeline no-display" {{action 'cogClicked'}} title="Toggle Timeline"></i>
     <i class="seperator"></i>
-    <i class="tgl-orientation {{if isHorizontal 'fa-rotate-270' 'fa-rotate-180'}}" {{action 'tglOrientation'}} title="Toggle orientation"></i>
+    <i class="tgl-orientation {{if this.isHorizontal 'fa-rotate-270' 'fa-rotate-180'}}" {{action 'tglOrientation'}} title="Toggle orientation"></i>
     <i class="fit-graph" {{action 'fitGraph'}} title="Fit DAG to viewport"></i>
     <i class="tgl-fullscreen" {{action 'fullscreen'}} title="Toggle fullscreen"></i>
   </div>

@@ -16,53 +16,52 @@
  * limitations under the License.
  */
 
-import Processor from '../../../utils/processor';
 import { module, test } from 'qunit';
+import Processor from '../../../utils/processor';
 
-module('Unit | Utility | processor');
+module('Unit | Utility | processor', function() {
+  test('Basic creation test', function(assert) {
+    let processor = Processor.create();
 
-test('Basic creation test', function(assert) {
-  let processor = Processor.create();
+    assert.ok(processor);
 
-  assert.ok(processor);
-
-  assert.ok(processor.timeWindow);
-  assert.ok(processor.createProcessColor);
-  assert.ok(processor.timeToPositionPercent);
-});
-
-test('timeWindow test', function(assert) {
-  let processor = Processor.create({
-    startTime: 50,
-    endTime: 80
+    assert.ok(processor.createProcessColor);
+    assert.ok(processor.timeToPositionPercent);
   });
 
-  assert.equal(processor.get("timeWindow"), 30);
+  test('timeWindow test', function(assert) {
+    let processor = Processor.create({
+      startTime: 50,
+      endTime: 80
+    });
 
-  processor = Processor.create({
-    startTime: 80,
-    endTime: 50
+    assert.equal(processor.get("timeWindow"), 30);
+
+    processor = Processor.create({
+      startTime: 80,
+      endTime: 50
+    });
+
+    assert.equal(processor.get("timeWindow"), 0);
   });
 
-  assert.equal(processor.get("timeWindow"), 0);
-});
+  test('createProcessColor test', function(assert) {
+    let processor = Processor.create({
+      processCount: 10
+    }),
+    color = processor.createProcessColor(3);
 
-test('timeWindow test', function(assert) {
-  let processor = Processor.create({
-    processCount: 10
-  }),
-  color = processor.createProcessColor(3);
-
-  assert.equal(color.h, 108);
-  assert.equal(color.s, 70);
-  assert.equal(color.l, 40);
-});
-
-test('timeToPositionPercent test', function(assert) {
-  let processor = Processor.create({
-    startTime: 0,
-    endTime: 10
+    assert.equal(color.h, 108);
+    assert.equal(color.s, 70);
+    assert.equal(color.l, 40);
   });
 
-  assert.equal(processor.timeToPositionPercent(5), 50);
+  test('timeToPositionPercent test', function(assert) {
+    let processor = Processor.create({
+      startTime: 0,
+      endTime: 10
+    });
+
+    assert.equal(processor.timeToPositionPercent(5), 50);
+  });
 });

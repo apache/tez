@@ -16,99 +16,99 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:dag-info', 'Unit | Serializer | dag info', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:dag-info']
-});
+module('Unit | Serializer | dag info', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:dag-info');
 
-  assert.ok(serializer);
+    assert.ok(serializer);
 
-  assert.ok(serializer.normalizeResourceHash);
+    assert.ok(serializer.normalizeResourceHash);
 
-  assert.ok(serializer.maps.dagPlan);
-  assert.ok(serializer.maps.callerData);
+    assert.ok(serializer.maps.dagPlan);
+    assert.ok(serializer.maps.callerData);
 
-  assert.equal(Object.keys(serializer.get("maps")).length, 2 + 7); //2 own & 7 inherited
-});
+    assert.equal(Object.keys(serializer.get("maps")).length, 2 + 7); //2 own & 7 inherited
+  });
 
-test('normalizeResourceHash test', function(assert) {
-  let serializer = this.subject(),
+  test('normalizeResourceHash test', function(assert) {
+    let serializer = this.owner.lookup('serializer:dag-info'),
 
-      callerInfo = {
-        callerId: "id_1",
-        callerType: "HIVE_QUERY_ID",
-        context: "Hive",
-        description: "hive query"
-      },
+        callerInfo = {
+          callerId: "id_1",
+          callerType: "HIVE_QUERY_ID",
+          context: "Hive",
+          description: "hive query"
+        },
 
-      data;
+        data;
 
-  // dagContext test
-  data = serializer.normalizeResourceHash({
-    data: {
-      otherinfo: {
-        dagPlan: {
-          dagContext: callerInfo
-        }
-      }
-    }
-  }).data;
-
-  assert.equal(data.callerData.callerContext, callerInfo.context);
-  assert.equal(data.callerData.callerDescription, callerInfo.description);
-  assert.equal(data.callerData.callerType, callerInfo.callerType);
-
-  // dagInfo test
-  data = serializer.normalizeResourceHash({
-    data: {
-      otherinfo: {
-        dagPlan: {
-          dagInfo: `{"context": "${callerInfo.context}", "description": "${callerInfo.description}"}`
-        }
-      }
-    }
-  }).data;
-
-  assert.equal(data.callerData.callerContext, callerInfo.context);
-  assert.equal(data.callerData.callerDescription, callerInfo.description);
-  assert.notOk(data.callerData.callerType);
-
-  // dagInfo.blob test
-  data = serializer.normalizeResourceHash({
-    data: {
-      otherinfo: {
-        dagPlan: {
-          dagInfo: {
-            context: callerInfo.context,
-            blob: callerInfo.description
+    // dagContext test
+    data = serializer.normalizeResourceHash({
+      data: {
+        otherinfo: {
+          dagPlan: {
+            dagContext: callerInfo
           }
         }
       }
-    }
-  }).data;
+    }).data;
 
-  assert.equal(data.callerData.callerContext, callerInfo.context);
-  assert.equal(data.callerData.callerDescription, callerInfo.description);
-  assert.notOk(data.callerData.callerType);
+    assert.equal(data.callerData.callerContext, callerInfo.context);
+    assert.equal(data.callerData.callerDescription, callerInfo.description);
+    assert.equal(data.callerData.callerType, callerInfo.callerType);
 
-  // dagContext have presidence over dagInfo
-  data = serializer.normalizeResourceHash({
-    data: {
-      otherinfo: {
-        dagPlan: {
-          dagContext: callerInfo,
-          dagInfo: `{"context": "RandomContext", "description": "RandomDesc"}`
+    // dagInfo test
+    data = serializer.normalizeResourceHash({
+      data: {
+        otherinfo: {
+          dagPlan: {
+            dagInfo: `{"context": "${callerInfo.context}", "description": "${callerInfo.description}"}`
+          }
         }
       }
-    }
-  }).data;
+    }).data;
 
-  assert.equal(data.callerData.callerContext, callerInfo.context);
-  assert.equal(data.callerData.callerDescription, callerInfo.description);
-  assert.equal(data.callerData.callerType, callerInfo.callerType);
+    assert.equal(data.callerData.callerContext, callerInfo.context);
+    assert.equal(data.callerData.callerDescription, callerInfo.description);
+    assert.notOk(data.callerData.callerType);
+
+    // dagInfo.blob test
+    data = serializer.normalizeResourceHash({
+      data: {
+        otherinfo: {
+          dagPlan: {
+            dagInfo: {
+              context: callerInfo.context,
+              blob: callerInfo.description
+            }
+          }
+        }
+      }
+    }).data;
+
+    assert.equal(data.callerData.callerContext, callerInfo.context);
+    assert.equal(data.callerData.callerDescription, callerInfo.description);
+    assert.notOk(data.callerData.callerType);
+
+    // dagContext have presidence over dagInfo
+    data = serializer.normalizeResourceHash({
+      data: {
+        otherinfo: {
+          dagPlan: {
+            dagContext: callerInfo,
+            dagInfo: `{"context": "RandomContext", "description": "RandomDesc"}`
+          }
+        }
+      }
+    }).data;
+
+    assert.equal(data.callerData.callerContext, callerInfo.context);
+    assert.equal(data.callerData.callerDescription, callerInfo.description);
+    assert.equal(data.callerData.callerType, callerInfo.callerType);
+  });
 });

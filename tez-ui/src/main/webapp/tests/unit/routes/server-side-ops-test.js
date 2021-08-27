@@ -16,161 +16,155 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve, reject } from 'rsvp';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Route | server side ops', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:server-side-ops', 'Unit | Route | server side ops', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:server-side-ops');
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
-
-  assert.ok(route);
-  assert.ok(route.load);
-  assert.ok(route.loadNewPage);
-
-  assert.ok(route.actions.loadPage);
-  assert.ok(route.actions.reload);
-
-  assert.ok(route.actions.willTransition);
-});
-
-test('load - query/filter test', function(assert) {
-  let testEntityType = "EntityType",
-      testEntityID1 = "entity_1",
-      testEntityID2 = "entity_2",
-      testFromID = "entity_6",
-
-      query = {
-        limit: 5
-      },
-      resultRecords = Ember.A([
-        Ember.Object.create({
-          entityID: testEntityID1
-        }),
-        {}, {}, {}, {},
-        Ember.Object.create({
-          entityID: testFromID
-        })
-      ]),
-
-      route = this.subject({
-        entityType: testEntityType,
-        controller: Ember.Object.create(),
-        loader: {
-          query: function (type, query, options) {
-            assert.equal(type, testEntityType);
-            assert.equal(query.limit, 6);
-            assert.equal(options.reload, true);
-            return Ember.RSVP.resolve(resultRecords);
-          }
-        }
-      });
-
-  assert.expect(3 * 2 + 2 + 3 + 3);
-
-  assert.notOk(route.get("controller.moreAvailable"));
-  assert.equal(route.get("fromId"), null);
-
-  return route.load(null, query).then(function (records) {
-    assert.equal(records.get("0.entityID"), testEntityID1);
-
-    assert.equal(route.get("controller.moreAvailable"), true, "moreAvailable was not set");
-    assert.equal(route.get("fromId"), testFromID);
-  }).then(function () {
-    resultRecords = Ember.A([
-      Ember.Object.create({
-        entityID: testEntityID2
-      })
-    ]);
-    return route.load(null, query);
-  }).then(function (records) {
-    assert.equal(records.get("0.entityID"), testEntityID2);
-
-    assert.equal(route.get("controller.moreAvailable"), false);
-    assert.equal(route.get("fromId"), null);
+    assert.ok(route);
   });
-});
 
-test('load - id fetch test', function(assert) {
-  let testEntityType = "EntityType",
-      testRecord = Ember.Object.create(),
-      route = this.subject({
-        entityType: testEntityType,
-        controller: Ember.Object.create(),
-        loader: {
-          queryRecord: function (type, id, options) {
-            assert.equal(type, testEntityType);
-            assert.equal(options.reload, true);
-            if (id === querySuccess.id) {
-              return Ember.RSVP.resolve(testRecord);
-            } else {
-              return Ember.RSVP.reject(new Error("Failed in Reject"));
+  test('load - query/filter test', function(assert) {
+    let testEntityType = "EntityType",
+        testEntityID1 = "entity_1",
+        testEntityID2 = "entity_2",
+        testFromID = "entity_6",
+
+        query = {
+          limit: 5
+        },
+        resultRecords = A([
+          EmberObject.create({
+            entityID: testEntityID1
+          }),
+          {}, {}, {}, {},
+          EmberObject.create({
+            entityID: testFromID
+          })
+        ]),
+
+        route = this.owner.factoryFor('route:server-side-ops').create({
+          entityType: testEntityType,
+          controller: EmberObject.create(),
+          loader: {
+            query: function (type, query, options) {
+              assert.equal(type, testEntityType);
+              assert.equal(query.limit, 6);
+              assert.true(options.reload);
+              return resolve(resultRecords);
             }
           }
-        }
-      }),
-      querySuccess = {
-        id :'entity_123'
-      },
-      queryFailure = {
-        id :'entity_456'
-      };
+        });
 
-  assert.expect(2 * 2 + 3 + 1);
+    assert.expect(3 * 2 + 2 + 3 + 3);
 
-  route.load(null, querySuccess).then(function (records) {
-    assert.ok(Array.isArray(records));
-    assert.equal(records.length, 1);
-    assert.equal(records[0], testRecord);
+    assert.notOk(route.get("controller.moreAvailable"));
+    assert.equal(route.fromId, null);
+
+    return route.load(null, query).then(function (records) {
+      assert.equal(records.get("0.entityID"), testEntityID1);
+
+      assert.true(route.get("controller.moreAvailable"), "moreAvailable was not set");
+      assert.equal(route.fromId, testFromID);
+    }).then(function () {
+      resultRecords = A([
+        EmberObject.create({
+          entityID: testEntityID2
+        })
+      ]);
+      return route.load(null, query);
+    }).then(function (records) {
+      assert.equal(records.get("0.entityID"), testEntityID2);
+
+      assert.false(route.get("controller.moreAvailable"));
+      assert.equal(route.fromId, null);
+    });
   });
-  route.load(null, queryFailure).then(function (data) {
-    assert.equal(data.length,0);
-  });
-});
 
-test('loadNewPage test', function(assert) {
-  let currentQuery = {
-        val: {}
-      },
-      data = [],
-      fromId = "id1",
-      route = this.subject({
-        controller: Ember.Object.create(),
-        currentQuery: currentQuery,
-        fromId: fromId,
-        loadedValue: {
-          pushObjects: function (objs) {
-            assert.equal(data, objs);
+  test('load - id fetch test', function(assert) {
+    let testEntityType = "EntityType",
+        testRecord = EmberObject.create(),
+        route = this.owner.factoryFor('route:server-side-ops').create({
+          entityType: testEntityType,
+          controller: EmberObject.create(),
+          loader: {
+            queryRecord: function (type, id, options) {
+              assert.equal(type, testEntityType);
+              assert.true(options.reload);
+              if (id === querySuccess.id) {
+                return resolve(testRecord);
+              } else {
+                return reject(new Error("Failed in Reject"));
+              }
+            }
           }
+        }),
+        querySuccess = {
+          id :'entity_123'
         },
-        load: function (value, query) {
-          assert.equal(query.val, currentQuery.val);
-          assert.equal(query.fromId, fromId);
-          return Ember.RSVP.resolve(data);
-        }
-      });
+        queryFailure = {
+          id :'entity_456'
+        };
 
-  assert.expect(1 + 2);
+    assert.expect(2 * 2 + 3 + 1);
 
-  route.loadNewPage();
-});
+    route.load(null, querySuccess).then(function (records) {
+      assert.ok(Array.isArray(records));
+      assert.equal(records.length, 1);
+      assert.equal(records[0], testRecord);
+    });
+    route.load(null, queryFailure).then(function (data) {
+      assert.equal(data.length,0);
+    });
+  });
 
-test('actions.willTransition test', function(assert) {
-  let testPageNum = 5,
-      controller = Ember.Object.create({
-        pageNum: testPageNum
-      }),
-      route = this.subject({
-        controller: controller,
-      });
+  test('loadNewPage test', function(assert) {
+    let currentQuery = {
+          val: {}
+        },
+        data = [],
+        fromId = "id1",
+        route = this.owner.factoryFor('route:server-side-ops').create({
+          controller: EmberObject.create(),
+          currentQuery: currentQuery,
+          fromId: fromId,
+          loadedValue: {
+            pushObjects: function (objs) {
+              assert.equal(data, objs);
+            }
+          },
+          load: function (value, query) {
+            assert.equal(query.val, currentQuery.val);
+            assert.equal(query.fromId, fromId);
+            return resolve(data);
+          }
+        });
 
-  assert.expect(1 + 1);
+    assert.expect(1 + 2);
 
-  assert.equal(controller.get("pageNum"), testPageNum);
-  route.send("willTransition");
-  assert.equal(controller.get("pageNum"), 1); // PageNum must be reset
+    route.loadNewPage();
+  });
+
+  test('actions.willTransition test', function(assert) {
+    let testPageNum = 5,
+        controller = EmberObject.create({
+          pageNum: testPageNum
+        }),
+        route = this.owner.factoryFor('route:server-side-ops').create({
+          controller: controller,
+        });
+
+    assert.expect(1 + 1);
+
+    assert.equal(controller.pageNum, testPageNum);
+    route.send("willTransition");
+    assert.equal(controller.pageNum, 1); // PageNum must be reset
+  });
 });

@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import { action, computed } from '@ember/object';
 
 import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
@@ -30,10 +31,10 @@ export default MultiTableController.extend({
 
   columnSelectorTitle: 'Customize vertex tooltip',
 
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "Vertex Swimlane",
     routeName: "dag.swimlane",
-  }],
+  }]}),
 
   columns: ColumnDefinition.make([{
     id: 'entityID',
@@ -99,7 +100,7 @@ export default MultiTableController.extend({
     contentPath: 'processorClassName',
   }]),
 
-  dataAvailable: Ember.computed("model.firstObject.dag.amWsVersion",
+  dataAvailable: computed("model.firstObject.dag.amWsVersion",
       "model.firstObject.dag.isComplete",
       "model.firstObject.am.initTime", function () {
     var vertex = this.get("model.firstObject"),
@@ -121,7 +122,7 @@ export default MultiTableController.extend({
     return dataAvailable;
   }),
 
-  processes: Ember.computed("model", function () {
+  processes: computed('model.firstObject.dag.edges', function () {
     var processes = [],
         processHash = {},
 
@@ -133,11 +134,11 @@ export default MultiTableController.extend({
         };
 
     // Create process instances for each vertices
-    this.get("model").forEach(function (vertex) {
+    this.model.forEach(function (vertex) {
       var process = VertexProcess.create({
         vertex: vertex,
         getVisibleProps: getVisibleProps,
-        blockers: Ember.A()
+        blockers: A()
       });
       processHash[vertex.get("name")] = process;
       processes.push(process);
@@ -154,18 +155,17 @@ export default MultiTableController.extend({
       });
     }
 
-    return Ember.A(processes);
+    return A(processes);
   }),
 
-  actions: {
-    toggleFullscreen: function () {
-      var swimlaneElement = Ember.$(".swimlane-page").get(0);
-      if(swimlaneElement){
-        fullscreen.toggle(swimlaneElement);
-      }
-    },
-    click: function (type, process) {
-      this.transitionToRoute('vertex.index', process.get('vertex.entityID'));
+  toggleFullscreen: action(function () {
+    var swimlaneElement = document.querySelector('.swimlane-page');
+    if(swimlaneElement){
+      fullscreen.toggle(swimlaneElement);
     }
-  }
+  }),
+
+  routeToVertex: action(function (entityID) {
+    this.transitionToRoute('vertex.index', entityID);
+  })
 });

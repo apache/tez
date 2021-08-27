@@ -1,4 +1,4 @@
-/*global zip, saveAs*/
+/*global zip */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -16,8 +16,12 @@
  * the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import EmberObject from '@ember/object';
+import { defer } from 'rsvp';
+import { later } from '@ember/runloop';
+import { saveAs } from 'file-saver';
+
+import MoreObject from '../utils/more-object';
 
 zip.workerScriptsPath = "assets/zip/";
 
@@ -46,7 +50,7 @@ var IO = {
         pendingRequests = {},
         pendingRequestID = 0,
         failureReason = 'Unknown',
-        deferredPromise = Ember.RSVP.defer();
+        deferredPromise = defer();
 
     function checkForCompletion() {
       if (hasFailed) {
@@ -68,9 +72,9 @@ var IO = {
     }
 
     function abortPendingRequests() {
-      Ember.$.each(pendingRequests, function(idx, val) {
+      Object.values(pendingRequests).forEach(function (pendingRequest) {
         try {
-          val.abort("abort");
+          pendingRequest.abort("abort");
         } catch(e) {}
       });
     }
@@ -85,28 +89,25 @@ var IO = {
 
     function processNext() {
       if (inProgress >= numParallel) {
-        Ember.Logger.debug(`delaying download as ${inProgress} of ${numParallel} is in progress`);
+        console.debug(`delaying download as ${inProgress} of ${numParallel} is in progress`);
         return;
       }
 
       if (itemList.length < 1) {
-        Ember.Logger.debug("no items to download");
+        console.warn("no items to download");
         checkForCompletion();
         return;
       }
 
       inProgress++;
-      Ember.Logger.debug(`starting download ${inProgress}`);
+      console.warn(`starting download ${inProgress}`);
       var item = itemList.shift();
 
-      var xhr = Ember.$.ajax({
-        crossOrigin: true,
-        url: item.url,
-        dataType: 'json',
-        xhrFields: {
-          withCredentials: true
-        },
-      });
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', item.url, true);
+      xhr.withCredentials = true;
+      xhr.responseType='json';
+
       var reqID = getRequestId();
       pendingRequests[reqID] = xhr;
 
@@ -114,12 +115,32 @@ var IO = {
         item.onFetch(item.context);
       }
 
-      xhr.done(function(data/*, statusText, xhr*/) {
+      xhr.onload = function() {
         delete pendingRequests[reqID];
 
-        if (Ember.$.isFunction(item.onItemFetched)) {
+        if (xhr.status !== 200) {
+          // handle valid responses like 404
+          if(item.retryCount) {
+            itemList.unshift(item);
+            item.retryCount--;
+            if(item.onRetry) {
+              item.onRetry(item.context);
+            }
+            later(processNext, 3000 + Math.random() * 3000);
+          }
+          else if(item.onItemFail) {
+            item.onItemFail(xhr, item.context);
+            processNext();
+          }
+          else {
+            markFailed(xhr.statusText || 'failed to fetch data');
+            checkForCompletion();
+            return;
+          }
+        }
+        if (MoreObject.isFunction(item.onItemFetched)) {
           try {
-            item.onItemFetched(data, item.context);
+            item.onItemFetched(xhr.response, item.context);
           } catch (e) {
             markFailed(e || 'failed to process data');
             inProgress--;
@@ -130,7 +151,8 @@ var IO = {
 
         inProgress--;
         processNext();
-      }).fail(function(xhr, statusText/*, errorObject*/) {
+      };
+      xhr.onerror = function() {
         delete pendingRequests[reqID];
         inProgress--;
 
@@ -140,41 +162,39 @@ var IO = {
           if(item.onRetry) {
             item.onRetry(item.context);
           }
-          Ember.run.later(processNext, 3000 + Math.random() * 3000);
+          later(processNext, 3000 + Math.random() * 3000);
         }
         else if(item.onItemFail) {
           item.onItemFail(xhr, item.context);
           processNext();
         }
         else {
-          markFailed(statusText);
+          markFailed(e);
           checkForCompletion();
         }
-      });
+      };
+      xhr.send();
     }
 
-    return DS.PromiseObject.create({
-      promise: deferredPromise.promise,
-
-      queueItems: function(options) {
+      deferredPromise.queueItems = function(options) {
         options.forEach(this.queueItem);
       },
 
-      queueItem: function(option) {
+      deferredPromise.queueItem = function(option) {
         itemList.push(option);
         processNext();
       },
 
-      finish: function() {
+      deferredPromise.finish = function() {
         hasMoreInputs = false;
         checkForCompletion();
       },
 
-      cancel: function() {
+      deferredPromise.cancel = function() {
         markFailed("User cancelled");
         checkForCompletion();
       }
-    });
+    return deferredPromise;
   },
 
 
@@ -196,7 +216,7 @@ var IO = {
   zipHelper: function(options) {
     var opts = options || {},
         zipWriter,
-        completion = Ember.RSVP.defer(),
+        completion = defer(),
         fileList = [],
         completed = 0,
         currentIdx = -1,
@@ -214,26 +234,26 @@ var IO = {
     function checkForCompletion() {
       if (hasFailed) {
         if (zipWriter) {
-          Ember.Logger.debug("aborting zipping. closing file.");
+          console.warn("aborting zipping. closing file.");
           zipWriter.close(completion.reject);
           zipWriter = null;
         }
       } else {
         if (!hasMoreInputs && numFiles === completed) {
-          Ember.Logger.debug("completed zipping. closing file.");
+          console.warn("completed zipping. closing file.");
           zipWriter.close(completion.resolve);
         }
       }
     }
 
     function onProgress(current, total) {
-      if (Ember.$.isFunction(opts.onProgress)) {
+      if (MoreObject.isFunction(opts.onProgress)) {
         opts.onProgress(fileList[currentIdx].name, current, total);
       }
     }
 
     function onAdd(filename) {
-      if (Ember.$.isFunction(opts.onAdd)) {
+      if (MoreObject.isFunction(opts.onAdd)) {
         opts.onAdd(filename);
       }
     }
@@ -257,37 +277,34 @@ var IO = {
       }, onProgress);
     }
 
-    return DS.PromiseObject.create({
-      addFiles: function(files) {
+      completion.addFiles = function(files) {
         files.forEach(this.addFile);
-      },
+      };
 
-      addFile: function(file) {
+      completion.addFile = function(file) {
         if (hasFailed) {
-          Ember.Logger.debug(`Skipping add of file ${file.name} as zip has been aborted`);
+          console.warn(`Skipping add of file ${file.name} as zip has been aborted`);
           return;
         }
         numFiles++;
         fileList.push(file);
         if (zipWriter) {
-          Ember.Logger.debug("adding file from addFile: " + file.name);
+          console.warn("adding file from addFile: " + file.name);
           nextFile();
         }
-      },
+      };
 
-      close: function() {
+      completion.close = function() {
         hasMoreInputs = false;
         checkForCompletion();
-      },
+      };
 
-      promise: completion.promise,
-
-      abort: function() {
+      completion.abort = function() {
         hasFailed = true;
         this.close();
-      }
-    });
-  }
+      };
+    return completion;
+    }
 };
 
 export default function downloadDagZip(dag, options) {
@@ -368,13 +385,12 @@ export default function downloadDagZip(dag, options) {
       downloader = IO.fileDownloader(),
       zipHelper = IO.zipHelper({
         onProgress: function(filename, current, total) {
-          Ember.Logger.debug(`${filename}: ${current} of ${total}`);
         },
         onAdd: function(filename) {
-          Ember.Logger.debug(`adding ${filename} to Zip`);
+          console.warn(`adding ${filename} to Zip`);
         }
       }),
-      downloaderProxy = Ember.Object.create({
+      downloaderProxy = EmberObject.create({
         percent: 0,
         message: "",
         succeeded: false,
@@ -382,6 +398,7 @@ export default function downloadDagZip(dag, options) {
         failed: false,
         cancel: function() {
           downloader.cancel();
+          zipHelper.abort();
         }
       });
 
@@ -392,8 +409,8 @@ export default function downloadDagZip(dag, options) {
     if (id) {
       url = `${baseurl}/${type}/${id}`;
     } else {
-      url = `${baseurl}/${type}?primaryFilter=TEZ_DAG_ID:${dagID}&limit=${queryBatchSize}`;
-      if (!!fromID) {
+      url = `${baseurl}/${type}?primaryFilter=TEZ_DAG_ID:"${dagID}"&limit=${queryBatchSize}`;
+      if (fromID) {
         url = `${url}&fromId=${fromID}`;
       }
     }
@@ -448,7 +465,7 @@ export default function downloadDagZip(dag, options) {
     var obj = {};
     var nextBatchStart;
 
-    if (!Ember.$.isArray(data.entities)) {
+    if (!Array.isArray(data.entities)) {
       throw "invalid data";
     }
 
@@ -460,7 +477,7 @@ export default function downloadDagZip(dag, options) {
 
     zipHelper.addFile({name: `${context.name}_part_${context.part}.json`, data: JSON.stringify(obj, null, 2)});
 
-    if (!!nextBatchStart) {
+    if (nextBatchStart) {
       context.part++;
       downloader.queueItem({
         url: getUrl(context.type, null, dagID, nextBatchStart),
@@ -474,20 +491,20 @@ export default function downloadDagZip(dag, options) {
 
   downloader.queueItems(itemsToDownload);
 
-  downloader.then(function() {
-    Ember.Logger.info('Finished download');
+  downloader.promise.then(function() {
+    console.info('Finished download');
     zipHelper.close();
   }).catch(function(e) {
-    Ember.Logger.error('Failed to download: ' + e);
+    console.error('Failed to download: ' + e);
     zipHelper.abort();
   });
 
-  zipHelper.then(function(zippedBlob) {
+  zipHelper.promise.then(function(zippedBlob) {
     saveAs(zippedBlob, `${dagID}.zip`);
     downloaderProxy.set("message", `Download complete.`);
     downloaderProxy.set("succeeded", true);
   }, function() {
-    Ember.Logger.error('zip Failed');
+    console.error('zip Failed');
     downloaderProxy.set("failed", true);
   });
 

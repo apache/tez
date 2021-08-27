@@ -16,61 +16,68 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { settled } from '@ember/test-helpers';
+import EmberObject from '@ember/object';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | abstract', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:abstract', 'Unit | Controller | abstract', {
-  // Specify the other units that are required for this test.
-  // needs: ['route:abstract']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:abstract').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.ok(controller);
   });
 
-  assert.ok(controller.name);
-  assert.ok(controller.crumbObserver);
-  assert.ok(controller.setBreadcrumbs);
-  assert.ok(controller.loaded);
-});
+  test('init test', async function(assert) {
+    assert.expect(2);
 
-test('init test', function(assert) {
-  assert.expect(1);
-
-  this.subject({
-    send: function (name) {
-      assert.equal(name, "setBreadcrumbs");
-    }
-  });
-});
-
-test('crumbObserver test', function(assert) {
-  assert.expect(1 + 1); // Init and fired
-
-  let controller = this.subject({
-    send: function (name) {
-      assert.equal(name, "setBreadcrumbs");
-    }
+    let controller = this.owner.factoryFor('controller:abstract').create({
+      model: EmberObject.create(),
+      send: function (name) {
+        assert.true(name === "setBreadcrumbs" || name === 'bubbleBreadcrumbs');
+      }
+    });
+    controller.set('model', EmberObject.create());
+    await settled();
   });
 
-  controller.set("breadcrumbs", []);
-});
+  test('crumbObserver test', async function(assert) {
+    assert.expect(2); // fired
 
-test('setBreadcrumbs test', function(assert) {
-  let testName = "Abc", // Because all controllers are pointing to the leaf rout
-      testBreadCrumbs = [];
+    let controller = this.owner.factoryFor('controller:abstract').create({
+      send: function (name) {
+        assert.true(name === "setBreadcrumbs" || name === 'bubbleBreadcrumbs');
+      }
+    });
+    controller.set("breadcrumbs", []);
+    await settled();
+  });
 
-  assert.expect(3);
-  this.subject({
-    name: testName,
-    breadcrumbs: testBreadCrumbs,
-    send: function (name, crumbs) {
-      assert.equal(name, "setBreadcrumbs");
-      assert.ok(crumbs.hasOwnProperty(testName));
-      assert.equal(crumbs[testName], testBreadCrumbs);
-    }
+  test('setBreadcrumbs test', async function(assert) {
+    let testName = "Abc", // Because all controllers are pointing to the leaf rout
+        testBreadCrumbs = [];
+
+    assert.expect(8);
+    let controller = this.owner.factoryFor('controller:abstract').create({
+      send: function (name, crumbs) {
+        if (name === 'setBreadcrumbs') {
+          assert.equal(name, "setBreadcrumbs");
+          assert.ok(crumbs.hasOwnProperty(testName));
+          assert.equal(crumbs[testName], testBreadCrumbs);
+        }
+        if (name === 'bubbleBreadcrumbs') {
+          assert.equal(name, 'bubbleBreadcrumbs');
+        }
+      }
+    });
+    controller.set('model', EmberObject.create());
+    controller.set('name', testName);
+    controller.set('breadcrumbs', testBreadCrumbs);
+    await settled();
   });
 });

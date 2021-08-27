@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('entitie:attempt-am', 'Unit | Entity | attempt am', {
-  // Specify the other units that are required for this test.
-  // needs: ['entitie:foo']
-});
+module('Unit | Entity | attempt am', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let entity = this.subject();
+  test('Basic creation test', function(assert) {
+    let entity = this.owner.lookup('entitie:attempt-am');
 
-  assert.ok(entity);
-  assert.ok(entity.queryPropertyToJoin);
+    assert.ok(entity);
+    assert.ok(entity.queryPropertyToJoin);
+  });
 });

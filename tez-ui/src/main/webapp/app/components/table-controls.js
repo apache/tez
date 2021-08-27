@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action } from '@ember/object';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['table-controls'],
 
-  actions: {
-    cogClicked: function () {
-      this.get('targetObject.targetObject').send('openColumnSelector');
-    }
-  }
+  cogClicked: action(function () {
+    this.openColumnSelector();
+  })
 });

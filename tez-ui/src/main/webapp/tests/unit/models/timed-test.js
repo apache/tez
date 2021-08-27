@@ -16,71 +16,68 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleForModel('timed', 'Unit | Model | timed', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | timed', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timed'));
 
-  assert.ok(model);
-  assert.ok(model.startTime);
-  assert.ok(model.duration);
-  assert.ok(model.endTime);
-});
+    assert.ok(model);
+  });
 
-test('duration test', function(assert) {
-  let model = this.subject();
+  test('duration test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('timed'));
 
-  function resetAndCheckModel () {
-    model.set("startTime", 100);
-    model.set("endTime", 200);
+    function resetAndCheckModel () {
+      model.set("startTime", 100);
+      model.set("endTime", 200);
 
-    assert.equal(model.get("duration"), 100);
-  }
+      assert.equal(model.get("duration"), 100);
+    }
 
-  Ember.run(function () {
-    resetAndCheckModel();
-    model.set("endTime", 100);
-    assert.equal(model.get("duration"), 0);
+    run(function () {
+      resetAndCheckModel();
+      model.set("endTime", 100);
+      assert.equal(model.get("duration"), 0);
 
-    model.set("startTime", 0);
-    assert.equal(model.get("duration"), undefined);
+      model.set("startTime", 0);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("endTime", 0);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("endTime", 0);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("endTime", 50);
-    assert.equal(model.get("duration").message, "Start time is greater than end time by 50 msecs!");
+      resetAndCheckModel();
+      model.set("endTime", 50);
+      assert.equal(model.get("duration").message, "Start time is greater than end time by 50 msecs!");
 
-    resetAndCheckModel();
-    model.set("startTime", -100);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("startTime", -100);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("endTime", -200);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("endTime", -200);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("startTime", undefined);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("startTime", undefined);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("endTime", undefined);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("endTime", undefined);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("startTime", null);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("startTime", null);
+      assert.equal(model.get("duration"), undefined);
 
-    resetAndCheckModel();
-    model.set("endTime", null);
-    assert.equal(model.get("duration"), undefined);
+      resetAndCheckModel();
+      model.set("endTime", null);
+      assert.equal(model.get("duration"), undefined);
+    });
   });
 });

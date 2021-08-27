@@ -16,12 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { scheduleOnce, later } from '@ember/runloop';
 
-const TIP_PADDING = 15, // As in em-tooltip.css
-      FADE_TIME = 150;
+const TIP_PADDING = 15; // As in em-tooltip.css
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   title: null,
   description: null,
@@ -38,70 +40,65 @@ export default Ember.Component.extend({
   show: false,
   arrowPos: null,
 
-  window: null,
-  tip: null,
   bubbles: null,
 
-  _contentObserver: Ember.on("init", Ember.observer("title", "description", "properties", "contents", function () {
-    var contents,
-        tip = this.get("tip");
+  _contentObserver: on("init", observer("title", "description", "properties", "contents", function () {
+    var contents;
 
-    if(this.get("title") || this.get("description") || this.get("properties")){
+    if(this.title || this.description || this.properties){
       contents = [{
-        title: this.get("title"),
-        description: this.get("description"),
-        properties: this.get("properties"),
+        title: this.title,
+        description: this.description,
+        properties: this.properties,
       }];
     }
-    else if(Array.isArray(this.get("contents"))){
-      contents = this.get("contents");
+    else if(Array.isArray(this.contents)){
+      contents = this.contents;
     }
 
-    this.set("show", false);
     if(contents) {
-      if(tip) {
-        tip.hide();
-      }
       this.set("_contents", contents);
 
-      this.set("show", true);
-      Ember.run.later(this, function () {
-        this.set("bubbles", this.$(".bubble"));
-        Ember.run.debounce(this, "renderTip", 500);
+      later(this, function () {
+        this.element.classList.add('show');
+        this.element.classList.remove('hide');
+        this.bubbles = this.element.querySelectorAll(".bubble");
+        this.renderTip();
       });
     }
-    else if(tip){
-      tip.stop(true).fadeOut(FADE_TIME);
+    else if(this.element){
+      later(this, function () {
+        // must run in later to prevent inconsistent state with already queued render
+        this.element.classList.add('hide');
+        this.element.classList.remove('show');
+        this.bubbles = null;
+      });
     }
   })),
 
   didInsertElement: function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      this.setProperties({
-        window: Ember.$(window),
-        tip: this.$(),
-      });
-    });
-    Ember.$(document).on("mousemove", this, this.onMouseMove);
+    this._super(...arguments);
+    this.set('_handleMouseMove', this.handleMouseMove.bind(this));
+    document.addEventListener('mousemove', this._handleMouseMove);
   },
 
   willDestroyElement: function () {
-    Ember.$(document).off("mousemove", this.onMouseMove);
+    this._super(...arguments);
+    document.removeEventListener('mousemove', this._handleMouseMove);
   },
 
-  onMouseMove: function (event) {
-    event.data.setProperties({
-      x: event.clientX,
-      y: event.clientY
-    });
+  handleMouseMove: function (event) {
+    this.x = event.clientX;
+    this.y = event.clientY;
 
-    if(Ember.get(event, "data.tip") && event.data.get("tip").is(":visible")) {
-      event.data.renderTip();
+    // Using the presents of bubbles for when to consider rendering
+    if(this.element && this.bubbles) {
+      this.renderTip();
     }
   },
 
   getBubbleOffset: function (x, bubbleElement, winWidth) {
-    var bubbleWidth = Math.max(bubbleElement.width(), 0),
+    var bubbleWidth = Math.max(parseFloat(getComputedStyle(bubbleElement, null).width.replace("px", "")), 0),
         bubbleOffset = bubbleWidth >> 1;
 
     if(x - bubbleOffset - TIP_PADDING < 0) {
@@ -115,21 +112,21 @@ export default Ember.Component.extend({
   },
 
   renderTip: function () {
-    if(this.get("show") && !this.get("isDestroyed")) {
-      let x = this.get("x"),
-          y = this.get("y"),
 
-          winHeight = this.get("window").height(),
-          winWidth = this.get("window").width(),
+    if(!this.isDestroyed) {
+      let x = this.x,
+          y = this.y,
+
+          winHeight = window.innerHeight,
+          winWidth = window.innerWidth,
 
           showAbove = y < (winHeight >> 1),
 
-          that = this,
-          tip = this.get("tip");
+          that = this;
 
       if(x > TIP_PADDING && x < winWidth - TIP_PADDING) {
         if(!showAbove) {
-          y -= tip.height();
+          y -= parseFloat(getComputedStyle(this.element, null).height.replace("px", ""));
           this.set("arrowPos", "below");
         }
         else {
@@ -140,20 +137,12 @@ export default Ember.Component.extend({
         this.set("arrowPos", null);
       }
 
-      tip.css({
-        left: `${x}px`,
-        top: `${y}px`,
-      });
+      this.element.style.left = `${x}px`;
+      this.element.style.top = `${y}px`;
 
-      tip.fadeIn({
-        duration: FADE_TIME,
-        start: function () {
-          that.get("bubbles").each(function () {
-            var bubble = Ember.$(this),
-                bubbleOffset = that.getBubbleOffset(x, bubble, winWidth);
-            bubble.css("left", `${bubbleOffset}px`);
-          });
-        }
+      this.get("bubbles").forEach(function (bubble) {
+        var bubbleOffset = that.getBubbleOffset(x, bubble, winWidth);
+        bubble.style.left = `${bubbleOffset}px`;
       });
     }
   }

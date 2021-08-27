@@ -16,17 +16,17 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
+{{#if this.loaded}}
 
-  <!-- Vertex configuration visualization -->
+  {{!-- Vertex configuration visualization --}}
   <div class="vertex-configs-container">
     <div class="row-container">
-      {{#if configsHash.sources.length}}
+      {{#if this.configsHash.sources.length}}
         <div class="column-container top-column">
           <div class="box">
             <div class="header">Sources</div>
-            {{#each configsHash.sources as |source|}}
-              <div class="config-cell {{if (eq source configDetails) 'selected'}}"
+            {{#each this.configsHash.sources as |source|}}
+              <div class="config-cell {{if (eq source this.configDetails) 'selected'}}"
                 {{action 'showConf' 'sources' source}}>
                 {{source.name}}
                 {{#if source.desc}}
@@ -45,12 +45,12 @@
           <div class="link"></div>
         </div>
       {{/if}}
-      {{#if configsHash.inputs.length}}
+      {{#if this.configsHash.inputs.length}}
         <div class="column-container top-column">
           <div class="box">
             <div class="header">Inputs</div>
-            {{#each configsHash.inputs as |input|}}
-              <div class="config-cell {{if (eq input configDetails) 'selected'}}"
+            {{#each this.configsHash.inputs as |input|}}
+              <div class="config-cell {{if (eq input this.configDetails) 'selected'}}"
                 {{action 'showConf' 'inputs' input}}>
                 {{input.desc}}
                 <div class="count-txt">
@@ -70,12 +70,12 @@
     <div class="processor">
       <div class="box">
         <div class="header">Processor</div>
-        <div class="config-cell {{if (eq configsHash.processor configDetails) 'selected'}}"
-          {{action 'showConf' 'processor' configsHash.processor}}>
-          {{configsHash.processor.desc}}
+        <div class="config-cell {{if (eq this.configsHash.processor this.configDetails) 'selected'}}"
+          {{action 'showConf' 'processor' this.configsHash.processor}}>
+          {{this.configsHash.processor.desc}}
           <div class="count-txt">
-            {{#if configsHash.processor.configs.length}}
-              Configurations: {{configsHash.processor.configs.length}}
+            {{#if this.configsHash.processor.configs.length}}
+              Configurations: {{this.configsHash.processor.configs.length}}
             {{else}}
               Configuration not available!
             {{/if}}
@@ -84,13 +84,13 @@
       </div>
     </div>
     <div class="row-container">
-      {{#if configsHash.sinks.length}}
+      {{#if this.configsHash.sinks.length}}
         <div class="column-container">
           <div class="link"></div>
           <div class="box">
             <div class="header">Sinks</div>
-            {{#each configsHash.sinks as |sink|}}
-              <div class="config-cell {{if (eq sink configDetails) 'selected'}}"
+            {{#each this.configsHash.sinks as |sink|}}
+              <div class="config-cell {{if (eq sink this.configDetails) 'selected'}}"
                 {{action 'showConf' 'sinks' sink}}>
                 {{sink.name}}
                 {{#if sink.desc}}
@@ -108,13 +108,13 @@
           </div>
         </div>
       {{/if}}
-      {{#if configsHash.outputs.length}}
+      {{#if this.configsHash.outputs.length}}
         <div class="column-container">
           <div class="link"></div>
           <div class="box">
             <div class="header">Outputs</div>
-            {{#each configsHash.outputs as |output|}}
-              <div class="config-cell {{if (eq output configDetails) 'selected'}}"
+            {{#each this.configsHash.outputs as |output|}}
+              <div class="config-cell {{if (eq output this.configDetails) 'selected'}}"
                 {{action 'showConf' 'outputs' output}}>
                 {{output.desc}}
                 <div class="count-txt">
@@ -132,58 +132,47 @@
     </div>
   </div><div class="configuration-details">
 
-    {{#if configType}}
-      <!-- Configuration details display -->
+    {{#if this.configType}}
+      {{!-- Configuration details display --}}
       <table class='detail-list'>
         <thead>
         <tr>
-          <th colspan=2>Details</th>
+          <th colspan="2">Details</th>
         </tr>
         </thead>
         <tbody>
-        {{#if configDetails.name}}
+        {{#if this.configDetails.name}}
           <tr>
             <td>Name</td>
-            <td>{{configDetails.name}}</td>
+            <td>{{this.configDetails.name}}</td>
           </tr>
         {{/if}}
-        {{#if configDetails.desc}}
+        {{#if this.configDetails.desc}}
           <tr>
             <td>Description</td>
-            <td>{{configDetails.desc}}</td>
+            <td>{{this.configDetails.desc}}</td>
           </tr>
         {{/if}}
-        {{#if configDetails.class}}
+        {{#if this.configDetails.class}}
           <tr>
             <td>Class</td>
-            <td>{{configDetails.class}}</td>
+            <td>{{this.configDetails.class}}</td>
           </tr>
         {{/if}}
-        {{#if configDetails.initializer}}
+        {{#if this.configDetails.initializer}}
           <tr>
             <td>Initializer</td>
-            <td>{{configDetails.initializer}}</td>
+            <td>{{this.configDetails.initializer}}</td>
           </tr>
         {{/if}}
         </tbody>
       </table>
 
-      <!-- Configurations display -->
-      {{em-table
-        columns=columns
-        rows=configs
-
-        rowCount=configs.length
-        definition=definition
-
-        enablePagination=false
-
-        searchAction="searchChanged"
-        sortAction="sortChanged"
-      }}
+      {{!-- Configurations display --}}
+      <EmTable @columns={{this.columns}} @rows={{this.configs}} @rowCount={{this.configs.length}} @definition={{this.definition}} @enablePagination={{false}} @searchAction="searchChanged" @sortAction="sortChanged" />
     {{/if}}
   </div>
 
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

@@ -16,71 +16,59 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action } from '@ember/object';
+import Route from '@ember/routing/route';
+import { later } from '@ember/runloop';
 
-export default Ember.Route.extend({
+export default Route.extend({
   title: "Application",
 
-  pageReset: function () {
-    this.send("resetTooltip");
-  },
+  bubbleBreadcrumbs: action(function (breadcrumbs) {
+    this.set("controller.breadcrumbs", breadcrumbs);
+  }),
 
-  actions: {
-    didTransition: function(/* transition */) {
-      this.pageReset();
-    },
-    bubbleBreadcrumbs: function (breadcrumbs) {
-      this.set("controller.breadcrumbs", breadcrumbs);
-    },
+  error: action(function (error) {
+    console.error(error);
+    this.set("controller.appError", error);
+  }),
 
-    error: function (error) {
-      this.set("controller.appError", error);
-      Ember.Logger.error(error);
-    },
+  // Modal window actions
+  openModal: action(function (componentName, options) {
+    options = options || {};
 
-    resetTooltip: function () {
-      Ember.$(document).tooltip("destroy");
-      Ember.$(document).tooltip({
-        show: {
-          delay: 500
-        },
-        tooltipClass: 'generic-tooltip'
-      });
-    },
-
-    // Modal window actions
-    openModal: function (componentName, options) {
-      options = options || {};
-
-      if(typeof componentName === "object") {
-        options = componentName;
-        componentName = null;
-      }
-
-      this.render(options.modalName || "simple-modal", {
-        into: 'application',
-        outlet: 'modal',
-        model: {
-          title: options.title,
-          componentName: componentName,
-          content: options.content,
-          targetObject: options.targetObject
-        }
-      });
-      Ember.run.later(function () {
-        Ember.$(".simple-modal").modal();
-      });
-    },
-    closeModal: function () {
-      Ember.$(".simple-modal").modal("hide");
-    },
-    destroyModal: function () {
-      Ember.run.later(this, function () {
-        this.disconnectOutlet({
-          outlet: 'modal',
-          parentView: 'application'
-        });
-      });
+    if(typeof componentName === "object") {
+      options = componentName;
+      componentName = null;
     }
-  }
+
+    this.render(options.modalName || "simple-modal", {
+      into: 'application',
+      outlet: 'modal',
+      model: {
+        title: options.title,
+        componentName: componentName,
+        content: options.content,
+        targetObject: options.targetObject
+      }
+    });
+    later(function() {
+      // new render isn't available until next run loop
+      var modal = document.querySelector('.simple-modal');
+      modal.style.display="block";
+    });
+  }),
+  closeModal: action(function () {
+    var modal = document.querySelector('.simple-modal');
+    if (modal) {
+      modal.style.display="none";
+    }
+  }),
+  destroyModal: action(function () {
+    later(this, function () {
+      this.disconnectOutlet({
+        outlet: 'modal',
+        parentView: 'application'
+      });
+    });
+  })
 });

@@ -16,143 +16,146 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { A } from '@ember/array';
+import { run } from '@ember/runloop';
+import { render, settled, findAll } from '@ember/test-helpers';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { hbs } from 'ember-cli-htmlbars';
 
-import wait from 'ember-test-helpers/wait';
+module('Integration | Component | pagination ui', function(hooks) {
+  setupRenderingTest(hooks);
 
-import Ember from 'ember';
+  test('Basic creation test', async function(assert) {
+    this.set("rowCountOptions", {
+      rowCountOptions: [1, 2]
+    });
 
-moduleForComponent('pagination-ui', 'Integration | Component | pagination ui', {
-  integration: true
-});
+    await render(hbs`{{pagination-ui rowCountOptions=rowCountOptions}}`);
 
-test('Basic creation test', function(assert) {
-  this.set("rowCountOptions", {
-    rowCountOptions: [1, 2]
+    assert.equal(findAll('select').length, 1);
+
+    assert.equal(findAll('.page-list').length, 1);
+    assert.equal(findAll('li').length, 0);
+
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#pagination-ui rowCountOptions=rowCountOptions}}
+        template block text
+      {{/pagination-ui}}
+    `);
+
+    assert.equal(findAll('select').length, 1);
   });
 
-  this.render(hbs`{{pagination-ui rowCountOptions=rowCountOptions}}`);
+  test('Page list test', async function(assert) {
+    this.set("tableDefinition", {
+      pageNum: 5,
+      rowCount: 5,
 
-  assert.equal(this.$('select').length, 1);
+      loadingMore: false,
+      moreAvailable: true,
 
-  assert.equal(this.$('.page-list').length, 1);
-  assert.equal(this.$('li').length, 0);
+      rowCountOptions: []
+    });
+    this.set("processor", {
+      totalPages: 10,
+      processedRows: {
+        length: 10
+      }
+    });
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#pagination-ui rowCountOptions=rowCountOptions}}
-      template block text
-    {{/pagination-ui}}
-  `);
+    await render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
-  assert.equal(this.$('select').length, 1);
-});
-
-test('Page list test', function(assert) {
-  this.set("tableDefinition", {
-    pageNum: 5,
-    rowCount: 5,
-
-    loadingMore: false,
-    moreAvailable: true,
-
-    rowCountOptions: []
-  });
-  this.set("processor", {
-    totalPages: 10,
-    processedRows: {
-      length: 10
-    }
+    return settled().then(() => {
+      let listItems = findAll('li');
+      assert.equal(listItems.length, 4);
+      assert.dom(listItems[0]).hasText("First");
+      assert.dom(listItems[1]).hasText("4");
+      assert.dom(listItems[2]).hasText("5");
+      assert.dom(listItems[3]).hasText("6");
+    });
   });
 
-  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+  test('Page list - moreAvailable false test', async function(assert) {
+    this.set("tableDefinition", {
+      pageNum: 5,
+      rowCount: 5,
 
-  return wait().then(() => {
-    assert.equal(this.$('li').length, 4);
-    assert.equal(this.$('li').eq(0).text().trim(), "First");
-    assert.equal(this.$('li').eq(1).text().trim(), "4");
-    assert.equal(this.$('li').eq(2).text().trim(), "5");
-    assert.equal(this.$('li').eq(3).text().trim(), "6");
-  });
-});
+      loadingMore: false,
+      moreAvailable: false,
 
-test('Page list - moreAvailable false test', function(assert) {
-  this.set("tableDefinition", {
-    pageNum: 5,
-    rowCount: 5,
+      rowCountOptions: []
+    });
+    this.set("processor", {
+      totalPages: 5,
+      processedRows: {
+        length: 10
+      }
+    });
 
-    loadingMore: false,
-    moreAvailable: false,
+    await render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
 
-    rowCountOptions: []
-  });
-  this.set("processor", {
-    totalPages: 5,
-    processedRows: {
-      length: 10
-    }
-  });
-
-  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$('li').length, 4);
-    assert.equal(this.$('li').eq(1).text().trim(), "3");
-    assert.equal(this.$('li').eq(2).text().trim(), "4");
-    assert.equal(this.$('li').eq(3).text().trim(), "5");
-  });
-});
-
-test('Page list - moreAvailable true test', function(assert) {
-  this.set("tableDefinition", {
-    pageNum: 5,
-    rowCount: 5,
-
-    loadingMore: false,
-    moreAvailable: true,
-
-    rowCountOptions: []
-  });
-  this.set("processor", {
-    totalPages: 5,
-    processedRows: {
-      length: 10
-    }
+    return settled().then(() => {
+      let listItems = findAll('li');
+      assert.equal(listItems.length, 4);
+      assert.dom(listItems[1]).hasText("3");
+      assert.dom(listItems[2]).hasText("4");
+      assert.dom(listItems[3]).hasText("5");
+    });
   });
 
-  this.render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+  test('Page list - moreAvailable true test', async function(assert) {
+    this.set("tableDefinition", {
+      pageNum: 5,
+      rowCount: 5,
 
-  return wait().then(() => {
-    assert.equal(this.$('li').length, 4);
-    assert.equal(this.$('li').eq(1).text().trim(), "4");
-    assert.equal(this.$('li').eq(2).text().trim(), "5");
-    assert.equal(this.$('li').eq(3).text().trim(), "6");
+      loadingMore: false,
+      moreAvailable: true,
+
+      rowCountOptions: []
+    });
+    this.set("processor", {
+      totalPages: 5,
+      processedRows: {
+        length: 10
+      }
+    });
+
+    await render(hbs`{{pagination-ui tableDefinition=tableDefinition dataProcessor=processor}}`);
+
+    return settled().then(() => {
+      let listItems = findAll('li');
+      assert.equal(listItems.length, 4);
+      assert.dom(listItems[1]).hasText("4");
+      assert.dom(listItems[2]).hasText("5");
+      assert.dom(listItems[3]).hasText("6");
+    });
   });
-});
 
-test('No data test', function(assert) {
-  var customRowCount = 2,
-      definition = {
-        rowCount: customRowCount,
-        loadingMore: false,
-        moreAvailable: true,
+  test('No data test', async function(assert) {
+    var customRowCount = 2,
+        definition = {
+          rowCount: customRowCount,
+          loadingMore: false,
+          moreAvailable: true,
 
-        rowCountOptions: []
-      },
-      processor;
+          rowCountOptions: []
+        },
+        processor;
 
-  Ember.run(function () {
-    processor = {
-      tableDefinition: definition,
-      rows: Ember.A()
-    };
+    run(function () {
+      processor = {
+        tableDefinition: definition,
+        rows: A()
+      };
+    });
+
+    this.set('definition', definition);
+    this.set('processor', processor);
+    await render(hbs`{{pagination-ui tableDefinition=definition dataProcessor=processor}}`);
+
+    var paginationItems = findAll('li');
+    assert.equal(paginationItems.length, 0);
   });
-
-  this.set('definition', definition);
-  this.set('processor', processor);
-  this.render(hbs`{{pagination-ui tableDefinition=definition dataProcessor=processor}}`);
-
-  var paginationItems = this.$('li');
-  assert.equal(paginationItems.length, 0);
 });

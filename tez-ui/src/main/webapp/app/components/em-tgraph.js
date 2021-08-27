@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed, observer } from '@ember/object';
+import { htmlSafe } from '@ember/template';
 
 import layout from '../templates/components/em-tgraph';
 
@@ -24,7 +26,7 @@ import fullscreen from '../utils/fullscreen';
 import GraphView from '../utils/graph-view';
 import GraphDataProcessor from '../utils/graph-data-processor';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   layout: layout,
 
@@ -38,9 +40,9 @@ export default Ember.Component.extend({
   hideAdditionals: false,
   isFullscreen: false,
 
-  styles: Ember.computed(function () {
+  styles: computed(function () {
     var pathname = window.location.pathname,
-        safe = Ember.String.htmlSafe;
+        safe = htmlSafe;
     return {
       vertex: safe(`fill: url(${pathname}#vertex-grad); filter: url(${pathname}#grey-glow)`),
       input: safe(`fill: url(${pathname}#input-grad); filter: url(${pathname}#grey-glow)`),
@@ -51,38 +53,54 @@ export default Ember.Component.extend({
     };
   }),
 
-  _onOrientationChange: function () {
-  }.observes('isHorizontal'),
+  _onOrientationChange: observer('isHorizontal', function () {
+  }),
 
-  _onTglAdditionals: function () {
-    this.graphView.additionalDisplay(this.get('hideAdditionals'));
-  }.observes('hideAdditionals'),
+  _onTglAdditionals: observer('hideAdditionals', function () {
+    this.graphView.additionalDisplay(this.hideAdditionals);
+  }),
 
-  _onTglFullScreen: function () {
-    fullscreen.toggle(this.get('element'));
-  }.observes('isFullscreen'),
+  _onTglFullScreen: observer('isFullscreen', function () {
+    fullscreen.toggle(this.element);
+  }),
 
-  actions: {
-    tglOrientation: function() {
-      var isTopBottom = this.graphView.toggleLayouts();
-      this.set('isHorizontal', !isTopBottom);
-    },
-    tglAdditionals: function() {
-      this.set('hideAdditionals', !this.get('hideAdditionals'));
-    },
-    fullscreen: function () {
-      this.set('isFullscreen', !this.get('isFullscreen'));
-    },
-    fitGraph: function () {
-      this.graphView.fitGraph();
-    },
-    configure: function () {
-      this.sendAction('configure');
+  tglOrientation: action(function() {
+    var isTopBottom = this.graphView.toggleLayouts();
+    this.set('isHorizontal', !isTopBottom);
+  }),
+  tglAdditionals: action(function() {
+    this.set('hideAdditionals', !this.hideAdditionals);
+  }),
+  fullscreen: action(function () {
+    this.set('isFullscreen', !this.isFullscreen);
+  }),
+  fitGraph: action(function () {
+    this.graphView.fitGraph();
+  }),
+  cogClicked: action(function () {
+    this.openColumnSelector();
+  }),
+
+  handleResize: function () {
+    var container = document.querySelector('#graphical-view-component-container');
+
+    if(container) {
+      let rect = container.getBoundingClientRect();
+      let offsetTop = rect.top + document.body.scrollTop;
+      let idealHeight = window.innerHeight - offsetTop - 70;
+
+      // Minimum dag view component container height
+      let minimumHeight = 500;
+
+      // Leave 70 pixel at the bottom
+      let height = Math.max(idealHeight, minimumHeight);
+      container.style.height = height + "px";
     }
   },
 
   didInsertElement: function () {
-    var result = GraphDataProcessor.graphifyData(this.get('data'));
+    this._super(...arguments);
+    var result = GraphDataProcessor.graphifyData(this.data);
 
     this.graphView = GraphView.createNewGraphView();
 
@@ -92,10 +110,20 @@ export default Ember.Component.extend({
     else {
       this.graphView.create(
         this,
-        this.get('element'),
+        this.element,
         result
       );
     }
-  }
+    this.handleResize();
+    this.set('_handleResize', this.handleResize.bind(this));
+    window.addEventListener('resize', this._handleResize);
+  },
 
+  willDestroyElement: function () {
+    this._super(...arguments);
+    if(this._handleResize) {
+      window.removeEventListener('resize', this._handleResize);
+      this._handleResize = null;
+    }
+  }
 });

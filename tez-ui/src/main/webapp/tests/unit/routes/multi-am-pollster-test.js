@@ -16,61 +16,60 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { A } from '@ember/array';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:multi-am-pollster', 'Unit | Route | multi am pollster', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | multi am pollster', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:multi-am-pollster');
 
-  assert.ok(route);
-  assert.ok(route.canPoll);
-  assert.ok(route.actions.setPollingRecords);
-});
-
-test('canPoll test', function(assert) {
-  let record = Ember.Object.create({
-      }),
-      route = this.subject({
-        polling: {
-          resetPoll: function () {}
-        },
-        _canPollObserver: function () {},
-        polledRecords: Ember.A([record]),
-        loadedValue: {}
-      });
-
-  assert.notOk(route.get("canPoll"));
-
-  record.setProperties({
-    app: Ember.Object.create({
-      isComplete: false
-    }),
-    dag: undefined
+    assert.ok(route);
   });
-  assert.ok(route.get("canPoll"), true, "Test 1");
 
-  record.set("app.isComplete", true);
-  assert.notOk(route.get("canPoll"), "Test 2");
+  test('canPoll test', function(assert) {
+    let record = EmberObject.create({
+        }),
+        route = this.owner.factoryFor('route:multi-am-pollster').create({
+          polling: {
+            resetPoll: function () {}
+          },
+          _canPollObserver: function () {},
+          polledRecords: A([record]),
+          loadedValue: {}
+        });
 
-  record.set("app.isComplete", undefined);
-  assert.notOk(route.get("canPoll"), "Test 3");
+    assert.notOk(route.canPoll);
 
-  record.set("dag", Ember.Object.create({
-    isComplete: false
-  }));
-  assert.ok(route.get("canPoll"), "Test 4");
+    record.setProperties({
+      app: EmberObject.create({
+        isComplete: false
+      }),
+      dag: undefined
+    });
+    assert.ok(route.canPoll, true, "Test 1");
 
-  record.set("dag.isComplete", true);
-  assert.notOk(route.get("canPoll"), "Test 5");
+    record.set("app.isComplete", true);
+    assert.notOk(route.canPoll, "Test 2");
 
-  record.set("dag", undefined);
-  assert.notOk(route.get("canPoll"), "Test 6");
+    record.set("app.isComplete", undefined);
+    assert.notOk(route.canPoll, "Test 3");
 
-  record.set("app.isComplete", false);
-  assert.ok(route.get("canPoll"), "Test 7");
+    record.set("dag", EmberObject.create({
+      isComplete: false
+    }));
+    assert.ok(route.canPoll, "Test 4");
+
+    record.set("dag.isComplete", true);
+    assert.notOk(route.canPoll, "Test 5");
+
+    record.set("dag", undefined);
+    assert.notOk(route.canPoll, "Test 6");
+
+    record.set("app.isComplete", false);
+    assert.ok(route.canPoll, "Test 7");
+  });
 });

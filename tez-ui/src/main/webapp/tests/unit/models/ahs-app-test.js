@@ -16,25 +16,16 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { run } from '@ember/runloop';
 
-moduleForModel('ahs-app', 'Unit | Model | ahs app', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | ahs app', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('ahs-app'));
 
-  assert.ok(model);
-
-  assert.ok(model.name);
-  assert.ok(model.queue);
-  assert.ok(model.user);
-  assert.ok(model.type);
-
-  assert.ok(model.status);
-  assert.ok(model.finalStatus);
-
-  assert.ok(model.diagnostics);
+    assert.ok(model);
+  });
 });

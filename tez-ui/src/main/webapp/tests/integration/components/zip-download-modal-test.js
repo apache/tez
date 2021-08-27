@@ -16,79 +16,81 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, findAll, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('zip-download-modal', 'Integration | Component | zip download modal', {
-  integration: true
-});
+module('Integration | Component | zip download modal', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  var testID = "dag_a",
-      expectedMessage = "Downloading data for dag: " + testID;
+  test('Basic creation test', async function(assert) {
+    var testID = "dag_a",
+        expectedMessage = "Downloading data for dag: " + testID;
 
-  this.set("content", {
-    dag: {
-      entityID: testID
-    }
+    this.set("content", {
+      dag: {
+        entityID: testID
+      }
+    });
+
+    await render(hbs`{{zip-download-modal content=content}}`);
+    assert.equal(find(".message").textContent.trim().indexOf(expectedMessage), 0);
+
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#zip-download-modal content=content}}
+        template block text
+      {{/zip-download-modal}}
+    `);
+    assert.equal(find(".message").textContent.trim().indexOf(expectedMessage), 0);
   });
 
-  this.render(hbs`{{zip-download-modal content=content}}`);
-  assert.equal(this.$(".message").text().trim().indexOf(expectedMessage), 0);
+  test('progress test', async function(assert) {
+    this.set("content", {
+      downloader: {
+        percent: 0.5
+      }
+    });
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#zip-download-modal content=content}}
-      template block text
-    {{/zip-download-modal}}
-  `);
-  assert.equal(this.$(".message").text().trim().indexOf(expectedMessage), 0);
-});
+    await render(hbs`{{zip-download-modal content=content}}`);
+    let text = find(".message").textContent.trim();
+    assert.equal(text.substr(-3), "50%");
 
-test('progress test', function(assert) {
-  this.set("content", {
-    downloader: {
-      percent: 0.5
-    }
+    assert.equal(findAll(".btn").length, 1);
+    assert.equal(findAll(".btn-primary").length, 0);
   });
 
-  this.render(hbs`{{zip-download-modal content=content}}`);
-  let text = this.$(".message").text().trim();
-  assert.equal(text.substr(-3), "50%");
+  test('failed test', async function(assert) {
+    var expectedMessage = "Error downloading data!";
 
-  assert.equal(this.$(".btn").length, 1);
-  assert.equal(this.$(".btn-primary").length, 0);
-});
+    this.set("content", {
+      downloader: {
+        failed: true
+      }
+    });
 
-test('failed test', function(assert) {
-  var expectedMessage = "Error downloading data!";
+    await render(hbs`{{zip-download-modal content=content}}`);
+    assert.equal(find(".message").textContent.trim().indexOf(expectedMessage), 0);
 
-  this.set("content", {
-    downloader: {
-      failed: true
-    }
+    assert.equal(findAll(".btn").length, 1);
+    assert.equal(findAll(".btn-primary").length, 1);
   });
 
-  this.render(hbs`{{zip-download-modal content=content}}`);
-  assert.equal(this.$(".message").text().trim().indexOf(expectedMessage), 0);
+  test('partial test', async function(assert) {
+    var expectedMessage = "Data downloaded might be incomplete. Please check the zip!";
 
-  assert.equal(this.$(".btn").length, 1);
-  assert.equal(this.$(".btn-primary").length, 1);
-});
+    this.set("content", {
+      downloader: {
+        succeeded: true,
+        partial: true
+      }
+    });
 
-test('partial test', function(assert) {
-  var expectedMessage = "Data downloaded might be incomplete. Please check the zip!";
+    await render(hbs`{{zip-download-modal content=content}}`);
+    assert.equal(find(".message").textContent.trim().indexOf(expectedMessage), 0);
 
-  this.set("content", {
-    downloader: {
-      succeeded: true,
-      partial: true
-    }
+    assert.equal(findAll(".btn").length, 1);
+    assert.equal(findAll(".btn-primary").length, 1);
   });
-
-  this.render(hbs`{{zip-download-modal content=content}}`);
-  assert.equal(this.$(".message").text().trim().indexOf(expectedMessage), 0);
-
-  assert.equal(this.$(".btn").length, 1);
-  assert.equal(this.$(".btn-primary").length, 1);
 });

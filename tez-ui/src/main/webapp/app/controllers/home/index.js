@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed } from '@ember/object';
 
 import TableController from '../table';
 import ColumnDefinition from '../../utils/column-definition';
@@ -43,53 +43,52 @@ export default TableController.extend({
   // we don't want page to be a query param as only the first page will be loaded first.
   pageNum: 1,
 
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "All DAGs",
     routeName: "home.index",
-  }],
+  }]}),
 
   moreAvailable: false,
   loadingMore: false,
 
-  headerComponentNames: ['dags-page-search', 'table-controls', 'pagination-ui'],
-  footerComponentNames: ['home-table-controls', 'pagination-ui'],
+  headerComponentNames: computed(function() {return ['dags-page-search', 'table-controls', 'pagination-ui']}),
+  footerComponentNames: computed(function() {return ['home-table-controls', 'pagination-ui']}),
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("dagName", "dagID", "submitter", "status", "appID", "callerID", "queue",
-      "pageNum", "moreAvailable", "loadingMore", function () {
+  definition: computed('_definition', 'appID', 'appid', 'callerID', 'dagID', 'dagName', 'dag_name', 'id', 'loadingMore', 'moreAvailable', 'pageNum', 'queue', 'status', 'submitter', 'user', function () {
 
-    var definition = this.get("_definition");
-    if (!this.get("appID")) {
-      this.set("appID", this.get("appid"));
+    var definition = this._definition;
+    if (!this.appID) {
+      this.set("appID", this.appid);
       this.set("appid", "");
     }
-    if (!this.get("dagID")) {
-      this.set("dagID", this.get("id"));
+    if (!this.dagID) {
+      this.set("dagID", this.id);
       this.set("id", "");
     }
-    if (!this.get("submitter")) {
-      this.set("submitter", this.get("user"));
+    if (!this.submitter) {
+      this.set("submitter", this.user);
       this.set("user", "");
     }
-    if (!this.get("dagName")) {
-      this.set("dagName", this.get("dag_name"));
+    if (!this.dagName) {
+      this.set("dagName", this.dag_name);
       this.set("dag_name", "");
     }
 
     definition.setProperties({
-      dagName: this.get("dagName"),
-      dagID: this.get("dagID"),
-      submitter: this.get("submitter"),
-      status: this.get("status"),
-      appID: this.get("appID"),
-      callerID: this.get("callerID"),
-      queue: this.get("queue"),
+      dagName: this.dagName,
+      dagID: this.dagID,
+      submitter: this.submitter,
+      status: this.status,
+      appID: this.appID,
+      callerID: this.callerID,
+      queue: this.queue,
 
-      pageNum: this.get("pageNum"),
+      pageNum: this.pageNum,
 
-      moreAvailable: this.get("moreAvailable"),
-      loadingMore: this.get("loadingMore"),
+      moreAvailable: this.moreAvailable,
+      loadingMore: this.loadingMore,
 
       minRowsForFooter: 0
     });
@@ -195,13 +194,10 @@ export default TableController.extend({
     return this._super().concat(this.get('env.app.tables.defaultColumns.dagCounters'));
   },
 
-  actions: {
-    search: function (properties) {
-      this.setProperties(properties);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
-
+  homeSearch: action(function (properties) {
+    this.setProperties(properties);
+  }),
+  pageChanged: action(function (pageNum) {
+    this.set("pageNum", pageNum);
+  })
 });

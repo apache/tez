@@ -16,18 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action } from '@ember/object';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   content: null,
 
-  actions: {
-    click: function (download) {
-      // Directly goes to the route
-      this.get("targetObject.targetObject.targetObject.targetObject").
-          send("logCellClicked", this.get("content"), download);
-    },
-  }
-
+  click: action(function (download) {
+    // Directly goes to the route
+    this.get("targetObject.targetObject.targetObject.targetObject").
+      send("logCellClicked", this.content, download);
+  })
 });

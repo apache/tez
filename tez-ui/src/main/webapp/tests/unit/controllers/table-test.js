@@ -16,89 +16,88 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | table', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:table', 'Unit | Controller | table', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:table').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.ok(controller);
+    assert.ok(controller.queryParams);
+
+    assert.equal(controller.rowCount, 10);
+    assert.equal(controller.searchText, "");
+    assert.equal(controller.sortColumnId, "");
+    assert.equal(controller.sortOrder, "");
+    assert.equal(controller.pageNo, 1);
+
+    assert.ok(controller.headerComponentNames);
+    assert.ok(controller.visibleColumnIDs);
+    assert.ok(controller.columnSelectorTitle);
+    assert.ok(controller.definition);
+
+    assert.ok(controller.storageID);
+    assert.ok(controller.initVisibleColumns);
+
+    assert.ok(controller.beforeSort);
+    assert.ok(controller.columns);
+    assert.ok(controller.allColumns);
+    assert.ok(controller.visibleColumns);
+
+    assert.ok(controller.getCounterColumns);
+
+    assert.ok(controller.actions.searchChanged);
+    assert.ok(controller.actions.sortChanged);
+    assert.ok(controller.actions.rowsChanged);
+    assert.ok(controller.actions.pageChanged);
+
+    assert.ok(controller.actions.openColumnSelector);
+    assert.ok(controller.actions.columnsSelected);
   });
 
-  assert.ok(controller);
-  assert.ok(controller.queryParams);
+  test('initVisibleColumns test', function(assert) {
+    let controller = this.owner.factoryFor('controller:table').create({
+      send() {},
+      localStorage: EmberObject.create(),
+      columns: []
+    });
 
-  assert.equal(controller.rowCount, 10);
-  assert.equal(controller.searchText, "");
-  assert.equal(controller.sortColumnId, "");
-  assert.equal(controller.sortOrder, "");
-  assert.equal(controller.pageNo, 1);
+    controller.set("columns", [{
+      id: "c1",
+    }, {
+      id: "c2",
+    }, {
+      id: "c3",
+    }]);
+    controller.initVisibleColumns();
+    assert.true(controller.get("visibleColumnIDs.c1"));
+    assert.true(controller.get("visibleColumnIDs.c2"));
+    assert.true(controller.get("visibleColumnIDs.c3"));
 
-  assert.ok(controller.headerComponentNames);
-  assert.ok(controller.visibleColumnIDs);
-  assert.ok(controller.columnSelectorTitle);
-  assert.ok(controller.definition);
+    controller.set("columns", [{
+      id: "c1",
+      hiddenByDefault: true,
+    }, {
+      id: "c2",
+    }, {
+      id: "c3",
+      hiddenByDefault: true,
+    }]);
+    controller.initVisibleColumns();
+    assert.false(controller.get("visibleColumnIDs.c1"));
+    assert.true(controller.get("visibleColumnIDs.c2"));
+    assert.false(controller.get("visibleColumnIDs.c3"));
 
-  assert.ok(controller.storageID);
-  assert.ok(controller.initVisibleColumns);
-
-  assert.ok(controller.beforeSort);
-  assert.ok(controller.columns);
-  assert.ok(controller.allColumns);
-  assert.ok(controller.visibleColumns);
-
-  assert.ok(controller.getCounterColumns);
-
-  assert.ok(controller.actions.searchChanged);
-  assert.ok(controller.actions.sortChanged);
-  assert.ok(controller.actions.rowsChanged);
-  assert.ok(controller.actions.pageChanged);
-
-  assert.ok(controller.actions.openColumnSelector);
-  assert.ok(controller.actions.columnsSelected);
-});
-
-test('initVisibleColumns test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    localStorage: Ember.Object.create(),
-    columns: []
+    controller.initVisibleColumns();
+    assert.false(controller.get("visibleColumnIDs.c1"));
+    assert.true(controller.get("visibleColumnIDs.c2"));
+    assert.false(controller.get("visibleColumnIDs.c3"));
   });
-
-  controller.set("columns", [{
-    id: "c1",
-  }, {
-    id: "c2",
-  }, {
-    id: "c3",
-  }]);
-  controller.initVisibleColumns();
-  assert.equal(controller.get("visibleColumnIDs.c1"), true);
-  assert.equal(controller.get("visibleColumnIDs.c2"), true);
-  assert.equal(controller.get("visibleColumnIDs.c3"), true);
-
-  controller.set("columns", [{
-    id: "c1",
-    hiddenByDefault: true,
-  }, {
-    id: "c2",
-  }, {
-    id: "c3",
-    hiddenByDefault: true,
-  }]);
-  controller.initVisibleColumns();
-  assert.equal(controller.get("visibleColumnIDs.c1"), false);
-  assert.equal(controller.get("visibleColumnIDs.c2"), true);
-  assert.equal(controller.get("visibleColumnIDs.c3"), false);
-
-  controller.initVisibleColumns();
-  assert.equal(controller.get("visibleColumnIDs.c1"), false);
-  assert.equal(controller.get("visibleColumnIDs.c2"), true);
-  assert.equal(controller.get("visibleColumnIDs.c3"), false);
 });

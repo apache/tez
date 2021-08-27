@@ -16,23 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
+import { inject as service } from '@ember/service';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   classNames: ["date-formatter"],
 
   content: null,
 
-  date: Ember.computed("content", function () {
-    var content = this.get("content");
+  date: computed("content", function () {
+    var content = this.content;
     if(content <= 0) {
       content = undefined;
     }
     return content;
   }),
 
-  env: Ember.inject.service('env'),
-  timeZone: Ember.computed.oneWay('env.app.timeZone'),
+  env: service('env'),
+  timeZone: oneWay('env.app.timeZone'),
 
 });

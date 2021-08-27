@@ -16,20 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed } from '@ember/object';
+import { not } from '@ember/object/computed';
 
-export default Ember.Component.extend({
+export default Component.extend({
+  attributeBindings: ['shouldHide:hidden'],
   tableDefinition: null,
   dataProcessor: null,
 
   classNames: ['pagination-ui'],
-  isVisible: Ember.computed.alias('tableDefinition.enablePagination'),
+  shouldHide: not('tableDefinition.enablePagination'),
 
-  showFirst: Ember.computed('_possiblePages', function () {
+  showFirst: computed('_possiblePages.0.pageNum', 'dataProcessor.totalPages', function () {
     return this.get("dataProcessor.totalPages") && this.get('_possiblePages.0.pageNum') !== 1;
   }),
 
-  rowCountOptions: Ember.computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
+  rowCountOptions: computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
     var options = this.get('tableDefinition.rowCountOptions'),
         rowCount = this.get('tableDefinition.rowCount');
 
@@ -41,7 +44,7 @@ export default Ember.Component.extend({
     });
   }),
 
-  _possiblePages: Ember.computed('tableDefinition.pageNum',
+  _possiblePages: computed('tableDefinition.pageNum',
       'tableDefinition.moreAvailable',
       'dataProcessor.totalPages', function () {
     var pageNum = this.get('tableDefinition.pageNum'),
@@ -84,23 +87,21 @@ export default Ember.Component.extend({
     return possiblePages;
   }),
 
-  actions: {
-    rowSelected: function (value) {
-      value = parseInt(value);
-      if(this.get('tableDefinition.rowCount') !== value) {
-        this.get('parentView').send('rowChanged', value);
-      }
-    },
-    changePage: function (value) {
-      if(value === 1) {
-        this.get('parentView').sendAction('reload');
-      }
-      else if(this.get('dataProcessor.totalPages') < value) {
-        this.get('parentView').sendAction('loadPage', value);
-      }
-      else {
-        this.get('parentView').send('pageChanged', value);
-      }
-    },
-  }
+  rowSelected: action(function (value) {
+    value = parseInt(value);
+    if(this.get('tableDefinition.rowCount') !== value) {
+      this.rowChanged(value);
+    }
+  }),
+  changePage: action(function (value) {
+    if(value === 1) {
+      this.parentView.sendAction('reload');
+    }
+    else if(this.get('dataProcessor.totalPages') < value) {
+      this.parentView.sendAction('loadPage', value);
+    }
+    else {
+      this.parentView.send('pageChanged', value);
+    }
+  })
 });

@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-import tip from '../../../utils/tip';
 import { module, test } from 'qunit';
+import tip from '../../../utils/tip';
 
-module('Unit | Utility | tip');
+module('Unit | Utility | tip', function() {
+  test('Basic creation test', function(assert) {
 
-test('Basic creation test', function(assert) {
+    assert.ok(tip);
+    assert.ok(tip.init);
+    assert.ok(tip.show);
+    assert.ok(tip.reposition);
+    assert.ok(tip.hide);
 
-  assert.ok(tip);
-  assert.ok(tip.init);
-  assert.ok(tip.show);
-  assert.ok(tip.reposition);
-  assert.ok(tip.hide);
-
+  });
 });

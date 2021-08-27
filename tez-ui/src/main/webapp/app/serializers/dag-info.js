@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
+import { get } from '@ember/object';
+import { classify } from '@ember/string';
 import TimelineSerializer from './timeline';
 
 export default TimelineSerializer.extend({
@@ -29,13 +29,13 @@ export default TimelineSerializer.extend({
   normalizeResourceHash: function (resourceHash) {
     var data = resourceHash.data,
         callerData = {},
-        dagInfo = Ember.get(data, "otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
-        dagContext = Ember.get(data, "otherinfo.dagPlan.dagContext"); // Old style
+        dagInfo = get(data, "otherinfo.dagPlan.dagInfo"), // New style, from TEZ-2851
+        dagContext = get(data, "otherinfo.dagPlan.dagContext"); // Old style
 
     if(dagContext) {
-      callerData.callerContext = Ember.String.classify((Ember.get(dagContext, "context")||"").toLowerCase());
-      callerData.callerDescription = Ember.get(dagContext, "description");
-      callerData.callerType = Ember.get(dagContext, "callerType") || Ember.get(data, "otherinfo.callerType");
+      callerData.callerContext = classify((dagContext.context||"").toLowerCase());
+      callerData.callerDescription = dagContext.description;
+      callerData.callerType = dagContext.callerType || get(data, "otherinfo.callerType");
     }
     else if(dagInfo) {
       let infoObj = {};
@@ -45,8 +45,8 @@ export default TimelineSerializer.extend({
         infoObj = dagInfo;
       }
 
-      callerData.callerContext = Ember.get(infoObj, "context") || Ember.get(data, "otherinfo.callerContext");
-      callerData.callerDescription = Ember.get(infoObj, "description") || Ember.get(dagInfo, "blob") || dagInfo;
+      callerData.callerContext = infoObj.context || get(data, "otherinfo.callerContext");
+      callerData.callerDescription = infoObj.description || dagInfo.blob || dagInfo;
     }
 
     data.callerData = callerData;

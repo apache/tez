@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-import graphView from '../../../utils/graph-view';
 import { module, test } from 'qunit';
+import graphView from '../../../utils/graph-view';
 
-module('Unit | Utility | graph view');
+module('Unit | Utility | graph view', function() {
+  test('Basic creation test', function(assert) {
 
-test('Basic creation test', function(assert) {
+    assert.ok(graphView);
+    assert.ok(graphView.create);
+    assert.ok(graphView.fitGraph);
+    assert.ok(graphView.additionalDisplay);
+    assert.ok(graphView.toggleLayouts);
 
-  assert.ok(graphView);
-  assert.ok(graphView.create);
-  assert.ok(graphView.fitGraph);
-  assert.ok(graphView.additionalDisplay);
-  assert.ok(graphView.toggleLayouts);
-
+  });
 });

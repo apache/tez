@@ -16,26 +16,28 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-tgraph', 'Integration | Component | em tgraph', {
-  integration: true
-});
+module('Integration | Component | em tgraph', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic failure test', function(assert) {
+  test('Basic failure test', async function(assert) {
 
-  this.set("data", []);
-  this.render(hbs`{{em-tgraph data=data}}`);
+    this.set("data", []);
+    await render(hbs`{{em-tgraph data=data}}`);
 
-  assert.equal(this.$().text().trim(), 'Rendering failed! Vertices not found!');
+    assert.equal(this.element.textContent.trim(), 'Rendering failed! Vertices not found!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-tgraph data=data}}
-      template block text
-    {{/em-tgraph}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-tgraph data=data}}
+        template block text
+      {{/em-tgraph}}
+    `);
 
-  assert.equal(this.$().text().trim(), 'Rendering failed! Vertices not found!');
+    assert.equal(this.element.textContent.trim(), 'Rendering failed! Vertices not found!');
+  });
 });

@@ -16,142 +16,107 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleForModel('dag', 'Unit | Model | dag', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | dag', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject(),
-      testQueue = "TQ";
-
-  Ember.run(function () {
-    model.set("app", {
-      queue: testQueue
-    });
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('dag'));
 
     assert.ok(!!model);
-    assert.ok(!!model.needs.am);
-    assert.ok(!!model.needs.info);
-    assert.equal(model.get("queue"), testQueue);
   });
 
-  assert.ok(model.name);
-  assert.ok(model.submitter);
+  test('app loadType test', function(assert) {
+    let loadType = run(() => this.owner.lookup('service:store').createRecord('dag')).get("needs.app.loadType"),
+        record = EmberObject.create();
 
-  assert.ok(model.vertices);
-  assert.ok(model.edges);
-  assert.ok(model.vertexGroups);
+    assert.equal(loadType(record), undefined);
 
-  assert.ok(model.domain);
-  assert.ok(model.containerLogs);
+    record.set("queueName", "Q");
+    assert.equal(loadType(record), "demand");
 
-  assert.ok(model.vertexIdNameMap);
-  assert.ok(model.vertexNameIdMap);
+    record.set("atsStatus", "RUNNING");
+    assert.equal(loadType(record), undefined);
 
-  assert.ok(model.callerID);
-  assert.ok(model.callerContext);
-  assert.ok(model.callerDescription);
-  assert.ok(model.callerType);
+    record.set("atsStatus", "SUCCEEDED");
+    assert.equal(loadType(record), "demand");
 
-  assert.ok(model.dagPlan);
-  assert.ok(model.callerData);
-  assert.ok(model.info);
-
-  assert.ok(model.amWsVersion);
-  assert.ok(model.failedTaskAttempts);
-  assert.ok(model.finalStatus);
-});
-
-test('app loadType test', function(assert) {
-  let loadType = this.subject().get("needs.app.loadType"),
-      record = Ember.Object.create();
-
-  assert.equal(loadType(record), undefined);
-
-  record.set("queueName", "Q");
-  assert.equal(loadType(record), "demand");
-
-  record.set("atsStatus", "RUNNING");
-  assert.equal(loadType(record), undefined);
-
-  record.set("atsStatus", "SUCCEEDED");
-  assert.equal(loadType(record), "demand");
-
-  record.set("queueName", undefined);
-  assert.equal(loadType(record), undefined);
-});
-
-test('status test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("status", "SUCCEEDED");
-    assert.equal(model.get("status"), "SUCCEEDED");
-    assert.equal(model.get("finalStatus"), "SUCCEEDED");
-
-    model.set("failedTaskAttempts", 1);
-    assert.equal(model.get("status"), "SUCCEEDED");
-    assert.equal(model.get("finalStatus"), "SUCCEEDED_WITH_FAILURES");
+    record.set("queueName", undefined);
+    assert.equal(loadType(record), undefined);
   });
-});
 
-test('queue test', function(assert) {
-  let model = this.subject(),
-      queueName = "queueName",
-      appQueueName = "AppQueueName";
+  test('status test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('dag'));
 
-  assert.equal(model.get("queue"), undefined);
+    run(function () {
+      model.set("status", "SUCCEEDED");
+      assert.equal(model.get("status"), "SUCCEEDED");
+      assert.equal(model.get("finalStatus"), "SUCCEEDED");
 
-  Ember.run(function () {
-    model.set("app", {
-      queue: appQueueName
+      model.set("failedTaskAttempts", 1);
+      assert.equal(model.get("status"), "SUCCEEDED");
+      assert.equal(model.get("finalStatus"), "SUCCEEDED_WITH_FAILURES");
     });
-    assert.equal(model.get("queue"), appQueueName);
-
-    model.set("queueName", queueName);
-    assert.equal(model.get("queue"), queueName);
   });
-});
 
-test('vertices, edges & vertexGroups test', function(assert) {
-  let testVertices = {},
-      testEdges = {},
-      testVertexGroups = {},
-      model = this.subject({
+  test('queue test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('dag')),
+        queueName = "queueName",
+        appQueueName = "AppQueueName";
+
+    assert.equal(model.get("queue"), undefined);
+
+    run(function () {
+      model.set("app", {
+        queue: appQueueName
+      });
+      assert.equal(model.get("queue"), appQueueName);
+
+      model.set("queueName", queueName);
+      assert.equal(model.get("queue"), queueName);
+    });
+  });
+
+  test('vertices, edges & vertexGroups test', function(assert) {
+    let testVertices = {},
+        testEdges = {},
+        testVertexGroups = {},
+        model = run(() => this.owner.lookup('service:store').createRecord('dag', {
+          dagPlan: {
+            vertices: testVertices,
+            edges: testEdges,
+            vertexGroups: testVertexGroups
+          }
+        }));
+
+    assert.equal(model.get("vertices"), testVertices);
+    assert.equal(model.get("edges"), testEdges);
+    assert.equal(model.get("vertexGroups"), testVertexGroups);
+
+    run(function () {
+      testVertices = {};
+      testEdges = {};
+      testVertexGroups = {};
+
+      model.set("info", {
         dagPlan: {
           vertices: testVertices,
           edges: testEdges,
           vertexGroups: testVertexGroups
         }
       });
+      assert.notEqual(model.get("vertices"), testVertices);
+      assert.notEqual(model.get("edges"), testEdges);
+      assert.notEqual(model.get("vertexGroups"), testVertexGroups);
 
-  assert.equal(model.get("vertices"), testVertices);
-  assert.equal(model.get("edges"), testEdges);
-  assert.equal(model.get("vertexGroups"), testVertexGroups);
-
-  Ember.run(function () {
-    testVertices = {};
-    testEdges = {};
-    testVertexGroups = {};
-
-    model.set("info", {
-      dagPlan: {
-        vertices: testVertices,
-        edges: testEdges,
-        vertexGroups: testVertexGroups
-      }
+      model.set("dagPlan", null);
+      assert.equal(model.get("vertices"), testVertices);
+      assert.equal(model.get("edges"), testEdges);
+      assert.equal(model.get("vertexGroups"), testVertexGroups);
     });
-    assert.notEqual(model.get("vertices"), testVertices);
-    assert.notEqual(model.get("edges"), testEdges);
-    assert.notEqual(model.get("vertexGroups"), testVertexGroups);
-
-    model.set("dagPlan", null);
-    assert.equal(model.get("vertices"), testVertices);
-    assert.equal(model.get("edges"), testEdges);
-    assert.equal(model.get("vertexGroups"), testVertexGroups);
   });
 });

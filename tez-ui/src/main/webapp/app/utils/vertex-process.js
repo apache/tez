@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -16,17 +15,17 @@
  * the License.
  */
 
-import Ember from 'ember';
+import EmberObject, { computed, get } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
+import MoreObject from '../utils/more-object';
 
 import Process from './process';
-
-var MoreObject = more.Object;
 
 export default Process.extend({
   vertex: null,
 
-  name: Ember.computed.oneWay("vertex.name"),
-  completeTime: Ember.computed.oneWay("vertex.endTime"),
+  name: oneWay("vertex.name"),
+  completeTime: oneWay("vertex.endTime"),
 
   blockingEventName: "VERTEX_FINISHED",
 
@@ -44,10 +43,10 @@ export default Process.extend({
 
   init: function () {
     this._super();
-    this.set("edgeHash", Ember.Object.create());
+    this.set("edgeHash", EmberObject.create());
   },
 
-  eventsHash: Ember.computed("vertex.events.@each.timestamp", function () {
+  eventsHash: computed("vertex.events.@each.timestamp", function () {
     var events = {},
         eventsArr = this.get("vertex.events");
 
@@ -66,12 +65,12 @@ export default Process.extend({
     return events;
   }),
 
-  events: Ember.computed("eventsHash",
+  events: computed("eventsHash",
     "vertex.initTime", "vertex.startTime", "vertex.endTime",
     "vertex.firstTaskStartTime", "vertex.lastTaskFinishTime", "unblockDetails",
     function () {
       var events = [],
-          eventsHash = this.get("eventsHash"),
+          eventsHash = this.eventsHash,
 
           initTime = this.get("vertex.initTime"),
           startTime = this.get("vertex.startTime"),
@@ -79,7 +78,7 @@ export default Process.extend({
 
           firstTaskStartTime = this.get("vertex.firstTaskStartTime"),
           lastTaskFinishTime = this.get("vertex.lastTaskFinishTime"),
-          unblockDetails = this.get("unblockDetails");
+          unblockDetails = this.unblockDetails;
 
       if(initTime > 0) {
         eventsHash["VERTEX_INITIALIZED"] = {
@@ -132,8 +131,8 @@ export default Process.extend({
     }
   ),
 
-  unblockDetails: Ember.computed("blockers.@each.completeTime", function () {
-    var blockers = this.get("blockers"),
+  unblockDetails: computed('blockers.@each.completeTime', 'edgeHash', 'time', function () {
+    var blockers = this.blockers,
         data = {
           time: 0
         };
@@ -158,7 +157,7 @@ export default Process.extend({
     if(data.blocker) {
       return {
         time: data.blocker.get("completeTime"),
-        edge: this.get("edgeHash").get(data.blocker.get("name"))
+        edge: this.edgeHash.get(data.blocker.get("name"))
       };
     }
   }),
@@ -201,14 +200,14 @@ export default Process.extend({
           return {
             name: definition.get("headerTitle"),
             value: definition.getCellContent(that.get("vertex")),
-            type: Ember.get(definition, "cellDefinition.type"),
-            format: Ember.get(definition, "cellDefinition.format"),
-            componentName: Ember.get(definition, "cellComponentName")
+            type: get(definition, "cellDefinition.type"),
+            format: get(definition, "cellDefinition.format"),
+            componentName: definition.cellComponentName
           };
         });
 
         contents = [{
-          title: this.get("name"),
+          title: this.name,
           properties: properties,
           description: vertexDescription
         }];
@@ -258,17 +257,17 @@ export default Process.extend({
     return contents;
   },
 
-  consolidateStartTime: Ember.computed("vertex.firstTaskStartTime",
+  consolidateStartTime: computed("vertex.firstTaskStartTime",
       "unblockDetails.time", function () {
         return Math.max(
           this.get("vertex.firstTaskStartTime") || 0,
           this.get("unblockDetails.time") || 0
         );
   }),
-  consolidateEndTime: Ember.computed.oneWay("vertex.endTime"),
+  consolidateEndTime: oneWay("vertex.endTime"),
 
   getConsolidateColor: function () {
-    return this.getBarColor(this.get("unblockDetails") ? 1 : 0);
+    return this.getBarColor(this.unblockDetails ? 1 : 0);
   },
 
 });

@@ -16,38 +16,36 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | dag/index/index', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:dag/index/index', 'Unit | Controller | dag/index/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/index/index').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      }
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
+    assert.ok(controller);
+    assert.ok(controller.columns);
   });
 
-  assert.ok(controller);
-  assert.ok(controller.columns);
-});
+  test('definition test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/index/index').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      }
+    });
 
-test('definition test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
+    assert.ok(controller.get("definition.recordType"), "vertex");
   });
-
-  assert.ok(controller.get("definition.recordType"), "vertex");
 });

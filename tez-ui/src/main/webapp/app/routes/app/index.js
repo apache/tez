@@ -16,23 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
-import DS from 'ember-data';
+import Model from '@ember-data/model';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var app = this.modelFor("app"),
       entityID = app.get("entityID");
     return `Application: ${entityID}`;
-  }).volatile(),
+  },
 
   loaderNamespace: "app",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   onRecordPoll: function () {
@@ -41,11 +41,12 @@ export default SingleAmPollsterRoute.extend({
 
   load: function (value, query, options) {
     var appModel = this.modelFor("app"),
-        loader = this.get("loader"),
-        appID = appModel.get("entityID");
+      // this.get below is needed for loader injection during testing
+      loader = this.get("loader"),
+      appID = appModel.get("entityID");
 
     // If it's a dummy object then reset, we have already taken appID from it
-    if(!(appModel instanceof DS.Model)) {
+    if(!(appModel instanceof Model)) {
       appModel = null;
     }
 
@@ -56,7 +57,7 @@ export default SingleAmPollsterRoute.extend({
       }, options).then(function (dags) {
         // If DAG details or application history is available for the app, then don't throw error
         if(dags.get("length") || appModel) {
-          return Ember.Object.create({
+          return EmberObject.create({
             app: appModel,
             appID: appID
           });
@@ -64,5 +65,5 @@ export default SingleAmPollsterRoute.extend({
         throw(appErr);
       });
     });
-  },
+  }
 });

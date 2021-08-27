@@ -16,15 +16,17 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-column', 'Integration | Component | em table column', {
-  integration: true
-});
+module('Integration | Component | em table column', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic rendering test', function(assert) {
-  this.render(hbs`{{em-table-column}}`);
+  test('Basic rendering test', async function(assert) {
+    await render(hbs`<EmTableColumn/>`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.dom(this.element).hasText('');
+  });
 });

@@ -16,47 +16,60 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
   event: null,
-
   processor: null,
 
   classNames: ["em-swimlane-event"],
 
-  didInsertElement: Ember.observer("event.time", "processor.timeWindow", function () {
-    var color = this.get("process").getColor();
+  didInsertElement: observer("event.time", "processor.timeWindow", function () {
+    var color = this.process.getColor();
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
 
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      this.$(".event-line").css("border-color", color);
-      this.$(".event-bubble").css("border-color", color);
 
-      this.$().css({
-        "left": this.get("processor").timeToPositionPercent(this.get("event.time")) + "%"
-      });
+    scheduleOnce('afterRender', this, function() {
+      this.element.querySelector('.event-line').style.borderColor = color;
+      this.element.querySelector('.event-bubble').style.borderColor = color;
+      this.element.style.left = this.processor.timeToPositionPercent(this.get("event.time")) + "%";
     });
   }),
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "event", this.get("process"), {
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showTooltip("event", this.process, {
       mouseEvent: mouseEvent,
-      events: [this.get("event")]
+      events: [this.event]
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function () {
+    this.hideTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
-  mouseUp: function (mouseEvent) {
-    this.sendMouseAction("click", mouseEvent);
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
   }
-
 });

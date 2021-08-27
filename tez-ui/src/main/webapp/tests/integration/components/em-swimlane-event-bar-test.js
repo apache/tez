@@ -16,30 +16,32 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-event-bar', 'Integration | Component | em swimlane event bar', {
-  integration: true
-});
+module('Integration | Component | em swimlane event bar', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
+  test('Basic creation test', async function(assert) {
+    this.set("process", Process.create());
+    this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-event-bar processor=processor process=process}}`);
+    await render(hbs`{{em-swimlane-event-bar processor=processor process=process}}`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.equal(this.element.textContent.trim(), '');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-event-bar process=process processor=processor}}
-      template block text
-    {{/em-swimlane-event-bar}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-event-bar process=process processor=processor}}
+        template block text
+      {{/em-swimlane-event-bar}}
+    `);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.equal(this.element.textContent.trim(), '');
+  });
 });

@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
+import { computed } from '@ember/object';
 import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
 
 export default MultiTableController.extend({
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "All Task Attempts",
     routeName: "dag.attempts",
-  }],
+  }]}),
 
   columns: ColumnDefinition.make([{
     id: 'index',

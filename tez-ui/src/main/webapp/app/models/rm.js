@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import { attr } from '@ember-data/model';
 
 import AbstractModel from './abstract';
 
 export default AbstractModel.extend({
-  entityID: DS.attr("string"),
-  status: DS.attr("string"),
+  entityID: attr("string"),
+  status: attr("string"),
 });

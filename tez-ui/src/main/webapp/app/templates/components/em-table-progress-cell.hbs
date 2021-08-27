@@ -16,14 +16,8 @@
  * limitations under the License.
 }}
 
-{{#if message}}
-  <span class="em-message">{{message}}</span>
+{{#if this.message}}
+  <span class="em-message">{{this.message}}</span>
 {{else}}
-  {{em-progress
-    value=content
-    valueMin=_definition.valueMin
-    valueMax=_definition.valueMax
-    striped=_definition.striped
-    style=_definition.style
-  }}
+  <EmProgress @value={{this.content}} @valueMin={{this._definition.valueMin}} @valueMax={{this._definition.valueMax}} @striped={{this._definition.striped}} @style={{this._definition.style}} />
 {{/if}}

@@ -16,17 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import EmberObject, { computed } from '@ember/object';
 import layout from '../templates/components/em-table-linked-cell';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   definition: null,
   content: null,
 
-  normalizedLinks: Ember.computed("content", function () {
-    var content = this.get("content"),
+  normalizedLinks: computed("content", function () {
+    var content = this.content,
         links;
 
     if(content) {
@@ -36,10 +37,10 @@ export default Ember.Component.extend({
 
       links = content.map(function (link) {
         var model,
-            text = Ember.get(link, "text") || Ember.get(link, "displayText");
+            text = link.text || link.displayText;
 
         if(text) {
-          link = Ember.Object.create(link, {
+          link = EmberObject.create(link, {
             text: text
           });
 

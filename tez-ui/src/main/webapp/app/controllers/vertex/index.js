@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
 
 import PageController from '../page';
 
 function taskLinkComputerFactory(name) {
-  return Ember.computed(name, function () {
+  return computed(name, function () {
     var tasks = this.get(name);
 
     if(tasks) {
@@ -37,14 +37,12 @@ function taskLinkComputerFactory(name) {
 }
 
 export default PageController.extend({
-
-  pathname: Ember.computed(function() {
+  get pathname() {
     return window.location.pathname;
-  }).volatile(),
+  },
 
   firstTasksToStart: taskLinkComputerFactory("model.firstTasksToStart"),
   lastTasksToFinish: taskLinkComputerFactory("model.lastTasksToFinish"),
   shortestDurationTasks: taskLinkComputerFactory("model.shortestDurationTasks"),
-  longestDurationTasks: taskLinkComputerFactory("model.longestDurationTasks"),
-
+  longestDurationTasks: taskLinkComputerFactory("model.longestDurationTasks")
 });

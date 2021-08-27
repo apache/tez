@@ -15,11 +15,12 @@
  * the License.
  */
 
-import Ember from 'ember';
+import EmberObject, { computed } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
 
 var processIndex = 1;
 
-export default Ember.Object.extend({
+export default EmberObject.extend({
   _id: null,
 
   name: null,
@@ -34,8 +35,8 @@ export default Ember.Object.extend({
 
   blockingEventName: null,
 
-  consolidateStartTime: Ember.computed.oneWay("startEvent.time"),
-  consolidateEndTime: Ember.computed.oneWay("endEvent.time"),
+  consolidateStartTime: oneWay("startEvent.time"),
+  consolidateEndTime: oneWay("endEvent.time"),
 
   init: function () {
     this.set("_id", `process-id-${processIndex}`);
@@ -43,7 +44,7 @@ export default Ember.Object.extend({
   },
 
   getColor: function (lightnessFactor) {
-    var color = this.get("color"),
+    var color = this.color,
         l;
 
     if(!color) {
@@ -64,8 +65,8 @@ export default Ember.Object.extend({
     return this.getColor();
   },
 
-  startEvent: Ember.computed("events.@each.time", function () {
-    var events = this.get("events"),
+  startEvent: computed("events.@each.time", function () {
+    var events = this.events,
         startEvent;
     if(events) {
       startEvent = events[0];
@@ -78,8 +79,8 @@ export default Ember.Object.extend({
     return startEvent;
   }),
 
-  endEvent: Ember.computed("events.@each.time", function () {
-    var events = this.get("events"),
+  endEvent: computed("events.@each.time", function () {
+    var events = this.events,
         endEvent;
     if(events) {
       endEvent = events[events.length - 1];
@@ -94,13 +95,13 @@ export default Ember.Object.extend({
 
   getAllBlockers: function (parentHash) {
     var blockers = [],
-        currentId = this.get("_id");
+        currentId = this._id;
 
     parentHash = parentHash || {}; // To keep a check on cyclic blockers
 
     parentHash[currentId] = true;
     if(this.get("blockers.length")) {
-      this.get("blockers").forEach(function (blocker) {
+      this.blockers.forEach(function (blocker) {
         if(!parentHash[blocker.get("_id")]) {
           blockers.push(blocker);
           blockers.push.apply(blockers, blocker.getAllBlockers(parentHash));
@@ -114,7 +115,7 @@ export default Ember.Object.extend({
 
   getTooltipContents: function (type/*, options*/) {
     return [{
-      title: this.get("name"),
+      title: this.name,
       description: "Mouse on : " + type
     }];
   }

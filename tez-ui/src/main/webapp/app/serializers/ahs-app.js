@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import LoaderSerializer from './loader';
 
 export default LoaderSerializer.extend({
@@ -30,7 +29,7 @@ export default LoaderSerializer.extend({
     entityID: 'appId',
     attemptID: function(source) {
       // while an attempt is in progress the attempt id contains a '-'
-      return (Ember.get(source, 'currentAppAttemptId') || '').replace('-','');
+      return (source.currentAppAttemptId || '').replace('-','');
     },
 
     name: 'name',

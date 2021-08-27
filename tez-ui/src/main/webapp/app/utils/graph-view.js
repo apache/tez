@@ -16,13 +16,14 @@
  * limitations under the License.
  */
 
-/*global d3*/
-
-import Ember from 'ember';
-import moment from 'moment';
+import { event, select } from 'd3-selection';
+import { transition } from 'd3-transition';
+import { hierarchy, tree } from 'd3-hierarchy';
+import { htmlSafe } from '@ember/template';
 
 import GraphDataProcessor from './graph-data-processor';
 import Tip from './tip';
+import formatters from './formatters';
 
 var isIE = navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0;
 
@@ -119,7 +120,7 @@ var PADDING = 30, // Adding to be applied on the svg view
       }
     },
 
-    DURATION = 750, // Animation duration
+    DURATION = 350, // Animation duration
 
     HREF_TYPE_HASH = { // Used to assess the entity type from an event target
       "#task-bubble": "task",
@@ -137,9 +138,11 @@ var _width = 0,
     _data = null,       // Data object created by data processor
     _treeData = null,   // Points to root data node of the tree structure
     _treeLayout = null, // Instance of d3 tree layout helper
+    _treeRoot = null,
     _layout = null,     // Current layout, one of the values defined in LAYOUTS object
+    _dimension = null,     // Current layout, one of the values defined in LAYOUTS object
 
-    _svg = null, // jQuery instance of svg DOM element
+    _svg = null, // svg DOM element
     _g = null,   // For pan and zoom: Svg DOM group element that encloses all the displayed items
 
     _idCounter = 0,        // To create a fresh id for all displayed nodes
@@ -191,7 +194,7 @@ function _addTaskBubble(node, d) {
   group.attr('class', 'task-bubble');
   group.append('use').attr('xlink:href', '#task-bubble');
   translateIfIE(group.append('text')
-      .text(_trimText(d.get('data.totalTasks') || 0, 3)), 0, 4);
+      .text(_trimText(d.data.totalTasks || 0, 3)), 0, 4);
 
   translateIfIE(group, 38, -15);
 }
@@ -202,8 +205,8 @@ function _addTaskBubble(node, d) {
  */
 function _addIOBubble(node, d) {
   var group,
-      inputs = d.get('inputs.length'),
-      outputs = d.get('outputs.length');
+      inputs = d.inputs.length,
+      outputs = d.outputs.length;
 
   if(inputs || outputs) {
     group = node.append('g');
@@ -228,7 +231,7 @@ function _addVertexGroupBubble(node, d) {
     group.attr('class', 'group-bubble');
     group.append('use').attr('xlink:href', '#group-bubble');
     translateIfIE(group.append('text')
-        .text(_trimText(d.get('vertexGroup.groupMembers.length'), 2)), 0, 4);
+        .text(_trimText(d.vertexGroup.groupMembers.length, 2)), 0, 4);
 
     translateIfIE(group, 38, 15);
   }
@@ -247,7 +250,7 @@ function _addStatusBar(node, d) {
       .attr("width", 70)
       .attr("height", 15)
       .html('<span class="msg-container">' +
-          d.get('data.status') +
+          d.data.status +
           '</span>'
       );
 }
@@ -266,26 +269,26 @@ function _addBasicContents(node, d, titleProperty, maxTitleLength) {
   node.append('use').attr('xlink:href', `#${className}-bg`);
   translateIfIE(node.append('text')
       .attr('class', 'title')
-      .text(_trimText(d.get(titleProperty || 'name'), maxTitleLength || 12)), 0, 4);
+      .text(_trimText(d[titleProperty] || d['name'], maxTitleLength || 12)), 0, 4);
 }
 /**
  * Populates the calling node with the required content.
  * @param s {DataNode}
  */
 function _addContent(d) {
-  var node = d3.select(this);
+  var node = select(this);
 
-  switch(d.type) {
+  switch(d.data.type) {
     case 'vertex':
-      _addBasicContents(node, d, 'vertexName');
-      _addStatusBar(node, d);
-      _addTaskBubble(node, d);
-      _addIOBubble(node, d);
-      _addVertexGroupBubble(node, d);
+      _addBasicContents(node, d.data, 'vertexName');
+      _addStatusBar(node, d.data);
+      _addTaskBubble(node, d.data);
+      _addIOBubble(node, d.data);
+      _addVertexGroupBubble(node, d.data);
     break;
     case 'input':
     case 'output':
-      _addBasicContents(node, d);
+      _addBasicContents(node, d.data);
     break;
   }
 }
@@ -300,7 +303,7 @@ function _getLinks(nodes) {
       nodeHash;
 
   nodeHash = nodes.reduce(function (obj, node) {
-    obj[node.id] = node;
+    obj[node.data.id] = node;
     return obj;
   }, {});
 
@@ -311,7 +314,7 @@ function _getLinks(nodes) {
       link.setProperties({
         source: source,
         target: target,
-        isBackwardLink: source.isSelfOrAncestor(target)
+        isBackwardLink: source.data.isSelfOrAncestor(target.data)
       });
       links.push(link);
     }
@@ -379,7 +382,7 @@ function _getType(node) {
   if(node.tagName === 'path') {
     return 'path';
   }
-  return HREF_TYPE_HASH[Ember.$(node).attr('href')];
+  return HREF_TYPE_HASH[node.getAttribute('href')];
 }
 
 function _getEndName(fullName) {
@@ -391,17 +394,16 @@ function _getEndName(fullName) {
  * Later the implementation will be refactored and moved into the respective DataNode.
  * d {DataNode} Contains data to be displayed
  */
-function _onMouseOver(d) {
-  var event = d3.event,
-      node = event.target,
-      tooltipData = {}; // Will be populated with {title/text/kvList}.
+function _onMouseOver(d, /*id, nodegroup*/) {
+  var node = event.target,
+    tooltipData = {}; // Will be populated with {title/text/kvList}.
 
   node = node.correspondingUseElement || node;
 
   switch(_getType(node)) {
     case "vertex":
       var list  = {},
-          vertex = d.get('data');
+          vertex = d.data.data;
 
       _component.get('vertexProperties').forEach(function (property) {
         var value = {};
@@ -413,11 +415,11 @@ function _onMouseOver(d) {
           }
         }
         else if(property.contentPath) {
-          value = d.get('data.' + property.contentPath);
+          value = d.data[property.contentPath];
         }
 
         if(property.cellComponentName === "date-formatter") {
-          value = moment(value).format("DD MMM YYYY HH:mm:ss:SSS");
+          value = formatters['date'](value, window.ENV);
         }
 
         if(property.get("id") === "progress" && value) {
@@ -433,42 +435,44 @@ function _onMouseOver(d) {
       });
 
       tooltipData = {
-        title: d.get("vertexName"),
+        title: d.data.vertexName,
         kvList: list
       };
     break;
     case "input":
       list = {
-        "Class": _getEndName(d.get("class")),
-        "Initializer": _getEndName(d.get("initializer")),
-        "Configurations": d.get("configs.length") || 0
+        "Class": _getEndName(d.data.class),
+        "Initializer": _getEndName(d.data.initializer),
+        //TODO
+        //"Configurations": d.data.configs.length || 0
       };
       tooltipData = {
-        title: d.get("name"),
+        title: d.data.name,
         kvList: list
       };
     break;
     case "output":
       list = {
-        "Class": _getEndName(d.get("class")),
-        "Configurations": d.get("configs.length") || 0
+        "Class": _getEndName(d.data.class),
+        //TODO
+        //"Configurations": d.data.configs.length || 0
       };
       tooltipData = {
-        title: d.get("name"),
+        title: d.data.name,
         kvList: list
       };
     break;
     case "task":
-      var totalTasks = d.get('data.totalTasks') || 0;
+      var totalTasks = d.data.data.totalTasks || 0;
       tooltipData.title = totalTasks > 1 ? `${totalTasks} Tasks` : `${totalTasks} Task`;
 
       if(!isIE) {
-        node = d3.event.target;
+        node = event.target;
       }
     break;
     case "io":
-      var inputs = d.get('inputs.length'),
-          outputs = d.get('outputs.length'),
+      var inputs = d.data.inputs.length,
+          outputs = d.data.outputs.length,
           title = "";
       title += inputs > 1 ? `${inputs} Sources` : `${inputs} Source`;
       title += " & ";
@@ -476,18 +480,18 @@ function _onMouseOver(d) {
       tooltipData.title = title;
 
       if(!isIE) {
-        node = d3.event.target;
+        node = event.target;
       }
     break;
     case "group":
       tooltipData = {
-        title: d.get("vertexGroup.groupName"),
-        text: d.get("vertexGroup.groupMembers").join(", ")
+        title: d.data.vertexGroup.groupName,
+        text: d.data.vertexGroup.groupMembers.join(", ")
       };
     break;
     case "path":
-      let sourceName = d.get('source.name') || d.get('source.vertexName'),
-          targetName = d.get('target.name') || d.get('target.vertexName');
+      let sourceName = d.source.data.name || d.source.data.vertexName,
+          targetName = d.target.data.name || d.target.data.vertexName;
 
       tooltipData = {
         position: {
@@ -496,18 +500,18 @@ function _onMouseOver(d) {
         },
         title: `${sourceName} - ${targetName}`
       };
-      if(d.get("edgeId")) {
+      if(d.edgeId) {
         tooltipData.kvList = {
-          "Edge Id": d.get("edgeId"),
-          "Data Movement Type": d.get("dataMovementType"),
-          "Data Source Type": d.get("dataSourceType"),
-          "Scheduling Type": d.get("schedulingType"),
-          "Edge Source Class": _getEndName(d.get("edgeSourceClass")),
-          "Edge Destination Class": _getEndName(d.get("edgeDestinationClass"))
+          "Edge Id": d.edgeId,
+          "Data Movement Type": d.dataMovementType,
+          "Data Source Type": d.dataSourceType,
+          "Scheduling Type": d.schedulingType,
+          "Edge Source Class": _getEndName(d.edgeSourceClass),
+          "Edge Destination Class": _getEndName(d.edgeDestinationClass)
         };
       }
       else {
-        tooltipData.text = d.get('source.type') === "input" ? "Source link" : "Sink link";
+        tooltipData.text = d.source.data.type === "input" ? "Source link" : "Sink link";
       }
     break;
   }
@@ -536,7 +540,7 @@ function _onMouseOver(d) {
 function _scheduledClick(d, node) {
   node = node.correspondingUseElement || node;
 
-  _component.sendAction('entityClicked', {
+  _component.entityClicked({
     type: _getType(node),
     d: d
   });
@@ -552,7 +556,7 @@ function _scheduledClick(d, node) {
  */
 function _onClick(d) {
   if(!_scheduledClickId) {
-    _scheduledClickId = setTimeout(_scheduledClick.bind(this, d, d3.event.target), 200);
+    _scheduledClickId = setTimeout(_scheduledClick.bind(this, d.data, event.target), 200);
   }
 }
 
@@ -561,7 +565,7 @@ function _onClick(d) {
  * @param d {DataNode} Data of the clicked element
  */
 function _onMouse(/*d*/) {
-  d3.select(this).on('click', d3.event.type === 'mousedown' ? _onClick : null);
+  select(this).on('click', event.type === 'mousedown' ? _onClick : null);
 }
 
 /**
@@ -569,8 +573,7 @@ function _onMouse(/*d*/) {
  * @param d {DataNode} Data of the clicked element
  */
 function _onDblclick(d) {
-  var event = d3.event,
-      node = event.target;
+  var node = event.target;
 
   node = node.correspondingUseElement || node;
 
@@ -581,7 +584,7 @@ function _onDblclick(d) {
 
   switch(_getType(node)) {
     case "io":
-      d.toggleAdditionalInclusion();
+      d.data.toggleAdditionalInclusion();
       _update();
     break;
   }
@@ -633,9 +636,10 @@ function _createPathData(d) {
  * @return vertex node
  */
 function _getVertexNode(d, property) {
-  if(d.get('vertex.' + property)) {
-    return d.get('vertex');
+  if(d.data.vertex[property] !== undefined) {
+    return d.data.vertex;
   }
+  return null;
 }
 /**
  * Update position of all nodes in the list and preform required transitions.
@@ -643,41 +647,35 @@ function _getVertexNode(d, property) {
  * @param source {d3 element} Node that trigged the update, in first update source will be root.
  */
 function _updateNodes(nodes, source) {
-  // Enter any new nodes at the parent's previous position.
-  nodes.enter().append('g')
+  // Enter any new nodes at it's previous position or the parent's previous position.
+  nodes.join(
+    enter => enter.append('g')
     .attr('transform', function(d) {
-      var node = _getVertexNode(d, "x0") || source;
-      node = _layout.projector(node.x0, node.y0);
+      var node = _layout.projector(source.x0, source.y0);
+      if (d.data.x0 !== undefined) {
+        // We have a previous stored position
+        node = {x: d.data.x0, y: d.data.y0};
+      }
       return 'translate(' + node.x + ',' + node.y + ')';
     })
-    .on({
-      mouseover: _onMouseOver,
-      mouseout: _tip.hide,
-      mousedown: _onMouse,
-      mousemove: _onMouse,
-      dblclick: _onDblclick
-    })
-    .style('opacity', 1e-6)
-    .each(_addContent);
-
+    .on('mouseover', _onMouseOver)
+    .on('mouseout', _tip.hide)
+    .on('mousedown', _onMouse)
+    .on('mousemove', _onMouse)
+    .on('dblclick', _onDblclick)
+    .each(_addContent)
+  )
   // Transition nodes to their new position.
-  nodes.transition()
+  .transition()
     .duration(DURATION)
     .attr('transform', function(d) {
-      d = _layout.projector(d.x, d.y);
-      return 'translate(' + d.x + ',' + d.y + ')';
+      var node = _layout.projector(d.x, d.y);
+      return 'translate(' + node.x + ',' + node.y + ')';
     })
-    .style('opacity', 1);
 
   // Transition exiting nodes to the parent's new position.
   nodes.exit().transition()
     .duration(DURATION)
-    .attr('transform', function(d) {
-      var node = _getVertexNode(d, "x") || source;
-      node = _layout.projector(node.x, node.y);
-      return 'translate(' + node.x + ',' + node.y + ')';
-    })
-    .style('opacity', 1e-6)
     .remove();
 }
 
@@ -688,12 +686,13 @@ function _updateNodes(nodes, source) {
  * @return node
  */
 function _getTargetNode(d, property) {
-  if(d.get('target.type') === GraphDataProcessor.types.OUTPUT && d.get('source.' + property)) {
+  if(d.target.data.type === GraphDataProcessor.types.OUTPUT && d.source[property] !== undefined) {
     return d.source;
   }
-  if(d.get('target.' + property)) {
+  if(d.target[property] !== undefined) {
     return d.target;
   }
+  return null;
 }
 /**
  * Update position of all links in the list and preform required transitions.
@@ -702,9 +701,10 @@ function _getTargetNode(d, property) {
  */
 function _updateLinks(links, source) {
   // Enter any new links at the parent's previous position.
-  links.enter().insert('path', 'g')
+  links.join(
+    enter => enter.insert('path', 'g')
     .attr('class', function (d) {
-      var type = d.get('dataMovementType') || "";
+      var type = d.dataMovementType || "";
       return 'link ' + type.toLowerCase();
     })
     /**
@@ -712,49 +712,47 @@ function _updateLinks(links, source) {
      * See https://connect.microsoft.com/IE/feedback/details/801938
      * This can be removed once the bug is fixed in all supported IE versions
      */
-    .attr("style", isIE ? "" : Ember.String.htmlSafe("marker-mid: url(" + window.location.pathname + "#arrow-marker);"))
+    .attr('style', isIE ? "" : htmlSafe("marker-mid: url(" + window.location.pathname + "#arrow-marker);"))
     .attr('d', function(d) {
-      var node = _getTargetNode(d, "x0") || source;
+      var node = _getTargetNode(d, "x0")
+      if (node == null) {
+        node = source;
+      }
       var o = {x: node.x0, y: node.y0};
       return _createPathData({source: o, target: o});
     })
-    .on({
-      mouseover: _onMouseOver,
-      mouseout: _tip.hide
-    });
-
-  // Transition links to their new position.
-  links.transition()
+    .on('mouseover', _onMouseOver)
+    .on('mouseout', _tip.hide)
+  )
+    .transition()
     .duration(DURATION)
     .attr('d', _createPathData);
 
   // Transition exiting nodes to the parent's new position.
   links.exit().transition()
     .duration(DURATION)
-    .attr('d', function(d) {
-      var node = _getTargetNode(d, "x") || source;
-      var o = {x: node.x, y: node.y};
-      return _createPathData({source: o, target: o});
-    })
     .remove();
 }
 
 function _getNodeId(d) {
-  return d.id || (d.id = ++_idCounter);
+  return d.data.nodeid || (d.data.nodeid = ++_idCounter);
 }
 function _getLinkId(d) {
-  return d.source.id.toString() + d.target.id;
+  return d.source.data.id.toString() + d.target.data.id;
 }
 function _stashOldPositions(d) {
-  d.x0 = d.x;
-  d.y0 = d.y;
+  var node = _layout.projector(d.x, d.y);
+  d.data.x0 = node.x;
+  d.data.y0 = node.y;
 }
 
 /**
  * Updates position of nodes and links based on changes in _treeData.
  */
 function _update() {
-  var nodesData = _treeLayout.nodes(_treeData),
+  _treeRoot = hierarchy(_treeData);
+  _treeLayout = tree().size([_dimension.x, _dimension.y])(_treeRoot);
+  var nodesData = _treeRoot.descendants(),
       linksData = _getLinks(nodesData);
 
   _normalize(nodesData);
@@ -803,7 +801,7 @@ function _attachPanZoom(container, g, element) {
    */
   function visibilityCheck() {
     var graphBound = g.node().getBoundingClientRect(),
-        containerBound = container[0].getBoundingClientRect();
+        containerBound = container.getBoundingClientRect();
 
     if(graphBound.right < containerBound.left ||
       graphBound.bottom < containerBound.top ||
@@ -845,7 +843,7 @@ function _attachPanZoom(container, g, element) {
   function onWheel(event) {
     var prevScale = scale,
 
-        offset = container.offset(),
+        offset = container.getBoundingClientRect(),
         mouseX = event.pageX - offset.left,
         mouseY = event.pageY - offset.top,
         factor = 0;
@@ -869,19 +867,18 @@ function _attachPanZoom(container, g, element) {
     event.preventDefault();
   }
 
-  Ember.$(element).on('mousewheel', onWheel);
+  element.addEventListener('mousewheel', onWheel);
 
-  container
-  .mousedown(function (event){
+  container.addEventListener('mousedown', function (event) {
     prevX = event.pageX;
     prevY = event.pageY;
 
-    container.on('mousemove', onMouseMove);
-    container.parent().addClass('panning');
+    container.addEventListener('mousemove', onMouseMove);
+    container.parentNode.classList.add('panning');
   })
-  .mouseup(function (){
-    container.off('mousemove', onMouseMove);
-    container.parent().removeClass('panning');
+  container.addEventListener('mouseup', function () {
+    container.removeEventListener('mousemove', onMouseMove);
+    container.parentNode.classList.remove('panning');
 
     scheduleVisibilityCheck();
   });
@@ -915,21 +912,20 @@ function _attachPanZoom(container, g, element) {
  */
 function _setLayout(layout) {
   var leafCount = _data.leafCount,
-      dimention;
+      dimension;
 
   // If count is even dummy will be replaced by output, so output would no more be leaf
   if(_data.tree.get('children.length') % 2 === 0) {
     leafCount--;
   }
-  dimention = layout.projector(leafCount, _data.maxDepth - 1);
+  dimension = layout.projector(leafCount, _data.maxDepth - 1);
 
   _layout = layout;
 
-  _width = dimention.x *= _layout.hSpacing;
-  _height = dimention.y *= _layout.vSpacing;
+  _width = dimension.x *= _layout.hSpacing;
+  _height = dimension.y *= _layout.vSpacing;
 
-  dimention = _layout.projector(dimention.x, dimention.y); // Because tree is always top to bottom
-  _treeLayout = d3.layout.tree().size([dimention.x, dimention.y]);
+  _dimension = _layout.projector(dimension.x, dimension.y); // Because tree is always top to bottom
 
   _update();
 }
@@ -942,15 +938,15 @@ var GraphView = {
    * @param data {Object} Created by data processor
    */
   create: function (component, element, data) {
-    var svg = d3.select(element).select('svg');
+    var svg = select(element).select('svg');
 
     _component = component;
     _data = data;
     _g = svg.append('g').attr('transform', `translate(${PADDING},${PADDING})`);
-    _svg = Ember.$(svg.node());
+    _svg = svg.node();
     _tip = Tip;
 
-    _tip.init(Ember.$(element).find('.tool-tip'), _svg);
+    _tip.init(element.querySelector('.tool-tip'), _svg);
 
     _treeData = data.tree;
     _treeData.x0 = 0;
@@ -966,8 +962,8 @@ var GraphView = {
    */
   fitGraph: function (){
     var scale = Math.min(
-      (_svg.width() - PADDING * 2) / _width,
-      (_svg.height() - PADDING * 2) / _height
+      (parseFloat(getComputedStyle(_svg, null).width.replace("px", "")) - PADDING * 2) / _width,
+      (parseFloat(getComputedStyle(_svg, null).height.replace("px", "")) - PADDING * 2) / _height
     ),
     panZoomValues = _panZoom();
 
@@ -1016,9 +1012,7 @@ var GraphView = {
 return GraphView;
 }
 
-// TODO - Move to a better class based implementation
 var GraphView = createNewGraphView();
 GraphView.createNewGraphView = createNewGraphView;
 
-// TODO - Convert to pure ES6 style export without using an object
 export default GraphView;

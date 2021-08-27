@@ -16,51 +16,51 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, render, settled } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-import wait from 'ember-test-helpers/wait';
+module('Integration | Component | em swimlane event', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('em-swimlane-event', 'Integration | Component | em swimlane event', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
+    // default process color is #0 which is optimized away
+    let red = {h: 0, s: 100, l: 50};
+    this.set("process", Process.create({color: red}));
+    this.set("processor", Processor.create());
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create({}));
-  this.set("processor", Processor.create());
+    await render(hbs`<EmSwimlaneEvent @processor={{this.processor}} @process={{this.process}}/>`);
 
-  this.render(hbs`{{em-swimlane-event processor=processor process=process}}`);
+    // colors can't easily be compared as hsl is transformed to rgb
+    assert.ok(find('.event-line').style.borderColor, "Should have borderColor");
+    assert.ok(find('.event-bubble').style.borderColor, "Should have borderColor");
 
-  assert.ok(this.$(".event-bar"));
-  assert.ok(this.$(".event-window"));
-
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-event process=process processor=processor}}
-      template block text
-    {{/em-swimlane-event}}
-  `);
-
-  assert.ok(this.$(".event-bar"));
-  assert.ok(this.$(".event-window"));
-});
-
-test('Event position test', function(assert) {
-  this.set("process", Process.create());
-  this.set("event", {
-    time: 6
+    // Template block usage:" + EOL +
+    await render(hbs`<EmSwimlaneEvent @processor={{this.processor}} @process={{this.process}}>
+        template block text
+      </EmSwimlaneEvent>
+    `);
+    assert.ok(find('.event-line').style.borderColor, "Should have borderColor");
+    assert.ok(find('.event-bubble').style.borderColor, "Should have borderColor");
   });
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
 
-  this.render(hbs`{{em-swimlane-event processor=processor process=process event=event}}`);
+  test('Event position test', async function(assert) {
+    this.set("process", Process.create());
+    this.set("event", {
+      time: 6
+    });
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
 
-  return wait().then(() => {
-    assert.equal(this.$(".em-swimlane-event").attr("style").trim(), "left: 60%;", "em-swimlane-event");
+    await render(hbs`<EmSwimlaneEvent @processor={{this.processor}} @process={{this.process}} @event={{this.event}}/>`);
+
+    await settled();
+    assert.dom('.em-swimlane-event').hasStyle({ left: '60%' });
   });
 });

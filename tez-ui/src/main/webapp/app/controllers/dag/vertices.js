@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
+import { computed } from '@ember/object';
 import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
 
 export default MultiTableController.extend({
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "All Vertices",
     routeName: "dag.vertices",
-  }],
+  }]}),
 
   columns: ColumnDefinition.make([{
     id: 'name',

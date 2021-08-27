@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action } from '@ember/object';
 
 import ServerSideOpsRoute from '../server-side-ops';
 
@@ -60,16 +60,14 @@ export default ServerSideOpsRoute.extend({
 
   fromId: null,
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
-  actions: {
-    willTransition: function () {
-      var loader = this.get("loader");
-      loader.unloadAll("hive-query");
-      this._super();
-    },
-  }
+  willTransition: action(function () {
+    var loader = this.loader;
+    loader.unloadAll("hive-query");
+    this._super();
+  })
 });

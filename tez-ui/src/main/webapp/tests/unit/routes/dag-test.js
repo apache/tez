@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:dag', 'Unit | Route | dag', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | dag', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let route = this.subject();
+  test('it exists', function(assert) {
+    let route = this.owner.lookup('route:dag');
 
-  assert.ok(route);
-  assert.ok(route.loaderQueryParams);
-  assert.ok(route.model);
+    assert.ok(route);
+    assert.ok(route.loaderQueryParams);
+    assert.ok(route.model);
+  });
 });

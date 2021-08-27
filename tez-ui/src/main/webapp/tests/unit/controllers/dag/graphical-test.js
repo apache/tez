@@ -16,33 +16,31 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | dag/graphical', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:dag/graphical', 'Unit | Controller | dag/graphical', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/graphical').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      }
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
+    assert.ok(controller);
+
+    assert.ok(controller.columnSelectorTitle);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.equal(controller.columns.length, 14);
+
+    assert.ok(controller.redirect);
+    assert.ok(controller.actions.entityClicked);
+    assert.ok(controller.viewData);
   });
-
-  assert.ok(controller);
-
-  assert.ok(controller.columnSelectorTitle);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 14);
-
-  assert.ok(controller.redirect);
-  assert.ok(controller.actions.entityClicked);
-  assert.ok(controller.viewData);
 });

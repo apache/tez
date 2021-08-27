@@ -16,60 +16,64 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, findAll, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-import moment from 'moment';
+import formatters from 'tez-ui/utils/formatters';
 
-moduleForComponent('tab-n-refresh', 'Integration | Component | tab n refresh', {
-  integration: true
-});
+module('Integration | Component | tab n refresh', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.render(hbs`{{tab-n-refresh}}`);
+  test('Basic creation test', async function(assert) {
+    await render(hbs`{{tab-n-refresh}}`);
 
-  assert.equal(this.$(".refresh-ui button").text().trim(), 'Refresh');
-  assert.equal(
-    this.$(".refresh-ui .text-elements").text().trim().split(" ").slice(-4).join(" "),
-    "Load time not available!"
-  );
-  assert.equal(this.$(".refresh-ui input").val(), 'on');
+    assert.equal(find(".refresh-ui button").textContent.trim(), 'Refresh');
+    assert.equal(
+      find(".refresh-ui .text-elements").textContent.trim().split(" ").slice(-4).join(" "),
+      "Load time not available!"
+    );
+    assert.equal(find(".refresh-ui input").value, 'on');
 
-  this.render(hbs`
-    {{#tab-n-refresh}}
-      template block text
-    {{/tab-n-refresh}}
-  `);
+    await render(hbs`
+      {{#tab-n-refresh}}
+        template block text
+      {{/tab-n-refresh}}
+    `);
 
-  assert.equal(this.$(".refresh-ui button").text().trim(), 'Refresh');
-});
+    assert.equal(find(".refresh-ui button").textContent.trim(), 'Refresh');
+  });
 
-test('normalizedTabs test', function(assert) {
-  var testTabs = [{
-    text: "Tab 1",
-    routeName: "route_1",
-  },{
-    text: "Tab 2",
-    routeName: "route_2",
-  }];
+  test('normalizedTabs test', async function(assert) {
+    var testTabs = [{
+      text: "Tab 1",
+      routeName: "route_1",
+    },{
+      text: "Tab 2",
+      routeName: "route_2",
+    }];
 
-  this.set("tabs", testTabs);
+    this.set("tabs", testTabs);
 
-  this.render(hbs`{{tab-n-refresh tabs=tabs}}`);
+    await render(hbs`{{tab-n-refresh tabs=tabs}}`);
 
-  assert.equal($(this.$("li")[0]).text().trim(), testTabs[0].text);
-  assert.equal($(this.$("li")[1]).text().trim(), testTabs[1].text);
-});
+    let listItems = findAll('li');
+    assert.equal(listItems.length, 2);
+    assert.dom(listItems[0]).hasText(testTabs[0].text);
+    assert.dom(listItems[1]).hasText(testTabs[1].text);
+  });
 
-test('loadTime test', function(assert) {
-  var loadTime = 1465226174574,
-      timeInText = moment(loadTime).format("DD MMM YYYY HH:mm:ss");
+  test('loadTime test', async function(assert) {
+    var loadTime = 1465226174574,
+      timeInText = formatters['date'](loadTime, {dateFormat: "DD MMM YYYY HH:mm:ss"});
 
-  this.set("loadTime", loadTime);
+    this.set("loadTime", loadTime);
 
-  this.render(hbs`{{tab-n-refresh loadTime=loadTime}}`);
-  assert.equal(
-    this.$(".refresh-ui .text-elements").text().trim().split(" ").slice(-7).join(" ").replace("\n", ""),
-    `Last refreshed at ${timeInText}`
-  );
+    await render(hbs`{{tab-n-refresh loadTime=loadTime}}`);
+    assert.equal(
+      find(".refresh-ui .text-elements").textContent.trim().split(" ").slice(-7).join(" ").replace("\n", ""),
+      `Last refreshed at ${timeInText}`
+    );
+  });
 });

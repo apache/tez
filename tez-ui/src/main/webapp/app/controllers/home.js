@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
+import { computed } from '@ember/object';
 import AbstractController from './abstract';
 
 export default AbstractController.extend({
   breadcrumbs: null,
 
-  tabs: [{
+  tabs: computed(function() {return [{
     text: "All DAGs",
     routeName: "home.index"
   }, {
     text: "Hive Queries",
     routeName: "home.queries"
-  }]
+  }]})
 });

@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
@@ -24,12 +23,12 @@ export default SingleAmPollsterRoute.extend({
 
   loaderNamespace: "query",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('hive-query', this.modelFor("query").get("id"), options);
+    return this.loader.queryRecord('hive-query', this.modelFor("query").get("id"), options);
   },
 });

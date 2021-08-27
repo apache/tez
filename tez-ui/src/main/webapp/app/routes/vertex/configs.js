@@ -16,27 +16,25 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var vertex = this.modelFor("vertex"),
       name = vertex.get("name"),
       entityID = vertex.get("entityID");
     return `Vertex Configurations: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "vertex",
-
   canPoll: false,
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('vertex', this.modelFor("vertex").get("id"), options);
-  },
+    return this.loader.queryRecord('vertex', this.modelFor("vertex").get("id"), options);
+  }
 });
