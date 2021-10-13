@@ -69,6 +69,7 @@ class OutputTestHelpers {
     }).when(ctx).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
     doReturn(conf).when(ctx).getContainerConfiguration();
     doReturn(TezUtils.createUserPayloadFromConf(userPayloadConf)).when(ctx).getUserPayload();
+    doReturn("taskVertex").when(ctx).getTaskVertexName();
     doReturn("destinationVertex").when(ctx).getDestinationVertexName();
     doReturn("UUID").when(ctx).getUniqueIdentifier();
     doReturn(new String[] { workingDir.toString() }).when(ctx).getWorkDirs();

@@ -33,21 +33,27 @@ public interface OutputContext extends TaskContext {
    * Output's data
    * @return Name of the Destination Vertex
    */
-  public String getDestinationVertexName();
-  
+  String getDestinationVertexName();
+
+  /**
+   * Returns a convenient, human-readable string describing the input and output vertices.
+   * @return the convenient string
+   */
+  String getInputOutputVertexNames();
+
   /**
    * Get the index of the output in the set of all outputs for the task. The 
    * index will be consistent and valid only among the tasks of this vertex.
    * @return index
    */
-  public int getOutputIndex();
+  int getOutputIndex();
   
   /**
    * Get an {@link OutputStatisticsReporter} for this {@link Output} that can
    * be used to report statistics like data size
    * @return {@link OutputStatisticsReporter}
    */
-  public OutputStatisticsReporter getStatisticsReporter();
+  OutputStatisticsReporter getStatisticsReporter();
 
   /**
    * Notify the context that at this point no more events should be sent.

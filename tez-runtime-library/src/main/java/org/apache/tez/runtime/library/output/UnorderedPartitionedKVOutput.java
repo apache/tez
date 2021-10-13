@@ -108,7 +108,7 @@ public class UnorderedPartitionedKVOutput extends AbstractLogicalOutput {
       returnEvents = kvWriter.close();
       kvWriter = null;
     } else {
-      LOG.warn(getContext().getDestinationVertexName() +
+      LOG.warn(getContext().getInputOutputVertexNames() +
           ": Attempting to close output {} of type {} before it was started. Generating empty events",
           getContext().getDestinationVertexName(), this.getClass().getSimpleName());
       returnEvents = new LinkedList<Event>();

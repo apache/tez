@@ -406,6 +406,7 @@ public class TestOnFileSortedOutput {
     doReturn(payLoad).when(context).getUserPayload();
     doReturn(5 * 1024 * 1024l).when(context).getTotalMemoryAvailableToTask();
     doReturn(UniqueID).when(context).getUniqueIdentifier();
+    doReturn("v0").when(context).getTaskVertexName();
     doReturn("v1").when(context).getDestinationVertexName();
     doReturn(ByteBuffer.wrap(serviceProviderMetaData.getData())).when(context)
         .getServiceProviderMetaData

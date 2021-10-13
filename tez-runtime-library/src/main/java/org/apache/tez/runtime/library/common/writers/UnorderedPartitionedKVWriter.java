@@ -104,7 +104,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
   // Maybe setup a separate statistics class which can be shared between the
   // buffer and the main path instead of having multiple arrays.
 
-  private final String destNameTrimmed;
+  private final String sourceDestNameTrimmed;
   private final long availableMemory;
   @VisibleForTesting
   final WrappedBuffer[] buffers;
@@ -206,7 +206,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
     Preconditions.checkArgument(availableMemoryBytes >= 0, "availableMemory should be >= 0 bytes");
 
-    this.destNameTrimmed = TezUtilsInternal.cleanVertexName(outputContext.getDestinationVertexName());
+    this.sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(outputContext.getTaskVertexName()) + " -> "
+        + TezUtilsInternal.cleanVertexName(outputContext.getDestinationVertexName());
     //Not checking for TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT as it might not add much value in
     // this case.  Add it later if needed.
     boolean pipelinedShuffleConf = this.conf.getBoolean(TezRuntimeConfiguration
@@ -257,7 +258,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     buffers[0] = new WrappedBuffer(numOutputs, sizePerBuffer);
     numInitializedBuffers = 1;
     if (LOG.isDebugEnabled()) {
-      LOG.debug(destNameTrimmed + ": " + "Initializing Buffer #" +
+      LOG.debug(sourceDestNameTrimmed + ": " + "Initializing Buffer #" +
           numInitializedBuffers + " with size=" + sizePerBuffer);
     }
     currentBuffer = buffers[0];
@@ -313,7 +314,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       skipBuffers = false;
       writer = null;
     }
-    LOG.info(destNameTrimmed + ": "
+    LOG.info(sourceDestNameTrimmed + ": "
         + "numBuffers=" + numBuffers
         + ", sizePerBuffer=" + sizePerBuffer
         + ", skipBuffers=" + skipBuffers
@@ -493,7 +494,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       // Update overall stats
       final int filledBufferCount = filledBuffers.size();
       if (LOG.isDebugEnabled() || (filledBufferCount % 10) == 0) {
-        LOG.info(destNameTrimmed + ": " + "Moving to next buffer. Total filled buffers: " + filledBufferCount);
+        LOG.info(sourceDestNameTrimmed + ": " + "Moving to next buffer. Total filled buffers: " + filledBufferCount);
       }
       updateGlobalStats(currentBuffer);
 
@@ -531,7 +532,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
 
       final int filledBufferCount = filledBuffers.size();
       if (LOG.isDebugEnabled() || (filledBufferCount % 10) == 0) {
-        LOG.info(destNameTrimmed + ": triggering spill. filledBuffers.size=" + filledBufferCount);
+        LOG.info(sourceDestNameTrimmed + ": triggering spill. filledBuffers.size=" + filledBufferCount);
       }
       pendingSpillCount.incrementAndGet();
       int spillNumber = numSpills.getAndIncrement();
@@ -673,10 +674,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       spillResult = new SpillResult(compressedLength, this.filledBuffers);
 
       handleSpillIndex(spillPathDetails, spillRecord);
-      LOG.info(destNameTrimmed + ": " + "Finished spill " + spillIndex);
+      LOG.info(sourceDestNameTrimmed + ": " + "Finished spill " + spillIndex);
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug(destNameTrimmed + ": " + "Spill=" + spillIndex + ", indexPath="
+        LOG.debug(sourceDestNameTrimmed + ": " + "Spill=" + spillIndex + ", indexPath="
             + spillPathDetails.indexFilePath + ", outputPath=" + spillPathDetails.outputFilePath);
       }
       return spillResult;
@@ -754,7 +755,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     isShutdown.set(true);
     spillLock.lock();
     try {
-      LOG.info(destNameTrimmed + ": " + "Waiting for all spills to complete : Pending : " + pendingSpillCount.get());
+      LOG.info(
+          sourceDestNameTrimmed + ": " + "Waiting for all spills to complete : Pending : " + pendingSpillCount.get());
       while (pendingSpillCount.get() != 0 && spillException == null) {
         spillInProgress.await();
       }
@@ -762,7 +764,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       spillLock.unlock();
     }
     if (spillException != null) {
-      LOG.error(destNameTrimmed + ": " + "Error during spill, throwing");
+      LOG.error(sourceDestNameTrimmed + ": " + "Error during spill, throwing");
       // Assuming close will be called on the same thread as the write
       cleanup();
       currentBuffer.cleanup();
@@ -773,7 +775,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         throw new IOException(spillException);
       }
     } else {
-      LOG.info(destNameTrimmed + ": " + "All spills complete");
+      LOG.info(sourceDestNameTrimmed + ": " + "All spills complete");
       // Assuming close will be called on the same thread as the write
       cleanup();
 
@@ -1082,7 +1084,8 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       for (int i = 0; i < numPartitions; i++) {
         long segmentStart = out.getPos();
         if (numRecordsPerPartition[i] == 0) {
-          LOG.info(destNameTrimmed + ": " + "Skipping partition: " + i + " in final merge since it has no records");
+          LOG.info(
+              sourceDestNameTrimmed + ": " + "Skipping partition: " + i + " in final merge since it has no records");
           continue;
         }
         writer = new Writer(keySerialization, valSerialization, out, keyClass, valClass, codec, null, null);
@@ -1136,7 +1139,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     }
     finalSpillRecord.writeToFile(finalIndexPath, conf, localFs);
     fileOutputBytesCounter.increment(indexFileSizeEstimate);
-    LOG.info(destNameTrimmed + ": " + "Finished final spill after merging : " + numSpills.get() + " spills");
+    LOG.info(sourceDestNameTrimmed + ": " + "Finished final spill after merging : " + numSpills.get() + " spills");
   }
 
   private void deleteIntermediateSpills() {
@@ -1208,9 +1211,10 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
       mayBeSendEventsForSpill(emptyPartitions, sizePerPartition,
           spillIndex, false);
 
-      LOG.info(destNameTrimmed + ": " + "Finished writing large record of size " + outSize + " to spill file " + spillIndex);
+      LOG.info(sourceDestNameTrimmed + ": " + "Finished writing large record of size " + outSize + " to spill file "
+          + spillIndex);
       if (LOG.isDebugEnabled()) {
-        LOG.debug(destNameTrimmed + ": " + "LargeRecord Spill=" + spillIndex + ", indexPath="
+        LOG.debug(sourceDestNameTrimmed + ": " + "LargeRecord Spill=" + spillIndex + ", indexPath="
             + spillPathDetails.indexFilePath + ", outputPath="
             + spillPathDetails.outputFilePath);
       }
@@ -1346,7 +1350,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     try {
       events = generateEventForSpill(emptyPartitions, sizePerPartition, spillNumber,
           isFinalUpdate);
-      LOG.info(destNameTrimmed + ": " + "Adding spill event for spill"
+      LOG.info(sourceDestNameTrimmed + ": " + "Adding spill event for spill"
           + " (final update=" + isFinalUpdate + "), spillId=" + spillNumber);
       if (pipelinedShuffle) {
         //Send out an event for consuming.
@@ -1355,7 +1359,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
         this.finalEvents.addAll(events);
       }
     } catch (IOException e) {
-      LOG.error(destNameTrimmed + ": " + "Error in sending pipelined events", e);
+      LOG.error(sourceDestNameTrimmed + ": " + "Error in sending pipelined events", e);
       outputContext.reportFailure(TaskFailureType.NON_FATAL, e,
           "Error in sending events.");
     }
@@ -1414,7 +1418,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
           availableBuffers.add(buffer);
         }
       } catch (Throwable e) {
-        LOG.error(destNameTrimmed + ": Failure while attempting to reset buffer after spill", e);
+        LOG.error(sourceDestNameTrimmed + ": Failure while attempting to reset buffer after spill", e);
         outputContext.reportFailure(TaskFailureType.NON_FATAL, e, "Failure while attempting to reset buffer after spill");
       }
 
@@ -1444,7 +1448,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
     public void onFailure(Throwable t) {
       // spillException setup to throw an exception back to the user. Requires synchronization.
       // Consider removing it in favor of having Tez kill the task
-      LOG.error(destNameTrimmed + ": " + "Failure while spilling to disk", t);
+      LOG.error(sourceDestNameTrimmed + ": " + "Failure while spilling to disk", t);
       spillException = t;
       outputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Failure while spilling to disk");
       spillLock.lock();

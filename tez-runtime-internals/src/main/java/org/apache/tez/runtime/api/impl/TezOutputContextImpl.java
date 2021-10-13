@@ -154,6 +154,12 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     return destinationVertexName;
   }
 
+
+  @Override
+  public String getInputOutputVertexNames() {
+    return String.format("%s -> %s", getTaskVertexName(), getDestinationVertexName());
+  }
+
   @Override
   public void fatalError(Throwable exception, String message) {
     super.signalFatalError(exception, message, sourceInfo);
