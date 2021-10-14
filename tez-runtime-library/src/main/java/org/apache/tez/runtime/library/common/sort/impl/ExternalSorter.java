@@ -183,7 +183,7 @@ public abstract class ExternalSorter {
     rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug(outputContext.getDestinationVertexName() + ": Initial Mem bytes : " +
+      LOG.debug(outputContext.getInputOutputVertexNames() + ": Initial Mem bytes : " +
           initialMemoryAvailable + ", in MB=" + ((initialMemoryAvailable >> 20)));
     }
     int assignedMb = (int) (initialMemoryAvailable >> 20);
@@ -201,7 +201,7 @@ public abstract class ExternalSorter {
     this.serializationContext = new SerializationContext(this.conf);
     keySerializer = serializationContext.getKeySerializer();
     valSerializer = serializationContext.getValueSerializer();
-    LOG.info(outputContext.getDestinationVertexName() + " using: "
+    LOG.info(outputContext.getInputOutputVertexNames() + " using: "
         + "memoryMb=" + assignedMb
         + ", keySerializerClass=" + serializationContext.getKeyClass()
         + ", valueSerializerClass=" + valSerializer

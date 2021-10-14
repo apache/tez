@@ -458,7 +458,7 @@ public class MROutput extends AbstractLogicalOutput {
       initCommitter(jobConf, useNewApi);
     }
 
-    LOG.info(getContext().getDestinationVertexName() + ": "
+    LOG.info(getContext().getInputOutputVertexNames() + ": "
         + "outputFormat=" + outputFormatClassName
         + ", using newmapreduce API=" + useNewApi);
     return null;
@@ -576,7 +576,7 @@ public class MROutput extends AbstractLogicalOutput {
   @Override
   public synchronized List<Event> close() throws IOException {
     flush();
-    LOG.info(getContext().getDestinationVertexName() + " closed");
+    LOG.info(getContext().getInputOutputVertexNames() + " closed");
     long outputRecords = getContext().getCounters()
         .findCounter(TaskCounter.OUTPUT_RECORDS).getValue();
     getContext().getStatisticsReporter().reportItemsProcessed(outputRecords);

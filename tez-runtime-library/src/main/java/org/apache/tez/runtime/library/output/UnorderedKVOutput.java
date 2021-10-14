@@ -106,7 +106,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
       this.kvWriter = new UnorderedPartitionedKVWriter(getContext(), conf, 1,
           memoryUpdateCallbackHandler.getMemoryAssigned());
       isStarted.set(true);
-      LOG.info(getContext().getDestinationVertexName() + " started. MemoryAssigned="
+      LOG.info(getContext().getInputOutputVertexNames() + " started. MemoryAssigned="
           + memoryUpdateCallbackHandler.getMemoryAssigned());
     }
   }
@@ -130,7 +130,7 @@ public class UnorderedKVOutput extends AbstractLogicalOutput {
       returnEvents = kvWriter.close();
       kvWriter = null;
     } else {
-      LOG.warn(getContext().getDestinationVertexName() +
+      LOG.warn(getContext().getInputOutputVertexNames() +
           ": Attempting to close output {} of type {} before it was started. Generating empty events",
           getContext().getDestinationVertexName(), this.getClass().getSimpleName());
       returnEvents = new LinkedList<Event>();

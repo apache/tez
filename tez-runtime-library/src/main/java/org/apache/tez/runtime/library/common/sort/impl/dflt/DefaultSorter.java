@@ -153,7 +153,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED_DEFAULT);
 
     if (confPipelinedShuffle) {
-      LOG.warn(outputContext.getDestinationVertexName() + ": " +
+      LOG.warn(outputContext.getInputOutputVertexNames() + ": " +
           TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED + " does not work "
           + "with DefaultSorter. It is supported only with PipelinedSorter.");
     }
@@ -371,7 +371,8 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       kvindex = (int)(((long)kvindex - NMETA + kvmeta.capacity()) % kvmeta.capacity());
       totalKeys++;
     } catch (MapBufferTooSmallException e) {
-      LOG.info(outputContext.getDestinationVertexName() + ": Record too large for in-memory buffer: " + e.getMessage());
+      LOG.info(
+          outputContext.getInputOutputVertexNames() + ": Record too large for in-memory buffer: " + e.getMessage());
       spillSingleRecord(key, value, partition);
       mapOutputRecordCounter.increment(1);
       return;
@@ -390,7 +391,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     // Cast one of the operands to long to avoid integer overflow
     kvindex = (int) (((long) aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
     if (LOG.isInfoEnabled()) {
-      LOG.info(outputContext.getDestinationVertexName() + ": " + "(EQUATOR) " + pos + " kvi " + kvindex +
+      LOG.info(outputContext.getInputOutputVertexNames() + ": " + "(EQUATOR) " + pos + " kvi " + kvindex +
           "(" + (kvindex * 4) + ")");
     }
   }
@@ -408,7 +409,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     // Cast one of the operands to long to avoid integer overflow
     kvstart = kvend = (int) (((long) aligned - METASIZE + kvbuffer.length) % kvbuffer.length) / 4;
     if (LOG.isInfoEnabled()) {
-      LOG.info(outputContext.getDestinationVertexName() + ": " + "(RESET) equator " + e + " kv " + kvstart + "(" +
+      LOG.info(outputContext.getInputOutputVertexNames() + ": " + "(RESET) equator " + e + " kv " + kvstart + "(" +
         (kvstart * 4) + ")" + " kvi " + kvindex + "(" + (kvindex * 4) + ")");
     }
   }
@@ -664,7 +665,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       spillThread.interrupt();
       spillThread.join();
     } catch (InterruptedException e) {
-      LOG.info(outputContext.getDestinationVertexName() + ": " + "Spill thread interrupted");
+      LOG.info(outputContext.getInputOutputVertexNames() + ": " + "Spill thread interrupted");
       //Reset status
       Thread.currentThread().interrupt();
       throw new IOInterruptedException("Spill failed", e);
@@ -673,7 +674,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
 
   @Override
   public void flush() throws IOException {
-    LOG.info(outputContext.getDestinationVertexName() + ": " + "Starting flush of map output");
+    LOG.info(outputContext.getInputOutputVertexNames() + ": " + "Starting flush of map output");
     outputContext.notifyProgress();
     if (Thread.currentThread().isInterrupted()) {
       /**
@@ -710,7 +711,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         bufend = bufmark;
         if (LOG.isInfoEnabled()) {
           LOG.info(
-              outputContext.getDestinationVertexName() + ": " + "Sorting & Spilling map output. "
+              outputContext.getInputOutputVertexNames() + ": " + "Sorting & Spilling map output. "
                   + "bufstart = " + bufstart + ", bufend = " + bufmark + ", bufvoid = " + bufvoid
                   + "; " + "kvstart=" + kvstart + "(" + (kvstart * 4) + ")"
                   + ", kvend = " + kvend + "(" + (kvend * 4) + ")"
@@ -781,7 +782,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
             spillLock.unlock();
             sortAndSpill(sameKeyCount, totalKeysCount);
           } catch (Throwable t) {
-            LOG.warn(outputContext.getDestinationVertexName() + ": " + "Got an exception in sortAndSpill", t);
+            LOG.warn(outputContext.getInputOutputVertexNames() + ": " + "Got an exception in sortAndSpill", t);
             sortSpillException = t;
           } finally {
             spillLock.lock();
@@ -794,7 +795,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           }
         }
       } catch (InterruptedException e) {
-        LOG.info(outputContext.getDestinationVertexName() + ": " + "Spill thread interrupted");
+        LOG.info(outputContext.getInputOutputVertexNames() + ": " + "Spill thread interrupted");
         Thread.currentThread().interrupt();
       } finally {
         spillLock.unlock();
@@ -830,7 +831,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
     bufend = bufmark;
     spillInProgress = true;
     if (LOG.isInfoEnabled()) {
-      LOG.info(outputContext.getDestinationVertexName() + ": Spilling map output."
+      LOG.info(outputContext.getInputOutputVertexNames() + ": Spilling map output."
           + "bufstart=" + bufstart + ", bufend = " + bufmark + ", bufvoid = " + bufvoid
           +"; kvstart=" + kvstart + "(" + (kvstart * 4) + ")"
           +", kvend = " + kvend + "(" + (kvend * 4) + ")"
@@ -936,7 +937,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
               TezRawKeyValueIterator kvIter =
                 new MRResultIterator(spstart, spindex);
               if (LOG.isDebugEnabled()) {
-                LOG.debug(outputContext.getDestinationVertexName() + ": " + "Running combine processor");
+                LOG.debug(outputContext.getInputOutputVertexNames() + ": " + "Running combine processor");
               }
               runCombineProcessor(kvIter, writer);
             }
@@ -975,7 +976,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         totalIndexCacheMemory +=
           spillRec.size() * MAP_OUTPUT_INDEX_RECORD_LENGTH;
       }
-      LOG.info(outputContext.getDestinationVertexName() + ": " + "Finished spill " + numSpills
+      LOG.info(outputContext.getInputOutputVertexNames() + ": " + "Finished spill " + numSpills
       + " at " + filename.toString());
       ++numSpills;
       if (!isFinalMergeEnabled()) {
@@ -1172,7 +1173,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
         outputContext, index, spillRecord, partitions, sendEmptyPartitionDetails, pathComponent,
         partitionStats, reportDetailedPartitionStats(), auxiliaryService, deflater);
 
-    LOG.info(outputContext.getDestinationVertexName() + ": " +
+    LOG.info(outputContext.getInputOutputVertexNames() + ": " +
         "Adding spill event for spill (final update=" + isLastEvent + "), spillId=" + index);
 
     if (sendEvent) {
@@ -1339,7 +1340,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
             segmentList.add(s);
           }
           if (LOG.isDebugEnabled()) {
-            LOG.debug(outputContext.getDestinationVertexName() + ": "
+            LOG.debug(outputContext.getInputOutputVertexNames() + ": "
                 + "TaskIdentifier=" + taskIdentifier + " Partition=" + parts +
                 "Spill =" + i + "(" + indexRecord.getStartOffset() + "," +
                 indexRecord.getRawLength() + ", " +
