@@ -108,6 +108,7 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
+import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -178,8 +179,14 @@ public class TestTaskAttempt {
     mockVertex = mock(Vertex.class);
     when(mockVertex.getDownstreamBlamingHosts()).thenReturn(Maps.newHashMap());
     when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
-    when(mockVertex.getVertexConfig()).thenReturn(
-        new VertexImpl.VertexConfigImpl(conf));
+    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(conf));
+    AppContext appContext = mock(AppContext.class);
+    when(appContext.getTaskScheduerIdentifier(Mockito.anyString())).thenReturn(0);
+    when(mockVertex.getAppContext()).thenReturn(appContext);
+    AMNodeTracker nodeTracker = mock(AMNodeTracker.class);
+    when(nodeTracker.getNumNodes(Mockito.anyInt())).thenReturn(10);
+    when(nodeTracker.getNumActiveNodes(Mockito.anyInt())).thenReturn(8);
+    when(appContext.getNodeTracker()).thenReturn(nodeTracker);
   }
 
   @Test(timeout = 5000)
@@ -2238,7 +2245,8 @@ public class TestTaskAttempt {
         new TaskAttemptEventOutputFailed(sourceAttempt.getID(), tezEvent, 11);
     TaskAttemptStateInternal resultState =
         new TaskAttemptImpl.OutputReportedFailedTransition().transition(sourceAttempt, outputFailedEvent);
-    // SUCCEEDED, as we haven't reached the limit for blaming by the number of downstream hosts
+    // SUCCEEDED, as we haven't reached the host limit fraction
+    // active nodes: 8, failed hosts: 1, fraction 0.125 (< 0.2)
     Assert.assertEquals(TaskAttemptStateInternal.SUCCEEDED, resultState);
 
     // the second event is propagated to map task's event handler
@@ -2249,6 +2257,7 @@ public class TestTaskAttempt {
         new TaskAttemptImpl.OutputReportedFailedTransition().transition(sourceAttempt, outputFailedEvent2);
 
     // now it's marked as FAILED
+    // active nodes: 8, failed hosts: 2, fraction 0.25 (> 0.2)
     Assert.assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
   }
 

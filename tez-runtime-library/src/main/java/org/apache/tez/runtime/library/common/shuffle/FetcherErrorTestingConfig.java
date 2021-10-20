@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.runtime.api.ObjectRegistry;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -33,6 +34,7 @@ public class FetcherErrorTestingConfig {
   private static final String KEY_CACHED_HOSTNAME = "FetcherErrorTestingConfig.host";
 
   private String hostToFail = "*";
+  private String srcNameTrimmedToFail = "*";
   private int probabilityPercent = 50;
   private Random random = new Random();
   /**
@@ -46,16 +48,25 @@ public class FetcherErrorTestingConfig {
     String errorConfig = conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG_DEFAULT);
     String[] configParts = errorConfig.split("#");
+
+    // e.g. host_1
     if (configParts.length > 0) {
       hostToFail = configParts[0];
     }
 
+    // e.g. Map 1 or Map_1, both will work
     if (configParts.length > 1) {
-      probabilityPercent = Integer.parseInt(configParts[1]);
+      srcNameTrimmedToFail = TezUtilsInternal.cleanVertexName(configParts[1]);
     }
 
+    // e.g. 50
     if (configParts.length > 2) {
-      List<String> features = Arrays.asList(configParts[2].split(","));
+      probabilityPercent = Integer.parseInt(configParts[2]);
+    }
+
+    // e.g. fail_only_first
+    if (configParts.length > 3) {
+      List<String> features = Arrays.asList(configParts[3].split(","));
       if (features.contains("fail_only_first")) {
         failForFirstAttemptOnly = true;
       }
@@ -71,8 +82,8 @@ public class FetcherErrorTestingConfig {
     }
   }
 
-  public boolean shouldFail(String host, InputAttemptIdentifier inputAttemptIdentifier) {
-    if (matchHost(host)) {
+  public boolean shouldFail(String host, String srcNameTrimmed, InputAttemptIdentifier inputAttemptIdentifier) {
+    if (matchHost(host) && matchSourceVertex(srcNameTrimmed)) {
       return (!failForFirstAttemptOnly || failForFirstAttemptOnly && inputAttemptIdentifier.getAttemptNumber() == 0)
           && random.nextInt(100) < probabilityPercent;
     }
@@ -87,9 +98,14 @@ public class FetcherErrorTestingConfig {
     return "*".equals(hostToFail) || host.equalsIgnoreCase(hostToFail);
   }
 
+  private boolean matchSourceVertex(String srcNameTrimmed) {
+    return "*".equals(srcNameTrimmedToFail) || srcNameTrimmed.equalsIgnoreCase(srcNameTrimmedToFail);
+  }
+
   @Override
   public String toString() {
-    return String.format("[FetcherErrorTestingConfig: host: %s, probability: %d%%, failForFirstAttemptOnly: %s]",
-        hostToFail, probabilityPercent, failForFirstAttemptOnly);
+    return String.format(
+        "[FetcherErrorTestingConfig: host: %s, source vertex: %s, probability: %d%%, failForFirstAttemptOnly: %s]",
+        hostToFail, srcNameTrimmedToFail, probabilityPercent, failForFirstAttemptOnly);
   }
 }

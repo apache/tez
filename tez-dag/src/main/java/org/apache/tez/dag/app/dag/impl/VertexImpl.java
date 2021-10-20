@@ -4841,9 +4841,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
      */
     private final int maxAllowedTimeForTaskReadErrorSec;
     /**
-     * See tez.am.max.allowed.downstream.hosts.reporting.fetch.failure.
+     * See tez.am.max.allowed.downstream.host.failures.fraction.
      */
-    private final int maxAllowedDownstreamHostsReportingFetchFailure;
+    private final double maxAllowedDownstreamHostFailuresFraction;
 
     public VertexConfigImpl(Configuration conf) {
       this.maxFailedTaskAttempts = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
@@ -4869,9 +4869,9 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
           TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC,
           TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT);
 
-      this.maxAllowedDownstreamHostsReportingFetchFailure = conf.getInt(
-          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE,
-          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE_DEFAULT);
+      this.maxAllowedDownstreamHostFailuresFraction = conf.getDouble(
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION,
+          TezConfiguration.TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION_DEFAULT);
     }
 
     @Override
@@ -4918,8 +4918,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     /**
      * @return maxAllowedDownstreamHostsReportingFetchFailure.
      */
-    @Override public int getMaxAllowedDownstreamHostsReportingFetchFailure() {
-      return maxAllowedDownstreamHostsReportingFetchFailure;
+    @Override public double getMaxAllowedDownstreamHostFailuresFraction() {
+      return maxAllowedDownstreamHostFailuresFraction;
     }
   }
 

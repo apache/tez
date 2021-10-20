@@ -301,19 +301,22 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT = 300;
 
   /**
-   * int value. The maximum number of distinct downstream hosts that can report a fetch failure
-   * for a single upstream host before the upstream task attempt is marked as failed (so blamed for
-   * the fetch failure). E.g. if this set to 1, in case of 2 different hosts reporting fetch failure
-   * for the same upstream host the upstream task is immediately blamed for the fetch failure.
-   * TODO: could this be proportional to the number of hosts running consumer/downstream tasks ?
+   * Double value. Assuming that a certain number of downstream hosts reported fetch failure for a
+   * given upstream host, this config drives the max allowed ratio of (downstream hosts) / (all hosts).
+   * The total number of used hosts are tracked by AMNodeTracker, which divides the distinct number of
+   * downstream hosts blaming source(upstream) tasks in a given vertex. If the fraction is beyond this
+   * limit, the upstream task attempt is marked as failed (so blamed for the fetch failure).
+   * E.g. if this set to 0.2, in case of 3 different hosts reporting fetch failure
+   * for the same upstream host in a cluster which currently utilizes 10 nodes, the upstream task
+   * is immediately blamed for the fetch failure.
    *
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
-  public static final String TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE =
-      TEZ_AM_PREFIX + "max.allowed.downstream.hosts.reporting.fetch.failure";
-  public static final int TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOSTS_REPORTING_FETCH_FAILURE_DEFAULT = 1;
+  public static final String TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION =
+      TEZ_AM_PREFIX + "max.allowed.downstream.host.failures.fraction";
+  public static final double TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION_DEFAULT = 0.2;
 
   /**
    * Boolean value. Determines when the final outputs to data sinks are committed. Commit is an

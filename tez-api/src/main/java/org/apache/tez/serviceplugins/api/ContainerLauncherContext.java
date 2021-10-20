@@ -80,7 +80,7 @@ public interface ContainerLauncherContext extends ServicePluginContextBase {
    * Get the number of nodes being handled by the specified source
    *
    * @param sourceName the relevant source name
-   * @return the initial payload
+   * @return the number of nodes
    */
   int getNumNodes(String sourceName);
 

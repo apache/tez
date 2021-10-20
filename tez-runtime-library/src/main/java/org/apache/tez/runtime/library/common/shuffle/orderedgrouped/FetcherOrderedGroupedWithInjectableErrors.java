@@ -32,6 +32,7 @@ public class FetcherOrderedGroupedWithInjectableErrors extends FetcherOrderedGro
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGroupedWithInjectableErrors.class);
 
   private FetcherErrorTestingConfig fetcherErrorTestingConfig;
+  private String srcNameTrimmed;
 
   public FetcherOrderedGroupedWithInjectableErrors(HttpConnectionParams httpConnectionParams,
       ShuffleScheduler scheduler, FetchedInputAllocatorOrderedGrouped allocator, ExceptionReporter exceptionReporter,
@@ -47,6 +48,7 @@ public class FetcherOrderedGroupedWithInjectableErrors extends FetcherOrderedGro
         mapHost, ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
         wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle, verifyDiskChecksum, compositeFetch);
     this.fetcherErrorTestingConfig = new FetcherErrorTestingConfig(conf, objectRegistry);
+    this.srcNameTrimmed = srcNameTrimmed;
     LOG.info("Initialized FetcherOrderedGroupedWithInjectableErrors with config: {}", fetcherErrorTestingConfig);
   }
 
@@ -55,7 +57,7 @@ public class FetcherOrderedGroupedWithInjectableErrors extends FetcherOrderedGro
       throws IOException, InterruptedException {
     LOG.info("Checking if fetcher should fail for host: {} ...", mapHost.getHost());
     for (InputAttemptIdentifier inputAttemptIdentifier : attempts) {
-      if (fetcherErrorTestingConfig.shouldFail(mapHost.getHost(), inputAttemptIdentifier)) {
+      if (fetcherErrorTestingConfig.shouldFail(mapHost.getHost(), srcNameTrimmed, inputAttemptIdentifier)) {
         throw new IOException(String.format(
             "FetcherOrderedGroupedWithInjectableErrors tester made failure for host: %s, input attempt: %s",
             mapHost.getHost(), inputAttemptIdentifier.getAttemptNumber()));

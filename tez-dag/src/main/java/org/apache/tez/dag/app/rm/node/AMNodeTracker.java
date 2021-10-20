@@ -134,6 +134,17 @@ public class AMNodeTracker extends AbstractService implements
     return perSourceNodeTrackers.get(schedulerId).getNumNodes();
   }
 
+  /**
+   * Retrieve the number of nodes in ACTIVE state. This number is suitable for deciding
+   * how many nodes can be potentially used for running containers at the moment.
+   *
+   * @param schedulerId the schedulerId for which the node count is required
+   * @return the number of nodes from the scheduler being in ACTIVE state
+   */
+  public int getNumActiveNodes(int schedulerId) {
+    return perSourceNodeTrackers.get(schedulerId).getNumActiveNodes();
+  }
+
   @Private
   @VisibleForTesting
   public boolean isBlacklistingIgnored(int schedulerId) {
@@ -158,6 +169,4 @@ public class AMNodeTracker extends AbstractService implements
     }
     return nodeTracker;
   }
-
-
 }

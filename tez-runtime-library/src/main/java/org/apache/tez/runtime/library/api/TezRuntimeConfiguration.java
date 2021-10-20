@@ -424,12 +424,13 @@ public class TezRuntimeConfiguration {
 
   /**
    * Configures the injectable fetch failures, in a form of:
-   * maphost#probability#comma,separated,features
+   * maphost#mapvertex#probability#comma,separated,features
    * Possible values are (fetch fails...):
-   * "*#50": from all map hosts with 50% likelihood
-   * "_first_#80": for the first ever seen map host with 80% likelihood (user doesn't want to use hostnames)
-   * "host1#100": from host1 with 100% likelihood (simulates single node failure)
-   * "host1#100#fail_only_first": as above but only for input attempts with index 0
+   * "*#*#50": from all map hosts with 50% likelihood
+   * "_first_#*#80": for the first ever seen map host with 80% likelihood (user doesn't want to use hostnames)
+   * "host1#*#100": from host1 with 100% likelihood (simulates single node failure)
+   * "host1#Map_1#100": from host1 for Map 1 source tasks with 100% likelihood
+   * "host1#Map_1#100#fail_only_first": as above but only for input attempts with index 0
    */
   @ConfigurationProperty(type = "string")
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG =

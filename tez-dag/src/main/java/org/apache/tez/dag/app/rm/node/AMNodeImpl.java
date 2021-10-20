@@ -509,4 +509,10 @@ public class AMNodeImpl implements AMNode {
       this.writeLock.unlock();
     }
   }
+
+  public String toString() {
+    return String.format(
+        "{AMNodeImpl: nodeId: %s, state: %s, containers: %d, completed containers: %d, healthy: %s, blackListed: %s}",
+        nodeId, getState(), getContainers().size(), completedContainers.size(), !isUnhealthy(), isBlacklisted());
+  }
 }

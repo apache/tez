@@ -32,6 +32,7 @@ public class FetcherWithInjectableErrors extends Fetcher {
   private static final Logger LOG = LoggerFactory.getLogger(FetcherWithInjectableErrors.class);
 
   private FetcherErrorTestingConfig fetcherErrorTestingConfig;
+  private String srcNameTrimmed;
 
   protected FetcherWithInjectableErrors(FetcherCallback fetcherCallback, HttpConnectionParams params,
       FetchedInputAllocator inputManager, ApplicationId appId, int dagIdentifier,
@@ -43,6 +44,7 @@ public class FetcherWithInjectableErrors extends Fetcher {
         localFs, localDirAllocator, lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort,
         asyncHttp, verifyDiskChecksum, compositeFetch);
     this.fetcherErrorTestingConfig = new FetcherErrorTestingConfig(conf, objectRegistry);
+    this.srcNameTrimmed = srcNameTrimmed;
     LOG.info("Initialized FetcherWithInjectableErrors with config: {}", fetcherErrorTestingConfig);
   }
 
@@ -51,7 +53,7 @@ public class FetcherWithInjectableErrors extends Fetcher {
       throws IOException, InterruptedException {
     LOG.info("Checking if fetcher should fail for host: {} ...", host);
     for (InputAttemptIdentifier inputAttemptIdentifier : attempts) {
-      if (fetcherErrorTestingConfig.shouldFail(host, inputAttemptIdentifier)) {
+      if (fetcherErrorTestingConfig.shouldFail(host, srcNameTrimmed, inputAttemptIdentifier)) {
         throw new IOException(String.format(
             "FetcherWithInjectableErrors tester made failure for host: %s, input attempt: %s", host,
             inputAttemptIdentifier.getAttemptNumber()));
