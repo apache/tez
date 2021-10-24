@@ -39,13 +39,14 @@ public class TezHeartbeatRequest implements Writable {
   private int preRoutedStartIndex;
   private int maxEvents;
   private long requestId;
+  private long usedMemory;
 
   public TezHeartbeatRequest() {
   }
 
   public TezHeartbeatRequest(long requestId, List<TezEvent> events,
       int preRoutedStartIndex, String containerIdentifier,
-      TezTaskAttemptID taskAttemptID, int startIndex, int maxEvents) {
+      TezTaskAttemptID taskAttemptID, int startIndex, int maxEvents, long usedMemory) {
     this.containerIdentifier = containerIdentifier;
     this.requestId = requestId;
     this.events = Collections.unmodifiableList(events);
@@ -53,6 +54,7 @@ public class TezHeartbeatRequest implements Writable {
     this.preRoutedStartIndex = preRoutedStartIndex;
     this.maxEvents = maxEvents;
     this.currentTaskAttemptID = taskAttemptID;
+    this.usedMemory = usedMemory;
   }
 
   public String getContainerIdentifier() {
@@ -83,6 +85,10 @@ public class TezHeartbeatRequest implements Writable {
     return currentTaskAttemptID;
   }
 
+  public long getUsedMemory() {
+    return usedMemory;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
     if (events != null) {
@@ -105,6 +111,7 @@ public class TezHeartbeatRequest implements Writable {
     out.writeInt(maxEvents);
     out.writeLong(requestId);
     Text.writeString(out, containerIdentifier);
+    out.writeLong(usedMemory);
   }
 
   @Override
@@ -128,6 +135,7 @@ public class TezHeartbeatRequest implements Writable {
     maxEvents = in.readInt();
     requestId = in.readLong();
     containerIdentifier = Text.readString(in);
+    usedMemory = in.readLong();
   }
 
   @Override
@@ -140,6 +148,7 @@ public class TezHeartbeatRequest implements Writable {
         + ", maxEventsToGet=" + maxEvents
         + ", taskAttemptId=" + currentTaskAttemptID
         + ", eventCount=" + (events != null ? events.size() : 0)
+        + ", usedMemory=" + usedMemory
         + " }";
   }
 }

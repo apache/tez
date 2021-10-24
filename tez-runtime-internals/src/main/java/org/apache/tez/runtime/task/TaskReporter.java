@@ -19,6 +19,8 @@
 package org.apache.tez.runtime.task;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -83,6 +85,7 @@ public class TaskReporter implements TaskReporterInterface {
   private final String containerIdStr;
 
   private final ListeningExecutorService heartbeatExecutor;
+  private static final MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
 
   @VisibleForTesting
   HeartbeatCallable currentCallable;
@@ -263,7 +266,7 @@ public class TaskReporter implements TaskReporterInterface {
       int fromPreRoutedEventId = task.getNextPreRoutedEventId();
       int maxEvents = Math.min(maxEventsToGet, task.getMaxEventsToHandle());
       TezHeartbeatRequest request = new TezHeartbeatRequest(requestId, events, fromPreRoutedEventId,
-          containerIdStr, task.getTaskAttemptID(), fromEventId, maxEvents);
+          containerIdStr, task.getTaskAttemptID(), fromEventId, maxEvents, getUsedMemory());
       LOG.debug("Sending heartbeat to AM, request={}", request);
 
       maybeLogCounters();
@@ -303,6 +306,10 @@ public class TaskReporter implements TaskReporterInterface {
         }
       }
       return new ResponseWrapper(false, numEventsReceived);
+    }
+
+    private long getUsedMemory() {
+      return heapMemoryUsage.getUsed();
     }
 
     public void markComplete() {

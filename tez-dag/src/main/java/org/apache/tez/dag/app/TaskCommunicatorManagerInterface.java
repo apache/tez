@@ -54,4 +54,5 @@ public interface TaskCommunicatorManagerInterface {
 
   String getCompletedLogsUrl(int taskCommId, TezTaskAttemptID attemptID, NodeId containerNodeId);
 
+  long getTotalUsedMemory();
 }

@@ -19,6 +19,8 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -243,6 +245,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           DAG_SCHEDULER_UPDATE_TRANSITION = new DAGSchedulerUpdateTransition();
   private static final CommitCompletedTransition COMMIT_COMPLETED_TRANSITION =
       new CommitCompletedTransition();
+
+  private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
   protected static final
     StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
@@ -939,6 +943,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       status.setDAGProgress(dagProgress);
       if (statusOptions.contains(StatusGetOpts.GET_COUNTERS)) {
         status.setDAGCounters(getAllCounters());
+      }
+      if (statusOptions.contains(StatusGetOpts.GET_MEMORY_USAGE)) {
+        status.setMemoryUsage(memoryMXBean.getHeapMemoryUsage().getUsed(),
+            taskCommunicatorManagerInterface.getTotalUsedMemory());
       }
       return status;
     } finally {

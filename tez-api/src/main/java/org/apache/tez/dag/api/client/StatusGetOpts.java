@@ -29,5 +29,6 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 @Evolving
 public enum StatusGetOpts {
   /** Retrieve Counters with Status */
-  GET_COUNTERS
+  GET_COUNTERS,
+  GET_MEMORY_USAGE
 }

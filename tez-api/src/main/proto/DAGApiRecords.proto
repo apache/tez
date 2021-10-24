@@ -275,6 +275,8 @@ message DAGStatusProto {
   optional ProgressProto DAGProgress = 3;
   repeated StringProgressPairProto vertexProgress = 4;
   optional TezCountersProto dagCounters = 5;
+  optional int64 memoryUsedByAM = 6;
+  optional int64 memoryUsedByTasks = 7;
 }
 
 message PlanLocalResourcesProto {
@@ -299,6 +301,7 @@ message TezCountersProto {
 
 enum StatusGetOptsProto {
   GET_COUNTERS = 0;
+  GET_MEMORY_USAGE = 1;
 }
 
 message VertexLocationHintProto {

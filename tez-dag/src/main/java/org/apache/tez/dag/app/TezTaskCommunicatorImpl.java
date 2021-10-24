@@ -104,6 +104,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     Credentials credentials = null;
     boolean credentialsChanged = false;
     boolean taskPulled = false;
+    long usedMemory = 0;
 
     void reset() {
       taskSpec = null;
@@ -382,6 +383,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       response.setLastRequestId(requestId);
       containerInfo.lastRequestId = requestId;
       containerInfo.lastResponse = response;
+      containerInfo.usedMemory = request.getUsedMemory();
       return response;
     }
 
@@ -465,5 +467,9 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
   protected ContainerId getContainerForAttempt(TezTaskAttemptID taskAttemptId) {
     return attemptToContainerMap.get(taskAttemptId);
+  }
+
+  public long getTotalUsedMemory() {
+    return registeredContainers.values().stream().mapToLong(c -> c.usedMemory).sum();
   }
 }
