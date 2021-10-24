@@ -25,13 +25,18 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.security.KeyPair;
+import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.security.auth.x500.X500Principal;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -46,6 +51,10 @@ import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.examples.TestOrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.X509Extensions;
+import org.bouncycastle.x509.X509V3CertificateGenerator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -222,7 +231,7 @@ public class TestSecureShuffle {
    * (as discussed in https://github.com/AsyncHttpClient/async-http-client/issues/928), that's why
    * it cannot be set for an async http connection. So instead of hacking an ALLOW_ALL verifier
    * somehow (which cannot be propagated to netty), a valid certificate with the actual hostname
-   * should be generated in setupSSLConfig, so the only change is the usage of
+   * should be generated in setupSSLConfig, so the change is the usage of
    * "InetAddress.getLocalHost().getHostName()".
    */
   public static void setupSSLConfig(String keystoresDir, String sslConfDir, Configuration config,
@@ -242,7 +251,7 @@ public class TestSecureShuffle {
     if (useClientCert) {
       KeyPair cKP = KeyStoreTestUtil.generateKeyPair("RSA");
       X509Certificate cCert =
-          KeyStoreTestUtil.generateCertificate("CN=localhost, O=client", cKP, 30, "SHA1withRSA");
+          generateCertificate("CN=localhost, O=client", cKP, 30, "SHA1withRSA");
       KeyStoreTestUtil.createKeyStore(clientKS, clientPassword, "client", cKP.getPrivate(), cCert);
       certs.put("client", cCert);
     }
@@ -250,7 +259,7 @@ public class TestSecureShuffle {
     String localhostName = InetAddress.getLocalHost().getHostName();
     KeyPair sKP = KeyStoreTestUtil.generateKeyPair("RSA");
     X509Certificate sCert =
-        KeyStoreTestUtil.generateCertificate("CN="+localhostName+", O=server", sKP, 30, "SHA1withRSA");
+        generateCertificate("CN="+localhostName+", O=server", sKP, 30, "SHA1withRSA");
     KeyStoreTestUtil.createKeyStore(serverKS, serverPassword, "server", sKP.getPrivate(), sCert);
     certs.put("server", sCert);
 
@@ -273,5 +282,32 @@ public class TestSecureShuffle {
     config.set(SSLFactory.SSL_CLIENT_CONF_KEY, sslClientConfFile.getName());
     config.set(SSLFactory.SSL_SERVER_CONF_KEY, sslServerConfFile.getName());
     config.setBoolean(SSLFactory.SSL_REQUIRE_CLIENT_CERT_KEY, useClientCert);
+  }
+
+  public static X509Certificate generateCertificate(String dn, KeyPair pair, int days, String algorithm)
+      throws Exception {
+
+    Date from = new Date();
+    Date to = new Date(from.getTime() + days * 86400000l);
+    BigInteger sn = new BigInteger(64, new SecureRandom());
+    KeyPair keyPair = pair;
+    X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
+
+    String hostAddress = InetAddress.getLocalHost().getHostAddress();
+    certGen.addExtension(X509Extensions.SubjectAlternativeName, false,
+        new GeneralNames(new GeneralName(GeneralName.iPAddress, hostAddress)));
+
+    X500Principal dnName = new X500Principal(dn);
+
+    certGen.setSerialNumber(sn);
+    certGen.setIssuerDN(dnName);
+    certGen.setNotBefore(from);
+    certGen.setNotAfter(to);
+    certGen.setSubjectDN(dnName);
+    certGen.setPublicKey(keyPair.getPublic());
+    certGen.setSignatureAlgorithm(algorithm);
+
+    X509Certificate cert = certGen.generate(pair.getPrivate());
+    return cert;
   }
 }
