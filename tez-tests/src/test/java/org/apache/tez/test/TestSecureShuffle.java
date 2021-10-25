@@ -231,8 +231,9 @@ public class TestSecureShuffle {
    * (as discussed in https://github.com/AsyncHttpClient/async-http-client/issues/928), that's why
    * it cannot be set for an async http connection. So instead of hacking an ALLOW_ALL verifier
    * somehow (which cannot be propagated to netty), a valid certificate with the actual hostname
-   * should be generated in setupSSLConfig, so the change is the usage of
-   * "InetAddress.getLocalHost().getHostName()".
+   * should be generated in setupSSLConfig. So, one change is the usage of
+   * InetAddress.getLocalHost().getHostName(), the other is using local generateCertificate,
+   * which fixes another issue.
    */
   public static void setupSSLConfig(String keystoresDir, String sslConfDir, Configuration config,
       boolean useClientCert, boolean trustStore, String excludeCiphers) throws Exception {
@@ -284,11 +285,16 @@ public class TestSecureShuffle {
     config.setBoolean(SSLFactory.SSL_REQUIRE_CLIENT_CERT_KEY, useClientCert);
   }
 
+  /**
+   * This is a copied version of hadoop's KeyStoreTestUtil.generateCertificate, which takes care of setting
+   * IP address as a SSL Subject Alternative Name (SAN). Without this, SSL shuffle failed with async http client.
+   * Introduced by TEZ-4342.
+   */
   public static X509Certificate generateCertificate(String dn, KeyPair pair, int days, String algorithm)
       throws Exception {
 
     Date from = new Date();
-    Date to = new Date(from.getTime() + days * 86400000l);
+    Date to = new Date(from.getTime() + days * 86400000L);
     BigInteger sn = new BigInteger(64, new SecureRandom());
     KeyPair keyPair = pair;
     X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
