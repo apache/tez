@@ -152,6 +152,14 @@ public class DAGStatus {
     return dagCounters;
   }
 
+  public long getMemoryUsedByAM() {
+    return proxy.getMemoryUsedByAM();
+  }
+
+  public long getMemoryUsedByTasks() {
+    return proxy.getMemoryUsedByTasks();
+  }
+
   @InterfaceAudience.Private
   DagStatusSource getSource() {
     return this.source;

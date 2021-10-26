@@ -20,6 +20,7 @@ package org.apache.tez.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -211,13 +212,18 @@ public class TestMRRJobsDAGApi {
           + dagStatus.getState());
       Thread.sleep(500l);
       dagStatus = dagClient.getDAGStatus(null);
+      assertTrue("Memory used by AM is supposed to be 0 if not requested", dagStatus.getMemoryUsedByAM() == 0);
+      assertTrue("Memory used by tasks is supposed to be 0 if not requested", dagStatus.getMemoryUsedByTasks() == 0);
     }
-    dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
+    dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS, StatusGetOpts.GET_MEMORY_USAGE));
 
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     assertNotNull(dagStatus.getDAGCounters());
     assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
+    assertTrue("Memory used by AM is supposed to be >0", dagStatus.getMemoryUsedByAM() > 0);
+    assertTrue("Memory used by tasks is supposed to be >0", dagStatus.getMemoryUsedByTasks() > 0);
+
     ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
     tezSession.stop();
   }

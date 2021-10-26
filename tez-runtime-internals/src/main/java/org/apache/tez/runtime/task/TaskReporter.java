@@ -20,7 +20,7 @@ package org.apache.tez.runtime.task;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryUsage;
+import java.lang.management.MemoryMXBean;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -85,7 +85,6 @@ public class TaskReporter implements TaskReporterInterface {
   private final String containerIdStr;
 
   private final ListeningExecutorService heartbeatExecutor;
-  private static final MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
 
   @VisibleForTesting
   HeartbeatCallable currentCallable;
@@ -139,6 +138,7 @@ public class TaskReporter implements TaskReporterInterface {
 
     private static final int LOG_COUNTER_START_INTERVAL = 5000; // 5 seconds
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
+    private static final int HEAP_MEMORY_USAGE_UPDATE_INTERVAL = 5000; // 5 seconds
 
     private final RuntimeTask task;
     private final EventMetaData updateEventMetadata;
@@ -159,6 +159,10 @@ public class TaskReporter implements TaskReporterInterface {
 
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
+
+    private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+    private long usedMemory = 0;
+    private long heapMemoryUsageUpdatedTime = System.currentTimeMillis() - HEAP_MEMORY_USAGE_UPDATE_INTERVAL;
 
     /*
      * Keeps track of regular timed heartbeats. Is primarily used as a timing mechanism to send /
@@ -309,7 +313,12 @@ public class TaskReporter implements TaskReporterInterface {
     }
 
     private long getUsedMemory() {
-      return heapMemoryUsage.getUsed();
+      long now = System.currentTimeMillis();
+      if (now - heapMemoryUsageUpdatedTime > HEAP_MEMORY_USAGE_UPDATE_INTERVAL) {
+        usedMemory = memoryMXBean.getHeapMemoryUsage().getUsed();
+        heapMemoryUsageUpdatedTime = now;
+      }
+      return usedMemory;
     }
 
     public void markComplete() {
