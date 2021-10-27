@@ -90,6 +90,13 @@ message GetAMStatusResponseProto {
   required TezAppMasterStatusProto status = 1;
 }
 
+message GetWebUIAddressRequestProto {
+}
+
+message GetWebUIAddressResponseProto {
+  required string web_ui_address = 1;
+}
+
 service DAGClientAMProtocol {
   rpc getAllDAGs (GetAllDAGsRequestProto) returns (GetAllDAGsResponseProto);
   rpc getDAGStatus (GetDAGStatusRequestProto) returns (GetDAGStatusResponseProto);
@@ -98,4 +105,5 @@ service DAGClientAMProtocol {
   rpc submitDAG (SubmitDAGRequestProto) returns (SubmitDAGResponseProto);
   rpc shutdownSession (ShutdownSessionRequestProto) returns (ShutdownSessionResponseProto);
   rpc getAMStatus (GetAMStatusRequestProto) returns (GetAMStatusResponseProto);
+  rpc getWebUIAddress (GetWebUIAddressRequestProto) returns (GetWebUIAddressResponseProto);
 }

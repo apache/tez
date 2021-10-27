@@ -30,10 +30,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.CachedEntity;
 import org.apache.tez.common.Preconditions;
-
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -668,6 +668,11 @@ public class DAGClientImpl extends DAGClient {
   @VisibleForTesting
   public DAGClientInternal getRealClient() {
     return realClient;
+  }
+
+  @Override
+  public String getWebUIAddress() throws IOException, TezException {
+    return realClient.getWebUIAddress();
   }
 
   private double getProgress(Progress progress) {

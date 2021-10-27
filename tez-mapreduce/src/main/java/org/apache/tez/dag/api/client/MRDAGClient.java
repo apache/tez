@@ -106,4 +106,10 @@ public class MRDAGClient extends DAGClient {
       long timeout) throws IOException, TezException {
     return getDAGStatus(statusOptions);
   }
+
+  @Override
+  public String getWebUIAddress() throws IOException, TezException {
+    throw new TezException("MRDAGClient.getWebUIAddress is not supported");
+  }
+
 }
