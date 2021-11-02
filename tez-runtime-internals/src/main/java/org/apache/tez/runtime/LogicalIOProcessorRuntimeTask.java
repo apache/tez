@@ -748,19 +748,22 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         break;
       }
     } catch (Throwable t) {
-      LOG.warn("Failed to handle event", t);
-      registerError();
-      EventMetaData sourceInfo = new EventMetaData(
-          e.getDestinationInfo().getEventGenerator(),
-          taskSpec.getVertexName(), e.getDestinationInfo().getEdgeVertexName(),
-          getTaskAttemptID());
-      setFrameworkCounters();
-      // Signal such errors as RETRIABLE. The user code has an option to report this as something
-      // other than retriable before we get control back.
-      // TODO: Don't catch Throwables.
-      tezUmbilical.signalFailure(getTaskAttemptID(), TaskFailureType.NON_FATAL,
-          t, ExceptionUtils.getStackTrace(t), sourceInfo);
-      return false;
+      if(this.state.get() == State.CLOSED){
+        LOG.warn("The task was closed, will bail out now.");
+      }else {
+        LOG.warn("Failed to handle event", t);
+        registerError();
+        EventMetaData sourceInfo =
+            new EventMetaData(e.getDestinationInfo().getEventGenerator(), taskSpec.getVertexName(),
+                e.getDestinationInfo().getEdgeVertexName(), getTaskAttemptID());
+        setFrameworkCounters();
+        // Signal such errors as RETRIABLE. The user code has an option to report this as something
+        // other than retriable before we get control back.
+        // TODO: Don't catch Throwables.
+        tezUmbilical.signalFailure(getTaskAttemptID(), TaskFailureType.NON_FATAL, t, ExceptionUtils.getStackTrace(t),
+            sourceInfo);
+        return false;
+      }
     }
     return true;
   }
