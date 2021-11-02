@@ -33,6 +33,7 @@ public class InputAttemptFetchFailure {
   private final InputAttemptIdentifier inputAttemptIdentifier;
   private final boolean isLocalFetch;
   private final boolean isDiskErrorAtSource;
+  private Throwable cause = null;
 
   public InputAttemptFetchFailure(InputAttemptIdentifier inputAttemptIdentifier) {
     this(inputAttemptIdentifier, false, false);
@@ -111,5 +112,14 @@ public class InputAttemptFetchFailure {
   public String toString() {
     return String.format("%s, isLocalFetch: %s, isDiskErrorAtSource: %s",
         inputAttemptIdentifier.toString(), isLocalFetch, isDiskErrorAtSource);
+  }
+
+  public InputAttemptFetchFailure withCause(Throwable throwable) {
+    this.cause = throwable;
+    return this;
+  }
+
+  public Throwable getCause() {
+    return cause;
   }
 }

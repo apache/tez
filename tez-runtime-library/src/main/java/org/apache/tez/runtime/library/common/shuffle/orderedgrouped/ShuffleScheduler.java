@@ -178,6 +178,7 @@ class ShuffleScheduler {
   private final Referee referee;
   @VisibleForTesting
   final Map<InputAttemptIdentifier, IntWritable> failureCounts = new HashMap<InputAttemptIdentifier,IntWritable>();
+
   final Set<HostPort> uniqueHosts = Sets.newHashSet();
   private final Map<HostPort,IntWritable> hostFailures = new HashMap<HostPort,IntWritable>();
   private final InputContext inputContext;
@@ -791,7 +792,7 @@ class ShuffleScheduler {
     }
 
     //Restart consumer in case shuffle is not healthy
-    if (!isShuffleHealthy(fetchFailure.getInputAttemptIdentifier())) {
+    if (!isShuffleHealthy(fetchFailure)) {
       return;
     }
 
@@ -1005,8 +1006,8 @@ class ShuffleScheduler {
     return fetcherHealthy;
   }
 
-  boolean isShuffleHealthy(InputAttemptIdentifier srcAttempt) {
-
+  boolean isShuffleHealthy(InputAttemptFetchFailure fetchFailure) {
+    InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
     if (isAbortLimitExceeedFor(srcAttempt)) {
       return false;
     }
@@ -1048,14 +1049,15 @@ class ShuffleScheduler {
           + ", pendingInputs=" + (numInputs - doneMaps)
           + ", fetcherHealthy=" + fetcherHealthy
           + ", reducerProgressedEnough=" + reducerProgressedEnough
-          + ", reducerStalled=" + reducerStalled)
+          + ", reducerStalled=" + reducerStalled
+          + ", hostFailures=" + hostFailures)
           + "]";
       LOG.error(errorMsg);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Host failures=" + hostFailures.keySet());
       }
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-      exceptionReporter.reportException(new IOException(errorMsg));
+      exceptionReporter.reportException(new IOException(errorMsg, fetchFailure.getCause()));
       return false;
     }
     return true;
