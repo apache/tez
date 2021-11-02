@@ -237,4 +237,13 @@ public abstract class TaskCommunicator implements ServicePluginLifecycle {
     return null;
   }
 
+  /**
+   * Return the amount of memory used by the containers. Each container is supposed to refresh
+   * its current state via heartbeat requests, and the TaskCommunicator implementation is supposed
+   * to aggregate this properly.
+   * @return memory in MB
+   */
+  public long getTotalUsedMemory() {
+    return 0;
+  }
 }

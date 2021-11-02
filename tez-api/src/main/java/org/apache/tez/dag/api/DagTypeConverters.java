@@ -628,6 +628,8 @@ public class DagTypeConverters {
     switch (statusGetOpts) {
     case GET_COUNTERS:
       return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
+    case GET_MEMORY_USAGE:
+      return DAGProtos.StatusGetOptsProto.GET_MEMORY_USAGE;
     }
     throw new TezUncheckedException("Could not convert StatusGetOpts to" + " proto");
   }
@@ -636,6 +638,8 @@ public class DagTypeConverters {
     switch (proto) {
     case GET_COUNTERS:
       return StatusGetOpts.GET_COUNTERS;
+    case GET_MEMORY_USAGE:
+      return StatusGetOpts.GET_MEMORY_USAGE;
     }
     throw new TezUncheckedException("Could not convert to StatusGetOpts from" + " proto");
   }

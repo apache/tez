@@ -152,6 +152,14 @@ public class DAGStatus {
     return dagCounters;
   }
 
+  public long getMemoryUsedByAM() {
+    return proxy.getMemoryUsedByAM();
+  }
+
+  public long getMemoryUsedByTasks() {
+    return proxy.getMemoryUsedByTasks();
+  }
+
   @InterfaceAudience.Private
   DagStatusSource getSource() {
     return this.source;
@@ -201,12 +209,12 @@ public class DAGStatus {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("status=" + getState()
-      + ", progress=" + getDAGProgress()
-      + ", diagnostics="
-      + StringUtils.join(getDiagnostics(), LINE_SEPARATOR)
-      + ", counters="
-      + (getDAGCounters() == null ? "null" : getDAGCounters().toString()));
+    sb.append("status=" + getState());
+    sb.append(", progress=" + getDAGProgress());
+    sb.append(", diagnostics=" + StringUtils.join(getDiagnostics(), LINE_SEPARATOR));
+    sb.append(", memoryUsedByAM=").append(proxy.getMemoryUsedByAM());
+    sb.append(", memoryUsedByTasks=").append(proxy.getMemoryUsedByTasks());
+    sb.append(", counters=" + (getDAGCounters() == null ? "null" : getDAGCounters().toString()));
     return sb.toString();
   }
 

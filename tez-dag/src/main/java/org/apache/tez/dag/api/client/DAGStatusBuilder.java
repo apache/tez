@@ -61,6 +61,13 @@ public class DAGStatusBuilder extends DAGStatus {
     getBuilder().addVertexProgress(builder.build());
   }
 
+  //TODO: let this be a map of values in protobuf 3.x
+  public void setMemoryUsage(long memoryUsedByAM, long memoryUsedByTasks) {
+    Builder builder = getBuilder();
+    builder.setMemoryUsedByAM(memoryUsedByAM);
+    builder.setMemoryUsedByTasks(memoryUsedByTasks);
+  }
+
   public DAGStatusProto getProto() {
     return getBuilder().build();
   }

@@ -678,4 +678,12 @@ public class TaskCommunicatorManager extends AbstractService implements
     return null;
   }
 
+  @Override
+  public long getTotalUsedMemory() {
+    long totalUsedMemory = 0;
+    for (int i = 0; i < taskCommunicators.length; i++) {
+      totalUsedMemory += taskCommunicators[i].getTaskCommunicator().getTotalUsedMemory();
+    }
+    return totalUsedMemory;
+  }
 }
