@@ -378,7 +378,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       for (InputAttemptIdentifier left : remaining.values()) {
         // Need to be handling temporary glitches ..
         // Report read error to the AM to trigger source failure heuristics
-        scheduler.copyFailed(InputAttemptFetchFailure.fromAttempt(left), host, connectSucceeded,
+        scheduler.copyFailed(InputAttemptFetchFailure.fromAttempt(left).withCause(ie), host, connectSucceeded,
             !connectSucceeded);
       }
       return false;
@@ -738,7 +738,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             if (!stopped) {
               hasFailures = true;
               ioErrs.increment(1);
-              scheduler.copyFailed(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttemptId),
+              scheduler.copyFailed(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttemptId).withCause(e),
                   host, true, false);
               LOG.warn("Failed to read local disk output of " + srcAttemptId + " from " +
                   host.getHostIdentifier(), e);
