@@ -109,7 +109,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(LogicalIOProcessorRuntimeTask.class);
-
+  private static boolean isLimitReached = false;
   @VisibleForTesting // All fields non private for testing.
   private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */
@@ -405,7 +405,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         List<Event> closeOutputEvents = ((LogicalOutputFrameworkInterface)outputsMap.get(destVertexName)).close();
         allCloseOutputEvents.add(closeOutputEvents);
       }
-
+      //check if the limit was reached before closing the processor
+      isLimitReached = processor.checkLimitReachedForTez();
       // Close the Processor.
       processorClosed = true;
       processor.close();
@@ -748,7 +749,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         break;
       }
     } catch (Throwable t) {
-      if(this.state.get() == State.CLOSED){
+      if(this.state.get() == State.CLOSED && isLimitReached){
         LOG.warn("The task was closed, will bail out now.");
       }else {
         LOG.warn("Failed to handle event", t);

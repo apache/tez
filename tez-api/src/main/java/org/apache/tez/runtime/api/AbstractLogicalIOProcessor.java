@@ -53,4 +53,8 @@ public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor,
   public void abort() {
   }
 
+  public boolean checkLimitReachedForTez(){
+    return false;
+  }
+
 }
