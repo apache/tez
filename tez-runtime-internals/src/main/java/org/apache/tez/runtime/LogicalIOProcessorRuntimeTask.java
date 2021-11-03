@@ -109,7 +109,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(LogicalIOProcessorRuntimeTask.class);
-  private static boolean isLimitReached = false;
   @VisibleForTesting // All fields non private for testing.
   private final String[] localDirs;
   /** Responsible for maintaining order of Inputs */
@@ -405,8 +404,6 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         List<Event> closeOutputEvents = ((LogicalOutputFrameworkInterface)outputsMap.get(destVertexName)).close();
         allCloseOutputEvents.add(closeOutputEvents);
       }
-      //check if the limit was reached before closing the processor
-      isLimitReached = processor.checkLimitReachedForTez();
       // Close the Processor.
       processorClosed = true;
       processor.close();
@@ -749,22 +746,18 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         break;
       }
     } catch (Throwable t) {
-      if(this.state.get() == State.CLOSED && isLimitReached){
-        LOG.warn("The task was closed, will bail out now.");
-      }else {
-        LOG.warn("Failed to handle event", t);
-        registerError();
-        EventMetaData sourceInfo =
-            new EventMetaData(e.getDestinationInfo().getEventGenerator(), taskSpec.getVertexName(),
-                e.getDestinationInfo().getEdgeVertexName(), getTaskAttemptID());
-        setFrameworkCounters();
-        // Signal such errors as RETRIABLE. The user code has an option to report this as something
-        // other than retriable before we get control back.
-        // TODO: Don't catch Throwables.
-        tezUmbilical.signalFailure(getTaskAttemptID(), TaskFailureType.NON_FATAL, t, ExceptionUtils.getStackTrace(t),
-            sourceInfo);
-        return false;
-      }
+      LOG.warn("Failed to handle event", t);
+      registerError();
+      EventMetaData sourceInfo =
+          new EventMetaData(e.getDestinationInfo().getEventGenerator(), taskSpec.getVertexName(),
+              e.getDestinationInfo().getEdgeVertexName(), getTaskAttemptID());
+      setFrameworkCounters();
+      // Signal such errors as RETRIABLE. The user code has an option to report this as something
+      // other than retriable before we get control back.
+      // TODO: Don't catch Throwables.
+      tezUmbilical.signalFailure(getTaskAttemptID(), TaskFailureType.NON_FATAL, t, ExceptionUtils.getStackTrace(t),
+          sourceInfo);
+      return false;
     }
     return true;
   }

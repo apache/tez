@@ -57,7 +57,6 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 @Public
 @Evolving
 public class MultiMRInput extends MRInputBase {
-
   private static final Logger LOG = LoggerFactory.getLogger(MultiMRInput.class);
 
   public MultiMRInput(InputContext inputContext, int numPhysicalInputs) {
@@ -69,7 +68,7 @@ public class MultiMRInput extends MRInputBase {
   private final AtomicInteger eventCount = new AtomicInteger(0);
 
   private List<MRReader> readers = new LinkedList<MRReader>();
-
+  private static String TEZ_VERTEX_NAME = "tez.io.vertex.name";
   /**
    * Create an {@link MultiMRInputConfigBuilder} to configure a {@link MultiMRInput}</p>
    * The preferred usage model is to provide all of the parameters, and use methods to configure
@@ -171,6 +170,7 @@ public class MultiMRInput extends MRInputBase {
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(event.getUserPayload()));
     MRReader reader = null;
     JobConf localJobConf = new JobConf(jobConf);
+    localJobConf.set(TEZ_VERTEX_NAME, getContext().getTaskVertexName());
     long splitLength = -1;
     if (useNewApi) {
       InputSplit split = MRInputUtils.getNewSplitDetailsFromEvent(splitProto, localJobConf);
