@@ -377,7 +377,7 @@ public class TestDAGClient {
 
     // Fetch from AM. RUNNING
     dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
+    dagClientRpc.resetCounters();
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
@@ -397,7 +397,7 @@ public class TestDAGClient {
 
     // Fetch from AM. Success.
     dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
+    dagClientRpc.resetCounters();
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
@@ -455,7 +455,7 @@ public class TestDAGClient {
       this.proxy = proxy;
     }
 
-    void resetCountesr() {
+    void resetCounters() {
       numGetStatusViaAmInvocations = 0;
     }
 
@@ -612,102 +612,104 @@ public class TestDAGClient {
     long diff;
 
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800l);
-    tezConf.setLong(TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES, 100000l);
+    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800L);
+    tezConf.setLong(TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES, 100000L);
+    try (DAGClientImplForTest dagClientImpl =
+        new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
+      DAGClientRPCImplForTest dagClientRpc =
+          new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
+      dagClientImpl.setRealClient(dagClientRpc);
 
-    DAGClientImplForTest dagClient =
-        new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null);
-    DAGClientRPCImplForTest dagClientRpc =
-        new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
-    dagClient.setRealClient(dagClientRpc);
+      DAGStatus dagStatus;
+      DAGStatus rmDagStatus;
 
-    DAGStatus dagStatus;
-    DAGStatus rmDagStatus;
+      // Fetch from AM. RUNNING
+      rmDagStatus =
+          new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING),
+              DagStatusSource.RM);
+      dagClientImpl.setRmDagStatus(rmDagStatus);
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
 
-    // Fetch from AM. RUNNING
-    rmDagStatus =
-        new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
-    dagClient.setRmDagStatus(rmDagStatus);
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
+      startTime = System.currentTimeMillis();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      endTime = System.currentTimeMillis();
+      diff = endTime - startTime;
+      assertTrue(diff > 1500L && diff < 2500L);
+      // Directly from AM
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - one refresh. One with timeout.
+      assertEquals(2, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.RUNNING, dagStatus.getState());
 
-    startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
-    endTime = System.currentTimeMillis();
-    diff = endTime - startTime;
-    assertTrue(diff > 1500l && diff < 2500l);
-    // Directly from AM
-    assertEquals(0, dagClient.numGetStatusViaRmInvocations);
-    // Directly from AM - one refresh. One with timeout.
-    assertEquals(2, dagClientRpc.numGetStatusViaAmInvocations);
-    assertEquals(DAGStatus.State.RUNNING, dagStatus.getState());
+      // Fetch from AM. Success.
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      rmDagStatus =
+          new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING),
+              DagStatusSource.RM);
+      dagClientImpl.setRmDagStatus(rmDagStatus);
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
 
-    // Fetch from AM. Success.
-    dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
-    rmDagStatus =
-        new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
-    dagClient.setRmDagStatus(rmDagStatus);
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000l));
-
-    startTime = System.currentTimeMillis();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000l);
-    endTime = System.currentTimeMillis();
-    diff = endTime - startTime;
-    assertTrue("diff is " + diff, diff > 500l && diff < 1500l);
-    // Directly from AM
-    assertEquals(0, dagClient.numGetStatusViaRmInvocations);
-    // Directly from AM - previous request cached, so single invocation only.
-    assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
-    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-
-    // verify that the cachedDAGStatus is correct
-    DAGStatus cachedDagStatus = dagClient.getCachedDAGStatus();
-    Assert.assertNotNull(cachedDagStatus);
-    Assert.assertTrue(dagStatus == cachedDagStatus);
-
-    // When AM proxy throws an exception, the cachedDAGStatus should be returned
-    dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
-    dagClientRpc.injectAMFault(new IOException("injected Fault"));
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
-    // get the Status from the cache
-    assertEquals(0, dagClient.numGetStatusViaRmInvocations);
-    // Directly from AM - previous request cached, so single invocation only.
-    assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
-    assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-    Assert.assertTrue(dagStatus == cachedDagStatus);
-
-    // test that RM is invoked when the cacheExpires and the AM fails.
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000l));
-    dagClientRpc.injectAMFault(new IOException("injected AM Fault"));
-    dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
-    dagClient.enforceExpirationCachedDAGStatus();
-    dagStatus = dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
-    // get the Status from the cache
-    assertEquals(1, dagClient.numGetStatusViaRmInvocations);
-    assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
-    assertEquals(State.RUNNING, dagStatus.getState());
-    Assert.assertFalse(dagStatus == cachedDagStatus);
-
-    // verify that the cachedDAGStatus is null because AM threw exception before setting the
-    // cache.
-    cachedDagStatus = dagClient.getCachedDAGStatus();
-    Assert.assertNull(cachedDagStatus);
-    Assert.assertFalse(dagStatus == cachedDagStatus);
-
-    // inject fault in RM too. getDAGStatus should return null;
-    dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
-    dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000l));
-    dagClient.injectFault();
-    try {
-      dagClient.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
-      Assert.fail("The RM should throw IOException");
-    } catch(IOException ioException) {
-      Assert.assertEquals(ioException.getMessage(), "Fault Injected for RM");
-      assertEquals(1, dagClient.numGetStatusViaRmInvocations);
+      startTime = System.currentTimeMillis();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      endTime = System.currentTimeMillis();
+      diff = endTime - startTime;
+      assertTrue("diff is " + diff, diff > 500L && diff < 1500L);
+      // Directly from AM
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - previous request cached, so single invocation only.
       assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+      // verify that the cachedDAGStatus is correct
+      DAGStatus cachedDagStatus = dagClientImpl.getCachedDAGStatus();
+      Assert.assertNotNull(cachedDagStatus);
+      Assert.assertSame(dagStatus, cachedDagStatus);
+
+      // When AM proxy throws an exception, the cachedDAGStatus should be returned
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientRpc.injectAMFault(new IOException("injected Fault"));
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+      // get the Status from the cache
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - previous request cached, so single invocation only.
+      assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      Assert.assertSame(dagStatus, cachedDagStatus);
+
+      // test that RM is invoked when the cacheExpires and the AM fails.
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
+      dagClientRpc.injectAMFault(new IOException("injected AM Fault"));
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientImpl.enforceExpirationCachedDAGStatus();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+      // get the Status from the cache
+      assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
+      assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(State.RUNNING, dagStatus.getState());
+      Assert.assertNotSame(dagStatus, cachedDagStatus);
+
+      // verify that the cachedDAGStatus is null because AM threw exception before setting the
+      // cache.
+      cachedDagStatus = dagClientImpl.getCachedDAGStatus();
+      Assert.assertNull(cachedDagStatus);
+      Assert.assertNotNull(dagStatus);
+
+      // inject fault in RM too. getDAGStatus should return null;
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
+      dagClientImpl.injectFault();
+      try {
+        dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+        Assert.fail("The RM should throw IOException");
+      } catch (IOException ioException) {
+        Assert.assertEquals(ioException.getMessage(), "Fault Injected for RM");
+        assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
+        assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      }
     }
   }
 }

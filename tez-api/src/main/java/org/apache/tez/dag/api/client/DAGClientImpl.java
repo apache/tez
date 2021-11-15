@@ -118,12 +118,12 @@ public class DAGClientImpl extends DAGClient {
   }
 
   /**
-   * Constructs a new {@link CachedEntity} for {@link DAGStatus}
-   * @param conf TEZ configuration parameters.
+   * Constructs a new {@link CachedEntity} for {@link DAGStatus}.
+   * @param tezConf TEZ configuration parameters.
    * @return a caching entry to hold the {@link DAGStatus}.
    */
-  protected CachedEntity initCacheDAGRefFromConf(TezConfiguration conf) {
-    long clientDAGStatusCacheTimeOut = conf.getLong(
+  protected CachedEntity<DAGStatus> initCacheDAGRefFromConf(TezConfiguration tezConf) {
+    long clientDAGStatusCacheTimeOut = tezConf.getLong(
         TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES,
         TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES_DEFAULT);
     if (clientDAGStatusCacheTimeOut <= 0) {
@@ -134,7 +134,7 @@ public class DAGClientImpl extends DAGClient {
     return new CachedEntity<>(TimeUnit.MINUTES, clientDAGStatusCacheTimeOut);
   }
 
-  protected CachedEntity getCachedDAGStatusRef() {
+  protected CachedEntity<DAGStatus> getCachedDAGStatusRef() {
     return cachedDAGStatusRef;
   }
 
@@ -405,9 +405,11 @@ public class DAGClientImpl extends DAGClient {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       dagCompleted = true;
     } catch (TezException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to a n/w issue or due to AM completed.
+      LOG.info("Cannot retrieve DAG Status due to TezException: {}", e.getMessage());
     } catch (IOException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to a n/w issue or due to AM completed.
+      LOG.info("Cannot retrieve DAG Status due to IOException: {}", e.getMessage());
     }
 
     if (dagStatus == null && !dagCompleted) {
