@@ -441,7 +441,7 @@ public class TestDAGClient {
   }
 
   private static class DAGClientRPCImplForTest extends DAGClientRPCImpl {
-    AtomicReference<IOException> faultAMInjectedRef;
+    private AtomicReference<IOException> faultAMInjectedRef;
     int numGetStatusViaAmInvocations = 0;
 
     public DAGClientRPCImplForTest(ApplicationId appId, String dagId,
@@ -487,7 +487,7 @@ public class TestDAGClient {
 
     private DAGStatus rmDagStatus;
     int numGetStatusViaRmInvocations = 0;
-    volatile boolean faultInjected;
+    private volatile boolean faultInjected;
     public DAGClientImplForTest(ApplicationId appId, String dagId, TezConfiguration conf,
         @Nullable FrameworkClient frameworkClient) throws IOException {
       super(appId, dagId, conf, frameworkClient, UserGroupInformation.getCurrentUser());
@@ -613,7 +613,7 @@ public class TestDAGClient {
 
     TezConfiguration tezConf = new TezConfiguration();
     tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800L);
-    tezConf.setLong(TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES, 100000L);
+    tezConf.setLong(TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS, 100000L);
     try (DAGClientImplForTest dagClientImpl =
         new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
       DAGClientRPCImplForTest dagClientRpc =

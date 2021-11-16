@@ -124,14 +124,14 @@ public class DAGClientImpl extends DAGClient {
    */
   protected CachedEntity<DAGStatus> initCacheDAGRefFromConf(TezConfiguration tezConf) {
     long clientDAGStatusCacheTimeOut = tezConf.getLong(
-        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES,
-        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES_DEFAULT);
+        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS,
+        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT);
     if (clientDAGStatusCacheTimeOut <= 0) {
       LOG.error("DAG Status cache timeout interval should be positive. Enforcing default value.");
       clientDAGStatusCacheTimeOut =
-          TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES_DEFAULT;
+          TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT;
     }
-    return new CachedEntity<>(TimeUnit.MINUTES, clientDAGStatusCacheTimeOut);
+    return new CachedEntity<>(TimeUnit.SECONDS, clientDAGStatusCacheTimeOut);
   }
 
   protected CachedEntity<DAGStatus> getCachedDAGStatusRef() {

@@ -1982,10 +1982,10 @@ public class TezConfiguration extends Configuration {
   @Private
   @ConfigurationScope(Scope.CLIENT)
   @ConfigurationProperty(type="long")
-  public static final String TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES = TEZ_PREFIX
-      + "client.dag.status.cache.timeout-minutes";
-  // Default timeout is 5 minutes.
-  public static final long TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_MINUTES_DEFAULT = 5;
+  public static final String TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS = TEZ_PREFIX
+      + "client.dag.status.cache.timeout-secs";
+  // Default timeout is 60 seconds.
+  public static final long TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT = 60;
 
   /**
    * Long value
