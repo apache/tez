@@ -81,7 +81,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   private final int localShufflePort;
   private final String applicationId;
   private final int dagId;
-  private final MapHost mapHost;
+  protected final MapHost mapHost;
 
   private final int minPartition;
   private final int maxPartition;
@@ -350,8 +350,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         LOG.debug("Detected fetcher has been shutdown after connection establishment. Returning");
         return false;
       }
-      input = httpConnection.getInputStream();
-      httpConnection.validate();
+      setupConnectionInternal(host, attempts);
       return true;
     } catch (IOException | InterruptedException ie) {
       if (ie instanceof InterruptedException) {
@@ -383,6 +382,12 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       }
       return false;
     }
+  }
+
+  protected void setupConnectionInternal(MapHost host, Collection<InputAttemptIdentifier> attempts)
+      throws IOException, InterruptedException {
+    input = httpConnection.getInputStream();
+    httpConnection.validate();
   }
 
   @VisibleForTesting
@@ -426,7 +431,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   protected InputAttemptFetchFailure[] copyMapOutput(MapHost host, DataInputStream input,
-      InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException {
+      InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException, IOException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;

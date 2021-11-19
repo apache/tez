@@ -84,6 +84,10 @@ public class PerSourceNodeTracker {
     return nodeMap.size();
   }
 
+  public int getNumActiveNodes() {
+    return (int) nodeMap.values().stream().filter(node -> node.getState() == AMNodeState.ACTIVE).count();
+  }
+
   public void handle(AMNodeEvent rEvent) {
     // No synchronization required until there's multiple dispatchers.
     NodeId nodeId = rEvent.getNodeId();

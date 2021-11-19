@@ -108,6 +108,7 @@ import org.apache.tez.dag.app.rm.AMSchedulerEventTAEnded;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTALaunchRequest;
 import org.apache.tez.dag.app.rm.container.AMContainerMap;
 import org.apache.tez.dag.app.rm.container.ContainerContextMatcher;
+import org.apache.tez.dag.app.rm.node.AMNodeTracker;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.HistoryEventHandler;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
@@ -130,6 +131,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
@@ -174,9 +177,16 @@ public class TestTaskAttempt {
 
   private void createMockVertex(Configuration conf) {
     mockVertex = mock(Vertex.class);
+    when(mockVertex.getDownstreamBlamingHosts()).thenReturn(Maps.newHashMap());
     when(mockVertex.getServicePluginInfo()).thenReturn(servicePluginInfo);
-    when(mockVertex.getVertexConfig()).thenReturn(
-        new VertexImpl.VertexConfigImpl(conf));
+    when(mockVertex.getVertexConfig()).thenReturn(new VertexImpl.VertexConfigImpl(conf));
+    AppContext appContext = mock(AppContext.class);
+    when(appContext.getTaskScheduerIdentifier(Mockito.anyString())).thenReturn(0);
+    when(mockVertex.getAppContext()).thenReturn(appContext);
+    AMNodeTracker nodeTracker = mock(AMNodeTracker.class);
+    when(nodeTracker.getNumNodes(Mockito.anyInt())).thenReturn(10);
+    when(nodeTracker.getNumActiveNodes(Mockito.anyInt())).thenReturn(8);
+    when(appContext.getNodeTracker()).thenReturn(nodeTracker);
   }
 
   @Test(timeout = 5000)
@@ -2173,11 +2183,11 @@ public class TestTaskAttempt {
         TezTaskID.getInstance(TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl sourceAttempt = new MockTaskAttemptImpl(taskID, 1, eventHandler, null,
         new Configuration(), SystemClock.getInstance(), mock(TaskHeartbeatHandler.class), appCtx,
-        false, null, null, false);
+        false, null, null, false).setNodeId(NodeId.newInstance("somehost", 0));
 
     // the original read error event, sent by reducer task
     InputReadErrorEvent inputReadErrorEvent =
-        InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource);
+        InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource, null);
     TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
     when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
     when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
@@ -2199,6 +2209,56 @@ public class TestTaskAttempt {
     TaskAttemptStateInternal resultState = new TaskAttemptImpl.OutputReportedFailedTransition()
         .transition(sourceAttempt, outputFailedEvent);
     Assert.assertEquals(expectedState, resultState);
+  }
+
+  @Test
+  public void testMapTaskIsBlamedByDownstreamAttemptsFromDifferentHosts() {
+    EventHandler eventHandler = mock(EventHandler.class);
+    TezTaskID taskID = TezTaskID.getInstance(TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
+    TaskAttemptImpl sourceAttempt = new MockTaskAttemptImpl(taskID, 1, eventHandler, null, new Configuration(),
+        SystemClock.getInstance(), mock(TaskHeartbeatHandler.class), appCtx, false, null, null, false)
+            .setNodeId(NodeId.newInstance("somehost", 0));
+
+    // input read error events from 2 different hosts
+    InputReadErrorEvent inputReadErrorEvent1 =
+        InputReadErrorEvent.create("", 0, 1, 1, false, false, "downstream_host_1");
+    InputReadErrorEvent inputReadErrorEvent2 =
+        InputReadErrorEvent.create("", 1, 1, 1, false, false, "downstream_host_2");
+
+    TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
+    when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
+    when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
+    when(appCtx.getCurrentDAG()).thenReturn(mock(DAG.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class))).thenReturn(mock(Vertex.class));
+    when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)).getRunningTasks()).thenReturn(100);
+
+    EventMetaData mockMeta = mock(EventMetaData.class);
+    when(mockMeta.getTaskAttemptID()).thenReturn(destTaskAttemptId);
+
+    // mapper task succeeded earlier
+    sourceAttempt.handle(new TaskAttemptEvent(sourceAttempt.getID(), TaskAttemptEventType.TA_DONE));
+    Assert.assertEquals(TaskAttemptStateInternal.SUCCEEDED, sourceAttempt.getInternalState());
+
+    // the event is propagated to map task's event handler
+    TezEvent tezEvent = new TezEvent(inputReadErrorEvent1, mockMeta);
+    TaskAttemptEventOutputFailed outputFailedEvent =
+        new TaskAttemptEventOutputFailed(sourceAttempt.getID(), tezEvent, 11);
+    TaskAttemptStateInternal resultState =
+        new TaskAttemptImpl.OutputReportedFailedTransition().transition(sourceAttempt, outputFailedEvent);
+    // SUCCEEDED, as we haven't reached the host limit fraction
+    // active nodes: 8, failed hosts: 1, fraction 0.125 (< 0.2)
+    Assert.assertEquals(TaskAttemptStateInternal.SUCCEEDED, resultState);
+
+    // the second event is propagated to map task's event handler
+    TezEvent tezEvent2 = new TezEvent(inputReadErrorEvent2, mockMeta);
+    TaskAttemptEventOutputFailed outputFailedEvent2 =
+        new TaskAttemptEventOutputFailed(sourceAttempt.getID(), tezEvent2, 11);
+    TaskAttemptStateInternal resultState2 =
+        new TaskAttemptImpl.OutputReportedFailedTransition().transition(sourceAttempt, outputFailedEvent2);
+
+    // now it's marked as FAILED
+    // active nodes: 8, failed hosts: 2, fraction 0.25 (> 0.2)
+    Assert.assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
   }
 
   private Event verifyEventType(List<Event> events,
@@ -2247,9 +2307,14 @@ public class TestTaskAttempt {
           isRescheduled, resource, containerContext, leafVertex, mockTask,
           locationHint, null, null);
     }
-    
+
     boolean inputFailedReported = false;
-    
+
+    public MockTaskAttemptImpl setNodeId(NodeId nodeId) {
+      this.containerNodeId = nodeId;
+      return this;
+    }
+
     @Override
     protected Vertex getVertex() {
       return mockVertex;

@@ -194,7 +194,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private Container container;
   private long allocationTime;
   private ContainerId containerId;
-  private NodeId containerNodeId;
+  protected NodeId containerNodeId;
   private String nodeHttpAddress;
   private String nodeRackName;
   
@@ -1793,62 +1793,95 @@ public class TaskAttemptImpl implements TaskAttempt,
   MultipleArcTransition<TaskAttemptImpl, TaskAttemptEvent, TaskAttemptStateInternal> {
 
     @Override
-    public TaskAttemptStateInternal transition(TaskAttemptImpl attempt,
+    public TaskAttemptStateInternal transition(TaskAttemptImpl sourceAttempt,
         TaskAttemptEvent event) {
       TaskAttemptEventOutputFailed outputFailedEvent = 
           (TaskAttemptEventOutputFailed) event;
-      TezEvent tezEvent = outputFailedEvent.getInputFailedEvent();
-      TezTaskAttemptID failedDestTaId = tezEvent.getSourceInfo().getTaskAttemptID();
-      InputReadErrorEvent readErrorEvent = (InputReadErrorEvent)tezEvent.getEvent();
+      TezEvent inputFailedEvent = outputFailedEvent.getInputFailedEvent();
+      TezTaskAttemptID failedDestTaId = inputFailedEvent.getSourceInfo().getTaskAttemptID();
+
+      InputReadErrorEvent readErrorEvent = (InputReadErrorEvent)inputFailedEvent.getEvent();
       int failedInputIndexOnDestTa = readErrorEvent.getIndex();
-      if (readErrorEvent.getVersion() != attempt.getID().getId()) {
-        throw new TezUncheckedException(attempt.getID()
+
+      if (readErrorEvent.getVersion() != sourceAttempt.getID().getId()) {
+        throw new TezUncheckedException(sourceAttempt.getID()
             + " incorrectly blamed for read error from " + failedDestTaId
             + " at inputIndex " + failedInputIndexOnDestTa + " version"
             + readErrorEvent.getVersion());
       }
-      LOG.info(attempt.getID()
-            + " blamed for read error from " + failedDestTaId
-            + " at inputIndex " + failedInputIndexOnDestTa);
-      long time = attempt.clock.getTime();
-      Long firstErrReportTime = attempt.uniquefailedOutputReports.get(failedDestTaId);
+      // source host: where the data input is supposed to come from
+      String sHost = sourceAttempt.getNodeId().getHost();
+      // destination: where the data is tried to be fetched to
+      String dHost = readErrorEvent.getDestinationLocalhostName();
 
+      LOG.info("{} (on {}) blamed for read error from {} (on {}) at inputIndex {}", sourceAttempt.getID(),
+          sHost, failedDestTaId, dHost, failedInputIndexOnDestTa);
+
+      boolean tooManyDownstreamHostsBlamedTheSameUpstreamHost = false;
+      Map<String, Set<String>> downstreamBlamingHosts = sourceAttempt.getVertex().getDownstreamBlamingHosts();
+      if (!downstreamBlamingHosts.containsKey(sHost)) {
+        LOG.info("Host {} is blamed for fetch failure from {} for the first time", sHost, dHost);
+        downstreamBlamingHosts.put(sHost, new HashSet<String>());
+      }
+
+      downstreamBlamingHosts.get(sHost).add(dHost);
+      int currentNumberOfFailingDownstreamHosts = downstreamBlamingHosts.get(sHost).size();
+      int numNodes = getNumNodes(sourceAttempt);
+      float hostFailureFraction = numNodes > 0 ? ((float) currentNumberOfFailingDownstreamHosts) / numNodes : 0;
+      double maxAllowedHostFailureFraction = sourceAttempt.getVertex().getVertexConfig()
+          .getMaxAllowedDownstreamHostFailuresFraction();
+
+      if (hostFailureFraction > maxAllowedHostFailureFraction) {
+        LOG.info("Host will be marked fail: {} because of host failure fraction {} is beyond the limit {}", sHost,
+            hostFailureFraction, maxAllowedHostFailureFraction);
+        tooManyDownstreamHostsBlamedTheSameUpstreamHost = true;
+      }
+
+      long time = sourceAttempt.clock.getTime();
+
+      Long firstErrReportTime = sourceAttempt.uniquefailedOutputReports.get(failedDestTaId);
       if (firstErrReportTime == null) {
-        attempt.uniquefailedOutputReports.put(failedDestTaId, time);
+        sourceAttempt.uniquefailedOutputReports.put(failedDestTaId, time);
         firstErrReportTime = time;
       }
 
-      int maxAllowedOutputFailures = attempt.getVertex().getVertexConfig()
+      int maxAllowedOutputFailures = sourceAttempt.getVertex().getVertexConfig()
           .getMaxAllowedOutputFailures();
-      int maxAllowedTimeForTaskReadErrorSec = attempt.getVertex()
+      int maxAllowedTimeForTaskReadErrorSec = sourceAttempt.getVertex()
           .getVertexConfig().getMaxAllowedTimeForTaskReadErrorSec();
-      double maxAllowedOutputFailuresFraction = attempt.getVertex()
+      double maxAllowedOutputFailuresFraction = sourceAttempt.getVertex()
           .getVertexConfig().getMaxAllowedOutputFailuresFraction();
 
       int readErrorTimespanSec = (int)((time - firstErrReportTime)/1000);
       boolean crossTimeDeadline = readErrorTimespanSec >= maxAllowedTimeForTaskReadErrorSec;
 
-      int runningTasks = attempt.appContext.getCurrentDAG().getVertex(
+      int runningTasks = sourceAttempt.appContext.getCurrentDAG().getVertex(
           failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
-      float failureFraction = runningTasks > 0 ? ((float) attempt.uniquefailedOutputReports.size()) / runningTasks : 0;
+      float failureFraction =
+          runningTasks > 0 ? ((float) sourceAttempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =
           (failureFraction <= maxAllowedOutputFailuresFraction);
       boolean withinOutputFailureLimits =
-          (attempt.uniquefailedOutputReports.size() < maxAllowedOutputFailures);
+          (sourceAttempt.uniquefailedOutputReports.size() < maxAllowedOutputFailures);
 
       // If needed we can launch a background task without failing this task
       // to generate a copy of the output just in case.
       // If needed we can consider only running consumer tasks
       if (!crossTimeDeadline && withinFailureFractionLimits && withinOutputFailureLimits
-          && !(readErrorEvent.isLocalFetch() || readErrorEvent.isDiskErrorAtSource())) {
-        return attempt.getInternalState();
+          && !(readErrorEvent.isLocalFetch() || readErrorEvent.isDiskErrorAtSource())
+          && !tooManyDownstreamHostsBlamedTheSameUpstreamHost) {
+        return sourceAttempt.getInternalState();
       }
-      String message = attempt.getID() + " being failed for too many output errors. "
+      String message = sourceAttempt.getID() + " being failed for too many output errors. "
           + "failureFraction=" + failureFraction
           + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION="
           + maxAllowedOutputFailuresFraction
-          + ", uniquefailedOutputReports=" + attempt.uniquefailedOutputReports.size()
+          + ", uniquefailedOutputReports=" + sourceAttempt.uniquefailedOutputReports.size()
           + ", MAX_ALLOWED_OUTPUT_FAILURES=" + maxAllowedOutputFailures
+          + ", hostFailureFraction=" + hostFailureFraction
+          + " (" + currentNumberOfFailingDownstreamHosts + " / " + numNodes + ")"
+          + ", MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION="
+          + maxAllowedHostFailureFraction
           + ", MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC="
           + maxAllowedTimeForTaskReadErrorSec
           + ", readErrorTimespan=" + readErrorTimespanSec
@@ -1856,21 +1889,33 @@ public class TaskAttemptImpl implements TaskAttempt,
           + ", isDiskErrorAtSource=" + readErrorEvent.isDiskErrorAtSource();
 
       LOG.info(message);
-      attempt.addDiagnosticInfo(message);
+      sourceAttempt.addDiagnosticInfo(message);
       // send input failed event
-      attempt.sendInputFailedToConsumers();
+      sourceAttempt.sendInputFailedToConsumers();
       // Not checking for leafVertex since a READ_ERROR should only be reported for intermediate tasks.
-      if (attempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED) {
+      if (sourceAttempt.getInternalState() == TaskAttemptStateInternal.SUCCEEDED) {
         (new TerminatedAfterSuccessHelper(FAILED_HELPER)).transition(
-            attempt, event);
+            sourceAttempt, event);
         return TaskAttemptStateInternal.FAILED;
       } else {
         (new TerminatedWhileRunningTransition(FAILED_HELPER)).transition(
-            attempt, event);
+            sourceAttempt, event);
         return TaskAttemptStateInternal.FAIL_IN_PROGRESS;
       }
       // TODO at some point. Nodes may be interested in FetchFailure info.
       // Can be used to blacklist nodes.
+    }
+
+    private int getNumNodes(TaskAttemptImpl sourceAttempt) {
+      Vertex vertex = sourceAttempt.getVertex();
+      String taskSchedulerName = vertex.getServicePluginInfo().getTaskSchedulerName();
+      int sourceIndex = vertex.getAppContext().getTaskScheduerIdentifier(taskSchedulerName);
+      int numActiveNodes = vertex.getAppContext().getNodeTracker().getNumActiveNodes(sourceIndex);
+      if (LOG.isDebugEnabled()) {
+        int numAllNodes = vertex.getAppContext().getNodeTracker().getNumNodes(sourceIndex);
+        LOG.debug("Getting nodes, active/all: {}/{}", numActiveNodes, numAllNodes);
+      }
+      return numActiveNodes;
     }
   }
   

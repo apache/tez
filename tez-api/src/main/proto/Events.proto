@@ -41,6 +41,7 @@ message InputReadErrorEventProto {
   optional int32 version = 3;
   optional bool is_local_fetch = 4;
   optional bool is_disk_error_at_source = 5;
+  optional string destination_localhost_name = 6;
 }
 
 message InputFailedEventProto {

@@ -301,6 +301,24 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT = 300;
 
   /**
+   * Double value. Assuming that a certain number of downstream hosts reported fetch failure for a
+   * given upstream host, this config drives the max allowed ratio of (downstream hosts) / (all hosts).
+   * The total number of used hosts are tracked by AMNodeTracker, which divides the distinct number of
+   * downstream hosts blaming source(upstream) tasks in a given vertex. If the fraction is beyond this
+   * limit, the upstream task attempt is marked as failed (so blamed for the fetch failure).
+   * E.g. if this set to 0.2, in case of 3 different hosts reporting fetch failure
+   * for the same upstream host in a cluster which currently utilizes 10 nodes, the upstream task
+   * is immediately blamed for the fetch failure.
+   *
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION =
+      TEZ_AM_PREFIX + "max.allowed.downstream.host.failures.fraction";
+  public static final double TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION_DEFAULT = 0.2;
+
+  /**
    * Boolean value. Determines when the final outputs to data sinks are committed. Commit is an
    * output specific operation and typically involves making the output visible for consumption.
    * If the config is true, then the outputs are committed at the end of DAG completion after all

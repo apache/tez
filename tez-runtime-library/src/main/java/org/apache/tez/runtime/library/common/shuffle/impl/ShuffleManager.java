@@ -174,7 +174,8 @@ public class ShuffleManager implements FetcherCallback {
   private final boolean sharedFetchEnabled;
   private final boolean verifyDiskChecksum;
   private final boolean compositeFetch;
-  
+  private final boolean enableFetcherTestingErrors;
+
   private final int ifileBufferSize;
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
@@ -259,6 +260,10 @@ public class ShuffleManager implements FetcherCallback {
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
     
+    this.enableFetcherTestingErrors =
+        conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS,
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS_DEFAULT);
+
     this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
   
     completedInputSet = new BitSet(numInputs);
@@ -395,7 +400,7 @@ public class ShuffleManager implements FetcherCallback {
               for (InputReadErrorEvent key : failedEvents.keySet()) {
                 failedEventsToSend.add(InputReadErrorEvent.create(key.getDiagnostics(),
                     key.getIndex(), key.getVersion(), failedEvents.get(key), key.isLocalFetch(),
-                    key.isDiskErrorAtSource()));
+                    key.isDiskErrorAtSource(), localhostName));
               }
               inputContext.sendEvents(failedEventsToSend);
               failedEvents.clear();
@@ -543,7 +548,8 @@ public class ShuffleManager implements FetcherCallback {
       httpConnectionParams, inputManager, inputContext.getApplicationId(), inputContext.getDagIdentifier(),
         jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
         lockDisk, localDiskFetchEnabled, sharedFetchEnabled,
-        localhostName, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch);
+        localhostName, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch, enableFetcherTestingErrors,
+        inputContext.getObjectRegistry());
 
     if (codec != null) {
       fetcherBuilder.setCompressionParameters(codec);
@@ -960,7 +966,7 @@ public class ShuffleManager implements FetcherCallback {
           srcAttemptIdentifier.getInputIdentifier(),
           srcAttemptIdentifier.getAttemptNumber(),
           inputAttemptFetchFailure.isLocalFetch(),
-          inputAttemptFetchFailure.isDiskErrorAtSource());
+          inputAttemptFetchFailure.isDiskErrorAtSource(), localhostName);
       if (maxTimeToWaitForReportMillis > 0) {
         try {
           reportLock.lock();
