@@ -278,9 +278,9 @@ public class SimpleHistoryParser extends BaseParser {
       case Constants.TEZ_TASK_ID:
         String taskName = entity;
         TezTaskID tezTaskID = TezTaskID.fromString(taskName);
-        if (!tezDAGID.equals(tezTaskID.getVertexID().getDAGId())) {
+        if (!tezDAGID.equals(tezTaskID.getDAGId())) {
           LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskName, tezDAGID, tezDAGID,
-              tezTaskID.getVertexID().getDAGId());
+              tezTaskID.getDAGId());
           continue;
         }
         if (!taskJsonMap.containsKey(taskName)) {
@@ -293,9 +293,9 @@ public class SimpleHistoryParser extends BaseParser {
       case Constants.TEZ_TASK_ATTEMPT_ID:
         String taskAttemptName = entity;
         TezTaskAttemptID tezAttemptId = TezTaskAttemptID.fromString(taskAttemptName);
-        if (!tezDAGID.equals(tezAttemptId.getTaskID().getVertexID().getDAGId())) {
+        if (!tezDAGID.equals(tezAttemptId.getDAGId())) {
           LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskAttemptName, tezDAGID, tezDAGID,
-              tezAttemptId.getTaskID().getVertexID().getDAGId());
+              tezAttemptId.getDAGId());
           continue;
         }
         if (!attemptJsonMap.containsKey(taskAttemptName)) {

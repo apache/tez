@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.records.TezDAGID;
 
 public class DAGHistoryEvent {
@@ -43,4 +44,7 @@ public class DAGHistoryEvent {
     return this.dagID;
   }
 
+  public ApplicationId getApplicationId() {
+    return getDagID().getApplicationId();
+  }
 }

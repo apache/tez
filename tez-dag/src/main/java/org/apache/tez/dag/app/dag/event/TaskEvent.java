@@ -19,7 +19,9 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 
 /**
  * this class encapsulates task related events.
@@ -37,7 +39,16 @@ public class TaskEvent extends TezAbstractEvent<TaskEventType> {
   public TezTaskID getTaskID() {
     return taskId;
   }
-  
+
+
+  public TezDAGID getDAGId() {
+    return taskId.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return taskId.getVertexID();
+  }
+
   @Override
   public int getSerializingHash() {
     return taskId.getSerializingHash();

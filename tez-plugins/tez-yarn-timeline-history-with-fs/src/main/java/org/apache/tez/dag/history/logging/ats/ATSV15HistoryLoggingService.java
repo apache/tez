@@ -313,7 +313,7 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
         String entityGroupId = numDagsPerGroup > 1
             ? event.getDagID().getGroupId(numDagsPerGroup)
             : event.getDagID().toString();
-        return TimelineEntityGroupId.newInstance(event.getDagID().getApplicationId(), entityGroupId);
+        return TimelineEntityGroupId.newInstance(event.getApplicationId(), entityGroupId);
       case APP_LAUNCHED:
       case AM_LAUNCHED:
       case AM_STARTED:

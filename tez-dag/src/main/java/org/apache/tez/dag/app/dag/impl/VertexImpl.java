@@ -2919,7 +2919,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     List<TaskAttemptIdentifier> attempts = new ArrayList<TaskAttemptIdentifier>(taIds.size());
     String dagName = dag.getName();
     for (TezTaskAttemptID taId : taIds) {
-      String vertexName = dag.getVertex(taId.getTaskID().getVertexID()).getName();
+      String vertexName = dag.getVertex(taId.getVertexID()).getName();
       attempts.add(getTaskAttemptIdentifier(dagName, vertexName, taId));
     }
     return attempts;
@@ -3639,7 +3639,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             TezTaskAttemptID taId = completionEvent.getTaskAttemptId();
             vertex.vertexManager.onSourceTaskCompleted(
                 getTaskAttemptIdentifier(vertex.dag.getName(), 
-                vertex.dag.getVertex(taId.getTaskID().getVertexID()).getName(), 
+                vertex.dag.getVertex(taId.getVertexID()).getName(),
                 taId));
           } catch (AMUserCodeException e) {
             String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -4090,7 +4090,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
               pendingTaskEvents.add(tezEvent);
             } else {
               // event not from this vertex. must have come from source vertex.
-              int srcTaskIndex = sourceMeta.getTaskAttemptID().getTaskID().getId();
+              int srcTaskIndex = sourceMeta.getTaskID().getId();
               Vertex edgeVertex = getDAG().getVertex(sourceMeta.getTaskVertexName());
               Edge srcEdge = sourceVertices.get(edgeVertex);
               if (srcEdge == null) {
@@ -4132,7 +4132,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         Preconditions.checkArgument(target != null,
             "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
         TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-        if (srcTaId.getTaskID().getVertexID().equals(vertexId)) {
+        if (srcTaId.getVertexID().equals(vertexId)) {
           // this is the producer tasks' vertex
           vmEvent.setProducerAttemptIdentifier(
               getTaskAttemptIdentifier(dag.getName(), getName(), srcTaId));

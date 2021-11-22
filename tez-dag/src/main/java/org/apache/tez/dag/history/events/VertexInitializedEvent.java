@@ -25,6 +25,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -34,6 +35,7 @@ import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.utils.TezEventUtils;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
@@ -181,7 +183,15 @@ public class VertexInitializedEvent implements HistoryEvent {
   }
 
   public TezVertexID getVertexID() {
-    return this.vertexID;
+    return vertexID;
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexID.getDAGId();
+  }
+
+  public ApplicationId getApplicationId() {
+    return vertexID.getApplicationId();
   }
 
   public long getInitRequestedTime() {

@@ -19,9 +19,10 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.records.TezVertexID;
 
 public class DAGEventSchedulerUpdate extends DAGEvent {
-  
+
   public enum UpdateType {
     TA_SCHEDULE,
     TA_COMPLETED
@@ -43,5 +44,9 @@ public class DAGEventSchedulerUpdate extends DAGEvent {
   
   public TaskAttempt getAttempt() {
     return attempt;
+  }
+
+  public TezVertexID getVertexID() {
+      return attempt.getVertexID();
   }
 }

@@ -1040,7 +1040,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
-    return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
+    return (TaskAttemptImpl) getVertex(taId.getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
   }
 

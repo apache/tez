@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.util.StringInterner;
 
 /**
@@ -85,6 +86,10 @@ public class EventMetaData implements Writable {
 
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptID;
+  }
+
+  public TezTaskID getTaskID() {
+    return taskAttemptID.getTaskID();
   }
 
   public String getTaskVertexName() {

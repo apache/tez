@@ -24,7 +24,9 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
+import org.apache.tez.dag.records.TezDAGID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -159,6 +161,14 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
 
   public TezVertexID getVertexID() {
     return this.vertexID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return vertexID.getApplicationId();
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexID.getDAGId();
   }
 
   public VertexState getState() {

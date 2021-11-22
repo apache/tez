@@ -22,9 +22,11 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexStartedProto;
 
@@ -95,7 +97,15 @@ public class VertexStartedEvent implements HistoryEvent {
   }
 
   public TezVertexID getVertexID() {
-    return this.vertexID;
+    return vertexID;
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexID.getDAGId();
+  }
+
+  public ApplicationId getApplicationId() {
+    return vertexID.getApplicationId();
   }
 
   public long getStartRequestedTime() {

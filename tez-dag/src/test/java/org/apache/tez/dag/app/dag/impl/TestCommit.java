@@ -176,7 +176,7 @@ public class TestCommit {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      Vertex vertex = dag.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>) task).handle(event);
     }

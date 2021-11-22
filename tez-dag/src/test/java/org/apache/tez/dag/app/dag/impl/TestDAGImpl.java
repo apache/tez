@@ -230,9 +230,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      TezDAGID id = event.getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGId();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
@@ -249,10 +249,10 @@ public class TestDAGImpl {
   private class TaskAttemptEventDisptacher2 implements EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {
-      TezDAGID id = event.getTaskAttemptID().getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGId();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskAttemptID().getTaskID().getVertexID());
-      Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
+      Task task = vertex.getTask(event.getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>)ta).handle(event);
     }
@@ -264,7 +264,7 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      TezDAGID id = event.getVertexId().getDAGId();
+      TezDAGID id = event.getDAGId();
       DAGImpl handler = chooseDAG(id);
       Vertex vertex = handler.getVertex(event.getVertexId());
       ((EventHandler<VertexEvent>) vertex).handle(event);

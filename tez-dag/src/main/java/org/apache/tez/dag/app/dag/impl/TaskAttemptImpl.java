@@ -599,7 +599,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @Override
   public TezVertexID getVertexID() {
-    return attemptId.getTaskID().getVertexID();
+    return attemptId.getVertexID();
   }
 
   @Override
@@ -884,12 +884,12 @@ public class TaskAttemptImpl implements TaskAttempt,
         LOG.error("Can't handle this event at current state for "
             + this.attemptId, e);
         eventHandler.handle(new DAGEventDiagnosticsUpdate(
-            this.attemptId.getTaskID().getVertexID().getDAGId(),
+            getDAGID(),
             "Invalid event " + event.getType() +
             " on TaskAttempt " + this.attemptId));
         eventHandler.handle(
             new DAGEvent(
-                this.attemptId.getTaskID().getVertexID().getDAGId(),
+                getDAGID(),
                 DAGEventType.INTERNAL_ERROR)
             );
       } catch (RuntimeException e) {
@@ -897,13 +897,13 @@ public class TaskAttemptImpl implements TaskAttempt,
             + " at current state " + oldState + " for "
             + this.attemptId, e);
         eventHandler.handle(new DAGEventDiagnosticsUpdate(
-            this.attemptId.getTaskID().getVertexID().getDAGId(),
+            getDAGID(),
             "Uncaught exception when handling event " + event.getType()
                 + " on TaskAttempt " + this.attemptId
                 + " at state " + oldState + ", error=" + e.getMessage()));
         eventHandler.handle(
             new DAGEvent(
-                this.attemptId.getTaskID().getVertexID().getDAGId(),
+                getDAGID(),
                 DAGEventType.INTERNAL_ERROR)
         );
       }
@@ -1856,7 +1856,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean crossTimeDeadline = readErrorTimespanSec >= maxAllowedTimeForTaskReadErrorSec;
 
       int runningTasks = sourceAttempt.appContext.getCurrentDAG().getVertex(
-          failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
+          failedDestTaId.getVertexID()).getRunningTasks();
       float failureFraction =
           runningTasks > 0 ? ((float) sourceAttempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =

@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -99,6 +100,10 @@ public class DAGStartedEvent implements HistoryEvent {
 
   public TezDAGID getDagID() {
     return dagID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return dagID.getApplicationId();
   }
 
   public String getUser() {

@@ -25,6 +25,7 @@ import java.util.Map;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -181,6 +182,10 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
   public TezDAGID getDagID() {
     return dagID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return dagID.getApplicationId();
   }
 
   public long getStartTime() {

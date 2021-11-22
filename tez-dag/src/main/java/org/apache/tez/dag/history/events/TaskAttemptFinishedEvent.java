@@ -24,9 +24,15 @@ import java.util.List;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +49,6 @@ import org.apache.tez.dag.app.dag.impl.TaskAttemptImpl.DataEventDependencyInfo;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.utils.TezEventUtils;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
@@ -309,6 +313,22 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptId;
+  }
+
+  public ApplicationId getApplicationId() {
+    return taskAttemptId.getApplicationId();
+  }
+
+  public TezDAGID getDAGId() {
+    return taskAttemptId.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return taskAttemptId.getVertexID();
+  }
+
+  public TezTaskID getTaskID() {
+    return taskAttemptId.getTaskID();
   }
 
   public TezCounters getCounters() {

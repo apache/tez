@@ -350,14 +350,14 @@ public class TaskCommunicatorManager extends AbstractService implements
         }
       }
       if (!eventsForVertex.isEmpty()) {
-        TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
+        TezVertexID vertexId = taskAttemptID.getVertexID();
         sendEvent(
             new VertexEventRouteEvent(vertexId, Collections.unmodifiableList(eventsForVertex)));
       }
       taskHeartbeatHandler.pinged(taskAttemptID);
       eventInfo = context
           .getCurrentDAG()
-          .getVertex(taskAttemptID.getTaskID().getVertexID())
+          .getVertex(taskAttemptID.getVertexID())
           .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(), request.getPreRoutedStartIndex(),
               request.getMaxEvents());
     }
@@ -442,7 +442,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
     DAG job = context.getCurrentDAG();
     Task task =
-        job.getVertex(taskAttemptId.getTaskID().getVertexID()).
+        job.getVertex(taskAttemptId.getVertexID()).
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
   }

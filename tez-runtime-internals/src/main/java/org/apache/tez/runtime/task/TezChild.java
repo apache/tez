@@ -372,8 +372,7 @@ public class TezChild {
   private void cleanupOnTaskChanged(ContainerTask containerTask) {
     Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
-    TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getTaskID()
-        .getVertexID();
+    TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getVertexID();
     if (lastVertexID != null) {
       if (!lastVertexID.equals(newVertexID)) {
         objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.VERTEX);

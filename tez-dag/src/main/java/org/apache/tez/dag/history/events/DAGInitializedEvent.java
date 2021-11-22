@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezDAGID;
@@ -103,6 +104,10 @@ public class DAGInitializedEvent implements HistoryEvent {
 
   public TezDAGID getDagID() {
     return dagID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return dagID.getApplicationId();
   }
 
   public String getUser() {

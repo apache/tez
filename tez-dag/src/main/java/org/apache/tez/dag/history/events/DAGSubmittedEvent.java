@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -176,6 +177,10 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   public TezDAGID getDagID() {
     return dagID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return dagID.getApplicationId();
   }
 
   public ApplicationAttemptId getApplicationAttemptId() {

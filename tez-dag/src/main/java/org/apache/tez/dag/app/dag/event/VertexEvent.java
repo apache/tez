@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 
 /**
@@ -36,5 +37,9 @@ public class VertexEvent extends TezAbstractEvent<VertexEventType> {
 
   public TezVertexID getVertexId() {
     return vertexId;
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexId.getDAGId();
   }
 }

@@ -1876,6 +1876,7 @@ public class TestTaskAttempt {
     TezTaskID destTaskID = mock(TezTaskID.class);
     TezVertexID destVertexID = mock(TezVertexID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
+    when(mockDestId1.getVertexID()).thenReturn(destVertexID);
     when(destTaskID.getVertexID()).thenReturn(destVertexID);
     Vertex destVertex = mock(VertexImpl.class);
     when(destVertex.getRunningTasks()).thenReturn(11);
@@ -1901,14 +1902,14 @@ public class TestTaskAttempt {
     destTaskID = mock(TezTaskID.class);
     destVertexID = mock(TezVertexID.class);
     when(mockDestId2.getTaskID()).thenReturn(destTaskID);
+    when(mockDestId2.getVertexID()).thenReturn(destVertexID);
     when(destTaskID.getVertexID()).thenReturn(destVertexID);
     destVertex = mock(VertexImpl.class);
     when(destVertex.getRunningTasks()).thenReturn(11);
     when(mockDAG.getVertex(destVertexID)).thenReturn(destVertex);
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
     
-    assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
-        TaskAttemptState.FAILED);
+    assertEquals("Task attempt is not in FAILED state", TaskAttemptState.FAILED, taImpl.getState());
     assertEquals(TaskAttemptTerminationCause.OUTPUT_LOST, taImpl.getTerminationCause());
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
@@ -1964,6 +1965,7 @@ public class TestTaskAttempt {
     mockMeta = mock(EventMetaData.class);
     mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
+    when(mockDestId1.getVertexID()).thenReturn(destVertexID);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
     tzEvent = new TezEvent(mockReEvent, mockMeta);
     //This should fail even when MAX_ALLOWED_OUTPUT_FAILURES_FRACTION is within limits, as
@@ -2006,6 +2008,7 @@ public class TestTaskAttempt {
     mockMeta = mock(EventMetaData.class);
     mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
+    when(mockDestId1.getVertexID()).thenReturn(destVertexID);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
     tzEvent = new TezEvent(mockReEvent, mockMeta);
     when(mockClock.getTime()).thenReturn(1000L);
@@ -2102,6 +2105,7 @@ public class TestTaskAttempt {
     TezTaskID destTaskID = mock(TezTaskID.class);
     TezVertexID destVertexID = mock(TezVertexID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
+    when(mockDestId1.getVertexID()).thenReturn(destVertexID);
     when(destTaskID.getVertexID()).thenReturn(destVertexID);
     Vertex destVertex = mock(VertexImpl.class);
     when(destVertex.getRunningTasks()).thenReturn(5);
@@ -2111,8 +2115,7 @@ public class TestTaskAttempt {
     taImpl.handle(new TaskAttemptEventOutputFailed(taskAttemptID, tzEvent, 11));
 
     // failure threshold is met due to running tasks. state is FAILED
-    assertEquals("Task attempt is not in FAILED state", taImpl.getState(),
-        TaskAttemptState.FAILED);
+    assertEquals("Task attempt is not in FAILED state", TaskAttemptState.FAILED, taImpl.getState());
   }
 
   @SuppressWarnings("deprecation")
@@ -2190,7 +2193,7 @@ public class TestTaskAttempt {
         InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource, null);
     TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
     when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
-    when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
+    when(destTaskAttemptId.getVertexID()).thenReturn(mock(TezVertexID.class));
     when(appCtx.getCurrentDAG()).thenReturn(mock(DAG.class));
     when(appCtx.getCurrentDAG().getVertex(Mockito.any(TezVertexID.class)))
         .thenReturn(mock(Vertex.class));

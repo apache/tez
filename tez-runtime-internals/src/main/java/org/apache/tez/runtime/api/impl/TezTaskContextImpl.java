@@ -118,8 +118,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   @Override
   public ApplicationId getApplicationId() {
-    return taskAttemptID.getTaskID().getVertexID().getDAGId()
-        .getApplicationId();
+    return taskAttemptID.getApplicationId();
   }
 
   @Override
@@ -154,12 +153,12 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   @Override
   public int getTaskVertexIndex() {
-    return taskAttemptID.getTaskID().getVertexID().getId();
+    return taskAttemptID.getVertexID().getId();
   }
 
   @Override
   public int getDagIdentifier() {
-    return taskAttemptID.getTaskID().getVertexID().getDAGId().getId();
+    return taskAttemptID.getDAGId().getId();
   }
 
   @Override

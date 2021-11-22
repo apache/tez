@@ -321,8 +321,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     }
     this.mrReporter = new MRTaskReporter(processorContext);
     this.useNewApi = jobConf.getUseNewMapper();
-    TezDAGID dagId = IDConverter.fromMRTaskAttemptId(taskAttemptId).getTaskID()
-        .getVertexID().getDAGId();
+    TezDAGID dagId = IDConverter.fromMRTaskAttemptId(taskAttemptId).getDAGId();
 
     this.jobContext = new JobContextImpl(jobConf, dagId, mrReporter);
     this.taskAttemptContext =

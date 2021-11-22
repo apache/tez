@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
@@ -81,6 +82,14 @@ public class TezTaskID extends TezID {
   /** Returns the {@link TezVertexID} object that this task belongs to */
   public TezVertexID getVertexID() {
     return vertexId;
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexId.getDAGId();
+  }
+
+  public ApplicationId getApplicationId() {
+    return vertexId.getApplicationId();
   }
 
   @Override

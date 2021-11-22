@@ -39,7 +39,7 @@ public class IDConverter {
   
   public static TaskID toMRTaskId(TezTaskID taskid) {
     return new TaskID(
-        toMRJobId(taskid.getVertexID().getDAGId()),
+        toMRJobId(taskid.getDAGId()),
         taskid.getVertexID().getId() == 0 ? TaskType.MAP : TaskType.REDUCE,
         taskid.getId());
   }

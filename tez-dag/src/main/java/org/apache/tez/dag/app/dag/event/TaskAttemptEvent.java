@@ -19,7 +19,10 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 
 /**
  * This class encapsulates task attempt related events.
@@ -41,6 +44,18 @@ public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> {
 
   public TezTaskAttemptID getTaskAttemptID() {
     return attemptID;
+  }
+
+  public TezDAGID getDAGId() {
+    return attemptID.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return attemptID.getVertexID();
+  }
+
+  public TezTaskID getTaskID() {
+    return attemptID.getTaskID();
   }
   
   @Override

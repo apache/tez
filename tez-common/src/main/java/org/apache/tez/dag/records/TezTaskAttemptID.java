@@ -27,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceStability;
 
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 /**
  * TezTaskAttemptID represents the immutable and unique identifier for
@@ -75,6 +76,18 @@ public class TezTaskAttemptID extends TezID {
   /** Returns the {@link TezTaskID} object that this task attempt belongs to */
   public TezTaskID getTaskID() {
     return taskId;
+  }
+
+  public TezVertexID getVertexID() {
+    return taskId.getVertexID();
+  }
+
+  public TezDAGID getDAGId() {
+    return taskId.getDAGId();
+  }
+
+  public ApplicationId getApplicationId() {
+    return taskId.getApplicationId();
   }
   
   @Override
@@ -162,5 +175,4 @@ public class TezTaskAttemptID extends TezID {
     }
     return null;
   }
-
 }

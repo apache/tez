@@ -22,12 +22,16 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptStartedProto;
 
 public class TaskAttemptStartedEvent implements HistoryEvent {
@@ -114,7 +118,23 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   }
 
   public TezTaskAttemptID getTaskAttemptID() {
-    return this.taskAttemptId;
+    return taskAttemptId;
+  }
+
+  public ApplicationId getApplicationId() {
+    return taskAttemptId.getApplicationId();
+  }
+
+  public TezDAGID getDAGId() {
+    return taskAttemptId.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return taskAttemptId.getVertexID();
+  }
+
+  public TezTaskID getTaskID() {
+    return taskAttemptId.getTaskID();
   }
 
   public long getStartTime() {
@@ -140,5 +160,4 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
   public String getNodeHttpAddress() {
     return nodeHttpAddress;
   }
-
 }

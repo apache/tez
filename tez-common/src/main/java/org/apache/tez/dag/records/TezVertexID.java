@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
@@ -81,6 +82,11 @@ public class TezVertexID extends TezID {
   /** Returns the {@link TezDAGID} object that this tip belongs to */
   public TezDAGID getDAGId() {
     return dagId;
+  }
+
+
+  public ApplicationId getApplicationId() {
+    return dagId.getApplicationId();
   }
 
   @Override
@@ -158,5 +164,4 @@ public class TezVertexID extends TezID {
     }
     return null;
   }
-
 }

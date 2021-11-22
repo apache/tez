@@ -22,8 +22,11 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -162,6 +165,18 @@ public class TaskFinishedEvent implements HistoryEvent {
 
   public TezTaskID getTaskID() {
     return taskID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return taskID.getApplicationId();
+  }
+
+  public TezDAGID getDAGId() {
+    return taskID.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return taskID.getVertexID();
   }
 
   public TaskState getState() {

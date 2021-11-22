@@ -24,11 +24,13 @@ import java.util.Map.Entry;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.RootInputSpecUpdateProto;
@@ -184,6 +186,14 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
 
   public TezVertexID getVertexID() {
     return this.vertexID;
+  }
+
+  public TezDAGID getDAGId() {
+    return vertexID.getDAGId();
+  }
+
+  public ApplicationId getApplicationId() {
+    return vertexID.getApplicationId();
   }
 
   public int getNumTasks() {

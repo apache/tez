@@ -41,6 +41,11 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,10 +98,6 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -865,17 +866,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     LOG.error("Invalid event " + type + " on Task " + this.taskId + " in state:"
         + getInternalState());
     eventHandler.handle(new DAGEventDiagnosticsUpdate(
-        this.taskId.getVertexID().getDAGId(), "Invalid event " + type +
+        getDAGId(), "Invalid event " + type +
         " on Task " + this.taskId));
-    eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
+    eventHandler.handle(new DAGEvent(getDAGId(),
         DAGEventType.INTERNAL_ERROR));
   }
 
   protected void internalErrorUncaughtException(TaskEventType type, Exception e) {
     eventHandler.handle(new DAGEventDiagnosticsUpdate(
-        this.taskId.getVertexID().getDAGId(), "Uncaught exception when handling  event " + type +
+        getDAGId(), "Uncaught exception when handling  event " + type +
         " on Task " + this.taskId + ", error=" + e.getMessage()));
-    eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
+    eventHandler.handle(new DAGEvent(getDAGId(),
         DAGEventType.INTERNAL_ERROR));
   }
 
@@ -918,7 +919,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskStartedEvent startEvt = new TaskStartedEvent(taskId,
         getVertex().getName(), scheduledTime, getLaunchTime());
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), startEvt));
+        new DAGHistoryEvent(getDAGId(), startEvt));
   }
 
   protected void logJobHistoryTaskFinishedEvent() {
@@ -930,7 +931,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         successfulAttempt,
         TaskState.SUCCEEDED, "", getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
+        new DAGHistoryEvent(getDAGId(), finishEvt));
   }
 
   protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
@@ -941,7 +942,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
         getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
+        new DAGHistoryEvent(getDAGId(), finishEvt));
+  }
+
+  private TezDAGID getDAGId() {
+    return taskId.getDAGId();
   }
 
   private void addDiagnosticInfo(String diag) {

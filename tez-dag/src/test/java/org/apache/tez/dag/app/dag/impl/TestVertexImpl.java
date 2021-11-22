@@ -386,7 +386,7 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskAttemptEvent event) {
       VertexImpl vertex = vertexIdMap.get(
-        event.getTaskAttemptID().getTaskID().getVertexID());
+        event.getVertexID());
       Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
       ((EventHandler<TaskAttemptEvent>)task.getAttempt(
           event.getTaskAttemptID())).handle(event);
@@ -399,7 +399,7 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskEvent event) {
       events.add(event);
-      VertexImpl vertex = vertexIdMap.get(event.getTaskID().getVertexID());
+      VertexImpl vertex = vertexIdMap.get(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       if (task != null) {
         ((EventHandler<TaskEvent>)task).handle(event);

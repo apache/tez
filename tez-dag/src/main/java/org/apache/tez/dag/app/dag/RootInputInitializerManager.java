@@ -457,7 +457,7 @@ public class RootInputInitializerManager {
         Iterator<TezEvent> eventIterator = events.iterator();
         while (eventIterator.hasNext()) {
           TezEvent tezEvent = eventIterator.next();
-          int taskIndex = tezEvent.getSourceInfo().getTaskAttemptID().getTaskID().getId();
+          int taskIndex = tezEvent.getSourceInfo().getTaskID().getId();
           int taskAttemptIndex = tezEvent.getSourceInfo().getTaskAttemptID().getId();
           if (taskIndex == taskId.getId()) {
             // Process only if there's a pending event for the specific succeeded task
@@ -476,7 +476,7 @@ public class RootInputInitializerManager {
       List<InputInitializerEvent> toForwardEvents = new LinkedList<InputInitializerEvent>();
       for (TezEvent tezEvent : tezEvents) {
         String srcVertexName = tezEvent.getSourceInfo().getTaskVertexName();
-        int taskIndex = tezEvent.getSourceInfo().getTaskAttemptID().getTaskID().getId();
+        int taskIndex = tezEvent.getSourceInfo().getTaskID().getId();
         int taskAttemptIndex = tezEvent.getSourceInfo().getTaskAttemptID().getId();
 
         Map<Integer, Integer> vertexSuccessfulAttemptMap =

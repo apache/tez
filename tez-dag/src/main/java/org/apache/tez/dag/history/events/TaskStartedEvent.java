@@ -22,10 +22,13 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskStartedProto;
 
 public class TaskStartedEvent implements HistoryEvent {
@@ -106,6 +109,18 @@ public class TaskStartedEvent implements HistoryEvent {
 
   public TezTaskID getTaskID() {
     return taskID;
+  }
+
+  public ApplicationId getApplicationId() {
+    return taskID.getApplicationId();
+  }
+
+  public TezDAGID getDAGId() {
+    return taskID.getDAGId();
+  }
+
+  public TezVertexID getVertexID() {
+    return taskID.getVertexID();
   }
 
   public long getScheduledTime() {

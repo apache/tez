@@ -380,7 +380,7 @@ public class TestSpeculation {
           .getValue());
       Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
-      org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+      org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
       Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
     }
@@ -517,7 +517,7 @@ public class TestSpeculation {
         .getValue());
     Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
-    org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+    org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
     Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
     tezClient.stop();
