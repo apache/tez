@@ -41,7 +41,7 @@ import com.google.common.collect.Interners;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public class TezTaskID extends TezID {
+public class TezTaskID extends TezID implements VertexIDAware {
   public static final String TASK = "task";
   private final int serializingHash;
   
@@ -79,6 +79,7 @@ public class TezTaskID extends TezID {
   }
 
   /** Returns the {@link TezVertexID} object that this task belongs to */
+  @Override
   public TezVertexID getVertexID() {
     return vertexId;
   }

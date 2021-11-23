@@ -232,9 +232,9 @@ public class TestEdge {
 
   private void resetTaskMocks(Collection<Task> tasks) {
     for (Task task : tasks) {
-      TezTaskID taskID = task.getTaskId();
+      TezTaskID taskID = task.getTaskID();
       reset(task);
-      doReturn(taskID).when(task).getTaskId();
+      doReturn(taskID).when(task).getTaskID();
     }
   }
 
@@ -243,7 +243,7 @@ public class TestEdge {
     for (int i = 0 ; i < numTasks ; i++) {
       Task task = mock(Task.class);
       TezTaskID taskID = TezTaskID.getInstance(vertexID, i);
-      doReturn(taskID).when(task).getTaskId();
+      doReturn(taskID).when(task).getTaskID();
       tasks.put(taskID, task);
     }
     return tasks;

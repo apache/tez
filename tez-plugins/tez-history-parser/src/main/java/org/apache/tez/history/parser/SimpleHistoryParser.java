@@ -153,7 +153,7 @@ public class SimpleHistoryParser extends BaseParser {
       case Constants.TEZ_VERTEX_ID:
         String vertexName = entity;
         TezVertexID tezVertexID = TezVertexID.fromString(vertexName);
-        if (!tezDAGID.equals(tezVertexID.getDAGId())) {
+        if (!tezDAGID.equals(tezVertexID.getDAGID())) {
           LOG.warn(vertexName + " does not belong to " + tezDAGID);
           continue;
         }
@@ -166,7 +166,7 @@ public class SimpleHistoryParser extends BaseParser {
       case Constants.TEZ_TASK_ID:
         String taskName = entity;
         TezTaskID tezTaskID = TezTaskID.fromString(taskName);
-        if (!tezDAGID.equals(tezTaskID.getVertexID().getDAGId())) {
+        if (!tezDAGID.equals(tezTaskID.getDAGID())) {
           LOG.warn(taskName + " does not belong to " + tezDAGID);
           continue;
         }
@@ -179,7 +179,7 @@ public class SimpleHistoryParser extends BaseParser {
       case Constants.TEZ_TASK_ATTEMPT_ID:
         String taskAttemptName = entity;
         TezTaskAttemptID tezAttemptId = TezTaskAttemptID.fromString(taskAttemptName);
-        if (!tezDAGID.equals(tezAttemptId.getTaskID().getVertexID().getDAGId())) {
+        if (!tezDAGID.equals(tezAttemptId.getDAGID())) {
           LOG.warn(taskAttemptName + " does not belong to " + tezDAGID);
           continue;
         }

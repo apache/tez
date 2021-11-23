@@ -39,7 +39,7 @@ import java.util.List;
 
 public class TestDAGScheduler {
 
-  class MockEventHandler implements EventHandler<TaskAttemptEventSchedule> {
+  static class MockEventHandler implements EventHandler<TaskAttemptEventSchedule> {
     TaskAttemptEventSchedule event;
     List<TaskAttemptEventSchedule> events = Lists.newLinkedList();
     @Override
@@ -109,17 +109,17 @@ public class TestDAGScheduler {
     
     // schedule beyond limit and it gets scheduled
     mockAttempt = mock(TaskAttempt.class);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 0));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 0));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(1, mockEventHandler.events.size());
     mockAttempt = mock(TaskAttempt.class);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 1));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 1));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(2, mockEventHandler.events.size());
     mockAttempt = mock(TaskAttempt.class);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 2));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, 2));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(3, mockEventHandler.events.size());
@@ -134,34 +134,34 @@ public class TestDAGScheduler {
     // schedule beyond limit and it gets buffered
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
     scheduled++;
     
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
     scheduled++;
     
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled, mockEventHandler.events.size()); // buffered
 
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled, mockEventHandler.events.size()); // buffered
@@ -169,14 +169,14 @@ public class TestDAGScheduler {
     scheduler.taskCompleted(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_COMPLETED, mockAttempts.get(completed++)));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
     scheduled++;
 
     scheduler.taskCompleted(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_COMPLETED, mockAttempts.get(completed++)));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
     scheduled++;
 
@@ -186,14 +186,12 @@ public class TestDAGScheduler {
 
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId1, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
-    scheduled++;
-
   }
 
   @Test(timeout=5000)
@@ -215,7 +213,6 @@ public class TestDAGScheduler {
         mockEventHandler);
 
     List<TaskAttempt> mockAttempts = Lists.newArrayList();
-    int completed = 0;
     int requested = 0;
     int scheduled = 0;
     scheduler.addVertexConcurrencyLimit(vId0, 1); // effective
@@ -223,24 +220,24 @@ public class TestDAGScheduler {
     // schedule beyond limit and it gets buffered
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled+1, mockEventHandler.events.size()); // scheduled
-    Assert.assertEquals(mockAttempts.get(scheduled).getID(),
+    Assert.assertEquals(mockAttempts.get(scheduled).getTaskAttemptID(),
         mockEventHandler.events.get(scheduled).getTaskAttemptID()); // matches order
     scheduled++;
 
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled, mockEventHandler.events.size()); // buffered
 
     mockAttempt = mock(TaskAttempt.class);
     mockAttempts.add(mockAttempt);
-    when(mockAttempt.getID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
+    when(mockAttempt.getTaskAttemptID()).thenReturn(TezTaskAttemptID.getInstance(tId0, requested++));
     scheduler.scheduleTask(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt));
     Assert.assertEquals(scheduled, mockEventHandler.events.size()); // buffered
@@ -248,7 +245,7 @@ public class TestDAGScheduler {
     scheduler.taskCompleted(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_COMPLETED, mockAttempts.get(1)));
     Assert.assertEquals(scheduled, mockEventHandler.events.size()); // buffered
-    Assert.assertEquals(mockAttempts.get(0).getID(),
+    Assert.assertEquals(mockAttempts.get(0).getTaskAttemptID(),
         mockEventHandler.events.get(0).getTaskAttemptID()); // matches order
   }
 

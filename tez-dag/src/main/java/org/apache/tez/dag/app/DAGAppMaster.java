@@ -304,7 +304,7 @@ public class DAGAppMaster extends AbstractService {
   private Path currentRecoveryDataDir;
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
-  
+
   private ExecutorService rawExecutor;
   private ListeningExecutorService execService;
 
@@ -335,7 +335,7 @@ public class DAGAppMaster extends AbstractService {
   private String clientVersion;
   private boolean versionMismatch = false;
   private String versionMismatchDiagnostics;
-  
+
   private ResourceCalculatorProcessTree cpuPlugin;
   private GcTimeUpdater gcPlugin;
 
@@ -387,7 +387,7 @@ public class DAGAppMaster extends AbstractService {
     return String.format("%s/node/containerlogs/%s/%s", nodeHttpAddress,
         containerId, user);
   }
-  
+
   private void initResourceCalculatorPlugins() {
     Class<? extends ResourceCalculatorProcessTree> clazz = amConf.getClass(
         TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS,
@@ -402,10 +402,10 @@ public class DAGAppMaster extends AbstractService {
       pid = processName.split("@")[0];
     }
     cpuPlugin = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, amConf);
-    
+
     gcPlugin = new GcTimeUpdater(null);
   }
-  
+
   private long getAMCPUTime() {
     if (cpuPlugin != null) {
       cpuPlugin.updateProcessTree();
@@ -559,14 +559,14 @@ public class DAGAppMaster extends AbstractService {
       dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
       dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDispatcher());
     } else {
-      int concurrency = conf.getInt(TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY, 
+      int concurrency = conf.getInt(TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY,
           TezConfiguration.TEZ_AM_CONCURRENT_DISPATCHER_CONCURRENCY_DEFAULT);
       AsyncDispatcherConcurrent sharedDispatcher = dispatcher.registerAndCreateDispatcher(
           TaskEventType.class, new TaskEventDispatcher(), "TaskAndAttemptEventThread", concurrency);
       dispatcher.registerWithExistingDispatcher(TaskAttemptEventType.class,
           new TaskAttemptEventDispatcher(), sharedDispatcher);
     }
-    
+
     // register other delegating dispatchers
     dispatcher.registerAndCreateDispatcher(SpeculatorEventType.class, new SpeculatorEventHandler(),
         "Speculator");
@@ -658,7 +658,7 @@ public class DAGAppMaster extends AbstractService {
   protected ContainerSignatureMatcher createContainerSignatureMatcher() {
     return new ContainerContextMatcher();
   }
-  
+
   @VisibleForTesting
   protected AsyncDispatcher createDispatcher() {
     return new AsyncDispatcher("Central");
@@ -677,7 +677,7 @@ public class DAGAppMaster extends AbstractService {
       System.exit(0);
     }
   }
-  
+
   @VisibleForTesting
   protected TaskSchedulerManager getTaskSchedulerManager() {
     return taskSchedulerManager;
@@ -1401,7 +1401,7 @@ public class DAGAppMaster extends AbstractService {
     }
     dispatcher.getEventHandler().handle(new DAGEventTerminateDag(dag.getID(), DAGTerminationCause.DAG_KILL, message));
   }
-  
+
   private Map<String, LocalResource> getAdditionalLocalResourceDiff(
       DAG dag, Map<String, LocalResource> additionalResources) throws TezException {
     if (additionalResources == null) {
@@ -1553,7 +1553,7 @@ public class DAGAppMaster extends AbstractService {
     public DAG getCurrentDAG() {
       return dag;
     }
-    
+
     @Override
     public ListeningExecutorService getExecService() {
       return execService;
@@ -1754,7 +1754,7 @@ public class DAGAppMaster extends AbstractService {
     public long getCumulativeCPUTime() {
       return getAMCPUTime();
     }
-    
+
     @Override
     public long getCumulativeGCTime() {
       return getAMGCTime();
@@ -1984,7 +1984,7 @@ public class DAGAppMaster extends AbstractService {
     }
     return null;
   }
-  
+
   @Override
   public void serviceStart() throws Exception {
     //start all the components
@@ -2222,7 +2222,7 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(DAGEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = event.getDAGId().getId();
+      int eventDagIndex = event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
@@ -2235,18 +2235,18 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(TaskEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
-          event.getTaskID().getVertexID().getDAGId().getId();
+      int eventDagIndex =
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
       Task task =
-          dag.getVertex(event.getTaskID().getVertexID()).
+          dag.getVertex(event.getVertexID()).
               getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
   }
-  
+
   private class SpeculatorEventHandler implements EventHandler<SpeculatorEvent> {
     @Override
     public void handle(SpeculatorEvent event) {
@@ -2265,14 +2265,14 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(TaskAttemptEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
-          event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().getId();
+      int eventDagIndex =
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
       Task task =
-          dag.getVertex(event.getTaskAttemptID().getTaskID().getVertexID()).
-              getTask(event.getTaskAttemptID().getTaskID());
+          dag.getVertex(event.getVertexID()).
+              getTask(event.getTaskID());
       TaskAttempt attempt = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) attempt).handle(event);
     }
@@ -2284,14 +2284,14 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(VertexEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = 
-          event.getVertexId().getDAGId().getId();
+      int eventDagIndex =
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
-      
+
       Vertex vertex =
-          dag.getVertex(event.getVertexId());
+          dag.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }

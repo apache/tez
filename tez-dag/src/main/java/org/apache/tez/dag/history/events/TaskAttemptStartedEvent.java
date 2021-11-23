@@ -27,10 +27,11 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptStartedProto;
 
-public class TaskAttemptStartedEvent implements HistoryEvent {
+public class TaskAttemptStartedEvent implements HistoryEvent, TaskAttemptIDAware {
 
   private TezTaskAttemptID taskAttemptId;
   private String inProgressLogsUrl;
@@ -113,6 +114,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent {
         + ", nodeId=" + nodeId;
   }
 
+  @Override
   public TezTaskAttemptID getTaskAttemptID() {
     return this.taskAttemptId;
   }

@@ -1582,7 +1582,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       if (LOG.isDebugEnabled()) {
         if (!ProgressHelper.isProgressWithinRange(taskProg)) {
           LOG.debug("progress update: vertex={}, task={} incorrect; range={}",
-              getName(), task.getTaskId(), taskProg);
+              getName(), task.getTaskID(), taskProg);
         }
       }
       accProg += ProgressHelper.processProgress(taskProg);
@@ -2044,7 +2044,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
    */
   public void handle(VertexEvent event) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing VertexEvent " + event.getVertexId()
+      LOG.debug("Processing VertexEvent " + event.getVertexID()
           + " of type " + event.getType() + " while in state "
           + getInternalState() + ". Event: " + event);
     }
@@ -2106,7 +2106,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         lazyTasksCopyNeeded = false;
       }
     }
-    tasks.put(task.getTaskId(), task);
+    tasks.put(task.getTaskID(), task);
     // TODO Metrics
     //metrics.waitingTask(task);
   }
@@ -2402,7 +2402,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       LOG.info(msg);
       for (Task task : tasks.values()) {
         eventHandler.handle( // attempt was terminated because the vertex is shutting down
-            new TaskEventTermination(task.getTaskId(), errCause, msg));
+            new TaskEventTermination(task.getTaskID(), errCause, msg));
       }
     }
   }
@@ -2641,7 +2641,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.addTask(task);
       if(LOG.isDebugEnabled()) {
         LOG.debug("Created task for vertex " + logIdentifier + ": " +
-            task.getTaskId());
+            task.getTaskID());
       }
     }
   }
@@ -2655,7 +2655,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       this.numTasks++;
       if(LOG.isDebugEnabled()) {
         LOG.debug("Created task for vertex " + logIdentifier + ": " +
-            task.getTaskId());
+            task.getTaskID());
       }
     }
   }
@@ -2911,7 +2911,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     List<TaskAttemptIdentifier> attempts = new ArrayList<TaskAttemptIdentifier>(taIds.size());
     String dagName = dag.getName();
     for (TezTaskAttemptID taId : taIds) {
-      String vertexName = dag.getVertex(taId.getTaskID().getVertexID()).getName();
+      String vertexName = dag.getVertex(taId.getVertexID()).getName();
       attempts.add(getTaskAttemptIdentifier(dagName, vertexName, taId));
     }
     return attempts;
@@ -3630,7 +3630,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             TezTaskAttemptID taId = completionEvent.getTaskAttemptId();
             vertex.vertexManager.onSourceTaskCompleted(
                 getTaskAttemptIdentifier(vertex.dag.getName(), 
-                vertex.dag.getVertex(taId.getTaskID().getVertexID()).getName(), 
+                vertex.dag.getVertex(taId.getVertexID()).getName(),
                 taId));
           } catch (AMUserCodeException e) {
             String msg = "Exception in " + e.getSource() + ", vertex:" + vertex.getLogIdentifier();
@@ -3683,8 +3683,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
       Task task = vertex.tasks.get(taskEvent.getTaskID());
       if (taskEvent.getState() == TaskState.SUCCEEDED) {
         taskSucceeded(vertex, task);
-        if (!vertex.completedTasksStatsCache.containsTask(task.getTaskId())) {
-          vertex.completedTasksStatsCache.addTask(task.getTaskId());
+        if (!vertex.completedTasksStatsCache.containsTask(task.getTaskID())) {
+          vertex.completedTasksStatsCache.addTask(task.getTaskID());
           vertex.completedTasksStatsCache.mergeFrom(((TaskImpl) task).getStatistics());
         }
       } else if (taskEvent.getState() == TaskState.FAILED) {
@@ -3716,7 +3716,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     private void taskFailed(VertexImpl vertex, Task task) {
       vertex.failedTaskCount++;
       vertex.addDiagnostic("Task failed"
-        + ", taskId=" + task.getTaskId()
+        + ", taskId=" + task.getTaskID()
         + ", diagnostics=" + task.getDiagnostics());
       // TODO Metrics
       //vertex.metrics.failedTask(task);
@@ -4045,7 +4045,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             appContext.getApplicationAttemptId().getAttemptId());
           // route event to task
           EventMetaData destinationMeta = tezEvent.getDestinationInfo();
-          Task targetTask = getTask(destinationMeta.getTaskAttemptID().getTaskID());
+          Task targetTask = getTask(destinationMeta.getTaskID());
           targetTask.registerTezEvent(tezEvent);
         }
         break;
@@ -4081,7 +4081,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
               pendingTaskEvents.add(tezEvent);
             } else {
               // event not from this vertex. must have come from source vertex.
-              int srcTaskIndex = sourceMeta.getTaskAttemptID().getTaskID().getId();
+              int srcTaskIndex = sourceMeta.getTaskID().getId();
               Vertex edgeVertex = getDAG().getVertex(sourceMeta.getTaskVertexName());
               Edge srcEdge = sourceVertices.get(edgeVertex);
               if (srcEdge == null) {
@@ -4123,7 +4123,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         Preconditions.checkArgument(target != null,
             "Event sent to unkown vertex: " + vmEvent.getTargetVertexName());
         TezTaskAttemptID srcTaId = sourceMeta.getTaskAttemptID();
-        if (srcTaId.getTaskID().getVertexID().equals(vertexId)) {
+        if (srcTaId.getVertexID().equals(vertexId)) {
           // this is the producer tasks' vertex
           vmEvent.setProducerAttemptIdentifier(
               getTaskAttemptIdentifier(dag.getName(), getName(), srcTaId));

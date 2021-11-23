@@ -846,9 +846,9 @@ public class RecoveryParser {
           case TASK_STARTED:
           {
             TaskStartedEvent taskStartedEvent = (TaskStartedEvent) event;
-            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskStartedEvent.getTaskID().getVertexID());
+            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskStartedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
-                "Invalid TaskStartedEvent, its vertex does not exist:" + taskStartedEvent.getTaskID().getVertexID());
+                "Invalid TaskStartedEvent, its vertex does not exist:" + taskStartedEvent.getVertexID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.maybeCreateTaskRecoveryData(taskStartedEvent.getTaskID());
             taskRecoveryData.taskStartedEvent = taskStartedEvent;
             break;
@@ -856,9 +856,9 @@ public class RecoveryParser {
           case TASK_FINISHED:
           {
             TaskFinishedEvent taskFinishedEvent = (TaskFinishedEvent) event;
-            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskFinishedEvent.getTaskID().getVertexID());
+            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskFinishedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
-                "Invalid TaskFinishedEvent, its vertex does not exist:" + taskFinishedEvent.getTaskID().getVertexID());
+                "Invalid TaskFinishedEvent, its vertex does not exist:" + taskFinishedEvent.getVertexID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.maybeCreateTaskRecoveryData(taskFinishedEvent.getTaskID());
             taskRecoveryData.taskFinishedEvent = taskFinishedEvent;
             break;
@@ -867,11 +867,11 @@ public class RecoveryParser {
           {
             TaskAttemptStartedEvent taStartedEvent = (TaskAttemptStartedEvent)event;
             VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(
-                taStartedEvent.getTaskAttemptID().getTaskID().getVertexID());
+                taStartedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
                 "Invalid TaskAttemptStartedEvent, its vertexId does not exist, taId=" + taStartedEvent.getTaskAttemptID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.taskRecoveryDataMap
-                .get(taStartedEvent.getTaskAttemptID().getTaskID());
+                .get(taStartedEvent.getTaskID());
             Preconditions.checkArgument(taskRecoveryData != null,
                 "Invalid TaskAttemptStartedEvent, its taskId does not exist, taId=" + taStartedEvent.getTaskAttemptID());
             TaskAttemptRecoveryData taRecoveryData = taskRecoveryData.maybeCreateTaskAttemptRecoveryData(taStartedEvent.getTaskAttemptID());
@@ -882,11 +882,11 @@ public class RecoveryParser {
           {
             TaskAttemptFinishedEvent taFinishedEvent = (TaskAttemptFinishedEvent)event;
             VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(
-                taFinishedEvent.getTaskAttemptID().getTaskID().getVertexID());
+                taFinishedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
                 "Invalid TaskAttemtFinishedEvent, its vertexId does not exist, taId=" + taFinishedEvent.getTaskAttemptID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.taskRecoveryDataMap
-                .get(taFinishedEvent.getTaskAttemptID().getTaskID());
+                .get(taFinishedEvent.getTaskID());
             Preconditions.checkArgument(taskRecoveryData != null,
                 "Invalid TaskAttemptFinishedEvent, its taskId does not exist, taId=" + taFinishedEvent.getTaskAttemptID());
             TaskAttemptRecoveryData taRecoveryData = taskRecoveryData.maybeCreateTaskAttemptRecoveryData(taFinishedEvent.getTaskAttemptID());

@@ -386,8 +386,8 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskAttemptEvent event) {
       VertexImpl vertex = vertexIdMap.get(
-        event.getTaskAttemptID().getTaskID().getVertexID());
-      Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
+        event.getVertexID());
+      Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskAttemptEvent>)task.getAttempt(
           event.getTaskAttemptID())).handle(event);
     }
@@ -399,7 +399,7 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskEvent event) {
       events.add(event);
-      VertexImpl vertex = vertexIdMap.get(event.getTaskID().getVertexID());
+      VertexImpl vertex = vertexIdMap.get(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       if (task != null) {
         ((EventHandler<TaskEvent>)task).handle(event);
@@ -437,7 +437,7 @@ public class TestVertexImpl {
 
     @Override
     public void handle(VertexEvent event) {
-      VertexImpl vertex = vertexIdMap.get(event.getVertexId());
+      VertexImpl vertex = vertexIdMap.get(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -3155,7 +3155,7 @@ public class TestVertexImpl {
     int i = 0;
     // iteration maintains order due to linked hash map
     for(Task task : tasks.values()) {
-      Assert.assertEquals(i, task.getTaskId().getId());
+      Assert.assertEquals(i, task.getTaskID().getId());
       i++;
     }
   }
@@ -3638,7 +3638,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3652,10 +3652,10 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.APPLICATION_ERROR));
     dispatcher.await();
@@ -3673,7 +3673,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3687,11 +3687,11 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.INPUT_READ_ERROR));
     dispatcher.await();
@@ -3710,7 +3710,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3724,11 +3724,11 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.OUTPUT_WRITE_ERROR));
     dispatcher.await();
@@ -4800,7 +4800,7 @@ public class TestVertexImpl {
     Assert.assertEquals(2, v2.getTotalTasks());
     // Generate events from v2 to v3's initializer. 1 from task 0, 2 from task 1
     for (Task task : v2.getTasks().values()) {
-      TezTaskID taskId = task.getTaskId();
+      TezTaskID taskId = task.getTaskID();
       TezTaskAttemptID attemptId = TezTaskAttemptID.getInstance(taskId, 0);
       int numEventsFromTask = taskId.getId() + 1;
       for (int i = 0; i < numEventsFromTask; i++) {
@@ -5499,7 +5499,7 @@ public class TestVertexImpl {
     for (int i=0; i<v1.getTotalTasks(); ++i) {
       Assert.assertEquals(
           1,
-          v1.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v1.getTask(i).getTaskId(), 0),
+          v1.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v1.getTask(i).getTaskID(), 0),
               0, 0, 100).getEvents().size());
     }
     
@@ -5547,7 +5547,7 @@ public class TestVertexImpl {
     for (int i=0; i<v2.getTotalTasks(); ++i) {
       Assert.assertEquals(
           ((i==0) ? 2 : 1),
-          v2.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v2.getTask(i).getTaskId(), 0),
+          v2.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v2.getTask(i).getTaskID(), 0),
               0, 0, 100).getEvents().size());
     }
     for (int i = 0; i < 10; i++) {
@@ -7168,8 +7168,8 @@ public class TestVertexImpl {
     TaskImpl task0 = (TaskImpl) v.getTask(tid0);
     TaskImpl task1 = (TaskImpl) v.getTask(tid1);
 
-    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(task0.getTaskId(), 0);
-    TezTaskAttemptID taskAttemptId1 = TezTaskAttemptID.getInstance(task1.getTaskId(), 0);
+    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(task0.getTaskID(), 0);
+    TezTaskAttemptID taskAttemptId1 = TezTaskAttemptID.getInstance(task1.getTaskID(), 0);
     TaskAttemptImpl taskAttempt0 = (TaskAttemptImpl) task0.getAttempt(taskAttemptId0);
     TaskAttemptImpl taskAttempt1 = (TaskAttemptImpl) task1.getAttempt(taskAttemptId1);
 
@@ -7201,7 +7201,7 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(v1);
 
-    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(v1.getTask(0).getTaskId(), 0);
+    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(v1.getTask(0).getTaskID(), 0);
     TaskAttemptImpl ta0 = (TaskAttemptImpl) v1.getTask(0).getAttempt(taskAttemptId0);
     ta0.handle(new TaskAttemptEventSchedule(taskAttemptId0, 1, 1));
 

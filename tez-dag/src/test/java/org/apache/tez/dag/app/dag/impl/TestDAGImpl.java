@@ -221,7 +221,7 @@ public class TestDAGImpl {
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
     public void handle(DAGEvent event) {
-      DAGImpl dag = chooseDAG(event.getDAGId());
+      DAGImpl dag = chooseDAG(event.getDAGID());
       dag.handle(event);
     }
   }
@@ -230,9 +230,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      TezDAGID id = event.getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
@@ -249,10 +249,10 @@ public class TestDAGImpl {
   private class TaskAttemptEventDisptacher2 implements EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {
-      TezDAGID id = event.getTaskAttemptID().getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskAttemptID().getTaskID().getVertexID());
-      Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
+      Task task = vertex.getTask(event.getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>)ta).handle(event);
     }
@@ -264,9 +264,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      TezDAGID id = event.getVertexId().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getVertexId());
+      Vertex vertex = handler.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -1174,14 +1174,14 @@ public class TestDAGImpl {
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
     TezEvent tezEvent = new TezEvent(daEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
 
     Assert.assertEquals(VertexState.FAILED, v2.getState());
@@ -1207,11 +1207,11 @@ public class TestDAGImpl {
 
     dispatcher.await();
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
     TezEvent tezEvent = new TezEvent(daEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1239,13 +1239,13 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputFailedEvent ifEvent = InputFailedEvent.create(0, 1);
     TezEvent tezEvent = new TezEvent(ifEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     
@@ -1270,11 +1270,11 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
     TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1301,10 +1301,10 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
     TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     // 

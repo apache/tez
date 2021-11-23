@@ -554,12 +554,12 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     }
 
     TaskSpec taskSpec = ProtoConverters.getTaskSpecfromProto(request.getTaskSpec());
-    if (taskSpec.getTaskAttemptID().getTaskID().getId() == 0 &&
+    if (taskSpec.getTaskID().getId() == 0 &&
         taskSpec.getTaskAttemptID().getId() == 0) {
       LOG.info("Simulating Rejected work");
       throw new RejectedExecutionException(
           "Simulating Rejected work for taskAttemptId=" + taskSpec.getTaskAttemptID());
-    } else if (taskSpec.getTaskAttemptID().getTaskID().getId() == 1 &&
+    } else if (taskSpec.getTaskID().getId() == 1 &&
         taskSpec.getTaskAttemptID().getId() == 0) {
       LOG.info("Simulating Task Setup Failure during launch");
       throw new TezException("Simulating Task Setup Failure during launch for taskAttemptId=" +

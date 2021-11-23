@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.RootInputSpecUpdateProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexConfigurationDoneProto;
@@ -37,7 +38,7 @@ import org.apache.tez.runtime.api.InputSpecUpdate;
 
 import com.google.common.collect.Maps;
 
-public class VertexConfigurationDoneEvent implements HistoryEvent {
+public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware {
 
   private TezVertexID vertexID;
   private long reconfigureDoneTime;
@@ -182,6 +183,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
         + ", setParallelismCalledFlag=" + setParallelismCalledFlag;
   }
 
+  @Override
   public TezVertexID getVertexID() {
     return this.vertexID;
   }

@@ -61,7 +61,6 @@ import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.records.TezVertexID;
@@ -370,13 +369,12 @@ public class TezChild {
   private void cleanupOnTaskChanged(ContainerTask containerTask) {
     Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
-    TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getTaskID()
-        .getVertexID();
+    TezVertexID newVertexID = containerTask.getTaskSpec().getVertexID();
     if (lastVertexID != null) {
       if (!lastVertexID.equals(newVertexID)) {
         objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.VERTEX);
       }
-      if (!lastVertexID.getDAGId().equals(newVertexID.getDAGId())) {
+      if (!lastVertexID.getDAGID().equals(newVertexID.getDAGID())) {
         objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.DAG);
         startedInputsMap = HashMultimap.create();
       }

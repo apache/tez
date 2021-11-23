@@ -41,7 +41,7 @@ public class AMContainerEventLaunchRequest extends AMContainerEvent {
   }
 
   public TezDAGID getDAGId() {
-    return this.vertexId.getDAGId();
+    return this.vertexId.getDAGID();
   }
 
   public TezVertexID getVertexId() {

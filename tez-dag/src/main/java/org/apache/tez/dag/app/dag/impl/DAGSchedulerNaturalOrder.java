@@ -1,4 +1,4 @@
-/**
+/*
 * Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
 * distributed with this work for additional information
@@ -53,12 +53,12 @@ public class DAGSchedulerNaturalOrder extends DAGScheduler {
     int priorityHighLimit = priorityLowLimit - 2;
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Scheduling " + attempt.getID() + " between priorityLow: " + priorityLowLimit
+      LOG.debug("Scheduling " + attempt.getTaskAttemptID() + " between priorityLow: " + priorityLowLimit
           + " and priorityHigh: " + priorityHighLimit);
     }
     
     TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
-        attempt.getID(), priorityLowLimit, priorityHighLimit);
+        attempt.getTaskAttemptID(), priorityLowLimit, priorityHighLimit);
                                       
     sendEvent(attemptEvent);
   }

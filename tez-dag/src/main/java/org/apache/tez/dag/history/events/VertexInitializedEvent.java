@@ -35,6 +35,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.utils.TezEventUtils;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexInitializedProto;
@@ -42,7 +43,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
 
-public class VertexInitializedEvent implements HistoryEvent {
+public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
 
   private TezVertexID vertexID;
   private String vertexName;
@@ -180,8 +181,9 @@ public class VertexInitializedEvent implements HistoryEvent {
         + (servicePluginInfo != null ? servicePluginInfo : "null");
   }
 
+  @Override
   public TezVertexID getVertexID() {
-    return this.vertexID;
+    return vertexID;
   }
 
   public long getInitRequestedTime() {

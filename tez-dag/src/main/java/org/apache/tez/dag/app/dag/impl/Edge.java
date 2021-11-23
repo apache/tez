@@ -383,7 +383,7 @@ public class Edge {
         try {
           if (onDemandRouting) {
             srcTaskIndex = ((EdgeManagerPluginOnDemand) edgeManager).routeInputErrorEventToSource(
-                destTaskIndex, event.getIndex());            
+                destTaskIndex, event.getIndex());
           } else {
             srcTaskIndex = edgeManager.routeInputErrorEventToSource(event,
                 destTaskIndex, event.getIndex());
@@ -413,7 +413,7 @@ public class Edge {
               " destIndex=" + destTaskIndex + 
               " edgeManager=" + edgeManager.getClass().getName());
         }
-        TezTaskID srcTaskId = srcTask.getTaskId();
+        TezTaskID srcTaskId = srcTask.getTaskID();
         int taskAttemptIndex = event.getVersion();
         TezTaskAttemptID srcTaskAttemptId = TezTaskAttemptID.getInstance(srcTaskId,
             taskAttemptIndex);

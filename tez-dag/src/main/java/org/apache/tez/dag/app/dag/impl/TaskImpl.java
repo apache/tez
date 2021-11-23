@@ -40,6 +40,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
+import org.apache.tez.dag.records.TaskAttemptTerminationCause;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezTaskID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,10 +97,6 @@ import org.apache.tez.dag.app.rm.node.AMNodeEventTaskAttemptEnded;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskFinishedEvent;
 import org.apache.tez.dag.history.events.TaskStartedEvent;
-import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.TezBuilderUtils;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -434,7 +434,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   }
 
   @Override
-  public TezTaskID getTaskId() {
+  public TezTaskID getTaskID() {
     return taskId;
   }
 
@@ -523,7 +523,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     try {
       if (!attempts.containsKey(attemptID)) {
         throw new TezUncheckedException("Unknown TA: " + attemptID
-            + " asking for events from task:" + getTaskId());
+            + " asking for events from task:" + getTaskID());
       }
 
       if (tezEventsForTaskAttempts.size() > fromEventId) {
@@ -775,11 +775,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   private boolean addAndScheduleAttempt(TezTaskAttemptID schedulingCausalTA) {
     TaskAttempt attempt = createAttempt(attempts.size(), schedulingCausalTA);
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Created attempt " + attempt.getID());
+      LOG.debug("Created attempt " + attempt.getTaskAttemptID());
     }
     switch (attempts.size()) {
       case 0:
-        attempts = Collections.singletonMap(attempt.getID(), attempt);
+        attempts = Collections.singletonMap(attempt.getTaskAttemptID(), attempt);
         break;
 
       case 1:
@@ -787,12 +787,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             = new LinkedHashMap<TezTaskAttemptID, TaskAttempt>(maxFailedAttempts);
         newAttempts.putAll(attempts);
         attempts = newAttempts;
-        Preconditions.checkArgument(attempts.put(attempt.getID(), attempt) == null,
-            attempt.getID() + " already existed");
+        Preconditions.checkArgument(attempts.put(attempt.getTaskAttemptID(), attempt) == null,
+            attempt.getTaskAttemptID() + " already existed");
         break;
       default:
-        Preconditions.checkArgument(attempts.put(attempt.getID(), attempt) == null,
-            attempt.getID() + " already existed");
+        Preconditions.checkArgument(attempts.put(attempt.getTaskAttemptID(), attempt) == null,
+            attempt.getTaskAttemptID() + " already existed");
         break;
     }
 
@@ -819,7 +819,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     }
     */
 
-    this.taskAttemptStatus.put(attempt.getID().getId(), false);
+    this.taskAttemptStatus.put(attempt.getTaskAttemptID().getId(), false);
     //schedule the nextAttemptNumber
     // send event to DAG to assign priority and schedule the attempt with global
     // picture in mind
@@ -865,17 +865,17 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     LOG.error("Invalid event " + type + " on Task " + this.taskId + " in state:"
         + getInternalState());
     eventHandler.handle(new DAGEventDiagnosticsUpdate(
-        this.taskId.getVertexID().getDAGId(), "Invalid event " + type +
+        getDAGID(), "Invalid event " + type +
         " on Task " + this.taskId));
-    eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
+    eventHandler.handle(new DAGEvent(getDAGID(),
         DAGEventType.INTERNAL_ERROR));
   }
 
   protected void internalErrorUncaughtException(TaskEventType type, Exception e) {
     eventHandler.handle(new DAGEventDiagnosticsUpdate(
-        this.taskId.getVertexID().getDAGId(), "Uncaught exception when handling  event " + type +
+        getDAGID(), "Uncaught exception when handling  event " + type +
         " on Task " + this.taskId + ", error=" + e.getMessage()));
-    eventHandler.handle(new DAGEvent(this.taskId.getVertexID().getDAGId(),
+    eventHandler.handle(new DAGEvent(getDAGID(),
         DAGEventType.INTERNAL_ERROR));
   }
 
@@ -918,7 +918,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     TaskStartedEvent startEvt = new TaskStartedEvent(taskId,
         getVertex().getName(), scheduledTime, getLaunchTime());
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), startEvt));
+        new DAGHistoryEvent(getDAGID(), startEvt));
   }
 
   protected void logJobHistoryTaskFinishedEvent() {
@@ -930,7 +930,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         successfulAttempt,
         TaskState.SUCCEEDED, "", getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
+        new DAGHistoryEvent(getDAGID(), finishEvt));
   }
 
   protected void logJobHistoryTaskFailedEvent(TaskState finalState) {
@@ -941,7 +941,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
         getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
-        new DAGHistoryEvent(taskId.getVertexID().getDAGId(), finishEvt));
+        new DAGHistoryEvent(getDAGID(), finishEvt));
   }
 
   private void addDiagnosticInfo(String diag) {
@@ -994,7 +994,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             && tFinishedEvent != null) {
           Preconditions.checkArgument(tFinishedEvent.getState() == TaskState.KILLED,
               "TaskStartedEvent is not seen, but TaskFinishedEvent is seen and with invalid state="
-                  + tFinishedEvent.getState() + ", taskId=" + task.getTaskId());
+                  + tFinishedEvent.getState() + ", taskId=" + task.getTaskID());
           // TODO (TEZ-2938)
           // use tFinishedEvent.getTerminationCause after adding TaskTerminationCause to TaskFinishedEvent
           task.eventHandler.handle(new TaskEventTermination(task.taskId,
@@ -1043,22 +1043,22 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         } else {
           if (TaskAttemptState.SUCCEEDED.equals(ta.getState())) {
             LOG.info("Ignore speculation scheduling for task {} since it has succeeded with attempt {}.",
-                task.getTaskId(), ta.getID());
+                task.getTaskID(), ta.getTaskAttemptID());
             return;
           }
         }
       }
       if (earliestUnfinishedAttempt == null) {
         // no running (or SUCCEEDED) task attempt at this moment, no need to schedule speculative attempt either
-        LOG.info("Ignore speculation scheduling since there is no running attempt on task {}.", task.getTaskId());
+        LOG.info("Ignore speculation scheduling since there is no running attempt on task {}.", task.getTaskID());
         return;
       }
       if (task.commitAttempt != null) {
         LOG.info("Ignore speculation scheduling for task {} since commit has started with commitAttempt {}.",
-            task.getTaskId(), task.commitAttempt);
+            task.getTaskID(), task.commitAttempt);
         return;
       }
-      task.addAndScheduleAttempt(earliestUnfinishedAttempt.getID());
+      task.addAndScheduleAttempt(earliestUnfinishedAttempt.getTaskAttemptID());
     }
   }
 
@@ -1075,26 +1075,26 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         for (Entry<String, OutputCommitter> entry
             : task.getVertex().getOutputCommitters().entrySet()) {
           LOG.info("Recovering data for task from previous DAG attempt"
-              + ", taskId=" + task.getTaskId()
+              + ", taskId=" + task.getTaskID()
               + ", output=" + entry.getKey());
           OutputCommitter committer = entry.getValue();
           if (!committer.isTaskRecoverySupported()) {
             errorMsg = "Task recovery not supported by committer"
                 + ", failing task attempt";
             LOG.info(errorMsg
-                + ", taskId=" + task.getTaskId()
+                + ", taskId=" + task.getTaskID()
                 + ", attemptId=" + task.successfulAttempt
                 + ", output=" + entry.getKey());
             break;
           }
           try {
-            committer.recoverTask(task.getTaskId().getId(),
+            committer.recoverTask(task.getTaskID().getId(),
                 task.appContext.getApplicationAttemptId().getAttemptId()-1);
           } catch (Exception e) {
             errorMsg = "Task recovery failed by committer: "
                 + ExceptionUtils.getStackTrace(e);
             LOG.warn("Task recovery failed by committer"
-                + ", taskId=" + task.getTaskId()
+                + ", taskId=" + task.getTaskID()
                 + ", attemptId=" + task.successfulAttempt
                 + ", output=" + entry.getKey(), e);
             break;
@@ -1114,7 +1114,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         String errorMsg = recoverSuccessTaskAttempt(task);
         if (errorMsg != null) {
           LOG.info("Can not recover the successful task attempt, schedule new task attempt,"
-              + "taskId=" + task.getTaskId());
+              + "taskId=" + task.getTaskID());
           task.successfulAttempt = null;
           if (!task.addAndScheduleAttempt(successTaId)) {
             task.finished(TaskStateInternal.FAILED);
@@ -1150,12 +1150,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       // issue kill to all other attempts
       for (TaskAttempt attempt : task.attempts.values()) {
-        if (!attempt.getID().equals(task.successfulAttempt) &&
+        if (!attempt.getTaskAttemptID().equals(task.successfulAttempt) &&
             // This is okay because it can only talk us out of sending a
             //  TA_KILL message to an attempt that doesn't need one for
             //  other reasons.
             !attempt.isFinished()) {
-          LOG.info("Issuing kill to other attempt " + attempt.getID() + " as attempt: " +
+          LOG.info("Issuing kill to other attempt " + attempt.getTaskAttemptID() + " as attempt: " +
               task.successfulAttempt + " has succeeded");
           String diagnostics = null;
           TaskAttemptTerminationCause errCause = null;
@@ -1169,7 +1169,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             errCause = TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION;
           }
           task.eventHandler.handle(new TaskAttemptEventKillRequest(attempt
-              .getID(), diagnostics, errCause));
+              .getTaskAttemptID(), diagnostics, errCause));
         }
       }
       return task.finished(TaskStateInternal.SUCCEEDED);
@@ -1267,7 +1267,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       TaskAttempt taskAttempt = task.getAttempt(castEvent.getTaskAttemptID());
       if (taskAttempt.getAssignedContainer() != null) {
         NodeId nodeId = taskAttempt.getAssignedContainer().getNodeId();
-        task.appContext.getAppMaster().taskAttemptFailed(taskAttempt.getID(), nodeId);
+        task.appContext.getAppMaster().taskAttemptFailed(taskAttempt.getTaskAttemptID(), nodeId);
       }
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
@@ -1278,7 +1278,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             TaskAttemptStateInternal.FAILED);
         // we don't need a new event if we already have a spare
         if (task.shouldScheduleNewAttempt()) {
-          LOG.info("Scheduling new attempt for task: " + task.getTaskId()
+          LOG.info("Scheduling new attempt for task: " + task.getTaskID()
               + ", currentFailedAttempts: " + task.failedAttempts + ", maxFailedAttempts: "
               + task.maxFailedAttempts + ", maxAttempts: " + task.maxAttempts);
           if (!task.addAndScheduleAttempt(getSchedulingCausalTA())){
@@ -1289,11 +1289,11 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         if (castEvent.getTaskFailureType() == TaskFailureType.NON_FATAL) {
           LOG.info(
               "Failing task: {} due to too many failed attempts. currentFailedAttempts={}, maxFailedAttempts={}",
-              task.getTaskId(), task.failedAttempts, task.maxFailedAttempts);
+              task.getTaskID(), task.failedAttempts, task.maxFailedAttempts);
         } else {
           LOG.info(
               "Failing task: {} due to {} error reported by TaskAttempt. CurrentFailedAttempts={}",
-              task.getTaskId(), TaskFailureType.FATAL, task.failedAttempts);
+              task.getTaskID(), TaskFailureType.FATAL, task.failedAttempts);
         }
         task.handleTaskAttemptCompletion(
             ((TaskEventTAUpdate) event).getTaskAttemptID(),
@@ -1348,7 +1348,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       if (task.leafVertex) {
         LOG.error("Unexpected event for task of leaf vertex " + event.getType() + ", taskId: "
-            + task.getTaskId());
+            + task.getTaskID());
         task.internalError(event.getType());
       }
       Preconditions.checkState(castEvent.getCausalEvent() != null);
@@ -1418,7 +1418,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       task.addDiagnosticInfo(terminateEvent.getDiagnosticInfo());
       if (terminateEvent.isFromRecovery()) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Recovered to KILLED, taskId=" + task.getTaskId());
+          LOG.debug("Recovered to KILLED, taskId=" + task.getTaskID());
         }
       } else {
         task.logJobHistoryTaskFailedEvent(TaskState.KILLED);
@@ -1453,20 +1453,20 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // With this, recovery will end up failing for DAGs making use of InputInitializerEvents
       int succesfulAttemptInt = -1;
       if (successfulAttempt != null) {
-        succesfulAttemptInt = successfulAttempt.getID().getId();
+        succesfulAttemptInt = successfulAttempt.getTaskAttemptID().getId();
       }
-      task.stateChangeNotifier.taskSucceeded(task.getVertex().getName(), task.getTaskId(),
+      task.stateChangeNotifier.taskSucceeded(task.getVertex().getName(), task.getTaskID(),
           succesfulAttemptInt);
     }
   }
 
   private void killUnfinishedAttempt(TaskAttempt attempt, String logMsg, TaskAttemptTerminationCause errorCause) {
-    if (commitAttempt != null && commitAttempt.equals(attempt.getID())) {
+    if (commitAttempt != null && commitAttempt.equals(attempt.getTaskAttemptID())) {
       LOG.info("Unsetting commit attempt: " + commitAttempt + " since attempt is being killed");
       commitAttempt = null;
     }
     if (attempt != null && !attempt.isFinished()) {
-      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getID(), logMsg, errorCause));
+      eventHandler.handle(new TaskAttemptEventKillRequest(attempt.getTaskAttemptID(), logMsg, errorCause));
     }
   }
 
@@ -1485,7 +1485,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock.lock();
     try {
       // The first attempt will always have an index of 0.
-      return getAttempt(TezTaskAttemptID.getInstance(getTaskId(), 0)).getScheduleTime();
+      return getAttempt(TezTaskAttemptID.getInstance(getTaskID(), 0)).getScheduleTime();
     } finally {
       readLock.unlock();
     }

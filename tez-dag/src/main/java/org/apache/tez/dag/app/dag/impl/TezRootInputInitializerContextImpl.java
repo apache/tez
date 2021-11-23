@@ -63,7 +63,7 @@ public class TezRootInputInitializerContextImpl implements
 
   @Override
   public ApplicationId getApplicationId() {
-    return vertex.getVertexId().getDAGId().getApplicationId();
+    return vertex.getVertexId().getApplicationId();
   }
 
   @Override

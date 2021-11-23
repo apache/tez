@@ -26,9 +26,10 @@ import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexStartedProto;
 
-public class VertexStartedEvent implements HistoryEvent {
+public class VertexStartedEvent implements HistoryEvent, VertexIDAware {
 
   private TezVertexID vertexID;
   private long startRequestedTime;
@@ -94,8 +95,9 @@ public class VertexStartedEvent implements HistoryEvent {
         + ", startedTime=" + startTime;
   }
 
+  @Override
   public TezVertexID getVertexID() {
-    return this.vertexID;
+    return vertexID;
   }
 
   public long getStartRequestedTime() {

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -62,9 +62,9 @@ public class DAGSchedulerNaturalOrderControlled extends DAGScheduler {
       LinkedListMultimap.create();
   // Tacks vertices for which no additional scheduling checks are required. Once in this list, the
   // vertex is considered to be fully scheduled.
-  private final Set<String> scheduledVertices = new HashSet<String>();
+  private final Set<String> scheduledVertices = new HashSet<>();
   // Tracks tasks scheduled for a vertex.
-  private final Map<String, BitSet> vertexScheduledTasks = new HashMap<String, BitSet>();
+  private final Map<String, BitSet> vertexScheduledTasks = new HashMap<>();
 
   public DAGSchedulerNaturalOrderControlled(DAG dag, EventHandler dispatcher) {
     this.dag = dag;
@@ -83,14 +83,14 @@ public class DAGSchedulerNaturalOrderControlled extends DAGScheduler {
     int priorityHighLimit = priorityLowLimit - 2;
 
     TaskAttemptEventSchedule attemptEvent = new TaskAttemptEventSchedule(
-        attempt.getID(), priorityLowLimit, priorityHighLimit);
+        attempt.getTaskAttemptID(), priorityLowLimit, priorityHighLimit);
 
-    taskAttemptSeen(vertex.getName(), attempt.getID());
+    taskAttemptSeen(vertex.getName(), attempt.getTaskAttemptID());
 
     if (vertexAlreadyScheduled(vertex)) {
       // Vertex previously marked ready for scheduling.
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Scheduling " + attempt.getID() + " between priorityLow: " + priorityLowLimit
+        LOG.debug("Scheduling " + attempt.getTaskAttemptID() + " between priorityLow: " + priorityLowLimit
             + " and priorityHigh: " + priorityHighLimit);
       }
       sendEvent(attemptEvent);
@@ -155,8 +155,7 @@ public class DAGSchedulerNaturalOrderControlled extends DAGScheduler {
     List<Vertex> newlyScheduledVertices = Lists.newLinkedList();
     Map<Vertex, Edge> outputVertexEdgeMap = vertex.getOutputVertices();
     for (Vertex destVertex : outputVertexEdgeMap.keySet()) {
-      if (vertexAlreadyScheduled(destVertex)) { // Nothing to do if already scheduled.
-      } else {
+      if (!vertexAlreadyScheduled(destVertex)) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Attempting to schedule vertex: " + destVertex.getLogIdentifier() +
               " due to upstream event from " + vertex.getLogIdentifier());
