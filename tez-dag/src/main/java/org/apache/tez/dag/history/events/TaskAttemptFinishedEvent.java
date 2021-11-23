@@ -27,6 +27,7 @@ import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedPro
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-public class TaskAttemptFinishedEvent implements HistoryEvent {
+public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptFinishedEvent.class);
 
@@ -307,6 +308,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     return sb.toString();
   }
 
+  @Override
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptId;
   }

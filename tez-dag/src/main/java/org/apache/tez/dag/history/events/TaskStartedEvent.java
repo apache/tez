@@ -25,10 +25,11 @@ import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TaskIDAware;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskStartedProto;
 
-public class TaskStartedEvent implements HistoryEvent {
+public class TaskStartedEvent implements HistoryEvent, TaskIDAware {
 
   private TezTaskID taskID;
   private String vertexName;
@@ -104,6 +105,7 @@ public class TaskStartedEvent implements HistoryEvent {
         + ", launchTime=" + startTime;
   }
 
+  @Override
   public TezTaskID getTaskID() {
     return taskID;
   }

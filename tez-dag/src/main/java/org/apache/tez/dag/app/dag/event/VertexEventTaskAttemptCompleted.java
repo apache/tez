@@ -28,7 +28,7 @@ public class VertexEventTaskAttemptCompleted extends VertexEvent {
   
   public VertexEventTaskAttemptCompleted(TezTaskAttemptID taskAttemptId,
       TaskAttemptStateInternal state) {
-    super(taskAttemptId.getTaskID().getVertexID(), 
+    super(taskAttemptId.getVertexID(),
         VertexEventType.V_TASK_ATTEMPT_COMPLETED);
     this.attemptId = taskAttemptId;
     this.attempState = state;

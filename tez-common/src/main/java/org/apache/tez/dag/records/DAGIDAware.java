@@ -16,33 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history;
+package org.apache.tez.dag.records;
 
-import org.apache.tez.dag.records.DAGIDAware;
-import org.apache.tez.dag.records.TezDAGID;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-public class DAGHistoryEvent implements DAGIDAware {
+public interface DAGIDAware {
+    TezDAGID getDAGID();
 
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
-
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  @Override
-  public TezDAGID getDAGID() {
-    return this.dagID;
-  }
-
+    default ApplicationId getApplicationId() {
+        return getDAGID().getApplicationId();
+    }
 }

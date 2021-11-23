@@ -24,6 +24,7 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TaskIDAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -34,7 +35,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
 
-public class TaskFinishedEvent implements HistoryEvent {
+public class TaskFinishedEvent implements HistoryEvent, TaskIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskFinishedEvent.class);
 
@@ -160,6 +161,7 @@ public class TaskFinishedEvent implements HistoryEvent {
     return sb.toString();
   }
 
+  @Override
   public TezTaskID getTaskID() {
     return taskID;
   }

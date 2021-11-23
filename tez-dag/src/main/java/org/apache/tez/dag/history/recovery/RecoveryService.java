@@ -300,7 +300,7 @@ public class RecoveryService extends AbstractService {
       return;
     }
 
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
     if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
       DAGSubmittedEvent dagSubmittedEvent =
           (DAGSubmittedEvent) event.getHistoryEvent();
@@ -337,8 +337,8 @@ public class RecoveryService extends AbstractService {
           if (summaryEvent.writeToRecoveryImmediately()) {
             handleRecoveryEvent(event);
             // outputStream may already be closed and removed
-            if (outputStreamMap.containsKey(event.getDagID())) {
-              doFlush(outputStreamMap.get(event.getDagID()),
+            if (outputStreamMap.containsKey(event.getDAGID())) {
+              doFlush(outputStreamMap.get(event.getDAGID()),
                   appContext.getClock().getTime());
             }
           } else {
@@ -350,7 +350,7 @@ public class RecoveryService extends AbstractService {
           }
           if (eventType.equals(HistoryEventType.DAG_FINISHED)) {
             LOG.info("DAG completed"
-                + ", dagId=" + event.getDagID()
+                + ", dagId=" + event.getDAGID()
                 + ", queueSize=" + eventQueue.size());
             completedDAGs.add(dagId);
             if (outputStreamMap.containsKey(dagId)) {
@@ -359,7 +359,7 @@ public class RecoveryService extends AbstractService {
                 outputStreamMap.remove(dagId);
               } catch (IOException ioe) {
                 LOG.warn("Error when trying to flush/close recovery file for"
-                    + " dag, dagId=" + event.getDagID());
+                    + " dag, dagId=" + event.getDAGID());
               }
             }
           }
@@ -436,7 +436,7 @@ public class RecoveryService extends AbstractService {
       LOG.debug("Handling recovery event of type "
           + event.getHistoryEvent().getEventType());
     }
-    TezDAGID dagID = event.getDagID();
+    TezDAGID dagID = event.getDAGID();
 
     if (completedDAGs.contains(dagID)) {
       // no need to recover completed DAGs

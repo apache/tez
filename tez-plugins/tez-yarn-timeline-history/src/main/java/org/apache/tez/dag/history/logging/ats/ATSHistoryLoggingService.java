@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -291,7 +291,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   private boolean isValidEvent(DAGHistoryEvent event) {
     HistoryEventType eventType = event.getHistoryEvent().getEventType();
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
 
     if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
       DAGSubmittedEvent dagSubmittedEvent =
@@ -333,7 +333,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     for (DAGHistoryEvent event : events) {
       String domainId = getDomainForEvent(event);
       // skippedDags is updated in the above call so check again.
-      if (event.getDagID() != null && skippedDAGs.contains(event.getDagID())) {
+      if (event.getDAGID() != null && skippedDAGs.contains(event.getDAGID())) {
         continue;
       }
       List<TimelineEntity> eventEntities = HistoryEventTimelineConversion.convertToTimelineEntities(
@@ -377,7 +377,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       return domainId;
     }
 
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
     HistoryEvent historyEvent = event.getHistoryEvent();
     if (dagId == null || !HistoryEventType.isDAGSpecificEvent(historyEvent.getEventType())) {
       return domainId;

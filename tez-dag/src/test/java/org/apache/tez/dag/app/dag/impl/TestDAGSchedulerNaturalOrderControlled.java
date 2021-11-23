@@ -164,9 +164,9 @@ public class TestDAGSchedulerNaturalOrderControlled {
     for (Event raw : args.getAllValues()) {
       TaskAttemptEventSchedule event = (TaskAttemptEventSchedule) raw;
       if (count < vertices[2].getTotalTasks() - 3) {
-        assertEquals(2, event.getTaskAttemptID().getTaskID().getVertexID().getId());
+        assertEquals(2, event.getVertexID().getId());
       } else {
-        assertEquals(4, event.getTaskAttemptID().getTaskID().getVertexID().getId());
+        assertEquals(4, event.getVertexID().getId());
       }
       count++;
     }
@@ -364,7 +364,7 @@ public class TestDAGSchedulerNaturalOrderControlled {
     TaskAttempt taskAttempt = mock(TaskAttempt.class);
     TezTaskID taskId = TezTaskID.getInstance(vertexId, taskIdInt);
     TezTaskAttemptID taskAttemptId = TezTaskAttemptID.getInstance(taskId, attemptIdInt);
-    doReturn(taskAttemptId).when(taskAttempt).getID();
+    doReturn(taskAttemptId).when(taskAttempt).getTaskAttemptID();
     doReturn(vertexId).when(taskAttempt).getVertexID();
     return taskAttempt;
   }

@@ -189,7 +189,7 @@ public class TestTaskSchedulerManager {
     TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
-    when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
+    when(mockTaskAttempt.getTaskAttemptID()).thenReturn(mockAttemptId);
     Resource resource = Resource.newInstance(1024, 1);
     ContainerContext containerContext =
         new ContainerContext(new HashMap<String, LocalResource>(), new Credentials(),
@@ -228,7 +228,7 @@ public class TestTaskSchedulerManager {
     TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
-    when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
+    when(mockTaskAttempt.getTaskAttemptID()).thenReturn(mockAttemptId);
     Resource resource = Resource.newInstance(1024, 1);
     ContainerContext containerContext =
         new ContainerContext(new HashMap<String, LocalResource>(), new Credentials(),
@@ -268,7 +268,7 @@ public class TestTaskSchedulerManager {
     TaskAttemptImpl mockTaskAttempt = mock(TaskAttemptImpl.class);
     TezTaskAttemptID mockAttemptId = mock(TezTaskAttemptID.class);
     when(mockAttemptId.getId()).thenReturn(0);
-    when(mockTaskAttempt.getID()).thenReturn(mockAttemptId);
+    when(mockTaskAttempt.getTaskAttemptID()).thenReturn(mockAttemptId);
 
     ContainerId mockCId = mock(ContainerId.class);
     Container container = mock(Container.class);

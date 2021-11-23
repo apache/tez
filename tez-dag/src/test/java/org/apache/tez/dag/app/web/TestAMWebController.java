@@ -640,7 +640,7 @@ public class TestAMWebController {
     //Creating mock tasks and attaching to mock vertex
     Map<TezTaskID, Task> taskMap = Maps.newHashMap();
     for(Task task : tasks) {
-      TezTaskID taskId = task.getTaskId();
+      TezTaskID taskId = task.getTaskID();
       int taskIndex = taskId.getId();
       doReturn(task).when(mockVertex).getTask(taskIndex);
       taskMap.put(taskId, task);
@@ -688,7 +688,7 @@ public class TestAMWebController {
   private Task createMockTask(String taskIDStr, TaskState status, float progress) {
     Task mockTask = mock(Task.class);
 
-    doReturn(TezTaskID.fromString(taskIDStr)).when(mockTask).getTaskId();
+    doReturn(TezTaskID.fromString(taskIDStr)).when(mockTask).getTaskID();
     doReturn(status).when(mockTask).getState();
     doReturn(progress).when(mockTask).getProgress();
 
@@ -711,7 +711,7 @@ public class TestAMWebController {
 
   private void verifySingleTaskResult(Task mockTask, Map<String, String> taskResult) {
     Assert.assertEquals(3, taskResult.size());
-    Assert.assertEquals(mockTask.getTaskId().toString(), taskResult.get("id"));
+    Assert.assertEquals(mockTask.getTaskID().toString(), taskResult.get("id"));
     Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
     Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
@@ -777,7 +777,7 @@ public class TestAMWebController {
     //Creating mock task and attaching to mock Vertex
     TezTaskID taskID = TezTaskID.fromString("task_1441301219877_0109_1_00_000000");
     Task mockTask = mock(Task.class);
-    doReturn(taskID).when(mockTask).getTaskId();
+    doReturn(taskID).when(mockTask).getTaskID();
     int taskIndex = taskID.getId();
     doReturn(mockTask).when(mockVertex).getTask(taskIndex);
     doReturn(ImmutableMap.of(
@@ -787,7 +787,7 @@ public class TestAMWebController {
     //Creating mock tasks and attaching to mock vertex
     Map<TezTaskAttemptID, TaskAttempt> attemptsMap = Maps.newHashMap();
     for(TaskAttempt attempt : attempts) {
-      TezTaskAttemptID attemptId = attempt.getID();
+      TezTaskAttemptID attemptId = attempt.getTaskAttemptID();
       doReturn(attempt).when(mockTask).getAttempt(attemptId);
       attemptsMap.put(attemptId, attempt);
     }
@@ -835,7 +835,7 @@ public class TestAMWebController {
   private TaskAttempt createMockAttempt(String attemptIDStr, TaskAttemptState status, float progress) {
     TaskAttempt mockAttempt = mock(TaskAttempt.class);
 
-    doReturn(TezTaskAttemptID.fromString(attemptIDStr)).when(mockAttempt).getID();
+    doReturn(TezTaskAttemptID.fromString(attemptIDStr)).when(mockAttempt).getTaskAttemptID();
     doReturn(status).when(mockAttempt).getState();
     doReturn(progress).when(mockAttempt).getProgress();
 
@@ -858,7 +858,7 @@ public class TestAMWebController {
 
   private void verifySingleAttemptResult(TaskAttempt mockTask, Map<String, String> taskResult) {
     Assert.assertEquals(3, taskResult.size());
-    Assert.assertEquals(mockTask.getID().toString(), taskResult.get("id"));
+    Assert.assertEquals(mockTask.getTaskAttemptID().toString(), taskResult.get("id"));
     Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
     Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }

@@ -261,7 +261,7 @@ public class TestMockDAGAppMaster {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vB.getName());
     TaskImpl tImpl = (TaskImpl) vImpl.getTask(1);
-    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     List<TezEvent> tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
@@ -275,7 +275,7 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(2, tEvents.size()); // 2 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
@@ -289,7 +289,7 @@ public class TestMockDAGAppMaster {
         (targetIndex1 == 0 && targetIndex2 == 1) || (targetIndex1 == 1 && targetIndex2 == 0));
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(1);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     tEvents = vImpl.getTaskAttemptTezEvents(taId, 0, 0, 1000).getEvents();
     Assert.assertEquals(1, tEvents.size()); // 1 from vA
     Assert.assertEquals(vA.getName(), tEvents.get(0).getDestinationInfo().getEdgeVertexName());
@@ -398,17 +398,17 @@ public class TestMockDAGAppMaster {
     // vC uses on demand routing and its task does not provide events
     VertexImpl vImpl = (VertexImpl) dagImpl.getVertex(vC.getName());
     TaskImpl tImpl = (TaskImpl) vImpl.getTask(0);
-    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    TezTaskAttemptID taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     Assert.assertEquals(0, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
     // vD is mixed mode and only 1 out of 2 edges does legacy routing with task providing events
     vImpl = (VertexImpl) dagImpl.getVertex(vD.getName());
     tImpl = (TaskImpl) vImpl.getTask(0);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
     // vE has single legacy edge and does not use on demand routing and its task provides events
     vImpl = (VertexImpl) dagImpl.getVertex(vE.getName());
     tImpl = (TaskImpl) vImpl.getTask(0);
-    taId = TezTaskAttemptID.getInstance(tImpl.getTaskId(), 0);
+    taId = TezTaskAttemptID.getInstance(tImpl.getTaskID(), 0);
     Assert.assertEquals(1, tImpl.getTaskAttemptTezEvents(taId, 0, 1000).size());
 
     tezClient.stop();

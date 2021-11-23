@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -150,7 +150,7 @@ public class HistoryEventProtoConverter {
     }
     if (vertexId != null) {
       builder.setVertexId(vertexId.toString());
-      dagId = vertexId.getDAGId();
+      dagId = vertexId.getDAGID();
     }
     if (dagId != null) {
       builder.setDagId(dagId.toString());
@@ -240,7 +240,7 @@ public class HistoryEventProtoConverter {
 
   private HistoryEventProto convertDAGSubmittedEvent(DAGSubmittedEvent event) {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getSubmitTime(),
-        event.getDagID(), null, event.getApplicationAttemptId(), null, null, null,
+        event.getDAGID(), null, event.getApplicationAttemptId(), null, null, null,
         event.getUser());
     addEventData(builder, ATSConstants.DAG_NAME, event.getDAGName());
     if (event.getDAGPlan().hasCallerContext() &&
@@ -267,11 +267,11 @@ public class HistoryEventProtoConverter {
 
   private HistoryEventProto convertDAGInitializedEvent(DAGInitializedEvent event) {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getInitTime(),
-        event.getDagID(), null, null, null, null, null, event.getUser());
+        event.getDAGID(), null, null, null, null, null, event.getUser());
     addEventData(builder, ATSConstants.DAG_NAME, event.getDagName());
 
     if (event.getVertexNameIDMap() != null) {
-      Map<String, Object> nameIdStrMap = new TreeMap<String, Object>();
+      Map<String, Object> nameIdStrMap = new TreeMap<>();
       for (Entry<String, TezVertexID> entry : event.getVertexNameIDMap().entrySet()) {
         nameIdStrMap.put(entry.getKey(), entry.getValue().toString());
       }
@@ -282,7 +282,7 @@ public class HistoryEventProtoConverter {
 
   private HistoryEventProto convertDAGStartedEvent(DAGStartedEvent event) {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getStartTime(),
-        event.getDagID(), null, null, null, null, null, event.getUser());
+        event.getDAGID(), null, null, null, null, null, event.getUser());
 
     addEventData(builder, ATSConstants.DAG_NAME, event.getDagName());
     addEventData(builder, ATSConstants.STATUS, event.getDagState().name());
@@ -292,7 +292,7 @@ public class HistoryEventProtoConverter {
 
   private HistoryEventProto convertDAGFinishedEvent(DAGFinishedEvent event) {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getFinishTime(),
-        event.getDagID(), null, event.getApplicationAttemptId(), null, null, null,
+        event.getDAGID(), null, event.getApplicationAttemptId(), null, null, null,
         event.getUser());
     addEventData(builder, ATSConstants.DAG_NAME, event.getDagName());
     if (event.getDAGPlan().hasCallerContext()) {
@@ -473,7 +473,7 @@ public class HistoryEventProtoConverter {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getReconfigureDoneTime(),
         null, null, null, event.getVertexID(), null, null, null);
     if (event.getSourceEdgeProperties() != null && !event.getSourceEdgeProperties().isEmpty()) {
-      Map<String, Object> updatedEdgeManagers = new HashMap<String, Object>();
+      Map<String, Object> updatedEdgeManagers = new HashMap<>();
       for (Entry<String, EdgeProperty> entry : event.getSourceEdgeProperties().entrySet()) {
         updatedEdgeManagers.put(entry.getKey(), DAGUtils.convertEdgeProperty(entry.getValue()));
       }

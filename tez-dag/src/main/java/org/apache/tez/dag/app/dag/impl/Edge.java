@@ -413,7 +413,7 @@ public class Edge {
               " destIndex=" + destTaskIndex + 
               " edgeManager=" + edgeManager.getClass().getName());
         }
-        TezTaskID srcTaskId = srcTask.getTaskId();
+        TezTaskID srcTaskId = srcTask.getTaskID();
         int srcTaskAttemptIndex = inputReadErrorEvent.getVersion();
         TezTaskAttemptID srcTaskAttemptId = TezTaskAttemptID.getInstance(srcTaskId,
             srcTaskAttemptIndex);

@@ -42,7 +42,7 @@ public class AMSchedulerEventTAEnded extends AMSchedulerEvent {
   }
 
   public TezTaskAttemptID getAttemptID() {
-    return this.attempt.getID();
+    return this.attempt.getTaskAttemptID();
   }
 
   public TaskAttempt getAttempt() {

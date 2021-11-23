@@ -19,13 +19,14 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
 /**
  * This class encapsulates task attempt related events.
  *
  */
-public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> {
+public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> implements TaskAttemptIDAware {
 
   private TezTaskAttemptID attemptID;
   
@@ -39,6 +40,7 @@ public class TaskAttemptEvent extends TezAbstractEvent<TaskAttemptEventType> {
     this.attemptID = id;
   }
 
+  @Override
   public TezTaskAttemptID getTaskAttemptID() {
     return attemptID;
   }

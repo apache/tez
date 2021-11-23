@@ -389,7 +389,7 @@ public class TaskSchedulerManager extends AbstractService implements
       String msg = "Error in TaskScheduler for handling Task De-allocation"
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
-          + ", taskAttemptId=" + attempt.getID();
+          + ", taskAttemptId=" + attempt.getTaskAttemptID();
       LOG.error(msg, e);
       sendEvent(
           new DAGAppMasterEventUserServiceFatalError(
@@ -403,10 +403,10 @@ public class TaskSchedulerManager extends AbstractService implements
     ContainerId attemptContainerId = attempt.getAssignedContainerID();
 
     if(!wasContainerAllocated) {
-      LOG.info("Task: " + attempt.getID() +
+      LOG.info("Task: " + attempt.getTaskAttemptID() +
           " has no container assignment in the scheduler");
       if (attemptContainerId != null) {
-        LOG.error("No container allocated to task: " + attempt.getID()
+        LOG.error("No container allocated to task: " + attempt.getTaskAttemptID()
             + " according to scheduler. Task reported container id: "
             + attemptContainerId);
       }
@@ -425,7 +425,7 @@ public class TaskSchedulerManager extends AbstractService implements
         Container container = amContainer.getContainer();
         sendEvent(new AMNodeEventTaskAttemptEnded(container.getNodeId(), event.getSchedulerId(),
             attemptContainerId,
-            attempt.getID(), event.getState() == TaskAttemptState.FAILED));
+            attempt.getTaskAttemptID(), event.getState() == TaskAttemptState.FAILED));
       }
     }
   }
@@ -458,7 +458,7 @@ public class TaskSchedulerManager extends AbstractService implements
       String msg = "Error in TaskScheduler for handling Task De-allocation"
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
-          + ", taskAttemptId=" + attempt.getID();
+          + ", taskAttemptId=" + attempt.getTaskAttemptID();
       LOG.error(msg, e);
       sendEvent(
           new DAGAppMasterEventUserServiceFatalError(
@@ -468,7 +468,7 @@ public class TaskSchedulerManager extends AbstractService implements
     }
 
     if (!wasContainerAllocated) {
-      LOG.error("De-allocated successful task: " + attempt.getID()
+      LOG.error("De-allocated successful task: " + attempt.getTaskAttemptID()
           + ", but TaskScheduler reported no container assigned to task");
     }
   }
@@ -483,15 +483,15 @@ public class TaskSchedulerManager extends AbstractService implements
       if (taskAffinity != null) {
         Vertex vertex = appContext.getCurrentDAG().getVertex(taskAffinity.getVertexName());
         Objects.requireNonNull(vertex, "Invalid vertex in task based affinity " + taskAffinity
-            + " for attempt: " + taskAttempt.getID());
+            + " for attempt: " + taskAttempt.getTaskAttemptID());
         int taskIndex = taskAffinity.getTaskIndex(); 
         Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(), 
             "Invalid taskIndex in task based affinity " + taskAffinity 
-            + " for attempt: " + taskAttempt.getID());
+            + " for attempt: " + taskAttempt.getTaskAttemptID());
         TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
         if (affinityAttempt != null) {
           Objects.requireNonNull(affinityAttempt.getAssignedContainerID(),
-              affinityAttempt.getID() == null ? null : affinityAttempt.getID().toString());
+              affinityAttempt.getTaskAttemptID() == null ? null : affinityAttempt.getTaskAttemptID().toString());
           try {
             taskSchedulers[event.getSchedulerId()].allocateTask(taskAttempt,
                 event.getCapability(),
@@ -503,7 +503,7 @@ public class TaskSchedulerManager extends AbstractService implements
             String msg = "Error in TaskScheduler for handling Task Allocation"
                 + ", eventType=" + event.getType()
                 + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
-                + ", taskAttemptId=" + taskAttempt.getID();
+                + ", taskAttemptId=" + taskAttempt.getTaskAttemptID();
             LOG.error(msg, e);
             sendEvent(
                 new DAGAppMasterEventUserServiceFatalError(
@@ -513,7 +513,7 @@ public class TaskSchedulerManager extends AbstractService implements
           return;
         }
         LOG.info("No attempt for task affinity to " + taskAffinity + " for attempt "
-            + taskAttempt.getID() + " Ignoring.");
+            + taskAttempt.getTaskAttemptID() + " Ignoring.");
         // fall through with null hosts/racks
       } else {
         hosts = (locationHint.getHosts() != null) ? locationHint
@@ -536,7 +536,7 @@ public class TaskSchedulerManager extends AbstractService implements
       String msg = "Error in TaskScheduler for handling Task Allocation"
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
-          + ", taskAttemptId=" + taskAttempt.getID();
+          + ", taskAttemptId=" + taskAttempt.getTaskAttemptID();
       LOG.error(msg, e);
       sendEvent(
           new DAGAppMasterEventUserServiceFatalError(
@@ -552,7 +552,7 @@ public class TaskSchedulerManager extends AbstractService implements
       String msg = "Error in TaskScheduler for handling Task State Update"
           + ", eventType=" + event.getType()
           + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(event.getSchedulerId(), appContext)
-          + ", taskAttemptId=" + event.getTaskAttempt().getID()
+          + ", taskAttemptId=" + event.getTaskAttempt().getTaskAttemptID()
           + ", state=" + event.getState();
       LOG.error(msg, e);
       sendEvent(
@@ -763,7 +763,7 @@ public class TaskSchedulerManager extends AbstractService implements
             event.getContainerContext(), event.getLauncherId(), event.getTaskCommId()));
       }
     }
-    sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getID(),
+    sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getTaskAttemptID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
             .getContainerContext().getCredentials(), event.getPriority()));
   }

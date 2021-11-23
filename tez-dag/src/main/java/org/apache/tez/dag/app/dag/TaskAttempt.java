@@ -28,17 +28,15 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Read only view of TaskAttempt.
  */
-public interface TaskAttempt {
+public interface TaskAttempt extends TaskAttemptIDAware {
 
   public static class TaskAttemptStatus {
     public TezTaskAttemptID id;
@@ -66,11 +64,6 @@ public interface TaskAttempt {
       }
     }
   }
-  
-  TezTaskAttemptID getID();
-  TezTaskID getTaskID();
-  TezVertexID getVertexID();
-  TezDAGID getDAGID();
 
   Task getTask();
   TaskAttemptReport getReport();

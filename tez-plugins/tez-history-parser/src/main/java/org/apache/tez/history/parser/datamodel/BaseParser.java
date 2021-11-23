@@ -90,9 +90,8 @@ public abstract class BaseParser {
       //Link task to task attempt
       TezTaskAttemptID taskAttemptId = TezTaskAttemptID.fromString(attemptInfo
           .getTaskAttemptId());
-      VertexInfo vertexInfo = dagInfo.getVertexFromId(taskAttemptId.getTaskID()
-          .getVertexID().toString());
-      Preconditions.checkState(vertexInfo != null, "Vertex " + taskAttemptId.getTaskID()
+      VertexInfo vertexInfo = dagInfo.getVertexFromId(taskAttemptId.getVertexID().toString());
+      Preconditions.checkState(vertexInfo != null, "Vertex " + taskAttemptId
           .getVertexID().toString() + " is not present in DAG");
       TaskInfo taskInfo = vertexInfo.getTask(taskAttemptId.getTaskID().toString());
       attemptInfo.setTaskInfo(taskInfo);

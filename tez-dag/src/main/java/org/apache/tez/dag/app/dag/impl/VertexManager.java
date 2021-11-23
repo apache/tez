@@ -226,7 +226,7 @@ public class VertexManager {
     @Override
     public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
       checkAndThrowIfDone();
-      List<ScheduleTaskRequest> schedTasks = new ArrayList<ScheduleTaskRequest>(tasks.size());
+      List<ScheduleTaskRequest> schedTasks = new ArrayList<>(tasks.size());
       for (TaskWithLocationHint task : tasks) {
         schedTasks.add(ScheduleTaskRequest.create(
             task.getTaskIndex(), task.getTaskLocationHint()));
@@ -292,7 +292,7 @@ public class VertexManager {
           // attempt id won't be used anyway
           EventMetaData destinationMeta = new EventMetaData(EventProducerConsumerType.PROCESSOR,
             managedVertex.getName(), managedVertex.getName(),
-            TezTaskAttemptID.getInstance(managedVertex.getTask(taskId).getTaskId(), -1));
+            TezTaskAttemptID.getInstance(managedVertex.getTask(taskId).getTaskID(), -1));
           tezEvent.setDestinationInfo(destinationMeta);
           tezEvents.add(tezEvent);
         }
@@ -571,7 +571,7 @@ public class VertexManager {
       // state change must be triggered via an event transition
       LOG.error("Error after vertex manager callback " + managedVertex.getLogIdentifier(), e);
       appContext.getEventHandler().handle(
-          (new DAGEventInternalError(managedVertex.getVertexId().getDAGId(),
+          (new DAGEventInternalError(managedVertex.getVertexId().getDAGID(),
               "Error in VertexManager for vertex: " + managedVertex.getLogIdentifier()
               + ", error=" + ExceptionUtils.getStackTrace(e))));
     }
