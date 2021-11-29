@@ -572,4 +572,12 @@ public class TezCommonUtils {
       ? Integer.parseInt(javaVersionString.split("\\.")[1]) // "1.8" -> 8
       : Integer.parseInt(javaVersionString.split("\\.")[0]); // "9.x" -> 9, "11.x" -> 11
   }
+
+  public static Throwable findRootCause(Throwable throwable) {
+    Throwable rootCause = throwable;
+    while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+      rootCause = rootCause.getCause();
+    }
+    return rootCause;
+  }
 }

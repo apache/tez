@@ -24,6 +24,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedByInterruptException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -57,6 +58,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.RunnableWithNdc;
+import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -430,11 +432,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       Thread.interrupted();
       if (eventRouterThread != null) {
         eventRouterThread.interrupt();
-        LOG.info("Joining on EventRouter");
+        LOG.info("Joining on EventRouter (on close)");
         try {
           eventRouterThread.join();
         } catch (InterruptedException e) {
-          LOG.info("Ignoring interrupt while waiting for the router thread to die");
+          LOG.info("Ignoring interrupt while waiting for the router thread to die (on close)");
           Thread.currentThread().interrupt();
         }
         eventRouterThread = null;
@@ -748,6 +750,10 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         break;
       }
     } catch (Throwable t) {
+      if (this.state.get() == State.CLOSED && exceptionCanBeIgnoredInAFinishedTask(t)) {
+        LOG.info("Ignoring exception while handling an event (as task is already closed)", t);
+        return true;
+      }
       LOG.warn("Failed to handle event", t);
       registerError();
       EventMetaData sourceInfo = new EventMetaData(
@@ -763,6 +769,13 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
       return false;
     }
     return true;
+  }
+
+  private boolean exceptionCanBeIgnoredInAFinishedTask(Throwable t) {
+    Throwable rootCause = TezCommonUtils.findRootCause(t);
+    LOG.debug("Checking exception in exceptionCanBeIgnoredInAFinishedTask: {}", rootCause.getClass());
+    return rootCause instanceof InterruptedException || // any kind of thread interruption
+        rootCause instanceof ClosedByInterruptException; // exception thrown from MR inputs
   }
 
   @Override
@@ -856,11 +869,11 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     setTaskDone();
     if (eventRouterThread != null) {
       eventRouterThread.interrupt();
-      LOG.info("Joining on EventRouter");
+      LOG.info("Joining on EventRouter (on cleanup)");
       try {
         eventRouterThread.join();
       } catch (InterruptedException e) {
-        LOG.info("Ignoring interrupt while waiting for the router thread to die");
+        LOG.info("Ignoring interrupt while waiting for the router thread to die (on cleanup)");
         Thread.currentThread().interrupt();
       }
       eventRouterThread = null;
