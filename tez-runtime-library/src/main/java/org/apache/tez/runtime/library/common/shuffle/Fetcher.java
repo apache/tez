@@ -494,8 +494,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   }
 
   private HostFetchResult setupConnection(Collection<InputAttemptIdentifier> attempts) {
+    StringBuilder baseURI = null;
     try {
-      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
+      baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
           port, partition, partitionCount, appId.toString(), dagIdentifier, httpConnectionParams.isSslShuffle());
       this.url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts,
           httpConnectionParams.isKeepAlive());
@@ -547,9 +548,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         }
       } else {
         InputAttemptIdentifier firstAttempt = attempts.iterator().next();
-        LOG.warn(String.format(
-            "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
-            localHostname, host, port, firstAttempt), e);
+        LOG.warn("FETCH_FAILURE: Fetch Failure while connecting from {} to: {}:{}, attempt: {}, url: {}"
+            + " Informing ShuffleManager", localHostname, host, port, firstAttempt, baseURI, e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
             new InputAttemptFetchFailure[] { new InputAttemptFetchFailure(firstAttempt) }, true);
       }
