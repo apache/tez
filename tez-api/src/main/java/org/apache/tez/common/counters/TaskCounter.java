@@ -21,6 +21,7 @@ package org.apache.tez.common.counters;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 // Counters used by Task classes
+// Keep in sync with tez-ui/src/main/webapp/config/default-app-conf.js
 @Private
 public enum TaskCounter {
   // TODO Eventually, rename counters to be non-MR specific and map them to MR equivalent.

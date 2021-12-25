@@ -195,6 +195,10 @@ module.exports = { // Tez App configurations
           counterGroupName: "org.apache.tez.common.counters.TaskCounter",
         },
         {
+          counterName: "INPUT_SPLIT_LENGTH_BYTES",
+          counterGroupName: "org.apache.tez.common.counters.TaskCounter",
+        },
+        {
           counterName: "OUTPUT_RECORDS",
           counterGroupName: "org.apache.tez.common.counters.TaskCounter",
         },
@@ -224,6 +228,10 @@ module.exports = { // Tez App configurations
         },
         {
           counterName: "ADDITIONAL_SPILL_COUNT",
+          counterGroupName: "org.apache.tez.common.counters.TaskCounter",
+        },
+        {
+          counterName: "SHUFFLE_CHUNK_COUNT",
           counterGroupName: "org.apache.tez.common.counters.TaskCounter",
         },
         {
@@ -319,6 +327,14 @@ module.exports = { // Tez App configurations
         },
         {
           counterName :"NUM_FAILED_UBERTASKS",
+          counterGroupName :"org.apache.tez.common.counters.DAGCounter",
+        },
+        {
+          counterName :"AM_CPU_MILLISECONDS",
+          counterGroupName :"org.apache.tez.common.counters.DAGCounter",
+        },
+        {
+          counterName :"AM_GC_TIME_MILLIS",
           counterGroupName :"org.apache.tez.common.counters.DAGCounter",
         },
 

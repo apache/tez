@@ -22,6 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
 // Per-job counters
+// Keep in sync with tez-ui/src/main/webapp/config/default-app-conf.js
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public enum DAGCounter {
