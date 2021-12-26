@@ -156,7 +156,7 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
         try {
           Thread.sleep(timeOutCheckInterval);
         } catch (InterruptedException e) {
-        	Thread.currentThread().interrupt();
+          Thread.currentThread().interrupt();
         }
       }
     }
