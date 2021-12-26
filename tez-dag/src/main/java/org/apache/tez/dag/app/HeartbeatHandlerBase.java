@@ -42,7 +42,6 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
   protected final AppContext appContext;
   
   private ConcurrentMap<T, ReportTime> runningMap;
-  private volatile boolean stopped;
 
   public HeartbeatHandlerBase(AppContext appContext, int expectedConcurrency, String name) {
     super(name);
@@ -70,7 +69,6 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
 
   @Override
   public void serviceStop() {
-    stopped = true;
     if (timeOutCheckerThread != null) {
       timeOutCheckerThread.interrupt();
     }
@@ -140,7 +138,7 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
 
     @Override
     public void run() {
-      while (!stopped && !Thread.currentThread().isInterrupted()) {
+      while (!Thread.currentThread().isInterrupted()) {
         Iterator<Map.Entry<T, ReportTime>> iterator =
             runningMap.entrySet().iterator();
 
@@ -158,7 +156,7 @@ public abstract class HeartbeatHandlerBase<T> extends AbstractService {
         try {
           Thread.sleep(timeOutCheckInterval);
         } catch (InterruptedException e) {
-          break;
+          Thread.currentThread().interrupt();
         }
       }
     }
