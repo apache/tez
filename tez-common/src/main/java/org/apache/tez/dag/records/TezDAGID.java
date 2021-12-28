@@ -21,6 +21,8 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
@@ -133,6 +135,7 @@ public class TezDAGID extends TezID {
     super.write(out);
   }
 
+  public static final Pattern DAG_ID_PATTERN = Pattern.compile("dag_(.+)_(\\d+)_(\\d+)");
   // DO NOT CHANGE THIS. DAGClient replicates this code to create DAG id string
   public static final String DAG = "dag";
   static final ThreadLocal<FastNumberFormat> tezAppIdFormat = new ThreadLocal<FastNumberFormat>() {
@@ -175,25 +178,15 @@ public class TezDAGID extends TezID {
   }
 
   public static TezDAGID fromString(String dagId) {
-    int id = 0;
-    int appId = 0;
-    String[] split = dagId.split("_");
-    if (split.length != 4 || !dagId.startsWith(DAG + "_")) {
+    final Matcher match = DAG_ID_PATTERN.matcher(dagId);
+    if (!match.find()) {
       throw new IllegalArgumentException("Invalid DAG Id format : " + dagId);
     }
-    String rmId = split[1];
-    try {
-      appId = Integer.parseInt(split[2]);
-    } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Error while parsing App Id '"
-          + split[2] + "' of DAG Id : " + dagId);
-    }
-    try {
-      id = Integer.parseInt(split[3]);
-    } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Error while parsing Id '" + split[3]
-          + "' of DAG Id : " + dagId);
-    }
+
+    final String rmId = match.group(1);
+    final int appId = Integer.parseInt(match.group(2));
+    final int id = Integer.parseInt(match.group(3)); 
+
     return TezDAGID.getInstance(rmId, appId, id);
   }
 
