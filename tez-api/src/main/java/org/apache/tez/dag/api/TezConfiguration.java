@@ -1995,6 +1995,18 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Long value
+   * Status Cache timeout window in minutes for the DAGClient.
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS = TEZ_PREFIX
+      + "client.dag.status.cache.timeout-secs";
+  // Default timeout is 60 seconds.
+  public static final long TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT = 60;
+
+  /**
+   * Long value
    * Time to wait (in milliseconds) for yarn app's diagnotics is available
    * Workaround for YARN-2560
    */

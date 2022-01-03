@@ -27,9 +27,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.CachedEntity;
 import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.yarn.exceptions.ApplicationNotFoundException;
@@ -58,13 +60,15 @@ public class DAGClientImpl extends DAGClient {
   private final String dagId;
   private final TezConfiguration conf;
   private final FrameworkClient frameworkClient;
-
+  /**
+   * Container to cache the last {@link DAGStatus}.
+   */
+  private final CachedEntity<DAGStatus> cachedDAGStatusRef;
   @VisibleForTesting
   protected DAGClientInternal realClient;
-  private boolean dagCompleted = false;
+  private volatile boolean dagCompleted = false;
   @VisibleForTesting
   protected boolean isATSEnabled = false;
-  private DAGStatus cachedDagStatus = null;
   Map<String, VertexStatus> cachedVertexStatus = new HashMap<String, VertexStatus>();
 
   private static final long SLEEP_FOR_COMPLETION = 500;
@@ -110,6 +114,28 @@ public class DAGClientImpl extends DAGClient {
     this.diagnoticsWaitTimeout = conf.getLong(
         TezConfiguration.TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS,
         TezConfiguration.TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS_DEFAULT);
+    cachedDAGStatusRef = initCacheDAGRefFromConf(conf);
+  }
+
+  /**
+   * Constructs a new {@link CachedEntity} for {@link DAGStatus}.
+   * @param tezConf TEZ configuration parameters.
+   * @return a caching entry to hold the {@link DAGStatus}.
+   */
+  protected CachedEntity<DAGStatus> initCacheDAGRefFromConf(TezConfiguration tezConf) {
+    long clientDAGStatusCacheTimeOut = tezConf.getLong(
+        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS,
+        TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT);
+    if (clientDAGStatusCacheTimeOut <= 0) {
+      LOG.error("DAG Status cache timeout interval should be positive. Enforcing default value.");
+      clientDAGStatusCacheTimeOut =
+          TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT;
+    }
+    return new CachedEntity<>(TimeUnit.SECONDS, clientDAGStatusCacheTimeOut);
+  }
+
+  protected CachedEntity<DAGStatus> getCachedDAGStatusRef() {
+    return cachedDAGStatusRef;
   }
 
   @Override
@@ -133,13 +159,11 @@ public class DAGClientImpl extends DAGClient {
     }
 
     long startTime = System.currentTimeMillis();
-    boolean refreshStatus;
-    DAGStatus dagStatus;
-    if(cachedDagStatus != null) {
-      dagStatus = cachedDagStatus;
-      refreshStatus = true;
-    } else {
-      // For the first lookup only. After this cachedDagStatus should be populated.
+
+    DAGStatus dagStatus = cachedDAGStatusRef.getValue();
+    boolean refreshStatus = true;
+    if (dagStatus == null) {
+      // the first lookup only or when the cachedDAG has expired
       dagStatus = getDAGStatus(statusOptions);
       refreshStatus = false;
     }
@@ -221,13 +245,14 @@ public class DAGClientImpl extends DAGClient {
       final DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
 
       if (!dagCompleted) {
-        if (dagStatus != null) {
-          cachedDagStatus = dagStatus;
+        if (dagStatus != null) { // update the cached DAGStatus
+          cachedDAGStatusRef.setValue(dagStatus);
           return dagStatus;
         }
-        if (cachedDagStatus != null) {
+        DAGStatus cachedDAG = cachedDAGStatusRef.getValue();
+        if (cachedDAG != null) {
           // could not get from AM (not reachable/ was killed). return cached status.
-          return cachedDagStatus;
+          return cachedDAG;
         }
       }
 
@@ -253,8 +278,11 @@ public class DAGClientImpl extends DAGClient {
 
     // dag completed and Timeline service is either not enabled or does not have completion status
     // return cached status if completion info is present.
-    if (dagCompleted && cachedDagStatus != null && cachedDagStatus.isCompleted()) {
-      return cachedDagStatus;
+    if (dagCompleted) {
+      DAGStatus cachedDag = cachedDAGStatusRef.getValue();
+      if (cachedDag != null && cachedDag.isCompleted()) {
+        return cachedDag;
+      }
     }
 
     // everything else fails rely on RM.
@@ -377,9 +405,11 @@ public class DAGClientImpl extends DAGClient {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       dagCompleted = true;
     } catch (TezException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to a n/w issue or due to AM completed.
+      LOG.info("Cannot retrieve DAG Status due to TezException: {}", e.getMessage());
     } catch (IOException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to a n/w issue or due to AM completed.
+      LOG.info("Cannot retrieve DAG Status due to IOException: {}", e.getMessage());
     }
 
     if (dagStatus == null && !dagCompleted) {
