@@ -21,6 +21,8 @@ package org.apache.tez.runtime.api.events;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.runtime.api.Event;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.util.Objects;
 
 /**
@@ -79,11 +81,14 @@ public final class InputReadErrorEvent extends Event {
     this.destinationLocalhostName = destinationLocalhostName;
   }
 
-  public static InputReadErrorEvent create(String diagnostics, int index, int version,
-      boolean isLocalFetch, boolean isDiskErrorAtSource) {
-    return create(diagnostics, index, version, 1, isLocalFetch, isDiskErrorAtSource, null);
-  }
-
+  /**
+   * Creates an InputReadErrorEvent from less parameters, supposed to be used from tests only.
+   * @param diagnostics
+   * @param index
+   * @param version
+   * @return InputReadErrorEvent instance
+   */
+  @VisibleForTesting
   public static InputReadErrorEvent create(String diagnostics, int index, int version) {
     return create(diagnostics, index, version, 1, false, false, null);
   }
