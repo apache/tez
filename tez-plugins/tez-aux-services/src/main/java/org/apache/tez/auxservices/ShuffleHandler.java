@@ -464,6 +464,10 @@ public class ShuffleHandler extends AuxiliaryService {
     return jt;
   }
 
+  public int getPort() {
+    return port;
+  }
+
   @Override
   public void initializeApplication(ApplicationInitializationContext context) {
 
@@ -537,7 +541,7 @@ public class ShuffleHandler extends AuxiliaryService {
         return new Thread(r, WORKER_THREAD_NAME_PREFIX + workerThreadCounter.incrementAndGet());
       }
     });
-
+    port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     super.serviceInit(new YarnConfiguration(conf));
   }
 
@@ -556,7 +560,6 @@ public class ShuffleHandler extends AuxiliaryService {
             conf.getInt(SHUFFLE_LISTEN_QUEUE_SIZE, DEFAULT_SHUFFLE_LISTEN_QUEUE_SIZE))
         .childOption(ChannelOption.SO_KEEPALIVE, true);
     initPipeline(bootstrap, conf);
-    port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     Channel ch = bootstrap.bind().sync().channel();
     accepted.add(ch);
 

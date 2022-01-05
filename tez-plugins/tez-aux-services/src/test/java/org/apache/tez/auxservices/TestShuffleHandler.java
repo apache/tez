@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.CheckedOutputStream;
 import java.util.zip.Checksum;
@@ -1418,5 +1419,37 @@ public class TestShuffleHandler {
       uri = uri.concat("&map=attempt_12345_1_m_" + i + "_0");
     }
     return new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri);
+  }
+
+  @Test
+  public void testConfigPortStatic() throws Exception {
+    Random rand = new Random();
+    int port = rand.nextInt(10) + 50000;
+    Configuration conf = new Configuration();
+    // provide a port for ShuffleHandler
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, port);
+    MockShuffleHandler2 shuffleHandler = new MockShuffleHandler2();
+    shuffleHandler.serviceInit(conf);
+    try {
+      shuffleHandler.serviceStart();
+      Assert.assertEquals(port, shuffleHandler.getPort());
+    } finally {
+      shuffleHandler.stop();
+    }
+  }
+
+  @Test
+  public void testConfigPortDynamic() throws Exception {
+    Configuration conf = new Configuration();
+    // 0 as config, should be dynamically chosen by netty
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    MockShuffleHandler2 shuffleHandler = new MockShuffleHandler2();
+    shuffleHandler.serviceInit(conf);
+    try {
+      shuffleHandler.serviceStart();
+      Assert.assertTrue("ShuffleHandler should use a random chosen port", shuffleHandler.getPort() > 0);
+    } finally {
+      shuffleHandler.stop();
+    }
   }
 }
