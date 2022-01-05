@@ -45,7 +45,6 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.log4j.Appender;
 import org.apache.tez.common.io.NonSyncByteArrayOutputStream;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -358,20 +357,6 @@ public class TezUtilsInternal {
         InvocationTargetException e) {
       log.warn("Error invoking SecurityUtil.setConfiguration: ", e);
       throw new TezUncheckedException("Error invoking SecurityUtil.setConfiguration", e);
-    }
-  }
-
-  /**
-   * Ensures a reasonably high limit for yarn disk utilization. This is very important for tests,
-   * as devs keep bumping into silent test hangs where yarn simply considers their machines as unhealthy,
-   * as the default limit is 90%, even if a machine with 90% full disk is still able to function.
-   * @param conf
-   */
-  public static void ensureHighDiskUtilizationLimit(Configuration conf) {
-    if (conf.getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE,
-        YarnConfiguration.DEFAULT_NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE) ==
-          YarnConfiguration.DEFAULT_NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE) {
-      conf.setFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE, 99.0f);
     }
   }
 }
