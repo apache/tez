@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -83,7 +84,7 @@ public class TestPipelinedSorter {
   private long initialAvailableMem;
 
   //TODO: Need to make it nested structure so that multiple partition cases can be validated
-  private static TreeMap<String, String> sortedDataMap = Maps.newTreeMap();
+  private static TreeMap<Text, Text> sortedDataMap = Maps.newTreeMap();
 
   static {
     conf = getConf();
@@ -541,10 +542,10 @@ public class TestPipelinedSorter {
     int counter = 0;
     for (int numkey : numKeys) {
       int curKeyLen = keyLen[counter];
+      char[] buffer = new char[curKeyLen];
       for (int i = 0; i < numkey; i++) {
-        Text key = new Text(RandomStringUtils.randomAlphanumeric(curKeyLen));
-        Text value = new Text(RandomStringUtils.randomAlphanumeric(curKeyLen));
-        sorter.write(key, value);
+        Text random = new Text(randomAlphanumeric(buffer));
+        sorter.write(random, random);
       }
       counter++;
     }
@@ -876,29 +877,41 @@ public class TestPipelinedSorter {
   private void writeSimilarKeys(ExternalSorter sorter, int numKeys, int keyLen,
       boolean autoClose) throws IOException {
     sortedDataMap.clear();
-    String keyStr = RandomStringUtils.randomAlphanumeric(keyLen);
+    char[] buffer = new char[keyLen];
+    String keyStr = randomAlphanumeric(buffer);
     for (int i = 0; i < numKeys; i++) {
       if (i % 4 == 0) {
-        keyStr = RandomStringUtils.randomAlphanumeric(keyLen);
+        keyStr = randomAlphanumeric(buffer);
       }
       Text key = new Text(keyStr);
       Text value = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
       sorter.write(key, value);
-      sortedDataMap.put(key.toString(), value.toString()); //for verifying data later
+      sortedDataMap.put(key, value); //for verifying data later
     }
     if (autoClose) {
       closeSorter(sorter);
     }
   }
+  static private final Random RANDOM = new Random();
+  int start = ' ';
+  int end = 'z' + 1;
+  int gap = end - start;
+  private String randomAlphanumeric(char[] buffer) {
+    for (int i = 0; i < buffer.length; ++i) {
+      buffer[i] = (char)(RANDOM.nextInt(gap) + start);
+    }
+    return new String(buffer);
+  }
 
   private void writeData(ExternalSorter sorter, int numKeys, int keyLen,
       boolean autoClose) throws IOException {
+    char[] buffer = new char[keyLen];
     sortedDataMap.clear();
     for (int i = 0; i < numKeys; i++) {
-      Text key = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
-      Text value = new Text(RandomStringUtils.randomAlphanumeric(keyLen));
-      sorter.write(key, value);
-      sortedDataMap.put(key.toString(), value.toString()); //for verifying data later
+      String randomStr = randomAlphanumeric(buffer);
+      Text random = new Text(randomStr);
+      sorter.write(random, random);
+      sortedDataMap.put(random, random); //for verifying data later
     }
     if (autoClose) {
       closeSorter(sorter);
@@ -926,15 +939,15 @@ public class TestPipelinedSorter {
 
     int numRecordsRead = 0;
 
-    for (Map.Entry<String, String> entry : sortedDataMap.entrySet()) {
-      String key = entry.getKey();
-      String val = entry.getValue();
+    for (Map.Entry<Text, Text> entry : sortedDataMap.entrySet()) {
+      Text key = entry.getKey();
+      Text val = entry.getValue();
       if (reader.nextRawKey(keyIn)) {
         reader.nextRawValue(valIn);
         readKey = keyDeserializer.deserialize(readKey);
         readValue = valDeserializer.deserialize(readValue);
-        Assert.assertTrue(key.equalsIgnoreCase(readKey.toString()));
-        Assert.assertTrue(val.equalsIgnoreCase(readValue.toString()));
+        Assert.assertTrue(key.equals(readKey));
+        Assert.assertTrue(val.equals(readValue));
         numRecordsRead++;
       }
     }
