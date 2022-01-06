@@ -25,8 +25,10 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import javax.ws.rs.core.MediaType;
@@ -42,6 +44,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineDomain;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.client.TezClient;
 import org.apache.tez.common.ReflectionUtils;
@@ -63,6 +66,9 @@ import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -149,9 +155,48 @@ public class TestATSHistoryWithACLs {
     assertEquals(200, response.getStatus());
     assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
 
-    K entity = response.getEntity(clazz);
-    assertNotNull(entity);
-    return entity;
+    JSONObject entity = response.getEntity(JSONObject.class);
+    K converted = null;
+    try {
+      converted = convertJSONObjectToTimelineObject(entity, clazz);
+    } catch (JSONException e) {
+      throw new RuntimeException(e);
+    }
+    assertNotNull(converted);
+    return converted;
+  }
+
+  private <K> K convertJSONObjectToTimelineObject(JSONObject jsonObj, Class<K> clazz) throws JSONException {
+    LOG.info("convertJSONObjectToEntity got object: " + jsonObj);
+    if (clazz == TimelineDomain.class) {
+      TimelineDomain domain = new TimelineDomain();
+      domain.setId(jsonObj.getString("id"));
+      domain.setOwner(jsonObj.getString("owner"));
+      domain.setReaders(jsonObj.getString("readers"));
+      domain.setWriters(jsonObj.getString("writers"));
+      return (K) domain;
+    } else if (clazz == TimelineEntity.class) {
+      TimelineEntity entity = new TimelineEntity();
+      entity.setEntityId(jsonObj.getString("entity"));
+      entity.setEntityType(jsonObj.getString("entitytype"));
+      entity.setDomainId(jsonObj.getString("domain"));
+      entity.setEvents(getEventsFromJSON(jsonObj));
+      return (K) entity;
+    } else {
+      throw new RuntimeException(
+          "convertJSONObjectToTimelineObject doesn't support conversion from JSONObject to " + clazz);
+    }
+  }
+
+  private List<TimelineEvent> getEventsFromJSON(JSONObject jsonObj) throws JSONException {
+    List<TimelineEvent> events = new ArrayList<>();
+    JSONArray arrEvents = jsonObj.getJSONArray("events");
+    for (int i = 0; i < arrEvents.length(); i++) {
+      TimelineEvent event = new TimelineEvent();
+      event.setEventType(((JSONObject) arrEvents.get(i)).getString("eventtype"));
+      events.add(event);
+    }
+    return events;
   }
 
   private TimelineDomain getDomain(String domainId) {
@@ -459,7 +504,8 @@ public class TestATSHistoryWithACLs {
         .get(ClientResponse.class);
     assertEquals(200, response.getStatus());
     assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getType()));
-    TimelineEntity entity = response.getEntity(TimelineEntity.class);
+    JSONObject entityJson = response.getEntity(JSONObject.class);
+    TimelineEntity entity = convertJSONObjectToTimelineObject(entityJson, TimelineEntity.class);
     assertEquals(entity.getEntityType(), "TEZ_DAG_ID");
     assertEquals(entity.getEvents().get(0).getEventType(), HistoryEventType.DAG_SUBMITTED.toString());
   }

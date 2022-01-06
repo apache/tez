@@ -58,7 +58,7 @@
 
     <clover.license>${user.home}/clover.license</clover.license>
     <guava.version>27.0-jre</guava.version>
-    <hadoop.version>3.2.2</hadoop.version>
+    <hadoop.version>3.3.1</hadoop.version>
     <netty.version>4.1.61.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <jersey.version>1.19</jersey.version>
@@ -244,6 +244,12 @@
         <groupId>org.asynchttpclient</groupId>
         <artifactId>async-http-client</artifactId>
         <version>2.12.1</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -337,9 +343,10 @@
             <groupId>commons-el</groupId>
             <artifactId>commons-el</artifactId>
           </exclusion>
+          <!-- prevent dependency collision with hadoop-common => zookeeper => netty -->
           <exclusion>
             <groupId>io.netty</groupId>
-            <artifactId>netty</artifactId>
+            <artifactId>*</artifactId>
           </exclusion>
           <exclusion>
             <groupId>org.apache.httpcomponents</groupId>

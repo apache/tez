@@ -587,7 +587,11 @@ public class TestDAGClient {
     threadGroup.enumerate(threads);
     Thread reloaderThread = null;
     for (Thread thread : threads) {
-      if ((thread.getName() != null) && (thread.getName().contains("Truststore reloader thread"))) {
+      /* Since HADOOP-16524, the reloader thread's name is changed, let's handle the backward compatibility
+       * with a simple OR, as this is just a unit test, it's not worth involving a hadoop version check.
+       */
+      if ((thread.getName() != null) && (thread.getName().contains("Truststore reloader thread"))
+          || (thread.getName().contains("SSL Certificates Store Monitor"))) {
         reloaderThread = thread;
       }
     }
