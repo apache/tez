@@ -108,43 +108,37 @@ public class TestTezIds {
     verifyAttemptId(taIdStr, taId);
   }
 
-  @Test(timeout=5000)
-  public void testInvalidDagIds() {
-    String dagIdStr = "aaa_111_1_1";
-    TezDAGID dagId;
-    try {
-      dagId = TezDAGID.fromString(dagIdStr);
-      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
-    } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("Invalid DAG Id format"));
-    }
-
-    dagIdStr = "dag_111_11";
-    try {
-      dagId = TezDAGID.fromString(dagIdStr);
-      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
-    } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("Invalid DAG Id format"));
-    }
-
-    dagIdStr = "dag_111_11_aa";
-    try {
-      dagId = TezDAGID.fromString(dagIdStr);
-      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
-    } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("Error while parsing"));
-    }
-
-    dagIdStr = "dag_111_aa_1";
-    try {
-      dagId = TezDAGID.fromString(dagIdStr);
-      Assert.fail("Expected failure for invalid dagId=" + dagIdStr);
-    } catch (IllegalArgumentException e) {
-      Assert.assertTrue(e.getMessage().contains("Error while parsing"));
-    }
-
+  @Test
+  public void testFromStringValid() {
+    final TezDAGID dagId = TezDAGID.fromString("dag_111_2_3");
+    Assert.assertEquals(3, dagId.getId());
+    Assert.assertEquals(111, dagId.getApplicationId().getClusterTimestamp());
+    Assert.assertEquals(2, dagId.getApplicationId().getId());
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testFromStringInvalidPrefix() {
+    // Case sensitive
+    TezDAGID.fromString("DAG_111_1_1");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testFromStringInvalidFormat() {
+    // Missing last field
+    TezDAGID.fromString("dag_111_11");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testFromStringInvalidID() {
+    // ID field must be numeric
+    TezDAGID.fromString("dag_111_11_aa");
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testFromStringInvalidAppID() {
+    // App ID field must be numeric
+    TezDAGID.fromString("dag_111_aa_11");
+  }
 
   public void testGetGroupIds() {
     ApplicationId appId = ApplicationId.newInstance(0, 1);
