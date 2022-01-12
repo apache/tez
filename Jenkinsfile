@@ -108,10 +108,6 @@ pipeline {
                         YETUS_ARGS+=(--github-user="${GITHUB_USER}")
                         YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
 
-                        # enable writing back to ASF JIRA
-                        YETUS_ARGS+=(--jira-password="${JIRA_PASSWORD}")
-                        YETUS_ARGS+=(--jira-user="${JIRA_USER}")
-
                         # auto-kill any surefire stragglers during unit test runs
                         YETUS_ARGS+=("--reapermode=kill")
 
