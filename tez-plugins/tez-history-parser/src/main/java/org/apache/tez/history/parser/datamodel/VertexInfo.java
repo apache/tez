@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -198,8 +199,7 @@ public class VertexInfo extends BaseInfo {
   }
 
   void setDagInfo(DagInfo dagInfo) {
-    Preconditions.checkArgument(dagInfo != null, "Provide valid dagInfo");
-    this.dagInfo = dagInfo;
+    this.dagInfo = Objects.requireNonNull(dagInfo, "Provide valid dagInfo");
     //link vertex to dagInfo
     dagInfo.addVertexInfo(this);
     updateEdgeInfo();

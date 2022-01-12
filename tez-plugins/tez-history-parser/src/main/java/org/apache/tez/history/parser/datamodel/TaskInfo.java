@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -153,8 +154,7 @@ public class TaskInfo extends BaseInfo {
   }
 
   void setVertexInfo(VertexInfo vertexInfo) {
-    Preconditions.checkArgument(vertexInfo != null, "Provide valid vertexInfo");
-    this.vertexInfo = vertexInfo;
+    this.vertexInfo = Objects.requireNonNull(vertexInfo, "Provide valid vertexInfo");
     //link it to vertex
     vertexInfo.addTaskInfo(this);
   }

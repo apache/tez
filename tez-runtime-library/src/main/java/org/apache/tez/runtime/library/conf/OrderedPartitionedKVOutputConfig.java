@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -374,7 +373,7 @@ public class OrderedPartitionedKVOutputConfig {
     @Override
     public Builder setFromConfiguration(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
           Lists.newArrayList(OrderedPartitionedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
@@ -386,7 +385,7 @@ public class OrderedPartitionedKVOutputConfig {
     @Override
     public Builder setFromConfigurationUnfiltered(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       ConfigUtils.mergeConfs(this.conf, conf);
       return this;
     }
@@ -412,6 +411,7 @@ public class OrderedPartitionedKVOutputConfig {
      *                            java.util.Map} of key-value pairs. The keys should be limited to
      *                            the ones required by the comparator.
      * @return instance of the current builder
+     * @throws NullPointerException if {@code comparatorClassName} is {@code null}
      */
     public Builder setKeyComparatorClass(String comparatorClassName,
                                          @Nullable Map<String, String> comparatorConf) {
@@ -452,13 +452,13 @@ public class OrderedPartitionedKVOutputConfig {
      *                               {@link java.util.Map} of key-value pairs. The keys should be limited
      *                               to the ones required by the comparator.
      * @return this object for further chained method calls
+     * @throws NullPointerException if {@code serializationClassName} or
+     *           {@code comparatorClassName} is {@code null}
      */
     public Builder setKeySerializationClass(String serializationClassName,
         String comparatorClassName, @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
-      Preconditions.checkArgument(comparatorClassName != null,
-          "comparator cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
+      Objects.requireNonNull(comparatorClassName, "comparator cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       setKeyComparatorClass(comparatorClassName, null);
@@ -478,11 +478,11 @@ public class OrderedPartitionedKVOutputConfig {
      *                               {@link java.util.Map} of key-value pairs. The keys should be limited
      *                               to the ones required by the comparator.
      * @return this object for further chained method calls
+     * @throws NullPointerException if {@code serializationClassName} is {@code null}
      */
     public Builder setValueSerializationClass(String serializationClassName,
                                               @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       if (serializerConf != null) {

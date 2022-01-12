@@ -41,6 +41,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.security.GeneralSecurityException;
+import java.util.Objects;
 
 import static org.apache.hadoop.security.ssl.SSLFactory.KEYSTORES_FACTORY_CLASS_KEY;
 import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
@@ -81,13 +82,11 @@ public class SSLFactory implements ConnectionConfigurator {
    * @param mode SSLFactory mode, client or server.
    * @param conf Hadoop configuration from where the SSLFactory configuration
    *             will be read.
+   * @throws NullPointerException if {@code mode} or {@code conf} is {@code null}
    */
   public SSLFactory(Mode mode, Configuration conf) {
-    this.conf = conf;
-    if (mode == null) {
-      throw new IllegalArgumentException("mode cannot be NULL");
-    }
-    this.mode = mode;
+    this.conf = Objects.requireNonNull(conf);
+    this.mode = Objects.requireNonNull(mode, "mode cannot be NULL");
     requireClientCert = conf.getBoolean(SSL_REQUIRE_CLIENT_CERT_KEY,
         DEFAULT_SSL_REQUIRE_CLIENT_CERT);
     // Rest of ssl configs are pre-populated in incoming conf payload

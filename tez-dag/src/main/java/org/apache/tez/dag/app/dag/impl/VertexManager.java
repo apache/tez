@@ -425,7 +425,6 @@ public class VertexManager {
     this.rootInputInitEventQueue = new LinkedBlockingQueue<TezEvent>();
     
     pluginContext = new VertexManagerPluginContextImpl();
-    Preconditions.checkArgument(pluginDesc != null);
     payload = pluginDesc.getUserPayload();
     pluginFailed = new AtomicBoolean(false);
     plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),

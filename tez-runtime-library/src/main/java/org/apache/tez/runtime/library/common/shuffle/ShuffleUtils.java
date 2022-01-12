@@ -29,6 +29,7 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Deflater;
 
@@ -407,7 +408,7 @@ public class ShuffleUtils {
       int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
       @Nullable long[] partitionStats, boolean reportDetailedPartitionStats, String auxiliaryService, Deflater deflater)
       throws IOException {
-    Preconditions.checkArgument(eventList != null, "EventList can't be null");
+    Objects.requireNonNull(eventList, "EventList can't be null");
 
     context.notifyProgress();
     if (finalMergeEnabled) {

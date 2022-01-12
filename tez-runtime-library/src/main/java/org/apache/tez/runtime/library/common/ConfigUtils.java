@@ -22,9 +22,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-
-import org.apache.tez.common.Preconditions;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -134,8 +133,8 @@ public class ConfigUtils {
 
   @InterfaceAudience.Private
   public static Map<String, String> extractConfigurationMap(Map<String, String> confMap, Set<String> allowedKeys) {
-    Preconditions.checkArgument(confMap != null, "ConfMap cannot be null");
-    Preconditions.checkArgument(allowedKeys != null, "Valid key set cannot be empty");
+    Objects.requireNonNull(confMap, "ConfMap cannot be null");
+    Objects.requireNonNull(allowedKeys, "Valid key set cannot be empty");
     Map<String, String> map = new HashMap<String, String>();
     for (Map.Entry<String, String> entry : confMap.entrySet()) {
       if (allowedKeys.contains(entry.getKey())) {
@@ -147,8 +146,8 @@ public class ConfigUtils {
 
   @InterfaceAudience.Private
   public static void addConfigMapToConfiguration(Configuration conf, Map<String, String> confMap) {
-    Preconditions.checkArgument(conf != null, "Configuration cannot be null");
-    Preconditions.checkArgument(confMap != null, "Configuration map cannot be null");
+    Objects.requireNonNull(conf, "Configuration cannot be null");
+    Objects.requireNonNull(confMap, "Configuration map cannot be null");
     for (Map.Entry<String, String> entry : confMap.entrySet()) {
       conf.set(entry.getKey(), entry.getValue());
     }
@@ -158,9 +157,9 @@ public class ConfigUtils {
   public static Map<String, String> extractConfigurationMap(Map<String, String> confMap,
                                                             List<Set<String>> validKeySets,
                                                             List<String> allowedPrefixes) {
-    Preconditions.checkArgument(confMap != null, "ConfMap cannot be null");
-    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
-    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+    Objects.requireNonNull(confMap, "ConfMap cannot be null");
+    Objects.requireNonNull(validKeySets, "Valid key set cannot be empty");
+    Objects.requireNonNull(allowedPrefixes, "Allowed prefixes cannot be null");
 
     return extractConfigurationMapInternal(confMap.entrySet(), validKeySets, allowedPrefixes);
   }
@@ -169,17 +168,17 @@ public class ConfigUtils {
   public static Map<String, String> extractConfigurationMap(Configuration conf,
                                                             List<Set<String>> validKeySets,
                                                             List<String> allowedPrefixes) {
-    Preconditions.checkArgument(conf != null, "conf cannot be null");
-    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
-    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+    Objects.requireNonNull(conf, "conf cannot be null");
+    Objects.requireNonNull(validKeySets, "Valid key set cannot be empty");
+    Objects.requireNonNull(allowedPrefixes, "Allowed prefixes cannot be null");
     return extractConfigurationMapInternal(conf, validKeySets, allowedPrefixes);
   }
 
   @InterfaceAudience.Private
   public static boolean doesKeyQualify(String key, List<Set<String>> validKeySets, List<String> allowedPrefixes) {
-    Preconditions.checkArgument(key != null, "key cannot be null");
-    Preconditions.checkArgument(validKeySets != null, "Valid key set cannot be empty");
-    Preconditions.checkArgument(allowedPrefixes != null, "Allowed prefixes cannot be null");
+    Objects.requireNonNull(key, "key cannot be null");
+    Objects.requireNonNull(validKeySets, "Valid key set cannot be empty");
+    Objects.requireNonNull(allowedPrefixes, "Allowed prefixes cannot be null");
     for (Set<String> set : validKeySets) {
       if (set.contains(key)) {
         return true;
@@ -195,8 +194,8 @@ public class ConfigUtils {
 
   @InterfaceAudience.Private
   public static void mergeConfsWithExclusions(Configuration destConf, Map<String, String> srcConf, Set<String> excludedKeySet) {
-    Preconditions.checkState(destConf != null, "Destination conf cannot be null");
-    Preconditions.checkState(srcConf != null, "Source conf cannot be null");
+    Objects.requireNonNull(destConf, "Destination conf cannot be null");
+    Objects.requireNonNull(srcConf, "Source conf cannot be null");
     for (Map.Entry<String, String> entry : srcConf.entrySet()) {
       if (!excludedKeySet.contains(entry.getKey())) {
         destConf.set(entry.getKey(), entry.getValue());
@@ -205,8 +204,8 @@ public class ConfigUtils {
   }
 
   public static void mergeConfs(Configuration destConf, Configuration srcConf) {
-    Preconditions.checkState(destConf != null, "Destination conf cannot be null");
-    Preconditions.checkState(srcConf != null, "Source conf cannot be null");
+    Objects.requireNonNull(destConf, "Destination conf cannot be null");
+    Objects.requireNonNull(srcConf, "Source conf cannot be null");
     for (Map.Entry<String, String> entry : srcConf) {
       // Explicit get to have parameter replacement work.
       String val = srcConf.get(entry.getKey());

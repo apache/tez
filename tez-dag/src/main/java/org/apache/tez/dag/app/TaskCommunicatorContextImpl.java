@@ -191,7 +191,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public int getVertexTotalTaskCount(String vertexName) {
-    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    Objects.requireNonNull(vertexName, "VertexName must be specified");
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     return vertex.getTotalTasks();
@@ -199,7 +199,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public int getVertexCompletedTaskCount(String vertexName) {
-    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    Objects.requireNonNull(vertexName, "VertexName must be specified");
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     return vertex.getCompletedTasks();
@@ -207,7 +207,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public int getVertexRunningTaskCount(String vertexName) {
-    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    Objects.requireNonNull(vertexName, "VertexName must be specified");
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     return vertex.getRunningTasks();
@@ -215,7 +215,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
 
   @Override
   public long getFirstAttemptStartTime(String vertexName, int taskIndex) {
-    Preconditions.checkArgument(vertexName != null, "VertexName must be specified");
+    Objects.requireNonNull(vertexName, "VertexName must be specified");
     Preconditions.checkArgument(taskIndex >=0, "TaskIndex must be > 0");
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);

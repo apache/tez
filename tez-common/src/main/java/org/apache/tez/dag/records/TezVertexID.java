@@ -21,11 +21,11 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.collect.Interner;
@@ -67,9 +67,10 @@ public class TezVertexID extends TezID {
    * Constructs a TezVertexID object from given {@link TezDAGID}.
    * @param dagId TezDAGID object for this TezVertexID
    * @param id the tip number
+   * @throws NullPointerException if {@code dagId} is {@code null}
    */
   public static TezVertexID getInstance(TezDAGID dagId, int id) {
-    Preconditions.checkArgument(dagId != null, "DagID cannot be null");
+    Objects.requireNonNull(dagId, "DagID cannot be null");
     return tezVertexIDCache.intern(new TezVertexID(dagId, id));
   }
 

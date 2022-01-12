@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -222,7 +221,7 @@ public class UnorderedKVOutputConfig {
     @Override
     public Builder setFromConfiguration(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
           Lists.newArrayList(UnorderedKVOutput.getConfigurationKeySet(),
               TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
@@ -234,7 +233,7 @@ public class UnorderedKVOutputConfig {
     @Override
     public Builder setFromConfigurationUnfiltered(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
-      Preconditions.checkArgument(conf != null, "Configuration cannot be null");
+      Objects.requireNonNull(conf, "Configuration cannot be null");
       ConfigUtils.mergeConfs(this.conf, conf);
       return this;
     }
@@ -250,8 +249,7 @@ public class UnorderedKVOutputConfig {
      */
     public Builder setKeySerializationClass(String serializationClassName,
                                             @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       if (serializerConf != null) {
@@ -273,8 +271,7 @@ public class UnorderedKVOutputConfig {
      */
     public Builder setValueSerializationClass(String serializationClassName,
                                               @Nullable Map<String, String> serializerConf) {
-      Preconditions.checkArgument(serializationClassName != null,
-          "serializationClassName cannot be null");
+      Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
           + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY));
       if (serializerConf != null) {
