@@ -144,6 +144,7 @@ public class TestShuffle {
     InputContext inputContext = mock(InputContext.class);
     doReturn(applicationId).when(inputContext).getApplicationId();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn("taskVertex").when(inputContext).getTaskVertexName();
     when(inputContext.getCounters()).thenReturn(new TezCounters());
     ExecutionContext executionContext = new ExecutionContextImpl("localhost");
     doReturn(executionContext).when(inputContext).getExecutionContext();

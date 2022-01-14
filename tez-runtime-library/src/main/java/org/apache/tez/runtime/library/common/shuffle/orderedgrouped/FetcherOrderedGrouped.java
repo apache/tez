@@ -42,8 +42,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -121,7 +123,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                boolean localDiskFetchEnabled,
                                String localHostname,
                                int shufflePort,
-                               String srcNameTrimmed,
                                MapHost mapHost,
                                TezCounter ioErrsCounter,
                                TezCounter wrongLengthErrsCounter,
@@ -129,12 +130,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                TezCounter wrongMapErrsCounter,
                                TezCounter connectionErrsCounter,
                                TezCounter wrongReduceErrsCounter,
-                               String applicationId,
-                               int dagId,
                                boolean asyncHttp,
                                boolean sslShuffle,
                                boolean verifyDiskChecksum,
-                               boolean compositeFetch) {
+                               boolean compositeFetch,
+                               InputContext inputContext) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.exceptionReporter = exceptionReporter;
@@ -149,8 +149,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.badIdErrs = badIdErrsCounter;
     this.connectionErrs = connectionErrsCounter;
     this.wrongReduceErrs = wrongReduceErrsCounter;
-    this.applicationId = applicationId;
-    this.dagId = dagId;
+    this.applicationId = inputContext.getApplicationId().toString();
+    this.dagId = inputContext.getDagIdentifier();
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -171,7 +171,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.verifyDiskChecksum = verifyDiskChecksum;
     this.compositeFetch = compositeFetch;
 
-    this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
+    String sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + " -> "
+        + TezUtilsInternal.cleanVertexName(inputContext.getTaskVertexName());
+    this.logIdentifier = "fetcher [" + sourceDestNameTrimmed + "] #" + id;
   }
 
   @VisibleForTesting

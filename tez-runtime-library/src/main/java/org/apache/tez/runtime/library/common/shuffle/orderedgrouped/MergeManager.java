@@ -250,7 +250,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug(
-          inputContext.getSourceVertexName() + ": " + "InitialRequest: ShuffleMem=" + memLimit +
+          inputContext.getInputOutputVertexNames() + ": " + "InitialRequest: ShuffleMem=" + memLimit +
               ", postMergeMem=" + maxRedBuffer
               + ", RuntimeTotalAvailable=" + this.initialMemoryAvailable +
               ". Updated to: ShuffleMem="
@@ -285,7 +285,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
                conf.getFloat(
                    TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT, 
                    TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT_DEFAULT));
-    LOG.info(inputContext.getSourceVertexName() + ": MergerManager: memoryLimit=" + memoryLimit + ", " +
+    LOG.info(inputContext.getInputOutputVertexNames() + ": MergerManager: memoryLimit=" + memoryLimit + ", " +
              "maxSingleShuffleLimit=" + maxSingleShuffleLimit + ", " +
              "mergeThreshold=" + mergeThreshold + ", " + 
              "ioSortFactor=" + ioSortFactor + ", " +
@@ -549,8 +549,9 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
   private void startMemToDiskMerge() {
     synchronized (inMemoryMerger) {
       if (!inMemoryMerger.isInProgress()) {
-        LOG.info(inputContext.getSourceVertexName() + ": " + "Starting inMemoryMerger's merge since commitMemory=" +
-            commitMemory + " > mergeThreshold=" + mergeThreshold +
+        LOG.info(inputContext.getInputOutputVertexNames() + ": " +
+            "Starting inMemoryMerger's merge since commitMemory=" + commitMemory +
+            " > mergeThreshold=" + mergeThreshold +
             ". Current usedMemory=" + usedMemory);
         inMemoryMapOutputs.addAll(inMemoryMergedMapOutputs);
         inMemoryMergedMapOutputs.clear();
@@ -788,8 +789,8 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
 
       Writer writer = new InMemoryWriter(mergedMapOutputs.getMemory());
 
-      LOG.info(inputContext.getSourceVertexName() + ": " + "Initiating Memory-to-Memory merge with " + noInMemorySegments +
-               " segments of total-size: " + mergeOutputSize);
+      LOG.info(inputContext.getInputOutputVertexNames() + ": " + "Initiating Memory-to-Memory merge with " +
+          noInMemorySegments + " segments of total-size: " + mergeOutputSize);
 
       if (Thread.currentThread().isInterrupted()) {
         return; // early exit
@@ -808,7 +809,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       TezMerger.writeFile(rIter, writer, progressable, TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT);
       writer.close();
 
-      LOG.info(inputContext.getSourceVertexName() +
+      LOG.info(inputContext.getInputOutputVertexNames() +
                " Memory-to-Memory merge of the " + noInMemorySegments +
                " files in-memory complete with mergeOutputSize=" + mergeOutputSize);
 
@@ -1051,7 +1052,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
       final long outputLen = localFS.getFileStatus(outputPath).getLen();
       closeOnDiskFile(new FileChunk(outputPath, 0, outputLen));
 
-      LOG.info(inputContext.getSourceVertexName() +
+      LOG.info(inputContext.getInputOutputVertexNames() +
           " Finished merging " + inputs.size() + 
           " map output files on disk of total-size " + 
           approxOutputSize + "." + 

@@ -20,10 +20,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.http.HttpConnectionParams;
-import org.apache.tez.runtime.api.ObjectRegistry;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,16 +35,16 @@ public class FetcherWithInjectableErrors extends Fetcher {
   private String srcNameTrimmed;
 
   protected FetcherWithInjectableErrors(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, ApplicationId appId, int dagIdentifier,
-      JobTokenSecretManager jobTokenSecretManager, String srcNameTrimmed, Configuration conf,
+      FetchedInputAllocator inputManager, InputContext inputContext,
+      JobTokenSecretManager jobTokenSecretManager, Configuration conf,
       RawLocalFileSystem localFs, LocalDirAllocator localDirAllocator, Path lockPath, boolean localDiskFetchEnabled,
       boolean sharedFetchEnabled, String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum,
-      boolean compositeFetch, ObjectRegistry objectRegistry) {
-    super(fetcherCallback, params, inputManager, appId, dagIdentifier, jobTokenSecretManager, srcNameTrimmed, conf,
+      boolean compositeFetch) {
+    super(fetcherCallback, params, inputManager, inputContext, jobTokenSecretManager, conf,
         localFs, localDirAllocator, lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort,
         asyncHttp, verifyDiskChecksum, compositeFetch);
-    this.fetcherErrorTestingConfig = new FetcherErrorTestingConfig(conf, objectRegistry);
-    this.srcNameTrimmed = srcNameTrimmed;
+    this.fetcherErrorTestingConfig = new FetcherErrorTestingConfig(conf, inputContext.getObjectRegistry());
+    this.srcNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName());
     LOG.info("Initialized FetcherWithInjectableErrors with config: {}", fetcherErrorTestingConfig);
   }
 

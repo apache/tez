@@ -161,7 +161,7 @@ public class ShuffleInputEventHandlerImpl implements ShuffleEventHandler {
 
   @Override
   public void logProgress(boolean updateOnClose) {
-    LOG.info(inputContext.getSourceVertexName() + ": "
+    LOG.info(inputContext.getInputOutputVertexNames() + ": "
         + "numDmeEventsSeen=" + numDmeEvents.get()
         + ", numDmeEventsSeenWithNoData=" + numDmeEventsNoData.get()
         + ", numObsoletionEventsSeen=" + numObsoletionEvents.get()

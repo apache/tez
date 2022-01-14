@@ -110,7 +110,7 @@ public class MultiMRInput extends MRInputBase {
   @Override
   public List<Event> initialize() throws IOException {
     super.initialize();
-    LOG.info(getContext().getSourceVertexName() + " using newmapreduce API=" + useNewApi +
+    LOG.info(getContext().getInputOutputVertexNames() + " using newmapreduce API=" + useNewApi +
         ", numPhysicalInputs=" + getNumPhysicalInputs());
     if (getNumPhysicalInputs() == 0) {
       getContext().inputIsReady();
@@ -167,7 +167,7 @@ public class MultiMRInput extends MRInputBase {
   private MRReader initFromEvent(InputDataInformationEvent event) throws IOException {
     Objects.requireNonNull(event, "Event must be specified");
     if (LOG.isDebugEnabled()) {
-      LOG.debug(getContext().getSourceVertexName() + " initializing Reader: " + eventCount.get());
+      LOG.debug(getContext().getInputOutputVertexNames() + " initializing Reader: " + eventCount.get());
     }
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(event.getUserPayload()));
     MRReader reader = null;
@@ -186,7 +186,7 @@ public class MultiMRInput extends MRInputBase {
           .getApplicationId().getId(), getContext().getTaskIndex(), getContext()
           .getTaskAttemptNumber(), getContext());
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+        LOG.debug(getContext().getInputOutputVertexNames() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", NewSplit: " + split + ", length: " + splitLength);
       }
     } else {
@@ -196,7 +196,7 @@ public class MultiMRInput extends MRInputBase {
       reader = new MRReaderMapred(localJobConf, split,
           getContext().getCounters(), inputRecordCounter, getContext());
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+        LOG.debug(getContext().getInputOutputVertexNames() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", OldSplit: " + split + ", length: " + splitLength);
       }
     }
@@ -204,7 +204,7 @@ public class MultiMRInput extends MRInputBase {
       getContext().getCounters().findCounter(TaskCounter.INPUT_SPLIT_LENGTH_BYTES)
           .increment(splitLength);
     }
-    LOG.info(getContext().getSourceVertexName() + " initialized RecordReader from event");
+    LOG.info(getContext().getInputOutputVertexNames() + " initialized RecordReader from event");
     return reader;
   }
 
