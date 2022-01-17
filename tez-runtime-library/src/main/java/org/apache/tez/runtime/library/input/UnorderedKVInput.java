@@ -92,7 +92,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       isStarted.set(true);
       getContext().inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
-          + getContext().getSourceVertexName());
+          + getContext().getInputOutputVertexNames());
       return Collections.emptyList();
     } else {
       long initalMemReq = getInitialMemoryReq();
@@ -148,7 +148,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       pendingEvents.drainTo(pending);
       if (pending.size() > 0) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug(getContext().getSourceVertexName() + ": " + "NoAutoStart delay in processing first event: "
+          LOG.debug(getContext().getInputOutputVertexNames() + ": " + "NoAutoStart delay in processing first event: "
               + (System.currentTimeMillis() - firstEventReceivedTime));
         }
         inputEventHandler.handleEvents(pending);

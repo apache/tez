@@ -58,7 +58,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.ObjectRegistry;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -69,6 +69,7 @@ import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
 import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezUtilsInternal;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single
@@ -194,8 +195,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
   protected Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, ApplicationId appId, int dagIdentifier,
-      JobTokenSecretManager jobTokenSecretManager, String srcNameTrimmed, Configuration conf,
+      FetchedInputAllocator inputManager, InputContext inputContext,
+      JobTokenSecretManager jobTokenSecretManager, Configuration conf,
       RawLocalFileSystem localFs,
       LocalDirAllocator localDirAllocator,
       Path lockPath,
@@ -208,8 +209,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.jobTokenSecretMgr = jobTokenSecretManager;
-    this.appId = appId;
-    this.dagIdentifier = dagIdentifier;
+    this.appId = inputContext.getApplicationId();
+    this.dagIdentifier = inputContext.getDagIdentifier();
     this.pathToAttemptMap = new HashMap<PathPartition, InputAttemptIdentifier>();
     this.httpConnectionParams = params;
     this.conf = conf;
@@ -218,7 +219,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.sharedFetchEnabled = sharedFetchEnabled;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
-    this.logIdentifier = " fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
+
+    String sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + " -> "
+        + TezUtilsInternal.cleanVertexName(inputContext.getTaskVertexName());
+    this.logIdentifier = " fetcher [" + sourceDestNameTrimmed +"] " + fetcherIdentifier;
 
     this.localFs = localFs;
     this.localDirAllocator = localDirAllocator;
@@ -1133,31 +1137,29 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     private boolean workAssigned = false;
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, int dagIdentifier,  JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, boolean localDiskFetchEnabled, String localHostname, int shufflePort,
-        boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
-      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
-          jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
+        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, boolean localDiskFetchEnabled,
+        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
+      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, inputContext,
+          jobTokenSecretMgr, conf, null, null, null, localDiskFetchEnabled,
           false, localHostname, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, int dagIdentifier, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, RawLocalFileSystem localFs,
+        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
         String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch,
-        boolean enableFetcherTestingErrors, ObjectRegistry objectRegistry) {
+        boolean enableFetcherTestingErrors) {
       if (enableFetcherTestingErrors) {
-        this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, appId, dagIdentifier,
-            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+        this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, inputContext,
+            jobTokenSecretMgr, conf, localFs, localDirAllocator,
             lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
-            verifyDiskChecksum, compositeFetch, objectRegistry);
+            verifyDiskChecksum, compositeFetch);
       } else {
-        this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
-            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+        this.fetcher = new Fetcher(fetcherCallback, params, inputManager, inputContext,
+            jobTokenSecretMgr, conf, localFs, localDirAllocator,
             lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
             verifyDiskChecksum, compositeFetch);
       }

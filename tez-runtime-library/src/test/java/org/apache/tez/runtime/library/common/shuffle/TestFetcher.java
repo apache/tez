@@ -81,7 +81,7 @@ public class TestFetcher {
     final boolean DISABLE_LOCAL_FETCH = false;
 
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
+        createMockInputContext(), null, conf, ENABLE_LOCAL_FETCH, HOST,
         PORT, false, true, false);
     builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
@@ -100,7 +100,7 @@ public class TestFetcher {
 
     // when enabled and hostname does not match use http fetch.
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), -1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
+        createMockInputContext(), null, conf, ENABLE_LOCAL_FETCH, HOST,
         PORT, false, true, false);
     builder.assignWork(HOST + "_OTHER", PORT, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
@@ -116,7 +116,7 @@ public class TestFetcher {
 
     // when enabled and port does not match use http fetch.
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), -1, null, "fetcherTest", conf, ENABLE_LOCAL_FETCH, HOST,
+        createMockInputContext(), null, conf, ENABLE_LOCAL_FETCH, HOST,
         PORT, false, true, false);
     builder.assignWork(HOST, PORT + 1, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
@@ -133,7 +133,7 @@ public class TestFetcher {
     // When disabled use http fetch
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH, false);
     builder = new Fetcher.FetcherBuilder(fetcherCallback, null, null,
-        ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, DISABLE_LOCAL_FETCH, HOST,
+        createMockInputContext(), null, conf, DISABLE_LOCAL_FETCH, HOST,
         PORT, false, true, false);
     builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(srcAttempts));
     fetcher = spy(builder.build());
@@ -167,7 +167,7 @@ public class TestFetcher {
     int partition = 42;
     FetcherCallback callback = mock(FetcherCallback.class);
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
-        ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
+        createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, true);
     ArrayList<InputAttemptIdentifier> inputAttemptIdentifiers = new ArrayList<>();
     for(CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
@@ -306,7 +306,7 @@ public class TestFetcher {
     int partition = 42;
     FetcherCallback callback = mock(FetcherCallback.class);
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(callback, null, null,
-        ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
+        createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, false);
     builder.assignWork(HOST, PORT, partition, 1, Arrays.asList(srcAttempts));
     Fetcher fetcher = spy(builder.build());
@@ -330,7 +330,7 @@ public class TestFetcher {
     doReturn("vertex").when(inputContext).getSourceVertexName();
 
     Fetcher.FetcherBuilder builder = new Fetcher.FetcherBuilder(mock(ShuffleManager.class), null,
-        null, ApplicationId.newInstance(0, 1), 1, null, "fetcherTest", conf, true, HOST, PORT,
+        null, createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, false);
     builder.assignWork(HOST, PORT, 0, 1, Arrays.asList(new InputAttemptIdentifier(0, 0)));
 
@@ -344,5 +344,16 @@ public class TestFetcher {
     Assert.assertEquals(1, failures.length);
     Assert.assertTrue(failures[0].isDiskErrorAtSource());
     Assert.assertFalse(failures[0].isLocalFetch());
+  }
+
+  private InputContext createMockInputContext() {
+    InputContext inputContext = mock(InputContext.class);
+
+    doReturn(ApplicationId.newInstance(0, 1)).when(inputContext).getApplicationId();
+    doReturn(1).when(inputContext).getDagIdentifier();
+    doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn("taskVertex").when(inputContext).getTaskVertexName();
+
+    return inputContext;
   }
 }

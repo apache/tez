@@ -104,7 +104,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       isStarted.set(true);
       getContext().inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
-          + getContext().getSourceVertexName());
+          + getContext().getInputOutputVertexNames());
       return Collections.emptyList();
     }
 
@@ -305,7 +305,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     RawComparator rawComparator = ConfigUtils.getIntermediateInputKeyComparator(conf);
     Class<?> keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
     Class<?> valClass = ConfigUtils.getIntermediateInputValueClass(conf);
-    LOG.info(getContext().getSourceVertexName() + ": " + "creating ValuesIterator with "
+    LOG.info(getContext().getInputOutputVertexNames() + ": " + "creating ValuesIterator with "
         + "comparator=" + rawComparator.getClass().getName()
         + ", keyClass=" + keyClass.getName()
         + ", valClass=" + valClass.getName());

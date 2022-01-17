@@ -352,7 +352,8 @@ public class TestInput extends AbstractLogicalInput {
       if (event instanceof DataMovementEvent) {
         DataMovementEvent dmEvent = (DataMovementEvent) event;
         numCompletedInputs++;
-        LOG.info(getContext().getSourceVertexName() + " Received DataMovement event sourceId : " + dmEvent.getSourceIndex() + 
+        LOG.info(getContext().getInputOutputVertexNames() +
+            " Received DataMovement event sourceId : " + dmEvent.getSourceIndex() +
             " targetId: " + dmEvent.getTargetIndex() +
             " version: " + dmEvent.getVersion() +
             " numInputs: " + getNumPhysicalInputs() +

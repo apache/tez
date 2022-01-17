@@ -461,7 +461,7 @@ public class MRInput extends MRInputBase {
     getContext().inputIsReady();
     this.splitInfoViaEvents = jobConf.getBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS,
         MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS_DEFAULT);
-    LOG.info(getContext().getSourceVertexName() + " using newmapreduce API=" + useNewApi +
+    LOG.info(getContext().getInputOutputVertexNames() + " using newmapreduce API=" + useNewApi +
         ", split via event=" + splitInfoViaEvents + ", numPhysicalInputs=" +
         getNumPhysicalInputs());
     initializeInternal();
@@ -526,7 +526,7 @@ public class MRInput extends MRInputBase {
     } finally {
       rrLock.unlock();
     }
-    LOG.info("Initialized MRInput: " + getContext().getSourceVertexName());
+    LOG.info("Initialized MRInput: " + getContext().getInputOutputVertexNames());
   }
 
   /**
@@ -634,7 +634,7 @@ public class MRInput extends MRInputBase {
     try {
       initFromEventInternal(event);
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " notifying on RecordReader initialized");
+        LOG.debug(getContext().getInputOutputVertexNames() + " notifying on RecordReader initialized");
       }
       rrInited.signal();
     } finally {
@@ -647,7 +647,7 @@ public class MRInput extends MRInputBase {
     rrLock.lock();
     try {
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " awaiting RecordReader initialization");
+        LOG.debug(getContext().getInputOutputVertexNames() + " awaiting RecordReader initialization");
       }
       rrInited.await();
     } catch (Exception e) {
@@ -671,7 +671,7 @@ public class MRInput extends MRInputBase {
   
   private void initFromEventInternal(InputDataInformationEvent initEvent) throws IOException {
     if (LOG.isDebugEnabled()) {
-      LOG.debug(getContext().getSourceVertexName() + " initializing RecordReader from event");
+      LOG.debug(getContext().getInputOutputVertexNames() + " initializing RecordReader from event");
     }
     Objects.requireNonNull(initEvent, "InitEvent must be specified");
     MRSplitProto splitProto = MRSplitProto.parseFrom(ByteString.copyFrom(initEvent.getUserPayload()));
@@ -686,7 +686,7 @@ public class MRInput extends MRInputBase {
         LOG.warn("Thread interrupted while getting split length: ", e);
       }
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+        LOG.debug(getContext().getInputOutputVertexNames() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", NewSplit: " + split + ", length: " + splitLength);
       }
 
@@ -696,7 +696,7 @@ public class MRInput extends MRInputBase {
       splitObj = split;
       splitLength = split.getLength();
       if (LOG.isDebugEnabled()) {
-        LOG.debug(getContext().getSourceVertexName() + " split Details -> SplitClass: " +
+        LOG.debug(getContext().getInputOutputVertexNames() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", OldSplit: " + split + ", length: " + splitLength);
       }
     }
@@ -705,7 +705,7 @@ public class MRInput extends MRInputBase {
           .increment(splitLength);
     }
     mrReader.setSplit(splitObj);
-    LOG.info(getContext().getSourceVertexName() + " initialized RecordReader from event");
+    LOG.info(getContext().getInputOutputVertexNames() + " initialized RecordReader from event");
   }
 
   private static class MRInputHelpersInternal extends MRInputHelpers {

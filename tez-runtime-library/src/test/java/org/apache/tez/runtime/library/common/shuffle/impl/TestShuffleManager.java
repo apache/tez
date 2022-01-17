@@ -169,6 +169,7 @@ public class TestShuffleManager {
     InputContext inputContext = mock(InputContext.class);
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn("taskVertex").when(inputContext).getTaskVertexName();
     doReturn(shuffleMetaData).when(inputContext)
         .getServiceProviderMetaData(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
             TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));

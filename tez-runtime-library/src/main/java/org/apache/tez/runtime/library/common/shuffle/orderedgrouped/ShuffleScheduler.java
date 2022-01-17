@@ -222,8 +222,6 @@ class ShuffleScheduler {
   private final boolean localDiskFetchEnabled;
   private final String localHostname;
   private final int shufflePort;
-  private final String applicationId;
-  private final int dagId;
   private final boolean asyncHttp;
   private final boolean sslShuffle;
 
@@ -338,8 +336,6 @@ class ShuffleScheduler {
             TezRuntimeConfiguration
                 .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION_DEFAULT);
 
-    this.applicationId = inputContext.getApplicationId().toString();
-    this.dagId = inputContext.getDagIdentifier();
     this.localHostname = inputContext.getExecutionContext().getHostName();
     String auxiliaryService = conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
@@ -673,7 +669,7 @@ class ShuffleScheduler {
 
       if (remainingMaps.get() == 0) {
         notifyAll(); // Notify the getHost() method.
-        LOG.info("All inputs fetched for input vertex : " + inputContext.getSourceVertexName());
+        LOG.info("All inputs fetched for input vertex : " + inputContext.getInputOutputVertexNames());
       }
 
       // update the status
@@ -1474,17 +1470,17 @@ class ShuffleScheduler {
     if (enableFetcherTestingErrors) {
       return new FetcherOrderedGroupedWithInjectableErrors(httpConnectionParams, ShuffleScheduler.this, allocator,
           exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
-          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, mapHost,
           ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-          connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
-          verifyDiskChecksum, compositeFetch, inputContext.getObjectRegistry());
+          connectionErrsCounter, wrongReduceErrsCounter, asyncHttp, sslShuffle,
+          verifyDiskChecksum, compositeFetch, inputContext);
     } else {
       return new FetcherOrderedGrouped(httpConnectionParams, ShuffleScheduler.this, allocator,
           exceptionReporter, jobTokenSecretManager, ifileReadAhead, ifileReadAheadLength,
-          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, srcNameTrimmed, mapHost,
+          codec, conf, localFs, localDiskFetchEnabled, localHostname, shufflePort, mapHost,
           ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-          connectionErrsCounter, wrongReduceErrsCounter, applicationId, dagId, asyncHttp, sslShuffle,
-          verifyDiskChecksum, compositeFetch);
+          connectionErrsCounter, wrongReduceErrsCounter, asyncHttp, sslShuffle,
+          verifyDiskChecksum, compositeFetch, inputContext);
     }
   }
 
