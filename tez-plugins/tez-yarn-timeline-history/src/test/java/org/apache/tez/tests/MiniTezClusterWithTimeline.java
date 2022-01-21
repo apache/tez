@@ -49,6 +49,7 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.MiniYARNCluster;
 import org.apache.hadoop.yarn.server.nodemanager.ContainerExecutor;
 import org.apache.hadoop.yarn.server.nodemanager.DefaultContainerExecutor;
+import org.apache.tez.common.TezTestUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.DAGAppMaster;
@@ -90,6 +91,12 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
   public MiniTezClusterWithTimeline(String testName, int noOfNMs,
                         int numLocalDirs, int numLogDirs, boolean enableAHS)  {
     super(testName, 1, noOfNMs, numLocalDirs, numLogDirs, enableAHS);
+  }
+
+  @Override
+  public void init(Configuration conf) {
+    TezTestUtils.ensureHighDiskUtilizationLimit(conf);
+    super.init(conf);
   }
 
   @Override
