@@ -420,7 +420,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @Override
-  public synchronized void serviceInit(final Configuration conf) throws Exception {
+  protected void serviceInit(final Configuration conf) throws Exception {
 
     this.amConf = conf;
     initResourceCalculatorPlugins();
@@ -1984,7 +1984,7 @@ public class DAGAppMaster extends AbstractService {
   }
   
   @Override
-  public synchronized void serviceStart() throws Exception {
+  public void serviceStart() throws Exception {
     //start all the components
     startServices();
     super.serviceStart();
@@ -2164,57 +2164,55 @@ public class DAGAppMaster extends AbstractService {
     if (isSession) {
       sessionStopped.set(true);
     }
-    synchronized (this) {
-      if (this.dagSubmissionTimer != null) {
-        this.dagSubmissionTimer.cancel();
-      }
-      if (this.clientAMHeartBeatTimeoutService != null) {
-        this.clientAMHeartBeatTimeoutService.shutdownNow();
-      }
-      // release all the held containers before stop services TEZ-2687
-      initiateStop();
-      stopServices();
+    if (this.dagSubmissionTimer != null) {
+      this.dagSubmissionTimer.cancel();
+    }
+    if (this.clientAMHeartBeatTimeoutService != null) {
+      this.clientAMHeartBeatTimeoutService.shutdownNow();
+    }
+    // release all the held containers before stop services TEZ-2687
+    initiateStop();
+    stopServices();
 
-      // Given pre-emption, we should delete tez scratch dir only if unregister is
-      // successful
-      boolean deleteTezScratchData = this.amConf.getBoolean(
-          TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
-          TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
-      LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData={}",
-        deleteTezScratchData);
-      if (deleteTezScratchData && this.taskSchedulerManager != null
-          && this.taskSchedulerManager.hasUnregistered()) {
-        // Delete tez scratch data dir
-        if (this.tezSystemStagingDir != null) {
-          try {
-            this.appMasterUgi.doAs(new PrivilegedExceptionAction<Void>() {
-              @Override
-              public Void run() throws Exception {
-                FileSystem fs = tezSystemStagingDir.getFileSystem(amConf);
-                boolean deletedStagingDir = fs.delete(tezSystemStagingDir, true);
-                if (!deletedStagingDir) {
-                  LOG.warn("Failed to delete tez scratch data dir, path="
-                      + tezSystemStagingDir);
-                } else {
-                  LOG.info("Completed deletion of tez scratch data dir, path="
-                      + tezSystemStagingDir);
-                }
-                return null;
+    // Given pre-emption, we should delete tez scratch dir only if unregister is
+    // successful
+    boolean deleteTezScratchData = this.amConf.getBoolean(
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE,
+        TezConfiguration.TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT);
+    LOG.debug("Checking whether tez scratch data dir should be deleted, deleteTezScratchData={}",
+      deleteTezScratchData);
+    if (deleteTezScratchData && this.taskSchedulerManager != null
+        && this.taskSchedulerManager.hasUnregistered()) {
+      // Delete tez scratch data dir
+      if (this.tezSystemStagingDir != null) {
+        try {
+          this.appMasterUgi.doAs(new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+              FileSystem fs = tezSystemStagingDir.getFileSystem(amConf);
+              boolean deletedStagingDir = fs.delete(tezSystemStagingDir, true);
+              if (!deletedStagingDir) {
+                LOG.warn("Failed to delete tez scratch data dir, path="
+                    + tezSystemStagingDir);
+              } else {
+                LOG.info("Completed deletion of tez scratch data dir, path="
+                    + tezSystemStagingDir);
               }
-            });
-          } catch (IOException e) {
-            // Best effort to delete tez scratch data dir
-            LOG.warn("Failed to delete tez scratch data dir", e);
-          }
+              return null;
+            }
+          });
+        } catch (IOException e) {
+          // Best effort to delete tez scratch data dir
+          LOG.warn("Failed to delete tez scratch data dir", e);
         }
       }
-
-      if (execService != null) {
-        execService.shutdownNow();
-      }
-
-      super.serviceStop();
     }
+
+    if (execService != null) {
+      execService.shutdownNow();
+    }
+
+    super.serviceStop();
   }
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {

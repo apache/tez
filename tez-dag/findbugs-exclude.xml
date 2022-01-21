@@ -154,24 +154,8 @@
   <Match>
     <Class name="org.apache.tez.dag.app.DAGAppMaster"/>
     <Or>
-      <Field name="context"/>
-      <Field name="clientAMHeartbeatTimeoutIntervalMillis"/>
-      <Field name="clientHandler"/>
       <Field name="currentDAG"/>
-      <Field name="state"/>
-      <Field name="taskSchedulerManager"/>
-      <Field name="versionMismatch"/>
-      <Field name="versionMismatchDiagnostics"/>
-      <Field name="containers"/>
-      <Field name="currentRecoveryDataDir"/>
-      <Field name="execService"/>
-      <Field name="historyEventHandler"/>
-      <Field name="nodes"/>
-      <Field name="recoveryEnabled"/>
-      <Field name="isLocal"/>
-      <Field name="hadoopShim"/>
-      <Field name="containerLauncherManager"/>
-      <Field name="taskCommunicatorManager"/>
+      <Field name="lastDAGCompletionTime"/>
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>
