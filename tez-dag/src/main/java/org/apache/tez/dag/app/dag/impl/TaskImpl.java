@@ -39,13 +39,13 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -1262,6 +1262,13 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.commitAttempt = null;
       }
       // The attempt would have informed the scheduler about it's failure
+
+      // Delete the intermediate shuffle data for failed task attempt
+      TaskAttempt taskAttempt = task.getAttempt(castEvent.getTaskAttemptID());
+      if (taskAttempt.getAssignedContainer() != null) {
+        NodeId nodeId = taskAttempt.getAssignedContainer().getNodeId();
+        task.appContext.getAppMaster().taskAttemptFailed(taskAttempt.getID(), nodeId);
+      }
 
       task.taskAttemptStatus.put(castEvent.getTaskAttemptID().getId(), true);
       if (task.failedAttempts < task.maxFailedAttempts &&

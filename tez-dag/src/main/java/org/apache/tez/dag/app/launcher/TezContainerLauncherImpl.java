@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.io.DataInputByteBuffer;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.DagContainerLauncher;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
@@ -41,6 +42,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
@@ -90,6 +92,8 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
   private ContainerManagementProtocolProxy cmProxy;
   private AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private DeletionTracker deletionTracker = null;
+  private boolean dagDelete;
+  private boolean failedTaskAttemptDelete;
 
   private Container getContainer(ContainerOp event) {
     ContainerId id = event.getBaseOperation().getContainerId();
@@ -332,10 +336,14 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
     };
     eventHandlingThread.setName("ContainerLauncher Event Handler");
     eventHandlingThread.start();
-    boolean cleanupDagDataOnComplete = ShuffleUtils.isTezShuffleHandler(conf)
-        && conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
-        TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
-    if (cleanupDagDataOnComplete) {
+    dagDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+        conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
+            TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
+    failedTaskAttemptDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+        conf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
+            TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
+
+    if (dagDelete || failedTaskAttemptDelete) {
       String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
@@ -441,9 +449,16 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
 
   @Override
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
-    if (deletionTracker != null) {
+    if (dagDelete && deletionTracker != null) {
       deletionTracker.dagComplete(dag, jobTokenSecretManager);
     }
   }
 
+  @Override
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
+    if (failedTaskAttemptDelete && deletionTracker != null) {
+      deletionTracker.taskAttemptFailed(taskAttemptID, jobTokenSecretManager, nodeId);
+    }
+  }
 }
