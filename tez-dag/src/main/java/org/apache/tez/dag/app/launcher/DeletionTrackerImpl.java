@@ -34,6 +34,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,26 @@ public class DeletionTrackerImpl extends DeletionTracker {
         } catch (RejectedExecutionException rejectedException) {
           LOG.info("Ignoring deletion request for " + dagDeleteRunnable);
         }
+      }
+    }
+  }
+
+  @Override
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
+    super.taskAttemptFailed(taskAttemptID, jobTokenSecretManager, nodeId);
+    if (nodeIdShufflePortMap == null || nodeIdShufflePortMap.get(nodeId) == null) {
+      LOG.warn("Unable to find the shuffle port for shuffle data deletion of failed task attempt.");
+      return;
+    }
+    int shufflePort = nodeIdShufflePortMap.get(nodeId);
+    if (shufflePort != TezRuntimeUtils.INVALID_PORT) {
+      TaskAttemptFailedRunnable taskAttemptFailedRunnable = new TaskAttemptFailedRunnable(nodeId, shufflePort,
+          taskAttemptID, TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager);
+      try {
+        dagCleanupService.submit(taskAttemptFailedRunnable);
+      } catch (RejectedExecutionException rejectedException) {
+        LOG.info("Ignoring failed task attempt deletion request for " + taskAttemptFailedRunnable);
       }
     }
   }

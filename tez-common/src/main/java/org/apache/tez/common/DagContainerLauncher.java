@@ -20,8 +20,10 @@ package org.apache.tez.common;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 
@@ -40,4 +42,7 @@ public abstract class DagContainerLauncher extends ContainerLauncher {
   }
 
   public abstract void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager);
+
+  public abstract void taskAttemptFailed(TezTaskAttemptID taskAttemptID,
+                                         JobTokenSecretManager jobTokenSecretManager, NodeId nodeId);
 }
