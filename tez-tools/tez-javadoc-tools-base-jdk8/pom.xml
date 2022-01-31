@@ -22,7 +22,7 @@
     <artifactId>tez-tools</artifactId>
     <version>0.10.3-SNAPSHOT</version>
   </parent>
-  <artifactId>tez-javadoc-tools</artifactId>
+  <artifactId>tez-javadoc-tools-base-jdk8</artifactId>
 
   <dependencies>
     <dependency>
@@ -75,33 +75,6 @@
           <version>${java.version}</version>
           <scope>system</scope>
           <systemPath>${java.home}/../lib/tools.jar</systemPath>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>jdk8-16</id>
-      <activation>
-        <jdk>[8,16]</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-javadoc-tools-base-jdk8</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-    </dependencies>
-    </profile>
-    <profile>
-      <id>jdk17plus</id>
-      <activation>
-        <!-- JDK9 starts strong encapsulation of Java internals, JDK17 removes/hides those -->
-        <jdk>[17,)</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-javadoc-tools-base</artifactId>
-          <version>${project.version}</version>
         </dependency>
       </dependencies>
     </profile>
