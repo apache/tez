@@ -74,7 +74,7 @@ export default AbstractRoute.extend({
     return this.load(null, query).then(function (data) {
       if(that.get("controller.loadingMore")) {
         that.set("controller.loadingMore", false);
-        that.get("loadedValue").pushObjects(data);
+        that.get("loadedValue").pushObjects(data.content);
         return data;
       }
     });
