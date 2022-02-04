@@ -70,6 +70,10 @@ public final class InputReadErrorEvent extends Event {
     return new InputReadErrorEvent(diagnostics, index, version, isLocalFetch, isDiskErrorAtSource);
   }
 
+  public static InputReadErrorEvent create(String diagnostics, int index, int version) {
+    return create(diagnostics, index, version, false, false);
+  }
+
   public String getDiagnostics() {
     return diagnostics;
   }

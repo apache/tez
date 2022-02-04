@@ -263,7 +263,7 @@ public class TestInput extends AbstractLogicalInput {
                             getContext().getUniqueIdentifier() + 
                             " index: " + index + " version: " + sourceInputVersion;
               LOG.info(msg);
-              events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion));
+              events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion, false, false));
             }
           }
         }

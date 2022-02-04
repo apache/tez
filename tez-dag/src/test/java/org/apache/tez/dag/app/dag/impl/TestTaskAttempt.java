@@ -1859,7 +1859,7 @@ public class TestTaskAttempt {
     long finishTime = finishEvent.getFinishTime();
     verifyEventType(arg.getAllValues(), TaskEventTAUpdate.class, 2);
 
-    InputReadErrorEvent mockReEvent = InputReadErrorEvent.create("", 0, 1);
+    InputReadErrorEvent mockReEvent = InputReadErrorEvent.create("", 0, 1, false, false);
     EventMetaData mockMeta = mock(EventMetaData.class);
     TezTaskAttemptID mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockMeta.getTaskAttemptID()).thenReturn(mockDestId1);
@@ -1950,7 +1950,7 @@ public class TestTaskAttempt {
         TaskAttemptState.SUCCEEDED);
     verify(mockHeartbeatHandler).unregister(taskAttemptID2);
 
-    mockReEvent = InputReadErrorEvent.create("", 1, 1);
+    mockReEvent = InputReadErrorEvent.create("", 1, 1, false, false);
     mockMeta = mock(EventMetaData.class);
     mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
@@ -1992,7 +1992,7 @@ public class TestTaskAttempt {
         TaskAttemptState.SUCCEEDED);
     verify(mockHeartbeatHandler).unregister(taskAttemptID3);
 
-    mockReEvent = InputReadErrorEvent.create("", 1, 1);
+    mockReEvent = InputReadErrorEvent.create("", 1, 1, false, false);
     mockMeta = mock(EventMetaData.class);
     mockDestId1 = mock(TezTaskAttemptID.class);
     when(mockDestId1.getTaskID()).thenReturn(destTaskID);
@@ -2172,12 +2172,12 @@ public class TestTaskAttempt {
     TezTaskID taskID =
         TezTaskID.getInstance(TezVertexID.getInstance(TezDAGID.getInstance("1", 1, 1), 1), 1);
     TaskAttemptImpl sourceAttempt = new MockTaskAttemptImpl(taskID, 1, eventHandler, null,
-        new Configuration(), SystemClock.getInstance(), mock(TaskHeartbeatHandler.class), appCtx,
+        new Configuration(), new SystemClock(), mock(TaskHeartbeatHandler.class), appCtx,
         false, null, null, false);
 
     // the original read error event, sent by reducer task
     InputReadErrorEvent inputReadErrorEvent =
-        InputReadErrorEvent.create("", 0, 1, 1, isLocalFetch, isDiskErrorAtSource);
+        InputReadErrorEvent.create("", 0, 1, isLocalFetch, isDiskErrorAtSource);
     TezTaskAttemptID destTaskAttemptId = mock(TezTaskAttemptID.class);
     when(destTaskAttemptId.getTaskID()).thenReturn(mock(TezTaskID.class));
     when(destTaskAttemptId.getTaskID().getVertexID()).thenReturn(mock(TezVertexID.class));
