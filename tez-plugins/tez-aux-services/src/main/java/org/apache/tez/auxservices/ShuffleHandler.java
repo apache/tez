@@ -57,6 +57,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
@@ -998,6 +1000,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Map<String, List<String>> q = new QueryStringDecoder(request.getUri()).parameters();
       final List<String> keepAliveList = q.get("keepAlive");
       final List<String> dagCompletedQ = q.get("dagAction");
+      final List<String> taskAttemptFailedQ = q.get("taskAttemptAction");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
@@ -1017,6 +1020,9 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       // If the request is for Dag Deletion, process the request and send OK.
       if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ))  {
+        return;
+      }
+      if (deleteTaskAttemptDirectories(ctx.channel(), taskAttemptFailedQ, jobQ, dagIdQ, mapIds)) {
         return;
       }
       if (mapIds == null || reduceRange == null || jobQ == null || dagIdQ == null) {
@@ -1098,14 +1104,24 @@ public class ShuffleHandler extends AuxiliaryService {
       ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
     }
 
+    private boolean isNullOrEmpty(List<String> entries) {
+      return entries == null || entries.isEmpty();
+    }
+
+    private boolean notEmptyAndContains(List<String> entries, String key) {
+      if (entries == null || entries.isEmpty()) {
+        return false;
+      }
+      return entries.get(0).contains(key);
+    }
+
     private boolean deleteDagDirectories(Channel channel,
                                          List<String> dagCompletedQ, List<String> jobQ,
                                          List<String> dagIdQ) {
       if (jobQ == null || jobQ.isEmpty()) {
         return false;
       }
-      if (dagCompletedQ != null && !dagCompletedQ.isEmpty() && dagCompletedQ.get(0).contains("delete")
-          && dagIdQ != null && !dagIdQ.isEmpty()) {
+      if (notEmptyAndContains(dagCompletedQ,"delete") && !isNullOrEmpty(dagIdQ)) {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           FileContext lfc = FileContext.getLocalFSFileContext();
@@ -1117,6 +1133,40 @@ public class ShuffleHandler extends AuxiliaryService {
         }
         channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
             .addListener(ChannelFutureListener.CLOSE);
+        return true;
+      }
+      return false;
+    }
+
+    private boolean deleteTaskAttemptDirectories(Channel channel, List<String> taskAttemptFailedQ,
+                                            List<String> jobQ, List<String> dagIdQ, List<String> taskAttemptIdQ) {
+      if (jobQ == null || jobQ.isEmpty()) {
+        return false;
+      }
+      if (notEmptyAndContains(taskAttemptFailedQ,"delete") && !isNullOrEmpty(taskAttemptIdQ)) {
+        for (String taskAttemptId : taskAttemptIdQ) {
+          String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
+          try {
+            FileSystem fs = FileSystem.getLocal(conf).getRaw();
+            for (Path basePath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+              for (FileStatus fileStatus : fs.listStatus(basePath)) {
+                Path taskAttemptPath = fileStatus.getPath();
+                if (taskAttemptPath.getName().startsWith(taskAttemptId)) {
+                  if (fs.delete(taskAttemptPath, true)) {
+                    LOG.info("Deleted directory : " + taskAttemptPath);
+                    // remove entry from IndexCache
+                    indexCache.removeMap(taskAttemptPath.getName());
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (IOException e) {
+            LOG.warn("Encountered exception during failed task attempt delete " + e);
+          }
+        }
+        channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
+                .addListener(ChannelFutureListener.CLOSE);
         return true;
       }
       return false;

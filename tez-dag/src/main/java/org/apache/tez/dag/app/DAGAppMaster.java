@@ -68,6 +68,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezUtils;
@@ -179,6 +180,7 @@ import org.apache.tez.dag.history.events.DAGKillRequestEvent;
 import org.apache.tez.dag.history.events.DAGSubmittedEvent;
 import org.apache.tez.dag.history.utils.DAGUtils;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.dag.utils.RelocalizationUtils;
@@ -2781,4 +2783,7 @@ public class DAGAppMaster extends AbstractService {
     return sb.toString();
   }
 
+  public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
+    getContainerLauncherManager().taskAttemptFailed(attemptID, jobTokenSecretManager, nodeId);
+  }
 }

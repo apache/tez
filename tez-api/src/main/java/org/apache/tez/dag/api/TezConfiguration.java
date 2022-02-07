@@ -841,7 +841,17 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT = false;
 
   /**
-   * Int value. Upper limit on the number of threads used to delete DAG directories on nodes.
+   * Boolean value. Instructs AM to delete intermediate attempt data for failed task attempts.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE = TEZ_AM_PREFIX
+          + "task.attempt.cleanup.on.failure";
+  public static final boolean TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT = false;
+
+  /**
+   * Int value. Upper limit on the number of threads used to delete DAG directories and failed task attempts
+   * directories on nodes.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
