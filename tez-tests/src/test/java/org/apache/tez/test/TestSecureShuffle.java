@@ -139,6 +139,8 @@ public class TestSecureShuffle {
       setupKeyStores();
     }
     conf.setBoolean(MRConfig.SHUFFLE_SSL_ENABLED_KEY, enableSSLInCluster);
+    //Hadoop 2.7 has only TLSv1 as enabled protocol which is not supported anymore so the protocol list needs to be extended
+    conf.set(SSLFactory.SSL_ENABLED_PROTOCOLS, "TLSv1,SSLv2Hello,TLSv1.1,TLSv1.2");
 
     // 3 seconds should be good enough in local machine
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT, 3 * 1000);
