@@ -103,11 +103,4 @@ public class ShuffleHeader implements Writable {
     WritableUtils.writeVLong(out, uncompressedLength);
     WritableUtils.writeVInt(out, forReduce);
   }
-
-  @Override
-  public String toString() {
-    return String.format(
-        "ShuffleHeader [mapId=%s, uncompressedLength=%d, compressedLength=%d, forReduce=%d]", mapId,
-        uncompressedLength, compressedLength, forReduce);
-  }
 }

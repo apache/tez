@@ -191,8 +191,6 @@ public class TezEvent implements Writable {
             .setIndex(ideEvt.getIndex())
             .setDiagnostics(ideEvt.getDiagnostics())
             .setVersion(ideEvt.getVersion())
-            .setIsLocalFetch(ideEvt.isLocalFetch())
-            .setIsDiskErrorAtSource(ideEvt.isDiskErrorAtSource())
             .build();
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
@@ -296,9 +294,10 @@ public class TezEvent implements Writable {
         event = ProtoConverters.convertVertexManagerEventFromProto(vmProto);
         break;
       case INPUT_READ_ERROR_EVENT:
-        InputReadErrorEventProto ideProto = InputReadErrorEventProto.parseFrom(input);
-        event = InputReadErrorEvent.create(ideProto.getDiagnostics(), ideProto.getIndex(),
-            ideProto.getVersion(), ideProto.getIsLocalFetch(), ideProto.getIsDiskErrorAtSource());
+        InputReadErrorEventProto ideProto =
+            InputReadErrorEventProto.parseFrom(input);
+        event = InputReadErrorEvent.create(ideProto.getDiagnostics(),
+            ideProto.getIndex(), ideProto.getVersion());
         break;
       case TASK_ATTEMPT_FAILED_EVENT:
         TaskAttemptFailedEventProto tfProto =

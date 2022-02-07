@@ -80,7 +80,6 @@ import org.apache.tez.runtime.library.common.shuffle.Fetcher;
 import org.apache.tez.runtime.library.common.shuffle.Fetcher.FetcherBuilder;
 import org.apache.tez.runtime.library.common.shuffle.FetcherCallback;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
-import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.InputHost;
 import org.apache.tez.runtime.library.common.shuffle.InputHost.PartitionToInputs;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -792,15 +791,12 @@ public class ShuffleManager implements FetcherCallback {
 
   @Override
   public void fetchFailed(String host,
-      InputAttemptFetchFailure inputAttemptFetchFailure, boolean connectFailed) {
+      InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
-    InputAttemptIdentifier srcAttemptIdentifier = inputAttemptFetchFailure.getInputAttemptIdentifier();
-    LOG.info(
-        "{}: Fetch failed for src: {} InputIdentifier: {}, connectFailed: {}, "
-            + "local fetch: {}, remote fetch failure reported as local failure: {})",
-        srcNameTrimmed, srcAttemptIdentifier, srcAttemptIdentifier, connectFailed,
-        inputAttemptFetchFailure.isLocalFetch(), inputAttemptFetchFailure.isDiskErrorAtSource());
+    LOG.info(srcNameTrimmed + ": " + "Fetch failed for src: " + srcAttemptIdentifier
+        + "InputIdentifier: " + srcAttemptIdentifier + ", connectFailed: "
+        + connectFailed);
     failedShufflesCounter.increment(1);
     inputContext.notifyProgress();
     if (srcAttemptIdentifier == null) {
@@ -813,9 +809,7 @@ public class ShuffleManager implements FetcherCallback {
             srcAttemptIdentifier.getInputIdentifier(),
             srcAttemptIdentifier.getAttemptNumber()),
         srcAttemptIdentifier.getInputIdentifier(),
-        srcAttemptIdentifier.getAttemptNumber(),
-        inputAttemptFetchFailure.isLocalFetch(),
-        inputAttemptFetchFailure.isDiskErrorAtSource());
+        srcAttemptIdentifier.getAttemptNumber());
 
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
     failedEvents.add(readError);

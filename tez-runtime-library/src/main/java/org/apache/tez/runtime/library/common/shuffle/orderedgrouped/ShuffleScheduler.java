@@ -80,7 +80,6 @@ import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils.FetchStatsLogger;
 import org.apache.tez.runtime.library.common.shuffle.HostPort;
-import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapHost.HostPortPartition;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 
@@ -178,7 +177,6 @@ class ShuffleScheduler {
   private final Referee referee;
   @VisibleForTesting
   final Map<InputAttemptIdentifier, IntWritable> failureCounts = new HashMap<InputAttemptIdentifier,IntWritable>();
-
   final Set<HostPort> uniqueHosts = Sets.newHashSet();
   private final Map<HostPort,IntWritable> hostFailures = new HashMap<HostPort,IntWritable>();
   private final InputContext inputContext;
@@ -757,13 +755,16 @@ class ShuffleScheduler {
     }
   }
 
-  public synchronized void copyFailed(InputAttemptFetchFailure fetchFailure, MapHost host,
-      boolean readError, boolean connectError) {
+  public synchronized void copyFailed(InputAttemptIdentifier srcAttempt,
+                                      MapHost host,
+                                      boolean readError,
+                                      boolean connectError,
+                                      boolean isLocalFetch) {
     failedShuffleCounter.increment(1);
     inputContext.notifyProgress();
-    int failures = incrementAndGetFailureAttempt(fetchFailure.getInputAttemptIdentifier());
+    int failures = incrementAndGetFailureAttempt(srcAttempt);
 
-    if (!fetchFailure.isLocalFetch()) {
+    if (!isLocalFetch) {
       /**
        * Track the number of failures that has happened since last completion.
        * This gets reset on a successful copy.
@@ -788,11 +789,11 @@ class ShuffleScheduler {
 
     if (shouldInformAM) {
       //Inform AM. In case producer needs to be restarted, it is handled at AM.
-      informAM(fetchFailure);
+      informAM(srcAttempt);
     }
 
     //Restart consumer in case shuffle is not healthy
-    if (!isShuffleHealthy(fetchFailure)) {
+    if (!isShuffleHealthy(srcAttempt)) {
       return;
     }
 
@@ -867,24 +868,21 @@ class ShuffleScheduler {
   }
 
   // Notify AM
-  private void informAM(InputAttemptFetchFailure fetchFailure) {
-    InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
+  private void informAM(InputAttemptIdentifier srcAttempt) {
     LOG.info(
-        "{}: Reporting fetch failure for InputIdentifier: {} taskAttemptIdentifier: {}, "
-            + "local fetch: {}, remote fetch failure reported as local failure: {}) to AM.",
-        srcNameTrimmed, srcAttempt,
-        TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber()),
-        fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource());
+        srcNameTrimmed + ": " + "Reporting fetch failure for InputIdentifier: "
+            + srcAttempt + " taskAttemptIdentifier: " + TezRuntimeUtils
+            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+                srcAttempt.getInputIdentifier(),
+                srcAttempt.getAttemptNumber()) + " to AM.");
     List<Event> failedEvents = Lists.newArrayListWithCapacity(1);
-    failedEvents.add(
-        InputReadErrorEvent.create(
-            "Fetch failure for "
-                + TezRuntimeUtils.getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
-                    srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber())
-                + " to jobtracker.",
-            srcAttempt.getInputIdentifier(), srcAttempt.getAttemptNumber(),
-            fetchFailure.isLocalFetch(), fetchFailure.isDiskErrorAtSource()));
+    failedEvents.add(InputReadErrorEvent.create(
+        "Fetch failure for " + TezRuntimeUtils
+            .getTaskAttemptIdentifier(inputContext.getSourceVertexName(),
+                srcAttempt.getInputIdentifier(),
+                srcAttempt.getAttemptNumber()) + " to jobtracker.",
+        srcAttempt.getInputIdentifier(),
+        srcAttempt.getAttemptNumber()));
 
     inputContext.sendEvents(failedEvents);
   }
@@ -1006,8 +1004,8 @@ class ShuffleScheduler {
     return fetcherHealthy;
   }
 
-  boolean isShuffleHealthy(InputAttemptFetchFailure fetchFailure) {
-    InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
+  boolean isShuffleHealthy(InputAttemptIdentifier srcAttempt) {
+
     if (isAbortLimitExceeedFor(srcAttempt)) {
       return false;
     }
@@ -1049,15 +1047,14 @@ class ShuffleScheduler {
           + ", pendingInputs=" + (numInputs - doneMaps)
           + ", fetcherHealthy=" + fetcherHealthy
           + ", reducerProgressedEnough=" + reducerProgressedEnough
-          + ", reducerStalled=" + reducerStalled
-          + ", hostFailures=" + hostFailures)
+          + ", reducerStalled=" + reducerStalled)
           + "]";
       LOG.error(errorMsg);
       if (LOG.isDebugEnabled()) {
         LOG.debug("Host failures=" + hostFailures.keySet());
       }
       // Shuffle knows how to deal with failures post shutdown via the onFailure hook
-      exceptionReporter.reportException(new IOException(errorMsg, fetchFailure.getCause()));
+      exceptionReporter.reportException(new IOException(errorMsg));
       return false;
     }
     return true;

@@ -71,7 +71,6 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.annotation.Metric;
@@ -85,7 +84,6 @@ import org.apache.hadoop.security.ssl.SSLFactory;
 import org.apache.hadoop.security.token.Token;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.hadoop.util.Shell;
-import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.proto.YarnServerCommonProtos.VersionProto;
@@ -646,10 +644,6 @@ public class ShuffleHandler extends AuxiliaryService {
     return new Shuffle(conf);
   }
 
-  protected JobTokenSecretManager getSecretManager() {
-    return secretManager;
-  }
-
   private void recoverState(Configuration conf) throws IOException {
     Path recoveryRoot = getRecoveryPath();
     if (recoveryRoot != null) {
@@ -769,7 +763,7 @@ public class ShuffleHandler extends AuxiliaryService {
   private void addJobToken(JobID jobId, String user,
       Token<JobTokenIdentifier> jobToken) {
     userRsrc.put(jobId.toString(), user);
-    getSecretManager().addTokenForJob(jobId.toString(), jobToken);
+    secretManager.addTokenForJob(jobId.toString(), jobToken);
     LOG.info("Added token for " + jobId.toString());
   }
 
@@ -815,7 +809,7 @@ public class ShuffleHandler extends AuxiliaryService {
 
   private void removeJobShuffleInfo(JobID jobId) throws IOException {
     String jobIdStr = jobId.toString();
-    getSecretManager().removeTokenForJob(jobIdStr);
+    secretManager.removeTokenForJob(jobIdStr);
     userRsrc.remove(jobIdStr);
     if (stateDb != null) {
       try {
@@ -1080,19 +1074,11 @@ public class ShuffleHandler extends AuxiliaryService {
       try {
         populateHeaders(mapIds, jobId, dagId, user, reduceRange,
           response, keepAliveParam, mapOutputInfoMap);
-      } catch (DiskErrorException e) { // fatal error: fetcher should be aware of that
-        LOG.error("Shuffle error in populating headers (fatal: DiskErrorException):", e);
-        String errorMessage = getErrorMessage(e);
-        // custom message, might be noticed by fetchers
-        // it should reuse the current response object, as headers have been already set for it
-        sendFakeShuffleHeaderWithError(ctx,
-            ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + errorMessage, response);
-        return;
-      } catch (IOException e) {
+      } catch(IOException e) {
         ch.write(response);
         LOG.error("Shuffle error in populating headers :", e);
         String errorMessage = getErrorMessage(e);
-        sendError(ctx, errorMessage, INTERNAL_SERVER_ERROR);
+        sendError(ctx,errorMessage , INTERNAL_SERVER_ERROR);
         return;
       }
       ch.write(response);
@@ -1343,7 +1329,7 @@ public class ShuffleHandler extends AuxiliaryService {
     protected void verifyRequest(String appid, ChannelHandlerContext ctx,
         HttpRequest request, HttpResponse response, URL requestUri)
         throws IOException {
-      SecretKey tokenSecret = getSecretManager().retrieveTokenSecret(appid);
+      SecretKey tokenSecret = secretManager.retrieveTokenSecret(appid);
       if (null == tokenSecret) {
         LOG.info("Request for unknown token " + appid);
         throw new IOException("could not find jobid");
@@ -1439,46 +1425,25 @@ public class ShuffleHandler extends AuxiliaryService {
       return writeFuture;
     }
 
-    protected void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
+    protected void sendError(ChannelHandlerContext ctx,
+        HttpResponseStatus status) {
       sendError(ctx, "", status);
     }
 
     protected void sendError(ChannelHandlerContext ctx, String message, HttpResponseStatus status) {
       FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
-      sendError(ctx, message, response);
-      response.release();
-    }
 
-    protected void sendError(ChannelHandlerContext ctx, String message, FullHttpResponse response) {
-      sendError(ctx, Unpooled.copiedBuffer(message, CharsetUtil.UTF_8), response);
-    }
-
-    private void sendFakeShuffleHeaderWithError(ChannelHandlerContext ctx, String message,
-        HttpResponse response) throws IOException {
-      FullHttpResponse fullResponse =
-          new DefaultFullHttpResponse(response.getProtocolVersion(), response.getStatus());
-      fullResponse.headers().set(response.headers());
-
-      ShuffleHeader header = new ShuffleHeader(message, -1, -1, -1);
-      DataOutputBuffer out = new DataOutputBuffer();
-      header.write(out);
-
-      sendError(ctx, wrappedBuffer(out.getData(), 0, out.getLength()), fullResponse);
-      fullResponse.release();
-    }
-
-    protected void sendError(ChannelHandlerContext ctx, ByteBuf content,
-        FullHttpResponse response) {
       response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
       // Put shuffle version into http header
       response.headers().set(ShuffleHeader.HTTP_HEADER_NAME,
           ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
       response.headers().set(ShuffleHeader.HTTP_HEADER_VERSION,
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
-      response.content().writeBytes(content);
+      response.content().writeBytes(Unpooled.copiedBuffer(message, CharsetUtil.UTF_8));
 
       // Close the connection as soon as the error message is sent.
       ctx.channel().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+      response.release();
     }
 
     @Override

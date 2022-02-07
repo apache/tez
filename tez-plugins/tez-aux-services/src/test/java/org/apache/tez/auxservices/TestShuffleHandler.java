@@ -20,7 +20,6 @@ package org.apache.tez.auxservices;
 //import static org.apache.hadoop.test.MetricsAsserts.assertCounter;
 //import static org.apache.hadoop.test.MetricsAsserts.assertGauge;
 //import static org.apache.hadoop.test.MetricsAsserts.getMetrics;
-import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import static org.junit.Assert.assertTrue;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.junit.Assert.assertEquals;
@@ -40,6 +39,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,6 +48,7 @@ import java.util.zip.Checksum;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -58,10 +59,6 @@ import org.apache.hadoop.io.nativeio.NativeIO;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.http.BaseHttpConnection;
-import org.apache.tez.http.HttpConnectionParams;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.impl.MetricsSystemImpl;
@@ -169,52 +166,6 @@ public class TestShuffleHandler {
 
     protected boolean isSocketKeepAlive() {
       return socketKeepAlive;
-    }
-  }
-
-  class MockShuffleHandlerWithFatalDiskError extends org.apache.tez.auxservices.ShuffleHandler {
-    public static final String MESSAGE =
-        "Could not find application_1234/240/output/attempt_1234_0/file.out.index";
-
-    private JobTokenSecretManager secretManager =
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()));
-
-    protected JobTokenSecretManager getSecretManager(){
-      return secretManager;
-    }
-
-    @Override
-    protected Shuffle getShuffle(final Configuration conf) {
-      return new Shuffle(conf) {
-        @Override
-        protected void verifyRequest(String appid, ChannelHandlerContext ctx, HttpRequest request,
-            HttpResponse response, URL requestUri) throws IOException {
-          super.verifyRequest(appid, ctx, request, response, requestUri);
-        }
-
-        @Override
-        protected MapOutputInfo getMapOutputInfo(String dagId, String mapId, Range reduceRange,
-            String jobId, String user) {
-          return null;
-        }
-
-        @Override
-        protected void populateHeaders(List<String> mapIds, String jobId, String dagId, String user,
-            Range reduceRange, HttpResponse response, boolean keepAliveParam,
-            Map<String, MapOutputInfo> infoMap) throws IOException {
-          throw new DiskErrorException(MESSAGE);
-        }
-
-        @Override
-        protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx, Channel ch, String user,
-            String mapId, Range reduceRange, MapOutputInfo info) throws IOException {
-          return null;
-        }
-      };
-    }
-
-    public String getSecret() {
-      return "secret";
     }
   }
 
@@ -1357,53 +1308,6 @@ public class TestShuffleHandler {
           listenerList.size() <= maxOpenFiles);
     }
     sh.close();
-  }
-
-  @Test
-  public void testShuffleHandlerSendsDiskError() throws Exception {
-    Configuration conf = new Configuration();
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
-
-    DataInputStream input = null;
-    MockShuffleHandlerWithFatalDiskError shuffleHandler =
-        new MockShuffleHandlerWithFatalDiskError();
-    try {
-      shuffleHandler.init(conf);
-      shuffleHandler.start();
-
-      String shuffleBaseURL = "http://127.0.0.1:"
-          + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY);
-      URL url = new URL(
-          shuffleBaseURL + "/mapOutput?job=job_12345_1&dag=1&reduce=1&map=attempt_12345_1_m_1_0");
-      shuffleHandler.secretManager.addTokenForJob("job_12345_1",
-          new Token<>("id".getBytes(), shuffleHandler.getSecret().getBytes(), null, null));
-
-      HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
-      BaseHttpConnection httpConnection = ShuffleUtils.getHttpConnection(true, url,
-          httpConnectionParams, "testFetcher", shuffleHandler.secretManager);
-
-      boolean connectSucceeded = httpConnection.connect();
-      Assert.assertTrue(connectSucceeded);
-
-      input = httpConnection.getInputStream();
-      httpConnection.validate();
-
-      ShuffleHeader header = new ShuffleHeader();
-      header.readFields(input);
-
-      // message is encoded in the shuffle header, and can be checked by fetchers
-      Assert.assertEquals(
-          ShuffleHandlerError.DISK_ERROR_EXCEPTION + ": " + MockShuffleHandlerWithFatalDiskError.MESSAGE,
-          header.getMapId());
-      Assert.assertEquals(-1, header.getCompressedLength());
-      Assert.assertEquals(-1, header.getUncompressedLength());
-      Assert.assertEquals(-1, header.getPartition());
-    } finally {
-      if (input != null) {
-        input.close();
-      }
-      shuffleHandler.close();
-    }
   }
 
   public ChannelFuture createMockChannelFuture(Channel mockCh,

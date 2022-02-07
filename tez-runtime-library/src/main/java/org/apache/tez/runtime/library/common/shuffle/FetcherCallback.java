@@ -28,7 +28,6 @@ public interface FetcherCallback {
       FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
       throws IOException;
   
-  public void fetchFailed(String host, InputAttemptFetchFailure srcAttemptFetchFailure,
-      boolean connectFailed);
+  public void fetchFailed(String host, InputAttemptIdentifier srcAttemptIdentifier, boolean connectFailed);
 
 }
