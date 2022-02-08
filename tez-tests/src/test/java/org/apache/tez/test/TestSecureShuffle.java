@@ -113,7 +113,6 @@ public class TestSecureShuffle {
   public static void setupDFSCluster() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
-    conf.setBoolean("fs.hdfs.impl.disable.cache", true);
     EditLogFileOutputStream.setShouldSkipFsyncForTesting(true);
     conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
     miniDFSCluster =
@@ -303,8 +302,7 @@ public class TestSecureShuffle {
 
     String hostAddress = InetAddress.getLocalHost().getHostAddress();
     certGen.addExtension(X509Extensions.SubjectAlternativeName, false,
-        new GeneralNames(new GeneralName[] { new GeneralName(GeneralName.iPAddress, hostAddress),
-            new GeneralName(GeneralName.dNSName, "localhost") }));
+        new GeneralNames(new GeneralName(GeneralName.iPAddress, hostAddress)));
 
     X500Principal dnName = new X500Principal(dn);
 
