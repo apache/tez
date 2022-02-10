@@ -104,10 +104,7 @@ import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.TaskAttemptFinishedEvent;
 import org.apache.tez.dag.history.events.TaskAttemptStartedEvent;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DataEventDependencyInfoProto;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
@@ -588,25 +585,10 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @Override
-  public TezTaskAttemptID getID() {
+  public TezTaskAttemptID getTaskAttemptID() {
     return attemptId;
   }
 
-  @Override
-  public TezTaskID getTaskID() {
-    return attemptId.getTaskID();
-  }
-
-  @Override
-  public TezVertexID getVertexID() {
-    return attemptId.getTaskID().getVertexID();
-  }
-
-  @Override
-  public TezDAGID getDAGID() {
-    return getVertexID().getDAGId();
-  }
-  
   public TezTaskAttemptID getSchedulingCausalTA() {
     return creationCausalTA;
   }
@@ -884,12 +866,12 @@ public class TaskAttemptImpl implements TaskAttempt,
         LOG.error("Can't handle this event at current state for "
             + this.attemptId, e);
         eventHandler.handle(new DAGEventDiagnosticsUpdate(
-            this.attemptId.getTaskID().getVertexID().getDAGId(),
+            getDAGID(),
             "Invalid event " + event.getType() +
             " on TaskAttempt " + this.attemptId));
         eventHandler.handle(
             new DAGEvent(
-                this.attemptId.getTaskID().getVertexID().getDAGId(),
+                getDAGID(),
                 DAGEventType.INTERNAL_ERROR)
             );
       } catch (RuntimeException e) {
@@ -897,13 +879,13 @@ public class TaskAttemptImpl implements TaskAttempt,
             + " at current state " + oldState + " for "
             + this.attemptId, e);
         eventHandler.handle(new DAGEventDiagnosticsUpdate(
-            this.attemptId.getTaskID().getVertexID().getDAGId(),
+            getDAGID(),
             "Uncaught exception when handling event " + event.getType()
                 + " on TaskAttempt " + this.attemptId
                 + " at state " + oldState + ", error=" + e.getMessage()));
         eventHandler.handle(
             new DAGEvent(
-                this.attemptId.getTaskID().getVertexID().getDAGId(),
+                getDAGID(),
                 DAGEventType.INTERNAL_ERROR)
         );
       }
@@ -1269,7 +1251,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           if (taFinishedEvent == null) {
             LOG.debug("Only TaskAttemptStartedEvent but no TaskAttemptFinishedEvent, "
                 + "send out TaskAttemptEventAttemptKilled to move it to KILLED");
-            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(), 
+            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getTaskAttemptID(),
                 "Task Attempt killed in recovery due to can't recover the running task attempt",
                 TaskAttemptTerminationCause.TERMINATED_AT_RECOVERY, true));
             return TaskAttemptStateInternal.NEW;
@@ -1280,29 +1262,29 @@ public class TaskAttemptImpl implements TaskAttempt,
         TaskAttemptFinishedEvent taFinishedEvent =
             ta.recoveryData.getTaskAttemptFinishedEvent();
         Preconditions.checkArgument(taFinishedEvent != null, "Both of TaskAttemptStartedEvent and TaskFinishedEvent is null,"
-            + "taskAttemptId=" + ta.getID());
+            + "taskAttemptId=" + ta.getTaskAttemptID());
         switch (taFinishedEvent.getState()) {
           case FAILED:
             LOG.debug("TaskAttemptFinishedEvent is seen with state of FAILED, "
                 + "send TA_FAILED to itself, attemptId={}", ta.attemptId);
-            ta.sendEvent(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+            ta.sendEvent(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
                 taFinishedEvent.getTaskFailureType(),
                 taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
             break;
           case KILLED:
             LOG.debug("TaskAttemptFinishedEvent is seen with state of KILLED, "
                 + "send TA_KILLED to itself, attemptId={}", ta.attemptId);
-            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getID(),
+            ta.sendEvent(new TaskAttemptEventAttemptKilled(ta.getTaskAttemptID(),
                 taFinishedEvent.getDiagnostics(), taFinishedEvent.getTaskAttemptError(), true));
             break;
           case SUCCEEDED:
               LOG.debug("TaskAttemptFinishedEvent is seen with state of SUCCEEDED, "
                   + "send TA_DONE to itself, attemptId={}", ta.attemptId);
-            ta.sendEvent(new TaskAttemptEvent(ta.getID(), TaskAttemptEventType.TA_DONE));
+            ta.sendEvent(new TaskAttemptEvent(ta.getTaskAttemptID(), TaskAttemptEventType.TA_DONE));
             break;
           default:
             throw new TezUncheckedException("Invalid state in TaskAttemptFinishedEvent, state=" 
-                + taFinishedEvent.getState() + ", taId=" + ta.getID());
+                + taFinishedEvent.getState() + ", taId=" + ta.getTaskAttemptID());
         }
         return TaskAttemptStateInternal.NEW;
       }
@@ -1428,7 +1410,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         RecoveryEvent rEvent = (RecoveryEvent)event;
         if (rEvent.isFromRecovery()) {
           if (LOG.isDebugEnabled()) {
-            LOG.debug("Faked TerminateEvent from recovery, taskAttemptId=" + ta.getID());
+            LOG.debug("Faked TerminateEvent from recovery, taskAttemptId=" + ta.getTaskAttemptID());
           }
         }
       }
@@ -1613,10 +1595,10 @@ public class TaskAttemptImpl implements TaskAttempt,
           // task is hung
           String diagnostics = "Attempt failed because it appears to make no progress for " + 
           ta.hungIntervalMax + "ms";
-          LOG.info(diagnostics + " " + ta.getID());
+          LOG.info(diagnostics + " " + ta.getTaskAttemptID());
           // send event that will fail this attempt
           ta.sendEvent(
-              new TaskAttemptEventAttemptFailed(ta.getID(),
+              new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(),
                   TaskAttemptEventType.TA_FAILED,
                   TaskFailureType.NON_FATAL,
                   diagnostics, 
@@ -1803,8 +1785,8 @@ public class TaskAttemptImpl implements TaskAttempt,
       InputReadErrorEvent readErrorEvent = (InputReadErrorEvent)inputFailedEvent.getEvent();
       int failedInputIndexOnDestTa = readErrorEvent.getIndex();
 
-      if (readErrorEvent.getVersion() != sourceAttempt.getID().getId()) {
-        throw new TezUncheckedException(sourceAttempt.getID()
+      if (readErrorEvent.getVersion() != sourceAttempt.getTaskAttemptID().getId()) {
+        throw new TezUncheckedException(sourceAttempt.getTaskAttemptID()
             + " incorrectly blamed for read error from " + failedDestTaId
             + " at inputIndex " + failedInputIndexOnDestTa + " version"
             + readErrorEvent.getVersion());
@@ -1814,7 +1796,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // destination: where the data is tried to be fetched to
       String dHost = readErrorEvent.getDestinationLocalhostName();
 
-      LOG.info("{} (on {}) blamed for read error from {} (on {}) at inputIndex {}", sourceAttempt.getID(),
+      LOG.info("{} (on {}) blamed for read error from {} (on {}) at inputIndex {}", sourceAttempt.getTaskAttemptID(),
           sHost, failedDestTaId, dHost, failedInputIndexOnDestTa);
 
       boolean tooManyDownstreamHostsBlamedTheSameUpstreamHost = false;
@@ -1856,7 +1838,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       boolean crossTimeDeadline = readErrorTimespanSec >= maxAllowedTimeForTaskReadErrorSec;
 
       int runningTasks = sourceAttempt.appContext.getCurrentDAG().getVertex(
-          failedDestTaId.getTaskID().getVertexID()).getRunningTasks();
+          failedDestTaId.getVertexID()).getRunningTasks();
       float failureFraction =
           runningTasks > 0 ? ((float) sourceAttempt.uniquefailedOutputReports.size()) / runningTasks : 0;
       boolean withinFailureFractionLimits =
@@ -1872,7 +1854,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           && !tooManyDownstreamHostsBlamedTheSameUpstreamHost) {
         return sourceAttempt.getInternalState();
       }
-      String message = sourceAttempt.getID() + " being failed for too many output errors. "
+      String message = sourceAttempt.getTaskAttemptID() + " being failed for too many output errors. "
           + "failureFraction=" + failureFraction
           + ", MAX_ALLOWED_OUTPUT_FAILURES_FRACTION="
           + maxAllowedOutputFailuresFraction
@@ -1929,8 +1911,8 @@ public class TaskAttemptImpl implements TaskAttempt,
         tezIfEvents.add(new TezEvent(new InputFailedEvent(), 
             new EventMetaData(EventProducerConsumerType.SYSTEM, 
                 vertex.getName(), 
-                edgeVertex.getName(), 
-                getID()), appContext.getClock().getTime()));
+                edgeVertex.getName(),
+                    getTaskAttemptID()), appContext.getClock().getTime()));
       }
       sendEvent(new VertexEventRouteEvent(vertex.getVertexId(), tezIfEvents));
     }
@@ -2024,7 +2006,7 @@ public class TaskAttemptImpl implements TaskAttempt,
 
   @Override
   public String toString() {
-    return getID().toString();
+    return getTaskAttemptID().toString();
   }
 
 

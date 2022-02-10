@@ -53,8 +53,8 @@ public class TaskAttemptContextImpl
   
   public static org.apache.hadoop.mapred.TaskAttemptID 
     createMockTaskAttemptIDFromTezTaskAttemptId(TezTaskAttemptID tezTaId, boolean isMap) {
-    TezVertexID vId = tezTaId.getTaskID().getVertexID();
-    ApplicationId appId = vId.getDAGId().getApplicationId();
+    TezVertexID vId = tezTaId.getVertexID();
+    ApplicationId appId = vId.getApplicationId();
     return new org.apache.hadoop.mapred.TaskAttemptID(
         new org.apache.hadoop.mapred.TaskID(String.valueOf(appId.getClusterTimestamp())
             + String.valueOf(vId.getId()), appId.getId(),
@@ -65,7 +65,7 @@ public class TaskAttemptContextImpl
   public static org.apache.hadoop.mapred.TaskID 
     createMockTaskAttemptIDFromTezTaskId(TezTaskID tezTaId, boolean isMap) {
     TezVertexID vId = tezTaId.getVertexID();
-    ApplicationId appId = vId.getDAGId().getApplicationId();
+    ApplicationId appId = vId.getApplicationId();
     return new org.apache.hadoop.mapred.TaskID(String.valueOf(appId.getClusterTimestamp())
             + String.valueOf(vId.getId()), appId.getId(),
             isMap ? TaskType.MAP : TaskType.REDUCE, tezTaId.getId());

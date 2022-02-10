@@ -167,7 +167,7 @@ public class TestCommit {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      Vertex vertex = dag.getVertex(event.getVertexId());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -176,7 +176,7 @@ public class TestCommit {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      Vertex vertex = dag.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>) task).handle(event);
     }
@@ -563,7 +563,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertNull(v1.getTerminationCause());
@@ -594,7 +594,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -633,7 +633,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -669,7 +669,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -707,7 +707,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // kill dag which will trigger the vertex killed event
@@ -746,7 +746,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
@@ -786,7 +786,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
@@ -831,7 +831,7 @@ public class TestCommit {
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // internal error
@@ -875,11 +875,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
@@ -931,11 +931,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
 
@@ -992,11 +992,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
 
@@ -1052,11 +1052,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1110,11 +1110,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1170,11 +1170,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1235,11 +1235,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1294,11 +1294,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1353,11 +1353,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1416,11 +1416,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1475,11 +1475,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
@@ -1537,11 +1537,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
@@ -1602,11 +1602,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
@@ -1672,11 +1672,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
@@ -1731,11 +1731,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     TezTaskID newTaskId = TezTaskID.getInstance(v1.getVertexId(), 1);
@@ -1790,11 +1790,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
@@ -1840,11 +1840,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
@@ -1895,11 +1895,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.FAILED);
     Assert.assertEquals(DAGTerminationCause.RECOVERY_FAILURE, dag.getTerminationCause());
@@ -1959,11 +1959,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     // mean the commits have been submitted to ThreadPool
@@ -2110,7 +2110,7 @@ public class TestCommit {
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.DAG_FINISHED) {
           DAGFinishedEvent startedEvent = (DAGFinishedEvent)event;
-          if (startedEvent.getDagID().equals(dagId)) {
+          if (startedEvent.getDAGID().equals(dagId)) {
             actualTimes ++;
           }
         }

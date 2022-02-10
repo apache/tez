@@ -25,12 +25,13 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.DAGIDAware;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGInitializedProto;
 
-public class DAGInitializedEvent implements HistoryEvent {
+public class DAGInitializedEvent implements HistoryEvent, DAGIDAware {
 
   private TezDAGID dagID;
   private long initTime;
@@ -101,7 +102,8 @@ public class DAGInitializedEvent implements HistoryEvent {
     return this.initTime;
   }
 
-  public TezDAGID getDagID() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagID;
   }
 

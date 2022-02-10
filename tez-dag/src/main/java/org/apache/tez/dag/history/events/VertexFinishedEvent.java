@@ -25,6 +25,7 @@ import java.util.Map;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
 import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
@@ -39,7 +40,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexFinishStateProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexFinishedProto;
 
-public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
+public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(VertexFinishedEvent.class);
 
@@ -157,6 +158,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
         + (servicePluginInfo != null ? servicePluginInfo : "null");
   }
 
+  @Override
   public TezVertexID getVertexID() {
     return this.vertexID;
   }
@@ -207,7 +209,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent {
             .build();
 
     SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
-        .setDagId(vertexID.getDAGId().toString())
+        .setDagId(vertexID.getDAGID().toString())
         .setTimestamp(finishTime)
         .setEventType(getEventType().ordinal())
         .setEventPayload(finishStateProto.toByteString());

@@ -1040,7 +1040,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
-    return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
+    return (TaskAttemptImpl) getVertex(taId.getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
   }
 
@@ -1206,7 +1206,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    */
   public void handle(DAGEvent event) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing DAGEvent " + event.getDAGId() + " of type "
+      LOG.debug("Processing DAGEvent " + event.getDAGID() + " of type "
           + event.getType() + " while in state " + getInternalState()
           + ". Event: " + event);
     }

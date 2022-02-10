@@ -52,7 +52,7 @@ public abstract class DAGScheduler {
   public void scheduleTask(DAGEventSchedulerUpdate event) {
     VertexInfo vInfo = null;
     if (vertexInfo != null) {
-      vInfo = vertexInfo.get(event.getAttempt().getID().getTaskID().getVertexID());
+      vInfo = vertexInfo.get(event.getVertexID());
     }
     scheduleTaskWithLimit(event, vInfo);
   }
@@ -60,7 +60,7 @@ public abstract class DAGScheduler {
   private void scheduleTaskWithLimit(DAGEventSchedulerUpdate event, VertexInfo vInfo) {
     if (vInfo != null) {
       if (vInfo.concurrency >= vInfo.concurrencyLimit) {
-        vInfo.pendingAttempts.put(event.getAttempt().getID(), event);
+        vInfo.pendingAttempts.put(event.getTaskAttemptID(), event);
         return; // already at max concurrency
       }
       vInfo.concurrency++;
@@ -71,9 +71,9 @@ public abstract class DAGScheduler {
   public void taskCompleted(DAGEventSchedulerUpdate event) {
     taskCompletedEx(event);
     if (vertexInfo != null) {
-      VertexInfo vInfo = vertexInfo.get(event.getAttempt().getID().getTaskID().getVertexID());
+      VertexInfo vInfo = vertexInfo.get(event.getVertexID());
       if (vInfo != null) {
-        if(vInfo.pendingAttempts.remove(event.getAttempt().getID()) == null) {
+        if(vInfo.pendingAttempts.remove(event.getTaskAttemptID()) == null) {
           vInfo.concurrency--;
           if(!vInfo.pendingAttempts.isEmpty()) {
             Iterator<DAGEventSchedulerUpdate> i = vInfo.pendingAttempts.values().iterator();

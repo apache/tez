@@ -16,33 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.tez.dag.history;
+package org.apache.tez.dag.records;
 
-import org.apache.tez.dag.records.DAGIDAware;
-import org.apache.tez.dag.records.TezDAGID;
+public interface TaskIDAware extends VertexIDAware {
+    TezTaskID getTaskID();
 
-public class DAGHistoryEvent implements DAGIDAware {
-
-  private final HistoryEvent historyEvent;
-  private final TezDAGID dagID;
-
-  public DAGHistoryEvent(TezDAGID dagID,
-      HistoryEvent historyEvent) {
-    this.dagID = dagID;
-    this.historyEvent = historyEvent;
-  }
-
-  public DAGHistoryEvent(HistoryEvent historyEvent) {
-    this(null, historyEvent);
-  }
-
-  public HistoryEvent getHistoryEvent() {
-    return historyEvent;
-  }
-
-  @Override
-  public TezDAGID getDAGID() {
-    return this.dagID;
-  }
-
+    @Override
+    default TezVertexID getVertexID() {
+        return getTaskID().getVertexID();
+    }
 }

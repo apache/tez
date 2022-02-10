@@ -451,7 +451,7 @@ public class TestATSHistoryWithACLs {
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
-    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDagID();
+    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
     Client client = new Client();
     WebResource resource = client.resource(url);
 
@@ -496,7 +496,7 @@ public class TestATSHistoryWithACLs {
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
-    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDagID();
+    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
     Client client = new Client();
     WebResource resource = client.resource(url);
 

@@ -30,7 +30,7 @@ public class VertexIdentifierImpl implements VertexIdentifier {
   public VertexIdentifierImpl(String dagName, String vertexName, TezVertexID vertexId) {
     this.vertexId = vertexId;
     this.vertexName = vertexName;
-    this.dagIdentifier = new DagIdentifierImpl(dagName, vertexId.getDAGId());
+    this.dagIdentifier = new DagIdentifierImpl(dagName, vertexId.getDAGID());
   }
 
   @Override

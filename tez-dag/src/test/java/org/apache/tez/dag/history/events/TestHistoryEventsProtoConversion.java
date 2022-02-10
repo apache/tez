@@ -186,8 +186,8 @@ public class TestHistoryEventsProtoConversion {
         testProtoConversion(event);
     Assert.assertEquals(event.getApplicationAttemptId(),
         deserializedEvent.getApplicationAttemptId());
-    Assert.assertEquals(event.getDagID(),
-        deserializedEvent.getDagID());
+    Assert.assertEquals(event.getDAGID(),
+        deserializedEvent.getDAGID());
     Assert.assertEquals(event.getDAGName(),
         deserializedEvent.getDAGName());
     Assert.assertEquals(event.getSubmitTime(),
@@ -204,8 +204,8 @@ public class TestHistoryEventsProtoConversion {
         "user", "dagName", null);
     DAGInitializedEvent deserializedEvent = (DAGInitializedEvent)
         testProtoConversion(event);
-    Assert.assertEquals(event.getDagID(),
-        deserializedEvent.getDagID());
+    Assert.assertEquals(event.getDAGID(),
+        deserializedEvent.getDAGID());
     Assert.assertEquals(event.getInitTime(), deserializedEvent.getInitTime());
     logEvents(event, deserializedEvent);
   }
@@ -216,8 +216,8 @@ public class TestHistoryEventsProtoConversion {
         "user", "dagName");
     DAGStartedEvent deserializedEvent = (DAGStartedEvent)
         testProtoConversion(event);
-    Assert.assertEquals(event.getDagID(),
-        deserializedEvent.getDagID());
+    Assert.assertEquals(event.getDAGID(),
+        deserializedEvent.getDAGID());
     Assert.assertEquals(event.getStartTime(), deserializedEvent.getStartTime());
     logEvents(event, deserializedEvent);
   }
@@ -243,8 +243,8 @@ public class TestHistoryEventsProtoConversion {
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
-          event.getDagID(),
-          deserializedEvent.getDagID());
+          event.getDAGID(),
+          deserializedEvent.getDAGID());
       Assert.assertEquals(event.getState(), deserializedEvent.getState());
       Assert.assertNotEquals(event.getStartTime(), deserializedEvent.getStartTime());
       Assert.assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());
@@ -264,8 +264,8 @@ public class TestHistoryEventsProtoConversion {
       DAGFinishedEvent deserializedEvent = (DAGFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(
-          event.getDagID(),
-          deserializedEvent.getDagID());
+          event.getDAGID(),
+          deserializedEvent.getDAGID());
       Assert.assertEquals(event.getState(), deserializedEvent.getState());
       Assert.assertNotEquals(event.getStartTime(), deserializedEvent.getStartTime());
       Assert.assertEquals(event.getFinishTime(), deserializedEvent.getFinishTime());

@@ -1143,7 +1143,7 @@ public class TestContainerReuse {
     //Vertex 1, Task 1, Attempt 1, host1, lr1
     TezTaskAttemptID taID111 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID11, 1), 1);
     TaskAttempt ta111 = mock(TaskAttempt.class);
-    doReturn(taID111).when(ta111).getID();
+    doReturn(taID111).when(ta111).getTaskAttemptID();
     doReturn("Mock for TA " + taID111.toString()).when(ta111).toString();
     AMSchedulerEventTALaunchRequest lrEvent11 = createLaunchRequestEvent(
         taID111, ta111, resource1, host1, racks, priority1, v11LR);
@@ -1155,7 +1155,7 @@ public class TestContainerReuse {
     //Vertex 1, Task 2, Attempt 1, host1, lr1
     TezTaskAttemptID taID112 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID11, 2), 1);
     TaskAttempt ta112 = mock(TaskAttempt.class);
-    doReturn(taID112).when(ta112).getID();
+    doReturn(taID112).when(ta112).getTaskAttemptID();
     doReturn("Mock for TA " + taID112.toString()).when(ta112).toString();
     AMSchedulerEventTALaunchRequest lrEvent12 = createLaunchRequestEvent(
         taID112, ta112, resource1, host1, racks, priority1, v12LR);
@@ -1163,14 +1163,14 @@ public class TestContainerReuse {
     //Vertex 1, Task 3, Attempt 1, host1
     TezTaskAttemptID taID113 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID11, 3), 1);
     TaskAttempt ta113 = mock(TaskAttempt.class);
-    doReturn(taID113).when(ta113).getID();
+    doReturn(taID113).when(ta113).getTaskAttemptID();
     doReturn("Mock for TA " + taID113.toString()).when(ta113).toString();
     AMSchedulerEventTALaunchRequest lrEvent13 = createLaunchRequestEvent(
         taID113, ta113, resource1, host1, racks, priority1, new HashMap<String, LocalResource>());
     //Vertex 1, Task 4, Attempt 1, host1
     TezTaskAttemptID taID114 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID11, 4), 1);
     TaskAttempt ta114 = mock(TaskAttempt.class);
-    doReturn(taID114).when(ta114).getID();
+    doReturn(taID114).when(ta114).getTaskAttemptID();
     doReturn("Mock for TA " + taID114.toString()).when(ta114).toString();
     AMSchedulerEventTALaunchRequest lrEvent14 = createLaunchRequestEvent(
         taID114, ta114, resource1, host1, racks, priority1, new HashMap<String, LocalResource>());
@@ -1261,7 +1261,7 @@ public class TestContainerReuse {
     //Vertex 2, Task 1, Attempt 1, host1, lr2
     TezTaskAttemptID taID211 = TezTaskAttemptID.getInstance(TezTaskID.getInstance(vertexID21, 1), 1);
     TaskAttempt ta211 = mock(TaskAttempt.class);
-    doReturn(taID211).when(ta211).getID();
+    doReturn(taID211).when(ta211).getTaskAttemptID();
     doReturn("Mock for TA " + taID211.toString()).when(ta211).toString();
     AMSchedulerEventTALaunchRequest lrEvent21 = createLaunchRequestEvent(taID211, ta211, resource1,
         host1, racks, priority1, v21LR);
@@ -1297,7 +1297,7 @@ public class TestContainerReuse {
     TezTaskAttemptID taID311 = TezTaskAttemptID.getInstance(
         TezTaskID.getInstance(TezVertexID.getInstance(dagID3, 1), 1), 1);
     TaskAttempt ta311 = mock(TaskAttempt.class);
-    doReturn(taID311).when(ta311).getID();
+    doReturn(taID311).when(ta311).getTaskAttemptID();
     doReturn("Mock for TA " + taID311).when(ta311).toString();
     AMSchedulerEventTALaunchRequest lrEvent31 = createLaunchRequestEvent(taID311, ta311, resource1,
         host1, racks, priority1, v31LR);

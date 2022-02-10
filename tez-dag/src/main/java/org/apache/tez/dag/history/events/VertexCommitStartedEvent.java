@@ -99,7 +99,7 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
-        .setDagId(vertexID.getDAGId().toString())
+        .setDagId(vertexID.getDAGID().toString())
         .setTimestamp(commitStartTime)
         .setEventType(getEventType().ordinal())
         .setEventPayload(

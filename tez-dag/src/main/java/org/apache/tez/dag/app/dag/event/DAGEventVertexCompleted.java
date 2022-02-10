@@ -29,7 +29,7 @@ public class DAGEventVertexCompleted extends DAGEvent {
   private final VertexTerminationCause terminationCause;
 
   public DAGEventVertexCompleted(TezVertexID vertexId, VertexState vertexState) {
-    super(vertexId.getDAGId(), DAGEventType.DAG_VERTEX_COMPLETED);
+    super(vertexId.getDAGID(), DAGEventType.DAG_VERTEX_COMPLETED);
     this.vertexId = vertexId;
     this.vertexState = vertexState;
     this.terminationCause = null;
@@ -37,7 +37,7 @@ public class DAGEventVertexCompleted extends DAGEvent {
 
   public DAGEventVertexCompleted(TezVertexID vertexId, VertexState vertexState,
       VertexTerminationCause terminationCause) {
-    super(vertexId.getDAGId(), DAGEventType.DAG_VERTEX_COMPLETED);
+    super(vertexId.getDAGID(), DAGEventType.DAG_VERTEX_COMPLETED);
     this.vertexId = vertexId;
     this.vertexState = vertexState;
     this.terminationCause = terminationCause;

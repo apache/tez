@@ -209,7 +209,7 @@ public class TestDAGRecovery {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      TaskImpl task = (TaskImpl) dag.getVertex(event.getTaskID().getVertexID())
+      TaskImpl task = (TaskImpl) dag.getVertex(event.getVertexID())
           .getTask(event.getTaskID());
       task.handle(event);
     }
@@ -220,8 +220,7 @@ public class TestDAGRecovery {
       EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {
-      Vertex vertex = dag.getVertex(event.getTaskAttemptID().getTaskID()
-          .getVertexID());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) ta).handle(event);
@@ -233,7 +232,7 @@ public class TestDAGRecovery {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      VertexImpl vertex = (VertexImpl) dag.getVertex(event.getVertexId());
+      VertexImpl vertex = (VertexImpl) dag.getVertex(event.getVertexID());
       vertex.handle(event);
     }
   }

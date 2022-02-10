@@ -50,7 +50,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -2173,7 +2172,7 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void handle(DAGEvent event) {
       DAG dag = context.getCurrentDAG();
-      int eventDagIndex = event.getDAGId().getId();
+      int eventDagIndex = event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
@@ -2187,12 +2186,12 @@ public class DAGAppMaster extends AbstractService {
     public void handle(TaskEvent event) {
       DAG dag = context.getCurrentDAG();
       int eventDagIndex =
-          event.getTaskID().getVertexID().getDAGId().getId();
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
       Task task =
-          dag.getVertex(event.getTaskID().getVertexID()).
+          dag.getVertex(event.getVertexID()).
               getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
@@ -2217,13 +2216,13 @@ public class DAGAppMaster extends AbstractService {
     public void handle(TaskAttemptEvent event) {
       DAG dag = context.getCurrentDAG();
       int eventDagIndex =
-          event.getTaskAttemptID().getTaskID().getVertexID().getDAGId().getId();
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
       Task task =
-          dag.getVertex(event.getTaskAttemptID().getTaskID().getVertexID()).
-              getTask(event.getTaskAttemptID().getTaskID());
+          dag.getVertex(event.getVertexID()).
+              getTask(event.getTaskID());
       TaskAttempt attempt = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) attempt).handle(event);
     }
@@ -2236,13 +2235,13 @@ public class DAGAppMaster extends AbstractService {
     public void handle(VertexEvent event) {
       DAG dag = context.getCurrentDAG();
       int eventDagIndex =
-          event.getVertexId().getDAGId().getId();
+          event.getDAGID().getId();
       if (dag == null || eventDagIndex != dag.getID().getId()) {
         return; // event not relevant any more
       }
 
       Vertex vertex =
-          dag.getVertex(event.getVertexId());
+          dag.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
