@@ -16,20 +16,20 @@
  * limitations under the License.
 }}
 
-{{#if normalizedLinks.length}}
-  {{#each normalizedLinks as |link|}}
+{{#if this.normalizedLinks.length}}
+  {{#each this.normalizedLinks as |link|}}
     {{#if link.routeName}}
       {{#if link.withModel}}
-        {{#link-to link.routeName link.model target=definition.target}}
+        <LinkTo @route={{link.routeName}} @model={{link.model}} target={{this.definition.target}}>
           {{link.text}}
-        {{/link-to}}
+        </LinkTo>
       {{else}}
-        {{#link-to link.routeName target=definition.target}}
+        <LinkTo @route={{link.routeName}} target={{this.definition.target}}>
           {{link.text}}
-        {{/link-to}}
+        </LinkTo>
       {{/if}}
     {{else if link.href}}
-      <a href={{link.href}} target={{definition.target}} download={{link.download}}>
+      <a href={{link.href}} target={{this.definition.target}} download={{link.download}}>
         {{link.text}}
       </a>
     {{else}}

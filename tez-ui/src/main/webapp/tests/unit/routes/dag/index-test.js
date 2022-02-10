@@ -16,70 +16,59 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:dag/index', 'Unit | Route | dag/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | dag/index', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:dag/index');
 
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-  assert.ok(route.getCallerInfo);
-});
-
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'dag');
-      return Ember.Object.create({
-        entityID: 'dag_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
-});
+  test('setupController test', function(assert) {
+    assert.expect(1);
 
-test('getCallerInfo test', function(assert) {
-  let route = this.subject({
-      startCrumbBubble: Ember.K
-      }),
+    let route = this.owner.factoryFor('route:dag/index').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
 
-      testID = "id",
-      testType = "entity",
+    route.setupController({}, {});
+  });
 
-      dag = Ember.Object.create({
-        name: "hive_query_id:1",
-      }),
-      callerInfo;
+  test('getCallerInfo test', function(assert) {
+    let route = this.owner.factoryFor('route:dag/index').create({
+        startCrumbBubble() {}
+        }),
 
-  // callerID computed - No callerType
-  callerInfo = route.getCallerInfo(dag);
-  assert.equal(callerInfo.id, "hive_query_id");
-  assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+        testID = "id",
+        testType = "entity",
 
-  // callerID computed - No callerID
-  dag.set("callerType", testType);
-  callerInfo = route.getCallerInfo(dag);
-  assert.equal(callerInfo.id, "hive_query_id");
-  assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+        dag = EmberObject.create({
+          name: "hive_query_id:1",
+        }),
+        callerInfo;
 
-  // callerID & callerType available
-  dag.set("callerID", testID);
-  callerInfo = route.getCallerInfo(dag);
-  assert.equal(callerInfo.id, testID);
-  assert.equal(callerInfo.type, testType);
+    // callerID computed - No callerType
+    callerInfo = route.getCallerInfo(dag);
+    assert.equal(callerInfo.id, "hive_query_id");
+    assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+
+    // callerID computed - No callerID
+    dag.set("callerType", testType);
+    callerInfo = route.getCallerInfo(dag);
+    assert.equal(callerInfo.id, "hive_query_id");
+    assert.equal(callerInfo.type, "HIVE_QUERY_ID");
+
+    // callerID & callerType available
+    dag.set("callerID", testID);
+    callerInfo = route.getCallerInfo(dag);
+    assert.equal(callerInfo.id, testID);
+    assert.equal(callerInfo.type, testType);
+  });
 });

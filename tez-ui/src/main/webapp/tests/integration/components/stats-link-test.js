@@ -16,23 +16,25 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('stats-link', 'Integration | Component | stats link', {
-  integration: true
-});
+module('Integration | Component | stats link', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  this.render(hbs`{{stats-link}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    await render(hbs`{{stats-link}}`);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#stats-link}}
-      template block text
-    {{/stats-link}}
-  `);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#stats-link}}
+        template block text
+      {{/stats-link}}
+    `);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
+  });
 });

@@ -16,106 +16,101 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-import wait from 'ember-test-helpers/wait';
+module('Integration | Component | error bar', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('error-bar', 'Integration | Component | error bar', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
+    await render(hbs`<ErrorBar/>`);
 
-test('Basic creation test', function(assert) {
-  this.render(hbs`{{error-bar}}`);
+    assert.dom(this.element).hasText('');
 
-  assert.equal(this.$().text().trim(), '');
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <ErrorBar>
+        template block text
+      </ErrorBar>
+    `);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#error-bar}}
-      template block text
-    {{/error-bar}}
-  `);
-
-  assert.equal(this.$().text().trim(), '');
-});
-
-test('Plain Object test', function(assert) {
-  Function.prototype.bind = function () {};
-
-  this.set("error", {});
-  this.render(hbs`{{error-bar error=error}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$().text().trim(), 'Error');
+    assert.dom(this.element).hasText('');
   });
-});
 
-test('Message test', function(assert) {
-  var testMessage = "Test Message";
+  test('Plain Object test', async function(assert) {
 
-  Function.prototype.bind = function () {};
+    this.set("error", {});
+    await render(hbs`<ErrorBar @error={{this.error}}/>`);
 
-  this.set("error", {
-    message: testMessage
+    return settled().then(() => {
+      assert.dom(this.element).hasText('Error');
+    });
   });
-  this.render(hbs`{{error-bar error=error}}`);
 
-  return wait().then(() => {
-    assert.equal(this.$().text().trim(), testMessage);
+  test('Message test', async function(assert) {
+    var testMessage = "Test Message";
+
+
+    this.set("error", {
+      message: testMessage
+    });
+    await render(hbs`<ErrorBar @error={{this.error}}/>`);
+
+    return settled().then(() => {
+      assert.equal(this.element.textContent.trim(), testMessage);
+    });
   });
-});
 
-test('details test', function(assert) {
-  var testMessage = "Test Message",
-      testDetails = "details";
+  test('details test', async function(assert) {
+    var testMessage = "Test Message",
+        testDetails = "details";
 
-  Function.prototype.bind = function () {};
 
-  this.set("error", {
-    message: testMessage,
-    details: testDetails
+    this.set("error", {
+      message: testMessage,
+      details: testDetails
+    });
+    await render(hbs`<ErrorBar @error={{this.error}}/>`);
+
+    return settled().then(() => {
+      assert.equal(find(".message").textContent.trim(), testMessage);
+      assert.equal(find(".details p").textContent.trim(), testDetails);
+    });
   });
-  this.render(hbs`{{error-bar error=error}}`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".message").text().trim(), testMessage);
-    assert.equal(this.$(".details p").text().trim(), testDetails);
+  test('requestInfo test', async function(assert) {
+    var testMessage = "Test Message",
+        testInfo = "info";
+
+
+    this.set("error", {
+      message: testMessage,
+      requestInfo: testInfo
+    });
+    await render(hbs`<ErrorBar @error={{this.error}}/>`);
+
+    return settled().then(() => {
+      assert.equal(find(".message").textContent.trim(), testMessage);
+      assert.equal(find(".details p").textContent.trim(), testInfo);
+    });
   });
-});
 
-test('requestInfo test', function(assert) {
-  var testMessage = "Test Message",
-      testInfo = "info";
+  test('stack test', async function(assert) {
+    var testMessage = "Test Message",
+        testStack = "stack";
 
-  Function.prototype.bind = function () {};
 
-  this.set("error", {
-    message: testMessage,
-    requestInfo: testInfo
-  });
-  this.render(hbs`{{error-bar error=error}}`);
+    this.set("error", {
+      message: testMessage,
+      stack: testStack
+    });
+    await render(hbs`<ErrorBar @error={{this.error}}/>`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".message").text().trim(), testMessage);
-    assert.equal(this.$(".details p").text().trim(), testInfo);
-  });
-});
-
-test('stack test', function(assert) {
-  var testMessage = "Test Message",
-      testStack = "stack";
-
-  Function.prototype.bind = function () {};
-
-  this.set("error", {
-    message: testMessage,
-    stack: testStack
-  });
-  this.render(hbs`{{error-bar error=error}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$(".message").text().trim(), testMessage);
-    assert.equal(this.$(".details p").text().trim(), testStack);
+    return settled().then(() => {
+      assert.equal(find(".message").textContent.trim(), testMessage);
+      assert.equal(find(".details p").textContent.trim(), testStack);
+    });
   });
 });

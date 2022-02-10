@@ -16,35 +16,41 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed, observer } from '@ember/object';
+import Controller from '@ember/controller';
+import { later } from '@ember/runloop';
 
 import NameMixin from '../mixins/name';
 
-export default Ember.Controller.extend(NameMixin, {
+export default Controller.extend(NameMixin, {
   // Must be set by inheriting classes
   breadcrumbs: null,
 
   // Must be set from abstract route
   loadTime: null,
-  isLoading: false,
+  isMyLoading: false,
 
-  init: function () {
-    this._super();
-    Ember.run.later(this, "setBreadcrumbs");
-  },
-
-  loaded: Ember.computed("model", "isLoading", function () {
-    return this.get("model") && !this.get("isLoading");
+  modelObserver: observer('model', function () {
+    later(this, "setBreadcrumbs");
   }),
 
-  crumbObserver: Ember.observer("breadcrumbs", function () {
-    Ember.run.later(this, "setBreadcrumbs");
+  loaded: computed("model", "isMyLoading", function () {
+    return this.model && !this.isMyLoading;
+  }),
+
+  crumbObserver: observer("breadcrumbs", function () {
+    later(this, "setBreadcrumbs");
   }),
 
   setBreadcrumbs: function () {
     var crumbs = {},
-        name = this.get("name");
-    crumbs[name] = this.get("breadcrumbs");
+        name = this.name;
+    crumbs[name] = this.breadcrumbs;
     this.send("setBreadcrumbs", crumbs);
-  }
+    this.send("bubbleBreadcrumbs", []);
+  },
+
+  refresh: action(function () {
+    this.send('reload');
+  })
 });

@@ -16,15 +16,24 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
+import Mixin from '@ember/object/mixin';
 
-export default Ember.Mixin.create({
+export default Mixin.create({
 
-  name: Ember.computed(function () {
-    var name = this.toString();
-    name = name.substr(0, name.indexOf("::"));
-    name = name.substr(name.indexOf(":") + 1);
-    return name;
-  }),
+  name: computed({
+    get() {
+      if (this._name) {
+        return this._name;
+      }
+      var name = this.toString();
+      name = name.substr(0, name.indexOf("::"));
+      name = name.substr(name.indexOf(":") + 1);
+      return name;
+    },
 
+    set(key, value) {
+      return this._name = value;
+    }
+  })
 });

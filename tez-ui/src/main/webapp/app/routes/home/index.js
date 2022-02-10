@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action } from '@ember/object';
 
 import ServerSideOpsRoute from '../server-side-ops';
 
@@ -54,9 +54,9 @@ export default ServerSideOpsRoute.extend({
 
   visibleRecords: [],
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   // Client side filtering to ensure that records are relevant after status correction
@@ -99,28 +99,29 @@ export default ServerSideOpsRoute.extend({
     });
   },
 
-  actions: {
-    willTransition: function () {
-      var loader = this.get("loader");
-      loader.unloadAll("dag");
-      loader.unloadAll("ahs-app");
-      this._super();
-    },
+  willTransition: action(function () {
+    var loader = this.loader;
+    // TODO unload is causing dag to be destroyed before load
+    //loader.unloadAll("dag");
+    //loader.unloadAll("ahs-app");
+    this._super(...arguments);
+  }),
 
-    loadCounters: function () {
-      var visibleRecords = this.get("visibleRecords").slice(),
-          loader = this.get("loader");
+  loadCounters: action(function () {
+    var visibleRecords = this.visibleRecords.slice(),
+      loader = this.loader;
 
-      function loadInfoOfNextDAG() {
-        if(visibleRecords.length) {
-          loader.loadNeed(visibleRecords.shift(), "info").finally(loadInfoOfNextDAG);
-        }
+    function loadInfoOfNextDAG() {
+      if(visibleRecords.length) {
+        loader.loadNeed(visibleRecords.shift(), "info").finally(loadInfoOfNextDAG);
       }
-
-      loadInfoOfNextDAG();
-    },
-    tableRowsChanged: function (records) {
-      this.set("visibleRecords", records);
     }
-  }
+
+    loadInfoOfNextDAG();
+  }),
+  tableRowsChanged: action(function (records) {
+    this.set("visibleRecords", records);
+  }),
+  countersToPollChanged: action(function (counterColumnDefinitions) {
+  })
 });

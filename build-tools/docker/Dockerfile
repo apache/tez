@@ -48,6 +48,8 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     git \
     gpg \
     gpg-agent \
+    libgbm-dev \
+    libgtk-3-0 \
     libffi-dev \
     locales \
     make \

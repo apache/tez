@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
 
 import MultiTableController from '../../multi-table';
 import ColumnDefinition from '../../../utils/column-definition';
@@ -78,14 +78,14 @@ export default MultiTableController.extend({
     observePath: true
   }]),
 
-  definition: Ember.computed("model", function () {
+  definition: computed("model", function () {
     var definition = this._super();
     definition.set("recordType", "vertex");
     return definition;
   }),
 
-  stats: Ember.computed("model.@each.loadTime", function () {
-    var vertices = this.get("model");
+  stats: computed("model.@each.loadTime", function () {
+    var vertices = this.model;
 
     if(vertices) {
       let succeededVertices = 0,

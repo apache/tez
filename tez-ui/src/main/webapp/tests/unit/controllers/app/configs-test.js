@@ -16,25 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | app/configs', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:app/configs', 'Unit | Controller | app/configs', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:app/configs').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.ok(controller);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.ok(controller.configs);
+
+    assert.ok(controller.searchText, "tez");
   });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.ok(controller.configs);
-
-  assert.ok(controller.get("searchText"), "tez");
 });

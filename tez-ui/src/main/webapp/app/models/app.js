@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import TimelineModel from './timeline';
 
@@ -30,17 +30,17 @@ export default TimelineModel.extend({
     }
   },
 
-  appID: Ember.computed("entityID", function () {
-    return this.get("entityID").substr(4);
+  appID: computed("entityID", function () {
+    return this.entityID.substr(4);
   }),
 
-  domain: DS.attr("string"),
+  domain: attr("string"),
 
-  user: DS.attr("string"),
+  user: attr("string"),
 
-  buildTime: DS.attr("string"),
-  tezRevision: DS.attr("string"),
-  tezVersion: DS.attr("string"),
+  buildTime: attr("string"),
+  tezRevision: attr("string"),
+  tezVersion: attr("string"),
 
-  configs: DS.attr("object"),
+  configs: attr("object"),
 });

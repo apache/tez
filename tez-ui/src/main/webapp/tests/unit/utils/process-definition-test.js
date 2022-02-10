@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-import ProcessDefinition from '../../../utils/process-definition';
 import { module, test } from 'qunit';
+import ProcessDefinition from '../../../utils/process-definition';
 
-module('Unit | Utility | process definition');
+module('Unit | Utility | process definition', function() {
+  test('Basic creation test', function(assert) {
+    let definition = ProcessDefinition.create();
 
-test('Basic creation test', function(assert) {
-  let definition = ProcessDefinition.create();
+    assert.ok(definition);
 
-  assert.ok(definition);
-
+  });
 });

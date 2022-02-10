@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { or } from '@ember/object/computed';
+import { assign } from '@ember/polyfills';
+import { attr } from '@ember-data/model';
 
 import DAGInfoModel from './dag-info';
 
@@ -58,46 +60,44 @@ export default DAGInfoModel.extend({
     }
   },
 
-  name: DS.attr("string"),
+  name: attr("string"),
 
-  submitter: DS.attr("string"),
+  submitter: attr("string"),
 
   // Serialize when required
-  vertices: Ember.computed.or("dagPlan.vertices", "info.dagPlan.vertices"),
-  edges: Ember.computed.or("dagPlan.edges", "info.dagPlan.edges"),
-  vertexGroups: Ember.computed.or("dagPlan.vertexGroups", "info.dagPlan.vertexGroups"),
+  vertices: or("dagPlan.vertices", "info.dagPlan.vertices"),
+  edges: or("dagPlan.edges", "info.dagPlan.edges"),
+  vertexGroups: or("dagPlan.vertexGroups", "info.dagPlan.vertexGroups"),
 
-  domain: DS.attr("string"),
-  containerLogs: DS.attr("object"),
-  queueName: DS.attr("string"),
-  queue: Ember.computed("queueName", "app", function () {
-    return this.get("queueName") || this.get("app.queue");
-  }),
+  domain: attr("string"),
+  containerLogs: attr("object"),
+  queueName: attr("string"),
+  queue: or('queueName', 'app.queue'),
 
-  vertexIdNameMap: DS.attr("object"),
-  vertexNameIdMap: DS.attr("object"),
+  vertexIdNameMap: attr("object"),
+  vertexNameIdMap: attr("object"),
 
-  callerID: DS.attr("string"),
-  callerContext: Ember.computed.or("callerData.callerContext", "info.callerData.callerContext"),
-  callerDescription: Ember.computed.or("callerData.callerDescription", "info.callerData.callerDescription"),
-  callerType: Ember.computed.or("callerData.callerType", "info.callerData.callerType"),
+  callerID: attr("string"),
+  callerContext: or("callerData.callerContext", "info.callerData.callerContext"),
+  callerDescription: or("callerData.callerDescription", "info.callerData.callerDescription"),
+  callerType: or("callerData.callerType", "info.callerData.callerType"),
 
-  amWsVersion: DS.attr("string"),
-  failedTaskAttempts: DS.attr("number"),
+  amWsVersion: attr("string"),
+  failedTaskAttempts: attr("number"),
 
-  finalStatus: Ember.computed("status", "failedTaskAttempts", function () {
-    var status = this.get("status");
-    if(status === "SUCCEEDED" && this.get("failedTaskAttempts")) {
+  finalStatus: computed("status", "failedTaskAttempts", function () {
+    var status = this.status;
+    if(status === "SUCCEEDED" && this.failedTaskAttempts) {
       status = "SUCCEEDED_WITH_FAILURES";
     }
     return status;
   }),
 
-  info: DS.attr("object"),
+  info: attr("object"),
 
-  counterGroupsHash: Ember.computed("am.counterGroupsHash", "_counterGroups", "info.counterGroupsHash", function () {
+  counterGroupsHash: computed("am.counterGroupsHash", "_counterGroups", "info.counterGroupsHash", function () {
     var amCounters = this.get("am.counterGroupsHash"),
         atsCounters = this.get("info.counterGroupsHash") || this._super();
-    return amCounters ? Ember.$.extend({}, atsCounters, amCounters) : atsCounters;
+    return amCounters ? assign({}, atsCounters, amCounters) : atsCounters;
   })
 });

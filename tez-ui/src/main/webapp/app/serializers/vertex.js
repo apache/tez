@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 import TimelineSerializer from './timeline';
 
 function getProcessorClass(source) {
-  var name = Ember.get(source, 'otherinfo.processorClassName') || "";
+  var name = get(source, 'otherinfo.processorClassName') || "";
   return name.substr(name.lastIndexOf('.') + 1);
 }
 

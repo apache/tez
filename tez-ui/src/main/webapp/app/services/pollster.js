@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,18 +16,22 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed, observer } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
+import { on } from '@ember/object/evented';
+import { allSettled } from 'rsvp';
+import { later } from '@ember/runloop';
+import Service, { inject as service } from '@ember/service';
+import MoreObject from '../utils/more-object';
 
 const STATE_STORAGE_KEY = "pollingIsActive",
       DEFAULT_LABEL = "default_label";
 
-var MoreObject = more.Object;
+export default Service.extend({
+  localStorage: service("localStorage"),
+  env: service("env"),
 
-export default Ember.Service.extend({
-  localStorage: Ember.inject.service("localStorage"),
-  env: Ember.inject.service("env"),
-
-  interval: Ember.computed.oneWay("env.app.pollingInterval"),
+  interval: oneWay("env.app.pollingInterval"),
 
   active: false,
   isPolling: false,
@@ -37,38 +40,38 @@ export default Ember.Service.extend({
   polls: {},
   pollCount: 0,
 
-  initState: Ember.on("init", function () {
-    var state = this.get("localStorage").get(STATE_STORAGE_KEY);
+  initState: on("init", function () {
+    var state = this.localStorage.get(STATE_STORAGE_KEY);
 
     if(state === undefined || state === null) {
       state = true;
     }
-    Ember.run.later(this, function () {
+    later(this, function () {
       this.set("active", state);
     });
   }),
-  stateObserver: Ember.observer("active", function () {
-    this.get("localStorage").set(STATE_STORAGE_KEY, this.get("active"));
+  stateObserver: observer("active", function () {
+    this.localStorage.set(STATE_STORAGE_KEY, this.active);
     this.callPoll();
   }),
 
-  isReady: Ember.computed("active", "pollCount", function () {
-    return !!(this.get("active") && this.get("pollCount"));
+  isReady: computed("active", "pollCount", function () {
+    return !!(this.active && this.pollCount);
   }),
 
   callPoll: function () {
     var that = this;
     this.unSchedulePoll();
-    if(this.get("isReady") && !this.get("isPolling")) {
+    if(this.isReady && !this.isPolling) {
       var pollsPromises = [];
 
       this.set("isPolling", true);
 
-      MoreObject.forEach(this.get("polls"), function (label, pollDef) {
+      MoreObject.forEach(this.polls, function (label, pollDef) {
         pollsPromises.push(pollDef.callback.call(pollDef.context));
       });
 
-      Ember.RSVP.allSettled(pollsPromises).finally(function () {
+      allSettled(pollsPromises).finally(function () {
         that.set("isPolling", false);
         that.schedulePoll();
       });
@@ -76,14 +79,14 @@ export default Ember.Service.extend({
   },
 
   schedulePoll: function () {
-    this.set("scheduleID", setTimeout(this.callPoll.bind(this), this.get("interval")));
+    this.set("scheduleID", setTimeout(this.callPoll.bind(this), this.interval));
   },
   unSchedulePoll: function () {
-    clearTimeout(this.get("scheduleID"));
+    clearTimeout(this.scheduleID);
   },
 
   setPoll: function (pollFunction, context, label) {
-    var polls = this.get("polls"),
+    var polls = this.polls,
         pollCount;
 
     label = label || DEFAULT_LABEL;
@@ -96,7 +99,7 @@ export default Ember.Service.extend({
     this.callPoll();
   },
   resetPoll: function (label) {
-    var polls = this.get("polls"),
+    var polls = this.polls,
         pollCount;
 
     label = label || DEFAULT_LABEL;

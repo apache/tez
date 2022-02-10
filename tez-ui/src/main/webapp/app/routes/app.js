@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
+import EmberObject, { action } from '@ember/object';
 import AbstractRoute from './abstract';
-import Ember from 'ember';
 
 export default AbstractRoute.extend({
   title: "Application",
@@ -27,23 +27,21 @@ export default AbstractRoute.extend({
   },
 
   model: function (params) {
-    var loader = this.get("loader"),
+    var loader = this.loader,
         appID = this.queryFromParams(params).id;
     return loader.queryRecord('AhsApp', appID).catch(function () {
       return loader.queryRecord('appRm', appID).catch(function () {
         // Sending back a dummy object presuming app details might be behind ACL.
         // Not throwing error bar at this level as we need to display DAG tab if
         // DAG details are available.
-        return Ember.Object.create({
+        return EmberObject.create({
           entityID: appID
         });
       });
     });
   },
 
-  actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    }
-  }
+  setLoadTime: action(function (time) {
+    this.set("controller.loadTime", time);
+  })
 });

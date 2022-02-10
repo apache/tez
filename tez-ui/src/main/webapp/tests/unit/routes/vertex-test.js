@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:vertex', 'Unit | Route | vertex', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | vertex', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:vertex');
 
-  assert.ok(route);
-  assert.ok(route.loaderQueryParams);
-  assert.ok(route.model);
+    assert.ok(route);
+  });
 });

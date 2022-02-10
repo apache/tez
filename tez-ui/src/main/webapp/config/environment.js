@@ -20,16 +20,21 @@
 
 const DEFAULT_APP_CONF = require('./default-app-conf');
 
-module.exports = function(environment) {
-  var ENV = {
+module.exports = function (environment) {
+  let ENV = {
     modulePrefix: 'tez-ui',
     environment: environment,
+    rootURL: '/',
     locationType: 'hash',
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
-        // e.g. 'with-controller': true
-      }
+        // e.g. EMBER_NATIVE_DECORATOR_SUPPORT: true
+      },
+      EXTEND_PROTOTYPES: {
+        // Prevent Ember Data from overriding Date.parse.
+        Date: false,
+      },
     },
 
     APP: DEFAULT_APP_CONF,
@@ -41,9 +46,10 @@ module.exports = function(environment) {
       'script-src': "'self' 'unsafe-inline'"
     },
 
-    moment: {
-      includeTimezone: '2010-2020'
-    }
+    'ember-d3': {
+      only: ['d3-dispatch', 'd3-color', 'd3-ease', 'd3-hierarchy', 'd3-interpolate', 'd3-selection', 'd3-timer', 'd3-transition']
+    },
+
   };
 
   if (environment === 'development') {
@@ -55,13 +61,14 @@ module.exports = function(environment) {
   }
 
   if (environment === 'test') {
+    ENV.APP.autoboot = false;
     // Testem prefers this...
-    ENV.baseURL = '/';
+    //ENV.baseURL = '/';
     ENV.locationType = 'none';
 
     // keep test console output quieter
-    ENV.APP.LOG_ACTIVE_GENERATION = false;
-    ENV.APP.LOG_VIEW_LOOKUPS = false;
+    //ENV.APP.LOG_ACTIVE_GENERATION = false;
+    //ENV.APP.LOG_VIEW_LOOKUPS = false;
 
     ENV.APP.rootElement = '#ember-testing';
   }

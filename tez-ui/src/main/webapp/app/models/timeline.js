@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
-import Ember from 'ember';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import TimedModel from './timed';
 
@@ -31,15 +31,15 @@ export default TimedModel.extend({
     }
   },
 
-  appID: Ember.computed("entityID", function () {
-    var idParts = this.get("entityID").split("_");
+  appID: computed("entityID", function () {
+    var idParts = this.entityID.split("_");
     return `application_${idParts[1]}_${idParts[2]}`;
   }),
-  app: DS.attr("object"), // Either RMApp or AHSApp
+  app: attr("object"), // Either RMApp or AHSApp
 
-  atsStatus: DS.attr("string"),
-  status: Ember.computed("atsStatus", "app.status", "app.finalStatus", function () {
-    var status = this.get("atsStatus"),
+  atsStatus: attr("string"),
+  status: computed("atsStatus", "app.status", "app.finalStatus", function () {
+    var status = this.atsStatus,
         yarnStatus = this.get("app.status");
 
     if (status !== 'RUNNING' || (yarnStatus !== 'FINISHED' && yarnStatus !== 'KILLED' && yarnStatus !== 'FAILED')) {
@@ -53,15 +53,15 @@ export default TimedModel.extend({
     return this.get("app.finalStatus");
   }),
 
-  progress: Ember.computed("status", function () {
-    return this.get("status") === "SUCCEEDED" ? 1 : null;
+  progress: computed("status", function () {
+    return this.status === "SUCCEEDED" ? 1 : null;
   }),
 
   // Hash will be created only on demand, till then counters will be stored in _counterGroups
-  _counterGroups: DS.attr('object'),
-  counterGroupsHash: Ember.computed("_counterGroups", function () {
+  _counterGroups: attr('object'),
+  counterGroupsHash: computed("_counterGroups", function () {
     var counterHash = {},
-        counterGroups = this.get("_counterGroups") || [];
+        counterGroups = this._counterGroups || [];
 
     counterGroups.forEach(function (group) {
       var counters = group.counters,
@@ -77,8 +77,8 @@ export default TimedModel.extend({
     return counterHash;
   }),
 
-  diagnostics: DS.attr('string'),
+  diagnostics: attr('string'),
 
-  events: DS.attr('object'),
+  events: attr('object'),
 
 });

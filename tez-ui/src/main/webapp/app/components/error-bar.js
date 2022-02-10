@@ -16,11 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, observer } from '@ember/object';
+import { on } from '@ember/object/evented';
 
 const DISPLAY_TIME = 30 * 1000;
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   error: null,
 
@@ -34,8 +36,8 @@ export default Ember.Component.extend({
 
   message: null,
 
-  _errorObserver: Ember.on("init", Ember.observer("error", function () {
-    var error = this.get("error");
+  _errorObserver: on("init", observer("error", function () {
+    var error = this.error;
 
     if(error) {
       this.setProperties({
@@ -53,20 +55,18 @@ export default Ember.Component.extend({
   })),
 
   clearTimer: function () {
-    clearTimeout(this.get("displayTimerId"));
+    clearTimeout(this.displayTimerId);
   },
-  close: function () {
+  myclose: function () {
     this.set("visible", false);
     this.clearTimer();
   },
 
-  actions: {
-    toggleDetailsDisplay: function () {
-      this.toggleProperty("showDetails");
-      this.clearTimer();
-    },
-    close: function () {
-      this.close();
-    }
-  }
+  toggleDetailsDisplay: action(function () {
+    this.toggleProperty("showDetails");
+    this.clearTimer();
+  }),
+  close: action(function () {
+    this.myclose();
+  })
 });

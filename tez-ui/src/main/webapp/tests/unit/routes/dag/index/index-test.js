@@ -16,42 +16,27 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:dag/index/index', 'Unit | Route | dag/index/index', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | dag/index/index', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:dag/index/index');
 
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-
-  assert.ok(route._canPollObserver);
-  assert.ok(route.actions.reload);
-  assert.ok(route.actions.willTransition);
-});
-
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'dag');
-      return Ember.Object.create({
-        entityID: 'dag_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
+  test('setupController test', function(assert) {
+    assert.expect(1);
+
+    let route = this.owner.factoryFor('route:dag/index/index').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
+
+    route.setupController({}, {});
+  });
 });

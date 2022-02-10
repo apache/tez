@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,11 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action } from '@ember/object';
+import { debounce } from '@ember/runloop';
+import MoreObject from '../utils/more-object';
 
 import PollsterRoute from './pollster';
-
-var MoreObject = more.Object;
 
 export default PollsterRoute.extend({
 
@@ -29,20 +28,20 @@ export default PollsterRoute.extend({
 
   onRecordPoll: function (record) {
     var query = {},
-        countersToPoll = this.get("countersToPoll");
+        countersToPoll = this.countersToPoll;
 
     if(countersToPoll !== null) {
       query.counters = countersToPoll;
     }
 
-    return this.get("loader").loadNeed(record, "am", {reload: true}, query);
+    return this.loader.loadNeed(record, "am", {reload: true}, query);
   },
 
   onPollFailure: function (error) {
     var that = this,
         record = this.get("polledRecords.0");
 
-    this.get("loader").queryRecord("appRm", record.get("appID"), {reload: true}).then(function (appRm) {
+    this.loader.queryRecord("appRm", record.get("appID"), {reload: true}).then(function (appRm) {
       if(appRm.get('isComplete')) {
         that.scheduleReload();
       }
@@ -57,37 +56,35 @@ export default PollsterRoute.extend({
 
   scheduleReload: function () {
     this.set("polledRecords", null);
-    Ember.run.debounce(this, "reload", this.get("polling.interval") * 2);
+    debounce(this, "reload", this.get("polling.interval") * 2);
   },
 
-  reload: function () {
+  reload: action(function () {
     this.set("polledRecords", null);
-    this.send("reload");
-  },
+    this.send("reloadAction");
+  }),
 
-  actions: {
-    countersToPollChanged: function (counterColumnDefinitions) {
-      var counterGroupHash = {},
-          counterGroups = [];
+  countersToPollChanged: action(function (counterColumnDefinitions) {
+    var counterGroupHash = {},
+      counterGroups = [];
 
-      if(counterColumnDefinitions){
-        counterColumnDefinitions.forEach(function (definition) {
-          var counterGroupName = definition.get("counterGroupName"),
-              counterNames = counterGroupHash[counterGroupName];
-          if(!counterNames) {
-            counterNames = counterGroupHash[counterGroupName] = [];
-          }
-          counterNames.push(definition.get("counterName"));
-        });
+    if(counterColumnDefinitions){
+      counterColumnDefinitions.forEach(function (definition) {
+        var counterGroupName = definition.get("counterGroupName"),
+          counterNames = counterGroupHash[counterGroupName];
+        if(!counterNames) {
+          counterNames = counterGroupHash[counterGroupName] = [];
+        }
+        counterNames.push(definition.get("counterName"));
+      });
 
-        MoreObject.forEach(counterGroupHash, function (groupName, counters) {
-          counters = counters.join(",");
-          counterGroups.push(`${groupName}/${counters}`);
-        });
-      }
-
-      this.set("countersToPoll", counterGroups.join(";"));
+      MoreObject.forEach(counterGroupHash, function (groupName, counters) {
+        counters = counters.join(",");
+        counterGroups.push(`${groupName}/${counters}`);
+      });
     }
-  }
+
+    this.set("countersToPoll", counterGroups.join(";"));
+  })
 
 });

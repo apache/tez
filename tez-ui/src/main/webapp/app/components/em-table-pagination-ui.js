@@ -16,30 +16,33 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed } from '@ember/object';
+import { not } from '@ember/object/computed';
 import layout from '../templates/components/em-table-pagination-ui';
 
-export default Ember.Component.extend({
+export default Component.extend({
+  attributeBindings: ['shouldHide:hidden'],
   layout: layout,
 
   tableDefinition: null,
   dataProcessor: null,
 
   classNames: ['pagination-ui'],
-  isVisible: Ember.computed.alias('tableDefinition.enablePagination'),
+  shouldHide: not('tableDefinition.enablePagination'),
 
-  showFirst: Ember.computed('_possiblePages', function () {
+  showFirst: computed('_possiblePages.0.pageNum', 'dataProcessor.totalPages', function () {
     return this.get("dataProcessor.totalPages") && this.get('_possiblePages.0.pageNum') !== 1;
   }),
 
-  showLast: Ember.computed('_possiblePages', 'dataProcessor.totalPages', function () {
-    var possiblePages = this.get("_possiblePages");
+  showLast: computed('_possiblePages', 'dataProcessor.totalPages', function () {
+    var possiblePages = this._possiblePages;
     if(possiblePages.length) {
       return possiblePages[possiblePages.length - 1].pageNum !== this.get("dataProcessor.totalPages");
     }
   }),
 
-  rowCountOptions: Ember.computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
+  rowCountOptions: computed('tableDefinition.rowCountOptions', 'tableDefinition.rowCount', function () {
     var options = this.get('tableDefinition.rowCountOptions'),
         rowCount = this.get('tableDefinition.rowCount');
 
@@ -51,7 +54,7 @@ export default Ember.Component.extend({
     });
   }),
 
-  _possiblePages: Ember.computed('tableDefinition.pageNum', 'dataProcessor.totalPages', function () {
+  _possiblePages: computed('tableDefinition.pageNum', 'dataProcessor.totalPages', function () {
     var pageNum = this.get('tableDefinition.pageNum'),
         totalPages = this.get('dataProcessor.totalPages'),
         possiblePages = [],
@@ -84,15 +87,13 @@ export default Ember.Component.extend({
     return possiblePages;
   }),
 
-  actions: {
-    rowSelected: function (value) {
-      value = parseInt(value);
-      if(this.get('tableDefinition.rowCount') !== value) {
-        this.get('parentView').send('rowChanged', value);
-      }
-    },
-    changePage: function (value) {
-      this.get('parentView').send('pageChanged', value);
+  rowSelected: action(function (value) {
+    value = parseInt(value);
+    if(this.get('tableDefinition.rowCount') !== value) {
+      this.parentView.send('rowChanged', value);
     }
-  }
+  }),
+  changePage: action(function (value) {
+    this.parentView.send('pageChanged', value);
+  })
 });

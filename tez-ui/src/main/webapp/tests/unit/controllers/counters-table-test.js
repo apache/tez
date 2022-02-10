@@ -16,76 +16,74 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | counters table', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:counters-table', 'Unit | Controller | counters table', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:counters-table').create({
+      send() {},
+      initVisibleColumns() {}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+    assert.ok(controller);
+    assert.ok(controller.columns);
+    assert.ok(controller.counters);
+    assert.ok(controller._countersObserver);
+
   });
 
-  assert.ok(controller);
-  assert.ok(controller.columns);
-  assert.ok(controller.counters);
-  assert.ok(controller._countersObserver);
-
-});
-
-test('counters & _countersObserver test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K,
-    model: {
-      counterGroupsHash: {
-        "foo": {
-          "Foo Name 1": "Value 1",
-          "Foo Name 2": "Value 2",
-          "Foo Name 3": "Value 3"
-        },
-        "bar": {
-          "Bar Name 1": "Value 1",
-          "Bar Name 2": "Value 2",
-          "Bar Name 3": "Value 3"
+  test('counters & _countersObserver test', function(assert) {
+    let controller = this.owner.factoryFor('controller:counters-table').create({
+      send() {},
+      initVisibleColumns() {},
+      model: {
+        counterGroupsHash: {
+          "foo": {
+            "Foo Name 1": "Value 1",
+            "Foo Name 2": "Value 2",
+            "Foo Name 3": "Value 3"
+          },
+          "bar": {
+            "Bar Name 1": "Value 1",
+            "Bar Name 2": "Value 2",
+            "Bar Name 3": "Value 3"
+          }
         }
       }
-    }
+    });
+
+    assert.equal(controller.countersCount, 0);
+
+    controller._countersObserver();
+
+    assert.equal(controller.get("counters.0.groupName"), "foo");
+    assert.equal(controller.get("counters.0.counterName"), "Foo Name 1");
+    assert.equal(controller.get("counters.0.counterValue"), "Value 1");
+
+    assert.equal(controller.get("counters.1.groupName"), "foo");
+    assert.equal(controller.get("counters.1.counterName"), "Foo Name 2");
+    assert.equal(controller.get("counters.1.counterValue"), "Value 2");
+
+    assert.equal(controller.get("counters.2.groupName"), "foo");
+    assert.equal(controller.get("counters.2.counterName"), "Foo Name 3");
+    assert.equal(controller.get("counters.2.counterValue"), "Value 3");
+
+
+    assert.equal(controller.get("counters.3.groupName"), "bar");
+    assert.equal(controller.get("counters.3.counterName"), "Bar Name 1");
+    assert.equal(controller.get("counters.3.counterValue"), "Value 1");
+
+    assert.equal(controller.get("counters.4.groupName"), "bar");
+    assert.equal(controller.get("counters.4.counterName"), "Bar Name 2");
+    assert.equal(controller.get("counters.4.counterValue"), "Value 2");
+
+    assert.equal(controller.get("counters.5.groupName"), "bar");
+    assert.equal(controller.get("counters.5.counterName"), "Bar Name 3");
+    assert.equal(controller.get("counters.5.counterValue"), "Value 3");
+
+    assert.equal(controller.countersCount, 6);
   });
-
-  assert.equal(controller.countersCount, 0);
-
-  controller._countersObserver();
-
-  assert.equal(controller.get("counters.0.groupName"), "foo");
-  assert.equal(controller.get("counters.0.counterName"), "Foo Name 1");
-  assert.equal(controller.get("counters.0.counterValue"), "Value 1");
-
-  assert.equal(controller.get("counters.1.groupName"), "foo");
-  assert.equal(controller.get("counters.1.counterName"), "Foo Name 2");
-  assert.equal(controller.get("counters.1.counterValue"), "Value 2");
-
-  assert.equal(controller.get("counters.2.groupName"), "foo");
-  assert.equal(controller.get("counters.2.counterName"), "Foo Name 3");
-  assert.equal(controller.get("counters.2.counterValue"), "Value 3");
-
-
-  assert.equal(controller.get("counters.3.groupName"), "bar");
-  assert.equal(controller.get("counters.3.counterName"), "Bar Name 1");
-  assert.equal(controller.get("counters.3.counterValue"), "Value 1");
-
-  assert.equal(controller.get("counters.4.groupName"), "bar");
-  assert.equal(controller.get("counters.4.counterName"), "Bar Name 2");
-  assert.equal(controller.get("counters.4.counterValue"), "Value 2");
-
-  assert.equal(controller.get("counters.5.groupName"), "bar");
-  assert.equal(controller.get("counters.5.counterName"), "Bar Name 3");
-  assert.equal(controller.get("counters.5.counterValue"), "Value 3");
-
-  assert.equal(controller.countersCount, 6);
 });

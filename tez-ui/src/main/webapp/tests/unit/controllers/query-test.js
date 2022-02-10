@@ -16,36 +16,36 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:query', 'Unit | Controller | query', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | query', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:query').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
+    assert.equal(controller.get("tabs.length"), 3);
   });
 
-  assert.ok(controller);
-  assert.equal(controller.get("tabs.length"), 3);
-});
+  test('breadcrumbs test', function(assert) {
+    let testID = "test_1",
+        controller = this.owner.factoryFor('controller:query').create({
+          send() {},
+          initVisibleColumns() {},
+          model: EmberObject.create({
+            entityID: testID
+          })
+        }),
+        breadcrumbs = controller.breadcrumbs;
 
-test('breadcrumbs test', function(assert) {
-  let testID = "test_1",
-      controller = this.subject({
-        send: Ember.K,
-        initVisibleColumns: Ember.K,
-        model: Ember.Object.create({
-          entityID: testID
-        })
-      }),
-      breadcrumbs = controller.get("breadcrumbs");
-
-  assert.ok(breadcrumbs);
-  assert.ok(breadcrumbs.length, 1);
-  assert.ok(breadcrumbs[0].text, `Query [ ${testID} ]`);
+    assert.ok(breadcrumbs);
+    assert.ok(breadcrumbs.length, 1);
+    assert.ok(breadcrumbs[0].text, `Query [ ${testID} ]`);
+  });
 });

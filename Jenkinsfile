@@ -128,7 +128,7 @@ pipeline {
                         YETUS_ARGS+=("--build-url-artifacts=artifact/out")
 
                         # plugins to enable
-                        YETUS_ARGS+=("--plugins=all")
+                        YETUS_ARGS+=("--plugins=all,-jshint")
 
                         # use Hadoop's bundled shelldocs
                         YETUS_ARGS+=("--shelldocs=${WORKSPACE}/${SOURCEDIR}/dev-support/bin/shelldocs")

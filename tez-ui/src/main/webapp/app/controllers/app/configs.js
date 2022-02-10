@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,20 +16,20 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import EmberObject, { computed } from '@ember/object';
+import MoreObject from '../../utils/more-object';
 
 import TableController from '../table';
 import ColumnDefinition from '../../utils/column-definition';
 
-var MoreObject = more.Object;
-
 export default TableController.extend({
   searchText: "tez",
 
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "Configurations",
     routeName: "app.configs",
-  }],
+  }]}),
 
   columns: ColumnDefinition.make([{
     id: 'configName',
@@ -42,19 +41,19 @@ export default TableController.extend({
     contentPath: 'configValue',
   }]),
 
-  configs: Ember.computed("model.configs", function () {
+  configs: computed("model.configs", function () {
     var configs = this.get("model.configs"),
         configRows = [];
 
     if(configs) {
       MoreObject.forEach(configs, function (key, value) {
-        configRows.push(Ember.Object.create({
+        configRows.push(EmberObject.create({
           configName: key,
           configValue: value
         }));
       });
     }
 
-    return Ember.A(configRows);
+    return A(configRows);
   })
 });

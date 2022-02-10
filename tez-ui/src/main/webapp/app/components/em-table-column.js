@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
+import Component from '@ember/component';
+import { action, computed, observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 import layout from '../templates/components/em-table-column';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   definition: null,
@@ -35,11 +36,11 @@ export default Ember.Component.extend({
   classNames: ['table-column'],
   classNameBindings: ['inner', 'extraClassNames'],
 
-  inner: Ember.computed('index', function () {
-    return !!this.get('index');
+  inner: computed('index', function () {
+    return !!this.index;
   }),
 
-  extraClassNames: Ember.computed("definition.classNames", function () {
+  extraClassNames: computed("definition.classNames", function () {
     var classNames = this.get("definition.classNames");
     if(classNames) {
       return classNames.join(" ");
@@ -47,63 +48,61 @@ export default Ember.Component.extend({
   }),
 
   didInsertElement: function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
+    this._super(...arguments);
+    scheduleOnce('afterRender', this, function() {
       this.setWidth();
       this.setMinWidth();
     });
   },
 
-  setMinWidth: Ember.observer("definition.minWidth", function () {
-    this.$().css("minWidth", this.get('definition.minWidth'));
+  setMinWidth: observer("definition.minWidth", function () {
+    this.element.style.minWidth = this.get('definition.minWidth');
   }),
 
-  setWidth: Ember.observer("adjustedWidth", "defaultWidth", function () {
-    var thisElement = this.$();
-    thisElement.css("width", this.get('adjustedWidth') || this.get('defaultWidth'));
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      this.get('parentView').send('columnWidthChanged', thisElement.width(), this.get("definition"), this.get("index"));
-    });
+  setWidth: observer("adjustedWidth", "defaultWidth", function () {
+    this.element.style.width = this.adjustedWidth || this.defaultWidth;
   }),
 
-  _onColResize: function (event) {
-    var data = event.data,
-        width;
+  onColResize: function (mouseEvent) {
 
-    if(!data.startEvent) {
-      data.startEvent = event;
+    if(!this.mouseTracker.startEvent) {
+      this.mouseTracker.startEvent = mouseEvent;
     }
 
-    width = data.startWidth + event.clientX - data.startEvent.clientX;
-    data.thisObj.set('adjustedWidth', width);
+    var width = this.mouseTracker.startWidth + mouseEvent.clientX - this.mouseTracker.startEvent.clientX;
+    this.set('adjustedWidth', width + 'px');
   },
 
-  _endColResize: function (event) {
-    var thisObj = event.data.thisObj;
-    Ember.$(document).off('mousemove', thisObj._onColResize);
-    Ember.$(document).off('mouseup', thisObj._endColResize);
+  endColResize: function () {
+    document.removeEventListener('mousemove', this._onColResize);
+    document.removeEventListener('mouseup', this._endColResize);
+    this.mouseTracker = null;
   },
 
-  actions: {
-    sort: function () {
-      var definition = this.get('definition'),
-          beforeSort = definition.get('beforeSort');
+  sort: action(function () {
+    var definition = this.definition,
+      beforeSort = definition.get('beforeSort');
 
-      if(!beforeSort || beforeSort.call(definition, definition)) {
-        let columnId = this.get('definition.id'),
-            sortOrder = this.get('tableDefinition.sortOrder') === 'desc' ? 'asc' : 'desc';
+    if(!beforeSort || beforeSort.call(definition, definition)) {
+      let columnId = this.get('definition.id'),
+        sortOrder = this.get('tableDefinition.sortOrder') === 'desc' ? 'asc' : 'desc';
 
-        this.get('parentView').send('sort', columnId, sortOrder);
+      if (this.parentView) {
+        this.parentView.send('sort', columnId, sortOrder);
       }
-    },
-    startColResize: function () {
-      var mouseTracker = {
-        thisObj: this,
-        startWidth: this.$().width(),
-        startEvent: null
-      };
-
-      Ember.$(document).on('mousemove', mouseTracker, this._onColResize);
-      Ember.$(document).on('mouseup', mouseTracker, this._endColResize);
     }
-  }
+  }),
+  startColResize: action(function () {
+    var rect = this.element.getBoundingClientRect();
+    var mouseTracker = {
+      startWidth: rect.right - rect.left,
+      startEvent: null
+    };
+    this.mouseTracker = mouseTracker;
+
+    this.set('_onColResize', this.onColResize.bind(this));
+    this.set('_endColResize', this.endColResize.bind(this));
+    document.addEventListener('mousemove', this._onColResize);
+    document.addEventListener('mouseup', this._endColResize);
+  })
 });

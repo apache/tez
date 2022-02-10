@@ -16,12 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import Component from '@ember/component';
+import { action, computed, observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { scheduleOnce } from '@ember/runloop';
 
 import Processor from '../utils/processor';
 import Process from '../utils/process';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   classNames: ["em-swimlane"],
 
@@ -39,9 +43,9 @@ export default Ember.Component.extend({
 
   zoom: 100,
 
-  startTime: Ember.computed("processes.@each.startEvent", function () {
+  startTime: computed('processes.0.startEvent.time', 'processes.@each.startEvent', function () {
     var startTime = this.get("processes.0.startEvent.time");
-    this.get("processes").forEach(function (process) {
+    this.processes.forEach(function (process) {
       var time = process.get("startEvent.time");
       if(startTime > time){
         startTime = time;
@@ -49,9 +53,9 @@ export default Ember.Component.extend({
     });
     return startTime;
   }),
-  endTime: Ember.computed("processes.@each.endEvent", function () {
+  endTime: computed('processes.0.endEvent.time', 'processes.@each.endEvent', function () {
     var endTime = this.get("processes.0.endEvent.time");
-    this.get("processes").forEach(function (process) {
+    this.processes.forEach(function (process) {
       var time = process.get("endEvent.time");
       if(endTime < time){
         endTime = time;
@@ -60,54 +64,61 @@ export default Ember.Component.extend({
     return endTime;
   }),
 
-  processorSetup: Ember.on("init", Ember.observer("startTime", "endTime", "processes.length", function () {
-    this.get("processor").setProperties({
-      startTime: this.get("startTime"),
-      endTime: this.get("endTime"),
+  processorSetup: on("init", observer("startTime", "endTime", "processes.length", function () {
+    this.processor.setProperties({
+      startTime: this.startTime,
+      endTime: this.endTime,
       processCount: this.get("processes.length")
     });
   })),
 
   didInsertElement: function () {
-    Ember.run.scheduleOnce('afterRender', this, function() {
+    this._super(...arguments);
+    scheduleOnce('afterRender', this, function() {
       this.onZoom();
       this.listenScroll();
     });
   },
 
-  onZoom: Ember.observer("zoom", function () {
-    var zoom = this.get("zoom");
-    this.$(".zoom-panel").css("width", `${zoom}%`);
+  onZoom: observer("zoom", function () {
+    var zoom = this.zoom;
+    this.element.querySelector('.zoom-panel').style.width = `${zoom}%`;
   }),
 
+  handleScroll: function (scrollEvent) {
+    this.set('scroll', scrollEvent.target.scrollLeft);
+  },
+
   listenScroll: function () {
-    var that = this;
-    this.$(".process-visuals").scroll(function () {
-      that.set("scroll", Ember.$(this).scrollLeft());
-    });
+    this.set('_handleScroll', this.handleScroll.bind(this));
+    this.element.querySelector('.process-visuals').addEventListener('scroll', this._handleScroll);
   },
 
-  willDestroy: function () {
-    // Release listeners
+  willDestroyElement: function () {
+    this._super(...arguments);
+    if(this._handleScroll) {
+      this.element.querySelector('.process-visuals').removeEventListener('scroll', this._handleScroll);
+      this._handleScroll = null;
+    }
   },
 
-  normalizedProcesses: Ember.computed("processes.@each.blockers", function () {
-    var processes = this.get("processes"),
+  normalizedProcesses: computed('processes.@each.blockers', 'processor', function () {
+    var processes = this.processes,
         normalizedProcesses,
         idHash = {},
         containsBlockers = false,
-        processor = this.get("processor");
+        processor = this.processor;
 
     // Validate and reset blocking
     processes.forEach(function (process) {
       if(!(process instanceof Process)) {
-        Ember.Logger.error("em-swimlane : Unknown type, must be of type Process");
+        console.error("em-swimlane : Unknown type, must be of type Process");
       }
 
       if(process.get("blockers.length")) {
         containsBlockers = true;
       }
-      process.set("blocking", Ember.A());
+      process.set("blocking", A());
     });
 
     if(containsBlockers) {
@@ -153,21 +164,16 @@ export default Ember.Component.extend({
       });
     });
 
-    return Ember.A(normalizedProcesses);
+    return A(normalizedProcesses);
   }),
 
-  actions: {
-    showTooltip: function (type, process, options) {
-      this.set("tooltipContents", process.getTooltipContents(type, options));
-      this.set("focusedProcess", process);
-    },
-    hideTooltip: function () {
-      this.set("tooltipContents", null);
-      this.set("focusedProcess", null);
-    },
-    click: function (type, process, options) {
-      this.sendAction("click", type, process, options);
-    }
-  }
+  showSwimlaneTooltip: action(function (type, process, options) {
+    this.set("tooltipContents", process.getTooltipContents(type, options));
+    this.set("focusedProcess", process);
+  }),
 
+  hideSwimlaneTooltip: action(function () {
+    this.set("tooltipContents", null);
+    this.set("focusedProcess", null);
+  }),
 });

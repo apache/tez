@@ -16,25 +16,24 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { run } from '@ember/runloop';
 
-moduleForModel('app', 'Unit | Model | app', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | app', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('app'));
 
-  assert.ok(model);
-  assert.ok(model.needs);
-  assert.ok(model.appID);
-});
+    assert.ok(model);
+  });
 
-test('appID test', function(assert) {
-  let model = this.subject({
-        entityID: "tez_1_2_3",
-      });
+  test('appID test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('app', {
+          entityID: "tez_1_2_3",
+        }));
 
-  assert.equal(model.get("appID"), "1_2_3");
+    assert.equal(model.get("appID"), "1_2_3");
+  });
 });

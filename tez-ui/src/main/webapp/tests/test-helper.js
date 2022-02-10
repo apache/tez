@@ -16,9 +16,16 @@
  * limitations under the License.
  */
 
-import resolver from './helpers/resolver';
-import {
-  setResolver
-} from 'ember-qunit';
+import Application from 'tez-ui/app';
+import config from 'tez-ui/config/environment';
+import QUnit from 'qunit';
+import { setup } from 'qunit-dom';
+import { start } from 'ember-qunit';
+import { setApplication } from '@ember/test-helpers';
 
-setResolver(resolver);
+import 'ember-qunit';
+
+setApplication(Application.create(config.APP));
+setup(QUnit.assert);
+
+start();

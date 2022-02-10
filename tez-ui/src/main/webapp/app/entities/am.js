@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { on } from '@ember/object/evented';
+import { defer } from 'rsvp';
+import { once } from '@ember/runloop';
 
 import Entity from './entity';
 
@@ -25,16 +27,16 @@ export default Entity.extend({
   idsToJoin: null,
   deferred: null,
 
-  resetJoiner: Ember.on("init", function () {
+  resetJoiner: on("init", function () {
     this.set("idsToJoin", []);
-    this.set("deferred", Ember.RSVP.defer());
+    this.set("deferred", defer());
   }),
 
   queryRecord: function (loader, id, options, query, urlParams) {
-    this.get("idsToJoin").push(query[this.get("queryPropertyToJoin")]);
+    this.idsToJoin.push(query[this.queryPropertyToJoin]);
 
     // Yup, only the last query would be taken by design
-    Ember.run.once(this, "queryJoinedRecords", loader, options, query, urlParams);
+    once(this, "queryJoinedRecords", loader, options, query, urlParams);
 
     return this.get("deferred.promise").then(function (recordHash) {
       return recordHash[id];
@@ -42,9 +44,9 @@ export default Entity.extend({
   },
 
   queryJoinedRecords: function (loader, options, query, urlParams) {
-    var deferred = this.get("deferred");
+    var deferred = this.deferred;
 
-    query[this.get("queryPropertyToJoin")] = this.get("idsToJoin").join(",");
+    query[this.queryPropertyToJoin] = this.idsToJoin.join(",");
     this.query(loader, query, options, urlParams).then(function (records) {
       deferred.resolve(records.reduce(function (recordHash, record) {
         recordHash[record.get("entityID")] = record;

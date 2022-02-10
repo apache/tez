@@ -16,19 +16,8 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{em-table
-  columns=columns
-  rows=counters
-
-  rowCount=countersCount
-  definition=definition
-
-  enablePagination=false
-
-  searchAction="searchChanged"
-  sortAction="sortChanged"
-  }}
+{{#if this.loaded}}
+  <EmTable @columns={{this.columns}} @rows={{this.counters}} @rowCount={{this.countersCount}} @definition={{this.definition}} @enablePagination={{false}} @searchAction="searchChanged" @sortAction="sortChanged" />
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

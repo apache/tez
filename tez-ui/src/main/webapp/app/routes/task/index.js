@@ -16,27 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var task = this.modelFor("task"),
       entityID = task.get("entityID");
     return `Task: ${entityID}`;
-  }).volatile(),
+  },
 
   loaderNamespace: "task",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   loadAttempts: function (taskID, options) {
     var that = this;
 
-    this.get("loader").query('attempt', {
+    this.loader.query('attempt', {
       taskID: taskID
     }, options).then(function (attempts) {
       that.set("controller.attempts", attempts);
@@ -46,6 +45,6 @@ export default SingleAmPollsterRoute.extend({
   load: function (value, query, options) {
     var taskID = this.modelFor("task").get("id");
     this.loadAttempts(taskID, options);
-    return this.get("loader").queryRecord('task', taskID, options);
-  },
+    return this.loader.queryRecord('task', taskID, options);
+  }
 });

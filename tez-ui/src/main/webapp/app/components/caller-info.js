@@ -1,4 +1,3 @@
-/*global CodeMirror*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,9 +18,19 @@
 
 // Must be convert into an ember addon
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { scheduleOnce } from '@ember/runloop';
+import { lineNumbers } from "@codemirror/gutter"
+import { defaultHighlightStyle } from "@codemirror/highlight"
+import { pig } from "@codemirror/legacy-modes/mode/pig"
+import { hive } from "@codemirror/legacy-modes/mode/sql"
+import { EditorState } from "@codemirror/state"
+import { StreamLanguage } from "@codemirror/stream-parser"
+import { EditorView } from "@codemirror/view"
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   type: null,
   info: null,
@@ -32,51 +41,46 @@ export default Ember.Component.extend({
 
   classNames: ['caller-info'],
 
-  mode: Ember.computed("type", function () {
-    switch(this.get("type")) {
+  mode: computed("type", function () {
+    switch(this.type) {
       case 'Hive':
-        return 'text/x-hive';
+        return hive;
       case 'Pig':
-        return 'text/x-pig';
+        return pig;
       default:
-        return 'text/x-sql';
+        return null;
     }
   }),
 
-  _init:  Ember.on('didInsertElement', function() {
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      var element  = Ember.$(this.get('element')).find('textarea')[0],
-          codeMirror = CodeMirror.fromTextArea(element, {
-            theme: 'default',
-            indentUnit: 2,
-            smartIndent: true,
-            tabSize: 4,
-            electricChars: true,
-            lineWrapping: true,
-            lineNumbers: true,
-            readOnly: true,
-            autofocus: false,
-            dragDrop: false,
-          });
+  _init:  on('didInsertElement', function() {
+    scheduleOnce('afterRender', this, function() {
+      var element  = this.element.querySelector('textarea'),
+          extensions = [
+            defaultHighlightStyle.fallback,
+            EditorView.editable.of(false),
+            EditorView.lineWrapping,
+            lineNumbers(),
+            EditorState.readOnly.of(true),
+          ];
+      if (this.mode) {
+        // only add parser for know types of pig and hive
+        extensions.push(StreamLanguage.define(this.mode));
+      }
+      var codeMirror = this.editorFromTextArea(element, extensions);
 
       this.set('codeMirror', codeMirror);
-
-      this._modeChanged();
-      this._infoChanged();
     });
   }),
 
-  _modeChanged: Ember.observer("mode", function() {
-    this.get('codeMirror').setOption("mode", this.get("mode"));
-  }),
-
-  _infoChanged: Ember.observer("info", function() {
-    var codeMirror = this.get('codeMirror'),
-        info = this.get('info') || '';
-
-    if (this.get('codeMirror').getValue() !== info) {
-      codeMirror.setValue(info);
-    }
-  })
-
+  editorFromTextArea: function(textarea, extensions) {
+    let view = new EditorView({
+      state: EditorState.create({doc: this.info, extensions})
+    })
+    textarea.parentNode.insertBefore(view.dom, textarea)
+    textarea.style.display = "none"
+    if (textarea.form) textarea.form.addEventListener("submit", () => {
+      textarea.value = view.state.doc.toString()
+    })
+    return view
+  },
 });

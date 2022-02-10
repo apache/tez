@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 var facetTypes = {
   VALUES: {
@@ -26,20 +26,20 @@ var facetTypes = {
       var values, clauses = [];
 
       if(facetConditions) {
-        if(Ember.get(facetConditions, "in.length")) {
+        if(get(facetConditions, "in.length")) {
           values = facetConditions.in.map(function (value) {
             value = value.replace(/'/g, "''");
             return `'${value}'`;
           });
-          clauses.push(`${column.id} IN (${values})`);
+          clauses.push(`\`${column.id}\` IN (${values})`);
         }
 
-        if(Ember.get(facetConditions, "notIn.length")) {
+        if(get(facetConditions, "notIn.length")) {
           values = facetConditions.notIn.map(function (value) {
             value = value.replace(/'/g, "''");
             return `'${value}'`;
           });
-          clauses.push(`${column.id} NOT IN (${values})`);
+          clauses.push(`\`${column.id}\` NOT IN (${values})`);
         }
 
         return clauses.join(" AND ");
@@ -50,21 +50,20 @@ var facetTypes = {
       var facetedDataHash = {},
           facetedDataArr = [];
 
-      rows.forEach(function (row) {
-        var value = column.getSearchValue(row);
+      for(let i = 0, len = rows.length; i < len; i++) {
+        var value = column.getSearchValue(rows[i]);
 
         if(typeof value === "string") {
           if(!facetedDataHash[value]) {
-            facetedDataHash[value] = {
-              count: 0,
-              value: value
-            };
-            facetedDataArr.push(facetedDataHash[value]);
+            let initData = { count: 1, value: value };
+            facetedDataHash[value] = initData;
+            facetedDataArr.push(initData);
           }
-          facetedDataHash[value].count++;
+          else {
+            facetedDataHash[value].count++;
+          }
         }
-
-      });
+      }
 
       if(facetedDataArr.length) {
         facetedDataArr = facetedDataArr.sort(function (a, b) {
@@ -75,7 +74,7 @@ var facetTypes = {
     },
 
     normaliseConditions: function (conditions, data) {
-      if(Ember.get(conditions, "in.length") < data.length) {
+      if(get(conditions, "in.length") < data.length) {
         return conditions;
       }
     }

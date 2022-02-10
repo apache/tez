@@ -16,121 +16,127 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve } from 'rsvp';
 
-moduleFor('entitie:dag', 'Unit | Entity | dag', {
-  // Specify the other units that are required for this test.
-  // needs: ['entitie:foo']
-});
+module('Unit | Entity | dag', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let entity = this.subject();
-  assert.ok(entity);
-  assert.ok(entity.queryRecord);
-});
-
-test('queryRecord-Hive:No description test', function(assert) {
-  let testQuery = "testQuery",
-      entityName = "entity-name",
-      testDag = Ember.Object.create({
-        name: "testName:1"
-      }),
-      hiveQuery = Ember.Object.create({
-        queryText: testQuery
-      }),
-      store = {
-        queryRecord: function (name) {
-          assert.equal(name, entityName);
-          return Ember.RSVP.resolve(testDag);
-        }
-      },
-      loader = Ember.Object.create({
-        nameSpace: "ns",
-        queryRecord: function (type, id/*, options, query, urlParams*/) {
-          assert.equal(type, "hive-query");
-          assert.equal(id, "testName");
-          return Ember.RSVP.resolve(hiveQuery);
-        }
-      }),
-      entity = this.subject({
-        name: entityName,
-        store: store
-      });
-
-  assert.expect(1 + 2 + 3);
-
-  entity.queryRecord(loader).then(function (dag) {
-    assert.equal(testDag, dag);
-    assert.equal(testDag.get("callerContext"), "Hive");
-    assert.equal(testDag.get("callerDescription"), testQuery);
+  test('Basic creation test', function(assert) {
+    let entity = this.owner.lookup('entitie:dag');
+    assert.ok(entity);
+    assert.ok(entity.queryRecord);
   });
-});
 
-test('queryRecord-Not Hive:No description test', function(assert) {
-  let testQuery = "testQuery",
-      entityName = "entity-name",
-      testDag = Ember.Object.create({
-        name: "testName"
-      }),
-      hiveQuery = Ember.Object.create({
-        queryText: testQuery
-      }),
-      store = {
-        queryRecord: function (name) {
-          assert.equal(name, entityName);
-          return Ember.RSVP.resolve(testDag);
-        }
-      },
-      loader = Ember.Object.create({
-        nameSpace: "ns",
-        queryRecord: function (/*type, id, options, query, urlParams*/) {
-          assert.ok(false);
-          return Ember.RSVP.resolve(hiveQuery);
-        }
-      }),
-      entity = this.subject({
-        name: entityName,
-        store: store
-      });
+  test('queryRecord-Hive:No description test', function(assert) {
+    let testQuery = "testQuery",
+        entityName = "entity-name",
+        testDag = EmberObject.create({
+          refreshLoadTime () {},
+          name: "testName:1"
+        }),
+        hiveQuery = EmberObject.create({
+          refreshLoadTime() {},
+          queryText: testQuery
+        }),
+        store = {
+          queryRecord: function (name) {
+            assert.equal(name, entityName);
+            return resolve(testDag);
+          }
+        },
+        loader = EmberObject.create({
+          nameSpace: "ns",
+          queryRecord: function (type, id/*, options, query, urlParams*/) {
+            assert.equal(type, "hive-query");
+            assert.equal(id, "testName");
+            return resolve(hiveQuery);
+          }
+        }),
+        entity = this.owner.factoryFor('entitie:dag').create({
+          name: entityName,
+          store: store
+        });
 
-  assert.expect(1 + 3);
+    assert.expect(1 + 2 + 3);
 
-  entity.queryRecord(loader).then(function (dag) {
-    assert.equal(testDag, dag);
-    assert.ok(!testDag.get("callerContext"));
-    assert.ok(!testDag.get("callerDescription"));
+    entity.queryRecord(loader).then(function (dag) {
+      assert.equal(testDag, dag);
+      assert.equal(testDag.get("callerContext"), "Hive");
+      assert.equal(testDag.get("callerDescription"), testQuery);
+    });
   });
-});
 
-test('queryRecord-With description test', function(assert) {
-  let testQuery = "testQuery",
-      entityName = "entity-name",
-      testDag = Ember.Object.create({
-        name: "testName",
-        callerDescription: testQuery
-      }),
-      loader = Ember.Object.create({
-        nameSpace: "ns",
-        queryRecord: function (/*type, id, options, query, urlParams*/) {
-          assert.ok(false);
-        }
-      }),
-      store = {
-        queryRecord: function (name) {
-          assert.equal(name, entityName);
-          return Ember.RSVP.resolve(testDag);
-        }
-      },
-      entity = this.subject({
-        name: entityName,
-        store: store
-      });
+  test('queryRecord-Not Hive:No description test', function(assert) {
+    let testQuery = "testQuery",
+        entityName = "entity-name",
+        testDag = EmberObject.create({
+          refreshLoadTime () {},
+          name: "testName"
+        }),
+        hiveQuery = EmberObject.create({
+          refreshLoadTime () {},
+          queryText: testQuery
+        }),
+        store = {
+          queryRecord: function (name) {
+            assert.equal(name, entityName);
+            return resolve(testDag);
+          }
+        },
+        loader = EmberObject.create({
+          nameSpace: "ns",
+          queryRecord: function (/*type, id, options, query, urlParams*/) {
+            assert.ok(false);
+            return resolve(hiveQuery);
+          }
+        }),
+        entity = this.owner.factoryFor('entitie:dag').create({
+          name: entityName,
+          store: store
+        });
 
-  assert.expect(1 + 2);
+    assert.expect(1 + 3);
 
-  entity.queryRecord(loader).then(function (dag) {
-    assert.equal(testDag, dag);
-    assert.equal(testDag.get("callerDescription"), testQuery);
+    entity.queryRecord(loader).then(function (dag) {
+      assert.equal(testDag, dag);
+      assert.notOk(testDag.get("callerContext"));
+      assert.notOk(testDag.get("callerDescription"));
+    });
+  });
+
+  test('queryRecord-With description test', function(assert) {
+    let testQuery = "testQuery",
+        entityName = "entity-name",
+        testDag = EmberObject.create({
+          refreshLoadTime () {},
+          name: "testName",
+          callerDescription: testQuery
+        }),
+        loader = EmberObject.create({
+          nameSpace: "ns",
+          queryRecord: function (/*type, id, options, query, urlParams*/) {
+            assert.ok(false);
+          }
+        }),
+        store = {
+          queryRecord: function (name) {
+            assert.equal(name, entityName);
+            return resolve(testDag);
+          }
+        },
+        entity = this.owner.factoryFor('entitie:dag').create({
+          name: entityName,
+          store: store
+        });
+
+    assert.expect(1 + 2);
+
+    entity.queryRecord(loader).then(function (dag) {
+      assert.equal(testDag, dag);
+      assert.equal(testDag.get("callerDescription"), testQuery);
+    });
   });
 });

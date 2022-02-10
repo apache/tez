@@ -16,32 +16,32 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-    rowCount=rowCount
+{{#if this.loaded}}
+  <EmTable
+    @columns={{this.visibleColumns}}
+    @rows={{this.model}}
+    @rowCount={{this.rowCount}}
 
-    classNames="all-dags-table"
+    @classNames="all-dags-table"
 
-    headerComponentNames=headerComponentNames
-    footerComponentNames=footerComponentNames
+    @headerComponentNames={{this.headerComponentNames}}
+    @footerComponentNames={{this.footerComponentNames}}
 
-    definition=definition
-    enableSort=false
+    @definition={{this.definition}}
+    @enableSort={{false}}
 
-    rowAction="rowCountChanged"
+    @rowCountChanged={{this.rowCountChanged}}
 
-    search="search"
-    loadPage="loadPage"
-    reload="reload"
-    rowsChanged="tableRowsChanged"
-  }}
-  {{#if queue}}
+    @loadPage="loadPage"
+    @rowsChanged={{this.tableRowsChanged}}
+    @openColumnSelector={{this.openColumnSelector}}
+    @homeSearch={{this.homeSearch}}
+  />
+  {{#if this.queue}}
     <div class="alert alert-info">
-      <strong>Info!</strong> Searching on Queue Name is supported only form <strong>Tez 0.9.0</strong>. So DAGs created by older versions of Tez will not be available!
+      <strong>Info!</strong> Searching on Queue Name is supported only from <strong>Tez 0.9.0</strong>. So DAGs created by older versions of Tez will not be available!
     </div>
   {{/if}}
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

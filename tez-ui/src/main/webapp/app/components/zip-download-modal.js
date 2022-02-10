@@ -16,28 +16,28 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, observer } from '@ember/object';
+import { later } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['zip-download-modal'],
   content: null,
 
-  _onSuccess: Ember.observer("content.downloader.succeeded", function () {
+  _onSuccess: observer("content.downloader.succeeded", function () {
     if(this.get("content.downloader.succeeded") && !this.get("content.downloader.partial")) {
-      Ember.run.later(this, "close");
+      later(this, "closeModal");
     }
   }),
 
-  close: function () {
-    Ember.$(".simple-modal").modal("hide");
-  },
+  closeModal: action(function () {
+    this.targetObject.send("closeModal");
+  }),
 
-  actions: {
-    cancel: function () {
-      var downloader = this.get("content.downloader");
-      if(downloader) {
-        downloader.cancel();
-      }
+  cancel: action(function () {
+    var downloader = this.get("content.downloader");
+    if(downloader) {
+      downloader.cancel();
     }
-  }
+  })
 });

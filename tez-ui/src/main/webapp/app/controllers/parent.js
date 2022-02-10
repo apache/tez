@@ -16,15 +16,10 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
 
 import AbstractController from './abstract';
 
 export default AbstractController.extend({
-  polling: Ember.inject.service("pollster"),
-  actions: {
-    autoRefreshChanged: function (state) {
-      this.get("polling").set("active", state);
-    }
-  }
+  polling: service("pollster")
 });

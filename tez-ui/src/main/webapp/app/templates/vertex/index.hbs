@@ -16,45 +16,45 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
+{{#if this.loaded}}
   <table class='detail-list'>
     <thead>
       <tr>
-        <th colspan=2>Details</th>
+        <th colspan="2">Details</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>Vertex ID</td>
-        <td>{{model.entityID}}</td>
+        <td>{{this.model.entityID}}</td>
       </tr>
       <tr>
         <td>Vertex Name</td>
-        <td>{{model.name}}</td>
+        <td>{{this.model.name}}</td>
       </tr>
       <tr>
         <td>Processor Class</td>
-        <td>{{model.processorClassName}}</td>
+        <td>{{this.model.processorClassName}}</td>
       </tr>
       <tr>
         <td>Status</td>
-        <td>{{em-table-status-cell content=model.finalStatus}}</td>
+        <td><EmTableStatusCell @content={{this.model.finalStatus}} /></td>
       </tr>
       <tr>
         <td>Progress</td>
-        <td>{{em-table-progress-cell content=model.progress}}</td>
+        <td><EmTableProgressCell @content={{this.model.progress}} /></td>
       </tr>
       <tr>
         <td>Start Time</td>
-        <td>{{date-formatter content=model.startTime}}</td>
+        <td><DateFormatter @content={{this.model.startTime}} /></td>
       </tr>
       <tr>
         <td>End Time</td>
-        <td>{{date-formatter content=model.endTime}}</td>
+        <td><DateFormatter @content={{this.model.endTime}} /></td>
       </tr>
       <tr>
         <td>Duration</td>
-        <td>{{txt model.duration type="duration"}}</td>
+        <td>{{txt this.model.duration type="duration"}}</td>
       </tr>
     </tbody>
   </table>
@@ -62,126 +62,126 @@
   <table class='detail-list'>
     <thead>
       <tr>
-        <th colspan=2>Stats</th>
+        <th colspan="2">Stats</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>Total Tasks</td>
-        <td>{{stats-link value=model.totalTasks routeName="vertex.tasks"}}</td>
+        <td><StatsLink @value={{this.model.totalTasks}} @routeName="vertex.tasks" /></td>
       </tr>
       <tr>
         <td>Succeeded Tasks</td>
-        <td>{{stats-link value=model.succeededTasks routeName="vertex.tasks" statsType="SUCCEEDED"}}</td>
+        <td><StatsLink @value={{this.model.succeededTasks}} @routeName="vertex.tasks" @statsType="SUCCEEDED" /></td>
       </tr>
       <tr>
         <td>Failed Tasks</td>
-        <td>{{stats-link value=model.failedTasks routeName="vertex.tasks" statsType="FAILED"}}</td>
+        <td><StatsLink @value={{this.model.failedTasks}} @routeName="vertex.tasks" @statsType="FAILED" /></td>
       </tr>
       <tr>
         <td>Killed Tasks</td>
-        <td>{{stats-link value=model.killedTasks routeName="vertex.tasks" statsType="KILLED"}}</td>
+        <td><StatsLink @value={{this.model.killedTasks}} @routeName="vertex.tasks" @statsType="KILLED" /></td>
       </tr>
       <tr>
         <td>Failed Task Attempts</td>
-        <td>{{stats-link value=model.failedTaskAttempts routeName="vertex.attempts" statsType="FAILED"}}</td>
+        <td><StatsLink @value={{this.model.failedTaskAttempts}} @routeName="vertex.attempts" @statsType="FAILED" /></td>
       </tr>
       <tr>
         <td>Killed Task Attempts</td>
-        <td>{{stats-link value=model.killedTaskAttempts routeName="vertex.attempts" statsType="KILLED"}}</td>
+        <td><StatsLink @value={{this.model.killedTaskAttempts}} @routeName="vertex.attempts" @statsType="KILLED" /></td>
       </tr>
       <tr>
         <td>First Task Start Time</td>
         <td>
-          {{date-formatter content=model.firstTaskStartTime}}
-          {{#if firstTasksToStart}}
-            [{{em-table-linked-cell content=firstTasksToStart}}]
+          <DateFormatter @content={{this.model.firstTaskStartTime}} />
+          {{#if this.firstTasksToStart}}
+            [<EmTableLinkedCell @content={{this.firstTasksToStart}} />]
           {{/if}}
         </td>
       </tr>
       <tr>
         <td>Last Task Finish Time</td>
         <td>
-          {{date-formatter content=model.lastTaskFinishTime}}
-          {{#if lastTasksToFinish}}
-            [{{em-table-linked-cell content=lastTasksToFinish}}]
+          <DateFormatter @content={{this.model.lastTaskFinishTime}} />
+          {{#if this.lastTasksToFinish}}
+            [<EmTableLinkedCell @content={{this.lastTasksToFinish}} />]
           {{/if}}
         </td>
       </tr>
       <tr>
         <td>Average Duration</td>
         <td>
-          {{txt model.avgDuration type="duration"}}
+          {{txt this.model.avgDuration type="duration"}}
         </td>
       </tr>
       <tr>
         <td>Minimum Duration</td>
         <td>
-          {{txt model.minDuration type="duration"}}
-          {{#if shortestDurationTasks}}
-            [{{em-table-linked-cell content=shortestDurationTasks}}]
+          {{txt this.model.minDuration type="duration"}}
+          {{#if this.shortestDurationTasks}}
+            [<EmTableLinkedCell @content={{this.shortestDurationTasks}} />]
           {{/if}}
         </td>
       </tr>
       <tr>
         <td>Maximum Duration</td>
         <td>
-          {{txt model.maxDuration type="duration"}}
-          {{#if longestDurationTasks}}
-            [{{em-table-linked-cell content=longestDurationTasks}}]
+          {{txt this.model.maxDuration type="duration"}}
+          {{#if this.longestDurationTasks}}
+            [<EmTableLinkedCell @content={{this.longestDurationTasks}} />]
           {{/if}}
         </td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Service plugin specific details -->
-  {{#if model.servicePlugin.taskSchedulerName}}
+  {{!-- Service plugin specific details --}}
+  {{#if this.model.servicePlugin.taskSchedulerName}}
     <table class='detail-list'>
       <thead>
       <tr>
-        <th colspan=2>Service Plugin Details</th>
+        <th colspan="2">Service Plugin Details</th>
       </tr>
       </thead>
       <tbody>
       <tr>
         <td>Task Scheduler Plugin</td>
-        <td>{{txt model.servicePlugin.taskSchedulerName}} [ {{txt model.servicePlugin.taskSchedulerClassName}} ]</td>
+        <td>{{txt this.model.servicePlugin.taskSchedulerName}} [ {{txt this.model.servicePlugin.taskSchedulerClassName}} ]</td>
       </tr>
       <tr>
         <td>Task Communicator Plugin</td>
-        <td>{{txt model.servicePlugin.taskCommunicatorName}} [ {{txt model.servicePlugin.taskCommunicatorClassName}} ]</td>
+        <td>{{txt this.model.servicePlugin.taskCommunicatorName}} [ {{txt this.model.servicePlugin.taskCommunicatorClassName}} ]</td>
       </tr>
       <tr>
         <td>Container Launcher Plugin</td>
-        <td>{{txt model.servicePlugin.containerLauncherName}} [ {{txt model.servicePlugin.containerLauncherClassName}} ]</td>
+        <td>{{txt this.model.servicePlugin.containerLauncherName}} [ {{txt this.model.servicePlugin.containerLauncherClassName}} ]</td>
       </tr>
       </tbody>
     </table>
   {{/if}}
 
-  {{#if model.description}}
+  {{#if this.model.description}}
     <div class="panel panel-info">
       <div class="panel-heading">
         Description
       </div>
       <div class="panel-body">
-        {{{model.description}}}
+        {{this.model.description}}
       </div>
     </div>
   {{/if}}
 
-  {{#if model.diagnostics}}
+  {{#if this.model.diagnostics}}
     <div class="panel panel-danger">
       <div class="panel-heading">
         Diagnostics
       </div>
       <div class="diagnostics">
-        {{{model.diagnostics}}}
+        {{this.model.diagnostics}}
       </div>
     </div>
   {{/if}}
 
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

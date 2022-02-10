@@ -16,24 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var task = this.modelFor("task"),
       entityID = task.get("entityID");
     return `Task Counters: ${entityID}`;
-  }).volatile(),
+  },
 
   loaderNamespace: "task",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('task', this.modelFor("task").get("id"), options);
-  },
+    return this.loader.queryRecord('task', this.modelFor("task").get("id"), options);
+  }
 });

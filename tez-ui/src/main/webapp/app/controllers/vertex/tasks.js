@@ -16,16 +16,23 @@
  * limitations under the License.
  */
 
+import { computed } from '@ember/object';
 import MultiTableController from '../multi-table';
 import ColumnDefinition from '../../utils/column-definition';
 
 import AutoCounterColumn from '../../mixins/auto-counter-column';
 
 export default MultiTableController.extend(AutoCounterColumn, {
+  breadcrumbs: computed(function() { return [{
+    text: "Tasks",
+    routeName: "vertex.tasks",
+  }]}),
+  /*
   breadcrumbs: [{
     text: "Tasks",
     routeName: "vertex.tasks",
   }],
+  */
 
   columns: ColumnDefinition.make([{
     id: 'index',

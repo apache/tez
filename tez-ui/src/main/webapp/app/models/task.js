@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import AMTimelineModel from './am-timeline';
 
@@ -49,21 +49,21 @@ export default AMTimelineModel.extend({
     }
   },
 
-  vertexID: DS.attr('string'),
-  vertexIndex: Ember.computed("vertexID", function () {
-    var id = this.get("vertexID") || "";
+  vertexID: attr('string'),
+  vertexIndex: computed("vertexID", function () {
+    var id = this.vertexID || "";
     return id.substr(id.lastIndexOf('_') + 1);
   }),
-  vertexName: Ember.computed("vertexID", "dag", function () {
-    var vertexID = this.get("vertexID");
+  vertexName: computed("vertexID", "dag", function () {
+    var vertexID = this.vertexID;
     return this.get(`dag.vertexIdNameMap.${vertexID}`);
   }),
 
-  dagID: DS.attr('string'),
-  dag: DS.attr('object'), // Auto-loaded by need
+  dagID: attr('string'),
+  dag: attr('object'), // Auto-loaded by need
 
-  failedTaskAttempts: DS.attr('number'),
+  failedTaskAttempts: attr('number'),
 
-  successfulAttemptID: DS.attr('string'),
-  attemptIDs: DS.attr("object"),
+  successfulAttemptID: attr('string'),
+  attemptIDs: attr("object"),
 });

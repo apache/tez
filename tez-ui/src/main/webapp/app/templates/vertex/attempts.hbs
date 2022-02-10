@@ -16,22 +16,8 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{em-table
-    columns=visibleColumns
-    rows=model
-
-    headerComponentNames=headerComponentNames
-
-    definition=definition
-
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    rowAction="rowCountChanged"
-    pageAction="pageChanged"
-
-    rowsChanged="rowsChanged"
-  }}
+{{#if this.loaded}}
+  <EmTable @columns={{this.visibleColumns}} @rows={{this.model}} @headerComponentNames={{this.headerComponentNames}} @definition={{this.definition}} @searchAction="searchChanged" @sortAction="sortChanged" @rowCountChanged={{this.rowCountChanged}} @rowsChanged={{this.rowsChanged}} @openColumnSelector={{this.openColumnSelector}} />
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

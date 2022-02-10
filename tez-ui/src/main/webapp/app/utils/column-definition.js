@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
+import EmberObject, { get } from '@ember/object';
 import facetTypes from './facet-types';
 
 function getContentAtPath(row) {
-  var contentPath = this.get('contentPath');
+  var contentPath = this.get("contentPath");
 
   if(contentPath) {
-    return Ember.get(row, contentPath);
+    return get(row, contentPath);
   }
   else {
     throw new Error("contentPath not set!");
@@ -35,7 +34,7 @@ function returnEmptyString() {
   return "";
 }
 
-var ColumnDefinition = Ember.Object.extend({
+var ColumnDefinition = EmberObject.extend({
   id: "",
   headerTitle: "Not Available!",
 
@@ -65,7 +64,7 @@ var ColumnDefinition = Ember.Object.extend({
   getSortValue: getContentAtPath,
 
   init: function () {
-    if(!this.get("id")) {
+    if(!this.id) {
       throw new Error("ID is not set.");
     }
   },
@@ -82,31 +81,6 @@ ColumnDefinition.make = function (rawDefinition) {
   }
   else {
     throw new Error("rawDefinition must be an Array or an Object.");
-  }
-};
-
-ColumnDefinition.makeFromModel = function (ModelClass, columnOptions) {
-  var attributes = Ember.get(ModelClass, 'attributes'),
-      columns = [];
-  if(attributes) {
-    attributes.forEach(function (meta, name) {
-      var column = Ember.Object.create({
-        id: name,
-        headerTitle: name.capitalize(),
-        contentPath: name,
-      });
-
-      if(columnOptions) {
-        column.setProperties(columnOptions);
-      }
-
-      columns.push(column);
-    });
-
-    return ColumnDefinition.make(columns);
-  }
-  else {
-    throw new Error("Value passed is not a model class");
   }
 };
 

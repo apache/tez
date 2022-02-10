@@ -16,117 +16,114 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | dag/swimlane', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:dag/swimlane', 'Unit | Controller | dag/swimlane', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/swimlane').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      },
+      model: []
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
+    assert.ok(controller);
+    assert.ok(controller.zoom);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.equal(controller.columns.length, 13);
+    assert.ok(controller.processes);
+
+    assert.ok(controller.dataAvailable);
+
+    assert.ok(controller.actions.toggleFullscreen);
   });
 
-  assert.ok(controller);
-  assert.ok(controller.zoom);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 13);
-  assert.ok(controller.processes);
+  test('Processes test', function(assert) {
 
-  assert.ok(controller.dataAvailable);
+    var vertices = [EmberObject.create({
+      name: "v1",
+      dag: {
+        edges: [{
+          inputVertexName: "v1",
+          outputVertexName: "v3"
+        }, {
+          inputVertexName: "v2",
+          outputVertexName: "v3"
+        }, {
+          inputVertexName: "v3",
+          outputVertexName: "v4"
+        }]
+      }
+    }), EmberObject.create({
+      name: "v2"
+    }), EmberObject.create({
+      name: "v3"
+    }), EmberObject.create({
+      name: "v4"
+    })];
 
-  assert.ok(controller.actions.toggleFullscreen);
-  assert.ok(controller.actions.click);
-});
+    let controller = this.owner.factoryFor('controller:dag/swimlane').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      },
+      model: vertices
+    });
 
-test('Processes test', function(assert) {
+    var processes = controller.processes;
 
-  var vertices = [Ember.Object.create({
-    name: "v1"
-  }), Ember.Object.create({
-    name: "v2"
-  }), Ember.Object.create({
-    name: "v3"
-  }), Ember.Object.create({
-    name: "v4"
-  })];
-  vertices.firstObject = {
-    dag: {
-      edges: [{
-        inputVertexName: "v1",
-        outputVertexName: "v3"
-      }, {
-        inputVertexName: "v2",
-        outputVertexName: "v3"
-      }, {
-        inputVertexName: "v3",
-        outputVertexName: "v4"
-      }]
-    }
-  };
-
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    },
-    model: vertices
+    assert.equal(processes[2].blockers[0].vertex, vertices[0]);
+    assert.equal(processes[2].blockers[1].vertex, vertices[1]);
+    assert.equal(processes[3].blockers[0].vertex, vertices[2]);
   });
 
-  var processes = controller.get("processes");
+  test('dataAvailable test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/swimlane').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      }
+    }),
+    dag = EmberObject.create(),
+    vertex = EmberObject.create({
+      dag: dag
+    });
 
-  assert.equal(processes[2].blockers[0].vertex, vertices[0]);
-  assert.equal(processes[2].blockers[1].vertex, vertices[1]);
-  assert.equal(processes[3].blockers[0].vertex, vertices[2]);
-});
+    assert.true(controller.dataAvailable, "No DAG or vertex");
 
-test('dataAvailable test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
-  }),
-  dag = Ember.Object.create(),
-  vertex = Ember.Object.create({
-    dag: dag
+    controller.set("model", EmberObject.create({
+      firstObject: vertex
+    }));
+    assert.false(controller.dataAvailable, "With vertex & dag but no amWsVersion");
+
+    dag.set("isComplete", true);
+    assert.true(controller.dataAvailable, "Complete DAG");
+    dag.set("isComplete", false);
+
+    dag.set("amWsVersion", 1);
+    assert.false(controller.dataAvailable, "With vertex & dag but amWsVersion=1");
+
+    dag.set("amWsVersion", 2);
+    assert.true(controller.dataAvailable, "With vertex & dag but amWsVersion=2");
+
+    vertex.set("am", {});
+    assert.false(controller.dataAvailable, "am loaded without event time data");
+
+    vertex.set("am", {
+      initTime: Date.now()
+    });
+    assert.true(controller.dataAvailable, "am loaded with event time data");
   });
-
-  assert.equal(controller.get("dataAvailable"), true, "No DAG or vertex");
-
-  controller.set("model", Ember.Object.create({
-    firstObject: vertex
-  }));
-  assert.equal(controller.get("dataAvailable"), false, "With vertex & dag but no amWsVersion");
-
-  dag.set("isComplete", true);
-  assert.equal(controller.get("dataAvailable"), true, "Complete DAG");
-  dag.set("isComplete", false);
-
-  dag.set("amWsVersion", 1);
-  assert.equal(controller.get("dataAvailable"), false, "With vertex & dag but amWsVersion=1");
-
-  dag.set("amWsVersion", 2);
-  assert.equal(controller.get("dataAvailable"), true, "With vertex & dag but amWsVersion=2");
-
-  vertex.set("am", {});
-  assert.equal(controller.get("dataAvailable"), false, "am loaded without event time data");
-
-  vertex.set("am", {
-    initTime: Date.now()
-  });
-  assert.equal(controller.get("dataAvailable"), true, "am loaded with event time data");
 });

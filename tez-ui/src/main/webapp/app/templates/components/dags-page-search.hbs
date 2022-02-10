@@ -18,32 +18,20 @@
 
 <div class="form-group">
   <div class="search-element dag-name">
-    <label for="pwd">DAG Name:</label>
-    {{input value=dagName
-      type="text"
-      class="form-control input-sm"
-      placeholder="Search..."
-      enter="search"
-    }}
+    <label>DAG Name:
+    <Input @value={{this.dagName}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">ID:</label>
-    {{input value=dagID
-      type="text"
-      class="form-control input-sm"
-      placeholder="Search..."
-      enter="search"
-    }}
+    <label>ID:
+    <Input @value={{this.dagID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Submitter:</label>
-    {{input value=submitter
-      type="text"
-      class="form-control input-sm"
-      placeholder="Search..."
-      enter="search"
-    }}
+    <label>Submitter:
+    <Input @value={{this.submitter}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Status:</label>
-    <select value={{status}}
+    <label>Status:
+    <select value={{this.status}}
         class="form-control input-sm"
         onchange={{action "statusChanged" value="target.value"}}
         {{action "statusKeyPress" on="keyPress"}}>
@@ -55,32 +43,21 @@
       <option value="KILLED">Killed</option>
       <option value="ERROR">Error</option>
     </select>
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Application ID:</label>
-    {{input value=appID
-      type="text"
-      class="form-control input-sm"
-      placeholder="Search..."
-      enter="search"
-    }}
+    <label>Application ID:
+    <Input @value={{this.appID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Queue:</label>
-    {{input value=queue
-    type="text"
-    class="form-control input-sm"
-    placeholder="Search..."
-    enter="search"
-    }}
+    <label>Queue:
+    <Input @value={{this.queue}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div><div class="search-element">
-    <label for="pwd">Caller ID:</label>
-    {{input value=callerID
-      type="text"
-      class="form-control input-sm"
-      placeholder="Search..."
-      enter="search"
-    }}
+    <label>Caller ID:
+    <Input @value={{this.callerID}} @type="text" class="form-control input-sm" placeholder="Search..." @enter={{this.dagSearch}} />
+    </label>
   </div>
 </div>
-<button type="button" class="btn btn-success" {{action 'search'}}>
+<button type="button" class="btn btn-success" {{action 'dagSearch'}}>
   <i class="fa fa-search" aria-hidden="true"></i>
 </button>

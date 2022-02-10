@@ -17,24 +17,24 @@
 }}
 
 <div class="message">
-  {{#if content.downloader.failed}}
+  {{#if this.content.downloader.failed}}
     <i class="fa fa-lg fa-exclamation-circle error"></i>
     Error downloading data!
-  {{else}}{{#if (and content.downloader.partial content.downloader.succeeded)}}
+  {{else}}{{#if (and this.content.downloader.partial this.content.downloader.succeeded)}}
     <i class="fa fa-lg fa-exclamation-circle warning"></i>
     Data downloaded might be incomplete. Please check the zip!
   {{else}}
-    Downloading data for dag: <b>{{content.dag.entityID}}</b>
-    {{em-progress value=content.downloader.percent striped=true}}
-    {{content.downloader.message}}
+    Downloading data for dag: <b>{{this.content.dag.entityID}}</b>
+    <EmProgress @value={{this.content.downloader.percent}} @striped={{true}} />
+    {{this.content.downloader.message}}
   {{/if}}{{/if}}
 </div>
 
 
 <div class="form-actions">
-  {{#if (or content.downloader.failed content.downloader.partial)}}
-    <button type="button" class="btn btn-primary" data-dismiss="modal" aria-label="Close">Ok</button>
+  {{#if (or this.content.downloader.failed this.content.downloader.partial)}}
+    <button type="button" class="btn btn-primary" aria-label="Close" {{action "closeModal"}}>Ok</button>
   {{else}}
-    <button type="button" class="btn" data-dismiss="modal" aria-label="Close" {{action "cancel"}}>Cancel</button>
+    <button type="button" class="btn" aria-label="Close" {{action "cancel"}}>Cancel</button>
   {{/if}}
 </div>

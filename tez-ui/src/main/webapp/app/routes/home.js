@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
+import { action } from '@ember/object';
 import AbstractRoute from './abstract';
 
 export default AbstractRoute.extend({
   title: "Home",
 
-  actions: {
-    setLoadTime: function (time) {
-      this.set("controller.loadTime", time);
-    }
-  }
+  setLoadTime: action(function (time) {
+    this.set("controller.loadTime", time);
+  })
 });

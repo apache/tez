@@ -16,7 +16,7 @@
  * limitations under the License.
 }}
 
-{{em-table-header-cell title=definition.headerTitle definition=definition tableDefinition=tableDefinition dataProcessor=dataProcessor}}
-{{#each rows as |row rowIndex|}}
-  {{em-table-cell columnDefinition=definition row=row index=rowIndex}}
+<EmTableHeaderCell @title={{this.definition.headerTitle}} @definition={{this.definition}} @tableDefinition={{this.tableDefinition}} @dataProcessor={{this.dataProcessor}} />
+{{#each this.rows as |row rowIndex|}}
+  <EmTableCell @columnDefinition={{this.definition}} @row={{row}} @index={{rowIndex}} />
 {{/each}}

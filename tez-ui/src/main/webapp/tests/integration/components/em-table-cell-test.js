@@ -16,30 +16,31 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import EmberObject from '@ember/object';
+import { render } from '@ember/test-helpers';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { hbs } from 'ember-cli-htmlbars';
 
 import ColumnDefinition from '../../../utils/column-definition';
 
-moduleForComponent('em-table-cell', 'Integration | Component | em table cell', {
-  integration: true
-});
+module('Integration | Component | em table cell', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic rendering test', function(assert) {
-  var columnDefinition = ColumnDefinition.create({
-        id: 'id',
-        contentPath: 'keyA'
-      }),
-      row = Ember.Object.create({
-        keyA: 'valueA',
-        keyB: 'valueB'
-      });
+  test('Basic rendering test', async function(assert) {
+    var columnDefinition = ColumnDefinition.create({
+          id: 'id',
+          contentPath: 'keyA'
+        }),
+        row = EmberObject.create({
+          keyA: 'valueA',
+          keyB: 'valueB'
+        });
 
-  this.set('columnDefinition', columnDefinition);
-  this.set('row', row);
-  this.render(hbs`{{em-table-cell columnDefinition=columnDefinition row=row}}`);
+    this.set('columnDefinition', columnDefinition);
+    this.set('row', row);
+    await render(hbs`{{em-table-cell columnDefinition=columnDefinition row=row}}`);
 
-  assert.equal(this.$().text().trim(), 'valueA');
+    assert.equal(this.element.textContent.trim(), 'valueA');
+  });
 });

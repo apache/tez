@@ -16,21 +16,53 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
 
   classNames: ["em-swimlane-vertex-name"],
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "process-name", this.get("process"), {
+  didInsertElement: function () {
+
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
+  },
+
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showSwimlaneTooltip("process-name", this.process, {
       mouseEvent: mouseEvent,
     });
   },
 
-  progressText: Ember.computed("process.vertex.finalStatus", "process.vertex.progress", function () {
+  handleMouseLeave: function () {
+    this.hideSwimlaneTooltip();
+  },
+
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
+  },
+
+  progressText: computed("process.vertex.finalStatus", "process.vertex.progress", function () {
     if(this.get("process.vertex.finalStatus") === "RUNNING") {
       let progress = this.get("process.vertex.progress");
       if(!isNaN(progress)) {
@@ -39,17 +71,4 @@ export default Ember.Component.extend({
       }
     }
   }),
-
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
-  },
-
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
-  mouseUp: function (mouseEvent) {
-    this.sendMouseAction("click", mouseEvent);
-  }
-
 });

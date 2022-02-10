@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,20 +16,22 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { action, get, observer } from '@ember/object';
+import RecordArray from '@ember-data/store';
+import Route from '@ember/routing/route';
+import { later } from '@ember/runloop';
+import { resolve } from 'rsvp';
 
 import LoaderService from '../services/loader';
 import UnlinkedPromise from '../errors/unlinked-promise';
 import NameMixin from '../mixins/name';
+import MoreObject from '../utils/more-object';
 
-var MoreObject = more.Object;
-
-export default Ember.Route.extend(NameMixin, {
+export default Route.extend(NameMixin, {
   title: null, // Must be set by inheriting class
 
   loaderNamespace: null,
-  isLoading: false,
+  isMyLoading: false,
   currentPromiseId: null,
   loadedValue: null,
 
@@ -43,7 +44,8 @@ export default Ember.Route.extend(NameMixin, {
   loaderQueryParams: {},
 
   init: function () {
-    var namespace = this.get("loaderNamespace");
+    this._super(...arguments);
+    var namespace = this.loaderNamespace;
     if(namespace) {
       this.setLoader(namespace);
     }
@@ -51,14 +53,14 @@ export default Ember.Route.extend(NameMixin, {
 
   model: function(params/*, transition*/) {
     this.set("currentQuery", this.queryFromParams(params));
-    Ember.run.later(this, "loadData");
+    later(this, "loadData");
   },
 
   queryFromParams: function (params) {
     var query = {};
 
-    MoreObject.forEach(this.get("loaderQueryParams"), function (name, paramKey) {
-      var value = Ember.get(params, paramKey);
+    MoreObject.forEach(this.loaderQueryParams, function (name, paramKey) {
+      var value = get(params, paramKey);
       if(value) {
         query[name] = value;
       }
@@ -68,16 +70,16 @@ export default Ember.Route.extend(NameMixin, {
   },
 
   setDocTitle: function () {
-    Ember.$(document).attr('title', this.get('title'));
+    document.title = this.title;
   },
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
+  didTransition: function () {
+    this._super(...arguments);
     this.setDocTitle();
   },
 
   checkAndCall: function (id, functionName, query, options, value) {
-    if(id === this.get("currentPromiseId")) {
+    if(id === this.currentPromiseId) {
       return this[functionName](value, query, options);
     }
     else {
@@ -87,13 +89,13 @@ export default Ember.Route.extend(NameMixin, {
 
   loadData: function (options) {
     var promiseId = Math.random(),
-        query = this.get("currentQuery");
+        query = this.currentQuery;
 
     options = options || {};
 
     this.set('currentPromiseId', promiseId);
 
-    return Ember.RSVP.resolve().
+    return resolve().
       then(this.checkAndCall.bind(this, promiseId, "setLoading", query, options)).
       then(this.checkAndCall.bind(this, promiseId, "beforeLoad", query, options)).
       then(this.checkAndCall.bind(this, promiseId, "load", query, options)).
@@ -103,8 +105,8 @@ export default Ember.Route.extend(NameMixin, {
   },
 
   setLoading: function (/*query, options*/) {
-    this.set('isLoading', true);
-    this.set('controller.isLoading', true);
+    this.set('isMyLoading', true);
+    this.set('controller.isMyLoading', true);
   },
   beforeLoad: function (value/*, query, options*/) {
     return value;
@@ -118,8 +120,8 @@ export default Ember.Route.extend(NameMixin, {
   setValue: function (value/*, query, options*/) {
     this.set('loadedValue', value);
 
-    this.set('isLoading', false);
-    this.set('controller.isLoading', false);
+    this.set('isMyLoading', false);
+    this.set('controller.isMyLoading', false);
 
     this.send("setLoadTime", this.getLoadTime(value));
 
@@ -127,7 +129,7 @@ export default Ember.Route.extend(NameMixin, {
   },
   onLoadFailure: function (error) {
     if(error instanceof UnlinkedPromise) {
-      Ember.Logger.warn("Slow down, you are refreshing too fast!");
+      console.warn("Slow down, you are refreshing too fast!");
     }
     else {
       this.send("error", error);
@@ -136,7 +138,7 @@ export default Ember.Route.extend(NameMixin, {
   },
 
   getLoadTime: function (value) {
-    if(value instanceof DS.RecordArray) {
+    if(value instanceof RecordArray) {
       value = value.get("content.0.record");
     }
     else if(Array.isArray(value)) {
@@ -144,46 +146,42 @@ export default Ember.Route.extend(NameMixin, {
     }
 
     if(value) {
-      return Ember.get(value, "loadTime");
+      return value.loadTime;
     }
   },
 
-  _setControllerModel: Ember.observer("loadedValue", function () {
-    var controller = this.get("controller");
+  _setControllerModel: observer("loadedValue", function () {
+    var controller = this.controller;
     if(controller) {
-      controller.set("model", this.get("loadedValue"));
+      controller.set("model", this.loadedValue);
     }
   }),
 
   setLoader: function (nameSpace) {
-    this.set("loader", LoaderService.create({
-      nameSpace: nameSpace,
-      store: this.get("store"),
-      container: this.get("container")
-    }));
+    let loader = LoaderService.create( {nameSpace: nameSpace, store: this.store});
+    // TODO
+    //this.set("loader", loader);
   },
 
   startCrumbBubble: function () {
     this.send("bubbleBreadcrumbs", []);
   },
 
-  actions: {
-    setBreadcrumbs: function (crumbs) {
-      var name = this.get("name");
-      if(crumbs && crumbs[name]) {
-        this.set("breadcrumbs", crumbs[name]);
-      }
-      return true;
-    },
-    bubbleBreadcrumbs: function (crumbs) {
-      crumbs.unshift.apply(crumbs, this.get("breadcrumbs"));
-      return true;
-    },
-    reload: function () {
-      Ember.run.later(this, "loadData", {reload: true});
-    },
-    willTransition: function () {
-      this.set("loadedValue", null);
-    },
-  }
+  setBreadcrumbs: action(function (crumbs) {
+    var name = this.name;
+    if(crumbs && crumbs[name]) {
+      this.set("breadcrumbs", crumbs[name]);
+    }
+    return true;
+  }),
+  bubbleBreadcrumbs: action(function (crumbs) {
+    crumbs.unshift.apply(crumbs, this.breadcrumbs);
+    return true;
+  }),
+  reloadAction: action(function () {
+    later(this, "loadData", {reload: true});
+  }),
+  willTransition: action(function () {
+    this.set("loadedValue", null);
+  })
 });

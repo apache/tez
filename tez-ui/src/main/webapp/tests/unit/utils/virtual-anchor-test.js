@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-import virtualAnchor from '../../../utils/virtual-anchor';
 import { module, test } from 'qunit';
+import virtualAnchor from '../../../utils/virtual-anchor';
 
-module('Unit | Utility | virtual anchor');
+module('Unit | Utility | virtual anchor', function() {
+  test('Basic creation test', function(assert) {
+    let anchor = virtualAnchor();
+    assert.ok(anchor);
+  });
 
-test('Basic creation test', function(assert) {
-  let anchor = virtualAnchor();
-  assert.ok(anchor);
-});
+  test('Param set test', function(assert) {
+    let testURL = "http://xyz.com/abc",
+        downloadFileName = "abc.txt",
 
-test('Param set test', function(assert) {
-  let testURL = "http://xyz.com/abc",
-      downloadFileName = "abc.txt",
+        anchor = virtualAnchor(testURL, downloadFileName);
 
-      anchor = virtualAnchor(testURL, downloadFileName);
-
-  assert.ok(anchor);
-  assert.equal(anchor.href, testURL);
-  assert.equal(anchor.download, downloadFileName);
-  assert.equal(anchor.target, "_blank");
+    assert.ok(anchor);
+    assert.equal(anchor.href, testURL);
+    assert.equal(anchor.download, downloadFileName);
+    assert.equal(anchor.target, "_blank");
+  });
 });
 

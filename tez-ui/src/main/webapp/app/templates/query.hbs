@@ -16,5 +16,5 @@
  * limitations under the License.
 }}
 
-{{tab-n-refresh tabs=tabs loadTime=loadTime autoRefreshVisible=false autoRefreshEnabled=polling.active}}
+<TabNRefresh @tabs={{this.tabs}} @loadTime={{this.loadTime}} @autoRefreshVisible={{false}} @autoRefreshEnabled={{this.polling.active}} @refresh={{this.refresh}} />
 {{outlet}}

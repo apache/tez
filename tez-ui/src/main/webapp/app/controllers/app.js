@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
 
 import ParentController from './parent';
 
 export default ParentController.extend({
-  breadcrumbs: Ember.computed("model.name", "model.entityID", function () {
+  breadcrumbs: computed("model.name", "model.entityID", function () {
     var name = this.get("model.name") || this.get("model.entityID");
 
     return [{
@@ -31,7 +31,7 @@ export default ParentController.extend({
     }];
   }),
 
-  tabs: [{
+  tabs: computed(function() {return [{
     text: "Application Details",
     routeName: "app.index"
   }, {
@@ -40,5 +40,5 @@ export default ParentController.extend({
   }, {
     text: "Configurations",
     routeName: "app.configs"
-  }]
+  }]})
 });

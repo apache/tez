@@ -16,25 +16,24 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var app = this.modelFor("app"),
       entityID = app.get("entityID");
     return `DAGs: ${entityID}`;
-  }).volatile(),
+  },
 
   loaderNamespace: "app",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").query('dag', {
+    return this.get('loader').query('dag', {
       appID: this.modelFor("app").get("entityID")
     }, options);
   }

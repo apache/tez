@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import DS from 'ember-data';
+import { computed } from '@ember/object';
+import { attr } from '@ember-data/model';
 
 import AMTimelineModel from './am-timeline';
 
@@ -50,44 +50,44 @@ export default AMTimelineModel.extend({
     }
   },
 
-  taskID: DS.attr('string'),
-  taskIndex: Ember.computed("taskID", function () {
-    var id = this.get("taskID") || "";
+  taskID: attr('string'),
+  taskIndex: computed("taskID", function () {
+    var id = this.taskID || "";
     return id.substr(id.lastIndexOf('_') + 1);
   }),
 
-  vertexID: DS.attr('string'),
-  vertexIndex: Ember.computed("vertexID", function () {
-    var id = this.get("vertexID") || "";
+  vertexID: attr('string'),
+  vertexIndex: computed("vertexID", function () {
+    var id = this.vertexID || "";
     return id.substr(id.lastIndexOf('_') + 1);
   }),
-  vertexName: Ember.computed("vertexID", "dag", function () {
-    var vertexID = this.get("vertexID");
+  vertexName: computed("vertexID", "dag", function () {
+    var vertexID = this.vertexID;
     return this.get(`dag.vertexIdNameMap.${vertexID}`);
   }),
 
-  dagID: DS.attr('string'),
-  dag: DS.attr('object'), // Auto-loaded by need
+  dagID: attr('string'),
+  dag: attr('object'), // Auto-loaded by need
 
-  containerID: DS.attr('string'),
-  nodeID: DS.attr('string'),
+  containerID: attr('string'),
+  nodeID: attr('string'),
 
-  inProgressLogsURL: DS.attr('string'),
-  completedLogsURL: DS.attr('string'),
-  logURL: Ember.computed("entityID", "inProgressLogsURL", "completedLogsURL", "dag.isComplete", function () {
-    var logURL = this.get("inProgressLogsURL");
+  inProgressLogsURL: attr('string'),
+  completedLogsURL: attr('string'),
+  logURL: computed('completedLogsURL', 'dag.isComplete', 'entityID', 'env.app.yarnProtocol', 'inProgressLogsURL', function () {
+    var logURL = this.inProgressLogsURL;
 
     if(logURL) {
       if(logURL.indexOf("://") === -1) {
-        let attemptID = this.get("entityID"),
+        let attemptID = this.entityID,
             yarnProtocol = this.get('env.app.yarnProtocol');
         return `${yarnProtocol}://${logURL}/syslog_${attemptID}`;
       }
       else { // LLAP log link
-        return this.get("dag.isComplete") ? this.get("completedLogsURL") : logURL;
+        return this.get("dag.isComplete") ? this.completedLogsURL : logURL;
       }
     }
   }),
 
-  containerLogURL: DS.attr('string'),
+  containerLogURL: attr('string'),
 });

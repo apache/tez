@@ -18,13 +18,13 @@
 
 <div class="ruler-line"></div>
 <div class="mark-container">
-  {{#each marks as |mark|}}
-    <div class="ruler-mark" style={{markDef.style}}>
+  {{#each this.marks as |mark|}}
+    <div class="ruler-mark" style={{this.markDef.style}}>
       <ul class="sub-marks"><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li></ul>
       &nbsp;{{mark.duration}}
     </div>
   {{/each}}
 </div>
-<div class="unit-text" style={{unitTextStyle}}>
-  {{markDef.unit}}
+<div class="unit-text" style={{this.unitTextStyle}}>
+  {{this.markDef.unit}}
 </div>

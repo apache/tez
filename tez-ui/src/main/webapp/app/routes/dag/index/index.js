@@ -16,36 +16,36 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, observer } from '@ember/object';
 import MultiAmPollsterRoute from '../../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var dag = this.modelFor("dag"),
       name = dag.get("name"),
       entityID = dag.get("entityID");
     return `DAG: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "dag",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").query('vertex', {
+    return this.loader.query('vertex', {
       dagID: this.modelFor("dag").get("id")
     }, options);
   },
 
-  _canPollObserver: Ember.observer("canPoll", function () {
-    if(this.get("canPoll")) {
-      this.get("polling").setPoll(this.pollData, this, "dag.index.index");
+  _canPollObserver: observer("canPoll", function () {
+    if(this.canPoll) {
+      this.polling.setPoll(this.pollData, this, "dag.index.index");
     }
     else {
-      this.get("polling").resetPoll("dag.index.index");
+      this.polling.resetPoll("dag.index.index");
     }
   }),
 
@@ -53,15 +53,13 @@ export default MultiAmPollsterRoute.extend({
     return value;
   },
 
-  actions: {
-    reload: function () {
-      this._super();
-      return true;
-    },
-    willTransition: function () {
-      this.set("loadedValue", null);
-      return true;
-    },
-  }
+  reload: action(function () {
+    this._super();
+    return true;
+  }),
 
+  willTransition: action(function () {
+    this.set("loadedValue", null);
+    return true;
+  })
 });

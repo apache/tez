@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Controller from '@ember/controller';
 
-import moment from 'moment';
+import { intervalToDuration } from 'date-fns';
 import numeral from 'numeral';
 
 const DEFAULT_DATE_TIMEZONE = "UTC",
@@ -85,16 +85,21 @@ function validateNumber(value, message) {
   return value;
 }
 
-export default Ember.Controller.create({
+export default Controller.create({
   date: function (value, options) {
-    var date = moment.tz(value, options.valueFormat, options.valueTimeZone || DEFAULT_DATE_TIMEZONE);
-
-    date = options.timeZone ? date.tz(options.timeZone) : date.local();
-    date = date.format(options.format || DEFAULT_DATE_FORMAT);
-
-    if(date === "Invalid date") {
-      throw new Error(date);
-    }
+    var formatter = new Intl.DateTimeFormat('en-us', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: 'UTC'
+    });
+    var parts = formatter.formatToParts(value);
+    const d = new Map(parts.map(obj => [obj.type, obj.value]));
+    var date = `${d.get('day')} ${d.get('month')} ${d.get('year')} ${d.get('hour')}:${d.get('minute')}:${d.get('second')}`;
 
     return date;
   },
@@ -108,16 +113,17 @@ export default Ember.Controller.create({
     if(value === 0) {
       return `0${format.millisecond}`;
     }
+    let millis = value % 1000;
 
-    duration = moment.duration(value, options.valueUnit);
+    duration = intervalToDuration({start: 0, end: value});
 
-    format.collateFunction(ret, duration.years(), format.year);
-    format.collateFunction(ret, duration.months(), format.month);
-    format.collateFunction(ret, duration.days(), format.day);
-    format.collateFunction(ret, duration.hours(), format.hour);
-    format.collateFunction(ret, duration.minutes(), format.minute);
-    format.collateFunction(ret, duration.seconds(), format.second);
-    format.collateFunction(ret, Math.round(duration.milliseconds()), format.millisecond);
+    format.collateFunction(ret, duration.years, format.year);
+    format.collateFunction(ret, duration.months, format.month);
+    format.collateFunction(ret, duration.days, format.day);
+    format.collateFunction(ret, duration.hours, format.hour);
+    format.collateFunction(ret, duration.minutes, format.minute);
+    format.collateFunction(ret, duration.seconds, format.second);
+    format.collateFunction(ret, Math.round(millis), format.millisecond);
 
     return ret.join(" ");
   },
@@ -138,7 +144,7 @@ export default Ember.Controller.create({
         value = JSON.stringify(value, options.replacer, options.space || 4);
       }
       catch(err){
-        Ember.Logger.error(err);
+        console.error(err);
       }
     }
     return value;

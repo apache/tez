@@ -16,25 +16,9 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+const puppeteer = require("puppeteer");
+const { execFileSync } = require("child_process");
 
-moduleForComponent('em-table-status-cell', 'Integration | Component | em table status cell', {
-  integration: true
-});
-
-test('Basic creation test', function(assert) {
-
-  this.render(hbs`{{em-table-status-cell}}`);
-
-  assert.equal(this.$().text().trim(), 'Not Available!');
-
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-status-cell}}
-      template block text
-    {{/em-table-status-cell}}
-  `);
-
-  assert.equal(this.$().text().trim(), 'Not Available!');
-});
+let exePath = puppeteer.executablePath();
+let args = process.argv.slice(2);
+execFileSync(exePath, args);

@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,12 +16,14 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { A } from '@ember/array';
+import EmberObject, { action, computed, get } from '@ember/object';
+import { later } from '@ember/runloop';
+import { capitalize } from '@ember/string';
+import MoreObject from '../../utils/more-object';
 
 import TableController from '../table';
 import ColumnDefinition from '../../utils/column-definition';
-
-var MoreObject = more.Object;
 
 // Better fits in more-js
 function arrayfy(object) {
@@ -43,7 +44,7 @@ export default TableController.extend({
   configType: null,
   configID: null,
 
-  breadcrumbs: Ember.computed("configDetails", "configID", "configType", function () {
+  breadcrumbs: computed('configDetails.{desc,name}', 'configID', 'configType', function () {
     var crumbs = [{
       text: "Configurations",
       routeName: "vertex.configs",
@@ -52,15 +53,15 @@ export default TableController.extend({
         configID: null,
       }
     }],
-    type = this.get("configType"),
+    type = this.configType,
     name;
 
-    if(this.get("configType")) {
+    if(this.configType) {
       name = this.get("configDetails.name") || this.get("configDetails.desc");
     }
 
     if(type && name) {
-      type = type.capitalize();
+      type = capitalize(type);
       crumbs.push({
         text: `${type} [ ${name} ]`,
         routeName: "vertex.configs",
@@ -69,11 +70,6 @@ export default TableController.extend({
 
     return crumbs;
   }),
-
-  setBreadcrumbs: function() {
-    this._super();
-    Ember.run.later(this, "send", "bubbleBreadcrumbs", []);
-  },
 
   columns: ColumnDefinition.make([{
     id: 'configName',
@@ -97,14 +93,14 @@ export default TableController.extend({
     };
   },
 
-  configsHash: Ember.computed("model.name", "model.dag.vertices", function () {
+  configsHash: computed('model.dag.{edges,vertices}', 'model.name', 'normalizeConfig', function () {
     var vertexName = this.get("model.name"),
 
         inputConfigs = [],
         outputConfigs = [],
         vertexDetails;
 
-    if(!this.get("model")) {
+    if(!this.model) {
       return {};
     }
 
@@ -117,7 +113,7 @@ export default TableController.extend({
           id: edge.edgeId,
           desc: `From ${edge.inputVertexName}`,
           class: edge.edgeDestinationClass,
-          configs: arrayfy(payload ? Ember.get(JSON.parse(payload), "config") : {})
+          configs: arrayfy(payload ? (JSON.parse(payload)).config : {})
         });
       }
       else if(edge.inputVertexName === vertexName) {
@@ -126,7 +122,7 @@ export default TableController.extend({
           id: edge.edgeId,
           desc: `To ${edge.outputVertexName}`,
           class: edge.edgeSourceClass,
-          configs: arrayfy(payload ? Ember.get(JSON.parse(payload), "config") : {})
+          configs: arrayfy(payload ? (JSON.parse(payload)).config : {})
         });
       }
     });
@@ -142,27 +138,27 @@ export default TableController.extend({
     };
   }),
 
-  configDetails: Ember.computed("configsHash", "configType", "configID", function () {
-    var configType = this.get("configType"),
+  configDetails: computed("configsHash", "configType", "configID", function () {
+    var configType = this.configType,
         details;
 
     if(configType) {
-      details = Ember.get(this.get("configsHash"), configType);
+      details = get(this.configsHash, configType);
     }
 
     if(Array.isArray(details)) {
-      details = details.findBy("id", this.get("configID"));
+      details = details.findBy("id", this.configID);
     }
 
     return details;
   }),
 
-  configs: Ember.computed("configDetails", function () {
+  configs: computed('configDetails.configs', function () {
     var configs = this.get("configDetails.configs");
 
     if(Array.isArray(configs)) {
-      return Ember.A(configs.map(function (config) {
-        return Ember.Object.create({
+      return A(configs.map(function (config) {
+        return EmberObject.create({
           configName: config.key,
           configValue: config.value
         });
@@ -170,14 +166,10 @@ export default TableController.extend({
     }
   }),
 
-  actions: {
-    showConf: function (type, details) {
-      this.setProperties({
-        configType: type,
-        configID: details.id
-      });
-      Ember.run.later(this, "send", "bubbleBreadcrumbs", []);
-    }
-  }
-
+  showConf: action(function (type, details) {
+    this.setProperties({
+      configType: type,
+      configID: details.id
+    });
+  })
 });

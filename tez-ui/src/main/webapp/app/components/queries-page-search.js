@@ -16,46 +16,46 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action } from '@ember/object';
+import { oneWay } from '@ember/object/computed';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['queries-page-search'],
 
-  queryID: Ember.computed.oneWay("tableDefinition.queryID"),
-  dagID: Ember.computed.oneWay("tableDefinition.dagID"),
-  appID: Ember.computed.oneWay("tableDefinition.appID"),
-  executionMode: Ember.computed.oneWay("tableDefinition.executionMode"),
-  user: Ember.computed.oneWay("tableDefinition.user"),
-  requestUser: Ember.computed.oneWay("tableDefinition.requestUser"),
-  tablesRead: Ember.computed.oneWay("tableDefinition.tablesRead"),
-  tablesWritten: Ember.computed.oneWay("tableDefinition.tablesWritten"),
-  operationID: Ember.computed.oneWay("tableDefinition.operationID"),
-  queue: Ember.computed.oneWay("tableDefinition.queue"),
+  queryID: oneWay("tableDefinition.queryID"),
+  dagID: oneWay("tableDefinition.dagID"),
+  appID: oneWay("tableDefinition.appID"),
+  executionMode: oneWay("tableDefinition.executionMode"),
+  user: oneWay("tableDefinition.user"),
+  requestUser: oneWay("tableDefinition.requestUser"),
+  tablesRead: oneWay("tableDefinition.tablesRead"),
+  tablesWritten: oneWay("tableDefinition.tablesWritten"),
+  operationID: oneWay("tableDefinition.operationID"),
+  queue: oneWay("tableDefinition.queue"),
 
   sendSearch: function () {
-    this.get('parentView').sendAction('search', {
-      queryID: this.get("queryID"),
-      dagID: this.get("dagID"),
-      appID: this.get("appID"),
-      executionMode: this.get("executionMode"),
-      user: this.get("user"),
-      requestUser: this.get("requestUser"),
-      tablesRead: this.get("tablesRead"),
-      tablesWritten: this.get("tablesWritten"),
-      operationID: this.get("operationID"),
-      queue: this.get("queue"),
+    this.homeSearch({
+      queryID: this.queryID,
+      dagID: this.dagID,
+      appID: this.appID,
+      executionMode: this.executionMode,
+      user: this.user,
+      requestUser: this.requestUser,
+      tablesRead: this.tablesRead,
+      tablesWritten: this.tablesWritten,
+      operationID: this.operationID,
+      queue: this.queue,
     });
   },
 
-  actions: {
-    statusChanged: function (value) {
-      this.set("status", value);
-    },
-    statusKeyPress: function () {
-      this.sendSearch();
-    },
-    search: function () {
-      this.sendSearch();
-    }
-  }
+  statusChanged: action(function (value) {
+    this.set("status", value);
+  }),
+  statusKeyPress: action(function () {
+    this.sendSearch();
+  }),
+  dagSearch: action(function () {
+    this.sendSearch();
+  })
 });

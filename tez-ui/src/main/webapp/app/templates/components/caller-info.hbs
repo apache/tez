@@ -18,11 +18,11 @@
 
 <div class="panel panel-info">
   <div class="panel-heading">
-    {{#if title}}
-      {{title}}
+    {{#if this.title}}
+      {{this.title}}
     {{else}}
-      Additional Info from {{type}}
+      Additional Info from {{this.type}}
     {{/if}}
   </div>
-  <textarea></textarea>
+  <textarea aria-label="Additional info" />
 </div>

@@ -16,25 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import EnvInitializer from '../../../initializers/env';
+import Application from '@ember/application';
+import { run } from '@ember/runloop';
 import { module, test } from 'qunit';
+import EnvInitializer from '../../../initializers/env';
 
 let application;
 
-module('Unit | Initializer | env', {
-  beforeEach() {
-    Ember.run(function() {
-      application = Ember.Application.create();
+module('Unit | Initializer | env', function(hooks) {
+  hooks.beforeEach(function() {
+    run(function() {
+      application = Application.create();
       application.deferReadiness();
     });
-  }
-});
+  });
 
-// Replace this with your real tests.
-test('it works', function(assert) {
-  EnvInitializer.initialize(application);
+  // Replace this with your real tests.
+  test('it works', function(assert) {
+    EnvInitializer.initialize(application);
 
-  // you would normally confirm the results of the initializer here
-  assert.ok(true);
+    // you would normally confirm the results of the initializer here
+    assert.ok(true);
+  });
 });

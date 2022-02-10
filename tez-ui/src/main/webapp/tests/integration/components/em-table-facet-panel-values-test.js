@@ -16,29 +16,31 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-table-facet-panel-values', 'Integration | Component | em table facet panel values', {
-  integration: true
-});
+module('Integration | Component | em table facet panel values', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic render test', function(assert) {
+  test('Basic render test', async function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-  this.set("tmpFacetConditions", {});
-  this.render(hbs`{{em-table-facet-panel-values tmpFacetConditions=tmpFacetConditions}}`);
+    this.set("tmpFacetConditions", {});
+    await render(hbs`{{em-table-facet-panel-values tmpFacetConditions=tmpFacetConditions}}`);
 
-  assert.ok(this.$().text().trim());
+    assert.ok(this.element.textContent.trim());
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-facet-panel-values tmpFacetConditions=tmpFacetConditions}}
-      template block text
-    {{/em-table-facet-panel-values}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-table-facet-panel-values tmpFacetConditions=tmpFacetConditions}}
+        template block text
+      {{/em-table-facet-panel-values}}
+    `);
 
-  assert.ok(this.$().text().trim());
+    assert.ok(this.element.textContent.trim());
+  });
 });

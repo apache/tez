@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,16 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
+import { reads } from '@ember/object/computed';
+import Service from '@ember/service';
+import MoreObject from '../utils/more-object';
 
 import environment from '../config/environment';
 
-var MoreObject = more.Object;
-
-export default Ember.Service.extend({
+export default Service.extend({
   ENV: null,
 
   init: function () {
+    this._super(...arguments);
     this.collateConfigs();
   },
 
@@ -52,12 +53,10 @@ export default Ember.Service.extend({
     env.isIE = navigator.userAgent.indexOf('MSIE') !== -1 || navigator.appVersion.indexOf('Trident/') > 0;
 
     if(!env.APP.yarnProtocol) {
-      let rmHost = Ember.get(env, "hosts.rm") || "";
+      let rmHost = get(env, "hosts.rm") || "";
       env.APP.yarnProtocol = rmHost.substr(0, rmHost.indexOf("://")) || window.location.protocol.slice(0, -1);
     }
   },
 
-  app: Ember.computed("ENV.APP", function () {
-    return this.get("ENV.APP");
-  })
+  app: reads('ENV.APP')
 });

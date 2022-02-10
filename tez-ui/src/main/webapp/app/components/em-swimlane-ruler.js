@@ -16,73 +16,93 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import moment from 'moment';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { htmlSafe } from '@ember/template';
+import {  intervalToDuration } from 'date-fns'
 
 const DEFAULT_MARK_COUNT = 10;
 
-export default Ember.Component.extend({
+export default Component.extend({
 
-  zoom: null,
+  zoom: 100,
   processor: null,
   scroll: 0,
 
   classNames: ["em-swimlane-ruler"],
 
-  markDef: Ember.computed("processor.timeWindow", "zoom", function () {
-    var markCount = parseInt(DEFAULT_MARK_COUNT * this.get("zoom") / 100),
-        timeWindow = this.get("processor.timeWindow"),
-        duration = moment.duration(parseInt(timeWindow / markCount)),
+  markDef: computed("processor.{startTime,timeWindow}", "zoom", function () {
+    var markCount = parseInt(DEFAULT_MARK_COUNT * this.zoom / 100),
+      startTime = this.get('processor.startTime') || 0,
+      timeWindow = this.get("processor.timeWindow") || 0,
+      // How much time in millis does 1/10 of the visible ruler represent
+      tenthVisibleDuration = parseInt(timeWindow / markCount),
+      tenthVisibleEnd = startTime + tenthVisibleDuration,
+      // Do duration calculation from start time so months and years are correct
+      duration = intervalToDuration({start: startTime, end: tenthVisibleEnd}),
 
-        markUnit = "Milliseconds",
-        markBaseValue = 0,
-        markWindow = 0,
-        styleWidth = 0;
+      // largest positive time unit
+      markUnit = "Milliseconds",
+      markBaseValue = 0,
+      markWindow = 0,
+      styleWidth = 0;
 
-    if(markBaseValue = duration.years()) {
+    let approxMillis = {
+      Years: 365 * 30 * 24 * 60 * 60 * 1000,
+      Months: 30 * 24 * 60 * 60 * 1000,
+      Days: 24 * 60 * 60 * 1000,
+      Hours: 60 * 60 * 1000,
+      Minutes: 60 * 1000,
+      Seconds: 1000,
+      Milliseconds: 1
+    }
+
+    if(markBaseValue = duration.years) {
       markUnit = "Years";
     }
-    else if(markBaseValue = duration.months()) {
+    else if(markBaseValue = duration.months) {
       markUnit = "Months";
     }
-    else if(markBaseValue = duration.days()) {
+    else if(markBaseValue = duration.days) {
       markUnit = "Days";
     }
-    else if(markBaseValue = duration.hours()) {
+    else if(markBaseValue = duration.hours) {
       markUnit = "Hours";
     }
-    else if(markBaseValue = duration.minutes()) {
+    else if(markBaseValue = duration.minutes) {
       markUnit = "Minutes";
     }
-    else if(markBaseValue = duration.seconds()) {
+    else if(markBaseValue = duration.seconds) {
       markUnit = "Seconds";
     }
     else {
-      markBaseValue = duration.milliseconds();
+      // durations millis
+      markBaseValue = tenthVisibleDuration % 1000
     }
 
+    // Floor to nearest divisible of 10 (19 -> 10)
     if(markBaseValue > 10) {
       markBaseValue = Math.floor(markBaseValue / 10) * 10;
     }
 
-    markWindow = moment.duration(markBaseValue, markUnit.toLowerCase()).asMilliseconds();
+    markWindow = markBaseValue * approxMillis[markUnit];
     styleWidth = markWindow / timeWindow * 100;
 
     return {
       unit: markUnit,
       baseValue: markBaseValue,
-      style: Ember.String.htmlSafe(`width: ${styleWidth}%;`),
+      style: htmlSafe(`width: ${styleWidth}%;`),
       count: parseInt(100 / styleWidth * 1.1)
     };
   }),
 
-  unitTextStyle: Ember.computed("scroll", function () {
-    var scroll = this.get("scroll");
-    return Ember.String.htmlSafe(`left: ${scroll}px;`);
+  unitTextStyle: computed("scroll", function () {
+    var scroll = this.scroll;
+    return htmlSafe(`left: ${scroll}px;`);
   }),
 
-  marks: Ember.computed("processor.timeWindow", "markDef", function () {
-    var def = this.get("markDef"),
+  marks: computed("processor.timeWindow", "markDef", function () {
+    var def = this.markDef,
         baseValue = def.baseValue,
         marks = [];
 

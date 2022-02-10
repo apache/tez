@@ -16,16 +16,16 @@
  * limitations under the License.
 }}
 
-{{#if value}}
-  {{#if searchText}}
-    {{#link-to routeName (query-params searchText=searchText)}}
-      {{txt value type="number"}}
-    {{/link-to}}
+{{#if this.value}}
+  {{#if this.searchText}}
+    <LinkTo @route={{this.routeName}} @query={{hash searchText=this.searchText}}>
+      {{txt this.value type="number"}}
+    </LinkTo>
   {{else}}
-    {{#link-to routeName}}
-      {{txt value type="number"}}
-    {{/link-to}}
+    <LinkTo @route={{this.routeName}}>
+      {{txt this.value type="number"}}
+    </LinkTo>
   {{/if}}
 {{else}}
-  {{txt value type="number"}}
+  {{txt this.value type="number"}}
 {{/if}}

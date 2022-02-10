@@ -16,53 +16,53 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-process-line', 'Integration | Component | em swimlane process line', {
-  integration: true
-});
+module('Integration | Component | em swimlane process line', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create());
-  this.set("processor", Processor.create());
+  test('Basic creation test', async function(assert) {
+    this.set("process", Process.create());
+    this.set("processor", Processor.create());
 
-  this.render(hbs`{{em-swimlane-process-line process=process processor=processor}}`);
+    await render(hbs`<EmSwimlaneProcessLine @process={{this.process}} @processor={{this.processor}}/>`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.dom(this.element).hasText('');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-process-line process=process processor=processor}}
-      template block text
-    {{/em-swimlane-process-line}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+    <EmSwimlaneProcessLine @process={{this.process}} @processor={{this.processor}}>
+        template block text
+    </EmSwimlaneProcessLine>
+    `);
 
-  assert.equal(this.$().text().trim(), '');
-});
+    assert.equal(this.element.textContent.trim(), '');
+  });
 
-test('start-end event test', function(assert) {
-  this.set("process", Process.create({
-    startEvent: {
-      time: 5
-    },
-    endEvent: {
-      time: 7
-    }
-  }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
+  test('start-end event test', async function(assert) {
+    this.set("process", Process.create({
+      startEvent: {
+        time: 5
+      },
+      endEvent: {
+        time: 7
+      }
+    }));
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
 
-  this.render(hbs`{{em-swimlane-process-line processor=processor process=process}}`);
+    await render(hbs`<EmSwimlaneProcessLine @process={{this.process}} @processor={{this.processor}}/>`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".process-line").eq(0).attr("style").trim(), "left: 50%; right: 30%;", "process-line");
+    return settled().then(() => {
+      assert.dom('.process-line').hasStyle({left: '50%', right: '30%'});
+    });
   });
 });

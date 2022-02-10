@@ -16,11 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+
+import { observer } from '@ember/object';
+import { and } from '@ember/object/computed';
+import { on } from '@ember/object/evented';
+import { all, reject } from 'rsvp';
+import { inject as service } from '@ember/service';
 import AbstractRoute from './abstract';
 
 export default AbstractRoute.extend({
-  polling: Ember.inject.service("pollster"),
+  polling: service("pollster"),
 
   // Todo - Change name to recordsToPoll
   polledRecords: null,
@@ -31,39 +36,37 @@ export default AbstractRoute.extend({
   onPollFailure: function (err) {throw(err);},
 
   pollData: function () {
-    var polledRecords = this.get("polledRecords");
+    var polledRecords = this.polledRecords;
 
-    if(!this.get("isLoading") && polledRecords) {
+    if(!this.isMyLoading && polledRecords) {
       polledRecords = polledRecords.map(this.onRecordPoll.bind(this));
-      return Ember.RSVP.all(polledRecords).
+      return all(polledRecords).
       then(this.updateLoadTime.bind(this)).
       then(this.onPollSuccess.bind(this), this.onPollFailure.bind(this));
     }
-    return Ember.RSVP.reject();
+    return reject();
   },
 
-  canPoll: Ember.computed("polledRecords", "loadedValue", function () {
-    return this.get("polledRecords") && this.get("loadedValue");
-  }),
+  canPoll: and('polledRecords', 'loadedValue'),
 
   updateLoadTime: function (value) {
     this.send("setLoadTime", this.getLoadTime(value));
     return value;
   },
 
-  _canPollInit: Ember.on("init", function () {
+  _canPollInit: on("init", function () {
     // This sets a flag that ensures that the _canPollObserver is called whenever
     // canPoll changes. By default observers on un-used computed properties
     // are not called.
-    this.get("canPoll");
+    this.canPoll;
   }),
 
-  _canPollObserver: Ember.observer("canPoll", function () {
-    if(this.get("canPoll")) {
-      this.get("polling").setPoll(this.pollData, this);
+  _canPollObserver: observer("canPoll", function () {
+    if(this.canPoll) {
+      this.polling.setPoll(this.pollData, this);
     }
     else {
-      this.get("polling").resetPoll();
+      this.polling.resetPoll();
     }
   }),
 

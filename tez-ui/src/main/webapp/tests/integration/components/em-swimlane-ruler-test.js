@@ -16,55 +16,55 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled, findAll, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-ruler', 'Integration | Component | em swimlane ruler', {
-  integration: true
-});
+module('Integration | Component | em swimlane ruler', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  this.render(hbs`{{em-swimlane-ruler}}`);
-  assert.equal(this.$().text().trim(), 'Milliseconds');
+    await render(hbs`{{em-swimlane-ruler}}`);
+    assert.equal(this.element.textContent.trim(), 'Milliseconds');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-ruler}}
-      template block text
-    {{/em-swimlane-ruler}}
-  `);
-  assert.equal(this.$().text().trim(), 'Milliseconds');
-});
-
-test('Mark test', function(assert) {
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 1000 * 20,
-  }));
-
-  this.render(hbs`{{em-swimlane-ruler processor=processor zoom=100}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$(".unit-text").text().trim(), 'Seconds');
-    assert.equal(this.$(".ruler-mark").length, 11);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-ruler}}
+        template block text
+      {{/em-swimlane-ruler}}
+    `);
+    assert.equal(this.element.textContent.trim(), 'Milliseconds');
   });
-});
 
-test('Mark zoom test', function(assert) {
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 1000 * 20,
-  }));
+  test('Mark test', async function(assert) {
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 1000 * 20,
+    }));
 
-  this.render(hbs`{{em-swimlane-ruler processor=processor zoom=500}}`);
+    await render(hbs`{{em-swimlane-ruler processor=processor zoom=100}}`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".unit-text").text().trim(), 'Milliseconds');
-    assert.equal(this.$(".ruler-mark").length, 55);
+    return settled().then(() => {
+      assert.equal(find(".unit-text").textContent.trim(), 'Seconds');
+      assert.equal(findAll(".ruler-mark").length, 11);
+    });
+  });
+
+  test('Mark zoom test', async function(assert) {
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 1000 * 20,
+    }));
+
+    await render(hbs`{{em-swimlane-ruler processor=processor zoom=500}}`);
+
+    return settled().then(() => {
+      assert.equal(find(".unit-text").textContent.trim(), 'Milliseconds');
+      assert.equal(findAll(".ruler-mark").length, 55);
+    });
   });
 });

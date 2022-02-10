@@ -16,38 +16,38 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { findAll, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+module('Integration | Component | em table tasks log link cell', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('em-table-tasks-log-link-cell', 'Integration | Component | em table tasks log link cell', {
-  integration: true
-});
+  test('Basic render test', async function(assert) {
+    await render(hbs`<EmTableTasksLogLinkCell/>`);
 
-test('Basic render test', function(assert) {
-  this.render(hbs`{{em-table-tasks-log-link-cell}}`);
+    assert.dom(this.element).hasText('Not Available!');
 
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <EmTableTasksLogLinkCell>
+        template block text
+      </EmTableTasksLogLinkCell>
+    `);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-table-tasks-log-link-cell}}
-      template block text
-    {{/em-table-tasks-log-link-cell}}
-  `);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
+  });
 
-  assert.equal(this.$().text().trim(), 'Not Available!');
-});
+  test('Test with content', async function(assert) {
+    let attemptID = "attempt_1";
 
-test('Test with content', function(assert) {
-  let attemptID = "attempt_1";
+    this.set("content", attemptID);
+    await render(hbs`<EmTableTasksLogLinkCell @content={{this.content}}/>`);
 
-  this.set("content", attemptID);
-  this.render(hbs`{{em-table-tasks-log-link-cell content=content}}`);
-
-  let tags = this.$().find("a");
-  assert.equal(tags.length, 2);
-  assert.equal(Ember.$(tags[0]).text().trim(), 'View');
-  assert.equal(Ember.$(tags[1]).text().trim(), 'Download');
+    let tags = findAll("a");
+    assert.equal(tags.length, 2);
+    assert.dom(tags[0]).hasText('View');
+    assert.dom(tags[1]).hasText('Download');
+  });
 });

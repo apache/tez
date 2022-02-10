@@ -16,18 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 import RMSerializer from './rm';
 
 export default RMSerializer.extend({
 
   extractSinglePayload: function (rawPayload) {
-    return Ember.get(rawPayload, "app");
+    return rawPayload.app;
   },
 
   extractArrayPayload: function(rawPayload) {
-    return Ember.get(rawPayload, "apps.app");
+    return get(rawPayload, "apps.app");
   },
 
 });

@@ -16,49 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleForModel, test } from 'ember-qunit';
+import { run } from '@ember/runloop';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleForModel('hive-query', 'Unit | Model | hive query', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | hive query', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('hive-query'));
 
-  assert.ok(model);
+    assert.ok(model);
+  });
 
-  assert.ok(model.domain);
+  test('duration test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('hive-query'));
 
-  assert.ok(model.user);
-  assert.ok(model.requestUser);
-
-  assert.ok(model.version);
-
-  assert.ok(model.llapAppID);
-  assert.ok(model.sessionID);
-  assert.ok(model.threadName);
-
-  assert.ok(model.queryText);
-
-  assert.ok(model.dagID);
-
-  assert.ok(model.configsJSON);
-
-  assert.ok(model.startTime);
-  assert.ok(model.endTime);
-  assert.ok(model.duration);
-
-  assert.ok(model.perf);
-});
-
-test('duration test', function(assert) {
-  let model = this.subject();
-
-  Ember.run(function () {
-    model.set("startTime", 100);
-    model.set("endTime", 200);
-    assert.equal(model.get("duration"), 100);
+    run(function () {
+      model.set("startTime", 100);
+      model.set("endTime", 200);
+      assert.equal(model.get("duration"), 100);
+    });
   });
 });

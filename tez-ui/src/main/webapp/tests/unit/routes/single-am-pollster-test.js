@@ -16,81 +16,81 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { settled } from '@ember/test-helpers';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Route | single am pollster', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:single-am-pollster', 'Unit | Route | single am pollster', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:single-am-pollster');
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
-
-  assert.ok(route);
-  assert.ok(route.canPoll);
-  assert.ok(route._loadedValueObserver);
-});
-
-test('canPoll test', function(assert) {
-  let route = this.subject({
-    polling: {
-      resetPoll: function () {}
-    },
-    _canPollObserver: function () {}
+    assert.ok(route);
   });
 
-  assert.notOk(route.get("canPoll"));
-
-  route.setProperties({
-    polledRecords: {},
-    loadedValue: {
-      app: {
-        isComplete: false
+  test('canPoll test', function(assert) {
+    let route = this.owner.factoryFor('route:single-am-pollster').create({
+      polling: {
+        resetPoll: function () {}
       },
-      dag: undefined
-    }
+      _canPollObserver: function () {}
+    });
+
+    assert.notOk(route.canPoll);
+
+    route.setProperties({
+      polledRecords: {},
+      loadedValue: {
+        app: {
+          isComplete: false
+        },
+        dag: undefined
+      }
+    });
+    assert.ok(route.canPoll, true, "Test 1");
+
+    route.set("loadedValue.app.isComplete", true);
+    assert.notOk(route.canPoll, "Test 2");
+
+    route.set("loadedValue.app.isComplete", undefined);
+    assert.notOk(route.canPoll, "Test 3");
+
+    route.set("loadedValue.dag", EmberObject.create({
+      isComplete: false
+    }));
+    assert.ok(route.canPoll, "Test 4");
+
+    route.set("loadedValue.dag.isComplete", true);
+    assert.notOk(route.canPoll, "Test 5");
+
+    route.set("loadedValue.dag", undefined);
+    assert.notOk(route.canPoll, "Test 6");
+
+    route.set("loadedValue.app.isComplete", false);
+    assert.ok(route.canPoll, "Test 7");
   });
-  assert.ok(route.get("canPoll"), true, "Test 1");
 
-  route.set("loadedValue.app.isComplete", true);
-  assert.notOk(route.get("canPoll"), "Test 2");
+  test('_loadedValueObserver test', async function(assert) {
+    let route = this.owner.factoryFor('route:single-am-pollster').create({
+      polling: {
+        resetPoll: function () {}
+      },
+      _canPollObserver: function () {}
+    }),
+    loadedValue = EmberObject.create();
 
-  route.set("loadedValue.app.isComplete", undefined);
-  assert.notOk(route.get("canPoll"), "Test 3");
+    assert.equal(route.polledRecords, null);
 
-  route.set("loadedValue.dag", Ember.Object.create({
-    isComplete: false
-  }));
-  assert.ok(route.get("canPoll"), "Test 4");
+    route.set("loadedValue", loadedValue);
+    await settled();
+    assert.equal(route.get("polledRecords.0"), loadedValue);
 
-  route.set("loadedValue.dag.isComplete", true);
-  assert.notOk(route.get("canPoll"), "Test 5");
+    route.set("polledRecords", null);
 
-  route.set("loadedValue.dag", undefined);
-  assert.notOk(route.get("canPoll"), "Test 6");
-
-  route.set("loadedValue.app.isComplete", false);
-  assert.ok(route.get("canPoll"), "Test 7");
-});
-
-test('_loadedValueObserver test', function(assert) {
-  let route = this.subject({
-    polling: {
-      resetPoll: function () {}
-    },
-    _canPollObserver: function () {}
-  }),
-  loadedValue = Ember.Object.create();
-
-  assert.equal(route.get("polledRecords"), null);
-
-  route.set("loadedValue", loadedValue);
-  assert.equal(route.get("polledRecords.0"), loadedValue);
-
-  route.set("polledRecords", null);
-
-  loadedValue.set("loadTime", 1);
-  assert.equal(route.get("polledRecords.0"), loadedValue);
+    loadedValue.set("loadTime", 1);
+    await settled();
+    assert.equal(route.get("polledRecords.0"), loadedValue);
+  });
 });

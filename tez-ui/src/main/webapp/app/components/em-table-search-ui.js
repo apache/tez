@@ -16,10 +16,13 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed, observer } from '@ember/object';
+import { not, oneWay } from '@ember/object/computed';
 import layout from '../templates/components/em-table-search-ui';
 
-export default Ember.Component.extend({
+export default Component.extend({
+  attributeBindings: ['shouldHide:hidden'],
   layout: layout,
 
   tableDefinition: null,
@@ -27,16 +30,16 @@ export default Ember.Component.extend({
 
   classNames: ['search-ui'],
   classNameBindings: ['hasError'],
-  isVisible: Ember.computed.alias('tableDefinition.enableSearch'),
+  shouldHide: not('tableDefinition.enableSearch'),
 
   searchTypes: ["Regex", "SQL"],
   actualSearchType: null,
 
-  text: Ember.computed.oneWay('tableDefinition.searchText'),
+  text: oneWay('tableDefinition.searchText'),
 
-  _actualSearchTypeDecider: Ember.observer("tableDefinition.searchType", "text", function () {
+  _actualSearchTypeDecider: observer("tableDefinition.searchType", "text", function () {
     var searchType = this.get("tableDefinition.searchType"),
-        actualSearchType = this.get("actualSearchType");
+        actualSearchType = this.actualSearchType;
 
     switch(searchType) {
       case "SQL":
@@ -52,7 +55,7 @@ export default Ember.Component.extend({
         break;
 
       case "auto":
-        var text = this.get("text"),
+        var text = this.text,
             columns = this.get('tableDefinition.columns');
 
         if(text) {
@@ -67,10 +70,10 @@ export default Ember.Component.extend({
     this.set("actualSearchType", actualSearchType);
   }),
 
-  hasError: Ember.computed("text", "actualSearchType", "tableDefinition.searchType", function () {
-    var text = this.get("text"),
+  hasError: computed('actualSearchType', 'dataProcessor.sql', 'tableDefinition.{columns,searchType}', 'text', function () {
+    var text = this.text,
         columns = this.get('tableDefinition.columns'),
-        actualSearchType = this.get("actualSearchType");
+        actualSearchType = this.actualSearchType;
 
     if(text) {
       switch(actualSearchType) {
@@ -85,11 +88,10 @@ export default Ember.Component.extend({
           }
       }
     }
+    return false;
   }),
 
-  actions: {
-    search: function () {
-      this.get('parentView').send('search', this.get('text'), this.get("actualSearchType"));
-    }
-  }
+  search: action(function () {
+    this.parentView.send('search', this.text, this.actualSearchType);
+  })
 });

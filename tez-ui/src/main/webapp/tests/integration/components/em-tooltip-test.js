@@ -16,65 +16,67 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, findAll } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-tooltip', 'Integration | Component | em tooltip', {
-  integration: true
-});
+module('Integration | Component | em tooltip', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  this.render(hbs`{{em-tooltip}}`);
+    await render(hbs`{{em-tooltip}}`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.equal(this.element.textContent.trim(), '');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-tooltip}}
-      template block text
-    {{/em-tooltip}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-tooltip}}
+        template block text
+      {{/em-tooltip}}
+    `);
 
-  assert.equal(this.$().text().trim(), '');
-});
+    assert.equal(this.element.textContent.trim(), '');
+  });
 
-test('Title test', function(assert) {
-  this.set("title", "TestTitle");
-  this.render(hbs`{{em-tooltip title=title}}`);
+  test('Title test', async function(assert) {
+    this.set("title", "TestTitle");
+    await render(hbs`{{em-tooltip title=title}}`);
 
-  assert.equal(this.$().text().trim(), 'TestTitle');
-});
+    assert.equal(this.element.textContent.trim(), 'TestTitle');
+  });
 
-test('Description test', function(assert) {
-  this.set("desc", "TestDesc");
-  this.render(hbs`{{em-tooltip description=desc}}`);
+  test('Description test', async function(assert) {
+    this.set("desc", "TestDesc");
+    await render(hbs`{{em-tooltip description=desc}}`);
 
-  assert.equal(this.$().text().trim(), 'TestDesc');
-});
+    assert.equal(this.element.textContent.trim(), 'TestDesc');
+  });
 
-test('Properties test', function(assert) {
-  this.set("properties", [{
-    name: "p1", value: "v1"
-  }, {
-    name: "p2", value: "v2"
-  }]);
-  this.render(hbs`{{em-tooltip properties=properties}}`);
+  test('Properties test', async function(assert) {
+    this.set("properties", [{
+      name: "p1", value: "v1"
+    }, {
+      name: "p2", value: "v2"
+    }]);
+    await render(hbs`{{em-tooltip properties=properties}}`);
 
-  assert.equal(this.$("tr").length, 2);
-});
+    assert.equal(findAll("tr").length, 2);
+  });
 
-test('Contents test', function(assert) {
-  this.set("contents", [{
-    title: "p1",
-    properties: [{}, {}]
-  }, {
-    title: "p2",
-    properties: [{}, {}, {}]
-  }]);
+  test('Contents test', async function(assert) {
+    this.set("contents", [{
+      title: "p1",
+      properties: [{}, {}]
+    }, {
+      title: "p2",
+      properties: [{}, {}, {}]
+    }]);
 
-  this.render(hbs`{{em-tooltip contents=contents}}`);
+    await render(hbs`{{em-tooltip contents=contents}}`);
 
-  assert.equal(this.$(".bubble").length, 2);
-  assert.equal(this.$("tr").length, 2 + 3);
+    assert.equal(findAll(".bubble").length, 2);
+    assert.equal(findAll("tr").length, 2 + 3);
+  });
 });

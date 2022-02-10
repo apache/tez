@@ -16,28 +16,21 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
-  {{#if model.length}}
-    {{#if dataAvailable}}
+{{#if this.loaded}}
+  {{#if this.model.length}}
+    {{#if this.dataAvailable}}
       <div class="swimlane-page">
         <div class="button-panel">
           <div class="zoom-range">
-            {{zoom}}%
-            {{input type="range" value=zoom min=100 max=1000}}
+            {{this.zoom}}%
+            <Input @type="range" @value={{this.zoom}} min={{100}} max={{1000}} aria-label="Zoom in/out on time window" />
           </div>
           <i class='fa fa-cog fa-border' {{action 'openColumnSelector'}} title="Customize vertex tooltip"></i>
           <i class='fa fa-expand fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
           <i class='fa fa-compress fa-border' {{action 'toggleFullscreen'}} title="Toggle fullscreen"></i>
         </div>
 
-        {{em-swimlane
-        columns=visibleColumns
-        processes=processes
-        nameComponent="em-swimlane-vertex-name"
-        zoom=zoom
-        click="click"
-        consolidate=true
-        }}
+        <EmSwimlane @columns={{this.visibleColumns}} @processes={{this.processes}} @nameComponent="em-swimlane-vertex-name" @zoom={{this.zoom}} @consolidate={{true}} @routeToVertex={{action 'routeToVertex'}}/>
       </div>
     {{else}}
       <h2>Data not available to display swimlane for a running DAG!</h2>
@@ -48,5 +41,5 @@
     <h4>No vertex data found in YARN Timeline Server.</h4>
   {{/if}}
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

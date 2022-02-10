@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
 
 import ParentController from './parent';
 
 export default ParentController.extend({
-  breadcrumbs: Ember.computed("model.dag", function () {
+  breadcrumbs: computed('model.dag.name', 'model.{dagID,entityID,index,vertexID,vertexIndex,vertexName}', function () {
     var dagName = this.get("model.dag.name"),
         vertexName = this.get("model.vertexName") || this.get("model.vertexIndex"),
         taskIndex = this.get("model.index");
@@ -41,7 +41,7 @@ export default ParentController.extend({
     }];
   }),
 
-  tabs: [{
+  tabs: computed(function() {return [{
     text: "Task Details",
     routeName: "task.index"
   }, {
@@ -50,5 +50,5 @@ export default ParentController.extend({
   }, {
     text: "Task Attempts",
     routeName: "task.attempts"
-  }]
+  }]})
 });

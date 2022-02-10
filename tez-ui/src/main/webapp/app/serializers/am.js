@@ -24,10 +24,10 @@ export default LoaderSerializer.extend({
   payloadNamespace: null, // Must be set by inheriting classes
 
   extractSinglePayload: function (rawPayload) {
-    return rawPayload[this.get("payloadNamespace")][0];
+    return rawPayload[this.payloadNamespace][0];
   },
   extractArrayPayload: function(rawPayload) {
-    return rawPayload[this.get("payloadNamespace")];
+    return rawPayload[this.payloadNamespace];
   },
 
   maps: {

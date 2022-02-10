@@ -16,105 +16,107 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { A } from '@ember/array';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve } from 'rsvp';
 
-moduleFor('route:home/queries', 'Unit | Route | home/queries', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | home/queries', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let route = this.subject();
+  test('it exists', function(assert) {
+    let route = this.owner.lookup('route:home/queries');
 
-  assert.ok(route);
-  assert.ok(route.title);
+    assert.ok(route);
+    assert.ok(route.title);
 
-  assert.ok(route.queryParams);
-  assert.ok(route.loaderQueryParams);
-  assert.ok(route.setupController);
+    assert.ok(route.queryParams);
+    assert.ok(route.loaderQueryParams);
+    assert.ok(route.setupController);
 
-  assert.equal(route.entityType, "hive-query");
-  assert.equal(route.loaderNamespace, "queries");
+    assert.equal(route.entityType, "hive-query");
+    assert.equal(route.loaderNamespace, "queries");
 
-  assert.ok(route.actions.willTransition);
-});
+    assert.ok(route.actions.willTransition);
+  });
 
-test('refresh test', function(assert) {
-  let route = this.subject();
+  test('refresh test', function(assert) {
+    let route = this.owner.lookup('route:home/queries');
 
-  assert.equal(route.get("queryParams.queryID.refreshModel"), true);
-  assert.equal(route.get("queryParams.dagID.refreshModel"), true);
-  assert.equal(route.get("queryParams.appID.refreshModel"), true);
-  assert.equal(route.get("queryParams.executionMode.refreshModel"), true);
-  assert.equal(route.get("queryParams.user.refreshModel"), true);
-  assert.equal(route.get("queryParams.requestUser.refreshModel"), true);
-  assert.equal(route.get("queryParams.tablesRead.refreshModel"), true);
-  assert.equal(route.get("queryParams.tablesWritten.refreshModel"), true);
-  assert.equal(route.get("queryParams.operationID.refreshModel"), true);
-  assert.equal(route.get("queryParams.queue.refreshModel"), true);
+    assert.true(route.get("queryParams.queryID.refreshModel"));
+    assert.true(route.get("queryParams.dagID.refreshModel"));
+    assert.true(route.get("queryParams.appID.refreshModel"));
+    assert.true(route.get("queryParams.executionMode.refreshModel"));
+    assert.true(route.get("queryParams.user.refreshModel"));
+    assert.true(route.get("queryParams.requestUser.refreshModel"));
+    assert.true(route.get("queryParams.tablesRead.refreshModel"));
+    assert.true(route.get("queryParams.tablesWritten.refreshModel"));
+    assert.true(route.get("queryParams.operationID.refreshModel"));
+    assert.true(route.get("queryParams.queue.refreshModel"));
 
-  assert.equal(route.get("queryParams.rowCount.refreshModel"), true);
-});
+    assert.true(route.get("queryParams.rowCount.refreshModel"));
+  });
 
-test('loaderQueryParams test', function(assert) {
-  let route = this.subject();
-  assert.equal(Object.keys(route.get("loaderQueryParams")).length, 10 + 1);
-});
+  test('loaderQueryParams test', function(assert) {
+    let route = this.owner.lookup('route:home/queries');
+    assert.equal(Object.keys(route.loaderQueryParams).length, 10 + 1);
+  });
 
-test('load - query test', function(assert) {
-  let route = this.subject({
-        controller: Ember.Object.create()
-      }),
-      testEntityID1 = "entity_1",
-      testSubmitter = "sub",
-      query = {
-        limit: 5,
-        submitter: testSubmitter
+  test('load - query test', function(assert) {
+    let route = this.owner.factoryFor('route:home/queries').create({
+          controller: EmberObject.create()
+        }),
+        testEntityID1 = "entity_1",
+        testSubmitter = "sub",
+        query = {
+          limit: 5,
+          submitter: testSubmitter
+        },
+        resultRecords = A([
+          EmberObject.create({
+            submitter: testSubmitter,
+            entityID: testEntityID1
+          })
+        ]);
+
+    route.loader = EmberObject.create({
+      query: function (type, query, options) {
+        assert.equal(type, "hive-query");
+        assert.equal(query.limit, 6);
+        assert.true(options.reload);
+        return resolve(resultRecords);
       },
-      resultRecords = Ember.A([
-        Ember.Object.create({
-          submitter: testSubmitter,
-          entityID: testEntityID1
-        })
-      ]);
+    });
 
-  route.loader = Ember.Object.create({
-    query: function (type, query, options) {
-      assert.equal(type, "hive-query");
-      assert.equal(query.limit, 6);
-      assert.equal(options.reload, true);
-      return Ember.RSVP.resolve(resultRecords);
-    },
+    assert.expect(3 + 1 + 2);
+
+    return route.load(null, query).then(function (records) {
+      assert.ok(Array.isArray(records));
+
+      assert.equal(records.get("length"), 1);
+      assert.equal(records.get("0.entityID"), testEntityID1);
+    });
+
   });
 
-  assert.expect(3 + 1 + 2);
+  test('actions.willTransition test', function(assert) {
+    let route = this.owner.factoryFor('route:home/queries').create({
+      controller: EmberObject.create()
+    });
 
-  return route.load(null, query).then(function (records) {
-    assert.ok(Array.isArray(records));
-
-    assert.equal(records.get("length"), 1);
-    assert.equal(records.get("0.entityID"), testEntityID1);
-  });
-
-});
-
-test('actions.willTransition test', function(assert) {
-  let route = this.subject({
-    controller: Ember.Object.create()
-  });
-
-  route.set("loader", {
-    unloadAll: function (type) {
-      if(type === "hive-query") {
-        assert.ok(true);
+    route.set("loader", {
+      unloadAll: function (type) {
+        if(type === "hive-query") {
+          assert.ok(true);
+        }
+        else {
+          throw(new Error("Invalid type!"));
+        }
       }
-      else {
-        throw(new Error("Invalid type!"));
-      }
-    }
-  });
+    });
 
-  assert.expect(1);
-  route.send("willTransition");
+    assert.expect(1);
+    route.send("willTransition");
+  });
 });

@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 import TimelineSerializer from './timeline';
 
 function createContainerLogURL(source) {
-  var logURL = Ember.get(source, 'otherinfo.inProgressLogsURL'),
+  var logURL = get(source, 'otherinfo.inProgressLogsURL'),
       yarnProtocol = this.get('env.app.yarnProtocol');
 
   if(logURL && logURL.indexOf("://") === -1) {

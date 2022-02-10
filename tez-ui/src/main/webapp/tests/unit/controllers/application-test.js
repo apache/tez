@@ -16,34 +16,34 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:application', 'Unit | Controller | application', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | application', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject();
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.lookup('controller:application');
 
-  assert.ok(controller.prefixedBreadcrumbs);
-});
+    assert.ok(controller.prefixedBreadcrumbs);
+  });
 
-test('prefixedBreadcrumbs test', function(assert) {
-  let controller = this.subject(),
-      prefixedBreadcrumbs,
-      testText = "foo",
-      testRouteName = "RouteName";
+  test('prefixedBreadcrumbs test', function(assert) {
+    let controller = this.owner.lookup('controller:application'),
+        prefixedBreadcrumbs,
+        testText = "foo",
+        testRouteName = "RouteName";
 
-  controller.breadcrumbs = [{
-    text: testText,
-    routeName: testRouteName
-  }];
-  prefixedBreadcrumbs = controller.get("prefixedBreadcrumbs");
+    controller.breadcrumbs = [{
+      text: testText,
+      routeName: testRouteName
+    }];
+    prefixedBreadcrumbs = controller.prefixedBreadcrumbs;
 
-  assert.equal(prefixedBreadcrumbs.length, 2);
-  assert.equal(prefixedBreadcrumbs[0].text, "Home");
-  assert.equal(prefixedBreadcrumbs[0].routeName, "application");
-  assert.equal(prefixedBreadcrumbs[1].text, testText);
-  assert.equal(prefixedBreadcrumbs[1].routeName, testRouteName);
+    assert.equal(prefixedBreadcrumbs.length, 2);
+    assert.equal(prefixedBreadcrumbs[0].text, "Home");
+    assert.equal(prefixedBreadcrumbs[0].routeName, "application");
+    assert.equal(prefixedBreadcrumbs[1].text, testText);
+    assert.equal(prefixedBreadcrumbs[1].routeName, testRouteName);
+  });
 });

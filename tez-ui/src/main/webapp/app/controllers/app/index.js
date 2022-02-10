@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { computed } from '@ember/object';
 import PageController from '../page';
 
 export default PageController.extend({
 
-  trackingURL: Ember.computed("model.appID", function () {
+  trackingURL: computed('env.app.namespaces.web.rm', 'hosts.rm', 'model.appID', function () {
     return [
       this.get("hosts.rm"),
       this.get("env.app.namespaces.web.rm"),

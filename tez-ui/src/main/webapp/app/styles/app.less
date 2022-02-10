@@ -16,19 +16,17 @@
  * limitations under the License.
  */
 
-@import "bower_components/bootstrap/less/bootstrap";
-@import "bower_components/font-awesome/less/font-awesome";
-
-@import "bower_components/snippet-ss/less/force";
-@import "bower_components/snippet-ss/less/effects";
-@import "bower_components/snippet-ss/less/no";
-@import "bower_components/snippet-ss/less/background";
-
 // Prerequisites
 @import "colors";
 @import "shared";
 
 @import "tooltip";
+
+@import "node_modules/snippet-ss/less/background";
+@import "node_modules/snippet-ss/less/force";
+@import "node_modules/snippet-ss/less/effects";
+@import "node_modules/snippet-ss/less/no";
+@import "node_modules/snippet-ss/less/use";
 
 // Components
 @import "tab-n-refresh";
@@ -43,6 +41,7 @@
 @import "em-swimlane-vertex-name";
 @import "em-table.less";
 @import "em-table-status-cell";
+@import "em-tgraph";
 @import "query-timeline";
 @import "home-table-controls";
 @import "em-progress";
@@ -51,6 +50,7 @@
 // Modals
 @import "column-selector";
 @import "zip-download-modal";
+@import "simple-modal";
 
 // Pages
 @import "page-layout";
@@ -60,3 +60,8 @@
 
 // Helpers
 @import "txt";
+
+@import 'bootstrap';
+@import 'node_modules/@fortawesome/fontawesome-free/less/fontawesome';
+@import 'node_modules/@fortawesome/fontawesome-free/less/solid';
+@import 'node_modules/@fortawesome/fontawesome-free/less/regular';

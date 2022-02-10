@@ -16,27 +16,27 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('service:local-storage', 'Unit | Service | local storage', {
-  // Specify the other units that are required for this test.
-  // needs: ['service:foo']
-});
+module('Unit | Service | local storage', function(hooks) {
+  setupTest(hooks);
 
-test('Test creation', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
-});
+  test('Test creation', function(assert) {
+    let service = this.owner.lookup('service:local-storage');
+    assert.ok(service);
+  });
 
-test('getStoreKey test', function(assert) {
-  let service = this.subject();
+  test('getStoreKey test', function(assert) {
+    let service = this.owner.lookup('service:local-storage');
 
-  assert.equal(service.getStoreKey("abc"), "tez-ui:abc");
-});
+    assert.equal(service.getStoreKey("abc"), "tez-ui:abc");
+  });
 
-test('Set & get test', function(assert) {
-  let service = this.subject();
+  test('Set & get test', function(assert) {
+    let service = this.owner.lookup('service:local-storage');
 
-  service.set("abc", "value");
-  assert.equal(service.get("abc"), "value");
+    service.set("abc", "value");
+    assert.equal(service.get("abc"), "value");
+  });
 });

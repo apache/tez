@@ -1,5 +1,3 @@
-/*global more*/
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,16 +16,15 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Mixin from '@ember/object/mixin';
+import MoreObject from '../utils/more-object';
 
-var MoreObject = more.Object;
-
-export default Ember.Mixin.create({
+export default Mixin.create({
   columnSelectorMessage: "<span class='per-io'>Per-IO counter</span> selection wouldn't persist.",
 
   getCounterColumns: function () {
     var columns = [],
-        records = this.get("model"),
+        records = this.model,
         counterHash = {};
 
     this._super().forEach(function (column) {
@@ -39,7 +36,7 @@ export default Ember.Mixin.create({
 
     if(records) {
       records.forEach(function (record) {
-        let counterGroupsHash = Ember.get(record, 'counterGroupsHash');
+        let counterGroupsHash = record.counterGroupsHash;
 
         if(counterGroupsHash) {
           MoreObject.forEach(counterGroupsHash, function (groupName, countersHash) {

@@ -16,28 +16,17 @@
  * limitations under the License.
 }}
 
-{{#if loaded}}
+{{#if this.loaded}}
 
-  {{#if model.perf}}
-    {{query-timeline perf=model.perf}}
+  {{#if this.model.perf}}
+    <QueryTimeline @perf={{this.model.perf}} />
 
-    {{em-table
-    columns=columns
-    rows=rows
-
-    rowCount=rows.length
-    definition=definition
-
-    enablePagination=false
-
-    searchAction="searchChanged"
-    sortAction="sortChanged"
-    }}
+    <EmTable @columns={{this.columns}} @rows={{this.rows}} @rowCount={{this.rows.length}} @definition={{this.definition}} @enablePagination={{false}} @searchAction="searchChanged" @sortAction="sortChanged" />
   {{else}}
     <h2>Data not available to display Timeline!</h2>
     <h4>You may be using an older version of Hive.</h4>
   {{/if}}
 
 {{else}}
-  {{partial "loading"}}
+  <Loading/>
 {{/if}}

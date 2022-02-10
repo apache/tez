@@ -16,21 +16,18 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:parent', 'Unit | Controller | parent', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | parent', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:parent').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
   });
-
-  assert.ok(controller);
-  assert.ok(controller.polling);
-  assert.ok(controller.actions.autoRefreshChanged);
 });

@@ -16,92 +16,79 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { findAll, getRootElement, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+module('Integration | Component | em breadcrumbs', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('em-breadcrumbs', 'Integration | Component | em breadcrumbs', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
 
-test('Basic creation test', function(assert) {
+    await render(hbs`<EmBreadcrumbs/>`);
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    assert.equal(getRootElement().textContent.trim(), '');
+  });
 
-  this.render(hbs`{{em-breadcrumbs}}`);
+  test('Test with one link-to item', async function(assert) {
+    var testItems = [{
+      routeName: 'foo',
+      text: 'fooText'
+    }],
+    elements;
 
-  assert.equal(this.$().text().trim(), '');
+    this.set('items', testItems);
+    await render(hbs`<EmBreadcrumbs @items={{this.items}}/>`);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-breadcrumbs}}
-      template block text
-    {{/em-breadcrumbs}}
-  `);
+    elements = findAll('li');
 
-  assert.equal(this.$().text().trim(), '');
-});
+    assert.equal(elements.length, 1);
+    assert.equal(elements[0].textContent.trim(), testItems[0].text);
+    assert.equal(elements[0].title, testItems[0].text);
+    assert.equal(elements[0].style.maxWidth, '100%');
+  });
+  test('Test with two link-to item', async function(assert) {
+    var testItems = [{
+      routeName: 'foo',
+      text: 'fooText'
+    },{
+      routeName: 'bar',
+      text: 'barText'
+    }],
+    elements;
 
-test('Test with one link-to item', function(assert) {
-  var testItems = [{
-    routeName: "foo",
-    text: "fooText"
-  }],
-  elements;
+    this.set('items', testItems);
+    await render(hbs`<EmBreadcrumbs @items={{this.items}}/>`);
 
-  this.set("items", testItems);
-  this.render(hbs`{{em-breadcrumbs items=items}}`);
+    elements = findAll('li');
 
-  elements = this.$("li");
+    assert.equal(elements.length, 2);
 
-  assert.equal(elements.length, 1);
-  assert.equal(Ember.$(elements[0]).text().trim(), testItems[0].text);
-  assert.equal(elements[0].title, testItems[0].text);
-  assert.equal(elements[0].style.maxWidth, "100%");
-});
+    assert.equal(elements[0].textContent.trim(), testItems[0].text);
+    assert.equal(elements[0].title, testItems[0].text);
+    assert.equal(elements[0].style.maxWidth, '50%');
 
-test('Test with two link-to item', function(assert) {
-  var testItems = [{
-    routeName: "foo",
-    text: "fooText"
-  },{
-    routeName: "bar",
-    text: "barText"
-  }],
-  elements;
+    assert.equal(elements[1].textContent.trim(), testItems[1].text);
+    assert.equal(elements[1].title, testItems[1].text);
+    assert.equal(elements[1].style.maxWidth, '50%');
+  });
 
-  this.set("items", testItems);
-  this.render(hbs`{{em-breadcrumbs items=items}}`);
+  test('Test with one anchor tag item', async function(assert) {
+    var testItems = [{
+      href: "foo.bar",
+      text: "fooText"
+    }],
+    elements;
 
-  elements = this.$("li");
+    this.set("items", testItems);
+    await render(hbs`<EmBreadcrumbs @items={{this.items}}/>`);
 
-  assert.equal(elements.length, 2);
+    elements = findAll('li');
 
-  assert.equal(Ember.$(elements[0]).text().trim(), testItems[0].text);
-  assert.equal(elements[0].title, testItems[0].text);
-  assert.equal(elements[0].style.maxWidth, "50%");
-
-  assert.equal(Ember.$(elements[1]).text().trim(), testItems[1].text);
-  assert.equal(elements[1].title, testItems[1].text);
-  assert.equal(elements[1].style.maxWidth, "50%");
-});
-
-test('Test with one anchor tag item', function(assert) {
-  var testItems = [{
-    href: "foo.bar",
-    text: "fooText"
-  }],
-  elements;
-
-  this.set("items", testItems);
-  this.render(hbs`{{em-breadcrumbs items=items}}`);
-
-  elements = this.$("li");
-
-  assert.equal(elements.length, 1);
-  assert.equal(Ember.$(elements[0]).text().trim(), testItems[0].text);
-  assert.equal(elements[0].title, testItems[0].text);
-  assert.equal(elements[0].style.maxWidth, "100%");
+    assert.equal(elements.length, 1);
+    assert.equal(elements[0].textContent.trim(), testItems[0].text);
+    assert.equal(elements[0].title, testItems[0].text);
+    assert.equal(elements[0].style.maxWidth, '100%');
+  });
 });

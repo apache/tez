@@ -17,21 +17,21 @@
 }}
 
 <ol class="breadcrumb">
-  {{#each normalizedItems key="text" as |item|}}
-    <li class={{item.classNames}} title="{{item.text}}" style={{itemStyle}}>
+  {{#each this.normalizedItems key="text" as |item|}}
+    <li class={{item.classNames}} title="{{item.text}}" style={{this.itemStyle}}>
       {{#if item.routeName}}
         {{#if item.queryParams}}
-          {{#link-to item.routeName item.queryParams}}
+          <LinkTo @route={{item.routeName}} @query={{item.queryParams}}>
             {{item.text}}
-          {{/link-to}}
+          </LinkTo>
         {{else if item.model}}
-          {{#link-to item.routeName item.model}}
+          <LinkTo @route={{item.routeName}} @model={{item.model}}>
             {{item.text}}
-          {{/link-to}}
+          </LinkTo>
         {{else}}
-          {{#link-to item.routeName}}
+          <LinkTo @route={{item.routeName}}>
             {{item.text}}
-          {{/link-to}}
+          </LinkTo>
         {{/if}}
       {{else if item.href}}
         <a href={{item.href}}>

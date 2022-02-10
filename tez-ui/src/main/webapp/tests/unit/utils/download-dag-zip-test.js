@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-import downloadDagZip from '../../../utils/download-dag-zip';
 import { module, test } from 'qunit';
+import downloadDagZip from '../../../utils/download-dag-zip';
 
-module('Unit | Utility | download dag zip');
-
-test('Basic creation test', function(assert) {
-  assert.ok(downloadDagZip);
+module('Unit | Utility | download dag zip', function() {
+  test('Basic creation test', function(assert) {
+    assert.ok(downloadDagZip);
+  });
 });

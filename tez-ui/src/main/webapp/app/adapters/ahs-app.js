@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { alias } from '@ember/object/computed';
+
 import TimelineAdapter from './timeline';
 
 export default TimelineAdapter.extend({
-  namespace: Ember.computed.alias("env.app.namespaces.webService.appHistory"),
+  namespace: alias("env.app.namespaces.webService.appHistory"),
   pathForType: function() {
     return "apps";
   },

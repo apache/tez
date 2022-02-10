@@ -17,14 +17,14 @@
 }}
 
 <div class="header-body">
-  {{title}}
-  {{#if tableDefinition.enableSort}}{{#if definition.enableSort}}
-    <span title="Sort {{sortToggledTitle}}" class="sort-icon {{sortIconCSS}}" {{action 'sort'}}></span>
-    {{#if tableDefinition.headerAsSortButton}}
+  {{this.title}}
+  {{#if this.tableDefinition.enableSort}}{{#if this.definition.enableSort}}
+    <span title="Sort {{this.sortToggledTitle}}" class="sort-icon {{this.sortIconCSS}}" {{action 'sort'}}></span>
+    {{#if this.tableDefinition.headerAsSortButton}}
       <span class="sort-bar" {{action 'sort'}}></span>
     {{/if}}
   {{/if}}{{/if}}
-  {{#if tableDefinition.enableColumnResize}}{{#if definition.enableColumnResize}}
+  {{#if this.tableDefinition.enableColumnResize}}{{#if this.definition.enableColumnResize}}
     <span title="Resize column" class="resize-column" {{action 'startColResize' on="mouseDown"}}></span>
   {{/if}}{{/if}}
 </div>

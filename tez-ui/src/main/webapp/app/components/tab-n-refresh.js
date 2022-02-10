@@ -16,31 +16,22 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { inject as service } from '@ember/service';
 
-export default Ember.Component.extend({
-  init: function () {
-    this._super();
-    this.setApplication();
-  },
+export default Component.extend({
 
+  router: service('router'),
   classNames: ["tab-n-refresh"],
 
-  autoRefreshEnabled: false,
   autoRefreshVisible: true,
+  loadTime: null,
+  tabs: null,
 
-  setApplication: function () {
-    var application = this.get("targetObject.container").lookup('controller:application');
-    this.set("application", application);
-  },
-
-  autoRefreshObserver: Ember.observer("autoRefreshEnabled", function () {
-    this.get('targetObject').send('autoRefreshChanged', this.get("autoRefreshEnabled"));
-  }),
-
-  normalizedTabs: Ember.computed("tabs", "application.currentPath", function () {
-    var tabs = this.get("tabs") || [],
-        activeRouteName = this.get("application.currentPath");
+  normalizedTabs: computed("tabs", "router.currentRouteName", function () {
+    var tabs = this.tabs || [],
+        activeRouteName = this.router.currentRouteName;
 
     return tabs.map(function (tab) {
       return {
@@ -50,10 +41,4 @@ export default Ember.Component.extend({
       };
     });
   }),
-
-  actions: {
-    refresh: function () {
-      this.get('targetObject').send('reload');
-    }
-  }
 });

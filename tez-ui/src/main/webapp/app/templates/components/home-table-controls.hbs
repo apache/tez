@@ -17,7 +17,7 @@
 }}
 
 <button type="button"
-        class="btn btn-success {{if countersLoaded 'no-visible'}}"
+        class="btn btn-success {{if this.countersLoaded 'no-visible'}}"
         {{action "loadCounters"}}
         title="Load counter values for all the above rows. Please note that loading counters is a costly operation.">
   Load Counters

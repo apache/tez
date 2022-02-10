@@ -16,21 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { dasherize } from '@ember/string';
 import layout from '../templates/components/em-table-status-cell';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   content: null,
 
   classNames: ["em-table-status-cell"],
 
-  statusName: Ember.computed("content", function () {
-    var status = this.get("content");
+  statusName: computed("content", function () {
+    var status = this.content;
 
     if(status) {
-      status = status.toString().dasherize();
+      status = dasherize(status.toString());
       status = "status-" + status;
     }
     return status;

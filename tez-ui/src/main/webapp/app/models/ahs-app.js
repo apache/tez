@@ -16,19 +16,14 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import { attr } from '@ember-data/model';
 import TimedModel from './timed';
 
 export default TimedModel.extend({
-  attemptID: DS.attr('string'),
+  attemptID: attr('string'),
 
-  name: DS.attr('string'),
-  queue: DS.attr('string'),
-  user: DS.attr('string'),
-  type: DS.attr('string'),
+  name: attr('string'),
+  finalStatus: attr('string'),
 
-  status: DS.attr('string'),
-  finalStatus: DS.attr('string'),
-
-  diagnostics: DS.attr('string'),
+  diagnostics: attr('string'),
 });

@@ -16,35 +16,36 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { observer } from '@ember/object';
+import { assign } from '@ember/polyfills';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 export default MultiAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var dag = this.modelFor("dag"),
       name = dag.get("name"),
       entityID = dag.get("entityID");
     return `Vertex Swimlane: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "dag",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    options = Ember.$.extend({
+    options = assign({
       demandNeeds: ["info", "dag"]
     }, options);
-    return this.get("loader").query('vertex', {
+    return this.loader.query('vertex', {
       dagID: this.modelFor("dag").get("id")
     }, options);
   },
 
-  _loadedValueObserver: Ember.observer("loadedValue", function () {
-    var loadedValue = this.get("loadedValue"),
+  _loadedValueObserver: observer("loadedValue", function () {
+    var loadedValue = this.loadedValue,
         records = [];
 
     if(loadedValue) {
@@ -54,6 +55,5 @@ export default MultiAmPollsterRoute.extend({
 
       this.set("polledRecords", records);
     }
-  }),
-
+  })
 });

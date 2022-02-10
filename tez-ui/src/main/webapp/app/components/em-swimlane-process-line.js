@@ -16,45 +16,60 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
   processor: null,
 
-  didInsertElement: Ember.observer("process.startEvent.time",
+  didInsertElement: observer("process.startEvent.time",
       "process.endEvent.time", "processor.timeWindow", function () {
-    var processor = this.get("processor"),
+    var processor = this.processor,
         startPos = processor.timeToPositionPercent(this.get("process.startEvent.time")),
         endPos = processor.timeToPositionPercent(this.get("process.endEvent.time"));
 
-    Ember.run.scheduleOnce('afterRender', this, function() {
-      this.$(".process-line").css({
-        left: startPos + "%",
-        right: (100 - endPos) + "%",
-        "background-color": this.get("process").getColor()
-      });
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
+
+    scheduleOnce('afterRender', this, function() {
+      let processLine = this.element.querySelector('.process-line');
+      processLine.style.left = startPos + "%";
+      processLine.style.right = (100 - endPos) + "%";
+      processLine.style.backgroundColor = this.process.getColor();
     });
   }),
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "process-line", this.get("process"), {
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showTooltip("process-line", this.process, {
       mouseEvent: mouseEvent,
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function () {
+    this.hideTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
-  mouseUp: function (mouseEvent) {
-    this.sendMouseAction("click", mouseEvent);
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
   }
-
-
 });

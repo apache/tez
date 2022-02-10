@@ -16,61 +16,62 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { render, settled, findAll } from '@ember/test-helpers';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { hbs } from 'ember-cli-htmlbars';
 
-import hbs from 'htmlbars-inline-precompile';
-import { moduleForComponent, test } from 'ember-qunit';
-import wait from 'ember-test-helpers/wait';
+module('Integration | Component | queries page search', function(hooks) {
+  setupRenderingTest(hooks);
 
-moduleForComponent('queries-page-search', 'Integration | Component | queries page search', {
-  integration: true
-});
+  test('Basic creation test', async function(assert) {
+    await render(hbs`{{queries-page-search}}`);
+    assert.equal(findAll("input").length, 8);
 
-test('Basic creation test', function(assert) {
-  this.render(hbs`{{queries-page-search}}`);
-  assert.equal(this.$("input").length, 8);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#queries-page-search}}
+        template block text
+      {{/queries-page-search}}
+    `);
+    assert.equal(findAll("input").length, 8);
+  });
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#queries-page-search}}
-      template block text
-    {{/queries-page-search}}
-  `);
-  assert.equal(this.$("input").length, 8);
-});
+  test('tableDefinition test', async function(assert) {
+    var testQueryID = "query_1",
+        testUser = "user",
+        testTablesRead = "TablesRead",
+        testTablesWritten = "TablesWritten",
+        testAppID = "AppID",
+        testDagID = "DAGID",
+        testQueue = "queue",
+        testExecutionMode = "ExecutionMode";
 
-test('tableDefinition test', function(assert) {
-  var testQueryID = "query_1",
-      testUser = "user",
-      testTablesRead = "TablesRead",
-      testTablesWritten = "TablesWritten",
-      testAppID = "AppID",
-      testDagID = "DAGID",
-      testQueue = "queue",
-      testExecutionMode = "ExecutionMode";
+    this.set("tableDefinition", EmberObject.create({
+      queryID: testQueryID,
+      requestUser: testUser,
+      tablesRead: testTablesRead,
+      tablesWritten: testTablesWritten,
+      appID: testAppID,
+      dagID: testDagID,
+      queue: testQueue,
+      executionMode: testExecutionMode,
+    }));
 
-  this.set("tableDefinition", Ember.Object.create({
-    queryID: testQueryID,
-    requestUser: testUser,
-    tablesRead: testTablesRead,
-    tablesWritten: testTablesWritten,
-    appID: testAppID,
-    dagID: testDagID,
-    queue: testQueue,
-    executionMode: testExecutionMode,
-  }));
+    await render(hbs`{{queries-page-search tableDefinition=tableDefinition}}`);
 
-  this.render(hbs`{{queries-page-search tableDefinition=tableDefinition}}`);
-
-  return wait().then(() => {
-    assert.equal(this.$('input').length, 8);
-    assert.equal(this.$('input').eq(0).val(), testQueryID);
-    assert.equal(this.$('input').eq(1).val(), testUser);
-    assert.equal(this.$('input').eq(2).val(), testDagID);
-    assert.equal(this.$('input').eq(3).val(), testTablesRead);
-    assert.equal(this.$('input').eq(4).val(), testTablesWritten);
-    assert.equal(this.$('input').eq(5).val(), testAppID);
-    assert.equal(this.$('input').eq(6).val(), testQueue);
-    assert.equal(this.$('input').eq(7).val(), testExecutionMode);
+    return settled().then(() => {
+      let inputs = findAll('input');
+      assert.equal(inputs.length, 8);
+      assert.equal(inputs[0].value, testQueryID);
+      assert.equal(inputs[1].value, testUser);
+      assert.equal(inputs[2].value, testDagID);
+      assert.equal(inputs[3].value, testTablesRead);
+      assert.equal(inputs[4].value, testTablesWritten);
+      assert.equal(inputs[5].value, testAppID);
+      assert.equal(inputs[6].value, testQueue);
+      assert.equal(inputs[7].value, testExecutionMode);
+    });
   });
 });

@@ -16,9 +16,11 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed, observer } from '@ember/object';
+import { scheduleOnce } from '@ember/runloop';
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
   blocking: null,
@@ -27,7 +29,7 @@ export default Ember.Component.extend({
 
   classNames: ["em-swimlane-blocking-event"],
 
-  blockingEvent: Ember.computed("process.blockingEventName",
+  blockingEvent: computed("process.blockingEventName",
       "process.events.@each.name", function () {
     var events = this.get("process.events"),
         blockingEventName = this.get("process.blockingEventName");
@@ -37,39 +39,55 @@ export default Ember.Component.extend({
     });
   }),
 
-  didInsertElement: Ember.observer("blockingEvent.time", "processor.timeWindow", function () {
+  didInsertElement: observer("blockingEvent.time", "processor.timeWindow", function () {
     var blockTime = this.get("blockingEvent.time"),
         blockerEventHeight;
 
     if(blockTime && this.get("blocking.endEvent.time") >= blockTime) {
       blockerEventHeight = (this.get("blocking.index") - this.get("process.index")) * 30;
 
-      Ember.run.scheduleOnce('afterRender', this, function() {
-        this.$().css({
-          "left": this.get("processor").timeToPositionPercent(blockTime) + "%"
-        });
-        this.$(".event-line").css({
-          "height": `${blockerEventHeight}px`,
-          "border-color": this.get("process").getColor()
-        });
+    this.set('_handleMouseEnter', this.handleMouseEnter.bind(this));
+    this.element.addEventListener('mouseenter', this._handleMouseEnter);
+    this.set('_handleMouseLeave', this.handleMouseLeave.bind(this));
+    this.element.addEventListener('mouseleave', this._handleMouseLeave);
+    this.set('_handleMouseUp', this.handleMouseUp.bind(this));
+    this.element.addEventListener('mouseup', this._handleMouseUp);
+
+      scheduleOnce('afterRender', this, function() {
+        this.element.style.left = this.processor.timeToPositionPercent(blockTime) + "%";
+        let eventLine = this.element.querySelector('.event-line');
+        eventLine.style.height = `${blockerEventHeight}px`;
+        eventLine.style.borderColor = this.process.getColor();
       });
     }
   }),
 
-  sendMouseAction: function (name, mouseEvent) {
-    this.sendAction(name, "blocking-event", this.get("process"), {
+  willDestroyElement: function () {
+    if (this._handleMouseEnter) {
+      this.element.removeEventListener('mouseenter', this._handleMouseEnter);
+    }
+    if (this._handleMouseLeave) {
+      this.element.removeEventListener('mouseleave', this._handleMouseLeave);
+    }
+    if (this._handleMouseUp) {
+      this.element.removeEventListener('mouseup', this._handleMouseUp);
+    }
+  },
+
+  handleMouseEnter: function (mouseEvent) {
+
+    this.showTooltip("blocking-event", this.process, {
       mouseEvent: mouseEvent,
-      blocking: this.get("blocking"),
-      blockingEvent: this.get("blockingEvent")
+      blocking: this.blocking,
+      blockingEvent: this.blockingEvent
     });
   },
 
-  mouseEnter: function (mouseEvent) {
-    this.sendMouseAction("showTooltip", mouseEvent);
+  handleMouseLeave: function () {
+    this.hideTooltip();
   },
 
-  mouseLeave: function (mouseEvent) {
-    this.sendMouseAction("hideTooltip", mouseEvent);
-  },
-
+  handleMouseUp: function () {
+    this.routeToVertex(this.process.vertex.entityID);
+  }
 });

@@ -16,18 +16,20 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed, get, observer } from '@ember/object';
+import { assign } from '@ember/polyfills';
 
-export default Ember.Component.extend({
+export default Component.extend({
   classNames: ['query-timeline'],
 
   perf: null,
 
-  normalizedPerf: Ember.computed("perf", function () {
-    var perf = this.get("perf") || {};
+  normalizedPerf: computed("perf", function () {
+    var perf = this.perf || {};
 
     // Create a copy of perf with default values
-    perf = Ember.$.extend({
+    perf = assign({
       compile: 0,
       parse: 0,
       TezBuildDag: 0,
@@ -58,22 +60,18 @@ export default Ember.Component.extend({
   }),
 
   alignBars: function (bars, perf) {
-    bars.each(function (index, bar) {
+    bars.forEach(function (bar) {
       var width;
 
-      bar = Ember.$(bar);
-      width = (Ember.get(perf, bar.attr("data")) / perf.total) * 100;
-
-      bar.css({
-        width: `${width}%`
-      });
+      width = (get(perf, bar.getAttribute('data')) / perf.total) * 100;
+      bar.style.width = `${width}%`;
     });
   },
 
-  didInsertElement: Ember.observer("normalizePerf", function () {
-    var perf = this.get("normalizedPerf");
+  didInsertElement: observer("normalizePerf", function () {
+    var perf = this.normalizedPerf;
 
-    this.alignBars(this.$().find(".sub-groups").find(".bar"), perf);
-    this.alignBars(this.$().find(".groups").find(".bar"), perf);
+    this.alignBars(this.element.querySelectorAll('.sub-groups .bar'), perf);
+    this.alignBars(this.element.querySelectorAll('.groups .bar'), perf);
   })
 });

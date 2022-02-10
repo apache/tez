@@ -16,29 +16,22 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import NameMixin from '../../../mixins/name';
+import EmberObject from '@ember/object';
 import { module, test } from 'qunit';
+import NameMixin from '../../../mixins/name';
 
-module('Unit | Mixin | name');
+module('Unit | Mixin | name', function() {
 
-test('Basic creation', function(assert) {
-  let NameObject = Ember.Object.extend(NameMixin);
-  let subject = NameObject.create();
+  test('name test', function(assert) {
+    let NameObject = EmberObject.extend(NameMixin),
+        testName = "ts";
 
-  assert.ok(subject);
-  assert.ok(subject.name);
-});
+    let subject = NameObject.create({
+      toString: function () {
+        return `<tez-ui@test:${testName}::ember427>`;
+      }
+    });
 
-test('name test', function(assert) {
-  let NameObject = Ember.Object.extend(NameMixin),
-      testName = "ts";
-
-  let subject = NameObject.create({
-    toString: function () {
-      return `<tez-ui@test:${testName}::ember427>`;
-    }
+    assert.equal(subject.get("name"), testName);
   });
-
-  assert.equal(subject.get("name"), testName);
 });

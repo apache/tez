@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 import TimelineSerializer from './timeline';
 
 function getEndTime(source) {
-  var time = Ember.get(source, 'otherinfo.endTime'),
+  var time = get(source, 'otherinfo.endTime'),
       event = source.events;
 
   if(!time && event) {
-    event = event.findBy('eventtype', 'QUERY_COMPLETED');
+    event = event.find(({eventtype}) => eventtype === 'QUERY_COMPLETED');
     if(event) {
       time = event.timestamp;
     }
@@ -35,7 +35,7 @@ function getEndTime(source) {
 }
 
 function getStatus(source) {
-  var status = Ember.get(source, 'otherinfo.STATUS');
+  var status = get(source, 'otherinfo.STATUS');
 
   switch(status) {
     case true:
@@ -86,8 +86,8 @@ export default TimelineSerializer.extend({
 
   extractAttributes: function (modelClass, resourceHash) {
     var data = resourceHash.data,
-        query = Ember.get(resourceHash, "data.otherinfo.QUERY"),
-        perf = Ember.get(resourceHash, "data.otherinfo.PERF");
+        query = get(resourceHash, "data.otherinfo.QUERY"),
+        perf = get(resourceHash, "data.otherinfo.PERF");
 
     if(query) {
       try{
@@ -108,10 +108,10 @@ export default TimelineSerializer.extend({
     }
 
     data.primaryfilters = data.primaryfilters || {};
-    if(!Ember.get(data, "primaryfilters.tablesread.length")) {
+    if(!get(data, "primaryfilters.tablesread.length")) {
       data.primaryfilters.tablesread = new Error("None");
     }
-    if(!Ember.get(data, "primaryfilters.tableswritten.length")) {
+    if(!get(data, "primaryfilters.tableswritten.length")) {
       data.primaryfilters.tableswritten = new Error("None");
     }
 

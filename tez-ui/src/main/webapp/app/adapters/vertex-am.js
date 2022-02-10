@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +16,7 @@
  * limitations under the License.
  */
 
-var MoreString = more.String;
+import MoreString from '../utils/more-string';
 
 import AMAdapter from './am';
 

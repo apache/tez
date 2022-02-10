@@ -17,11 +17,11 @@
 }}
 
 <div class="input-group">
-  {{#if (eq tableDefinition.searchType "manual")}}
+  {{#if (eq this.tableDefinition.searchType "manual")}}
     <span class="input-group-btn">
-      <select class="type-select form-control btn btn-default" onchange={{action (mut actualSearchType) value="target.value"}}>
-        {{#each searchTypes as |searchType|}}
-          <option value={{searchType}} selected={{eq searchType actualSearchType}}>
+      <select class="type-select form-control btn btn-default" onchange={{action (mut this.actualSearchType) value="target.value"}} aria-label="Select table search type">
+        {{#each this.searchTypes as |searchType|}}
+          <option value={{searchType}} selected={{eq searchType this.actualSearchType}}>
             {{searchType}}
           </option>
         {{/each}}
@@ -29,21 +29,15 @@
     </span>
   {{/if}}
 
-  {{input
-    type="text"
-    class="form-control"
-    placeholder="Search..."
-    enter="search"
-    value=text
-  }}
+  <Input @type="text" class="form-control" placeholder="Search..." @enter="search" @value={{this.text}} aria-label="Search table acording to search type" />
 
   <span class="input-group-btn">
-    <button class="btn btn-default {{if dataProcessor.isSearching 'animated-stripes'}}" type="button" {{action "search"}}>
-      {{#if dataProcessor.isSearching}}
+    <button class="btn btn-default {{if this.dataProcessor.isSearching 'animated-stripes'}}" type="button" {{action "search"}}>
+      {{#if this.dataProcessor.isSearching}}
         Searching...
       {{else}}
-        {{#if (eq tableDefinition.searchType "auto")}}
-          {{actualSearchType}}
+        {{#if (eq this.tableDefinition.searchType "auto")}}
+          {{this.actualSearchType}}
         {{/if}}
         Search
       {{/if}}

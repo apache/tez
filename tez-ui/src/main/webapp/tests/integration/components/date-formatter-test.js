@@ -16,36 +16,38 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('date-formatter', 'Integration | Component | em table date-formatter cell', {
-  integration: true
-});
+module('Integration | Component | em table date-formatter cell', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  this.render(hbs`{{date-formatter}}`);
+    await render(hbs`{{date-formatter}}`);
 
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#date-formatter}}
-      template block text
-    {{/date-formatter}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#date-formatter}}
+        template block text
+      {{/date-formatter}}
+    `);
 
-  assert.equal(this.$().text().trim(), 'Not Available!');
-});
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
+  });
 
-test('Negative value test', function(assert) {
-  this.render(hbs`{{date-formatter -1}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+  test('Negative value test', async function(assert) {
+    await render(hbs`{{date-formatter -1}}`);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
 
-  this.render(hbs`{{date-formatter -99}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    await render(hbs`{{date-formatter -99}}`);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
 
-  this.render(hbs`{{date-formatter 0}}`);
-  assert.equal(this.$().text().trim(), 'Not Available!');
+    await render(hbs`{{date-formatter 0}}`);
+    assert.equal(this.element.textContent.trim(), 'Not Available!');
+  });
 });

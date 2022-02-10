@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,12 +16,11 @@
  * limitations under the License.
  */
 
-import DS from 'ember-data';
+import RESTAdapter from '@ember-data/adapter/rest';
 import NameMixin from '../mixins/name';
+import MoreString from '../utils/more-string';
 
-var MoreString = more.String;
-
-export default DS.RESTAdapter.extend(NameMixin, {
+export default RESTAdapter.extend(NameMixin, {
   _isLoader: true,
 
   buildURL: function(modelName, id, snapshot, requestType, query, params) {

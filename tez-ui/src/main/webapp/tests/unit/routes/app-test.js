@@ -16,88 +16,88 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:app', 'Unit | Route | app', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | app', function(hooks) {
+  setupTest(hooks);
 
-test('it exists', function(assert) {
-  let route = this.subject();
-  assert.ok(route);
-});
-
-test('Test model - Without app data', function(assert) {
-  let testID = "123",
-      route = this.subject({
-        loader: {
-          queryRecord: function (type, id) {
-            assert.ok(type === 'AhsApp' || type === 'appRm');
-            assert.equal(id, testID);
-            return {
-              catch: function (callBack) {
-                return callBack();
-              }
-            };
-          }
-        }
-      }),
-      data;
-
-  assert.expect(2 + 2 + 1);
-
-  data = route.model({
-    "app_id": testID
+  test('it exists', function(assert) {
+    let route = this.owner.lookup('route:app');
+    assert.ok(route);
   });
-  assert.equal(data.get("entityID"), testID);
-});
 
-test('Test model - With app data', function(assert) {
-  let testID1 = "123",
-      testData1 = {},
-      testID2 = "456",
-      testData2 = {},
-      route = this.subject({
-        loader: {
-          queryRecord: function (type, id) {
-            if(id === "123"){
-              assert.equal(type, 'AhsApp');
+  test('Test model - Without app data', function(assert) {
+    let testID = "123",
+        route = this.owner.factoryFor('route:app').create({
+          loader: {
+            queryRecord: function (type, id) {
+              assert.ok(type === 'AhsApp' || type === 'appRm');
+              assert.equal(id, testID);
               return {
-                catch: function () {
-                  return testData1;
+                catch: function (callBack) {
+                  return callBack();
                 }
               };
             }
-            else if(id === "456") {
-              if(type === "AhsApp") {
+          }
+        }),
+        data;
+
+    assert.expect(2 + 2 + 1);
+
+    data = route.model({
+      "app_id": testID
+    });
+    assert.equal(data.get("entityID"), testID);
+  });
+
+  test('Test model - With app data', function(assert) {
+    let testID1 = "123",
+        testData1 = {},
+        testID2 = "456",
+        testData2 = {},
+        route = this.owner.factoryFor('route:app').create({
+          loader: {
+            queryRecord: function (type, id) {
+              if(id === "123"){
+                assert.equal(type, 'AhsApp');
                 return {
-                  catch: function (callBack) {
-                    return callBack();
+                  catch: function () {
+                    return testData1;
                   }
                 };
               }
-              assert.equal(type, 'appRm');
-              return {
-                catch: function () {
-                  return testData2;
+              else if(id === "456") {
+                if(type === "AhsApp") {
+                  return {
+                    catch: function (callBack) {
+                      return callBack();
+                    }
+                  };
                 }
-              };
+                assert.equal(type, 'appRm');
+                return {
+                  catch: function () {
+                    return testData2;
+                  }
+                };
+              }
             }
           }
-        }
-      }),
-      data;
+        }),
+        data;
 
-  assert.expect(2 + 2);
+    assert.expect(2 + 2);
 
-  data = route.model({
-    "app_id": testID1
+    data = route.model({
+      "app_id": testID1
+    });
+    assert.equal(data, testData1);
+
+    data = route.model({
+      "app_id": testID2
+    });
+    assert.equal(data, testData2);
   });
-  assert.equal(data, testData1);
-
-  data = route.model({
-    "app_id": testID2
-  });
-  assert.equal(data, testData2);
 });

@@ -16,19 +16,19 @@
  * limitations under the License.
 }}
 
-<div class="modal fade simple-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+<div class="modal simple-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close" aria-label="Close" {{action "closeModal"}}>
           <span aria-hidden="true">&times;</span>
         </button>
-        <h4 class="modal-title">{{model.title}}</h4>
+        <h4 class="modal-title">{{this.model.title}}</h4>
       </div>
-      {{#if model.componentName}}
-        {{component model.componentName content=model.content targetObject=model.targetObject}}
+      {{#if this.model.componentName}}
+        {{component this.model.componentName content=this.model.content targetObject=this.model.targetObject}}
       {{else}}
-        <div class="modal-body">{{model.content}}</div>
+        <div class="modal-body">{{this.model.content}}</div>
       {{/if}}
     </div>
   </div>

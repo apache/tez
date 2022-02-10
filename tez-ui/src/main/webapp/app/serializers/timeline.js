@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { get } from '@ember/object';
 
 import LoaderSerializer from './loader';
 
 function getDiagnostics(source) {
-  var diagnostics = Ember.get(source, 'otherinfo.diagnostics') || "";
+  var diagnostics = get(source, 'otherinfo.diagnostics') || "";
 
   diagnostics = diagnostics.replace(/\t/g, "&emsp;&emsp;");
   diagnostics = diagnostics.replace(/\[/g, "<div>&#187; ");

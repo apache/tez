@@ -16,19 +16,19 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:ahs-app', 'Unit | Serializer | ahs app', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:timeline']
-});
+module('Unit | Serializer | ahs app', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:ahs-app');
 
-  assert.ok(serializer);
-  assert.ok(serializer.primaryKey);
-  assert.ok(serializer.extractArrayPayload);
+    assert.ok(serializer);
+    assert.ok(serializer.primaryKey);
+    assert.ok(serializer.extractArrayPayload);
 
-  assert.ok(serializer.maps);
+    assert.ok(serializer.maps);
+  });
 });

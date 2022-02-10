@@ -16,46 +16,47 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-import wait from 'ember-test-helpers/wait';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, settled, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 import Processor from 'tez-ui/utils/processor';
 
-moduleForComponent('em-swimlane-consolidated-process', 'Integration | Component | em swimlane consolidated process', {
-  integration: true
-});
+module('Integration | Component | em swimlane consolidated process', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  this.render(hbs`{{em-swimlane-consolidated-process}}`);
+  test('Basic creation test', async function(assert) {
+    await render(hbs`{{em-swimlane-consolidated-process}}`);
 
-  assert.equal(this.$().text().trim(), '');
+    assert.equal(this.element.textContent.trim(), '');
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-consolidated-process}}
-      template block text
-    {{/em-swimlane-consolidated-process}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-consolidated-process}}
+        template block text
+      {{/em-swimlane-consolidated-process}}
+    `);
 
-  assert.equal(this.$().text().trim(), '');
-});
+    assert.equal(this.element.textContent.trim(), '');
+  });
 
-test('Basic creation test', function(assert) {
-  this.set("process", Process.create({
-    consolidateStartTime: 3,
-    consolidateEndTime: 6
-  }));
-  this.set("processor", Processor.create({
-    startTime: 0,
-    endTime: 10
-  }));
+  test('Basic creation test', async function(assert) {
+    this.set("process", Process.create({
+      consolidateStartTime: 3,
+      consolidateEndTime: 6
+    }));
+    this.set("processor", Processor.create({
+      startTime: 0,
+      endTime: 10
+    }));
 
-  this.render(hbs`{{em-swimlane-consolidated-process process=process processor=processor}}`);
+    await render(hbs`{{em-swimlane-consolidated-process process=process processor=processor}}`);
 
-  return wait().then(() => {
-    assert.equal(this.$(".em-swimlane-consolidated-process").attr("style").trim(),
-        "left: 30%; right: 40%; z-index: 30;");
+    return settled().then(() => {
+      assert.equal(find(".em-swimlane-consolidated-process").getAttribute("style").trim(),
+          "display: block; left: 30%; right: 40%; z-index: 30;");
+    });
   });
 });

@@ -16,20 +16,15 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('route:am-pollster', 'Unit | Route | am pollster', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Route | am pollster', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:am-pollster');
 
-  assert.ok(route);
-  assert.ok(route.onRecordPoll);
-  assert.ok(route.onPollFailure);
-  assert.ok(route.scheduleReload);
-  assert.ok(route.reload);
-  assert.ok(route.actions.countersToPollChanged);
+    assert.ok(route);
+  });
 });

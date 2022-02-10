@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberError from '@ember/error';
 
 let UnlinkedPromise = function (errors, message = 'Promise chain was unlinked.') {
-  Ember.Error.call(this, message);
+  EmberError.call(this, message);
 
   this.errors = errors || [
     {
@@ -29,6 +29,6 @@ let UnlinkedPromise = function (errors, message = 'Promise chain was unlinked.')
   ];
 };
 
-UnlinkedPromise.prototype = Object.create(Ember.Error.prototype);
+UnlinkedPromise.prototype = Object.create(EmberError.prototype);
 
 export default UnlinkedPromise;

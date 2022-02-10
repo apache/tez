@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
+import { computed } from '@ember/object';
 import CountersTableController from '../counters-table';
 
 export default CountersTableController.extend({
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "Attempt Counters",
     routeName: "attempt.counters",
-  }],
+  }]}),
 });

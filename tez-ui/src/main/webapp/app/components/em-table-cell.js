@@ -16,17 +16,20 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed, observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { later } from '@ember/runloop';
 import layout from '../templates/components/em-table-cell';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   classNames: ['table-cell'],
   classNameBindings: ['innerCell', 'isWaiting'],
 
-  innerCell: Ember.computed('index', function () {
-    if(this.get('index')) {
+  innerCell: computed('index', function () {
+    if(this.index) {
       return 'inner';
     }
   }),
@@ -39,7 +42,7 @@ export default Ember.Component.extend({
   _value: null,
   _observedPath: null,
   _comment: null,
-  _cellContent: Ember.computed({
+  _cellContent: computed({
     set: function (key, value, prevValue) {
       if(value !== prevValue) {
         this.highlightCell();
@@ -50,19 +53,21 @@ export default Ember.Component.extend({
 
   _addObserver: function (path) {
     this._removeObserver();
-    this.get('row').addObserver(path, this, this._onValueChange);
-    this.set('_observedPath', path);
+    if (this.row) {
+      this.row.addObserver(path, this, this._onValueChange);
+      this.set('_observedPath', path);
+    }
   },
 
   _removeObserver: function () {
-    var path = this.get('_observedPath');
+    var path = this._observedPath;
     if(path) {
-      this.get('row').removeObserver(path, this, this._onValueChange);
+      this.row.removeObserver(path, this, this._onValueChange);
       this.set('_observedPath', null);
     }
   },
 
-  _pathObserver: Ember.on('init', Ember.observer('row', 'columnDefinition.contentPath', 'columnDefinition.observePath', function () {
+  _pathObserver: on('init', observer('row', 'columnDefinition.contentPath', 'columnDefinition.observePath', function () {
     var path = this.get('columnDefinition.contentPath');
     if(path && this.get('columnDefinition.observePath')) {
       this._addObserver(path);
@@ -88,8 +93,8 @@ export default Ember.Component.extend({
     });
   },
 
-  _cellContentObserver: Ember.on('init', Ember.observer('row', 'columnDefinition', '_value', function () {
-    var cellContent = this.get('columnDefinition').getCellContent(this.get('row'), this.get("_value")),
+  _cellContentObserver: on('init', observer('row', 'columnDefinition', '_value', function () {
+    var cellContent = this.columnDefinition.getCellContent(this.row, this._value),
         that = this;
 
     if(cellContent && cellContent.then) {
@@ -107,18 +112,19 @@ export default Ember.Component.extend({
   })),
 
   highlightCell: function () {
-    var element = this.$();
+    var element = this.element;
     if(element) {
-      element.removeClass("bg-transition");
-      element.addClass("highlight");
-      Ember.run.later(function () {
-        element.addClass("bg-transition");
-        element.removeClass("highlight");
+      element.classList.remove("bg-transition");
+      element.classList.add("highlight");
+      later(function () {
+        element.classList.add("bg-transition");
+        element.classList.remove("highlight");
       }, 100);
     }
   },
 
   willDestroy: function () {
+    this._super(...arguments);
     this._removeObserver();
   }
 });

@@ -16,30 +16,32 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, findAll } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('dags-page-search', 'Integration | Component | dags page search', {
-  integration: true
-});
+module('Integration | Component | dags page search', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
+  test('Basic creation test', async function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
 
-  this.render(hbs`{{dags-page-search}}`);
+    await render(hbs`{{dags-page-search}}`);
 
-  assert.equal(this.$("input").length, 6);
-  assert.equal(this.$("select").length, 1);
+    assert.equal(findAll("input").length, 6);
+    assert.equal(findAll("select").length, 1);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#dags-page-search}}
-      template block text
-    {{/dags-page-search}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#dags-page-search}}
+        template block text
+      {{/dags-page-search}}
+    `);
 
-  assert.equal(this.$("input").length, 6);
-  assert.equal(this.$("select").length, 1);
+    assert.equal(findAll("input").length, 6);
+    assert.equal(findAll("select").length, 1);
+  });
 });

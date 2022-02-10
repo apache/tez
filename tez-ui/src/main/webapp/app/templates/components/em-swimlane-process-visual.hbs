@@ -17,41 +17,13 @@
 }}
 
 <div class="base-line"></div>
-{{em-swimlane-process-line
-  process=process
-  processor=processor
-  showTooltip="showTooltip"
-  hideTooltip="hideTooltip"
-  click="click"
-}}
-{{#each process.blocking key="_id" as |blocking|}}
-  {{em-swimlane-blocking-event
-    process=process
-    blocking=blocking
-    processor=processor
-    showTooltip="showTooltip"
-    hideTooltip="hideTooltip"
-    click="click"
-  }}
+<EmSwimlaneProcessLine @process={{this.process}} @processor={{this.processor}} @showTooltip={{this.showTooltip}} @hideTooltip={{this.hideTooltip}} @routeToVertex={{this.routeToVertex}}/>
+{{#each this.process.blocking key="_id" as |blocking|}}
+  <EmSwimlaneBlockingEvent @process={{this.process}} @blocking={{blocking}} @processor={{this.processor}} @showTooltip={{this.showTooltip}} @hideTooltip={{this.hideTooltip}} @routeToVertex={{this.routeToVertex}}/>
 {{/each}}
-{{#each process.eventBars as |bar index|}}
-  {{em-swimlane-event-bar
-    bar=bar
-    barIndex=index
-    process=process
-    processor=processor
-    showTooltip="showTooltip"
-    hideTooltip="hideTooltip"
-    click="click"
-  }}
+{{#each this.process.eventBars as |bar index|}}
+  <EmSwimlaneEventBar @bar={{bar}} @barIndex={{index}} @process={{this.process}} @processor={{this.processor}} @showTooltip={{this.showTooltip}} @hideTooltip={{this.hideTooltip}} @routeToVertex={{this.routeToVertex}}/>
 {{/each}}
-{{#each process.events key="name" as |event|}}
-  {{em-swimlane-event
-    process=process
-    event=event
-    processor=processor
-    showTooltip="showTooltip"
-    hideTooltip="hideTooltip"
-    click="click"
-  }}
+{{#each this.process.events key="name" as |event|}}
+  <EmSwimlaneEvent @process={{this.process}} @event={{event}} @processor={{this.processor}} @showTooltip={{this.showTooltip}} @hideTooltip={{this.hideTooltip}} @routeToVertex={{this.routeToVertex}}/>
 {{/each}}

@@ -16,29 +16,28 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { assign } from '@ember/polyfills';
 import SingleAmPollsterRoute from '../single-am-pollster';
 
 export default SingleAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var dag = this.modelFor("dag"),
       name = dag.get("name"),
       entityID = dag.get("entityID");
     return `DAG Counters: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "dag",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    options = Ember.$.extend({
+    options = assign({
       demandNeeds: ["info"]
     }, options);
-    return this.get("loader").queryRecord('dag', this.modelFor("dag").get("id"), options);
-  },
-
+    return this.loader.queryRecord('dag', this.modelFor("dag").get("id"), options);
+  }
 });

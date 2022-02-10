@@ -16,14 +16,16 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { settled } from '@ember/test-helpers';
 
-moduleFor('service:pollster', 'Unit | Service | pollster', {
-  // Specify the other units that are required for this test.
-  needs: ['service:localStorage']
-});
+module('Unit | Service | pollster', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
+  test('Basic creation test', async function(assert) {
+    let service = this.owner.lookup('service:pollster');
+    await settled();
+    assert.ok(service);
+  });
 });

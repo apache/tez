@@ -16,28 +16,28 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:timeline', 'Unit | Serializer | timeline', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:timeline']
-});
+module('Unit | Serializer | timeline', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:timeline');
 
-  assert.ok(serializer);
-  assert.ok(serializer.extractArrayPayload);
-  assert.ok(serializer.maps);
+    assert.ok(serializer);
+    assert.ok(serializer.extractArrayPayload);
+    assert.ok(serializer.maps);
 
-  assert.equal(Object.keys(serializer.get("maps")).length, 7);
-});
+    assert.equal(Object.keys(serializer.get("maps")).length, 7);
+  });
 
-test('extractArrayPayload test', function(assert) {
-  let serializer = this.subject(),
-      testPayload = {
-        entities: []
-      };
+  test('extractArrayPayload test', function(assert) {
+    let serializer = this.owner.lookup('serializer:timeline'),
+        testPayload = {
+          entities: []
+        };
 
-  assert.equal(serializer.extractArrayPayload(testPayload), testPayload.entities);
+    assert.equal(serializer.extractArrayPayload(testPayload), testPayload.entities);
+  });
 });

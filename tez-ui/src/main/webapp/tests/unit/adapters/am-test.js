@@ -16,35 +16,35 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('adapter:am', 'Unit | Adapter | am', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+module('Unit | Adapter | am', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  test('Basic creation test', function(assert) {
+    let adapter = this.owner.lookup('adapter:am');
 
-  assert.ok(adapter);
-  assert.equal(adapter.serverName, "am");
+    assert.ok(adapter);
+    assert.equal(adapter.serverName, "am");
 
-  assert.ok(adapter.queryRecord);
-});
+    assert.ok(adapter.queryRecord);
+  });
 
-test('queryRecord test', function(assert) {
-  let testStore = {},
-      testType = {},
-      testQuery = {},
+  test('queryRecord test', function(assert) {
+    let testStore = {},
+        testType = {},
+        testQuery = {},
 
-      adapter = this.subject({
-        query: function (store, type, query) {
-          assert.equal(store, testStore);
-          assert.equal(type, testType);
-          assert.equal(query, testQuery);
-        }
-      });
+        adapter = this.owner.factoryFor('adapter:am').create({
+          query: function (store, type, query) {
+            assert.equal(store, testStore);
+            assert.equal(type, testType);
+            assert.equal(query, testQuery);
+          }
+        });
 
-  assert.expect(3);
-  adapter.queryRecord(testStore, testType, testQuery);
+    assert.expect(3);
+    adapter.queryRecord(testStore, testType, testQuery);
+  });
 });

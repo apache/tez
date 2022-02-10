@@ -16,47 +16,45 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action } from '@ember/object';
 import MultiAmPollsterRoute from '../multi-am-pollster';
 
 import virtualAnchor from '../../utils/virtual-anchor';
 
 export default MultiAmPollsterRoute.extend({
-  title: Ember.computed(function () {
+  get title() {
     var vertex = this.modelFor("vertex"),
       name = vertex.get("name"),
       entityID = vertex.get("entityID");
     return `Vertex Tasks: ${name} (${entityID})`;
-  }).volatile(),
+  },
 
   loaderNamespace: "vertex",
 
-  setupController: function (controller, model) {
-    this._super(controller, model);
-    Ember.run.later(this, "startCrumbBubble");
+  setupController: function () {
+    this._super(...arguments);
+    this.startCrumbBubble();
   },
 
   load: function (value, query, options) {
-    return this.get("loader").query('task', {
+    return this.loader.query('task', {
       vertexID: this.modelFor("vertex").get("id")
     }, options);
   },
 
-  actions: {
-    logCellClicked: function (attemptID, download) {
-      var that = this;
-      return this.get("loader").queryRecord('attempt', attemptID).then(function (attempt) {
-        var logURL = attempt.get("logURL");
-        if(logURL) {
-          return virtualAnchor(logURL, download ? attempt.get("entityID") : undefined);
-        }
-        else {
-          that.send("openModal", {
-            title: "Log Link Not Available!",
-            content: `Log is missing for task attempt : ${attemptID}!`
-          });
-        }
-      });
-    }
-  }
+  logCellClicked: action(function (attemptID, download) {
+    var that = this;
+    return this.loader.queryRecord('attempt', attemptID).then(function (attempt) {
+      var logURL = attempt.get("logURL");
+      if(logURL) {
+        return virtualAnchor(logURL, download ? attempt.get("entityID") : undefined);
+      }
+      else {
+        that.send("openModal", {
+          title: "Log Link Not Available!",
+          content: `Log is missing for task attempt : ${attemptID}!`
+        });
+      }
+    });
+  })
 });

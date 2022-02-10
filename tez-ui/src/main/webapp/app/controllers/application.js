@@ -16,20 +16,21 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Controller from '@ember/controller';
+import { computed } from '@ember/object';
 
 const BREADCRUMB_PREFIX = [{
   text: "Home",
   routeName: "application"
 }];
 
-export default Ember.Controller.extend({
+export default Controller.extend({
   breadcrumbs: null,
   appError: null,
 
-  prefixedBreadcrumbs: Ember.computed("breadcrumbs", function () {
+  prefixedBreadcrumbs: computed("breadcrumbs", function () {
     var prefix = BREADCRUMB_PREFIX,
-    breadcrumbs = this.get('breadcrumbs');
+    breadcrumbs = this.breadcrumbs;
 
     if(Array.isArray(breadcrumbs)) {
       prefix = prefix.concat(breadcrumbs);

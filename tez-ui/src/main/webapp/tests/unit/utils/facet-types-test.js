@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-import facetTypes from '../../../utils/facet-types';
 import { module, test } from 'qunit';
+import facetTypes from '../../../utils/facet-types';
 
-module('Unit | Utility | facet types');
+module('Unit | Utility | facet types', function() {
+  test('Basic creation test', function(assert) {
+    assert.ok(facetTypes);
 
-test('Basic creation test', function(assert) {
-  assert.ok(facetTypes);
-
-  assert.ok(facetTypes.VALUES);
+    assert.ok(facetTypes.VALUES);
+  });
 });

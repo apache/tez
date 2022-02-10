@@ -16,13 +16,34 @@
  * limitations under the License.
  */
 
-import registerWithContainer from "ember-cli-auto-register/register";
+//import registerWithContainer from "ember-cli-auto-register/register";
 
 export function initialize(application) {
-  registerWithContainer("entity", application);
+//  registerWithContainer("entity", application);
   application.inject('entitie', 'store', 'service:store');
 }
 
+function registerWithContainer(dirName, application) {
+    var directoryRegExp = new RegExp("^" + application.name + "/" + dirName);
+    var require = window.require;
+
+    Object.keys(require.entries).filter(function(key) {
+        return directoryRegExp.test(key);
+    }).forEach(function(moduleName) {
+      console.log(moduleName);
+        var module = require(moduleName, null, null, true);
+        var fileName =  moduleName.match(/[^/]+\/?$/)[0];
+        if (!module ||
+                !module["default"] ||
+                !(module["default"].prototype instanceof Ember.Object)
+           ) {
+            console.log(dirName + "/" + fileName + ".js did not have an Ember.Object as the default export."); // eslint-disable-line
+            throw new Error(moduleName + " must export a default to be registered with application.");
+        }
+      console.log(dirName + ":" + filename, module["default"]);
+        application.register(dirName + ":" + fileName, module["default"]);
+    });
+};
 export default {
   name: 'entities',
   initialize

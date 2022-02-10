@@ -16,69 +16,68 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | dag/vertices', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:dag/vertices', 'Unit | Controller | dag/vertices', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
-
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
-  });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.ok(controller.beforeSort);
-});
-
-test('beforeSort test', function(assert) {
-  let controller = this.subject({
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    },
-    polling: {
-      isReady: true
-    },
-    send: function (actionName) {
-      if(actionName === "openModal") {
-        assert.ok(true);
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/vertices').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
       }
-    }
+    });
+
+    assert.ok(controller);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.ok(controller.beforeSort);
   });
 
-  // Bind poilyfill
-  Function.prototype.bind = function (context) {
-    var that = this;
-    return function (val) {
-      return that.call(context, val);
+  test('beforeSort test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/vertices').create({
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      },
+      polling: {
+        isReady: true
+      },
+      send: function (actionName) {
+        if(actionName === "openModal") {
+          assert.ok(true);
+        }
+      }
+    });
+
+    // Bind poilyfill
+    Function.prototype.bind = function (context) {
+      var that = this;
+      return function (val) {
+        return that.call(context, val);
+      };
     };
-  };
 
-  assert.expect(1 + 3 + 3);
+    assert.expect(1 + 3 + 3);
 
-  assert.ok(controller.beforeSort(Ember.Object.create({
-    contentPath: "NonDisabledColumn"
-  })), "NonDisabledColumn");
+    assert.ok(controller.beforeSort(EmberObject.create({
+      contentPath: "NonDisabledColumn"
+    })), "NonDisabledColumn");
 
-  assert.notOk(controller.beforeSort(Ember.Object.create({
-    contentPath: "succeededTasks"
-  })), "succeededTasks");
-  assert.notOk(controller.beforeSort(Ember.Object.create({
-    contentPath: "runningTasks"
-  })), "runningTasks");
-  assert.notOk(controller.beforeSort(Ember.Object.create({
-    contentPath: "pendingTasks"
-  })), "pendingTasks");
+    assert.notOk(controller.beforeSort(EmberObject.create({
+      contentPath: "succeededTasks"
+    })), "succeededTasks");
+    assert.notOk(controller.beforeSort(EmberObject.create({
+      contentPath: "runningTasks"
+    })), "runningTasks");
+    assert.notOk(controller.beforeSort(EmberObject.create({
+      contentPath: "pendingTasks"
+    })), "pendingTasks");
 
+  });
 });

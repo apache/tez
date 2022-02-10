@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('adapter:rm', 'Unit | Adapter | rm', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
-});
+module('Unit | Adapter | rm', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let adapter = this.subject();
+  test('Basic creation test', function(assert) {
+    let adapter = this.owner.lookup('adapter:rm');
 
-  assert.ok(adapter);
-  assert.equal(adapter.serverName, "rm");
+    assert.ok(adapter);
+    assert.equal(adapter.serverName, "rm");
+  });
 });

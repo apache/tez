@@ -16,29 +16,29 @@
  * limitations under the License.
 }}
 
-<div class="field-name" {{action "toggleValueDisplay"}} title={{data.column.headerTitle}}>
-  <div class="field-title">{{data.column.headerTitle}}</div>
-  <div class="field-count">({{data.facets.length}})</div>
-  <a class="all-button" title={{allButtonTitle}} {{action "selectAll" bubbles=false}}>All</a>
+<div class="field-name" {{action "toggleValueDisplay"}} title={{this.data.column.headerTitle}}>
+  <div class="field-title">{{this.data.column.headerTitle}}</div>
+  <div class="field-count">({{this.data.facets.length}})</div>
+  <a class="all-button" title={{this.allButtonTitle}} {{action "selectAll" bubbles=false}}>All</a>
 </div>
 
 <ul class="value-list">
-  {{input type="text" class="filter-box" value=filterText placeholder="Filter"}}
+  <Input @type="text" class="filter-box" @value={{this.filterText}} placeholder="Filter" aria-label="Filter facet"/>
 
-  {{#if showPagination}}
+  {{#if this.showPagination}}
     <div class="pagination-controls">
-      {{currentPage}}/{{totalPages}}
+      {{this.currentPage}}/{{this.totalPages}}
       <div class="arrows">
-        <span {{action "changePage" -1}} class="{{if showPrevious 'active'}}">&#9668;</span>
-        <span {{action "changePage" 1}} class="{{if showNext 'active'}}">&#9658;</span>
+        <span {{action "changePage" -1}} class="{{if this.showPrevious 'active'}}">&#9668;</span>
+        <span {{action "changePage" 1}} class="{{if this.showNext 'active'}}">&#9658;</span>
       </div>
     </div>
   {{/if}}
 
-  {{#each paginatedFacets key="value" as |facet index|}}
+  {{#each this.paginatedFacets key="value" as |facet|}}
     <li title={{facet.displayText}}>
       <div class="checkbox-container">
-        <input type="checkbox" checked={{facet.checked}} onclick={{action "clickedCheckbox" facet}} />
+        <input type="checkbox" checked={{facet.checked}} onclick={{action "clickedCheckbox" facet}} aria-label="Select facet"/>
       </div>
       <div class="facet-value">{{facet.displayText}}</div>
       <a class="only-button" {{action "clickedOnly" facet}}>only</a>

@@ -16,30 +16,32 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-swimlane-process-name', 'Integration | Component | em swimlane process name', {
-  integration: true
-});
+module('Integration | Component | em swimlane process name', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  var testName = "TestName";
+  test('Basic creation test', async function(assert) {
+    var testName = "TestName";
 
-  this.set("process", {
-    name: testName
+    this.set("process", {
+      name: testName
+    });
+
+    await render(hbs`{{em-swimlane-process-name process=process}}`);
+
+    assert.equal(this.element.textContent.trim(), testName);
+
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-swimlane-process-name process=process}}
+        template block text
+      {{/em-swimlane-process-name}}
+    `);
+
+    assert.equal(this.element.textContent.trim(), testName);
   });
-
-  this.render(hbs`{{em-swimlane-process-name process=process}}`);
-
-  assert.equal(this.$().text().trim(), testName);
-
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane-process-name process=process}}
-      template block text
-    {{/em-swimlane-process-name}}
-  `);
-
-  assert.equal(this.$().text().trim(), testName);
 });

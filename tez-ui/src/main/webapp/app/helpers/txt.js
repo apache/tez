@@ -16,8 +16,50 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { helper as buildHelper } from '@ember/component/helper';
+import { htmlSafe } from '@ember/template';
 import formatters from '../utils/formatters';
+
+const escape = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#x27;',
+  '`': '&#x60;',
+  '=': '&#x3D;',
+};
+
+const possible = /[&<>"'`=]/;
+const badChars = /[&<>"'`=]/g;
+
+function escapeChar(chr) {
+  return escape[chr];
+}
+
+// Replacement for Ember.Handlebars.Utils.escapeExpression
+export function escapeExpression(string) {
+  if (typeof string !== 'string') {
+    // don't escape SafeStrings, since they're already safe
+    if (string && string.toHTML) {
+      return string.toHTML();
+    } else if (string === null || string === undefined) {
+      return '';
+    } else if (!string) {
+      return String(string);
+    }
+
+    // Force a string conversion as this will be done by the append regardless and
+    // the regex test will do this transparently behind the scenes, causing issues if
+    // an object's to string has escaped characters in it.
+    string = String(string);
+  }
+
+  if (!possible.test(string)) {
+    return string;
+  }
+  return string.replace(badChars, escapeChar);
+}
 
 export function txt(value, hash) {
   var message,
@@ -47,16 +89,16 @@ export function txt(value, hash) {
         message = 'Not Available!';
       }
       else {
-        return Ember.String.htmlSafe(Ember.Handlebars.Utils.escapeExpression(value.toString()));
+        return htmlSafe(escapeExpression(value.toString()));
       }
     }
     catch(error) {
       message = "Invalid Data!";
-      Ember.Logger.error(error);
+      console.error(error);
     }
   }
 
-  return Ember.String.htmlSafe(`<span ${titleAttr}class="txt-message"> ${message} </span>`);
+  return htmlSafe(`<span ${titleAttr}class="txt-message"> ${message} </span>`);
 }
 
-export default Ember.Helper.helper(txt);
+export default buildHelper(txt);

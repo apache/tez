@@ -16,78 +16,80 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, findAll, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import Process from 'tez-ui/utils/process';
 
-moduleForComponent('em-swimlane', 'Integration | Component | em swimlane', {
-  integration: true
-});
+module('Integration | Component | em swimlane', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic creation test', function(assert) {
-  var testName1 = "TestName1",
-      testName2 = "TestName2";
+  test('Basic creation test', async function(assert) {
+    var testName1 = "TestName1",
+        testName2 = "TestName2";
 
-  this.set("processes", [Process.create({
-    name: testName1
-  }), Process.create({
-    name: testName2
-  })]);
+    this.set("processes", [Process.create({
+      name: testName1
+    }), Process.create({
+      name: testName2
+    })]);
 
-  this.render(hbs`{{em-swimlane processes=processes}}`);
+    await render(hbs`<EmSwimlane @processes={{this.processes}}/>`);
 
-  assert.equal(this.$().text().trim().indexOf(testName1), 0);
-  assert.notEqual(this.$().text().trim().indexOf(testName2), -1);
+    assert.equal(this.element.textContent.trim().indexOf(testName1), 0);
+    assert.notEqual(this.element.textContent.trim().indexOf(testName2), -1);
 
-  // Template block usage:" + EOL +
-  this.render(hbs`
-    {{#em-swimlane processes=processes}}
-      template block text
-    {{/em-swimlane}}
-  `);
+    // Template block usage:" + EOL +
+    await render(hbs`
+      <EmSwimlane @processes={{this.processes}}>
+        template block text
+      </EmSwimlane>
+    `);
 
-  assert.equal(this.$().text().trim().indexOf(testName1), 0);
-  assert.notEqual(this.$().text().trim().indexOf(testName2), -1);
-});
-
-test('Normalization (Blocker based sorting) test - On a graph', function(assert) {
-  var p1 = Process.create({
-    name: "P1"
-  }),
-  p2 = Process.create({
-    name: "P2"
-  }),
-  p3 = Process.create({
-    name: "P3",
-    blockers: [p1, p2]
-  }),
-  p4 = Process.create({
-    name: "P4",
-    blockers: [p1]
-  }),
-  p5 = Process.create({
-    name: "P5",
-    blockers: [p3, p4]
+    assert.equal(this.element.textContent.trim().indexOf(testName1), 0);
+    assert.notEqual(this.element.textContent.trim().indexOf(testName2), -1);
   });
 
-  this.set("processes", [p5, p4, p3, p2, p1]);
+  test('Normalization (Blocker based sorting) test - On a graph', async function(assert) {
+    var p1 = Process.create({
+      name: "P1"
+    }),
+    p2 = Process.create({
+      name: "P2"
+    }),
+    p3 = Process.create({
+      name: "P3",
+      blockers: [p1, p2]
+    }),
+    p4 = Process.create({
+      name: "P4",
+      blockers: [p1]
+    }),
+    p5 = Process.create({
+      name: "P5",
+      blockers: [p3, p4]
+    });
 
-  this.render(hbs`{{em-swimlane processes=processes}}`);
+    this.set("processes", [p5, p4, p3, p2, p1]);
 
-  let names = this.$(".em-swimlane-process-name");
+    await render(hbs`<EmSwimlane @processes={{this.processes}}/>`);
 
-  assert.equal(names.length, 5);
-  assert.equal(names.eq(0).text().trim(), p1.name);
-  assert.equal(names.eq(1).text().trim(), p4.name);
-  assert.equal(names.eq(2).text().trim(), p2.name);
-  assert.equal(names.eq(3).text().trim(), p3.name);
-  assert.equal(names.eq(4).text().trim(), p5.name);
-});
+    let names = findAll(".em-swimlane-process-name");
 
-test('Zoom test', function(assert) {
-  this.set("processes", [Process.create()]);
+    assert.equal(names.length, 5);
+    assert.dom(names[0]).hasText(p1.name);
+    assert.dom(names[1]).hasText(p4.name);
+    assert.dom(names[2]).hasText(p2.name);
+    assert.dom(names[3]).hasText(p3.name);
+    assert.dom(names[4]).hasText(p5.name);
+  });
 
-  this.render(hbs`{{em-swimlane processes=processes zoom=500}}`);
-  assert.equal(this.$(".zoom-panel").attr("style").trim(), "width: 500%;");
+  test('Zoom test', async function(assert) {
+    this.set("processes", [Process.create()]);
+
+    await render(hbs`<EmSwimlane @processes={{this.processes}} @zoom={{500}}/>`);
+    assert.equal(find(".zoom-panel").getAttribute("style").trim(), "width: 500%;");
+  });
 });

@@ -16,33 +16,35 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { render, find } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
 import TableDefinition from '../../../utils/table-definition';
 import ColumnDefinition from '../../../utils/column-definition';
 
-moduleForComponent('em-table', 'Integration | Component | em table', {
-  integration: true
-});
+module('Integration | Component | em table', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('Basic rendering test', function(assert) {
-  this.render(hbs`{{em-table}}`);
+  test('Basic rendering test', async function(assert) {
+    await render(hbs`<EmTable/>`);
 
-  assert.equal(this.$('.table-message').text().trim(), 'No columns available!');
-});
-
-test('Records missing test', function(assert) {
-  var definition = TableDefinition.create({
-    recordType: "vertex"
+    assert.equal(find('.table-message').textContent.trim(), 'No columns available!');
   });
 
-  this.set("columns", [ColumnDefinition.fillerColumn]);
+  test('Records missing test', async function(assert) {
+    var definition = TableDefinition.create({
+      recordType: "vertex"
+    });
 
-  this.render(hbs`{{em-table columns=columns}}`);
-  assert.equal(this.$('.table-message').text().trim(), 'No records available!');
+    this.set("columns", [ColumnDefinition.fillerColumn]);
 
-  this.set("definition", definition);
-  this.render(hbs`{{em-table columns=columns definition=definition}}`);
-  assert.equal(this.$('.table-message').text().trim(), 'No vertices available!');
+    await render(hbs`<EmTable @columns={{this.columns}}/>`);
+    assert.dom('.table-message').hasText('No records available!');
+
+    this.set("definition", definition);
+    await render(hbs`<EmTable @columns={{this.columns}} @definition={{this.definition}}/>`);
+    assert.dom('.table-message').hasText('No vertices available!');
+  });
 });

@@ -16,32 +16,32 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('serializer:attempt', 'Unit | Serializer | attempt', {
-  // Specify the other units that are required for this test.
-  // needs: ['serializer:attempt']
-});
+module('Unit | Serializer | attempt', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let serializer = this.subject();
+  test('Basic creation test', function(assert) {
+    let serializer = this.owner.lookup('serializer:attempt');
 
-  assert.ok(serializer);
-  assert.equal(Object.keys(serializer.maps).length, 8 + 8);
-});
-
-test('containerLogURL test', function(assert) {
-  let serializer = this.subject({
-    env: {
-      app: {
-        yarnProtocol: "ptcl"
-      }
-    }
+    assert.ok(serializer);
+    assert.equal(Object.keys(serializer.maps).length, 8 + 8);
   });
 
-  assert.equal(serializer.maps.containerLogURL.call(serializer, {
-    otherinfo: {
-      inProgressLogsURL: "abc.com/test/link",
-    }
-  }), "ptcl://abc.com/test/link");
+  test('containerLogURL test', function(assert) {
+    let serializer = this.owner.factoryFor('serializer:attempt').create({
+      env: {
+        app: {
+          yarnProtocol: "ptcl"
+        }
+      }
+    });
+
+    assert.equal(serializer.maps.containerLogURL.call(serializer, {
+      otherinfo: {
+        inProgressLogsURL: "abc.com/test/link",
+      }
+    }), "ptcl://abc.com/test/link");
+  });
 });

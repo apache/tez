@@ -16,14 +16,17 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject, { computed, observer } from '@ember/object';
+import { alias } from '@ember/object/computed';
+import { on } from '@ember/object/evented';
+import { later, once } from '@ember/runloop';
 
 import SQL from './sql';
 
 /**
  * Handles Sorting, Searching & Pagination
  */
-export default Ember.Object.extend({
+export default EmberObject.extend({
   isSorting: false,
   isSearching: false,
 
@@ -36,19 +39,19 @@ export default Ember.Object.extend({
   _searchedRows: [],
   _facetFilteredRows: [],
 
-  _searchObserver: Ember.on("init", Ember.observer('tableDefinition.searchText', 'tableDefinition._actualSearchType', '_sortedRows.[]', function () {
-    Ember.run.once(this, "startSearch");
+  _searchObserver: on("init", observer('tableDefinition.searchText', 'tableDefinition._actualSearchType', '_sortedRows.[]', function () {
+    once(this, "startSearch");
   })),
 
-  _sortObserver: Ember.on("init", Ember.observer(
+  _sortObserver: on("init", observer(
     'tableDefinition.sortColumnId',
     'tableDefinition.sortOrder',
     'rows.[]', function () {
-      Ember.run.once(this, "startSort");
+      once(this, "startSort");
   })),
 
-  _facetedFilterObserver: Ember.on("init", Ember.observer('tableDefinition.facetConditions', '_searchedRows.[]', function () {
-    Ember.run.once(this, "startFacetedFilter");
+  _facetedFilterObserver: on("init", observer('tableDefinition.facetConditions', '_searchedRows.[]', function () {
+    once(this, "startFacetedFilter");
   })),
 
   regexSearch: function (clause, rows, columns) {
@@ -83,7 +86,7 @@ export default Ember.Object.extend({
 
   startSearch: function () {
     var searchText = String(this.get('tableDefinition.searchText')),
-        rows = this.get('_sortedRows') || [],
+        rows = this._sortedRows || [],
         columns = this.get('tableDefinition.columns'),
         actualSearchType = this.get('tableDefinition._actualSearchType'),
         that = this;
@@ -91,7 +94,7 @@ export default Ember.Object.extend({
     if(searchText) {
       this.set("isSearching", true);
 
-      Ember.run.later(function () {
+      later(function () {
         var result;
 
         switch(actualSearchType) {
@@ -138,8 +141,8 @@ export default Ember.Object.extend({
   },
 
   startSort: function () {
-    var rows = this.get('rows'),
-        tableDefinition = this.get('tableDefinition'),
+    var rows = this.rows,
+        tableDefinition = this.tableDefinition,
         sortColumnId = this.get('tableDefinition.sortColumnId'),
         descending = this.get('tableDefinition.sortOrder') === 'desc',
         that = this,
@@ -158,7 +161,7 @@ export default Ember.Object.extend({
     if(rows && rows.get('length') > 0 && column) {
       this.set('isSorting', true);
 
-      Ember.run.later(function () {
+      later(function () {
         /*
          * Creating sortArray as calling getSortValue form inside the
          * sort function every time would be more costly.
@@ -193,15 +196,15 @@ export default Ember.Object.extend({
   },
 
   startFacetedFilter: function () {
-    var clause = this.get("sql").createFacetClause(this.get('tableDefinition.facetConditions'), this.get("tableDefinition.columns")),
-        rows = this.get('_searchedRows') || [],
+    var clause = this.sql.createFacetClause(this.get('tableDefinition.facetConditions'), this.get("tableDefinition.columns")),
+        rows = this._searchedRows || [],
         columns = this.get('tableDefinition.columns'),
         that = this;
 
     if(clause && columns) {
       this.set("isSearching", true);
 
-      Ember.run.later(function () {
+      later(function () {
         var result = that.get("sql").search(clause, rows, columns);
 
         that.setProperties({
@@ -215,8 +218,8 @@ export default Ember.Object.extend({
     }
   },
 
-  facetedFields: Ember.computed('_searchedRows.[]', 'tableDefinition.columns', function () {
-    var searchedRows = this.get("_searchedRows"),
+  facetedFields: computed('_searchedRows.[]', 'tableDefinition.columns', function () {
+    var searchedRows = this._searchedRows,
         columns = this.get('tableDefinition.columns'),
         fields = [];
 
@@ -238,8 +241,8 @@ export default Ember.Object.extend({
     return fields;
   }),
 
-  pageDetails: Ember.computed("tableDefinition.rowCount", "tableDefinition.pageNum", "_facetFilteredRows.length", function () {
-    var tableDefinition = this.get("tableDefinition"),
+  pageDetails: computed("tableDefinition.rowCount", "tableDefinition.pageNum", "_facetFilteredRows.length", function () {
+    var tableDefinition = this.tableDefinition,
 
         pageNum = tableDefinition.get('pageNum'),
         rowCount =  tableDefinition.get('rowCount'),
@@ -264,12 +267,12 @@ export default Ember.Object.extend({
       totalRecords: totalRecords
     };
   }),
-  totalPages: Ember.computed.alias("pageDetails.totalPages"), // Adding an alias for backward compatibility
+  totalPages: alias("pageDetails.totalPages"), // Adding an alias for backward compatibility
 
   // Paginate
-  processedRows: Ember.computed('_facetFilteredRows.[]', 'tableDefinition.rowCount', 'tableDefinition.pageNum', function () {
+  processedRows: computed('_facetFilteredRows.[]', 'tableDefinition.rowCount', 'tableDefinition.pageNum', function () {
     var rowCount =  this.get('tableDefinition.rowCount'),
         startIndex = (this.get('tableDefinition.pageNum') - 1) * rowCount;
-    return this.get('_facetFilteredRows').slice(startIndex, startIndex + rowCount);
+    return this._facetFilteredRows.slice(startIndex, startIndex + rowCount);
   }),
 });

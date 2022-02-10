@@ -21,12 +21,12 @@
 
     <div class="header">
       <div class="lr-margin content">
-        {{#link-to 'application' class="logo"}}
+        <LinkTo @route="application" class="logo">
           <img src="assets/images/logo.png" width="70px"/>
-        {{/link-to}}
+        </LinkTo>
 
         <div class="breadcrumb-container">
-          {{em-breadcrumbs items=prefixedBreadcrumbs}}
+          <EmBreadcrumbs @items={{this.prefixedBreadcrumbs}} />
         </div>
 
         <div class="ui-info">
@@ -34,7 +34,7 @@
             <span>Version <b>{{env.app.buildVersion}}</b></span>
           {{/if}}
           <span>
-            <a href={{env.app.hrefs.help}} target="_blank">
+            <a href={{env.app.hrefs.help}} target="_blank" rel="noopener noreferrer">
               <i class="fa fa-question-circle"></i>
             </a>
           </span>
@@ -50,7 +50,7 @@
 
   <div class="footer">
     <div class="lr-margin content">
-      <a href={{env.app.hrefs.license}} target="_blank">
+      <a href={{env.app.hrefs.license}} target="_blank" rel="noopener noreferrer">
         Licensed under the Apache License, Version 2.0.
       </a>
       <div class="ui-info">
@@ -64,4 +64,7 @@
 
 {{outlet "modal"}}
 
-{{error-bar error=appError}}
+{{!--
+TODO
+<ErrorBar @error={{appError}} />
+--}}

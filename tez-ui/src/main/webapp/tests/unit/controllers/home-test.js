@@ -16,31 +16,30 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:home', 'Unit | Controller | home', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | home', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:home').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
+    assert.equal(controller.breadcrumbs, null);
   });
 
-  assert.ok(controller);
-  assert.equal(controller.get("breadcrumbs"), null);
-});
+  test('tabs test', function(assert) {
+    let tabs = this.owner.factoryFor('controller:home').create({
+      send() {},
+      initVisibleColumns() {}
+    }).get("tabs");
 
-test('tabs test', function(assert) {
-  let tabs = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
-  }).get("tabs");
-
-  assert.equal(tabs.length, 2);
-  assert.equal(tabs[0].text, "All DAGs");
-  assert.equal(tabs[1].text, "Hive Queries");
+    assert.equal(tabs.length, 2);
+    assert.equal(tabs[0].text, "All DAGs");
+    assert.equal(tabs[1].text, "Hive Queries");
+  });
 });

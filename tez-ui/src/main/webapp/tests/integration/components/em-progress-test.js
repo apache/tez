@@ -16,58 +16,75 @@
  * limitations under the License.
  */
 
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
+import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { find, render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-moduleForComponent('em-progress', 'Integration | Component | em progress', {
-  integration: true
-});
+module('Integration | Component | em progress', function(hooks) {
+  setupRenderingTest(hooks);
 
-test('It renders', function(assert) {
+  test('It renders', async function(assert) {
 
-  // Set any properties with this.set('myProperty', 'value');
-  // Handle any actions with this.on('myAction', function(val) { ... });" + EOL + EOL +
+    await render(hbs`<EmProgress/>`);
 
-  this.render(hbs`{{em-progress}}`);
+    assert.dom(this.element).hasText('0%');
 
-  assert.equal(this.$().text().trim(), '0%');
+    await render(hbs`<EmProgress></EmProgress>`);
+    assert.dom(this.element).hasText('0%');
+  });
 
-  this.render(hbs`{{#em-progress}}{{/em-progress}}`);
-  assert.equal(this.$().text().trim(), '0%');
-});
+  test('With a specific value', async function(assert) {
+    await render(hbs`<EmProgress @value={{0.5}}/>`);
+    assert.dom(this.element).hasText('50%');
+  });
 
-test('With a specific value', function(assert) {
-  this.render(hbs`{{em-progress value=0.5}}`);
-  assert.equal(this.$().text().trim(), '50%');
-});
+  test('Custom valueMin & valueMax', async function(assert) {
+    await render(hbs`<EmProgress @value={{15}} @valueMin={{10}} @valueMax={{20}}/>`);
+    assert.dom(this.element).hasText('50%');
+    assert.notOk(find('.striped'), "Striped class added");
+  });
 
-test('Custom valueMin & valueMax', function(assert) {
-  this.render(hbs`{{em-progress value=15 valueMin=10 valueMax=20}}`);
-  assert.equal(this.$().text().trim(), '50%');
+  test('Check for stripes & animation while in progress', async function(assert) {
+    await render(hbs`<EmProgress @value={{0.5}} @striped={{true}}/>`);
 
-  assert.notOk(this.$('.striped')[0], "Striped class added");
-});
+    assert.dom(this.element).hasText('50%');
+    let container = find('.em-progress-container');
+    let progressBar = find('.progress-bar');
+    assert.ok(container, "em-progress-container class should be found");
+    assert.ok(progressBar, "progress-bar class should be found");
+    assert.dom(container).hasClass('striped', "Striped class not found");
+    assert.dom(container).hasClass('animated', "Animated class not found");
+    assert.dom(progressBar).hasClass('progress-bar-striped', "progress-bar-striped class not found");
+    assert.dom(progressBar).hasClass('active', "active class not found");
+  });
 
-test('Check for stripes & animation while in progress', function(assert) {
-  this.render(hbs`{{em-progress value=0.5 striped=true}}`);
+  test('Check for stripes & animation while starting', async function(assert) {
+    await render(hbs`<EmProgress @value={{0}} @striped={{true}}/>`);
 
-  assert.equal(this.$().text().trim(), '50%');
-  assert.ok(this.$('.striped')[0], "Striped class added");
-  assert.ok(this.$('.animated')[0], "Animated class should be added!");
-});
+    assert.dom(this.element).hasText('0%');
+    let container = find('.em-progress-container');
+    let progressBar = find('.progress-bar');
+    assert.ok(container, "em-progress-container class should be found");
+    assert.ok(progressBar, "progress-bar class should be found");
+    assert.dom(container).hasClass('striped', "Striped class not found");
+    assert.dom(container).doesNotHaveClass('animated', "Animated class should not found");
+    assert.dom(progressBar).hasClass('progress-bar-striped', "progress-bar-striped class not found");
+    assert.dom(progressBar).doesNotHaveClass('active', "active class should not be found");
+  });
 
-test('Check for stripes & animation while starting', function(assert) {
-  this.render(hbs`{{em-progress value=0 striped=true}}`);
+  test('Check for stripes & animation on completion', async function(assert) {
+    await render(hbs`<EmProgress @value={{1}} @striped={{true}}/>`);
 
-  assert.equal(this.$().text().trim(), '0%');
-  assert.ok(this.$('.striped')[0], "Striped class added");
-  assert.ok(!this.$('.animated')[0], "Animated class shouldn't be added!");
-});
-
-test('Check for stripes & animation on completion', function(assert) {
-  this.render(hbs`{{em-progress value=1 striped=true}}`);
-
-  assert.equal(this.$().text().trim(), '100%');
-  assert.ok(this.$('.striped')[0], "Striped class added");
-  assert.ok(!this.$('.animated')[0], "Animated class shouldn't be added!");
+    assert.dom(this.element).hasText('100%');
+    let container = find('.em-progress-container');
+    let progressBar = find('.progress-bar');
+    assert.ok(container, "em-progress-container class should be found");
+    assert.ok(progressBar, "progress-bar class should be found");
+    assert.dom(container).hasClass('striped', "Striped class not found");
+    assert.dom(container).doesNotHaveClass('animated', "Animated class should not found");
+    assert.dom(progressBar).hasClass('progress-bar-striped', "progress-bar-striped class not found");
+    assert.dom(progressBar).doesNotHaveClass('active', "active class should not be found");
+    assert.equal(this.element.textContent.trim(), '100%');
+  });
 });

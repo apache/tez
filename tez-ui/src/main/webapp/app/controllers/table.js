@@ -1,4 +1,3 @@
-/*global more*/
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,15 +16,16 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed, observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { inject as service } from '@ember/service';
+import MoreObject from '../utils/more-object';
 
 import AbstractController from './abstract';
 import TableDefinition from '../utils/table-definition';
 import isIOCounter from '../utils/misc';
 
 import CounterColumnDefinition from '../utils/counter-column-definition';
-
-var MoreObject = more.Object;
 
 export default AbstractController.extend({
   queryParams: ["rowCount", "searchText", "sortColumnId", "sortOrder", "pageNo"],
@@ -43,29 +43,29 @@ export default AbstractController.extend({
   columnSelectorTitle: 'Column Selector',
   columnSelectorMessage: "",
 
-  polling: Ember.inject.service("pollster"),
+  polling: service("pollster"),
 
-  definition: Ember.computed("model", function () {
+  definition: computed('model', 'pageNo', 'rowCount', 'searchText', 'sortColumnId', 'sortOrder', function () {
     return TableDefinition.create({
-      rowCount: this.get("rowCount"),
-      searchText: this.get("searchText"),
-      sortColumnId: this.get("sortColumnId"),
-      sortOrder: this.get("sortOrder"),
-      pageNo: this.get("pageNo"),
+      rowCount: this.rowCount,
+      searchText: this.searchText,
+      sortColumnId: this.sortColumnId,
+      sortOrder: this.sortOrder,
+      pageNo: this.pageNo,
       headerAsSortButton: true,
     });
   }),
 
-  storageID: Ember.computed("name", function () {
-    return this.get("name") + ":visibleColumnIDs";
+  storageID: computed("name", function () {
+    return this.name + ":visibleColumnIDs";
   }),
 
-  initVisibleColumns: Ember.on("init", Ember.observer("columns", function () { //To reset on entity change
-    var visibleColumnIDs = this.get("localStorage").get(this.get("storageID")) || {};
+  initVisibleColumns: on("init", observer("columns", function () { //To reset on entity change
+    var visibleColumnIDs = this.localStorage.get(this.storageID) || {};
 
-    this.get('columns').forEach(function (config) {
+    this.columns.forEach(function (config) {
       if(visibleColumnIDs[config.id] === undefined) {
-        visibleColumnIDs[config.id] = !Ember.get(config, "hiddenByDefault");
+        visibleColumnIDs[config.id] = !config.hiddenByDefault;
       }
     });
 
@@ -91,10 +91,10 @@ export default AbstractController.extend({
     return true;
   },
 
-  allColumns: Ember.computed("columns", function () {
-    var columns = this.get("columns"),
+  allColumns: computed('beforeSort', 'columns', function () {
+    var columns = this.columns,
         counters = this.getCounterColumns(),
-        beforeSort = this.get("beforeSort").bind(this);
+        beforeSort = this.beforeSort.bind(this);
 
     columns = columns.concat(CounterColumnDefinition.make(counters));
 
@@ -105,9 +105,9 @@ export default AbstractController.extend({
     return columns;
   }),
 
-  visibleColumns: Ember.computed('visibleColumnIDs', 'allColumns', function() {
+  visibleColumns: computed('visibleColumnIDs', 'allColumns', function() {
     var visibleColumnIDs = this.visibleColumnIDs;
-    return this.get('allColumns').filter(function (column) {
+    return this.allColumns.filter(function (column) {
       return visibleColumnIDs[column.get("id")];
     });
   }),
@@ -116,52 +116,50 @@ export default AbstractController.extend({
     return this.get('env.app.tables.defaultColumns.counters');
   },
 
-  actions: {
-    searchChanged: function (searchText) {
-      this.set("searchText", searchText);
-    },
-    sortChanged: function (sortColumnId, sortOrder) {
-      this.setProperties({
-        sortColumnId,
-        sortOrder
-      });
-    },
-    rowCountChanged: function (rowCount) {
-      this.set("rowCount", rowCount);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNo", pageNum);
-    },
+  searchChanged: action(function (searchText) {
+    this.set("searchText", searchText);
+  }),
+  sortChanged: action(function (sortColumnId, sortOrder) {
+    this.setProperties({
+      sortColumnId,
+      sortOrder
+    });
+  }),
+  rowCountChanged: action(function (rowCount) {
+    this.set("rowCount", rowCount);
+  }),
+  pageChanged: action(function (pageNum) {
+    this.set("pageNo", pageNum);
+  }),
 
-    rowsChanged: function (rows) {
-      this.send("setPollingRecords", rows);
-    },
+  rowsChanged: action(function (rows) {
+    this.send("setPollingRecords", rows);
+  }),
 
-    // Column selection actions
-    openColumnSelector: function () {
-      this.send("openModal", "column-selector", {
-        title: this.get('columnSelectorTitle'),
-        targetObject: this,
-        content: {
-          message: this.get('columnSelectorMessage'),
-          columns: this.get('allColumns'),
-          visibleColumnIDs: this.get('visibleColumnIDs')
-        }
-      });
-    },
-    columnsSelected: function (visibleColumnIDs) {
-      var columnIDs = {};
-
-      MoreObject.forEach(visibleColumnIDs, function (key, value) {
-        if(!isIOCounter(key)) {
-          columnIDs[key] = value;
-        }
-      });
-
-      if(!MoreObject.equals(columnIDs, this.get("visibleColumnIDs"))) {
-        this.get("localStorage").set(this.get("storageID"), columnIDs);
-        this.set('visibleColumnIDs', columnIDs);
+  // Column selection actions
+  openColumnSelector: action(function () {
+    this.send("openModal", "column-selector", {
+      title: this.columnSelectorTitle,
+      targetObject: this,
+      content: {
+        message: this.columnSelectorMessage,
+        columns: this.allColumns,
+        visibleColumnIDs: this.visibleColumnIDs
       }
+    });
+  }),
+  columnsSelected: action(function (visibleColumnIDs) {
+    var columnIDs = {};
+
+    MoreObject.forEach(visibleColumnIDs, function (key, value) {
+      if(!isIOCounter(key)) {
+        columnIDs[key] = value;
+      }
+    });
+
+    if(!MoreObject.equals(columnIDs, this.visibleColumnIDs)) {
+      this.localStorage.set(this.storageID, columnIDs);
+      this.set('visibleColumnIDs', columnIDs);
     }
-  }
+  })
 });

@@ -17,7 +17,7 @@
 }}
 
 <span class="progress-text">
-  {{progressText}}
+  {{this.progressText}}
 </span>
-{{em-table-status-cell content=process.vertex.finalStatus}}
-{{process.name}}
+<EmTableStatusCell @content={{this.process.vertex.finalStatus}} />
+{{this.process.name}}

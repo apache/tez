@@ -16,26 +16,26 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:multi-table', 'Unit | Controller | multi table', {
-  // Specify the other units that are required for this test.
-  // needs: ['service:local-storage']
-});
+module('Unit | Controller | multi table', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    localStorage: Ember.Object.create(),
-    getCounterColumns: function () {
-      return [];
-    }
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:multi-table').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      localStorage: EmberObject.create(),
+      getCounterColumns: function () {
+        return [];
+      }
+    });
+
+    assert.ok(controller);
+    assert.ok(controller._visibleColumnsObserver);
+    assert.ok(controller.sendCountersChanged);
   });
-
-  assert.ok(controller);
-  assert.ok(controller._visibleColumnsObserver);
-  assert.ok(controller.sendCountersChanged);
 });

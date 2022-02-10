@@ -16,54 +16,53 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | dag/tasks', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:dag/tasks', 'Unit | Controller | dag/tasks', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/tasks').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns: function () {
+        return [];
+      }
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: function () {
-      return [];
-    }
+    assert.ok(controller);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.equal(controller.columns.length, 8);
   });
 
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.equal(controller.columns.length, 8);
-});
+  test('Log column test', function(assert) {
+    let controller = this.owner.factoryFor('controller:dag/tasks').create({
+          send() {},
+          beforeSort: {bind() {}},
+          initVisibleColumns() {},
+          getCounterColumns: function () {
+            return [];
+          }
+        }),
+        testAttemptID = "attempt_1";
 
-test('Log column test', function(assert) {
-  let controller = this.subject({
-        send: Ember.K,
-        beforeSort: {bind: Ember.K},
-        initVisibleColumns: Ember.K,
-        getCounterColumns: function () {
-          return [];
-        }
-      }),
-      testAttemptID = "attempt_1";
+    var columnDef = controller.columns.findBy("id", "log"),
+        getLogCellContent = columnDef.getCellContent;
 
-  var columnDef = controller.get("columns").findBy("id", "log"),
-      getLogCellContent = columnDef.getCellContent;
+    assert.equal(getLogCellContent(EmberObject.create()), undefined);
 
-  assert.equal(getLogCellContent(Ember.Object.create()), undefined);
+    assert.equal(getLogCellContent(EmberObject.create({
+      successfulAttemptID: testAttemptID
+    })), testAttemptID);
 
-  assert.equal(getLogCellContent(Ember.Object.create({
-    successfulAttemptID: testAttemptID
-  })), testAttemptID);
+    assert.equal(getLogCellContent(EmberObject.create({
+      attemptIDs: ["1", "2", testAttemptID]
+    })), testAttemptID);
 
-  assert.equal(getLogCellContent(Ember.Object.create({
-    attemptIDs: ["1", "2", testAttemptID]
-  })), testAttemptID);
-
-  assert.equal(columnDef.get("enableSearch"), false);
+    assert.false(columnDef.get("enableSearch"));
+  });
 });

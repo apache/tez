@@ -16,22 +16,24 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { observer } from '@ember/object';
+import { on } from '@ember/object/evented';
+import { later } from '@ember/runloop';
 
 import TableController from './table';
 import CounterColumnDefinition from '../utils/counter-column-definition';
 
 export default TableController.extend({
 
-  _visibleColumnsObserver: Ember.on("init", Ember.observer("visibleColumns", function () {
-    Ember.run.later(this, "sendCountersChanged");
+  _visibleColumnsObserver: on("init", observer("visibleColumns", function () {
+    later(this, "sendCountersChanged");
   })),
 
   sendCountersChanged: function () {
-    var visibleCounters = this.get("visibleColumns").filter(function (definition) {
+    var visibleCounters = this.visibleColumns.filter(function (definition) {
       return definition instanceof CounterColumnDefinition;
     });
-    this.send("countersToPollChanged", visibleCounters);
+    //this.send("countersToPollChanged", visibleCounters);
   }
 
 });

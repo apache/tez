@@ -16,51 +16,38 @@
  * limitations under the License.
  */
 
-import { moduleForModel, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { run } from '@ember/runloop';
 
-moduleForModel('task', 'Unit | Model | task', {
-  // Specify the other units that are required for this test.
-  needs: []
-});
+module('Unit | Model | task', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let model = this.subject();
+  test('Basic creation test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('task'));
 
-  assert.ok(model);
-  assert.ok(model.needs.dag);
-  assert.ok(model.needs.am);
+    assert.ok(model);
+  });
 
-  assert.ok(model.vertexID);
-  assert.ok(model.vertexIndex);
-  assert.ok(model.vertexName);
+  test('index test', function(assert) {
+    let model = run(() => this.owner.lookup('service:store').createRecord('task', {
+          entityID: "1_2_3",
+        }));
 
-  assert.ok(model.dagID);
-  assert.ok(model.dag);
+    assert.equal(model.get("index"), "3");
+  });
 
-  assert.ok(model.failedTaskAttempts);
-
-  assert.ok(model.successfulAttemptID);
-  assert.ok(model.attemptIDs);
-});
-
-test('index test', function(assert) {
-  let model = this.subject({
-        entityID: "1_2_3",
-      });
-
-  assert.equal(model.get("index"), "3");
-});
-
-test('vertexName test', function(assert) {
-  let testVertexName = "Test Vertex",
-      model = this.subject({
-        vertexID: "1_2",
-        dag: {
-          vertexIdNameMap: {
-            "1_2": testVertexName
+  test('vertexName test', function(assert) {
+    let testVertexName = "Test Vertex",
+        model = run(() => this.owner.lookup('service:store').createRecord('task', {
+          vertexID: "1_2",
+          dag: {
+            vertexIdNameMap: {
+              "1_2": testVertexName
+            }
           }
-        }
-      });
+        }));
 
-  assert.equal(model.get("vertexName"), testVertexName);
+    assert.equal(model.get("vertexName"), testVertexName);
+  });
 });

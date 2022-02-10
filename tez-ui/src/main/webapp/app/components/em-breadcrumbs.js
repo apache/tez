@@ -16,23 +16,24 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { computed } from '@ember/object';
+import { assert } from '@ember/debug';
+import { htmlSafe } from '@ember/template';
 import layout from '../templates/components/em-breadcrumbs';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
-  itemStyle: Ember.computed("items", function () {
-    var itemCount = this.get("items.length");
-
-    if(itemCount) {
-      let widthPercent = 100 / itemCount;
-      return new Ember.Handlebars.SafeString(`max-width: ${widthPercent}%`);
-    }
+  itemStyle: computed('items.length', function () {
+    // Default to 1 item to prevent divide by zero
+    var itemCount = this.get("items.length") || 1;
+    let widthPercent = 100 / itemCount;
+    return new htmlSafe(`max-width: ${widthPercent}%`);
   }),
 
-  normalizedItems: Ember.computed("items", function () {
-    var items = this.get("items");
+  normalizedItems: computed("items", function () {
+    var items = this.items;
 
     if(items) {
       let lastIndex = items.length - 1;
@@ -42,7 +43,7 @@ export default Ember.Component.extend({
           classNames: item.classNames || [],
         };
 
-        Ember.assert("classNames must be an array", Array.isArray(itemDef.classNames));
+        assert("classNames must be an array", Array.isArray(itemDef.classNames));
 
         if(index === lastIndex) {
           itemDef.classNames.push("active");

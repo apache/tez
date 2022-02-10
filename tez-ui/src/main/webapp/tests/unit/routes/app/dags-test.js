@@ -16,69 +16,58 @@
  * limitations under the License.
  */
 
-import { moduleFor, test } from 'ember-qunit';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import Ember from 'ember';
+module('Unit | Route | app/dags', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('route:app/dags', 'Unit | Route | app/dags', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let route = this.owner.lookup('route:app/dags');
 
-test('Basic creation test', function(assert) {
-  let route = this.subject();
-
-  assert.ok(route);
-  assert.ok(route.title);
-  assert.ok(route.loaderNamespace);
-  assert.ok(route.setupController);
-  assert.ok(route.load);
-});
-
-test('setupController test', function(assert) {
-  assert.expect(2);
-
-  let route = this.subject({
-    modelFor: function (type) {
-      assert.equal(type, 'app');
-      return Ember.Object.create({
-        entityID: 'app_123'
-      });
-    },
-    startCrumbBubble: function () {
-      assert.ok(true);
-    }
+    assert.ok(route);
   });
 
-  route.setupController({}, {});
-});
+  test('setupController test', function(assert) {
+    assert.expect(1);
 
-test('Test load', function(assert) {
-  let testID = "123",
-      testOptions = {},
-      testData = {},
-      route = this.subject({
-        modelFor: function (type) {
-          assert.equal(type, "app");
-          return Ember.Object.create({
-            entityID: testID
-          });
-        },
-        get: function () {
-          return {
-            query: function (type, query, options) {
-              assert.equal(type, "dag");
-              assert.equal(query.appID, testID);
-              assert.equal(options, testOptions);
-              return testData;
-            }
-          };
-        }
-      }),
-      data;
+    let route = this.owner.factoryFor('route:app/dags').create({
+      startCrumbBubble: function () {
+        assert.ok(true);
+      }
+    });
 
-  assert.expect(1 + 3 + 1);
+    route.setupController({}, {});
+  });
 
-  data = route.load(null, null, testOptions);
-  assert.equal(data, testData);
+  test('Test load', function(assert) {
+    let testID = "123",
+        testOptions = {},
+        testData = {},
+        route = this.owner.factoryFor('route:app/dags').create({
+          modelFor: function (type) {
+            assert.equal(type, "app");
+            return EmberObject.create({
+              entityID: testID
+            });
+          },
+          get: function () {
+            return {
+              query: function (type, query, options) {
+                assert.equal(type, "dag");
+                assert.equal(query.appID, testID);
+                assert.equal(options, testOptions);
+                return testData;
+              }
+            };
+          }
+        }),
+        data;
+
+    assert.expect(1 + 3 + 1);
+
+    data = route.load(null, null, testOptions);
+    assert.equal(data, testData);
+  });
 });

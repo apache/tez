@@ -16,24 +16,28 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import JqueryInitializer from '../../../initializers/jquery';
+import { setupRenderingTest } from 'ember-qunit';
 import { module, test } from 'qunit';
+import { render } from '@ember/test-helpers';
+import { hbs } from 'ember-cli-htmlbars';
 
-let application;
+module('Integration | Component | em tgraph', function(hooks) {
+  setupRenderingTest(hooks);
 
-module('Unit | Initializer | jquery', {
-  beforeEach() {
-    Ember.run(function() {
-      application = Ember.Application.create();
-      application.deferReadiness();
-    });
-  }
-});
+  test('Basic failure test', async function(assert) {
 
-test('Basic creation test', function(assert) {
-  JqueryInitializer.initialize(application);
+    this.set("data", []);
+    await render(hbs`{{em-tgraph data=data}}`);
 
-  assert.ok(Ember.$(document).tooltip( "instance" ));
-  assert.equal(Ember.$.ajaxSetup().cache, false);
+    assert.equal(this.element.textContent.trim(), 'Rendering failed! Vertices not found!');
+
+    // Template block usage:" + EOL +
+    await render(hbs`
+      {{#em-tgraph data=data}}
+        template block text
+      {{/em-tgraph}}
+    `);
+
+    assert.equal(this.element.textContent.trim(), 'Rendering failed! Vertices not found!');
+  });
 });

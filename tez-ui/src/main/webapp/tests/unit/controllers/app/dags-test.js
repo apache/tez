@@ -16,25 +16,23 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Controller | app/dags', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('controller:app/dags', 'Unit | Controller | app/dags', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:app/dags').create({
+      send() {},
+      beforeSort: {bind() {}},
+      initVisibleColumns() {},
+      getCounterColumns() { return []}
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    beforeSort: {bind: Ember.K},
-    initVisibleColumns: Ember.K,
-    getCounterColumns: Ember.K
+    assert.ok(controller);
+    assert.ok(controller.breadcrumbs);
+    assert.ok(controller.columns);
+    assert.ok(controller.getCounterColumns);
   });
-
-  assert.ok(controller);
-  assert.ok(controller.breadcrumbs);
-  assert.ok(controller.columns);
-  assert.ok(controller.getCounterColumns);
 });

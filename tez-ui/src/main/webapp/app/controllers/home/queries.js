@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import { action, computed } from '@ember/object';
 
 import TableController from '../table';
 import ColumnDefinition from '../../utils/column-definition';
@@ -41,41 +41,39 @@ export default TableController.extend({
   // we don't want page to be a query param as only the first page will be loaded first.
   pageNum: 1,
 
-  breadcrumbs: [{
+  breadcrumbs: computed(function() {return [{
     text: "All Queries",
     routeName: "home.queries",
-  }],
+  }]}),
 
   moreAvailable: false,
   loadingMore: false,
 
-  headerComponentNames: ['queries-page-search', 'table-controls', 'pagination-ui'],
-  footerComponentNames: ['pagination-ui'],
+  headerComponentNames: computed(function() {return ['queries-page-search', 'table-controls', 'pagination-ui']}),
+  footerComponentNames: computed(function() {return ['pagination-ui']}),
 
   _definition: TableDefinition.create(),
   // Using computed, as observer won't fire if the property is not used
-  definition: Ember.computed("queryID", "dagID", "appID", "user", "requestUser",
-      "executionMode", "tablesRead", "tablesWritten", "operationID", "queue",
-      "pageNum", "moreAvailable", "loadingMore", function () {
+  definition: computed('_definition', 'appID', 'dagID', 'executionMode', 'loadingMore', 'moreAvailable', 'operationID', 'pageNum', 'queryID', 'queue', 'requestUser', 'tablesRead', 'tablesWritten', 'user', function () {
 
-    var definition = this.get("_definition");
+    var definition = this._definition;
 
     definition.setProperties({
-      queryID: this.get("queryID"),
-      dagID: this.get("dagID"),
-      appID: this.get("appID"),
-      executionMode: this.get("executionMode"),
-      user: this.get("user"),
-      requestUser: this.get("requestUser"),
-      tablesRead: this.get("tablesRead"),
-      tablesWritten: this.get("tablesWritten"),
-      operationID: this.get("operationID"),
-      queue: this.get("queue"),
+      queryID: this.queryID,
+      dagID: this.dagID,
+      appID: this.appID,
+      executionMode: this.executionMode,
+      user: this.user,
+      requestUser: this.requestUser,
+      tablesRead: this.tablesRead,
+      tablesWritten: this.tablesWritten,
+      operationID: this.operationID,
+      queue: this.queue,
 
-      pageNum: this.get("pageNum"),
+      pageNum: this.pageNum,
 
-      moreAvailable: this.get("moreAvailable"),
-      loadingMore: this.get("loadingMore")
+      moreAvailable: this.moreAvailable,
+      loadingMore: this.loadingMore
     });
 
     return definition;
@@ -196,13 +194,10 @@ export default TableController.extend({
     return [];
   },
 
-  actions: {
-    search: function (properties) {
-      this.setProperties(properties);
-    },
-    pageChanged: function (pageNum) {
-      this.set("pageNum", pageNum);
-    },
-  }
-
+  search: action(function (properties) {
+    this.setProperties(properties);
+  }),
+  pageChanged: action(function (pageNum) {
+    this.set("pageNum", pageNum);
+  })
 });

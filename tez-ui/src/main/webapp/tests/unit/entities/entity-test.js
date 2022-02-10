@@ -16,361 +16,351 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import EmberObject from '@ember/object';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import { resolve, reject } from 'rsvp';
 
-import { moduleFor, test } from 'ember-qunit';
+module('Unit | Entity | entity', function(hooks) {
+  setupTest(hooks);
 
-moduleFor('entitie:entity', 'Unit | Entity | entity', {
-  // Specify the other units that are required for this test.
-  // needs: ['entitie:foo']
-});
+  test('Basic creation test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity');
 
-test('Basic creation test', function(assert) {
-  let entity = this.subject();
+    assert.ok(entity);
 
-  assert.ok(entity);
+    assert.ok(entity.queryRecord);
+    assert.ok(entity.query);
 
-  assert.ok(entity.queryRecord);
-  assert.ok(entity.query);
+    assert.ok(entity.normalizeNeed);
+    assert.ok(entity.setNeed);
+    assert.ok(entity._loadNeed);
+    assert.ok(entity.loadNeed);
 
-  assert.ok(entity.normalizeNeed);
-  assert.ok(entity.setNeed);
-  assert.ok(entity._loadNeed);
-  assert.ok(entity.loadNeed);
-
-  assert.ok(entity._loadAllNeeds);
-  assert.ok(entity.loadAllNeeds);
-
-  assert.ok(entity.resetAllNeeds);
-});
-
-test('normalizeNeed test', function(assert) {
-  let entity = this.subject(),
-      expectedProperties = ["id", "name", "type", "idKey", "silent", "queryParams", "urlParams"],
-      testParentModel = Ember.Object.create({
-        appKey: "id_1"
-      }),
-      testQueryParams = { x: 1 },
-      testUrlParams = { y: 2 };
-
-  assert.deepEqual(entity.normalizeNeed("app", "appKey", testParentModel, testQueryParams, testUrlParams).
-  getProperties(expectedProperties), {
-    id: "id_1",
-    name: "app",
-    type: "app",
-    idKey: "appKey",
-    silent: false,
-    queryParams: testQueryParams,
-    urlParams: testUrlParams
-  }, "Test 1");
-
-  assert.deepEqual(entity.normalizeNeed( "app", {
-    idKey: "appKey",
-    queryParams: { x: 3 },
-    urlParams: { y: 4 }
-  }, testParentModel).
-  getProperties(expectedProperties), {
-    id: "id_1",
-    name: "app",
-    type: "app",
-    idKey: "appKey",
-    silent: false,
-    queryParams: { x: 3 },
-    urlParams: { y: 4 }
-  }, "Test 2");
-
-  assert.deepEqual(entity.normalizeNeed( "app", {
-    type: "application",
-    idKey: "appKey",
-    queryParams: { x: 3 },
-    urlParams: { y: 4 }
-  }, testParentModel, testQueryParams, testUrlParams).
-  getProperties(expectedProperties), {
-    id: "id_1",
-    name: "app",
-    type: "application",
-    idKey: "appKey",
-    silent: false,
-    queryParams: testQueryParams,
-    urlParams: testUrlParams
-  }, "Test 3");
-
-  assert.deepEqual(entity.normalizeNeed( "app", {
-    silent: true,
-    idKey: "appKey",
-    queryParams: function () {
-      return { x: 5 };
-    },
-    urlParams: function () {
-      return { y: 6 };
-    },
-  }, testParentModel).
-  getProperties(expectedProperties), {
-    id: "id_1",
-    name: "app",
-    type: "app",
-    idKey: "appKey",
-    silent: true,
-    queryParams: { x: 5 },
-    urlParams: { y: 6}
-  }, "Test 4");
-});
-
-test('loadAllNeeds basic test', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: "appID",
-          foo: "fooID"
-        },
-        appID: 1,
-        fooID: 2
-      });
-
-  assert.expect(1 + 2 + 1);
-
-  assert.equal(entity.loadAllNeeds(loader, Ember.Object.create()), undefined, "Model without needs");
-
-  loader = {
-    queryRecord: function (type, id) {
-
-      // Must be called twice, once for each record
-      switch(type) {
-        case "app":
-          assert.equal(id, testModel.get("appID"));
-        break;
-        case "foo":
-          assert.equal(id, testModel.get("fooID"));
-        break;
-      }
-
-      return Ember.RSVP.resolve();
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).then(function () {
-    assert.ok(true);
+    assert.ok(entity._loadAllNeeds);
+    assert.ok(entity.loadAllNeeds);
   });
-});
 
-test('loadAllNeeds silent=false test', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            idKey: "appID",
-            // silent: false - By default it's false
+  test('normalizeNeed test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        expectedProperties = ["id", "name", "type", "idKey", "silent", "queryParams", "urlParams"],
+        testParentModel = EmberObject.create({
+          appKey: "id_1"
+        }),
+        testQueryParams = { x: 1 },
+        testUrlParams = { y: 2 };
+    let actualProperties = entity.normalizeNeed("app", "appKey", testParentModel, testQueryParams, testUrlParams);
+    assert.equal(actualProperties.id, "id_1");
+    assert.equal(actualProperties.name, "app");
+    assert.equal(actualProperties.type, "app");
+    assert.equal(actualProperties.idKey, "appKey");
+    assert.equal(actualProperties.silent, false);
+    assert.deepEqual(actualProperties.queryParams, testQueryParams);
+    assert.deepEqual(actualProperties.urlParams, testUrlParams);
+
+    actualProperties = entity.normalizeNeed( "app", {
+      idKey: "appKey",
+      queryParams: { x: 3 },
+      urlParams: { y: 4 }
+    }, testParentModel);
+    assert.equal(actualProperties.id, "id_1");
+    assert.equal(actualProperties.name, "app");
+    assert.equal(actualProperties.type, "app");
+    assert.equal(actualProperties.idKey, "appKey");
+    assert.equal(actualProperties.silent, false);
+    assert.deepEqual(actualProperties.queryParams, { x: 3 });
+    assert.deepEqual(actualProperties.urlParams, { y: 4 });
+
+    actualProperties = entity.normalizeNeed( "app", {
+      type: "application",
+      idKey: "appKey",
+      queryParams: { x: 3 },
+      urlParams: { y: 4 }
+    }, testParentModel, testQueryParams, testUrlParams);
+    assert.equal(actualProperties.id, "id_1");
+    assert.equal(actualProperties.name, "app");
+    assert.equal(actualProperties.type, "application");
+    assert.equal(actualProperties.idKey, "appKey");
+    assert.equal(actualProperties.silent, false);
+    assert.deepEqual(actualProperties.queryParams, testQueryParams);
+    assert.deepEqual(actualProperties.urlParams, testUrlParams);
+
+    actualProperties = entity.normalizeNeed( "app", {
+      silent: true,
+      idKey: "appKey",
+      queryParams: function () {
+        return { x: 5 };
+      },
+      urlParams: function () {
+        return { y: 6 };
+      },
+    }, testParentModel);
+    assert.equal(actualProperties.id, "id_1");
+    assert.equal(actualProperties.name, "app");
+    assert.equal(actualProperties.type, "app");
+    assert.equal(actualProperties.idKey, "appKey");
+    assert.equal(actualProperties.silent, true);
+    assert.deepEqual(actualProperties.queryParams, { x: 5 });
+    assert.deepEqual(actualProperties.urlParams, { y: 6 });
+  });
+
+  test('loadAllNeeds basic test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: "appID",
+            foo: "fooID"
           },
-        },
-        appID: 1,
-      }),
-      testErr = {};
+          appID: 1,
+          fooID: 2
+        });
 
-  assert.expect(1 + 1);
+    assert.expect(1 + 2 + 1);
 
-  loader = {
-    queryRecord: function (type, id) {
-      assert.equal(id, testModel.get("appID"));
-      return Ember.RSVP.reject(testErr);
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).catch(function (err) {
-    assert.equal(err, testErr);
-  });
-});
+    assert.equal(entity.loadAllNeeds(loader, EmberObject.create({refreshLoadTime() {}})), undefined, "Model without needs");
 
-test('loadAllNeeds silent=true test', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            idKey: "appID",
-            silent: true
-          },
-        },
-        appID: 1,
-      });
+    loader = {
+      queryRecord: function (type, id) {
 
-  assert.expect(1 + 1);
-
-  loader = {
-    queryRecord: function (type, id) {
-      assert.equal(id, testModel.get("appID"));
-      return Ember.RSVP.resolve();
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).then(function (val) {
-    assert.ok(val);
-  });
-});
-
-test('setNeed test', function(assert) {
-  let entity = this.subject(),
-      parentModel = Ember.Object.create({
-        refreshLoadTime: function () {
-          assert.ok(true);
+        // Must be called twice, once for each record
+        switch(type) {
+          case "app":
+            assert.equal(id, testModel.get("appID"));
+          break;
+          case "foo":
+            assert.equal(id, testModel.get("fooID"));
+          break;
         }
-      }),
-      testModel = {},
-      testName = "name";
 
-  assert.expect(1 + 2);
-
-  entity.setNeed(parentModel, testName, testModel);
-  assert.equal(parentModel.get(testName), testModel);
-
-  parentModel.set("isDeleted", true);
-  parentModel.set(testName, undefined);
-  entity.setNeed(parentModel, testName, testModel);
-  assert.equal(parentModel.get(testName), undefined);
-});
-
-test('loadAllNeeds loadType=function test', function(assert) {
-  var entity = this.subject(),
-      loader = {},
-      testRecord = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            idKey: "appID",
-            loadType: function (record) {
-              assert.ok(testRecord === record);
-              return "demand";
-            }
-          },
-        },
-        appID: 1,
-      });
-
-  entity._loadNeed = function () {
-    assert.ok(true); // Shouldn't be called
-  };
-
-  assert.expect(1 + 1);
-  assert.equal(entity.loadAllNeeds(loader, testRecord), undefined);
-});
-
-test('_loadNeed single string type test', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            type: "appRm",
-            idKey: "appID",
-            silent: true
-          },
-        },
-        appID: 1,
-      });
-
-  assert.expect(2 + 1);
-
-  loader = {
-    queryRecord: function (type, id) {
-      assert.equal(id, testModel.get("appID"));
-      assert.equal(type, "appRm");
-      return Ember.RSVP.resolve();
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).then(function (val) {
-    assert.ok(val);
-  });
-});
-
-test('_loadNeed multiple type test', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            type: ["AhsApp", "appRm"],
-            idKey: "appID",
-            silent: true
-          },
-        },
-        appID: 1,
-      });
-
-  assert.expect(2 * 2 + 1);
-
-  loader = {
-    queryRecord: function (type, id) {
-      assert.equal(id, testModel.get("appID"));
-
-      if(type === "AhsApp") {
-        assert.ok(true);
-        return Ember.RSVP.reject();
+        return resolve();
       }
-      else {
+    };
+    entity.loadAllNeeds(loader, testModel).then(function () {
+      assert.ok(true);
+    });
+  });
+
+  test('loadAllNeeds silent=false test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              idKey: "appID",
+              // silent: false - By default it's false
+            },
+          },
+          appID: 1,
+        }),
+        testErr = {};
+
+    assert.expect(1 + 1);
+
+    loader = {
+      queryRecord: function (type, id) {
+        assert.equal(id, testModel.get("appID"));
+        return reject(testErr);
+      }
+    };
+    entity.loadAllNeeds(loader, testModel).catch(function (err) {
+      assert.equal(err, testErr);
+    });
+  });
+
+  test('loadAllNeeds silent=true test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              idKey: "appID",
+              silent: true
+            },
+          },
+          appID: 1,
+        });
+
+    assert.expect(1 + 1);
+
+    loader = {
+      queryRecord: function (type, id) {
+        assert.equal(id, testModel.get("appID"));
+        return resolve();
+      }
+    };
+    entity.loadAllNeeds(loader, testModel).then(function (val) {
+      assert.ok(val);
+    });
+  });
+
+  test('setNeed test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        parentModel = EmberObject.create(),
+        testModel = {},
+        testName = "name";
+
+    assert.expect(2);
+
+    entity.setNeed(parentModel, testName, testModel);
+    assert.equal(parentModel.get(testName), testModel);
+
+    parentModel.set("isDeleted", true);
+    parentModel.set(testName, undefined);
+    entity.setNeed(parentModel, testName, testModel);
+    assert.equal(parentModel.get(testName), undefined);
+  });
+
+  test('loadAllNeeds loadType=function test', function(assert) {
+    var entity = this.owner.lookup('entitie:entity'),
+        loader = {},
+        testRecord = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              idKey: "appID",
+              loadType: function (record) {
+                assert.strictEqual(testRecord, record);
+                return "demand";
+              }
+            },
+          },
+          appID: 1,
+        });
+
+    entity._loadNeed = function () {
+      assert.ok(true); // Shouldn't be called
+    };
+
+    assert.expect(1 + 1);
+    assert.equal(entity.loadAllNeeds(loader, testRecord), undefined);
+  });
+
+  test('_loadNeed single string type test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              type: "appRm",
+              idKey: "appID",
+              silent: true
+            },
+          },
+          appID: 1,
+        });
+
+    assert.expect(2 + 1);
+
+    loader = {
+      queryRecord: function (type, id) {
+        assert.equal(id, testModel.get("appID"));
         assert.equal(type, "appRm");
-        return Ember.RSVP.resolve();
+        return resolve();
       }
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).then(function (val) {
-    assert.ok(val);
+    };
+    entity.loadAllNeeds(loader, testModel).then(function (val) {
+      assert.ok(val);
+    });
   });
-});
 
-test('_loadNeed test with silent false', function(assert) {
-  let entity = this.subject(),
-      loader,
-      testModel = Ember.Object.create({
-        refreshLoadTime: Ember.K,
-        needs: {
-          app: {
-            type: ["AhsApp"],
-            idKey: "appID",
-            silent: false
+  test('_loadNeed multiple type test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              type: ["AhsApp", "appRm"],
+              idKey: "appID",
+              silent: true
+            },
           },
-        },
-        appID: 1,
-      }),
-      testErr = {};
+          appID: 1,
+        });
 
-  assert.expect(2 + 1);
+    assert.expect(2 * 2 + 1);
 
-  loader = {
-    queryRecord: function (type, id) {
-      assert.equal(id, testModel.get("appID"));
-      assert.equal(type, "AhsApp");
-      return Ember.RSVP.reject(testErr);
-    }
-  };
-  entity.loadAllNeeds(loader, testModel).catch(function (err) {
-    assert.equal(err, testErr);
-  });
-});
+    loader = {
+      queryRecord: function (type, id) {
+        assert.equal(id, testModel.get("appID"));
 
-test('resetAllNeeds test', function(assert) {
-  let entity = this.subject(),
-      parentModel = Ember.Object.create({
-        needs : {
-          foo: {},
-          bar: {}
-        },
-        foo: 1,
-        bar: 2,
-        refreshLoadTime: function () {
+        if(type === "AhsApp") {
           assert.ok(true);
+          return reject();
         }
-      });
+        else {
+          assert.equal(type, "appRm");
+          return resolve();
+        }
+      }
+    };
+    entity.loadAllNeeds(loader, testModel).then(function (val) {
+      assert.ok(val);
+    });
+  });
 
-  assert.expect(2 + 2 + 2);
+  test('_loadNeed test with silent false', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+        loader,
+        testModel = EmberObject.create({
+          refreshLoadTime() {},
+          needs: {
+            app: {
+              type: ["AhsApp"],
+              idKey: "appID",
+              silent: false
+            },
+          },
+          appID: 1,
+        }),
+        testErr = {};
 
-  assert.equal(parentModel.get("foo"), 1);
-  assert.equal(parentModel.get("bar"), 2);
+    assert.expect(2 + 1);
 
-  entity.resetAllNeeds({}, parentModel);
+    loader = {
+      queryRecord: function (type, id) {
+        assert.equal(id, testModel.get("appID"));
+        assert.equal(type, "AhsApp");
+        return reject(testErr);
+      }
+    };
+    entity.loadAllNeeds(loader, testModel).catch(function (err) {
+      assert.equal(err, testErr);
+    });
+  });
 
-  assert.equal(parentModel.get("foo"), null);
-  assert.equal(parentModel.get("bar"), null);
+  test('resetAllNeeds test', function(assert) {
+    let entity = this.owner.lookup('entitie:entity'),
+      loader = {},
+        parentModel = EmberObject.create({
+          needs : {
+            foo: {
+              loadType: 'demand',
+            },
+            bar: {
+              loadType: 'demand',
+            },
+          },
+          foo: 1,
+          bar: 2,
+          refreshLoadTime: function () {
+            assert.ok(true);
+          }
+        });
+
+    assert.expect(2 + 2 + 1);
+
+    assert.equal(parentModel.get("foo"), 1);
+    assert.equal(parentModel.get("bar"), 2);
+
+    entity.loadAllNeeds(loader, parentModel);
+
+    assert.equal(parentModel.get("foo"), null);
+    assert.equal(parentModel.get("bar"), null);
+  });
 });

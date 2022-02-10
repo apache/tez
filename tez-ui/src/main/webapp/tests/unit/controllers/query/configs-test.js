@@ -16,40 +16,39 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
-import { moduleFor, test } from 'ember-qunit';
+import { setupTest } from 'ember-qunit';
+import { module, test } from 'qunit';
 
-moduleFor('controller:query/configs', 'Unit | Controller | query/configs', {
-  // Specify the other units that are required for this test.
-  // needs: ['controller:foo']
-});
+module('Unit | Controller | query/configs', function(hooks) {
+  setupTest(hooks);
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:query/configs').create({
+      send() {},
+      initVisibleColumns() {}
+    });
+
+    assert.ok(controller);
+    assert.equal(controller.searchText, "tez");
+    assert.equal(controller.get("breadcrumbs.length"), 1);
+    assert.equal(controller.get("columns.length"), 2);
   });
 
-  assert.ok(controller);
-  assert.equal(controller.get("searchText"), "tez");
-  assert.equal(controller.get("breadcrumbs.length"), 1);
-  assert.equal(controller.get("columns.length"), 2);
-});
+  test('Basic creation test', function(assert) {
+    let controller = this.owner.factoryFor('controller:query/configs').create({
+      send() {},
+      initVisibleColumns() {},
+      model: {
+        configsJSON: JSON.stringify({
+          x: 1
+        })
+      }
+    });
 
-test('Basic creation test', function(assert) {
-  let controller = this.subject({
-    send: Ember.K,
-    initVisibleColumns: Ember.K,
-    model: {
-      configsJSON: JSON.stringify({
-        x: 1
-      })
-    }
+    let configs = controller.configs;
+
+    assert.equal(configs.length, 1);
+    assert.equal(configs[0].configName, "x");
+    assert.equal(configs[0].configValue, 1);
   });
-
-  let configs = controller.get("configs");
-
-  assert.equal(configs.length, 1);
-  assert.equal(configs[0].configName, "x");
-  assert.equal(configs[0].configValue, 1);
 });

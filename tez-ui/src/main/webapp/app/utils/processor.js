@@ -15,7 +15,7 @@
  * the License.
  */
 
-import Ember from 'ember';
+import EmberObject, { computed } from '@ember/object';
 
 function getVibrantHSL(colorNum, totalColors) {
   if (totalColors < 1){
@@ -28,23 +28,23 @@ function getVibrantHSL(colorNum, totalColors) {
   };
 }
 
-export default Ember.Object.extend({
+export default EmberObject.extend({
 
   processCount: 0,
 
   startTime: 0,
   endTime: 0,
 
-  timeWindow: Ember.computed("startTime", "endTime", function () {
-    return Math.max(0, this.get("endTime") - this.get("startTime"));
+  timeWindow: computed("startTime", "endTime", function () {
+    return Math.max(0, this.endTime - this.startTime);
   }),
 
   createProcessColor: function (index, totalProcessCount) {
-    return getVibrantHSL(index, totalProcessCount || this.get("processCount"));
+    return getVibrantHSL(index, totalProcessCount || this.processCount);
   },
 
   timeToPositionPercent: function (time) {
-    return ((time - this.get("startTime")) / this.get("timeWindow")) * 100;
+    return ((time - this.startTime) / this.timeWindow) * 100;
   }
 
 });

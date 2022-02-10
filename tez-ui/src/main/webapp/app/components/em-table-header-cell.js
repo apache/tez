@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action, computed } from '@ember/object';
 import layout from '../templates/components/em-table-header-cell';
 
-export default Ember.Component.extend({
+export default Component.extend({
   layout: layout,
 
   title: null, // Header cell Name
-  attributeBindings: ['title'],
+  attributeBindings: ['definition.id:title'],
 
   definition: null,
   tableDefinition: null,
@@ -32,17 +33,17 @@ export default Ember.Component.extend({
   classNames: ['table-header-cell'],
   classNameBindings: ['isSorting'],
 
-  isSorting: Ember.computed("dataProcessor.isSorting", function () {
+  isSorting: computed('dataProcessor.isSorting', 'definition.id', 'tableDefinition.sortColumnId', function () {
     return this.get("dataProcessor.isSorting") && this.get('tableDefinition.sortColumnId') === this.get('definition.id');
   }),
 
-  sortIconCSS: Ember.computed('tableDefinition.sortOrder', 'tableDefinition.sortColumnId', function () {
+  sortIconCSS: computed('definition.id', 'tableDefinition.{sortColumnId,sortOrder}', function () {
     if(this.get('tableDefinition.sortColumnId') === this.get('definition.id')) {
       return this.get('tableDefinition.sortOrder');
     }
   }),
 
-  sortToggledTitle: Ember.computed('tableDefinition.sortOrder', 'tableDefinition.sortColumnId', function () {
+  sortToggledTitle: computed('definition.id', 'tableDefinition.{sortColumnId,sortOrder}', function () {
     if(this.get('tableDefinition.sortColumnId') === this.get('definition.id')) {
       switch(this.get('tableDefinition.sortOrder')) {
         case "asc":
@@ -53,12 +54,10 @@ export default Ember.Component.extend({
     }
   }),
 
-  actions: {
-    sort: function () {
-      this.get('parentView').send('sort');
-    },
-    startColResize: function () {
-      this.get('parentView').send('startColResize');
-    }
-  }
+  sort: action(function () {
+    this.parentView.send('sort');
+  }),
+  startColResize: action(function () {
+    this.parentView.send('startColResize');
+  })
 });

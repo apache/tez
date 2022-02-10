@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-import Ember from 'ember';
+import Component from '@ember/component';
+import { action } from '@ember/object';
 
 const BUBBLE_DIA = 10; // Same as that in css
 
-export default Ember.Component.extend({
+export default Component.extend({
 
   process: null,
   processor: null,
@@ -28,16 +29,15 @@ export default Ember.Component.extend({
 
   classNames: ["em-swimlane-process-visual"],
 
-  actions: {
-    showTooltip: function(type, process, options) {
+    showTooltip: action(function(type, process, options) {
 
       if(type === "event") {
         let clientX = options.mouseEvent.clientX,
             events = process.get("events"),
             eventsUnderMouse = [];
 
-        this.$(".em-swimlane-event").each(function (index) {
-          var offsetLeft = Ember.$(this).offset().left;
+        this.element.querySelectorAll(".em-swimlane-event").forEach(function (swimlaneEvent, index) {
+          var offsetLeft = swimlaneEvent.getBoundingClientRect().left;
 
           if(clientX >= offsetLeft - BUBBLE_DIA && clientX <= offsetLeft + BUBBLE_DIA) {
             eventsUnderMouse.push(events[index]);
@@ -52,15 +52,15 @@ export default Ember.Component.extend({
         }
       }
 
-      this.sendAction("showTooltip", type, process, options);
-    },
+      this.showSwimlaneTooltip(type, process, options);
+    }),
 
-    hideTooltip: function(type, process, options) {
-      this.sendAction("hideTooltip", type, process, options);
-    },
-    click: function (type, process, options) {
-      this.sendAction("click", type, process, options);
-    }
-  }
-
+  hideTooltip: action(function() {
+    this.hideSwimlaneTooltip();
+  }),
+  /*
+  click: action(function (type, process, options) {
+    this.sendAction("click", type, process, options);
+  })
+  */
 });

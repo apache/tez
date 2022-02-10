@@ -1,5 +1,3 @@
-/*global more*/
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,8 +17,7 @@
  */
 
 import AbstractAdapter from './abstract';
-
-var MoreObject = more.Object;
+import MoreObject from '../utils/more-object';
 
 export default AbstractAdapter.extend({
   serverName: "timeline",
