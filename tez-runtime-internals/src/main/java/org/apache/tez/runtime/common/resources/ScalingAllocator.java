@@ -28,7 +28,6 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 
-import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -67,12 +66,7 @@ public class ScalingAllocator implements InitialMemoryAllocator {
     if (totalRequested < availableForAllocation || totalRequested == 0) {
       // Not scaling up requests. Assuming things were setup correctly by
       // users in this case, keeping Processor, caching etc in mind.
-      return Lists.newArrayList(Iterables.transform(requests,
-          new Function<InitialMemoryRequestContext, Long>() {
-        public Long apply(InitialMemoryRequestContext requestContext) {
-          return requestContext.getRequestedSize();
-        }
-      }));
+      return Lists.newArrayList(Iterables.transform(requests, requestContext -> requestContext.getRequestedSize()));
     }
 
     List<Long> allocations = Lists.newArrayListWithCapacity(numRequests);

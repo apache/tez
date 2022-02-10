@@ -24,9 +24,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapReduceSplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitSizeEstimatorWrapperMapReduce;
@@ -156,12 +154,7 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
       InterruptedException {
     Objects.requireNonNull(originalSplits, "Splits must be specified");
     List<SplitContainer> originalSplitContainers = Lists.transform(originalSplits,
-        new Function<InputSplit, SplitContainer>() {
-          @Override
-          public SplitContainer apply(InputSplit input) {
-            return new MapReduceSplitContainer(input);
-          }
-        });
+        input -> new MapReduceSplitContainer(input));
 
 
     return Lists.transform(super
@@ -169,24 +162,13 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
                 wrappedInputFormatName, estimator == null ? null :
                     new SplitSizeEstimatorWrapperMapReduce(estimator),
                 locationProvider == null ? null :
-                    new SplitLocationProviderMapReduce(locationProvider)),
-        new Function<GroupedSplitContainer, InputSplit>() {
-          @Override
-          public InputSplit apply(GroupedSplitContainer input) {
+                    new SplitLocationProviderMapReduce(locationProvider)), input -> {
+                      List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
+                          input1 -> ((MapReduceSplitContainer) input1).getRawSplit());
+                      return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
+                          input.getLocations(), input.getRack(), input.getLength());
 
-            List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
-                new Function<SplitContainer, InputSplit>() {
-                  @Override
-                  public InputSplit apply(SplitContainer input) {
-                    return ((MapReduceSplitContainer) input).getRawSplit();
-                  }
-                });
-
-            return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
-                input.getLocations(), input.getRack(), input.getLength());
-
-          }
-        });
+                    });
   }
 
   /**

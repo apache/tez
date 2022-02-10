@@ -20,8 +20,6 @@ package org.apache.tez.dag.library.vertexmanager;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -67,6 +65,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.Inflater;
 
 /**
@@ -553,13 +552,9 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   }
 
   Iterable<Map.Entry<String, SourceVertexInfo>> getBipartiteInfo() {
-    return Iterables.filter(srcVertexInfo.entrySet(),
-        new Predicate<Map.Entry<String,SourceVertexInfo>>() {
-      public boolean apply(Map.Entry<String, SourceVertexInfo> input) {
-        return (input.getValue().edgeProperty.getDataMovementType() ==
-            DataMovementType.SCATTER_GATHER);
-      }
-    });
+    return srcVertexInfo.entrySet().stream()
+        .filter(input -> (input.getValue().edgeProperty.getDataMovementType() == DataMovementType.SCATTER_GATHER))
+        .collect(Collectors.toList());
   }
 
   /**

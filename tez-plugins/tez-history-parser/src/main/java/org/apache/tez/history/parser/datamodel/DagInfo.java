@@ -19,8 +19,6 @@
 package org.apache.tez.history.parser.datamodel;
 
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
@@ -47,6 +45,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -545,13 +544,9 @@ public class DagInfo extends BaseInfo {
    * @return Collection<VertexInfo>
    */
   public final List<VertexInfo> getVertices(final VertexState state) {
-    return Collections.unmodifiableList(Lists.newLinkedList(Iterables.filter(Lists.newLinkedList
-                    (vertexNameMap.values()), new Predicate<VertexInfo>() {
-                  @Override public boolean apply(VertexInfo input) {
-                    return input.getStatus() != null && input.getStatus().equals(state.toString());
-                  }
-                }
-            )
+    return Collections.unmodifiableList(Lists.newLinkedList(Lists.newLinkedList(vertexNameMap.values()).stream()
+            .filter(input -> input.getStatus() != null && input.getStatus().equals(state.toString()))
+            .collect(Collectors.toList())
         )
     );
   }
@@ -561,13 +556,9 @@ public class DagInfo extends BaseInfo {
   }
 
   private Ordering<VertexInfo> getVertexOrdering() {
-    return Ordering.from(new Comparator<VertexInfo>() {
-      @Override public int compare(VertexInfo o1, VertexInfo o2) {
-        return (o1.getTimeTaken() < o2.getTimeTaken()) ? -1 :
-            ((o1.getTimeTaken() == o2.getTimeTaken()) ?
-                0 : 1);
-      }
-    });
+    return Ordering.from((o1, o2) -> (o1.getTimeTaken() < o2.getTimeTaken()) ? -1 :
+        ((o1.getTimeTaken() == o2.getTimeTaken()) ?
+            0 : 1));
   }
 
   /**

@@ -18,8 +18,6 @@
 
 package org.apache.tez.analyzer.plugins;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -40,7 +38,7 @@ import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 
 import java.util.Collection;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 /**
  * This will provide the set of nodes participated in the DAG in descending order of task execution
@@ -107,12 +105,8 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private Iterable<TaskAttemptInfo> getFilteredTaskAttempts(Collection<TaskAttemptInfo>
       taskAttemptInfos, final TaskAttemptState status) {
-    return Iterables.filter(taskAttemptInfos, new
-        Predicate<TaskAttemptInfo>() {
-          @Override public boolean apply(TaskAttemptInfo input) {
-            return input.getStatus().equalsIgnoreCase(status.toString());
-          }
-        });
+    return taskAttemptInfos.stream().filter(input -> input.getStatus().equalsIgnoreCase(status.toString()))
+        .collect(Collectors.toList());
   }
 
   private float getAvgTaskExecutionTime(Iterable<TaskAttemptInfo> taskAttemptInfos) {

@@ -186,13 +186,13 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-j
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 ######
-# Install findbugs
+# Install spotbugs
 ######
 # hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y findbugs \
+RUN apt-get -q update && apt-get -q install --no-install-recommends -y spotbugs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-ENV FINDBUGS_HOME /usr
+ENV SPOTBUGS_HOME /usr
 
 ######
 # Install maven

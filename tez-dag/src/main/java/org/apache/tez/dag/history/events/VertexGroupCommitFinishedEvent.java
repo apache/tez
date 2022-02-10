@@ -33,7 +33,6 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexGroupCommitFinishedProto;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 
 public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEvent {
@@ -70,12 +69,7 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   }
 
   public VertexGroupCommitFinishedProto toProto() {
-    Collection<String> vertexIdsStr = Collections2.transform(vertexIds, new Function<TezVertexID, String>(){
-      @Override
-      public String apply(TezVertexID vertexId) {
-        return vertexId.toString();
-      }
-    });
+    Collection<String> vertexIdsStr = Collections2.transform(vertexIds, vertexId -> vertexId.toString());
     return VertexGroupCommitFinishedProto.newBuilder()
         .setDagId(dagID.toString())
         .setVertexGroupName(vertexGroupName)
@@ -86,12 +80,7 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   public void fromProto(VertexGroupCommitFinishedProto proto) {
     this.dagID = TezDAGID.fromString(proto.getDagId());
     this.vertexGroupName = proto.getVertexGroupName();
-    this.vertexIds = Collections2.transform(proto.getVertexIdsList(), new Function<String, TezVertexID>() {
-      @Override
-      public TezVertexID apply(String input) {
-        return TezVertexID.fromString(input);
-      }
-    });
+    this.vertexIds = Collections2.transform(proto.getVertexIdsList(), input -> TezVertexID.fromString(input));
   }
 
   @Override

@@ -13,6 +13,10 @@
 -->
 <FindBugsFilter>
 
+  <Match>
+    <Class name="org.apache.tez.runtime.task.TaskReporter$HeartbeatCallback"/>
+    <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
+  </Match>
 
   <Match>
     <Class name="org.apache.tez.runtime.api.impl.TezMergedInputContextImpl"/>

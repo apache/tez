@@ -20,7 +20,6 @@ package org.apache.tez.runtime.task;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
@@ -74,7 +73,6 @@ import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezClassLoader;
 
@@ -346,12 +344,7 @@ public class TezChild {
           @Override
           public List<URL> run() throws Exception {
             return RelocalizationUtils.processAdditionalResources(
-                Maps.transformValues(additionalResources, new Function<TezLocalResource, URI>() {
-                  @Override
-                  public URI apply(TezLocalResource input) {
-                    return input.getUri();
-                  }
-                }), defaultConf, workingDir);
+                Maps.transformValues(additionalResources, input -> input.getUri()), defaultConf, workingDir);
           }
         });
         RelocalizationUtils.addUrlsToClassPath(downloadedUrls);

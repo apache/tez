@@ -127,11 +127,9 @@ public abstract class BaseParser {
    * @param referenceTime
    */
   private void setReferenceTime(List<Event> eventList, final long referenceTime) {
-    Iterables.all(eventList, new Predicate<Event>() {
-      @Override public boolean apply(Event input) {
-        input.setReferenceTime(referenceTime);
-        return false;
-      }
+    Iterables.all(eventList, input -> {
+      input.setReferenceTime(referenceTime);
+      return false;
     });
   }
 
