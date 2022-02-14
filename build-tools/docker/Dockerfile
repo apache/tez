@@ -186,13 +186,14 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-j
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 ######
-# Install spotbugs
+# Install SpotBugs 4.2.2
 ######
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y spotbugs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-ENV SPOTBUGS_HOME /usr
+RUN mkdir -p /opt/spotbugs \
+    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.2.2/spotbugs-4.2.2.tgz \
+      -o /opt/spotbugs.tgz \
+    && tar xzf /opt/spotbugs.tgz --strip-components 1 -C /opt/spotbugs \
+    && chmod +x /opt/spotbugs/bin/*
+ENV SPOTBUGS_HOME /opt/spotbugs
 
 ######
 # Install maven
