@@ -19,7 +19,6 @@
 package org.apache.tez.history.parser.datamodel;
 
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.tez.dag.records.TezTaskAttemptID;

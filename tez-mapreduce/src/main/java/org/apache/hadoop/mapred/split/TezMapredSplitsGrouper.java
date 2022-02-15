@@ -70,18 +70,18 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
         input -> new MapredSplitContainer(input));
 
     try {
-      List<InputSplit> resultList = Lists.transform(super
-              .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
-                  wrappedInputFormatName, estimator == null ? null :
-                      new SplitSizeEstimatorWrapperMapred(estimator),
-                  locationProvider == null ? null :
-                      new SplitLocationProviderWrapperMapred(locationProvider)), input -> {
-                        List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
-                            input1 -> ((MapredSplitContainer) input1).getRawSplit());
+      List<InputSplit> resultList =
+          Lists.transform(super.getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
+              wrappedInputFormatName, estimator == null ? null : new SplitSizeEstimatorWrapperMapred(estimator),
+              locationProvider == null ? null : new SplitLocationProviderWrapperMapred(locationProvider)),
+              input -> {
+                List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
+                    input1 -> ((MapredSplitContainer) input1).getRawSplit());
 
-                        return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
-                            input.getLocations(), input.getRack(), input.getLength());
-                      });
+                return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
+                    input.getLocations(), input.getRack(), input.getLength());
+              }
+         );
       InputSplit[] resultArr = resultList.toArray(new InputSplit[resultList.size()]);
       return resultArr;
     } catch (InterruptedException e) {

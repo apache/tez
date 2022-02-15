@@ -157,18 +157,18 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
         input -> new MapReduceSplitContainer(input));
 
 
-    return Lists.transform(super
-            .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
-                wrappedInputFormatName, estimator == null ? null :
-                    new SplitSizeEstimatorWrapperMapReduce(estimator),
-                locationProvider == null ? null :
-                    new SplitLocationProviderMapReduce(locationProvider)), input -> {
-                      List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
-                          input1 -> ((MapReduceSplitContainer) input1).getRawSplit());
-                      return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
-                          input.getLocations(), input.getRack(), input.getLength());
+    return Lists.transform(
+      super.getGroupedSplits(conf, originalSplitContainers, desiredNumSplits, wrappedInputFormatName,
+        estimator == null ? null : new SplitSizeEstimatorWrapperMapReduce(estimator),
+        locationProvider == null ? null : new SplitLocationProviderMapReduce(locationProvider)),
+        input -> {
+          List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
+              input1 -> ((MapReduceSplitContainer) input1).getRawSplit());
 
-                    });
+          return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(), input.getLocations(),
+              input.getRack(), input.getLength());
+        }
+    );
   }
 
   /**
