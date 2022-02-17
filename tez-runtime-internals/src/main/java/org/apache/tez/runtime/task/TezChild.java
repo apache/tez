@@ -71,6 +71,7 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
+import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -390,8 +391,10 @@ public class TezChild {
       LOG.info("Shutting down container {}", containerIdString);
       // It's possible that there's pending tasks on the executor. Those should be cancelled.
       List<Runnable> pendingRunnables = executor.shutdownNow();
+      LOG.info("There are {} runnables in shared executor, cancelling those...", pendingRunnables.size());
       for (Runnable r : pendingRunnables) {
-        LOG.info("Cancelling pending runnables during TezChild shutdown for containerId={}", containerIdString);
+        LOG.info("Cancelling pending runnable ({}) during TezChild shutdown for containerId={}", r.hashCode(),
+            containerIdString);
         ((FutureTask)r).cancel(false);
       }
       if (taskReporter != null) {
@@ -401,6 +404,8 @@ public class TezChild {
         RPC.stopProxy(umbilical);
       }
     }
+    TezRuntimeShutdownHandler.shutdown();
+    LOG.info("TezChild shutdown finished");
   }
 
   public static class ContainerExecutionResult {
@@ -522,7 +527,8 @@ public class TezChild {
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
         credentials, Runtime.getRuntime().maxMemory(), System
             .getenv(ApplicationConstants.Environment.USER.toString()), null, true, hadoopShim);
-    tezChild.run();
+    ContainerExecutionResult result = tezChild.run();
+    LOG.info("TezChild is about to exit from main(), run() returned result: {}", result.toString());
   }
 
   private void handleError(Throwable t) {
