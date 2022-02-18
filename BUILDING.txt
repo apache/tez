@@ -117,8 +117,10 @@ It's important to note that maven will still include tez-ui project, but all of 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
 
-The version of Protocol Buffer compiler, protoc, must be 2.5.0 and match the
-version of the protobuf JAR.
+The version of Protocol Buffer compiler, protoc, can be defined on-the-fly as:
+ $ mvn clean install -DskipTests -pl ./tez-api -Dprotobuf.version=3.7.1
+
+The default version is defined in the root pom.xml.
 
 If you have multiple versions of protoc in your system, you can set in your 
 build shell the PROTOC_PATH environment variable to point to the one you 
