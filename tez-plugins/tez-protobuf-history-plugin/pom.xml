@@ -85,8 +85,21 @@
           </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
 
+  <profiles>
+    <!-- For further details, please refer to the profile definition in root pom.xml -->
+    <profile>
+        <id>protoc-path-env-variable-not-defined</id>
+        <activation>
+            <property>
+                <name>!env.PROTOC_PATH</name>
+            </property>
+        </activation>
+        <properties>
+            <protoc.path>${basedir}/../../build-tools/protocw</protoc.path>
+        </properties>
+    </profile>
+  </profiles>
 </project>
