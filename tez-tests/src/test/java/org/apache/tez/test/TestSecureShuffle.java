@@ -302,10 +302,15 @@ public class TestSecureShuffle {
     KeyPair keyPair = pair;
     X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
 
+    String hostName = InetAddress.getLocalHost().getHostName();
     String hostAddress = InetAddress.getLocalHost().getHostAddress();
     certGen.addExtension(X509Extensions.SubjectAlternativeName, false,
-        new GeneralNames(new GeneralName[] { new GeneralName(GeneralName.iPAddress, hostAddress),
-            new GeneralName(GeneralName.dNSName, "localhost") }));
+        new GeneralNames(new GeneralName[] {
+            new GeneralName(GeneralName.iPAddress, hostAddress),
+            new GeneralName(GeneralName.dNSName, hostName),
+            new GeneralName(GeneralName.dNSName, "localhost")
+        })
+    );
     X500Principal dnName = new X500Principal(dn);
 
     certGen.setSerialNumber(sn);
