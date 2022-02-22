@@ -103,15 +103,16 @@ public class AsyncHttpConnection extends BaseHttpConnection {
               .build();
           DefaultAsyncHttpClientConfig config = builder.build();
           httpAsyncClient = new DefaultAsyncHttpClient(config);
-          TezRuntimeShutdownHandler.addShutdownTask(new Thread(() -> {
+          TezRuntimeShutdownHandler.addShutdownTask(() -> {
             try {
               if (httpAsyncClient != null) {
                 httpAsyncClient.close();
+                httpAsyncClient = null;
               }
             } catch (IOException e) {
               LOG.warn("Error while closing async client (this won't block shutdown)", e);
             }
-          }));
+          });
         }
       }
     }

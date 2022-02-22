@@ -23,10 +23,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TezRuntimeShutdownHandler {
+public final class TezRuntimeShutdownHandler {
   private static final Logger LOG = LoggerFactory.getLogger(TezRuntimeShutdownHandler.class);
 
   private static final List<Runnable> shutdownTasks = new ArrayList<>();
+
+  private TezRuntimeShutdownHandler() {
+  }
 
   public static void addShutdownTask(Runnable r) {
     shutdownTasks.add(r);
