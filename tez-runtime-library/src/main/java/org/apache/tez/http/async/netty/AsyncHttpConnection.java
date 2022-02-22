@@ -35,6 +35,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.util.StopWatch;
+import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,6 +103,16 @@ public class AsyncHttpConnection extends BaseHttpConnection {
               .build();
           DefaultAsyncHttpClientConfig config = builder.build();
           httpAsyncClient = new DefaultAsyncHttpClient(config);
+          TezRuntimeShutdownHandler.addShutdownTask(() -> {
+            try {
+              if (httpAsyncClient != null) {
+                httpAsyncClient.close();
+                httpAsyncClient = null;
+              }
+            } catch (IOException e) {
+              LOG.warn("Error while closing async client (this won't block shutdown)", e);
+            }
+          });
         }
       }
     }
