@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
@@ -81,7 +82,7 @@ public class VertexStartedEvent implements HistoryEvent, VertexIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexStartedProto proto = inputStream.readMessage(VertexStartedProto.PARSER, null);
+    VertexStartedProto proto = inputStream.readMessage(VertexStartedProto.parser(), ExtensionRegistry.newInstance());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
