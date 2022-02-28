@@ -41,6 +41,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>hadoop-shim</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-runtime-library</artifactId>
     </dependency>
     <dependency>

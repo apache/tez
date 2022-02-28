@@ -38,6 +38,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
+      <artifactId>hadoop-shim</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
       <artifactId>tez-yarn-timeline-history</artifactId>
     </dependency>
     <dependency>
@@ -155,4 +159,3 @@
   </build>
 
 </project>
-
