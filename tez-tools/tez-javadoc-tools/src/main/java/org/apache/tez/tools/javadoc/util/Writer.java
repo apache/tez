@@ -18,22 +18,22 @@
 
 package org.apache.tez.tools.javadoc.util;
 
-import java.io.IOException;
-
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
+import java.io.IOException;
+
 public abstract class Writer {
 
-  public abstract void write(Config config) throws IOException;
+    public abstract void write(Config config) throws IOException;
 
-  public boolean isValidConfigProperty(ConfigProperty configProperty) {
-    if (!configProperty.isValidConfigProp) {
-      return false;
+    public boolean isValidConfigProperty(ConfigProperty configProperty) {
+        if (!configProperty.isValidConfigProp) {
+            return false;
+        }
+        if (configProperty.propertyName == null || configProperty.propertyName.isEmpty()) {
+            return false;
+        }
+        return true;
     }
-    if (configProperty.propertyName == null || configProperty.propertyName.isEmpty()) {
-      return false;
-    }
-    return true;
-  }
 }

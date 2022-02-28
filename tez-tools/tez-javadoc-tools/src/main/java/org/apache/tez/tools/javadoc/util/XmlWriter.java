@@ -18,82 +18,74 @@
 
 package org.apache.tez.tools.javadoc.util;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
+import java.io.*;
+
 public class XmlWriter extends Writer {
 
-  public void write(Config config) throws IOException {
-    PrintWriter out = null;
+    public void write(Config config) throws IOException {
+        PrintWriter out = null;
 
-    if (config.configName == null || config.configName.isEmpty()) {
-      throw new RuntimeException("Config Name is null or empty");
+        if (config.configName == null || config.configName.isEmpty()) {
+            throw new RuntimeException("Config Name is null or empty");
+        }
+
+        String fileName = config.templateName == null ||
+            config.templateName.isEmpty() ? config.configName : config.templateName;
+        if (!fileName.endsWith(".xml")) {
+            fileName += ".xml";
+        }
+
+        try {
+            File file = new File(fileName);
+            out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+
+            out.println("<?xml version=\"1.0\"?>");
+            out.println("<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>");
+            out.println();
+            out.println("<!-- WARNING: THIS IS A GENERATED TEMPLATE PURELY FOR DOCUMENTATION PURPOSES");
+            out.println(" AND SHOULD NOT BE USED AS A CONFIGURATION FILE FOR TEZ -->");
+            out.println();
+            out.println("<configuration>");
+
+            for (ConfigProperty configProperty : config.configProperties.values()) {
+                if (!isValidConfigProperty(configProperty)) {
+                    continue;
+                }
+                out.println();
+                out.println("  <property>");
+                out.println("    <name>" + configProperty.propertyName + "</name>");
+                if (configProperty.defaultValue != null && !configProperty.defaultValue.isEmpty()) {
+                    out.println("    <defaultValue>" + configProperty.defaultValue + "</defaultValue>");
+                }
+                if (configProperty.description != null && !configProperty.description.isEmpty()) {
+                    out.println("    <description>" + StringEscapeUtils.escapeXml(configProperty.description)
+                        + "</description>");
+                }
+                if (configProperty.type != null && !configProperty.type.isEmpty()) {
+                    out.println("    <type>" + configProperty.type + "</type>");
+                }
+                if (configProperty.isUnstable) {
+                    out.println("    <unstable>true</unstable>");
+                }
+                if (configProperty.isEvolving) {
+                    out.println("    <evolving>true</evolving>");
+                }
+                if (configProperty.isPrivate) {
+                    out.println("    <private>true</private>");
+                }
+                out.println("  </property>");
+            }
+
+            out.println();
+            out.println("</configuration>");
+        } finally {
+            if (out != null) {
+                out.close();
+            }
+        }
     }
-
-    String fileName = config.templateName == null ||
-        config.templateName.isEmpty() ? config.configName : config.templateName;
-    if (!fileName.endsWith(".xml")) {
-      fileName += ".xml";
-    }
-
-    try {
-      File file = new File(fileName);
-      out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
-
-      out.println("<?xml version=\"1.0\"?>");
-      out.println("<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>");
-      out.println();
-      out.println("<!-- WARNING: THIS IS A GENERATED TEMPLATE PURELY FOR DOCUMENTATION PURPOSES");
-      out.println(" AND SHOULD NOT BE USED AS A CONFIGURATION FILE FOR TEZ -->");
-      out.println();
-      out.println("<configuration>");
-
-      for (ConfigProperty configProperty : config.configProperties.values()) {
-        if (!isValidConfigProperty(configProperty)) {
-          continue;
-        }
-        out.println();
-        out.println("  <property>");
-        out.println("    <name>" + configProperty.propertyName + "</name>");
-        if (configProperty.defaultValue != null && !configProperty.defaultValue.isEmpty()) {
-          out.println("    <defaultValue>" + configProperty.defaultValue + "</defaultValue>");
-        }
-        if (configProperty.description != null && !configProperty.description.isEmpty()) {
-          out.println("    <description>" + StringEscapeUtils.escapeXml(configProperty.description)
-              + "</description>");
-        }
-        if (configProperty.type != null && !configProperty.type.isEmpty()) {
-          out.println("    <type>" + configProperty.type + "</type>");
-        }
-        if (configProperty.isUnstable) {
-          out.println("    <unstable>true</unstable>");
-        }
-        if (configProperty.isEvolving) {
-          out.println("    <evolving>true</evolving>");
-        }
-        if (configProperty.isPrivate) {
-          out.println("    <private>true</private>");
-        }
-        out.println("  </property>");
-      }
-
-      out.println();
-      out.println("</configuration>");
-
-    } finally {
-      if (out != null) {
-        out.close();
-      }
-    }
-  }
-
-
 }
