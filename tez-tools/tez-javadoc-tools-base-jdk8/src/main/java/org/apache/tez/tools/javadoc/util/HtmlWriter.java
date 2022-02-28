@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,13 +19,11 @@
 package org.apache.tez.tools.javadoc.util;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-import org.apache.tez.dag.api.TezException;
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
@@ -36,12 +34,12 @@ public class HtmlWriter extends Writer {
   public void write(Config config) throws IOException {
     PrintWriter out = null;
 
-    if (config.configName == null || config.configName.isEmpty()) {
+    if (config.getConfigName() == null || config.getConfigName().isEmpty()) {
       throw new RuntimeException("Config Name is null or empty");
     }
 
     try {
-      File file = new File(config.configName + ".html");
+      File file = new File(config.getConfigName() + ".html");
       out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
 
       out.println("<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"no\" ?>");
@@ -52,7 +50,7 @@ public class HtmlWriter extends Writer {
 
       out.println("<head>");
       out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\" />");
-      out.println("<title>"+ config.configName +"</title>");
+      out.println("<title>" + config.getConfigName() + "</title>");
 //      out.println("<link rel='stylesheet' type='text/css' href=' " + config.getStyleSheet() + "'/>");
       out.println("</head>");
 
@@ -103,7 +101,7 @@ public class HtmlWriter extends Writer {
       out.println("<div id=\"wrapper\">");
       out.println("<div id=\"container\">");
 
-      out.println("<h1>"+ config.configName +"</h1>");
+      out.println("<h1>" + config.getConfigName() + "</h1>");
       out.println("<hr />");
 
       out.println("<table>");
@@ -118,29 +116,35 @@ public class HtmlWriter extends Writer {
       out.println("<th class=\"th_evolve_unstable\">" + "Is Evolving?" + "</th>");
       out.println("</tr>");
 
-      for (ConfigProperty configProperty : config.configProperties.values()) {
+      for (ConfigProperty configProperty : config.getConfigProperties().values()) {
         if (!isValidConfigProperty(configProperty)) {
           continue;
         }
 
         String altClass = "";
-        if (configProperty.isPrivate) {
+        if (configProperty.isPrivate()) {
           altClass = "class=\"tr_private\"";
-        } else if (configProperty.isEvolving || configProperty.isUnstable) {
+        } else if (configProperty.isEvolving() || configProperty.isUnstable()) {
           altClass = "class=\"tr_evolve_unstable\"";
         }
 
         out.println("<tr " + altClass + ">");
-        out.println("<td>" + configProperty.propertyName + "</td>");
-        out.println("<td>" + configProperty.defaultValue + "</td>");
-        out.println("<td>" + configProperty.description + "</td>");
-        out.println("<td>" + configProperty.type + "</td>");
+        out.println("<td>" + configProperty.getPropertyName() + "</td>");
+        out.println("<td>" + configProperty.getDefaultValue() + "</td>");
+        out.println("<td>" + configProperty.getDescription() + "</td>");
+        out.println("<td>" + configProperty.getType() + "</td>");
         // Re-enable after adding values
         // out.println("<td>" + configProperty.validValues + "</td>");
 
-        out.println("<td class=\"" + (configProperty.isPrivate? "td_private_true" : "td_private_false") + "\">" + configProperty.isPrivate + "</td>");
-        out.println("<td class=\"" + (configProperty.isEvolving? "td_evolve_true" : "td_evolve_false") + "\">" + configProperty.isEvolving + "</td>");
-        out.println("<td class=\"" + (configProperty.isUnstable? "td_unstable_true" : "td_unstable_false") + "\">" + configProperty.isUnstable + "</td>");
+        out.println(
+            "<td class=\"" + (configProperty.isPrivate() ? "td_private_true" : "td_private_false")
+                + "\">" + configProperty.isPrivate() + "</td>");
+        out.println(
+            "<td class=\"" + (configProperty.isEvolving() ? "td_evolve_true" : "td_evolve_false") + "\">"
+                + configProperty.isEvolving() + "</td>");
+        out.println(
+            "<td class=\"" + (configProperty.isUnstable() ? "td_unstable_true" : "td_unstable_false") + "\">"
+                + configProperty.isUnstable() + "</td>");
         out.println("</tr>");
       }
 
@@ -150,12 +154,10 @@ public class HtmlWriter extends Writer {
       out.println("</div>");
       out.println("</body>");
       out.println("</html>");
-
     } finally {
       if (out != null) {
         out.close();
       }
     }
   }
-
 }

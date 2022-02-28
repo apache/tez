@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,15 @@ package org.apache.tez.tools.javadoc.doclet;
 import java.io.IOException;
 import java.util.Map;
 
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.AnnotationDesc.ElementValuePair;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.DocErrorReporter;
+import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.LanguageVersion;
+import com.sun.javadoc.RootDoc;
+import com.sun.tools.doclets.standard.Standard;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -31,21 +40,13 @@ import org.apache.tez.tools.javadoc.model.ConfigProperty;
 import org.apache.tez.tools.javadoc.util.HtmlWriter;
 import org.apache.tez.tools.javadoc.util.XmlWriter;
 
-import com.sun.javadoc.AnnotationDesc;
-import com.sun.javadoc.AnnotationDesc.ElementValuePair;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.DocErrorReporter;
-import com.sun.javadoc.FieldDoc;
-import com.sun.javadoc.LanguageVersion;
-import com.sun.javadoc.RootDoc;
-import com.sun.tools.doclets.standard.Standard;
-
 public final class ConfigStandardDoclet {
 
   private static final String DEBUG_SWITCH = "-debug";
   private static boolean debugMode = false;
 
-  private ConfigStandardDoclet() {}
+  private ConfigStandardDoclet() {
+  }
 
   public static LanguageVersion languageVersion() {
     return LanguageVersion.JAVA_1_5;
@@ -109,7 +110,7 @@ public final class ConfigStandardDoclet {
 
     logMessage("Processing config class: " + doc);
     Config config = new Config(doc.name(), templateName);
-    Map<String, ConfigProperty> configProperties = config.configProperties;
+    Map<String, ConfigProperty> configProperties = config.getConfigProperties();
 
     FieldDoc[] fields = doc.fields();
     for (FieldDoc field : fields) {
@@ -144,16 +145,16 @@ public final class ConfigStandardDoclet {
               + ", name=" + name
               + ", field=" + field.name()
               + ", val=" + field.constantValueExpression());
-          configProperty.defaultValue = field.constantValueExpression();
+          configProperty.setDefaultValue(field.constantValueExpression());
         } else {
-          configProperty.defaultValue = field.constantValue().toString();
+          configProperty.setDefaultValue(field.constantValue().toString());
         }
-        configProperty.inferredType = field.type().simpleTypeName();
+        configProperty.setInferredType(field.type().simpleTypeName());
 
-        if (name.equals("TEZ_AM_STAGING_DIR") && configProperty.defaultValue != null) {
-          String defaultValue = configProperty.defaultValue;
+        if (name.equals("TEZ_AM_STAGING_DIR") && configProperty.getDefaultValue() != null) {
+          String defaultValue = configProperty.getDefaultValue();
           defaultValue = defaultValue.replace(System.getProperty("user.name"), "${user.name}");
-          configProperty.defaultValue = defaultValue;
+          configProperty.setDefaultValue(defaultValue);
         }
 
         continue;
@@ -164,7 +165,7 @@ public final class ConfigStandardDoclet {
         configProperties.put(name, new ConfigProperty());
       }
       ConfigProperty configProperty = configProperties.get(name);
-      configProperty.propertyName = field.constantValue().toString();
+      configProperty.setPropertyName(field.constantValue().toString());
 
       AnnotationDesc[] annotationDescs = field.annotations();
 
@@ -172,53 +173,49 @@ public final class ConfigStandardDoclet {
 
         if (annotationDesc.annotationType().qualifiedTypeName().equals(
             Private.class.getCanonicalName())) {
-          configProperty.isPrivate = true;
+          configProperty.setPrivate(true);
         }
         if (annotationDesc.annotationType().qualifiedTypeName().equals(
             Unstable.class.getCanonicalName())) {
-          configProperty.isUnstable = true;
+          configProperty.setUnstable(true);
         }
         if (annotationDesc.annotationType().qualifiedTypeName().equals(
             Evolving.class.getCanonicalName())) {
-          configProperty.isEvolving = true;
+          configProperty.setEvolving(true);
         }
         if (annotationDesc.annotationType().qualifiedTypeName().equals(
             ConfigurationProperty.class.getCanonicalName())) {
-          configProperty.isValidConfigProp = true;
+          configProperty.setValidConfigProp(true);
 
           for (ElementValuePair element : annotationDesc.elementValues()) {
             if (element.element().name().equals("type")) {
-              configProperty.type = stripQuotes(element.value().toString());
+              configProperty.setType(stripQuotes(element.value().toString()));
             } else {
               logMessage("Unhandled annotation property: " + element.element().name());
             }
           }
         }
+
+        HtmlWriter writer = new HtmlWriter();
+        try {
+          writer.write(config);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+
+        XmlWriter xmlWriter = new XmlWriter();
+        try {
+          xmlWriter.write(config);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
-
-      configProperty.description = field.commentText();
-
     }
-
-    HtmlWriter writer = new HtmlWriter();
-    try {
-      writer.write(config);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    XmlWriter xmlWriter = new XmlWriter();
-    try {
-      xmlWriter.write(config);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
   }
 
   private static String stripQuotes(String s) {
-    if (s.charAt(0) == '"' && s.charAt(s.length()-1) == '"') {
-      return s.substring(1, s.length()-1);
+    if (s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
+      return s.substring(1, s.length() - 1);
     }
     return s;
   }
@@ -227,7 +224,7 @@ public final class ConfigStandardDoclet {
     return Standard.optionLength(option);
   }
 
-  public static boolean validOptions(String options[][], DocErrorReporter reporter) {
+  public static boolean validOptions(String[][] options, DocErrorReporter reporter) {
     return true;
   }
 }

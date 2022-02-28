@@ -16,25 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.tools.javadoc.model;
+@Private
+package org.apache.tez.tools.javadoc.doclet;
 
-import java.util.Map;
-import java.util.TreeMap;
-
-public class Config {
-
-  public final String templateName;
-  public final String configName;
-  public Map<String, ConfigProperty> configProperties;
-
-  public Config(String configName, String templateName) {
-    this.configName = configName;
-    this.templateName = templateName;
-    this.configProperties = new TreeMap<String, ConfigProperty>();
-  }
-
-  public Config() {
-    this(null, null);
-  }
-
-}
+import org.apache.hadoop.classification.InterfaceAudience.Private;
