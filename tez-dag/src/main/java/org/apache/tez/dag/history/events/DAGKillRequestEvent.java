@@ -22,6 +22,7 @@ import java.io.OutputStream;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
@@ -76,7 +77,7 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGKillRequestProto proto = inputStream.readMessage(DAGKillRequestProto.PARSER, null);
+    DAGKillRequestProto proto = inputStream.readMessage(DAGKillRequestProto.parser(), ExtensionRegistry.newInstance());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

@@ -24,6 +24,7 @@ import java.util.Collection;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
@@ -101,7 +102,8 @@ public class VertexGroupCommitStartedEvent implements HistoryEvent, SummaryEvent
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexGroupCommitStartedProto proto = inputStream.readMessage(VertexGroupCommitStartedProto.PARSER, null);
+    VertexGroupCommitStartedProto proto =
+        inputStream.readMessage(VertexGroupCommitStartedProto.parser(), ExtensionRegistry.newInstance());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

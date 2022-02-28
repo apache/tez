@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -129,7 +130,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent, DAGIDAware 
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.PARSER, null);
+    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.parser(), ExtensionRegistry.newInstance());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

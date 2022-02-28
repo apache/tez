@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.dag.history.HistoryEvent;
@@ -90,7 +91,7 @@ public class AMLaunchedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    AMLaunchedProto proto = inputStream.readMessage(AMLaunchedProto.PARSER, null);
+    AMLaunchedProto proto = inputStream.readMessage(AMLaunchedProto.parser(), ExtensionRegistry.newInstance());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
