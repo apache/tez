@@ -27,7 +27,7 @@ jobs:
   build:
     strategy:
       matrix:
-        java-version: [8, 11]
+        java-version: [8, 11, 17]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:

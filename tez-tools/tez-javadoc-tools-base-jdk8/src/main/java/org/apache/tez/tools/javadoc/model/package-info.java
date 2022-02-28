@@ -16,24 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.tools.javadoc.util;
+@Private
+package org.apache.tez.tools.javadoc.model;
 
-import java.io.IOException;
-
-import org.apache.tez.tools.javadoc.model.Config;
-import org.apache.tez.tools.javadoc.model.ConfigProperty;
-
-public abstract class Writer {
-
-  public abstract void write(Config config) throws IOException;
-
-  public boolean isValidConfigProperty(ConfigProperty configProperty) {
-    if (!configProperty.isValidConfigProp) {
-      return false;
-    }
-    if (configProperty.propertyName == null || configProperty.propertyName.isEmpty()) {
-      return false;
-    }
-    return true;
-  }
-}
+import org.apache.hadoop.classification.InterfaceAudience.Private;
