@@ -25,7 +25,7 @@
 # rm -rf ./build-tools/protobuf/ #from root folder
 
 set -x
-PROTOBUF_VERSION=${1:-2.5.0}
+PROTOBUF_VERSION=${1:-3.19.4}
 PROTOBUF_MAJOR_VERSION=$(echo "$PROTOBUF_VERSION" | cut -d. -f1)
 if [ -n "$ZSH_VERSION" ]; then
    SCRIPT_DIR="${0:a:h}"
