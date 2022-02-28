@@ -95,13 +95,13 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports \
 #############
 
 ######
-# Install Google Protobuf 2.5.0
+# Install Google Protobuf 3.19.4
 ######
-FROM tezbase AS protobuf250
+FROM tezbase AS protobuf
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /opt/protobuf-src \
     && curl -L -s -S \
-      https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz \
+      https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protobuf-java-3.19.4.tar.gz \
       -o /opt/protobuf.tar.gz \
     && tar xzf /opt/protobuf.tar.gz --strip-components 1 -C /opt/protobuf-src
 WORKDIR /opt/protobuf-src
@@ -261,7 +261,7 @@ RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
 COPY --from=shellcheck /bin/shellcheck /bin/shellcheck
 COPY --from=hadolint /bin/hadolint /bin/hadolint
 COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
-COPY --from=protobuf250 /opt/protobuf /opt/protobuf
+COPY --from=protobuf /opt/protobuf /opt/protobuf
 
 ENV PROTOBUF_HOME /opt/protobuf
 ENV PROTOC_PATH /opt/protobuf/bin/protoc
