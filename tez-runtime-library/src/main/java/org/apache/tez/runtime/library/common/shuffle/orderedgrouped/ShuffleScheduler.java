@@ -910,7 +910,8 @@ class ShuffleScheduler {
       if (failures != null && failures.get() > minFailurePerHost) {
         totalFailures++;
         if (totalFailures > totalThreshold) {
-          LOG.info("Number of failures across nodes ({}) has exceeded the total threshold limit ({}) for InputAttemptIdentifier: {}", totalFailures, totalThreshold, logContext);
+          LOG.info("Number of failures across nodes ({}) has exceeded the total threshold limit ({}) "
+              + "for InputAttemptIdentifier: {}", totalFailures, totalThreshold, logContext);
           return true;
         }
       }
