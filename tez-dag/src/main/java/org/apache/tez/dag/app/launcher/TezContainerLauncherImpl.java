@@ -21,8 +21,8 @@ package org.apache.tez.dag.app.launcher;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,6 +43,7 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
@@ -93,6 +94,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
   private AtomicBoolean serviceStopped = new AtomicBoolean(false);
   private DeletionTracker deletionTracker = null;
   private boolean dagDelete;
+  private boolean vertexDelete;
   private boolean failedTaskAttemptDelete;
 
   private Container getContainer(ContainerOp event) {
@@ -339,11 +341,14 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
     dagDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
         conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
             TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
+    vertexDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+            conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+                    TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
     failedTaskAttemptDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
         conf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
             TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
 
-    if (dagDelete || failedTaskAttemptDelete) {
+    if (dagDelete || vertexDelete || failedTaskAttemptDelete) {
       String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
@@ -451,6 +456,13 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     if (dagDelete && deletionTracker != null) {
       deletionTracker.dagComplete(dag, jobTokenSecretManager);
+    }
+  }
+
+  @Override
+  public void vertexComplete(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager, Set<NodeId> nodeIdList) {
+    if (vertexDelete && deletionTracker != null) {
+      deletionTracker.vertexComplete(vertex, jobTokenSecretManager, nodeIdList);
     }
   }
 

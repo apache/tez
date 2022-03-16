@@ -2739,6 +2739,10 @@ public class DAGAppMaster extends AbstractService {
     return sb.toString();
   }
 
+  public void vertexComplete(TezVertexID completedVertexID, Set<NodeId> nodesList) {
+    getContainerLauncherManager().vertexComplete(completedVertexID, jobTokenSecretManager, nodesList);
+  }
+
   public void taskAttemptFailed(TezTaskAttemptID attemptID, NodeId nodeId) {
     getContainerLauncherManager().taskAttemptFailed(attemptID, jobTokenSecretManager, nodeId);
   }

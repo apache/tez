@@ -24,8 +24,11 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+
+import java.util.Set;
 
 /**
  * Plugin to allow custom container launchers to be written to launch containers that want to
@@ -42,6 +45,9 @@ public abstract class DagContainerLauncher extends ContainerLauncher {
   }
 
   public abstract void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager);
+
+  public abstract void vertexComplete(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager,
+                                      Set<NodeId> nodeIdList);
 
   public abstract void taskAttemptFailed(TezTaskAttemptID taskAttemptID,
                                          JobTokenSecretManager jobTokenSecretManager, NodeId nodeId);
