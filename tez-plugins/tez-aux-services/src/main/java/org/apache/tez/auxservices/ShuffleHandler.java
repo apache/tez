@@ -18,6 +18,7 @@
 
 package org.apache.tez.auxservices;
 
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.util.DiskChecker;
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
@@ -1009,6 +1010,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Map<String, List<String>> q = new QueryStringDecoder(request.getUri()).parameters();
       final List<String> keepAliveList = q.get("keepAlive");
       final List<String> dagCompletedQ = q.get("dagAction");
+      final List<String> vertexCompletedQ = q.get("vertexAction");
       final List<String> taskAttemptFailedQ = q.get("taskAttemptAction");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
@@ -1019,6 +1021,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Range reduceRange = splitReduces(q.get("reduce"));
       final List<String> jobQ = q.get("job");
       final List<String> dagIdQ = q.get("dag");
+      final List<String> vertexIdQ = q.get("vertex");
       if (LOG.isDebugEnabled()) {
         LOG.debug("RECV: " + request.getUri() +
             "\n  mapId: " + mapIds +
@@ -1029,6 +1032,9 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       // If the request is for Dag Deletion, process the request and send OK.
       if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ))  {
+        return;
+      }
+      if (deleteVertexDirectories(ctx.channel(), vertexCompletedQ, jobQ, dagIdQ, vertexIdQ)) {
         return;
       }
       if (deleteTaskAttemptDirectories(ctx.channel(), taskAttemptFailedQ, jobQ, dagIdQ, mapIds)) {
@@ -1155,6 +1161,25 @@ public class ShuffleHandler extends AuxiliaryService {
       return false;
     }
 
+    private boolean deleteVertexDirectories(Channel channel, List<String> vertexCompletedQ,
+                                            List<String> jobQ, List<String> dagIdQ,
+                                            List<String> vertexIdQ) {
+      if (jobQ == null || jobQ.isEmpty()) {
+        return false;
+      }
+      if (notEmptyAndContains(vertexCompletedQ, "delete") && !isNullOrEmpty(vertexIdQ)) {
+        try {
+          deleteTaskDirsOfVertex(jobQ.get(0), dagIdQ.get(0), vertexIdQ.get(0), userRsrc.get(jobQ.get(0)));
+        } catch (IOException e) {
+          LOG.warn("Encountered exception during vertex delete " + e);
+        }
+        channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
+                .addListener(ChannelFutureListener.CLOSE);
+        return true;
+      }
+      return false;
+    }
+
     private boolean deleteTaskAttemptDirectories(Channel channel, List<String> taskAttemptFailedQ,
                                             List<String> jobQ, List<String> dagIdQ, List<String> taskAttemptIdQ) {
       if (jobQ == null || jobQ.isEmpty()) {
@@ -1254,6 +1279,29 @@ public class ShuffleHandler extends AuxiliaryService {
       final String baseStr =
           getDagLocation(jobId, dagId, user) + "output" + Path.SEPARATOR;
       return baseStr;
+    }
+
+    /**
+     * Delete shuffle data in task directories belonging to a vertex.
+     */
+    private void deleteTaskDirsOfVertex(String jobId, String dagId, String vertexId, String user) throws IOException {
+      String baseStr = getBaseLocation(jobId, dagId, user);
+      FileContext lfc = FileContext.getLocalFSFileContext();
+      for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+        RemoteIterator<FileStatus> status = lfc.listStatus(dagPath);
+        final JobID jobID = JobID.forName(jobId);
+        String taskDirPrefix = String.format("attempt%s_%s_%s_",
+            jobID.toString().replace("job", ""), dagId, vertexId);
+        while (status.hasNext()) {
+          FileStatus fileStatus = status.next();
+          Path attemptPath = fileStatus.getPath();
+          if (attemptPath.getName().startsWith(taskDirPrefix)) {
+            if(lfc.delete(attemptPath, true)) {
+              LOG.debug("deleted shuffle data in task directory: {}", attemptPath);
+            }
+          }
+        }
+      }
     }
 
     private String getDagLocation(String jobId, String dagId, String user) {
