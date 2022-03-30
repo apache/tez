@@ -56,7 +56,8 @@ public class VertexDeleteRunnable implements Runnable {
     try {
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerVertexComplete(
           nodeId.getHost(), shufflePort,
-          vertex.getDAGID().getApplicationId().toString(), vertex.getDAGID().getId(), vertexId, false);
+          vertex.getDAGID().getApplicationId().toString(), vertex.getDAGID().getId(), vertexId,
+          httpConnectionParams.isSslShuffle());
       httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL, httpConnectionParams,
           "VertexDelete", jobTokenSecretManager);
       httpConnection.connect();

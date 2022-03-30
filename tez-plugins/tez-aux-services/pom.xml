@@ -247,6 +247,7 @@
                   <excludes>
                     <exclude>javax.crypto.*</exclude>
                     <exclude>javax.security.**</exclude>
+                    <exclude>javax.net.**</exclude>
                   </excludes>
                 </relocation>
               </relocations>
