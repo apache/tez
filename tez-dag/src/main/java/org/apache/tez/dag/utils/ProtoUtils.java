@@ -24,7 +24,9 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos;
 
 import com.google.protobuf.ByteString;
 
-public class ProtoUtils {
+public final class ProtoUtils {
+
+  private ProtoUtils() {}
 
   public static RecoveryProtos.SummaryEventProto toSummaryEventProto(
       TezDAGID dagID, long timestamp, HistoryEventType historyEventType, byte[] payload) {

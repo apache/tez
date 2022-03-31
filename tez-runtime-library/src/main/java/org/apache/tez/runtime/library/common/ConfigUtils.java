@@ -37,7 +37,9 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 @InterfaceAudience.Private
-public class ConfigUtils {
+public final class ConfigUtils {
+
+  private ConfigUtils() {}
 
   public static Class<? extends CompressionCodec> getIntermediateOutputCompressorClass(
       Configuration conf, Class<DefaultCodec> defaultValue) {
@@ -64,31 +66,27 @@ public class ConfigUtils {
   }
 
   public static <V> Class<V> getIntermediateOutputValueClass(Configuration conf) {
-    Class<V> retv = (Class<V>) conf.getClass(
+    return (Class<V>) conf.getClass(
         TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, null,
         Object.class);
-    return retv;
   }
   
   public static <V> Class<V> getIntermediateInputValueClass(Configuration conf) {
-    Class<V> retv = (Class<V>) conf.getClass(
+    return (Class<V>) conf.getClass(
         TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, null,
         Object.class);
-    return retv;
   }
 
   public static <K> Class<K> getIntermediateOutputKeyClass(Configuration conf) {
-    Class<K> retv = (Class<K>) conf.getClass(
+    return (Class<K>) conf.getClass(
         TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, null,
         Object.class);
-    return retv;
   }
 
   public static <K> Class<K> getIntermediateInputKeyClass(Configuration conf) {
-    Class<K> retv = (Class<K>) conf.getClass(
+    return (Class<K>) conf.getClass(
         TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, null,
         Object.class);
-    return retv;
   }
 
   public static <K> RawComparator<K> getIntermediateOutputKeyComparator(Configuration conf) {
@@ -135,7 +133,7 @@ public class ConfigUtils {
   public static Map<String, String> extractConfigurationMap(Map<String, String> confMap, Set<String> allowedKeys) {
     Objects.requireNonNull(confMap, "ConfMap cannot be null");
     Objects.requireNonNull(allowedKeys, "Valid key set cannot be empty");
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String, String> map = new HashMap<>();
     for (Map.Entry<String, String> entry : confMap.entrySet()) {
       if (allowedKeys.contains(entry.getKey())) {
         map.put(entry.getKey(), entry.getValue());
@@ -215,11 +213,11 @@ public class ConfigUtils {
 
   private static Map<String, String> extractConfigurationMapInternal(
       Iterable<Map.Entry<String, String>> iterable, List<Set<String>> validKeySets, List<String> allowedPrefixes) {
-    Set<String> validKeys = new HashSet<String>();
+    Set<String> validKeys = new HashSet<>();
     for (Set<String> set : validKeySets) {
       validKeys.addAll(set);
     }
-    Map<String, String> localConfMap = new HashMap<String, String>();
+    Map<String, String> localConfMap = new HashMap<>();
     for (Map.Entry<String, String> entry : iterable) {
       if (validKeys.contains(entry.getKey())) {
         localConfMap.put(entry.getKey(), entry.getValue());

@@ -82,6 +82,8 @@ public class MRInputHelpers {
   static final String JOB_SPLIT_RESOURCE_NAME = "job.split";
   static final String JOB_SPLIT_METAINFO_RESOURCE_NAME = "job.splitmetainfo";
 
+  protected MRInputHelpers() {}
+
   /**
    * Setup split generation on the client, with splits being distributed via the traditional
    * MapReduce mechanism of distributing splits via the Distributed Cache.
@@ -107,7 +109,7 @@ public class MRInputHelpers {
   public static DataSourceDescriptor configureMRInputWithLegacySplitGeneration(Configuration conf,
                                                                                Path splitsDir,
                                                                                boolean useLegacyInput) {
-    InputSplitInfo inputSplitInfo = null;
+    InputSplitInfo inputSplitInfo;
     try {
       inputSplitInfo = generateInputSplits(conf, splitsDir);
 
@@ -117,17 +119,11 @@ public class MRInputHelpers {
       Map<String, LocalResource> additionalLocalResources = new HashMap<String, LocalResource>();
       updateLocalResourcesForInputSplits(conf, inputSplitInfo,
           additionalLocalResources);
-      DataSourceDescriptor dsd =
-          DataSourceDescriptor.create(inputDescriptor, null, inputSplitInfo.getNumTasks(),
-              inputSplitInfo.getCredentials(),
-              VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
-              additionalLocalResources);
-      return dsd;
-    } catch (IOException e) {
-      throw new TezUncheckedException("Failed to generate InputSplits", e);
-    } catch (InterruptedException e) {
-      throw new TezUncheckedException("Failed to generate InputSplits", e);
-    } catch (ClassNotFoundException e) {
+      return DataSourceDescriptor.create(inputDescriptor, null, inputSplitInfo.getNumTasks(),
+          inputSplitInfo.getCredentials(),
+          VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
+          additionalLocalResources);
+    } catch (IOException | InterruptedException | ClassNotFoundException e) {
       throw new TezUncheckedException("Failed to generate InputSplits", e);
     }
   }
@@ -139,7 +135,6 @@ public class MRInputHelpers {
    * @param payload the {@link org.apache.tez.dag.api.UserPayload} instance
    * @return an instance of {@link org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRInputUserPayloadProto},
    * which provides access to the underlying configuration bytes
-   * @throws IOException
    */
   @InterfaceStability.Evolving
   @InterfaceAudience.LimitedPrivate({"hive, pig"})
@@ -156,7 +151,6 @@ public class MRInputHelpers {
    *                             instance representing the split
    * @param serializationFactory the serialization mechanism used to write out the split
    * @return an instance of the split
-   * @throws java.io.IOException
    */
   @SuppressWarnings("unchecked")
   @InterfaceStability.Evolving
@@ -192,7 +186,6 @@ public class MRInputHelpers {
    *                             instance representing the split
    * @param serializationFactory the serialization mechanism used to write out the split
    * @return an instance of the split
-   * @throws IOException
    */
   @InterfaceStability.Evolving
   @SuppressWarnings("unchecked")
@@ -222,7 +215,7 @@ public class MRInputHelpers {
   @InterfaceStability.Evolving
   public static <T extends org.apache.hadoop.mapreduce.InputSplit> MRRuntimeProtos.MRSplitProto createSplitProto(
       T newSplit, SerializationFactory serializationFactory)
-      throws IOException, InterruptedException {
+      throws IOException {
     MRRuntimeProtos.MRSplitProto.Builder builder = MRRuntimeProtos.MRSplitProto
         .newBuilder();
 
@@ -278,9 +271,6 @@ public class MRInputHelpers {
    * @param targetTasks the number of target tasks if grouping is enabled. Specify as 0 otherwise.
    * @return an instance of {@link InputSplitInfoMem} which supports a subset of
    *         the APIs defined on {@link InputSplitInfo}
-   * @throws IOException
-   * @throws ClassNotFoundException
-   * @throws InterruptedException
    */
   @InterfaceStability.Unstable
   @InterfaceAudience.LimitedPrivate({"hive, pig"})
@@ -310,16 +300,13 @@ public class MRInputHelpers {
    * @param targetTasks the number of target tasks if grouping is enabled. Specify as 0 otherwise.
    * @return an instance of {@link InputSplitInfoMem} which supports a subset of
    *         the APIs defined on {@link InputSplitInfo}
-   * @throws IOException
-   * @throws ClassNotFoundException
-   * @throws InterruptedException
    */
   @InterfaceStability.Unstable
   public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf,
       boolean groupSplits, boolean sortSplits, int targetTasks)
       throws IOException, ClassNotFoundException, InterruptedException {
 
-    InputSplitInfoMem splitInfoMem = null;
+    InputSplitInfoMem splitInfoMem;
     JobConf jobConf = new JobConf(conf);
     if (jobConf.getUseNewMapper()) {
       LOG.debug("Generating mapreduce api input splits");
@@ -356,7 +343,7 @@ public class MRInputHelpers {
                     if (rack == null) {
                       if (input.getLocations() != null) {
                         return TaskLocationHint.createTaskLocationHint(
-                            new HashSet<String>(Arrays.asList(input.getLocations())), null);
+                                new HashSet<>(Arrays.asList(input.getLocations())), null);
                       } else {
                         return TaskLocationHint.createTaskLocationHint(null, null);
                       }
@@ -366,7 +353,7 @@ public class MRInputHelpers {
                     }
                   } else {
                     return TaskLocationHint.createTaskLocationHint(
-                        new HashSet<String>(Arrays.asList(input.getLocations())), null);
+                            new HashSet<>(Arrays.asList(input.getLocations())), null);
                   }
                 } catch (IOException e) {
                   throw new RuntimeException(e);
@@ -399,7 +386,7 @@ public class MRInputHelpers {
                 }
               } else {
                 return TaskLocationHint.createTaskLocationHint(
-                    new HashSet<String>(Arrays.asList(input.getLocations())),
+                        new HashSet<>(Arrays.asList(input.getLocations())),
                     null);
               }
             } catch (IOException e) {
@@ -413,20 +400,20 @@ public class MRInputHelpers {
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
       JobContext jobContext, boolean groupSplits, boolean sortSplits,
-      int numTasks) throws ClassNotFoundException, IOException,
+      int numTasks) throws IOException,
       InterruptedException {
     Configuration conf = jobContext.getConfiguration();
 
 
     // This is the real input format.
-    org.apache.hadoop.mapreduce.InputFormat<?, ?> inputFormat = null;
+    org.apache.hadoop.mapreduce.InputFormat<?, ?> inputFormat;
     try {
       inputFormat = ReflectionUtils.newInstance(jobContext.getInputFormatClass(), conf);
     } catch (ClassNotFoundException e) {
       throw new TezUncheckedException(e);
     }
 
-    org.apache.hadoop.mapreduce.InputFormat<?, ?> finalInputFormat = inputFormat;
+    org.apache.hadoop.mapreduce.InputFormat<?, ?> finalInputFormat;
 
     // For grouping, the underlying InputFormatClass class is passed in as a parameter.
     // JobContext has this setup as TezGroupedSplitInputFormat
@@ -443,7 +430,7 @@ public class MRInputHelpers {
 
     List<org.apache.hadoop.mapreduce.InputSplit> array = finalInputFormat
         .getSplits(jobContext);
-    org.apache.hadoop.mapreduce.InputSplit[] splits = (org.apache.hadoop.mapreduce.InputSplit[]) array
+    org.apache.hadoop.mapreduce.InputSplit[] splits = array
         .toArray(new org.apache.hadoop.mapreduce.InputSplit[array.size()]);
 
     if (sortSplits) {
@@ -469,7 +456,7 @@ public class MRInputHelpers {
       throw new TezUncheckedException(e);
     }
 
-    org.apache.hadoop.mapred.InputFormat finalInputFormat = inputFormat;
+    org.apache.hadoop.mapred.InputFormat finalInputFormat;
 
     if (groupSplits) {
       org.apache.hadoop.mapred.split.TezGroupedSplitsInputFormat groupedFormat =
@@ -502,16 +489,8 @@ public class MRInputHelpers {
       try {
         long len1 = o1.getLength();
         long len2 = o2.getLength();
-        if (len1 < len2) {
-          return 1;
-        } else if (len1 == len2) {
-          return 0;
-        } else {
-          return -1;
-        }
-      } catch (IOException ie) {
-        throw new RuntimeException("exception in InputSplit compare", ie);
-      } catch (InterruptedException ie) {
+        return Long.compare(len2, len1);
+      } catch (IOException | InterruptedException ie) {
         throw new RuntimeException("exception in InputSplit compare", ie);
       }
     }
@@ -528,13 +507,7 @@ public class MRInputHelpers {
       try {
         long len1 = o1.getLength();
         long len2 = o2.getLength();
-        if (len1 < len2) {
-          return 1;
-        } else if (len1 == len2) {
-          return 0;
-        } else {
-          return -1;
-        }
+        return Long.compare(len2, len1);
       } catch (IOException ie) {
         throw new RuntimeException("Problem getting input split size", ie);
       }
@@ -549,10 +522,6 @@ public class MRInputHelpers {
    * @return InputSplitInfo containing the split files' information and the
    * location hints for each split generated to be used to determining parallelism of
    * the map stage.
-   *
-   * @throws IOException
-   * @throws InterruptedException
-   * @throws ClassNotFoundException
    */
   private static InputSplitInfoDisk writeNewSplits(JobContext jobContext,
                                                    Path inputSplitDir) throws IOException, InterruptedException,
@@ -568,10 +537,10 @@ public class MRInputHelpers {
 
     List<TaskLocationHint> locationHints =
         new ArrayList<TaskLocationHint>(splits.length);
-    for (int i = 0; i < splits.length; ++i) {
+    for (org.apache.hadoop.mapreduce.InputSplit split : splits) {
       locationHints.add(
-          TaskLocationHint.createTaskLocationHint(new HashSet<String>(
-              Arrays.asList(splits[i].getLocations())), null)
+              TaskLocationHint.createTaskLocationHint(new HashSet<String>(
+                      Arrays.asList(split.getLocations())), null)
       );
     }
 
@@ -589,8 +558,6 @@ public class MRInputHelpers {
    * @return InputSplitInfo containing the split files' information and the
    * number of splits generated to be used to determining parallelism of
    * the map stage.
-   *
-   * @throws IOException
    */
   private static InputSplitInfoDisk writeOldSplits(JobConf jobConf,
                                                    Path inputSplitDir) throws IOException {
@@ -602,11 +569,11 @@ public class MRInputHelpers {
         inputSplitDir.getFileSystem(jobConf), splits);
 
     List<TaskLocationHint> locationHints =
-        new ArrayList<TaskLocationHint>(splits.length);
-    for (int i = 0; i < splits.length; ++i) {
+            new ArrayList<>(splits.length);
+    for (InputSplit split : splits) {
       locationHints.add(
-          TaskLocationHint.createTaskLocationHint(new HashSet<String>(
-              Arrays.asList(splits[i].getLocations())), null)
+              TaskLocationHint.createTaskLocationHint(new HashSet<>(
+                      Arrays.asList(split.getLocations())), null)
       );
     }
 
@@ -637,10 +604,6 @@ public class MRInputHelpers {
    * @return InputSplitInfo containing the split files' information and the
    * number of splits generated to be used to determining parallelism of
    * the map stage.
-   *
-   * @throws IOException
-   * @throws InterruptedException
-   * @throws ClassNotFoundException
    */
   private static InputSplitInfoDisk generateInputSplits(Configuration conf,
                                                         Path inputSplitsDir) throws IOException, InterruptedException,
@@ -666,7 +629,6 @@ public class MRInputHelpers {
    * @param conf Configuration
    * @param inputSplitInfo Information on location of split files
    * @param localResources LocalResources collection to be updated
-   * @throws IOException
    */
   private static void updateLocalResourcesForInputSplits(
       Configuration conf,
@@ -751,8 +713,8 @@ public class MRInputHelpers {
   }
 
   private static UserPayload createMRInputPayload(ByteString bytes,
-    MRRuntimeProtos.MRSplitsProto mrSplitsProto,
-    boolean isGrouped, boolean isSorted) throws IOException {
+      MRRuntimeProtos.MRSplitsProto mrSplitsProto,
+      boolean isGrouped, boolean isSorted) {
     MRRuntimeProtos.MRInputUserPayloadProto.Builder userPayloadBuilder =
         MRRuntimeProtos.MRInputUserPayloadProto
             .newBuilder();

@@ -31,15 +31,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.dag.api.TezException;
 
 import com.google.common.collect.Lists;
 
 @InterfaceAudience.Private
-public class RelocalizationUtils {
+public final class RelocalizationUtils {
+
+  private RelocalizationUtils() {}
   
   public static List<URL> processAdditionalResources(Map<String, URI> additionalResources,
-      Configuration conf, String destDir) throws IOException, TezException {
+      Configuration conf, String destDir) throws IOException {
     if (additionalResources == null || additionalResources.isEmpty()) {
       return Collections.emptyList();
     }

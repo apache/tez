@@ -30,6 +30,7 @@ import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductConfig;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductEdgeManager;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
+import org.apache.tez.test.dag.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +52,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.test.dag.SimpleReverseVTestDAG;
-import org.apache.tez.test.dag.SimpleVTestDAG;
-import org.apache.tez.test.dag.SixLevelsFailingDAG;
-import org.apache.tez.test.dag.ThreeLevelsFailingDAG;
-import org.apache.tez.test.dag.TwoLevelsFailingDAG;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -411,21 +407,24 @@ public class TestFaultTolerance {
   @Test (timeout=60000)
   public void testTwoLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
-    DAG dag = TwoLevelsFailingDAG.createDAG("testTwoLevelsFailingDAGSuccess", testConf);
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.TWO)
+        .withName("testTwoLevelsFailingDAGSuccess").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testThreeLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
-    DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAGSuccess", testConf);
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.THREE)
+        .withName("testThreeLevelsFailingDAGSuccess").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
   @Test (timeout=60000)
   public void testSixLevelsFailingDAGSuccess() throws Exception {
     Configuration testConf = new Configuration();
-    DAG dag = SixLevelsFailingDAG.createDAG("testSixLevelsFailingDAGSuccess", testConf);
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.SIX)
+        .withName("testSixLevelsFailingDAGSuccess").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
@@ -462,8 +461,9 @@ public class TestFaultTolerance {
             TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_TASK_INDEX, "l3v1"), "0");
     testConf.setInt(TestProcessor.getVertexConfName(
             TestProcessor.TEZ_FAILING_PROCESSOR_VERIFY_VALUE, "l3v1", 0), 15);
-    
-    DAG dag = ThreeLevelsFailingDAG.createDAG("testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds", testConf);
+
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.THREE)
+        .withName("testThreeLevelsFailingDAG2VerticesHaveFailedAttemptsDAGSucceeds").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
@@ -801,7 +801,8 @@ public class TestFaultTolerance {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestProcessor.TEZ_FAILING_PROCESSOR_DO_RANDOM_FAIL, true);
     testConf.setFloat(TestProcessor.TEZ_FAILING_PROCESSOR_RANDOM_FAIL_PROBABILITY, 0.5f);
-    DAG dag = SixLevelsFailingDAG.createDAG("testRandomFailingTasks", testConf);
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.SIX)
+        .withName("testRandomFailingTasks").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   
@@ -811,7 +812,8 @@ public class TestFaultTolerance {
     Configuration testConf = new Configuration(false);
     testConf.setBoolean(TestInput.TEZ_FAILING_INPUT_DO_RANDOM_FAIL, true);
     testConf.setFloat(TestInput.TEZ_FAILING_INPUT_RANDOM_FAIL_PROBABILITY, 0.5f);
-    DAG dag = SixLevelsFailingDAG.createDAG("testRandomFailingInputs", testConf);
+    DAG dag = new FailingDagBuilder(FailingDagBuilder.Levels.SIX)
+        .withName("testRandomFailingInputs").withConf(testConf).build();
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
   }
   

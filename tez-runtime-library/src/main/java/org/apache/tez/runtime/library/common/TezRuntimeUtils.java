@@ -46,7 +46,7 @@ import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
 @Private
-public class TezRuntimeUtils {
+public final class TezRuntimeUtils {
 
   private static final Logger LOG = LoggerFactory
       .getLogger(TezRuntimeUtils.class);
@@ -54,6 +54,8 @@ public class TezRuntimeUtils {
   private static volatile SSLFactory sslFactory;
   //ShufflePort by default for ContainerLaunchers
   public static final int INVALID_PORT = -1;
+
+  private TezRuntimeUtils() {}
 
   public static String getTaskIdentifier(String vertexName, int taskIndex) {
     return String.format("%s_%06d", vertexName, taskIndex);
@@ -85,26 +87,17 @@ public class TezRuntimeUtils {
       throw new IOException("Unable to load combiner class: " + className);
     }
     
-    Combiner combiner = null;
+    Combiner combiner;
     
-      Constructor<? extends Combiner> ctor;
-      try {
-        ctor = clazz.getConstructor(TaskContext.class);
-        combiner = ctor.newInstance(taskContext);
-      } catch (SecurityException e) {
-        throw new IOException(e);
-      } catch (NoSuchMethodException e) {
-        throw new IOException(e);
-      } catch (IllegalArgumentException e) {
-        throw new IOException(e);
-      } catch (InstantiationException e) {
-        throw new IOException(e);
-      } catch (IllegalAccessException e) {
-        throw new IOException(e);
-      } catch (InvocationTargetException e) {
-        throw new IOException(e);
-      }
-      return combiner;
+    Constructor<? extends Combiner> ctor;
+    try {
+      ctor = clazz.getConstructor(TaskContext.class);
+      combiner = ctor.newInstance(taskContext);
+    } catch (SecurityException | NoSuchMethodException | IllegalArgumentException | InstantiationException
+            | IllegalAccessException | InvocationTargetException e) {
+      throw new IOException(e);
+    }
+    return combiner;
   }
   
   @SuppressWarnings("unchecked")
@@ -123,31 +116,22 @@ public class TezRuntimeUtils {
       LOG.debug("Using partitioner class: " + clazz.getName());
     }
 
-    Partitioner partitioner = null;
+    Partitioner partitioner;
 
     try {
       Constructor<? extends Partitioner> ctorWithConf = clazz
           .getConstructor(Configuration.class);
       partitioner = ctorWithConf.newInstance(conf);
-    } catch (SecurityException e) {
+    } catch (SecurityException | IllegalArgumentException | InstantiationException | IllegalAccessException
+            | InvocationTargetException e) {
       throw new IOException(e);
     } catch (NoSuchMethodException e) {
       try {
         // Try a 0 argument constructor.
         partitioner = clazz.newInstance();
-      } catch (InstantiationException e1) {
-        throw new IOException(e1);
-      } catch (IllegalAccessException e1) {
+      } catch (InstantiationException | IllegalAccessException e1) {
         throw new IOException(e1);
       }
-    } catch (IllegalArgumentException e) {
-      throw new IOException(e);
-    } catch (InstantiationException e) {
-      throw new IOException(e);
-    } catch (IllegalAccessException e) {
-      throw new IOException(e);
-    } catch (InvocationTargetException e) {
-      throw new IOException(e);
     }
     return partitioner;
   }
@@ -158,10 +142,9 @@ public class TezRuntimeUtils {
     try {
       Constructor<?> ctor = clazz.getConstructor(Configuration.class, String.class, int.class);
       ctor.setAccessible(true);
-      TezTaskOutput instance = (TezTaskOutput) ctor.newInstance(conf,
+      return (TezTaskOutput) ctor.newInstance(conf,
           outputContext.getUniqueIdentifier(),
           outputContext.getDagIdentifier());
-      return instance;
     } catch (Exception e) {
       throw new TezUncheckedException(
           "Unable to instantiate configured TezOutputFileManager: "
@@ -183,7 +166,7 @@ public class TezRuntimeUtils {
     sb.append("&job=");
     sb.append(appId.replace("application", "job"));
     sb.append("&dag=");
-    sb.append(String.valueOf(dagIdentifier));
+    sb.append(dagIdentifier);
     return new URL(sb.toString());
   }
 
@@ -200,9 +183,9 @@ public class TezRuntimeUtils {
     sb.append("&job=");
     sb.append(appId.replace("application", "job"));
     sb.append("&dag=");
-    sb.append(String.valueOf(dagIdentifier));
+    sb.append(dagIdentifier);
     sb.append("&vertex=");
-    sb.append(String.valueOf(vertexIndentifier));
+    sb.append(vertexIndentifier);
     return new URL(sb.toString());
   }
 
@@ -219,9 +202,9 @@ public class TezRuntimeUtils {
     sb.append("&job=");
     sb.append(appId.replace("application", "job"));
     sb.append("&dag=");
-    sb.append(String.valueOf(dagIdentifier));
+    sb.append(dagIdentifier);
     sb.append("&map=");
-    sb.append(String.valueOf(taskAttemptIdentifier));
+    sb.append(taskAttemptIdentifier);
     return new URL(sb.toString());
   }
 
@@ -269,10 +252,9 @@ public class TezRuntimeUtils {
       }
     }
 
-    HttpConnectionParams httpConnParams = new HttpConnectionParams(keepAlive,
+    return new HttpConnectionParams(keepAlive,
         keepAliveMaxConnections, connectionTimeout, readTimeout, bufferSize, sslShuffle,
         sslFactory);
-    return httpConnParams;
   }
 
   public static BaseHttpConnection getHttpConnection(boolean asyncHttp, URL url,
@@ -288,13 +270,9 @@ public class TezRuntimeUtils {
 
   public static int deserializeShuffleProviderMetaData(ByteBuffer meta)
       throws IOException {
-    DataInputByteBuffer in = new DataInputByteBuffer();
-    try {
+    try (DataInputByteBuffer in = new DataInputByteBuffer()) {
       in.reset(meta);
-      int port = in.readInt();
-      return port;
-    } finally {
-      in.close();
+      return in.readInt();
     }
   }
 }

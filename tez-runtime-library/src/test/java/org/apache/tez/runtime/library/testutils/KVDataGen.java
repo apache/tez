@@ -25,9 +25,11 @@ import java.util.Random;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 
-public class KVDataGen {
+public final class KVDataGen {
 
   static Random rnd = new Random();
+
+  private KVDataGen() {}
 
   public static List<KVPair> generateTestData(boolean repeatKeys) {
     return generateTestData(true, rnd.nextInt(100));
@@ -38,7 +40,6 @@ public class KVDataGen {
    *
    * @param sorted whether data should be sorted by key
    * @param repeatCount number of keys to be repeated
-   * @return
    */
   public static List<KVPair> generateTestData(boolean sorted, int repeatCount) {
     return generateTestDataOfKeySize(sorted, 5, repeatCount);
@@ -50,10 +51,9 @@ public class KVDataGen {
    * @param sorted whether data should be sorted by key
    * @param keys number of keys
    * @param repeatCount number of keys to be repeated
-   * @return
    */
   public static List<KVPair> generateTestDataOfKeySize(boolean sorted, int keys, int repeatCount) {
-    List<KVPair> data = new LinkedList<KVPair>();
+    List<KVPair> data = new LinkedList<>();
     Random rnd = new Random();
     KVPair kvp = null;
     for (int i = 0; i < keys; i++) {
@@ -81,8 +81,8 @@ public class KVDataGen {
   }
 
   public static class KVPair {
-    private Text key;
-    private IntWritable value;
+    private final Text key;
+    private final IntWritable value;
 
     public KVPair(Text key, IntWritable value) {
       this.key = key;

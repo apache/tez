@@ -22,11 +22,13 @@ import org.apache.hadoop.io.Text;
 
 import java.util.Random;
 
-public class RandomTextGenerator {
+public final class RandomTextGenerator {
 
   static int minWordsInKey = 10;
   static int wordsInKeyRange = 100;
   static final Random random = new Random();
+
+  private RandomTextGenerator() {}
 
   public static Text generateSentence() {
     int noWordsKey = minWordsInKey +
@@ -35,10 +37,10 @@ public class RandomTextGenerator {
   }
 
   public static Text generateSentence(int noWords) {
-    StringBuffer sentence = new StringBuffer();
+    StringBuilder sentence = new StringBuilder();
     String space = " ";
     for (int i = 0; i < noWords; ++i) {
-      sentence.append(words[random.nextInt(words.length)]);
+      sentence.append(WORDS[random.nextInt(WORDS.length)]);
       sentence.append(space);
     }
     return new Text(sentence.toString());
@@ -49,7 +51,7 @@ public class RandomTextGenerator {
    * <p/>
    * A random list of 100 words from /usr/share/dict/words
    */
-  private static String[] words = {
+  private static final String[] WORDS = {
       "diurnalness", "Homoiousian",
       "spiranthic", "tetragynian",
       "silverhead", "ungreat",

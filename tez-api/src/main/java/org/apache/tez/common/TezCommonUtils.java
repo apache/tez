@@ -55,7 +55,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import com.google.protobuf.ByteString;
 
 @Private
-public class TezCommonUtils {
+public final class TezCommonUtils {
   public static final FsPermission TEZ_AM_DIR_PERMISSION = FsPermission
       .createImmutable((short) 0700); // rwx--------
   public static final FsPermission TEZ_AM_FILE_PERMISSION = FsPermission
@@ -63,6 +63,8 @@ public class TezCommonUtils {
   private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
 
   public static final String TEZ_SYSTEM_SUB_DIR = ".tez";
+
+  private TezCommonUtils() {}
 
   /**
    * <p>
@@ -222,7 +224,6 @@ public class TezCommonUtils {
    * @param conf
    *          Tez configuration
    * @return App recovery path
-   * @throws IOException
    */
   @Private
   public static Path getRecoveryPath(Path tezSysStagingPath, Configuration conf)
@@ -288,7 +289,6 @@ public class TezCommonUtils {
    *          Filesystem
    * @param dir
    *          directory to be created
-   * @throws IOException
    */
   public static void mkDirForAM(FileSystem fs, Path dir) throws IOException {
     FsPermission perm = new FsPermission(TEZ_AM_DIR_PERMISSION);
@@ -312,7 +312,6 @@ public class TezCommonUtils {
    * @param filePath
    *          file path to create the file
    * @return FSDataOutputStream
-   * @throws IOException
    */
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
@@ -417,7 +416,7 @@ public class TezCommonUtils {
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("Credentials: #" + identifier + "Tokens=").append(credentials.numberOfTokens());
+    sb.append("Credentials: #").append(identifier).append("Tokens=").append(credentials.numberOfTokens());
     if (credentials.numberOfTokens() > 0) {
       sb.append(", Services=");
       sb.append(credentials.getAllTokens().stream()
@@ -435,16 +434,14 @@ public class TezCommonUtils {
       Token<JobTokenIdentifier> jobToken) throws IOException {
     DataOutputBuffer dob = new DataOutputBuffer();
     jobToken.write(dob);
-    ByteBuffer bb = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-    return bb;
+    return ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
   }
 
   public static Credentials parseCredentialsBytes(byte[] credentialsBytes) throws IOException {
     Credentials credentials = new Credentials();
     DataInputBuffer dib = new DataInputBuffer();
     try {
-      byte[] tokenBytes = credentialsBytes;
-      dib.reset(tokenBytes, tokenBytes.length);
+      dib.reset(credentialsBytes, credentialsBytes.length);
       credentials.readTokenStorageStream(dib);
       return credentials;
     } finally {
@@ -459,7 +456,7 @@ public class TezCommonUtils {
   }
 
   public static Collection<String> tokenizeString(String str, String delim) {
-    List<String> values = new ArrayList<String>();
+    List<String> values = new ArrayList<>();
     if (str == null || str.isEmpty())
       return values;
     StringTokenizer tokenizer = new StringTokenizer(str, delim);
@@ -533,7 +530,7 @@ public class TezCommonUtils {
     if (val > 0 && val < TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM) {
       return TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000;
     }
-    return val * 1000;
+    return val * 1000L;
   }
 
   /**
@@ -570,7 +567,7 @@ public class TezCommonUtils {
     if (timeoutSecs == 0) {
       timeoutSecs = 1;
     }
-    return 1000l * timeoutSecs;
+    return 1000L * timeoutSecs;
   }
 
   public static int getJavaVersion() {

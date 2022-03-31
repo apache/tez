@@ -14,7 +14,7 @@
 
 package org.apache.tez.service;
 
-public class TezTestServiceConfConstants {
+public final class TezTestServiceConfConstants {
 
   private static final String TEZ_TEST_SERVICE_PREFIX = "tez.test.service.";
 
@@ -38,4 +38,5 @@ public class TezTestServiceConfConstants {
   public static final String TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS = TEZ_TEST_SERVICE_PREFIX + "communicator.num.threads";
   public static final int TEZ_TEST_SERVICE_AM_COMMUNICATOR_NUM_THREADS_DEFAULT = 2;
 
+  private TezTestServiceConfConstants() {}
 }

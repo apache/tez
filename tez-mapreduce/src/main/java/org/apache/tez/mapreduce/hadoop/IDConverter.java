@@ -28,7 +28,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-public class IDConverter {
+public final class IDConverter {
+
+  private IDConverter() {}
 
   // FIXME hardcoded assumption that one app is one dag
   public static JobID toMRJobId(TezDAGID dagId) {

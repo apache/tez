@@ -66,7 +66,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MultiAttemptDAG {
+public final class MultiAttemptDAG {
 
   private static final Logger LOG =
       LoggerFactory.getLogger(MultiAttemptDAG.class);
@@ -80,9 +80,11 @@ public class MultiAttemptDAG {
       "tez.multi-attempt-dag.use-failing-committer";
   public static boolean MULTI_ATTEMPT_DAG_USE_FAILING_COMMITTER_DEFAULT = false;
 
+  private MultiAttemptDAG() {}
+
   public static class FailOnAttemptVertexManagerPlugin extends VertexManagerPlugin {
     private int numSourceTasks = 0;
-    private AtomicInteger numCompletions = new AtomicInteger();
+    private final AtomicInteger numCompletions = new AtomicInteger();
     private boolean tasksScheduled = false;
 
     public FailOnAttemptVertexManagerPlugin(VertexManagerPluginContext context) {
@@ -114,7 +116,7 @@ public class MultiAttemptDAG {
           && !tasksScheduled) {
         tasksScheduled = true;
         String payload = new String(getContext().getUserPayload().deepCopyAsArray());
-        int successAttemptId = Integer.valueOf(payload);
+        int successAttemptId = Integer.parseInt(payload);
         LOG.info("Checking whether to crash AM or schedule tasks"
             + ", vertex: " + getContext().getVertexName()
             + ", successfulAttemptID=" + successAttemptId
@@ -150,7 +152,7 @@ public class MultiAttemptDAG {
     @Override
     public void onRootVertexInitialized(String inputName,
         InputDescriptor inputDescriptor, List<Event> events) {
-      List<InputDataInformationEvent> inputInfoEvents = new ArrayList<InputDataInformationEvent>();
+      List<InputDataInformationEvent> inputInfoEvents = new ArrayList<>();
       for (Event event: events) {
         if (event instanceof InputDataInformationEvent) {
           inputInfoEvents.add((InputDataInformationEvent)event);
@@ -178,12 +180,12 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void setupOutput() throws Exception {
+    public void setupOutput() {
 
     }
 
     @Override
-    public void commitOutput() throws Exception {
+    public void commitOutput() {
       if (failOnCommit) {
         LOG.info("Committer causing AM to shutdown");
         Runtime.getRuntime().halt(-1);
@@ -191,7 +193,7 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void abortOutput(State finalState) throws Exception {
+    public void abortOutput(State finalState) {
 
     }
 
@@ -212,11 +214,7 @@ public class MultiAttemptDAG {
 
       public void fromUserPayload(byte[] userPayload) {
         int failInt = Ints.fromByteArray(userPayload);
-        if (failInt == 0) {
-          failOnCommit = false;
-        } else {
-          failOnCommit = true;
-        }
+        failOnCommit = failInt != 0;
       }
     }
   }
@@ -229,14 +227,13 @@ public class MultiAttemptDAG {
 
     @Override
     public List<Event> initialize() throws Exception {
-      List<Event> events = new ArrayList<Event>();
+      List<Event> events = new ArrayList<>();
       events.add(InputDataInformationEvent.createWithSerializedPayload(0, ByteBuffer.allocate(0)));
       return events;
     }
 
     @Override
-    public void handleInputInitializerEvent(List<InputInitializerEvent> events)
-        throws Exception {
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) {
       throw new UnsupportedOperationException("Not supported");
     }
   }
@@ -250,7 +247,7 @@ public class MultiAttemptDAG {
     @Override
     public List<Event> initialize() throws Exception {
       try {
-        Thread.sleep(2000l);
+        Thread.sleep(2000L);
       } catch (InterruptedException e) {
         // Ignore
       }
@@ -262,8 +259,7 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws
-        Exception {
+    public void handleInputInitializerEvent(List<InputInitializerEvent> events) {
       throw new UnsupportedOperationException("Not supported");
     }
   }
@@ -276,7 +272,7 @@ public class MultiAttemptDAG {
 
     @Override
     public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(1l, new MemoryUpdateCallback() {
+      getContext().requestInitialMemory(1L, new MemoryUpdateCallback() {
         @Override
         public void memoryAssigned(long assignedSize) {}
       });
@@ -289,12 +285,12 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public Reader getReader() throws Exception {
+    public Reader getReader() {
       return null;
     }
 
     @Override
-    public void handleEvents(List<Event> inputEvents) throws Exception {
+    public void handleEvents(List<Event> inputEvents) {
 
     }
 
@@ -313,7 +309,7 @@ public class MultiAttemptDAG {
 
     @Override
     public List<Event> initialize() throws Exception {
-      getContext().requestInitialMemory(1l, new MemoryUpdateCallback() {
+      getContext().requestInitialMemory(1L, new MemoryUpdateCallback() {
         @Override
         public void memoryAssigned(long assignedSize) {
         }
@@ -327,7 +323,7 @@ public class MultiAttemptDAG {
     }
 
     @Override
-    public Writer getWriter() throws Exception {
+    public Writer getWriter() {
       return null;
     }
 
@@ -361,13 +357,13 @@ public class MultiAttemptDAG {
     // Make each vertex manager fail on appropriate attempt
     v1.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("1").getBytes()))));
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap("1".getBytes()))));
     v2.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("2").getBytes()))));
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap("2".getBytes()))));
     v3.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
         FailOnAttemptVertexManagerPlugin.class.getName())
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("3").getBytes()))));
+        .setUserPayload(UserPayload.create(ByteBuffer.wrap("3".getBytes()))));
     dag.addVertex(v1).addVertex(v2).addVertex(v3);
     dag.addEdge(Edge.create(v1, v2,
         EdgeProperty.create(DataMovementType.SCATTER_GATHER,

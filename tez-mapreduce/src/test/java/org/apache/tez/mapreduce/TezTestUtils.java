@@ -29,10 +29,11 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.InputInitializerContext;
 
-import java.io.IOException;
 import java.util.Set;
 
-public class TezTestUtils {
+public final class TezTestUtils {
+
+  private TezTestUtils() {}
 
   public static TezTaskAttemptID getMockTaskAttemptId(
       int jobId, int vertexId, int taskId, int taskAttemptId) {
@@ -62,7 +63,7 @@ public class TezTestUtils {
     private final UserPayload payload;
     private final Configuration vertexConfig;
 
-    public TezRootInputInitializerContextForTest(UserPayload payload, Configuration vertexConfig) throws IOException {
+    public TezRootInputInitializerContextForTest(UserPayload payload, Configuration vertexConfig) {
       appId = ApplicationId.newInstance(1000, 200);
       this.payload = payload == null ? UserPayload.create(null) : payload;
       this.vertexConfig = vertexConfig;

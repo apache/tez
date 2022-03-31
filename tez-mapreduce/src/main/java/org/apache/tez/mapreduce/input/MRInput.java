@@ -176,7 +176,7 @@ public class MRInput extends MRInputBase {
     }
 
     private void initializeInputPath() {
-      Preconditions.checkState(inputFormatProvided == false,
+      Preconditions.checkState(!inputFormatProvided,
           "Should only be invoked when no inputFormat is provided");
       if (org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) ||
           FileInputFormat.class.isAssignableFrom(inputFormat)) {
@@ -437,8 +437,6 @@ public class MRInput extends MRInputBase {
   
   private final ReentrantLock rrLock = new ReentrantLock();
   private final Condition rrInited = rrLock.newCondition();
-  
-  private volatile boolean eventReceived = false;
 
   private boolean readerCreated = false;
 
@@ -537,24 +535,24 @@ public class MRInput extends MRInputBase {
   @Override
   public KeyValueReader getReader() throws IOException {
     Preconditions
-        .checkState(readerCreated == false,
+        .checkState(!readerCreated,
             "Only a single instance of record reader can be created for this input.");
     readerCreated = true;
     if (getNumPhysicalInputs() == 0) {
       return new KeyValueReader() {
         @Override
-        public boolean next() throws IOException {
+        public boolean next() {
           getContext().notifyProgress();
           return false;
         }
 
         @Override
-        public Object getCurrentKey() throws IOException {
+        public Object getCurrentKey() {
           return null;
         }
 
         @Override
-        public Object getCurrentValue() throws IOException {
+        public Object getCurrentValue() {
           return null;
         }
       };
@@ -576,11 +574,11 @@ public class MRInput extends MRInputBase {
       throw new IllegalStateException(
           "Unexpected event. MRInput has been setup to receive 0 events");
     }
-    if (eventReceived || inputEvents.size() != 1) {
+
+    if (inputEvents.size() != 1) {
       throw new IllegalStateException(
           "MRInput expects only a single input. Received: current eventListSize: "
-              + inputEvents.size() + "Received previous input: "
-              + eventReceived);
+              + inputEvents.size() + "Received previous input: false");
     }
     Event event = inputEvents.iterator().next();
     Preconditions.checkArgument(event instanceof InputDataInformationEvent,

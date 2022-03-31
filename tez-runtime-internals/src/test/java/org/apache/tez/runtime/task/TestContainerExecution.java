@@ -51,7 +51,7 @@ public class TestContainerExecution {
       ListenableFuture<ContainerTask> getTaskFuture = executor.submit(containerReporter);
 
       getTaskFuture.get();
-      assertEquals(1, umbilical.getTaskInvocations);
+      assertEquals(1, umbilical.getTaskInvocations());
 
     } finally {
       executor.shutdownNow();

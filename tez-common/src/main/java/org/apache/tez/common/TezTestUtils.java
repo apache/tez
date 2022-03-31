@@ -21,12 +21,14 @@ package org.apache.tez.common;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
-public class TezTestUtils {
+public final class TezTestUtils {
+
+  private TezTestUtils() {}
+
   /**
    * Ensures a reasonably high limit for yarn disk utilization. This is very important for tests,
    * as devs keep bumping into silent test hangs where yarn simply considers their machines as unhealthy,
    * as the default limit is 90%, even if a machine with 90% full disk is still able to function.
-   * @param conf
    */
   public static void ensureHighDiskUtilizationLimit(Configuration conf) {
     if (conf.getFloat(YarnConfiguration.NM_MAX_PER_DISK_UTILIZATION_PERCENTAGE,

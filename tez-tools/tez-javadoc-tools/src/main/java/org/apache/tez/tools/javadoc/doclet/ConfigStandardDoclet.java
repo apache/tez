@@ -19,7 +19,6 @@
 package org.apache.tez.tools.javadoc.doclet;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -41,10 +40,12 @@ import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
 import com.sun.tools.doclets.standard.Standard;
 
-public class ConfigStandardDoclet {
+public final class ConfigStandardDoclet {
 
   private static final String DEBUG_SWITCH = "-debug";
   private static boolean debugMode = false;
+
+  private ConfigStandardDoclet() {}
 
   public static LanguageVersion languageVersion() {
     return LanguageVersion.JAVA_1_5;
@@ -63,14 +64,15 @@ public class ConfigStandardDoclet {
       for (String opt : opts) {
         if (opt.equals(DEBUG_SWITCH)) {
           debugMode = true;
+          break;
         }
       }
     }
 
     logMessage("Running doclet " + ConfigStandardDoclet.class.getSimpleName());
     ClassDoc[] classes = root.classes();
-    for (int i = 0; i < classes.length; ++i) {
-      processDoc(classes[i]);
+    for (ClassDoc aClass : classes) {
+      processDoc(aClass);
     }
 
     return true;
@@ -184,11 +186,9 @@ public class ConfigStandardDoclet {
             ConfigurationProperty.class.getCanonicalName())) {
           configProperty.isValidConfigProp = true;
 
-          boolean foundType = false;
           for (ElementValuePair element : annotationDesc.elementValues()) {
             if (element.element().name().equals("type")) {
               configProperty.type = stripQuotes(element.value().toString());
-              foundType = true;
             } else {
               logMessage("Unhandled annotation property: " + element.element().name());
             }

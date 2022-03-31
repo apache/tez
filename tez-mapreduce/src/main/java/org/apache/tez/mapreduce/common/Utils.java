@@ -33,7 +33,9 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 
 @Private
-public class Utils {
+public final class Utils {
+
+  private Utils() {}
 
   /**
    * Gets a handle to the Statistics instance based on the scheme associated
@@ -46,7 +48,7 @@ public class Utils {
    */
   @Private
   public static List<Statistics> getFsStatistics(Path path, Configuration conf) throws IOException {
-    List<Statistics> matchedStats = new ArrayList<FileSystem.Statistics>();
+    List<Statistics> matchedStats = new ArrayList<>();
     path = path.getFileSystem(conf).makeQualified(path);
     String scheme = path.toUri().getScheme();
     for (Statistics stats : FileSystem.getAllStatistics()) {

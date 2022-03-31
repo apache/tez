@@ -21,7 +21,6 @@ package org.apache.tez.common;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,9 +48,11 @@ import org.xerial.snappy.SnappyOutputStream;
  * {@link org.apache.hadoop.conf.Configuration} to {@link org.apache.tez.dag.api.UserPayload} etc.
  */
 @InterfaceAudience.Public
-public class TezUtils {
+public final class TezUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtils.class);
+
+  private TezUtils() {}
 
   /**
    * Allows changing the log level for task / AM logging. </p>
@@ -73,18 +74,12 @@ public class TezUtils {
    * @param conf
    *          : Configuration to be converted
    * @return PB ByteString (compressed)
-   * @throws java.io.IOException
    */
   public static ByteString createByteStringFromConf(Configuration conf) throws IOException {
     Objects.requireNonNull(conf, "Configuration must be specified");
     ByteString.Output os = ByteString.newOutput();
-    SnappyOutputStream compressOs = new SnappyOutputStream(os);
-    try {
+    try (SnappyOutputStream compressOs = new SnappyOutputStream(os)) {
       writeConfInPB(compressOs, conf);
-    } finally {
-      if (compressOs != null) {
-        compressOs.close();
-      }
     }
     return os.toByteString();
   }
@@ -95,7 +90,6 @@ public class TezUtils {
    *
    * @param conf configuration to be converted
    * @return an instance of {@link org.apache.tez.dag.api.UserPayload}
-   * @throws java.io.IOException
    */
   public static UserPayload createUserPayloadFromConf(Configuration conf) throws IOException {
     return UserPayload.create(ByteBuffer.wrap(createByteStringFromConf(conf).toByteArray()));
@@ -113,11 +107,10 @@ public class TezUtils {
    * @param byteString byteString representation of the conf created using {@link
    *                   #createByteStringFromConf(org.apache.hadoop.conf.Configuration)}
    * @return Configuration
-   * @throws java.io.IOException
    */
   public static Configuration createConfFromByteString(ByteString byteString) throws IOException {
     Objects.requireNonNull(byteString, "ByteString must be specified");
-    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput());) {
+    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
       DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
@@ -156,7 +149,6 @@ public class TezUtils {
    * @param payload {@link org.apache.tez.dag.api.UserPayload} created using {@link
    *                #createUserPayloadFromConf(org.apache.hadoop.conf.Configuration)}
    * @return Configuration
-   * @throws java.io.IOException
    */
   public static Configuration createConfFromUserPayload(UserPayload payload) throws IOException {
     return createConfFromByteString(ByteString.copyFrom(payload.getPayload()));
@@ -186,12 +178,10 @@ public class TezUtils {
       }
       if (conf != null) {
         JSONObject confJson = new JSONObject();
-        Iterator<Entry<String, String>> iter = conf.iterator();
-        while (iter.hasNext()) {
-          Entry<String, String> entry = iter.next();
+        for (Entry<String, String> entry : conf) {
           String key = entry.getKey();
           String val = conf.get(entry.getKey());
-          if(val != null) {
+          if (val != null) {
             confJson.put(key, val);
           } else {
             LOG.debug("null value in Configuration after replacement for key={}. Skipping.", key);

@@ -30,7 +30,7 @@ import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 
-public class ProtoConverters {
+public final class ProtoConverters {
 
   public static EventProtos.CustomProcessorEventProto convertCustomProcessorEventToProto(
     CustomProcessorEvent event) {
@@ -168,4 +168,5 @@ public class ProtoConverters {
     return event;
   }
 
+  private ProtoConverters() {}
 }

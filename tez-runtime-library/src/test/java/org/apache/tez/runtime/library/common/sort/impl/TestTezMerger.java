@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -66,24 +67,24 @@ public class TestTezMerger {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestTezMerger.class);
 
-  private static Configuration defaultConf = new Configuration();
-  private static FileSystem localFs = null;
-  private static Path workDir = null;
-  private static RawComparator comparator = null;
-  private static Random rnd = new Random();
+  private static final Configuration DEFAULT_CONF = new Configuration();
+  private static FileSystem localFs;
+  private static Path workDir;
+  private static RawComparator comparator;
+  private static final Random RND = new Random();
 
   private static final String SAME_KEY = "SAME_KEY";
   private static final String DIFF_KEY = "DIFF_KEY";
 
   //store the generated data for final verification
-  private static ListMultimap<Integer, Long> verificationDataSet = LinkedListMultimap.create();
+  private static final ListMultimap<Integer, Long> VERIFICATION_DATA_SET = LinkedListMultimap.create();
 
-  private MergeManager merger = mock(MergeManager.class);
+  private final MergeManager merger = mock(MergeManager.class);
 
   static {
-    defaultConf.set("fs.defaultFS", "file:///");
+    DEFAULT_CONF.set("fs.defaultFS", "file:///");
     try {
-      localFs = FileSystem.getLocal(defaultConf);
+      localFs = FileSystem.getLocal(DEFAULT_CONF);
       workDir = new Path(
           new Path(System.getProperty("test.build.data", "/tmp")), TestTezMerger.class.getName())
           .makeQualified(localFs.getUri(), localFs.getWorkingDirectory());
@@ -91,12 +92,12 @@ public class TestTezMerger {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    defaultConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
-    defaultConf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, LongWritable.class.getName());
+    DEFAULT_CONF.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, IntWritable.class.getName());
+    DEFAULT_CONF.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, LongWritable.class.getName());
     Path baseDir = new Path(workDir, TestMergeManager.class.getName());
     String localDirs = baseDir.toString();
-    defaultConf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
-    comparator = ConfigUtils.getIntermediateInputKeyComparator(defaultConf);
+    DEFAULT_CONF.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, localDirs);
+    comparator = ConfigUtils.getIntermediateInputKeyComparator(DEFAULT_CONF);
   }
 
   @AfterClass
@@ -106,7 +107,7 @@ public class TestTezMerger {
 
   @Test(timeout = 80000)
   public void testMerge() throws Exception {
-    /**
+    /*
      * test with number of files, keys per file and mergefactor
      */
 
@@ -128,11 +129,10 @@ public class TestTezMerger {
     merge(5, 1000, 100);
 
     //Create random mix of files (empty files + files with keys)
-    List<Path> pathList = new LinkedList<Path>();
-    pathList.clear();
-    pathList.addAll(createIFiles(Math.max(2, rnd.nextInt(20)), 0));
-    pathList.addAll(createIFiles(Math.max(2, rnd.nextInt(20)), Math.max(2, rnd.nextInt(10))));
-    merge(pathList, Math.max(2, rnd.nextInt(10)));
+    List<Path> pathList = new LinkedList<>();
+    pathList.addAll(createIFiles(Math.max(2, RND.nextInt(20)), 0));
+    pathList.addAll(createIFiles(Math.max(2, RND.nextInt(20)), Math.max(2, RND.nextInt(10))));
+    merge(pathList, Math.max(2, RND.nextInt(10)));
   }
 
   private Path createIFileWithTextData(List<String> data) throws IOException {
@@ -150,10 +150,6 @@ public class TestTezMerger {
 
   /**
    * Verify if the records are as per the expected data set
-   *
-   * @param records
-   * @param expectedResult
-   * @throws IOException
    */
   private void verify(TezRawKeyValueIterator records, String[][] expectedResult)
       throws IOException {
@@ -168,7 +164,7 @@ public class TestTezMerger {
       Text v = new Text();
       v.readFields(value);
 
-      assertTrue(k.toString().equals(expectedResult[i][0]));
+      assertEquals(k.toString(), expectedResult[i][0]);
 
       String correctResult = expectedResult[i][1];
 
@@ -186,7 +182,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_WithEmptyStrings() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
     //Merge datasets with custom comparator
     RawComparator rc = new CustomComparator();
@@ -236,7 +232,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_No_RLE() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
     //Merge datasets with custom comparator
     RawComparator rc = new CustomComparator();
@@ -285,14 +281,13 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_RLE_acrossFiles() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info("Test with custom comparator with RLE spanning across segment boundaries");
 
     //Test with 2 files, where the RLE keys can span across files
     //First file
-    data.clear();
     data.add("0");
     data.add("0");
     pathList.add(createIFileWithTextData(data));
@@ -325,14 +320,13 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_mixedFiles() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info("Test with custom comparator with mixed set of segments (empty, non-empty etc)");
 
     //Test with 2 files, where the RLE keys can span across files
     //First file
-    data.clear();
     data.add("0");
     pathList.add(createIFileWithTextData(data));
 
@@ -374,7 +368,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_RLE() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info("Test with custom comparator 2 files one containing RLE and also other segment "
@@ -382,7 +376,6 @@ public class TestTezMerger {
 
     //Test with 2 files, same keys in middle of file
     //First file
-    data.clear();
     data.add("1");
     data.add("2");
     data.add("2");
@@ -413,7 +406,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_RLE2() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info(
@@ -421,7 +414,6 @@ public class TestTezMerger {
 
     //Test with 3 files, same keys in middle of file
     //First file
-    data.clear();
     data.add("0");
     data.add("1");
     data.add("1");
@@ -462,7 +454,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info(
@@ -470,7 +462,6 @@ public class TestTezMerger {
 
     //Test with 3 files
     //First file
-    data.clear();
     data.add("0");
     pathList.add(createIFileWithTextData(data));
 
@@ -500,14 +491,13 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_RLE3() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info("Test with custom comparator");
 
     //Test with 3 files, same keys in middle of file
     //First file
-    data.clear();
     data.add("0");
     pathList.add(createIFileWithTextData(data));
 
@@ -535,7 +525,7 @@ public class TestTezMerger {
 
   @Test(timeout = 5000)
   public void testWithCustomComparator_allEmptyFiles() throws Exception {
-    List<Path> pathList = new LinkedList<Path>();
+    List<Path> pathList = new LinkedList<>();
     List<String> data = Lists.newLinkedList();
 
     LOG.info("Test with custom comparator where all files are empty");
@@ -561,16 +551,10 @@ public class TestTezMerger {
 
   /**
    * Merge the data sets
-   *
-   * @param pathList
-   * @param rc
-   * @return
-   * @throws IOException
    */
   private TezRawKeyValueIterator merge(List<Path> pathList, RawComparator rc)
       throws IOException, InterruptedException {
-    TezMerger merger = new TezMerger();
-    TezRawKeyValueIterator records = merger.merge(defaultConf, localFs,
+    TezRawKeyValueIterator records = TezMerger.merge(DEFAULT_CONF, localFs,
         new SerializationContext(IntWritable.class, LongWritable.class, new WritableSerialization(),
             new WritableSerialization()),
         null, false, 0, 1024, pathList.toArray(new Path[pathList.size()]), true, 4,
@@ -604,8 +588,7 @@ public class TestTezMerger {
 
   private void merge(List<Path> pathList, int mergeFactor, RawComparator rc) throws Exception {
     //Merge datasets
-    TezMerger merger = new TezMerger();
-    TezRawKeyValueIterator records = merger.merge(defaultConf, localFs,
+    TezRawKeyValueIterator records = TezMerger.merge(DEFAULT_CONF, localFs,
         new SerializationContext(IntWritable.class, LongWritable.class, new WritableSerialization(),
             new WritableSerialization()),
         null, false, 0, 1024, pathList.toArray(new Path[pathList.size()]), true, mergeFactor,
@@ -613,7 +596,7 @@ public class TestTezMerger {
         new Reporter(), null, null, null, new Progress());
 
     verifyData(records);
-    verificationDataSet.clear();
+    VERIFICATION_DATA_SET.clear();
   }
 
   private void verifyData(TezRawKeyValueIterator records) throws IOException {
@@ -632,9 +615,9 @@ public class TestTezMerger {
       if (records.isSameKey()) {
         LOG.info("\tSame Key : key=" + k.get() + ", val=" + v.get());
         //More than one key should be present in the source data
-        assertTrue(verificationDataSet.get(k.get()).size() > 1);
+        assertTrue(VERIFICATION_DATA_SET.get(k.get()).size() > 1);
         //Ensure this is same as the previous key we saw
-        assertTrue("previousKey=" + pk + ", current=" + k.get(), pk == k.get());
+        assertEquals("previousKey=" + pk + ", current=" + k.get(), pk, k.get());
       } else {
         LOG.info("key=" + k.get() + ", val=" + v.get());
       }
@@ -645,21 +628,20 @@ public class TestTezMerger {
     }
 
     //Verify if the number of distinct entries is the same in source and the test
-    assertTrue("dataMap=" + dataMap.keySet().size() + ", verificationSet=" +
-            verificationDataSet.keySet().size(),
-        dataMap.keySet().size() == verificationDataSet.keySet().size());
+    assertEquals("dataMap=" + dataMap.keySet().size() + ", verificationSet=" +
+            VERIFICATION_DATA_SET.keySet().size(), dataMap.keySet().size(), VERIFICATION_DATA_SET.keySet().size());
 
     //Verify with source data
-    for (Integer key : verificationDataSet.keySet()) {
-      assertTrue("Data size for " + key + " not matching with source; dataSize:" + dataMap
-              .get(key).intValue() + ", source:" + verificationDataSet.get(key).size(),
-          dataMap.get(key).intValue() == verificationDataSet.get(key).size());
+    for (Integer key : VERIFICATION_DATA_SET.keySet()) {
+      assertEquals("Data size for " + key + " not matching with source; dataSize:" + dataMap
+              .get(key) + ", source:" + VERIFICATION_DATA_SET.get(key).size(),
+              (int) dataMap.get(key), VERIFICATION_DATA_SET.get(key).size());
     }
 
     //Verify if every key has the same number of repeated items in the source dataset as well
     for (Map.Entry<Integer, Integer> entry : dataMap.entrySet()) {
-      assertTrue(entry.getKey() + "", verificationDataSet.get(entry.getKey()).size() == entry
-          .getValue());
+      assertEquals(entry.getKey() + "", VERIFICATION_DATA_SET.get(entry.getKey()).size(), (int) entry
+              .getValue());
     }
 
     LOG.info("******************");
@@ -683,17 +665,17 @@ public class TestTezMerger {
     segments.addAll(createInMemorySegments(10, 100));
     segments.addAll(createDiskSegments(10, 100));
     mergeSegments(segments, 5, true);
-    verificationDataSet.clear();
+    VERIFICATION_DATA_SET.clear();
     segments.clear();
 
     segments.addAll(createDiskSegments(10, 100));
     mergeSegments(segments, 5, true);
-    verificationDataSet.clear();
+    VERIFICATION_DATA_SET.clear();
     segments.clear();
 
     segments.addAll(createInMemorySegments(3, 100));
     mergeSegments(segments, 5, false);
-    verificationDataSet.clear();
+    VERIFICATION_DATA_SET.clear();
     segments.clear();
   }
 
@@ -701,7 +683,7 @@ public class TestTezMerger {
   private void mergeSegments(List<TezMerger.Segment> segmentList, int mergeFactor, boolean
       hasDiskSegments) throws Exception {
     //Merge datasets
-    TezMerger.MergeQueue mergeQueue = new TezMerger.MergeQueue(defaultConf, localFs, segmentList,
+    TezMerger.MergeQueue mergeQueue = new TezMerger.MergeQueue(DEFAULT_CONF, localFs, segmentList,
         comparator, new Reporter(), false, false);
 
     TezRawKeyValueIterator records = mergeQueue.merge(
@@ -716,7 +698,7 @@ public class TestTezMerger {
     int diskBufLen = mergeQueue.diskIFileValue.getLength();
     assertTrue(diskBufLen + " disk buf length should be > 0", (hasDiskSegments == diskBufLen > 0));
 
-    verificationDataSet.clear();
+    VERIFICATION_DATA_SET.clear();
   }
 
   private List<TezMerger.Segment> createInMemorySegments(int segmentCount, int keysPerSegment)
@@ -750,7 +732,7 @@ public class TestTezMerger {
     longVal.write(v);
     key.reset(k.getData(), 0, k.getLength());
     value.reset(v.getData(), 0, v.getLength());
-    verificationDataSet.put(intKey.get(), longVal.get());
+    VERIFICATION_DATA_SET.put(intKey.get(), longVal.get());
   }
 
   private List<TezMerger.Segment> createDiskSegments(int segmentCount, int keysPerSegment) throws
@@ -780,7 +762,7 @@ public class TestTezMerger {
     for (Integer key : dataSet.keySet()) {
       for (Long value : dataSet.get(key)) {
         writer.append(new IntWritable(key), new LongWritable(value));
-        verificationDataSet.put(key, value);
+        VERIFICATION_DATA_SET.put(key, value);
       }
     }
     writer.close();
@@ -793,7 +775,6 @@ public class TestTezMerger {
    *
    * @param keyCount    approximate number of keys to be created
    * @param repeatCount number of times a key should be repeated
-   * @return
    */
   static TreeMultimap<Integer, Long> createDataForIFile(int keyCount, int repeatCount) {
     TreeMultimap<Integer, Long> dataSet = TreeMultimap.create();
