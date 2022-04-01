@@ -246,6 +246,7 @@
                   <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
                   <excludes>
                     <exclude>javax.crypto.*</exclude>
+                    <exclude>javax.net.**</exclude>
                   </excludes>
                 </relocation>
               </relocations>
