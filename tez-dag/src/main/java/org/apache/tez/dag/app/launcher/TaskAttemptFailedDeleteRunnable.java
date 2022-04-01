@@ -55,7 +55,7 @@ class TaskAttemptFailedRunnable implements Runnable {
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerTaskAttemptFailed(
           nodeId.getHost(), shufflePort, taskAttemptID.getTaskID().getVertexID().getDAGID().
               getApplicationId().toString(), taskAttemptID.getTaskID().getVertexID().getDAGID().getId(),
-          taskAttemptID.toString(), false);
+          taskAttemptID.toString(), httpConnectionParams.isSslShuffle());
       httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL, httpConnectionParams,
           "FailedTaskAttemptDelete", jobTokenSecretManager);
       httpConnection.connect();
