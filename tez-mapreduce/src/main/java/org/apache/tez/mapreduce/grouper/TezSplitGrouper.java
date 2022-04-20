@@ -260,23 +260,20 @@ public abstract class TezSplitGrouper {
         desiredNumSplits = newDesiredNumSplits;
       } else if (lengthPerGroup < minLengthPerGroup) {
         // splits too small to work. Need to override with size.
-        int newDesiredNumSplits = (int)(totalLength/minLengthPerGroup) + 1;
         /**
          * This is a workaround for systems like S3 that pass the same
          * fake hostname for all splits.
          */
         if (!allSplitsHaveLocalhost) {
+          int newDesiredNumSplits = (int)(totalLength/minLengthPerGroup) + 1;
+          LOG.info("Desired splits: " + desiredNumSplits + " too large. " +
+              " Desired splitLength: " + lengthPerGroup +
+              " Min splitLength: " + minLengthPerGroup +
+              " New desired splits: " + newDesiredNumSplits +
+              " Total length: " + totalLength +
+              " Original splits: " + originalSplits.size());
           desiredNumSplits = newDesiredNumSplits;
         }
-
-        LOG.info("Desired splits: " + desiredNumSplits + " too large. " +
-            " Desired splitLength: " + lengthPerGroup +
-            " Min splitLength: " + minLengthPerGroup +
-            " New desired splits: " + newDesiredNumSplits +
-            " Final desired splits: " + desiredNumSplits +
-            " All splits have localhost: " + allSplitsHaveLocalhost +
-            " Total length: " + totalLength +
-            " Original splits: " + originalSplits.size());
       }
     }
 
