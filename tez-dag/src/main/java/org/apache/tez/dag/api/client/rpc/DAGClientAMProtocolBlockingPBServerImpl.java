@@ -166,7 +166,8 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       if (request.hasSerializedRequestPath()) {
         // need to deserialize large request from hdfs
         Path requestPath = new Path(request.getSerializedRequestPath());
-        try (FSDataInputStream fsDataInputStream = stagingFs.open(requestPath)) {
+        FileSystem fs = requestPath.getFileSystem(stagingFs.getConf());
+        try (FSDataInputStream fsDataInputStream = fs.open(requestPath)) {
           CodedInputStream in =
               CodedInputStream.newInstance(fsDataInputStream);
           in.setSizeLimit(Integer.MAX_VALUE);
@@ -183,7 +184,7 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
       }
       String dagId = real.submitDAG(dagPlan, additionalResources);
       return SubmitDAGResponseProto.newBuilder().setDagId(dagId).build();
-    } catch(TezException e) {
+    } catch(IOException | TezException e) {
       throw wrapException(e);
     }
   }
