@@ -22,7 +22,7 @@
     "snippet-ss": "1.11.0",
     "jquery-mousewheel": "3.1.13",
     "codemirror": "5.11.0",
-    "file-saver.js": "1.20150507.2",
-    "zip-js": "1.0.0"
+    "zip-js": "1.0.0",
+    "file-saver": "v1.2.0"
   }
 }
