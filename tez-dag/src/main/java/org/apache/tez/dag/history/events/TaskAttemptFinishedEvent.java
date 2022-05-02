@@ -237,7 +237,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     TaskAttemptFinishedProto proto =
-        inputStream.readMessage(TaskAttemptFinishedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(TaskAttemptFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

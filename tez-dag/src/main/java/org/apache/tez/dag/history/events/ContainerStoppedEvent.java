@@ -90,7 +90,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     ContainerStoppedProto proto =
-        inputStream.readMessage(ContainerStoppedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(ContainerStoppedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

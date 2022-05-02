@@ -132,7 +132,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexFinishedProto proto = inputStream.readMessage(VertexFinishedProto.parser(), ExtensionRegistry.newInstance());
+    VertexFinishedProto proto = inputStream.readMessage(VertexFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

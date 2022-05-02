@@ -77,7 +77,7 @@ public class DAGKillRequestEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGKillRequestProto proto = inputStream.readMessage(DAGKillRequestProto.parser(), ExtensionRegistry.newInstance());
+    DAGKillRequestProto proto = inputStream.readMessage(DAGKillRequestProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

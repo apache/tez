@@ -78,7 +78,7 @@ public class DAGCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     DAGCommitStartedProto proto =
-        inputStream.readMessage(DAGCommitStartedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(DAGCommitStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

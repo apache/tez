@@ -130,7 +130,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent, DAGIDAware 
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.parser(), ExtensionRegistry.newInstance());
+    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

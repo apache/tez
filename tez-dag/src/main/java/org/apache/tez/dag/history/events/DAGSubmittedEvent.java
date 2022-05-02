@@ -135,7 +135,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.parser(), ExtensionRegistry.newInstance());
+    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
