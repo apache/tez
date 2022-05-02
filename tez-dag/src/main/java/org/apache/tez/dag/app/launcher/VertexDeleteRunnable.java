@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.launcher;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
@@ -30,53 +30,54 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 
-class TaskAttemptFailedRunnable implements Runnable {
-  private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptFailedRunnable.class);
-  private final NodeId nodeId;
-  private final TezTaskAttemptID taskAttemptID;
-  private final JobTokenSecretManager jobTokenSecretManager;
-  private final int shufflePort;
-  private final HttpConnectionParams httpConnectionParams;
+public class VertexDeleteRunnable implements Runnable {
+  private static final Logger LOG = LoggerFactory.getLogger(VertexDeleteRunnable.class);
+  final private TezVertexID vertex;
+  final private JobTokenSecretManager jobTokenSecretManager;
+  final private NodeId nodeId;
+  final private int shufflePort;
+  final private String vertexId;
+  final private HttpConnectionParams httpConnectionParams;
 
-  TaskAttemptFailedRunnable(NodeId nodeId, int shufflePort, TezTaskAttemptID taskAttemptID,
-                           HttpConnectionParams httpConnectionParams,
-                           JobTokenSecretManager jobTokenSecretMgr) {
+  VertexDeleteRunnable(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager,
+                              NodeId nodeId, int shufflePort, String vertexId,
+                              HttpConnectionParams httpConnectionParams) {
+    this.vertex = vertex;
+    this.jobTokenSecretManager = jobTokenSecretManager;
     this.nodeId = nodeId;
     this.shufflePort = shufflePort;
-    this.taskAttemptID = taskAttemptID;
+    this.vertexId = vertexId;
     this.httpConnectionParams = httpConnectionParams;
-    this.jobTokenSecretManager = jobTokenSecretMgr;
   }
 
   @Override
   public void run() {
     BaseHttpConnection httpConnection = null;
     try {
-      URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerTaskAttemptFailed(
-          nodeId.getHost(), shufflePort, taskAttemptID.getTaskID().getVertexID().getDAGID().
-              getApplicationId().toString(), taskAttemptID.getTaskID().getVertexID().getDAGID().getId(),
-          taskAttemptID.toString(), httpConnectionParams.isSslShuffle());
+      URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerVertexComplete(
+          nodeId.getHost(), shufflePort,
+          vertex.getDAGID().getApplicationId().toString(), vertex.getDAGID().getId(), vertexId,
+          httpConnectionParams.isSslShuffle());
       httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL, httpConnectionParams,
-          "FailedTaskAttemptDelete", jobTokenSecretManager);
+          "VertexDelete", jobTokenSecretManager);
       httpConnection.connect();
       httpConnection.getInputStream();
     } catch (Exception e) {
-      LOG.warn("Could not setup HTTP Connection to the node " + nodeId.getHost() +
-          " for failed task attempt delete. ", e);
+      LOG.warn("Could not setup HTTP Connection to the node %s " + nodeId.getHost() +
+          " for vertex shuffle delete. ", e);
     } finally {
       try {
         if (httpConnection != null) {
           httpConnection.cleanup(true);
         }
-      } catch (IOException ioe) {
-        LOG.warn("Encountered IOException for " + nodeId.getHost() + " during close. ", ioe);
+      } catch (IOException e) {
+        LOG.warn("Encountered IOException for " + nodeId.getHost() + " during close. ", e);
       }
     }
   }
 
   @Override
   public String toString() {
-    return "TaskAttemptFailedRunnable nodeId=" + nodeId + ", shufflePort=" + shufflePort + ", taskAttemptId=" +
-        taskAttemptID.toString();
+    return "VertexDeleteRunnable nodeId=" + nodeId + ", shufflePort=" + shufflePort + ", vertexId=" + vertexId;
   }
 }

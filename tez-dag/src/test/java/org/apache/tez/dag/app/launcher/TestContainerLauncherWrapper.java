@@ -24,7 +24,7 @@ public class TestContainerLauncherWrapper {
   @Test(timeout = 5000)
   public void testDelegation() throws Exception {
     PluginWrapperTestHelpers.testDelegation(ContainerLauncherWrapper.class, ContainerLauncher.class,
-        Sets.newHashSet("getContainerLauncher", "dagComplete", "taskAttemptFailed"));
+        Sets.newHashSet("getContainerLauncher", "dagComplete", "vertexComplete", "taskAttemptFailed"));
   }
 
 }

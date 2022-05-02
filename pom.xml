@@ -62,7 +62,7 @@
     <netty.version>4.1.72.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <jersey.version>1.19</jersey.version>
-    <slf4j.version>1.7.30</slf4j.version>
+    <slf4j.version>1.7.36</slf4j.version>
     <protobuf.version>3.19.4</protobuf.version>
     <roaringbitmap.version>0.7.45</roaringbitmap.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
@@ -253,7 +253,7 @@
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
+        <artifactId>slf4j-reload4j</artifactId>
         <version>${slf4j.version}</version>
       </dependency>
       <dependency>

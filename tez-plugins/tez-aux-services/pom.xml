@@ -207,7 +207,7 @@
               <minimizeJar>true</minimizeJar>
               <artifactSet>
                 <excludes>
-                  <exclude>log4j:log4j</exclude>
+                  <exclude>ch.qos.reload4j:reload4j</exclude>
                   <exclude>org.slf4j:*</exclude>
                 </excludes>
               </artifactSet>
@@ -247,6 +247,7 @@
                   <excludes>
                     <exclude>javax.crypto.*</exclude>
                     <exclude>javax.security.**</exclude>
+                    <exclude>javax.net.**</exclude>
                   </excludes>
                 </relocation>
               </relocations>

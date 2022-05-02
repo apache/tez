@@ -102,6 +102,17 @@ public abstract class TezSplitGrouper {
   public static final String TEZ_GROUPING_NODE_LOCAL_ONLY = "tez.grouping.node.local.only";
   public static final boolean TEZ_GROUPING_NODE_LOCAL_ONLY_DEFAULT = false;
 
+  /**
+   * Number of threads used to initialize the grouped splits, to asynchronously open the readers.
+   */
+  public static final String TEZ_GROUPING_SPLIT_INIT_THREADS = "tez.grouping.split.init-threads";
+  public static final int TEZ_GROUPING_SPLIT_INIT_THREADS_DEFAULT = 4;
+
+  /**
+   * Number of record readers to asynchronously and proactively init.
+   */
+  public static final String TEZ_GROUPING_SPLIT_INIT_NUM_RECORDREADERS = "tez.grouping.split.init.num-recordreaders";
+  public static final int TEZ_GROUPING_SPLIT_INIT_NUM_RECORDREADERS_DEFAULT = 10;
 
   static class LocationHolder {
     List<SplitContainer> splits;
