@@ -164,7 +164,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     VertexConfigurationDoneProto proto =
-        inputStream.readMessage(VertexConfigurationDoneProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(VertexConfigurationDoneProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

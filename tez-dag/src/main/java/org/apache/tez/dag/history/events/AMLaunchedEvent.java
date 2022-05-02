@@ -91,7 +91,7 @@ public class AMLaunchedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    AMLaunchedProto proto = inputStream.readMessage(AMLaunchedProto.parser(), ExtensionRegistry.newInstance());
+    AMLaunchedProto proto = inputStream.readMessage(AMLaunchedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

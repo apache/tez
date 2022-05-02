@@ -100,7 +100,7 @@ public class TaskAttemptStartedEvent implements HistoryEvent, TaskAttemptIDAware
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     TaskAttemptStartedProto proto =
-        inputStream.readMessage(TaskAttemptStartedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(TaskAttemptStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

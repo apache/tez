@@ -82,7 +82,7 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     VertexCommitStartedProto proto =
-        inputStream.readMessage(VertexCommitStartedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(VertexCommitStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

@@ -85,7 +85,7 @@ public class ContainerLaunchedEvent implements HistoryEvent {
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     ContainerLaunchedProto proto =
-        inputStream.readMessage(ContainerLaunchedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(ContainerLaunchedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

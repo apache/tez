@@ -82,7 +82,7 @@ public class DAGStartedEvent implements HistoryEvent, DAGIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGStartedProto proto = inputStream.readMessage(DAGStartedProto.parser(), ExtensionRegistry.newInstance());
+    DAGStartedProto proto = inputStream.readMessage(DAGStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

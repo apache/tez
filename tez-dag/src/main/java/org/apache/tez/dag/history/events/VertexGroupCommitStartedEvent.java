@@ -103,7 +103,7 @@ public class VertexGroupCommitStartedEvent implements HistoryEvent, SummaryEvent
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     VertexGroupCommitStartedProto proto =
-        inputStream.readMessage(VertexGroupCommitStartedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(VertexGroupCommitStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

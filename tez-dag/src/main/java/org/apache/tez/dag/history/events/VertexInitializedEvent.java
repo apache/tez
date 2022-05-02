@@ -160,7 +160,7 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
     VertexInitializedProto proto =
-        inputStream.readMessage(VertexInitializedProto.parser(), ExtensionRegistry.newInstance());
+        inputStream.readMessage(VertexInitializedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

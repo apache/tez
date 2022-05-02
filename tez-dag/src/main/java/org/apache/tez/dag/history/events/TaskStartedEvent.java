@@ -91,7 +91,7 @@ public class TaskStartedEvent implements HistoryEvent, TaskIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    TaskStartedProto proto = inputStream.readMessage(TaskStartedProto.parser(), ExtensionRegistry.newInstance());
+    TaskStartedProto proto = inputStream.readMessage(TaskStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
