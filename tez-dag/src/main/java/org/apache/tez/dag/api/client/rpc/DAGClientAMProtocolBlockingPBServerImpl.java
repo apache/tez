@@ -45,6 +45,8 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequ
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusResponseProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetWebUIAddressRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetWebUIAddressResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionResponseProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
@@ -227,4 +229,10 @@ public class DAGClientAMProtocolBlockingPBServerImpl implements DAGClientAMProto
     }
   }
 
+  @Override
+  public GetWebUIAddressResponseProto getWebUIAddress(RpcController controller, GetWebUIAddressRequestProto request)
+      throws ServiceException {
+    String address = real.getWebUIAddress();
+    return GetWebUIAddressResponseProto.newBuilder().setWebUiAddress(address).build();
+  }
 }

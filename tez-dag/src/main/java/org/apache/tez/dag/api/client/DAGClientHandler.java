@@ -186,4 +186,7 @@ public class DAGClientHandler {
     return lastHeartbeatTime.get();
   }
 
+  public String getWebUIAddress() {
+    return dagAppMaster.getWebUIAddress();
+  }
 }
