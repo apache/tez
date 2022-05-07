@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
@@ -413,4 +414,10 @@ public class TestTezCommonUtils {
   }
 
 
+  @Test
+  public void testMkDirForAM() throws IOException {
+    Path path = new Path("/tmp/testMkDirForAM");
+    TezCommonUtils.mkDirForAM(remoteFs, path);
+    Assert.assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFs.getFileStatus(path).getPermission());
+  }
 }
