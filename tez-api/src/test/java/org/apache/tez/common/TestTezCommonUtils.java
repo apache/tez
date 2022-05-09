@@ -425,5 +425,6 @@ public class TestTezCommonUtils {
     Path path = new Path(TEST_ROOT_DIR + "/testMkDirForAM");
     TezCommonUtils.mkDirForAM(remoteFileSystem, path);
     Assert.assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
+    miniDFS.shutdown();
   }
 }
