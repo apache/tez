@@ -20,12 +20,19 @@ package org.apache.tez.dag.app.web;
 
 import static org.apache.hadoop.yarn.util.StringHelper.pajoin;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.web.ProfileServlet;
 import org.apache.tez.common.web.ServletToControllerAdapters.ConfServletController;
 import org.apache.tez.common.web.ServletToControllerAdapters.JMXJsonServletController;
 import org.apache.tez.common.web.ServletToControllerAdapters.StackServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileOutputServletController;
 
 import com.google.inject.name.Names;
 import org.slf4j.Logger;
@@ -235,6 +242,19 @@ public class WebUIService extends AbstractService {
       route("/jmx", JMXJsonServletController.class);
       route("/conf", ConfServletController.class);
       route("/stacks", StackServletController.class);
+      final String asyncProfilerHome = ProfileServlet.getAsyncProfilerHome();
+      if (asyncProfilerHome != null && !asyncProfilerHome.trim().isEmpty()) {
+        Path tmpDir = Paths.get(ProfileServlet.OUTPUT_DIR);
+        try {
+          Files.createDirectories(tmpDir);
+          route("/prof", ProfileServletController.class);
+          route("/prof-output", ProfileOutputServletController.class);
+        } catch (IOException e) {
+          LOG.info("Could not create directory for profiler output: {} Disabling /prof endpoint... ", tmpDir);
+        }
+      } else {
+        LOG.info("ASYNC_PROFILER_HOME env or -Dasync.profiler.home not specified. Disabling /prof endpoint..");
+      }
     }
   }
 }
