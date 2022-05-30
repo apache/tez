@@ -92,7 +92,8 @@ public class DAGInitializedEvent implements HistoryEvent, DAGIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGInitializedProto proto = inputStream.readMessage(DAGInitializedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
+    DAGInitializedProto proto =
+        inputStream.readMessage(DAGInitializedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
