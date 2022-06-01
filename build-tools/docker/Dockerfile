@@ -95,13 +95,13 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports \
 #############
 
 ######
-# Install Google Protobuf 3.19.4
+# Install Google Protobuf 3.21.1
 ######
 FROM tezbase AS protobuf
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /opt/protobuf-src \
     && curl -L -s -S \
-      https://github.com/protocolbuffers/protobuf/releases/download/v3.19.4/protobuf-java-3.19.4.tar.gz \
+      https://github.com/protocolbuffers/protobuf/releases/download/v21.1/protobuf-java-3.21.1.tar.gz \
       -o /opt/protobuf.tar.gz \
     && tar xzf /opt/protobuf.tar.gz --strip-components 1 -C /opt/protobuf-src
 WORKDIR /opt/protobuf-src

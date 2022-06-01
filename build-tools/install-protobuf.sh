@@ -25,7 +25,7 @@
 # rm -rf ./build-tools/protobuf/ #from root folder
 
 set -x
-PROTOBUF_VERSION=${1:-3.19.4}
+PROTOBUF_VERSION=${1:-3.21.1}
 PROTOBUF_MAJOR_VERSION=$(echo "$PROTOBUF_VERSION" | cut -d. -f1)
 if [ -n "$ZSH_VERSION" ]; then
    SCRIPT_DIR="${0:a:h}"
@@ -42,16 +42,22 @@ function install_protobuf {
         cd "protobuf-$PROTOBUF_VERSION" && ./configure --prefix=/usr && make && sudo make install
     # since protobuf 3, there are precompiled protoc executables on github, let's quickly download and use it
     else
+        PROTOBUF_MINOR_VERSION=$(echo "$PROTOBUF_VERSION" | cut -d. -f2)
+        PROTOBUF_DOWNLOAD_VERSIOM=$PROTOBUF_VERSION
+        # From Protobuf 3.21.1 the major version number was removed from the file names ('3.21.1' -> '21.1')
+        if (( PROTOBUF_MINOR_VERSION > 20 )); then
+          PROTOBUF_DOWNLOAD_VERSIOM=$(echo "$PROTOBUF_VERSION" | cut -d. -f2-3)
+        fi
         ARCH=`uname -m`
         case "$(uname -s)" in
             Darwin)
-                FILE_NAME="protoc-$PROTOBUF_VERSION-osx-$ARCH"
+                FILE_NAME="protoc-$PROTOBUF_DOWNLOAD_VERSIOM-osx-$ARCH"
                 ;;
             Linux)
                 if test $ARCH = "aarch64"; then
                     ARCH="aarch_64"
                 fi
-                FILE_NAME="protoc-$PROTOBUF_VERSION-linux-$ARCH"
+                FILE_NAME="protoc-$PROTOBUF_DOWNLOAD_VERSIOM-linux-$ARCH"
                 ;;
             *)
                 echo "Unsupported OS returned by uname -s, you'll have to install protobuf 3.x manually"
@@ -59,7 +65,7 @@ function install_protobuf {
                 ;;
         esac
         rm -f "$FILE_NAME.zip" #cleanup unfinished file if any
-        wget "https://github.com/google/protobuf/releases/download/v$PROTOBUF_VERSION/$FILE_NAME.zip"
+        wget "https://github.com/google/protobuf/releases/download/v$PROTOBUF_DOWNLOAD_VERSIOM/$FILE_NAME.zip"
         mkdir "$SCRIPT_DIR/protobuf"
         unzip -o "$FILE_NAME.zip" -d "$SCRIPT_DIR/protobuf"
         rm "$FILE_NAME.zip"
