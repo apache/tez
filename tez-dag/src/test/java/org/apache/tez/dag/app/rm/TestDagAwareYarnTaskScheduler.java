@@ -280,11 +280,11 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockApp, times(3)).containerCompleted(any(), (ContainerStatus) any());
     verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
 
-    // verify blacklisting
+    // verify blocklisting
     verify(mockRMClient, times(0)).updateBlacklist(anyListOf(String.class), anyListOf(String.class));
     String badHost = "host6";
     NodeId badNodeId = NodeId.newInstance(badHost, 1);
-    scheduler.blacklistNode(badNodeId);
+    scheduler.blocklistNode(badNodeId);
     List<String> badNodeList = Collections.singletonList(badHost);
     verify(mockRMClient, times(1)).updateBlacklist(eq(badNodeList), isNull(List.class));
     Object mockTask4 = new MockTask("task4");
@@ -301,7 +301,7 @@ public class TestDagAwareYarnTaskScheduler {
     drainableAppCallback.drain();
     // no new allocation
     verify(mockApp, times(3)).taskAllocated(any(), any(), (Container) any());
-    // verify blacklisted container released
+    // verify blocklisted container released
     verify(mockRMClient).releaseAssignedContainer(mockCId5);
     verify(mockRMClient, times(4)).releaseAssignedContainer((ContainerId) any());
     // verify request added back
@@ -322,10 +322,10 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
     verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
-    // test unblacklist
-    scheduler.unblacklistNode(badNodeId);
+    // test unblocklist
+    scheduler.unblocklistNode(badNodeId);
     verify(mockRMClient, times(1)).updateBlacklist(isNull(List.class), eq(badNodeList));
-    assertEquals(0, scheduler.getNumBlacklistedNodes());
+    assertEquals(0, scheduler.getNumBlocklistedNodes());
 
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);

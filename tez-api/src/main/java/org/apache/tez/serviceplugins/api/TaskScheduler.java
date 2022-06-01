@@ -129,24 +129,24 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
   public abstract int getClusterNodeCount() throws ServicePluginException;
 
   /**
-   * Indication to a source that a node has been blacklisted, and should not be used for subsequent
+   * Indication to a source that a node has been blocklisted, and should not be used for subsequent
    * allocations.
    *
-   * @param nodeId te nodeId to be blacklisted
+   * @param nodeId te nodeId to be blocklisted
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
    *                               This will cause the app to shutdown.
    */
-  public abstract void blacklistNode(NodeId nodeId) throws ServicePluginException;
+  public abstract void blocklistNode(NodeId nodeId) throws ServicePluginException;
 
   /**
-   * Indication to a source that a node has been un-blacklisted, and can be used from subsequent
+   * Indication to a source that a node has been un-blocklisted, and can be used from subsequent
    * allocations
    *
-   * @param nodeId the nodeId to be unblacklisted
+   * @param nodeId the nodeId to be unblocklisted
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
    *                               This will cause the app to shutdown.
    */
-  public abstract void unblacklistNode(NodeId nodeId) throws ServicePluginException;
+  public abstract void unblocklistNode(NodeId nodeId) throws ServicePluginException;
 
   /**
    * A request to the source to allocate resources for a requesting task, with location information

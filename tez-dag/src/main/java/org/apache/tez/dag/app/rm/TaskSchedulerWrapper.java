@@ -43,12 +43,12 @@ public class TaskSchedulerWrapper {
     return real.getClusterNodeCount();
   }
 
-  public void blacklistNode(NodeId nodeId) throws Exception {
-    real.blacklistNode(nodeId);
+  public void blocklistNode(NodeId nodeId) throws Exception {
+    real.blocklistNode(nodeId);
   }
 
-  public void unblacklistNode(NodeId nodeId) throws Exception {
-    real.unblacklistNode(nodeId);
+  public void unblocklistNode(NodeId nodeId) throws Exception {
+    real.unblocklistNode(nodeId);
   }
 
   public void allocateTask(Object task, Resource capability, String[] hosts, String[] racks,

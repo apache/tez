@@ -150,13 +150,13 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
   }
 
   @Override
-  public void blacklistNode(NodeId nodeId) {
-    LOG.info("BlacklistNode not supported");
+  public void blocklistNode(NodeId nodeId) {
+    LOG.info("BlocklistNode not supported");
   }
 
   @Override
-  public void unblacklistNode(NodeId nodeId) {
-    LOG.info("unBlacklistNode not supported");
+  public void unblocklistNode(NodeId nodeId) {
+    LOG.info("unBlocklistNode not supported");
   }
 
   @Override

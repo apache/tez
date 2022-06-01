@@ -41,7 +41,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlacklistUpdate;
+import org.apache.tez.dag.app.rm.AMSchedulerEventNodeBlocklistUpdate;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventNodeFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
@@ -60,8 +60,8 @@ public class AMNodeImpl implements AMNode {
   private final int schedulerId;
   private final AppContext appContext;
   private final int maxTaskFailuresPerNode;
-  private boolean blacklistingEnabled;
-  private boolean ignoreBlacklisting = false;
+  private boolean blocklistingEnabled;
+  private boolean ignoreBlocklisting = false;
   private boolean nodeUpdatesRescheduleEnabled;
   private final Set<TezTaskAttemptID> failedAttemptIds = Sets.newHashSet();
 
@@ -91,46 +91,46 @@ public class AMNodeImpl implements AMNode {
       .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
           AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
       .addTransition(AMNodeState.ACTIVE,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
+          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLOCKLISTED),
           AMNodeEventType.N_TA_ENDED, new TaskAttemptFailedTransition())
       .addTransition(AMNodeState.ACTIVE, AMNodeState.UNHEALTHY,
           AMNodeEventType.N_TURNED_UNHEALTHY,
           new NodeTurnedUnhealthyTransition())
       .addTransition(AMNodeState.ACTIVE,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingDisabledTransition())
+          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLOCKLISTED),
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED,
+          new IgnoreBlocklistingDisabledTransition())
       .addTransition(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED,
+          new IgnoreBlocklistingStateChangeTransition(true))
       .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
           AMNodeEventType.N_TURNED_HEALTHY)
       .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
           AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
 
-      // Transitions from BLACKLISTED state.
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+      // Transitions from BLOCKLISTED state.
+      .addTransition(AMNodeState.BLOCKLISTED, AMNodeState.BLOCKLISTED,
           AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedWhileBlacklistedTransition())
-      .addTransition(AMNodeState.BLACKLISTED,
-          EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
+          new ContainerAllocatedWhileBlocklistedTransition())
+      .addTransition(AMNodeState.BLOCKLISTED,
+          EnumSet.of(AMNodeState.BLOCKLISTED, AMNodeState.ACTIVE),
           AMNodeEventType.N_TA_SUCCEEDED,
-          new TaskAttemptSucceededWhileBlacklistedTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+          new TaskAttemptSucceededWhileBlocklistedTransition())
+      .addTransition(AMNodeState.BLOCKLISTED, AMNodeState.BLOCKLISTED,
           AMNodeEventType.N_TA_ENDED, new CountFailedTaskAttemptTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.UNHEALTHY,
+      .addTransition(AMNodeState.BLOCKLISTED, AMNodeState.UNHEALTHY,
           AMNodeEventType.N_TURNED_UNHEALTHY,
           new NodeTurnedUnhealthyTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+      .addTransition(AMNodeState.BLOCKLISTED, AMNodeState.FORCED_ACTIVE,
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED,
+          new IgnoreBlocklistingStateChangeTransition(true))
+      .addTransition(AMNodeState.BLOCKLISTED, AMNodeState.BLOCKLISTED,
           AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(
-          AMNodeState.BLACKLISTED,
-          AMNodeState.BLACKLISTED,
+          AMNodeState.BLOCKLISTED,
+          AMNodeState.BLOCKLISTED,
           EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
-              AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED),
+              AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED),
           new GenericErrorTransition())
 
       // Transitions from FORCED_ACTIVE state.
@@ -145,16 +145,16 @@ public class AMNodeImpl implements AMNode {
           AMNodeEventType.N_TURNED_UNHEALTHY,
           new NodeTurnedUnhealthyTransition())
       .addTransition(AMNodeState.FORCED_ACTIVE,
-          EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingDisabledTransition())
+          EnumSet.of(AMNodeState.BLOCKLISTED, AMNodeState.ACTIVE),
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED,
+          new IgnoreBlocklistingDisabledTransition())
       .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
           AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
       .addTransition(
           AMNodeState.FORCED_ACTIVE,
           AMNodeState.FORCED_ACTIVE,
           EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
-              AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED),
+              AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED),
           new GenericErrorTransition())
 
       // Transitions from UNHEALTHY state.
@@ -167,11 +167,11 @@ public class AMNodeImpl implements AMNode {
           EnumSet
               .of(AMNodeEventType.N_TA_SUCCEEDED, AMNodeEventType.N_TA_ENDED))
       .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingStateChangeTransition(false))
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_DISABLED,
+          new IgnoreBlocklistingStateChangeTransition(false))
       .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
+          AMNodeEventType.N_IGNORE_BLOCKLISTING_ENABLED,
+          new IgnoreBlocklistingStateChangeTransition(true))
       .addTransition(AMNodeState.UNHEALTHY,
           EnumSet.of(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE),
           AMNodeEventType.N_TURNED_HEALTHY, new NodeTurnedHealthyTransition())
@@ -185,7 +185,7 @@ public class AMNodeImpl implements AMNode {
 
   @SuppressWarnings("rawtypes")
   public AMNodeImpl(NodeId nodeId, int schedulerId, int maxTaskFailuresPerNode,
-      EventHandler eventHandler, boolean blacklistingEnabled,
+      EventHandler eventHandler, boolean blocklistingEnabled,
       boolean rescheduleOnUnhealthyNode, AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
@@ -194,7 +194,7 @@ public class AMNodeImpl implements AMNode {
     this.schedulerId = schedulerId;
     this.appContext = appContext;
     this.eventHandler = eventHandler;
-    this.blacklistingEnabled = blacklistingEnabled;
+    this.blocklistingEnabled = blocklistingEnabled;
     this.nodeUpdatesRescheduleEnabled = rescheduleOnUnhealthyNode;
     this.maxTaskFailuresPerNode = maxTaskFailuresPerNode;
     this.stateMachine = stateMachineFactory.make(this);
@@ -254,23 +254,23 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  /* Check whether this node needs to be blacklisted based on node specific information */
-  protected boolean qualifiesForBlacklisting() {
-    return blacklistingEnabled && (numFailedTAs >= maxTaskFailuresPerNode);
+  /* Check whether this node needs to be blocklisted based on node specific information */
+  protected boolean qualifiesForBlocklisting() {
+    return blocklistingEnabled && (numFailedTAs >= maxTaskFailuresPerNode);
   }
 
-  /* Blacklist the node with the AMNodeTracker and check if the node should be blacklisted */
-  protected boolean registerBadNodeAndShouldBlacklist() {
-    return appContext.getNodeTracker().registerBadNodeAndShouldBlacklist(this, schedulerId);
+  /* Blocklist the node with the AMNodeTracker and check if the node should be blocklisted */
+  protected boolean registerBadNodeAndShouldBlocklist() {
+    return appContext.getNodeTracker().registerBadNodeAndShouldBlocklist(this, schedulerId);
   }
 
-  protected void blacklistSelf() {
+  protected void blocklistSelf() {
     for (ContainerId c : containers) {
-      sendEvent(new AMContainerEventNodeFailed(c, "Node blacklisted"));
+      sendEvent(new AMContainerEventNodeFailed(c, "Node blocklisted"));
     }
     // these containers are not useful anymore
     containers.clear();
-    sendEvent(new AMSchedulerEventNodeBlacklistUpdate(getNodeId(), true, schedulerId));
+    sendEvent(new AMSchedulerEventNodeBlocklistUpdate(getNodeId(), true, schedulerId));
   }
 
   @SuppressWarnings("unchecked")
@@ -313,12 +313,12 @@ public class AMNodeImpl implements AMNode {
         if (node.failedAttemptIds.add(event.getTaskAttemptId())) {
           // new failed container on node
           node.numFailedTAs++;
-          if (node.qualifiesForBlacklisting()) {
-            if (node.registerBadNodeAndShouldBlacklist()) {
+          if (node.qualifiesForBlocklisting()) {
+            if (node.registerBadNodeAndShouldBlocklist()) {
               LOG.info("Too many task attempt failures. " +
-                  "Blacklisting node: " + node.getNodeId());
-              node.blacklistSelf();
-              return AMNodeState.BLACKLISTED;
+                  "Blocklisting node: " + node.getNodeId());
+              node.blocklistSelf();
+              return AMNodeState.BLOCKLISTED;
             } else {
               // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
             }
@@ -345,18 +345,18 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  protected static class IgnoreBlacklistingDisabledTransition implements
+  protected static class IgnoreBlocklistingDisabledTransition implements
       MultipleArcTransition<AMNodeImpl, AMNodeEvent, AMNodeState> {
 
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
-      node.ignoreBlacklisting = false;
-      if (node.qualifiesForBlacklisting()) {
-        if (node.registerBadNodeAndShouldBlacklist()) {
-          LOG.info("Too many previous task failures after blacklisting re-enabled. " +
-              "Blacklisting node: " + node.getNodeId());
-          node.blacklistSelf();
-          return AMNodeState.BLACKLISTED;
+      node.ignoreBlocklisting = false;
+      if (node.qualifiesForBlocklisting()) {
+        if (node.registerBadNodeAndShouldBlocklist()) {
+          LOG.info("Too many previous task failures after blocklisting re-enabled. " +
+              "Blocklisting node: " + node.getNodeId());
+          node.blocklistSelf();
+          return AMNodeState.BLOCKLISTED;
         } else {
           // Stay in ACTIVE state. Move to FORCED_ACTIVE only when an explicit message is received.
         }
@@ -365,25 +365,25 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  protected static class IgnoreBlacklistingStateChangeTransition implements
+  protected static class IgnoreBlocklistingStateChangeTransition implements
       SingleArcTransition<AMNodeImpl, AMNodeEvent> {
 
     private boolean ignore;
 
-    public IgnoreBlacklistingStateChangeTransition(boolean ignore) {
+    public IgnoreBlocklistingStateChangeTransition(boolean ignore) {
       this.ignore = ignore;
     }
 
     @Override
     public void transition(AMNodeImpl node, AMNodeEvent nEvent) {
-      node.ignoreBlacklisting = ignore;
-      if (node.getState() == AMNodeState.BLACKLISTED) {
-        node.sendEvent(new AMSchedulerEventNodeBlacklistUpdate(node.getNodeId(), false, node.schedulerId));
+      node.ignoreBlocklisting = ignore;
+      if (node.getState() == AMNodeState.BLOCKLISTED) {
+        node.sendEvent(new AMSchedulerEventNodeBlocklistUpdate(node.getNodeId(), false, node.schedulerId));
       }
     }
   }
 
-  protected static class ContainerAllocatedWhileBlacklistedTransition implements
+  protected static class ContainerAllocatedWhileBlocklistedTransition implements
       SingleArcTransition<AMNodeImpl, AMNodeEvent> {
     @Override
     public void transition(AMNodeImpl node, AMNodeEvent nEvent) {
@@ -393,13 +393,13 @@ public class AMNodeImpl implements AMNode {
     }
   }
 
-  protected static class TaskAttemptSucceededWhileBlacklistedTransition
+  protected static class TaskAttemptSucceededWhileBlocklistedTransition
       implements MultipleArcTransition<AMNodeImpl, AMNodeEvent, AMNodeState> {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       node.numSuccessfulTAs++;
-      return AMNodeState.BLACKLISTED;
-      // For now, always blacklisted. May change at a later point to re-enable
+      return AMNodeState.BLOCKLISTED;
+      // For now, always blocklisted. May change at a later point to re-enable
       // the node.
     }
   }
@@ -442,7 +442,7 @@ public class AMNodeImpl implements AMNode {
     @Override
     public AMNodeState transition(AMNodeImpl node, AMNodeEvent nEvent) {
       node.containers.clear();
-      if (node.ignoreBlacklisting) {
+      if (node.ignoreBlocklisting) {
         return AMNodeState.FORCED_ACTIVE;
       } else {
         return AMNodeState.ACTIVE;
@@ -472,10 +472,10 @@ public class AMNodeImpl implements AMNode {
   }
 
   @Override
-  public boolean isBlacklisted() {
+  public boolean isBlocklisted() {
     this.readLock.lock();
     try {
-      return getState() == AMNodeState.BLACKLISTED;
+      return getState() == AMNodeState.BLOCKLISTED;
     } finally {
       this.readLock.unlock();
     }
@@ -483,7 +483,7 @@ public class AMNodeImpl implements AMNode {
   
   @Override
   public boolean isUsable() {
-    return !(isUnhealthy() || isBlacklisted());
+    return !(isUnhealthy() || isBlocklisted());
   }
 
   @Override

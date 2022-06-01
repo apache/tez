@@ -34,10 +34,10 @@ public enum AMNodeEventType {
   //Producer: TaskScheduler via TaskSchedulerEventHandler
   N_TURNED_UNHEALTHY,
   N_TURNED_HEALTHY,
-  N_NODE_COUNT_UPDATED, // for blacklisting.
+  N_NODE_COUNT_UPDATED, // for blocklisting.
   
   //Producer: AMNodeManager
-  N_IGNORE_BLACKLISTING_ENABLED,
-  N_IGNORE_BLACKLISTING_DISABLED,
+  N_IGNORE_BLOCKLISTING_ENABLED,
+  N_IGNORE_BLOCKLISTING_DISABLED,
 
 }

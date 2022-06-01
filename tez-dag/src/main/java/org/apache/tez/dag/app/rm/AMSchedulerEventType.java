@@ -25,8 +25,8 @@ public enum AMSchedulerEventType {
   S_TA_ENDED, // Annotated with FAILED/KILLED/SUCCEEDED.
 
   //Producer: Node
-  S_NODE_BLACKLISTED,
-  S_NODE_UNBLACKLISTED,
+  S_NODE_BLOCKLISTED,
+  S_NODE_UNBLOCKLISTED,
   S_NODE_UNHEALTHY,
   S_NODE_HEALTHY,
   // The scheduler should have a way of knowing about unusable nodes. Acting on

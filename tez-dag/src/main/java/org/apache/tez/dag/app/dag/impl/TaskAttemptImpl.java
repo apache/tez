@@ -1885,7 +1885,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         return TaskAttemptStateInternal.FAIL_IN_PROGRESS;
       }
       // TODO at some point. Nodes may be interested in FetchFailure info.
-      // Can be used to blacklist nodes.
+      // Can be used to blocklist nodes.
     }
 
     private int getNumNodes(TaskAttemptImpl sourceAttempt) {

@@ -28,9 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.protobuf.ByteString;
 import org.apache.commons.lang.StringUtils;
-import org.apache.tez.dag.app.dag.impl.ImmediateStartVertexManager;
 import org.apache.tez.dag.app.dag.impl.OneToOneEdgeManagerOnDemand;
 import org.apache.tez.dag.app.dag.impl.RootInputVertexManager;
 import org.slf4j.Logger;
@@ -156,7 +154,7 @@ public class TestExceptionPropagation {
     tezConf = new TezConfiguration();
     tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
     tezConf
-        .setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+        .setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
     tezConf.setBoolean(TezConfiguration.TEZ_AM_ONE_TO_ONE_ROUTING_USE_ON_DEMAND_ROUTING, true);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
@@ -189,7 +187,7 @@ public class TestExceptionPropagation {
     tezConf = new TezConfiguration(miniTezCluster.getConfig());
     tezConf.setInt(TezConfiguration.DAG_RECOVERY_MAX_UNFLUSHED_EVENTS, 0);
     tezConf
-        .setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+        .setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
     tezConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 4);
     tezConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, 500);
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, " -Xmx256m");

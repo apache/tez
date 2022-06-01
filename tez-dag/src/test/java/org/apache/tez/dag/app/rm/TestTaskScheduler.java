@@ -280,12 +280,12 @@ public class TestTaskScheduler {
     verify(mockApp, times(3)).containerCompleted(any(), (ContainerStatus) any());
     verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
     
-    // verify blacklisting
-    verify(mockRMClient, times(0)).addNodeToBlacklist((NodeId)any());
+    // verify blocklisting
+    verify(mockRMClient, times(0)).addNodeToBlocklist((NodeId)any());
     String badHost = "host6";
     NodeId badNodeId = NodeId.newInstance(badHost, 1);
-    scheduler.blacklistNode(badNodeId);
-    verify(mockRMClient, times(1)).addNodeToBlacklist(badNodeId);
+    scheduler.blocklistNode(badNodeId);
+    verify(mockRMClient, times(1)).addNodeToBlocklist(badNodeId);
     Object mockTask4 = new MockTask("task4");
     Object mockCookie4 = new Object();
     scheduler.allocateTask(mockTask4, mockCapability, null,
@@ -300,7 +300,7 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     // no new allocation
     verify(mockApp, times(3)).taskAllocated(any(), any(), (Container) any());
-    // verify blacklisted container released
+    // verify blocklisted container released
     verify(mockRMClient).releaseAssignedContainer(mockCId5);
     verify(mockRMClient, times(4)).releaseAssignedContainer((ContainerId) any());
     // verify request added back
@@ -321,10 +321,10 @@ public class TestTaskScheduler {
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
     verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
-    // test unblacklist
-    scheduler.unblacklistNode(badNodeId);
-    verify(mockRMClient, times(1)).removeNodeFromBlacklist(badNodeId);
-    assertEquals(0, scheduler.blacklistedNodes.size());
+    // test unblocklist
+    scheduler.unblocklistNode(badNodeId);
+    verify(mockRMClient, times(1)).removeNodeFromBlocklist(badNodeId);
+    assertEquals(0, scheduler.blocklistedNodes.size());
 
     float progress = 0.5f;
     when(mockApp.getProgress()).thenReturn(progress);
@@ -635,12 +635,12 @@ public class TestTaskScheduler {
     verify(mockApp, times(3)).containerCompleted(any(), (ContainerStatus) any());
     verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
 
-    // verify blacklisting
-    verify(mockRMClient, times(0)).addNodeToBlacklist((NodeId)any());
+    // verify blocklisting
+    verify(mockRMClient, times(0)).addNodeToBlocklist((NodeId)any());
     String badHost = "host6";
     NodeId badNodeId = NodeId.newInstance(badHost, 1);
-    scheduler.blacklistNode(badNodeId);
-    verify(mockRMClient, times(1)).addNodeToBlacklist(badNodeId);
+    scheduler.blocklistNode(badNodeId);
+    verify(mockRMClient, times(1)).addNodeToBlocklist(badNodeId);
     Object mockTask4 = new MockTask("task4");
     Object mockCookie4 = new Object();
     scheduler.allocateTask(mockTask4, mockCapability, null,
@@ -657,7 +657,7 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     // no new allocation
     verify(mockApp, times(3)).taskAllocated(any(), any(), (Container) any());
-    // verify blacklisted container released
+    // verify blocklisted container released
     verify(mockRMClient).releaseAssignedContainer(mockCId5);
     verify(mockRMClient, times(4)).releaseAssignedContainer((ContainerId) any());
     // verify request added back
@@ -680,10 +680,10 @@ public class TestTaskScheduler {
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
     verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
-    // test unblacklist
-    scheduler.unblacklistNode(badNodeId);
-    verify(mockRMClient, times(1)).removeNodeFromBlacklist(badNodeId);
-    assertEquals(0, scheduler.blacklistedNodes.size());
+    // test unblocklist
+    scheduler.unblocklistNode(badNodeId);
+    verify(mockRMClient, times(1)).removeNodeFromBlocklist(badNodeId);
+    assertEquals(0, scheduler.blocklistedNodes.size());
     
     // verify container level matching
     // add a dummy task to prevent release of allocated containers

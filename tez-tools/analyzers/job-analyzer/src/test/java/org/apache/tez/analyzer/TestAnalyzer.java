@@ -151,7 +151,7 @@ public class TestAnalyzer {
     
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
-    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
     
     return tezConf;
   }
@@ -170,7 +170,7 @@ public class TestAnalyzer {
     
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
-    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
 
     tezSession = TezClient.create("TestAnalyzer", tezConf, true);
     tezSession.start();
@@ -188,7 +188,7 @@ public class TestAnalyzer {
     
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
-    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+    tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
 
     tezSession = TezClient.create("TestFaultTolerance", tezConf, true);
     tezSession.start();

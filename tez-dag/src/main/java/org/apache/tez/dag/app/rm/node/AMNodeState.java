@@ -21,6 +21,6 @@ package org.apache.tez.dag.app.rm.node;
 public enum AMNodeState {
   ACTIVE,
   FORCED_ACTIVE,
-  BLACKLISTED,
+  BLOCKLISTED,
   UNHEALTHY,
 }

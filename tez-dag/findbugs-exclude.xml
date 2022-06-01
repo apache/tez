@@ -16,9 +16,9 @@
   <Match>
     <Class name="org.apache.tez.dag.app.rm.node.AMNodeTracker" />
     <Or>
-      <Field name="blacklistDisablePercent" />
+      <Field name="blocklistDisablePercent" />
       <Field name="maxTaskFailuresPerNode" />
-      <Field name="nodeBlacklistingEnabled" />
+      <Field name="nodeBlocklistingEnabled" />
       <Field name="nodeUpdatesRescheduleEnabled" />
     </Or>
     <Bug pattern="IS2_INCONSISTENT_SYNC" />

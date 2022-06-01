@@ -212,7 +212,7 @@ public class YARNRunner implements ClientProtocol {
   @Override
   public TaskTrackerInfo[] getBlacklistedTrackers() throws IOException,
       InterruptedException {
-    return resMgrDelegate.getBlacklistedTrackers();
+    return resMgrDelegate.getBlocklistedTrackers();
   }
 
   @Override

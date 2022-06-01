@@ -102,7 +102,7 @@ public class TestFaultTolerance {
       tezConf = new TezConfiguration(miniTezCluster.getConfig());
       tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           remoteStagingDir.toString());
-      tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED, false);
+      tezConf.setBoolean(TezConfiguration.TEZ_AM_NODE_BLOCKLISTING_ENABLED, false);
       tezConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.4);
       tezConf.setInt(TezConfiguration.TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC, 3);
       tezConf.setInt(TezConfiguration.TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS, 100);

@@ -37,11 +37,11 @@ public enum AMContainerEventType {
   //Producer: RMCommunicator, AMNode
   C_NODE_FAILED,
   
-  //TODO ZZZ CREUSE: Consider introducing a new event C_NODE_BLACKLISTED -> container can take a call on what to do if this event comes in.
+  //TODO ZZZ CREUSE: Consider introducing a new event C_NODE_BLOCKLISTED -> container can take a call on what to do if this event comes in.
   
   //Producer: TA-> Scheduler -> Container (in case of failure etc)
   //          Scheduler -> Container (in case of pre-emption etc)
-  //          Node -> Container (in case of Node blacklisted etc)
+  //          Node -> Container (in case of Node blocklisted etc)
   C_STOP_REQUEST,
   
   //Producer: NMCommunicator
