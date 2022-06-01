@@ -291,7 +291,14 @@ public class TezCommonUtils {
    * @throws IOException
    */
   public static void mkDirForAM(FileSystem fs, Path dir) throws IOException {
-    fs.mkdirs(dir, new FsPermission(TEZ_AM_DIR_PERMISSION));
+    FsPermission perm = new FsPermission(TEZ_AM_DIR_PERMISSION);
+    fs.mkdirs(dir, perm);
+    if (!fs.getFileStatus(dir).getPermission().equals(perm)) {
+      LOG.warn("Directory " + dir.toString() + " created with unexpected permissions : "
+            + fs.getFileStatus(dir).getPermission() + ". Fixing permissions to correct value : "
+            + perm.toString());
+      fs.setPermission(dir, perm);
+    }
   }
 
   /**

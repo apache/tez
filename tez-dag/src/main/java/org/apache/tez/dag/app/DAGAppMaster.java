@@ -2618,6 +2618,10 @@ public class DAGAppMaster extends AbstractService {
         TezConfiguration.TEZ_AM_WEBSERVICE_ENABLE_DEFAULT);
   }
 
+  public String getWebUIAddress() {
+    return webUIService == null ? null : webUIService.getBaseUrl();
+  }
+
   @VisibleForTesting
   static void parseAllPlugins(
       List<NamedEntityDescriptor> taskSchedulerDescriptors, BiMap<String, Integer> taskSchedulerPluginMap,

@@ -1980,6 +1980,18 @@ public class TezConfiguration extends Configuration {
       + "tez-ui.webservice.enable";
   public static final boolean TEZ_AM_WEBSERVICE_ENABLE_DEFAULT = true;
 
+  /**
+   * String value. Range of ports that the AM can use for the WebUIService. Leave blank
+   * to use all possible ports. Expert level setting. It's hadoop standard range configuration.
+   * For example 50000-50050,50100-50200
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_WEBSERVICE_PORT_RANGE = TEZ_AM_PREFIX
+      + "tez-ui.webservice.port-range";
+
+  public static final String TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT = "50000-50050";
+
   // TODO only validate property here, value can also be validated if necessary
   public static void validateProperty(String property, Scope usedScope) {
     Scope validScope = PropertyScope.get(property);

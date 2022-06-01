@@ -55,6 +55,8 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     rsync \
     software-properties-common \
     ssh-client \
+    sudo \
+    wget \
     xz-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
