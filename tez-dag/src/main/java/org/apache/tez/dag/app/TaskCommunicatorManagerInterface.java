@@ -27,6 +27,9 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.rm.container.AMContainerTask;
 import org.apache.tez.dag.records.TezTaskAttemptID;
+
+import java.util.Map;
+
 /**
  * This class listens for changes to the state of a Task.
  */
@@ -34,7 +37,7 @@ public interface TaskCommunicatorManagerInterface {
 
   void registerRunningContainer(ContainerId containerId, int taskCommId);
 
-  void registerTaskAttempt(AMContainerTask amContainerTask, ContainerId containerId, int taskCommId);
+  void registerTaskAttempt(AMContainerTask amContainerTask, ContainerId containerId, int taskCommId, Object taskSchedulerInfo);
   
   void unregisterRunningContainer(ContainerId containerId, int taskCommId, ContainerEndReason endReason, String diagnostics);
   

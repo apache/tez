@@ -292,7 +292,7 @@ public class TestTaskCommunicatorManager2 {
     }
 
     private void registerTaskAttempt(ContainerId containerId, AMContainerTask amContainerTask) {
-      taskCommunicatorManager.registerTaskAttempt(amContainerTask, containerId, 0);
+      taskCommunicatorManager.registerTaskAttempt(amContainerTask, containerId, 0, null);
     }
 
     private TaskSpec createTaskSpec() {

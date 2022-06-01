@@ -84,6 +84,19 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
                      Object appCookie,
                      Container container);
 
+  /**
+   * Indicate to the framework that a container is being assigned to a task.
+   *
+   * @param task      the task for which a container is being assigned. This should be the same
+   *                  instance that was provided when requesting for an allocation
+   * @param appCookie the cookie which was provided while requesting allocation for this task
+   * @param container the actual container assigned to the task
+   * @param taskSchedulingInfo task specific scheduling information to be passed to communicator
+   */
+  void taskAllocated(Object task,
+      Object appCookie,
+      Container container, Object taskSchedulingInfo);
+
 
   /**
    * Indicate to the framework that a container has completed. This is typically used by sources

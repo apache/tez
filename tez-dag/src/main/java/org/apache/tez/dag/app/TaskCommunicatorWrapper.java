@@ -52,8 +52,9 @@ public class TaskCommunicatorWrapper {
   public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
                                          Map<String, LocalResource> additionalResources,
                                          Credentials credentials, boolean credentialsChanged,
-                                         int priority) throws Exception {
-    real.registerRunningTaskAttempt(containerId, taskSpec, additionalResources, credentials, credentialsChanged, priority);
+                                         int priority, Object taskSchedulerInfo) throws Exception {
+    real.registerRunningTaskAttempt(containerId, taskSpec, additionalResources, credentials, credentialsChanged,
+        priority, taskSchedulerInfo);
   }
 
   public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID,

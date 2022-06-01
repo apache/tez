@@ -735,7 +735,7 @@ public class TaskSchedulerManager extends AbstractService implements
   // TaskSchedulerAppCallback methods with schedulerId, where relevant
   public synchronized void taskAllocated(int schedulerId, Object task,
                                            Object appCookie,
-                                           Container container) {
+                                           Container container, Object taskSchedulingInfo) {
     AMSchedulerEventTALaunchRequest event =
         (AMSchedulerEventTALaunchRequest) appCookie;
     ContainerId containerId = container.getId();
@@ -765,7 +765,7 @@ public class TaskSchedulerManager extends AbstractService implements
     }
     sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getTaskAttemptID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
-            .getContainerContext().getCredentials(), event.getPriority()));
+            .getContainerContext().getCredentials(), event.getPriority(), taskSchedulingInfo));
   }
 
   public synchronized void containerCompleted(int schedulerId, Object task, ContainerStatus containerStatus) {

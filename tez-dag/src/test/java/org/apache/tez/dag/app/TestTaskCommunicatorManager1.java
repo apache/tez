@@ -185,7 +185,7 @@ public class TestTaskCommunicatorManager1 {
     assertNull(containerTask);
 
     // Valid task registered
-    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId2, 0);
+    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId2, 0, null);
     containerTask = tezUmbilical.getTask(containerContext2);
     assertFalse(containerTask.shouldDie());
     assertEquals(taskSpec, containerTask.getTaskSpec());
@@ -209,7 +209,7 @@ public class TestTaskCommunicatorManager1 {
     TezTaskAttemptID taskAttemptId2 = mock(TezTaskAttemptID.class);
     doReturn(taskAttemptId2).when(taskSpec2).getTaskAttemptID();
     AMContainerTask amContainerTask2 = new AMContainerTask(taskSpec, null, null, false, 0);
-    taskAttemptListener.registerTaskAttempt(amContainerTask2, containerId3, 0);
+    taskAttemptListener.registerTaskAttempt(amContainerTask2, containerId3, 0, null);
     taskAttemptListener.unregisterRunningContainer(containerId3, 0, ContainerEndReason.OTHER, null);
     containerTask = tezUmbilical.getTask(containerContext3);
     assertTrue(containerTask.shouldDie());
@@ -229,7 +229,7 @@ public class TestTaskCommunicatorManager1 {
     assertNull(containerTask);
 
     // Register task
-    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId1, 0);
+    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId1, 0, null);
     containerTask = tezUmbilical.getTask(containerContext1);
     assertFalse(containerTask.shouldDie());
     assertEquals(taskSpec, containerTask.getTaskSpec());
@@ -423,7 +423,7 @@ public class TestTaskCommunicatorManager1 {
     doReturn(eventInfo).when(vertex).getTaskAttemptTezEvents(taskAttemptID, fromEventId, 0, maxEvents);
 
     taskAttemptListener.registerRunningContainer(containerId, 0);
-    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId, 0);
+    taskAttemptListener.registerTaskAttempt(amContainerTask, containerId, 0, null);
 
     TaskHeartbeatRequest request = mock(TaskHeartbeatRequest.class);
     doReturn(containerId.toString()).when(request).getContainerIdentifier();

@@ -653,7 +653,7 @@ public class AMContainerImpl implements AMContainer {
           event.getRemoteTaskSpec(), container.additionalLocalResources,
           container.credentialsChanged ? container.credentials : null, container.credentialsChanged,
           event.getPriority());
-      container.registerAttemptWithListener(amContainerTask);
+      container.registerAttemptWithListener(amContainerTask, event.getTaskSchedulingInfo());
       container.additionalLocalResources = null;
       container.credentialsChanged = false;
       if (container.getState() == AMContainerState.IDLE) {
@@ -1180,8 +1180,8 @@ public class AMContainerImpl implements AMContainer {
     taskCommunicatorManagerInterface.unregisterTaskAttempt(attemptId, taskCommId, endReason, diagnostics);
   }
 
-  protected void registerAttemptWithListener(AMContainerTask amContainerTask) {
-    taskCommunicatorManagerInterface.registerTaskAttempt(amContainerTask, this.containerId, taskCommId);
+  protected void registerAttemptWithListener(AMContainerTask amContainerTask, Object taskSchedulingInfo) {
+    taskCommunicatorManagerInterface.registerTaskAttempt(amContainerTask, this.containerId, taskCommId, taskSchedulingInfo);
   }
 
   protected void registerWithTAListener() {
