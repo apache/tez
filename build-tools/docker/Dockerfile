@@ -55,8 +55,6 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     rsync \
     software-properties-common \
     ssh-client \
-    sudo \
-    wget \
     xz-utils \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -95,22 +93,6 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports \
 ############
 # Fetch all of the non-conflicting bits in parallel
 #############
-
-######
-# Install Google Protobuf 3.21.1
-######
-FROM tezbase AS protobuf
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN mkdir -p /opt/protobuf-src \
-    && curl -L -s -S \
-      https://github.com/protocolbuffers/protobuf/releases/download/v21.1/protobuf-java-3.21.1.tar.gz \
-      -o /opt/protobuf.tar.gz \
-    && tar xzf /opt/protobuf.tar.gz --strip-components 1 -C /opt/protobuf-src
-WORKDIR /opt/protobuf-src
-RUN  ./configure --prefix=/opt/protobuf \
-    && make install
-WORKDIR /root
-RUN rm -rf /opt/protobuf-src
 
 ####
 # Install shellcheck (shell script lint)
@@ -263,11 +245,6 @@ RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
 COPY --from=shellcheck /bin/shellcheck /bin/shellcheck
 COPY --from=hadolint /bin/hadolint /bin/hadolint
 COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
-COPY --from=protobuf /opt/protobuf /opt/protobuf
-
-ENV PROTOBUF_HOME /opt/protobuf
-ENV PROTOC_PATH /opt/protobuf/bin/protoc
-ENV PATH "${PATH}:/opt/protobuf/bin"
 
 ####
 # YETUS CUT HERE
