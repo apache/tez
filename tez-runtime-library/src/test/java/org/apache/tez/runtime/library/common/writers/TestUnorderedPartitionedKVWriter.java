@@ -21,13 +21,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -55,13 +55,13 @@ import com.google.protobuf.ByteString;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter.SpillInfo;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 import org.apache.tez.runtime.library.utils.DATA_RANGE_IN_MB;
+import org.mockito.invocation.InvocationOnMock;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +107,6 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import org.mockito.ArgumentCaptor;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 @RunWith(value = Parameterized.class)
@@ -418,7 +417,7 @@ public class TestUnorderedPartitionedKVWriter {
       numRecordsWritten++;
     }
     if (pipeliningEnabled) {
-      verify(outputContext, times(numLargeKeys)).sendEvents(anyListOf(Event.class));
+      verify(outputContext, times(numLargeKeys)).sendEvents(anyList());
     }
 
     // Write Large val records
@@ -434,7 +433,7 @@ public class TestUnorderedPartitionedKVWriter {
       numRecordsWritten++;
     }
     if (pipeliningEnabled) {
-      verify(outputContext, times(numLargevalues + numLargeKeys)).sendEvents(anyListOf(Event.class));
+      verify(outputContext, times(numLargevalues + numLargeKeys)).sendEvents(anyList());
     }
 
     // Write records where key + val are large (but both can fit in the buffer individually)
@@ -451,11 +450,11 @@ public class TestUnorderedPartitionedKVWriter {
     }
     if (pipeliningEnabled) {
       verify(outputContext, times(numLargevalues + numLargeKeys + numLargeKvPairs))
-          .sendEvents(anyListOf(Event.class));
+          .sendEvents(anyList());
     }
 
     List<Event> events = kvWriter.close();
-    verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(), any(), any());
 
     if (!pipeliningEnabled) {
       VertexManagerEvent vmEvent = null;
@@ -732,8 +731,8 @@ public class TestUnorderedPartitionedKVWriter {
     }
     verifyPartitionStats(VMEvent, partitionsWithData);
 
-    verify(outputContext, never()).reportFailure(any(TaskFailureType.class),
-        any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(),
+        any(), any());
 
     assertNull(kvWriter.currentBuffer);
     assertEquals(0, kvWriter.availableBuffers.size());
@@ -976,8 +975,8 @@ public class TestUnorderedPartitionedKVWriter {
       }
     }
 
-    verify(outputContext, never()).reportFailure(any(TaskFailureType.class),
-        any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(),
+        any(), any());
 
     assertNull(kvWriter.currentBuffer);
     assertEquals(0, kvWriter.availableBuffers.size());
@@ -1187,7 +1186,7 @@ public class TestUnorderedPartitionedKVWriter {
     int recordsPerBuffer = sizePerBuffer / sizePerRecordWithOverhead;
     int numExpectedSpills = numRecordsWritten / recordsPerBuffer / kvWriter.spillLimit;
 
-    verify(outputContext, never()).reportFailure(any(TaskFailureType.class), any(Throwable.class), any(String.class));
+    verify(outputContext, never()).reportFailure(any(), any(), any());
 
     assertNull(kvWriter.currentBuffer);
     assertEquals(0, kvWriter.availableBuffers.size());

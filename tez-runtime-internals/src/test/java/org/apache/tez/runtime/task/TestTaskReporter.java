@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.task;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.isA;
@@ -84,7 +84,7 @@ public class TestTaskReporter {
           throw new TezUncheckedException("Invalid request id for test: " + request.getRequestId());
         }
       }
-    }).when(mockUmbilical).heartbeat(any(TezHeartbeatRequest.class));
+    }).when(mockUmbilical).heartbeat(any());
 
     TezTaskAttemptID mockTaskAttemptId = mock(TezTaskAttemptID.class);
     LogicalIOProcessorRuntimeTask mockTask = mock(LogicalIOProcessorRuntimeTask.class);
@@ -105,10 +105,10 @@ public class TestTaskReporter {
           lock.wait();
         }
       }
-      verify(mockUmbilical, times(3)).heartbeat(any(TezHeartbeatRequest.class));
+      verify(mockUmbilical, times(3)).heartbeat(any());
       Thread.sleep(200l);
       // Sleep for less than the callable sleep time. No more invocations.
-      verify(mockUmbilical, times(3)).heartbeat(any(TezHeartbeatRequest.class));
+      verify(mockUmbilical, times(3)).heartbeat(any());
     } finally {
       executor.shutdownNow();
     }

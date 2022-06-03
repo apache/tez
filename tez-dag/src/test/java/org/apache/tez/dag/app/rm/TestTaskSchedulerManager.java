@@ -23,10 +23,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -661,7 +661,7 @@ public class TestTaskSchedulerManager {
     tseh.handle(launchRequest1);
 
     verify(tseh.getTestTaskScheduler(0)).allocateTask(eq(mockTaskAttempt1), eq(resource),
-        any(String[].class), any(String[].class), any(Priority.class), any(Object.class),
+        any(String[].class), any(String[].class), any(), any(),
         eq(launchRequest1));
 
     AMSchedulerEventTALaunchRequest launchRequest2 =
@@ -670,7 +670,7 @@ public class TestTaskSchedulerManager {
             0);
     tseh.handle(launchRequest2);
     verify(tseh.getTestTaskScheduler(1)).allocateTask(eq(mockTaskAttempt2), eq(resource),
-        any(String[].class), any(String[].class), any(Priority.class), any(Object.class),
+        any(String[].class), any(String[].class), any(), any(),
         eq(launchRequest2));
   }
 

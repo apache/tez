@@ -704,8 +704,8 @@
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
-        <version>1.10.8</version>
+        <artifactId>mockito-core</artifactId>
+        <version>4.3.1</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>

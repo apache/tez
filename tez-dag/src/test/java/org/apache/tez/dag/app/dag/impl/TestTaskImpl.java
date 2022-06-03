@@ -769,7 +769,7 @@ public class TestTaskImpl {
 
     // The task should now have succeeded
     assertTaskSucceededState();
-    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(), eq(taskId),
         eq(mockTask.getLastAttempt().getTaskAttemptID().getId()));
 
     ArgumentCaptor<DAGHistoryEvent> argumentCaptor = ArgumentCaptor.forClass(DAGHistoryEvent.class);
@@ -818,7 +818,7 @@ public class TestTaskImpl {
 
     // The task should now have succeeded
     assertTaskSucceededState();
-    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(), eq(taskId),
         eq(mockTask.getLastAttempt().getTaskAttemptID().getId()));
 
     eventHandler.events.clear();
@@ -982,7 +982,7 @@ public class TestTaskImpl {
 
     // The task should now have succeeded and sent kill to other attempt
     assertTaskSucceededState();
-    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(), eq(taskId),
         eq(firstAttempt.getTaskAttemptID().getId()));
     @SuppressWarnings("rawtypes")
     Event event = eventHandler.events.get(eventHandler.events.size()-1);
@@ -1019,7 +1019,7 @@ public class TestTaskImpl {
 
     // The task should now have succeeded and sent kill to other attempt
     assertTaskSucceededState();
-    verify(mockTask.stateChangeNotifier).taskSucceeded(any(String.class), eq(taskId),
+    verify(mockTask.stateChangeNotifier).taskSucceeded(any(), eq(taskId),
         eq(firstAttempt.getTaskAttemptID().getId()));
     @SuppressWarnings("rawtypes")
     Event event = eventHandler.events.get(eventHandler.events.size()-1);

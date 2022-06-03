@@ -43,9 +43,12 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TestMRCombiner {
 
@@ -56,7 +59,7 @@ public class TestMRCombiner {
     conf.setClass("mapred.combiner.class", OldReducer.class, Object.class);
     TaskContext taskContext = getTaskContext(conf);
     MRCombiner combiner = new MRCombiner(taskContext);
-    Writer writer = Mockito.mock(Writer.class);
+    Writer writer = mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
     long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
     long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
@@ -75,7 +78,7 @@ public class TestMRCombiner {
         Object.class);
     TaskContext taskContext = getTaskContext(conf);
     MRCombiner combiner = new MRCombiner(taskContext);
-    Writer writer = Mockito.mock(Writer.class);
+    Writer writer = mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
     long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
     long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
@@ -92,7 +95,7 @@ public class TestMRCombiner {
     conf.setClass("mapred.combiner.class", Top2OldReducer.class, Object.class);
     TaskContext taskContext = getTaskContext(conf);
     MRCombiner combiner = new MRCombiner(taskContext);
-    Writer writer = Mockito.mock(Writer.class);
+    Writer writer = mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
     long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
     long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
@@ -109,7 +112,7 @@ public class TestMRCombiner {
         Object.class);
     TaskContext taskContext = getTaskContext(conf);
     MRCombiner combiner = new MRCombiner(taskContext);
-    Writer writer = Mockito.mock(Writer.class);
+    Writer writer = mock(Writer.class);
     combiner.combine(new TezRawKeyValueIteratorTest(), writer);
     long inputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS).getValue();
     long outputRecords = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS).getValue();
@@ -127,20 +130,20 @@ public class TestMRCombiner {
   private TaskContext getTaskContext(TezConfiguration conf)
       throws IOException {
     UserPayload payload = TezUtils.createUserPayloadFromConf(conf);
-    TaskContext taskContext = Mockito.mock(InputContext.class);
-    Mockito.when(taskContext.getUserPayload()).thenReturn(payload);
-    Mockito.when(taskContext.getCounters()).thenReturn(new TezCounters());
-    Mockito.when(taskContext.getApplicationId()).thenReturn(
+    TaskContext taskContext = mock(InputContext.class);
+    when(taskContext.getUserPayload()).thenReturn(payload);
+    when(taskContext.getCounters()).thenReturn(new TezCounters());
+    when(taskContext.getApplicationId()).thenReturn(
         ApplicationId.newInstance(123456, 1));
     return taskContext;
   }
 
   private void verifyKeyAndValues(Writer writer) throws IOException {
-    Mockito.verify(writer, Mockito.atLeastOnce()).append(new Text("tez"),
+    verify(writer, atLeastOnce()).append(new Text("tez"),
         new IntWritable(3));
-    Mockito.verify(writer, Mockito.atLeastOnce()).append(new Text("apache"),
+    verify(writer, atLeastOnce()).append(new Text("apache"),
         new IntWritable(1));
-    Mockito.verify(writer, Mockito.atLeastOnce()).append(new Text("hadoop"),
+    verify(writer, atLeastOnce()).append(new Text("hadoop"),
         new IntWritable(2));
   }
 

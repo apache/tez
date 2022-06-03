@@ -18,11 +18,13 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -149,7 +151,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -856,7 +857,7 @@ public class TestDAGImpl {
     when(appContext.getHadoopShim()).thenReturn(defaultShim);
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
     
-    Mockito.doAnswer(new Answer() {
+    doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           CallableEvent e = (CallableEvent) args[0];
@@ -1942,17 +1943,17 @@ public class TestDAGImpl {
     conf.setBoolean(
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    dag = Mockito.spy(new DAGImpl(dagId, conf, dagPlan,
+    dag = spy(new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh, appContext));
     StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl> spyStateMachine =
-        Mockito.spy(new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
+        spy(new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
             dag.stateMachineFactory.make(dag), dag));
     when(dag.getStateMachine()).thenReturn(spyStateMachine);
     dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
     doReturn(dag).when(appContext).getCurrentDAG();
-    DAGImpl.OutputKey outputKey = Mockito.mock(DAGImpl.OutputKey.class);
-    ListenableFuture future = Mockito.mock(ListenableFuture.class);
+    DAGImpl.OutputKey outputKey = mock(DAGImpl.OutputKey.class);
+    ListenableFuture future = mock(ListenableFuture.class);
     dag.commitFutures.put(outputKey, future);
     initDAG(dag);
     startDAG(dag);
@@ -1975,7 +1976,7 @@ public class TestDAGImpl {
     DAGEventCommitCompleted dagEvent = new DAGEventCommitCompleted(
         dagId, outputKey, false , new RuntimeException("test"));
     doThrow(new RuntimeException("test")).when(
-        dag).logJobHistoryUnsuccesfulEvent(any(DAGState.class), any(TezCounters.class));
+        dag).logJobHistoryUnsuccesfulEvent(any(), any());
     dag.handle(dagEvent);
     dispatcher.await();
     Assert.assertTrue("DAG did not terminate!", dag.getInternalState() == DAGState.FAILED);

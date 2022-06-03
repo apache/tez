@@ -27,7 +27,6 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
@@ -114,8 +113,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
     Assert.assertTrue(manager.pendingTasks.isEmpty());
-    verify(mockContext, times(1)).reconfigureVertex(eq(1), any
-        (VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(1), any(), anyMap());
     verify(mockContext, times(1)).doneReconfiguringVertex(); // reconfig done
     Assert.assertTrue(scheduledTasks.size() == 1); // all tasks scheduled and parallelism changed
     scheduledTasks.clear();
@@ -153,8 +151,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     // trigger start and processing of pending notification events
     manager.onVertexStarted(emptyCompletions);
     Assert.assertTrue(manager.bipartiteSources == 2);
-    verify(mockContext, times(1)).reconfigureVertex(eq(1), any
-        (VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(1), any(), anyMap());
     verify(mockContext, times(1)).doneReconfiguringVertex(); // reconfig done
     Assert.assertTrue(manager.pendingTasks.isEmpty());
     Assert.assertTrue(scheduledTasks.size() == 1); // all tasks scheduled and parallelism changed
@@ -322,8 +319,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     vmEvent = getVertexManagerEvent(null, 160 * MB, mockSrcVertexId2);
     manager.onVertexManagerEventReceived(vmEvent);
     Assert.assertTrue(manager.determineParallelismAndApply(0.25f)); //ensure parallelism is determined
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
-    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(), anyMap());
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
     Assert.assertEquals(0, manager.pendingTasks.size());
     Assert.assertEquals(2, scheduledTasks.size());
@@ -340,7 +337,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     //min/max fraction of 0.0/0.2
     manager = createManager(conf, mockContext, 0.0f, 0.2f);
     // initial invocation count == 3
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     manager.onVertexStarted(emptyCompletions);
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
@@ -354,18 +351,18 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
       manager.onVertexManagerEventReceived(getVertexManagerEvent(null, 10 * MB, mockSrcVertexId1));
       manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, i));
       //should not change parallelism
-      verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+      verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     }
     for(int i=0;i<3;i++) {
       manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, i));
-      verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+      verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     }
     //Since max threshold (40 * 0.2 = 8) is met, vertex manager should determine parallelism
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 8));
     // parallelism updated
-    verify(mockContext, times(2)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(anyInt(), any(), anyMap());
     // check exact update value - 8 events with 100 each => 20 -> 2000 => 2 tasks (with 1000 per task)
-    verify(mockContext, times(2)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(2)).reconfigureVertex(eq(2), any(), anyMap());
   }
 
   @Test(timeout = 5000)
@@ -418,8 +415,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 1));
     // managedVertex tasks reduced
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
-    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     // TODO improve tests for parallelism
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
@@ -432,7 +429,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
     // more completions dont cause recalculation of parallelism
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
 
     EdgeManagerPluginOnDemand edgeManager =
@@ -493,7 +490,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     String mockManagedVertexId = "Vertex4";
 
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
-    when(mockContext.getVertexStatistics(any(String.class))).thenReturn(mock(VertexStatistics.class));
+    when(mockContext.getVertexStatistics(any())).thenReturn(mock(VertexStatistics.class));
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
@@ -877,8 +874,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 6);
 
     //Ensure that setVertexParallelism is not called for R2.
-    verify(mockContext_R2, times(0)).reconfigureVertex(anyInt(), any(VertexLocationHint.class),
-        anyMap());
+    verify(mockContext_R2, times(0)).reconfigureVertex(anyInt(), any(), anyMap());
 
     //ShuffleVertexManager's updatePendingTasks relies on getVertexNumTasks. Setting this for test
     when(mockContext_R2.getVertexNumTasks(mockManagedVertexId_R2)).thenReturn(1);
@@ -886,9 +882,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     // complete configuration of r1 triggers the scheduling
     manager.onVertexStateUpdated(new VertexStateUpdate(r1, VertexState.CONFIGURED));
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == 9);
-    verify(mockContext_R2, times(1)).reconfigureVertex(eq(1), any(VertexLocationHint.class),
-        anyMap());
-  
+    verify(mockContext_R2, times(1)).reconfigureVertex(eq(1), any(), anyMap());
+
     Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
     Assert.assertTrue(scheduledTasks.size() == 1);
 

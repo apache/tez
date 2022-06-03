@@ -19,7 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -340,7 +340,7 @@ public class TestContainerLauncherManager {
 
       // launch container
       doThrow(new RuntimeException("testexception")).when(containerLauncher)
-          .launchContainer(any(ContainerLaunchRequest.class));
+          .launchContainer(any());
       ContainerLaunchContext clc1 = mock(ContainerLaunchContext.class);
       Container container1 = mock(Container.class);
       ContainerLauncherLaunchRequestEvent launchRequestEvent =
@@ -365,7 +365,7 @@ public class TestContainerLauncherManager {
       // stop container
 
       doThrow(new RuntimeException("teststopexception")).when(containerLauncher)
-          .stopContainer(any(ContainerStopRequest.class));
+          .stopContainer(any());
       ContainerId containerId2 = mock(ContainerId.class);
       NodeId nodeId2 = mock(NodeId.class);
       ContainerLauncherStopRequestEvent stopRequestEvent =
