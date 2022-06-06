@@ -69,6 +69,7 @@
     "**/optimist/minimist": "1.2.6",
     "**/jsprim/json-schema": "0.4.0",
     "jsonpointer": "4.1.0",
-    "cryptiles": "4.1.2"
+    "cryptiles": "4.1.2",
+    "lodash.merge": "4.6.2"
   }
 }
