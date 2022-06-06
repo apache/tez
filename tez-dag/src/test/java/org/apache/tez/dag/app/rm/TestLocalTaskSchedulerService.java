@@ -190,12 +190,12 @@ public class TestLocalTaskSchedulerService {
     Answer<Void> answer = new Answer<Void>() {
       @Override
       public Void answer(InvocationOnMock invocation) {
-        ContainerId containerId = invocation.getArgumentAt(0, ContainerId.class);
+        ContainerId containerId = invocation.getArgument(0, ContainerId.class);
         taskSchedulerService.deallocateContainer(containerId);
         return null;
       }
     };
-    doAnswer(answer).when(mockContext).preemptContainer(any(ContainerId.class));
+    doAnswer(answer).when(mockContext).preemptContainer(any());
 
     taskSchedulerService.initialize();
     taskSchedulerService.start();

@@ -16,9 +16,9 @@ package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -267,10 +267,10 @@ public class TestShuffleScheduler {
 
     if (minFailurePerHost <= 4) {
       //As per test threshold. Should fail & retrigger shuffle
-      verify(shuffle, atLeast(0)).reportException(any(Throwable.class));
+      verify(shuffle, atLeast(0)).reportException(any());
     } else if (minFailurePerHost > 100) {
       //host failure is so high that this would not retrigger shuffle re-execution
-      verify(shuffle, atLeast(1)).reportException(any(Throwable.class));
+      verify(shuffle, atLeast(1)).reportException(any());
     }
   }
 
@@ -335,7 +335,7 @@ public class TestShuffleScheduler {
     }
 
     //Shuffle has not stalled. so no issues.
-    verify(scheduler.reporter, times(0)).reportException(any(Throwable.class));
+    verify(scheduler.reporter, times(0)).reportException(any());
 
     //stall shuffle
     scheduler.lastProgressTime = System.currentTimeMillis() - 250000;
@@ -346,7 +346,7 @@ public class TestShuffleScheduler {
         new MapHost("host" + (190 % totalProducerNodes), 10000, 190, 1), false, true);
 
     //Even when it is stalled, need (320 - 300 = 20) * 3 = 60 failures
-    verify(scheduler.reporter, times(0)).reportException(any(Throwable.class));
+    verify(scheduler.reporter, times(0)).reportException(any());
 
     assertEquals(11, scheduler.failedShufflesSinceLastCompletion);
 
@@ -370,7 +370,7 @@ public class TestShuffleScheduler {
     assertEquals(61, scheduler.failedShufflesSinceLastCompletion);
     assertEquals(10, scheduler.remainingMaps.get());
 
-    verify(shuffle, atLeast(0)).reportException(any(Throwable.class));
+    verify(shuffle, atLeast(0)).reportException(any());
 
     //fail another 30
     for (int i = 110; i < 120; i++) {
@@ -388,7 +388,7 @@ public class TestShuffleScheduler {
 
     // Should fail now due to fetcherHealthy. (stall has already happened and
     // these are the only pending tasks)
-    verify(shuffle, atLeast(1)).reportException(any(Throwable.class));
+    verify(shuffle, atLeast(1)).reportException(any());
   }
 
 
@@ -452,7 +452,7 @@ public class TestShuffleScheduler {
         false, true);
 
     // failedShufflesSinceLastCompletion has crossed the limits. Throw error
-    verify(shuffle, times(0)).reportException(any(Throwable.class));
+    verify(shuffle, times(0)).reportException(any());
   }
 
   @Test(timeout = 60000)
@@ -538,13 +538,13 @@ public class TestShuffleScheduler {
     // failedShufflesSinceLastCompletion has crossed the limits. 20% of other nodes had failures as
     // well. However, it has failed only in one host. So this should proceed
     // until AM decides to restart the producer.
-    verify(shuffle, times(0)).reportException(any(Throwable.class));
+    verify(shuffle, times(0)).reportException(any());
 
     //stall the shuffle (but within limits)
     scheduler.lastProgressTime = System.currentTimeMillis() - 300000;
     scheduler.copyFailed(InputAttemptFetchFailure.fromAttempt(inputAttemptIdentifier),
         new MapHost("host" + (319 % totalProducerNodes), 10000, 319, 1), false, true);
-    verify(shuffle, times(1)).reportException(any(Throwable.class));
+    verify(shuffle, times(1)).reportException(any());
 
   }
 
@@ -607,7 +607,7 @@ public class TestShuffleScheduler {
         false, true);
 
     //Shuffle has not received the events completely. So do not bail out yet.
-    verify(shuffle, times(0)).reportException(any(Throwable.class));
+    verify(shuffle, times(0)).reportException(any());
   }
 
 
@@ -675,7 +675,7 @@ public class TestShuffleScheduler {
     assertEquals(scheduler.remainingMaps.get(), 310);
 
     //Do not bail out (number of failures is just 5)
-    verify(scheduler.reporter, times(0)).reportException(any(Throwable.class));
+    verify(scheduler.reporter, times(0)).reportException(any());
 
     //5 fetches fail repeatedly
     for (int i = 10; i < 15; i++) {
@@ -696,10 +696,10 @@ public class TestShuffleScheduler {
       // Now bail out, as Shuffle has crossed the
       // failedShufflesSinceLastCompletion limits. (even
       // though reducerHeathly is
-      verify(shuffle, atLeast(1)).reportException(any(Throwable.class));
+      verify(shuffle, atLeast(1)).reportException(any());
     } else {
       //Do not bail out yet.
-      verify(shuffle, atLeast(0)).reportException(any(Throwable.class));
+      verify(shuffle, atLeast(0)).reportException(any());
     }
 
   }
@@ -755,7 +755,7 @@ public class TestShuffleScheduler {
           false, true);
     }
 
-    verify(shuffle, atLeast(1)).reportException(any(Throwable.class));
+    verify(shuffle, atLeast(1)).reportException(any());
   }
 
   private ShuffleSchedulerForTest createScheduler(long startTime, int
@@ -1016,8 +1016,8 @@ public class TestShuffleScheduler {
           @Override
           public ExecutorService answer(InvocationOnMock invocation) throws Throwable {
             return sharedExecutor.createExecutorService(
-                invocation.getArgumentAt(0, Integer.class),
-                invocation.getArgumentAt(1, String.class));
+                invocation.getArgument(0, Integer.class),
+                invocation.getArgument(1, String.class));
           }
         });
     return inputContext;

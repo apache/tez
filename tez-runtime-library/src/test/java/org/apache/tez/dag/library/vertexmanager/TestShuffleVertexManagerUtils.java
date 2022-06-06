@@ -32,7 +32,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairRoutingType;
 import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairShuffleVertexManagerConfigBuilder;
@@ -56,10 +55,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyMap;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -113,7 +112,7 @@ public class TestShuffleVertexManagerUtils {
         mockContext).scheduleTasks(anyList());
     doAnswer(new reconfigVertexAnswer(mockContext, mockManagedVertexId,
         newEdgeManagers)).when(mockContext).reconfigureVertex(
-        anyInt(), any(VertexLocationHint.class), anyMap());
+        anyInt(), any(), anyMap());
     return mockContext;
   }
 

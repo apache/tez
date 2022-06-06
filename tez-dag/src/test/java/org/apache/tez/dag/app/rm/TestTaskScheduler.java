@@ -23,11 +23,12 @@ import static org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.setupMockTaskSc
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -70,7 +71,6 @@ import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerContextDr
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.TaskSchedulerWithDrainableContext;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.HeldContainer;
-import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
 import org.junit.After;
@@ -79,7 +79,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -174,7 +173,7 @@ public class TestTaskScheduler {
 
     // returned from task requests before allocation happens
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
-    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
+    verify(mockApp, times(0)).containerBeingReleased(any());
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
@@ -182,7 +181,7 @@ public class TestTaskScheduler {
 
     // deallocating unknown task
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
-    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
+    verify(mockApp, times(0)).containerBeingReleased(any());
     verify(mockRMClient, times(1)).
                         removeContainerRequest((CookieContainerRequest) any());
     verify(mockRMClient, times(0)).
@@ -378,7 +377,7 @@ public class TestTaskScheduler {
     drainableAppCallback.drain();
     verify(mockApp)
         .reportError(eq(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR), argumentCaptor.capture(),
-            any(DagInfo.class));
+            any());
     assertTrue(argumentCaptor.getValue().contains("mockexception"));
 
     scheduler.onShutdownRequest();
@@ -744,7 +743,7 @@ public class TestTaskScheduler {
     scheduler.onError(mockException);
     drainableAppCallback.drain();
     verify(mockApp).reportError(eq(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR), argumentCaptor.capture(),
-            any(DagInfo.class));
+            any());
     assertTrue(argumentCaptor.getValue().contains("mockexception"));
 
     scheduler.onShutdownRequest();
@@ -791,43 +790,43 @@ public class TestTaskScheduler {
     Resource r = Resource.newInstance(0, 0);
     ContainerId mockCId1 = ContainerId.newInstance(appId, 0);
     Container c1 = Container.newInstance(mockCId1, emptyHost, null, r, null, null);
-    HeldContainer hc1 = Mockito.spy(new HeldContainer(c1, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc1 = spy(new HeldContainer(c1, 0, 0, null, containerSignatureMatcher));
     when(hc1.getNode()).thenReturn(node1Rack1);
     when(hc1.getRack()).thenReturn(rack1);
     when(hc1.getContainer()).thenReturn(c1);
     ContainerId mockCId2 = ContainerId.newInstance(appId, 1);
     Container c2 = Container.newInstance(mockCId2, emptyHost, null, r, null, null);
-    HeldContainer hc2 = Mockito.spy(new HeldContainer(c2, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc2 = spy(new HeldContainer(c2, 0, 0, null, containerSignatureMatcher));
     when(hc2.getNode()).thenReturn(node2Rack1);
     when(hc2.getRack()).thenReturn(rack1);
     when(hc2.getContainer()).thenReturn(c2);
     ContainerId mockCId3 = ContainerId.newInstance(appId, 2);
     Container c3 = Container.newInstance(mockCId3, emptyHost, null, r, null, null);
-    HeldContainer hc3 = Mockito.spy(new HeldContainer(c3, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc3 = spy(new HeldContainer(c3, 0, 0, null, containerSignatureMatcher));
     when(hc3.getNode()).thenReturn(node1Rack1);
     when(hc3.getRack()).thenReturn(rack1);
     when(hc3.getContainer()).thenReturn(c3);
     ContainerId mockCId4 = ContainerId.newInstance(appId, 3);
     Container c4 = Container.newInstance(mockCId4, emptyHost, null, r, null, null);
-    HeldContainer hc4 = Mockito.spy(new HeldContainer(c4, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc4 = spy(new HeldContainer(c4, 0, 0, null, containerSignatureMatcher));
     when(hc4.getNode()).thenReturn(node2Rack1);
     when(hc4.getRack()).thenReturn(rack1);
     when(hc4.getContainer()).thenReturn(c4);
     ContainerId mockCId5 = ContainerId.newInstance(appId, 4);
     Container c5 = Container.newInstance(mockCId5, emptyHost, null, r, null, null);
-    HeldContainer hc5 = Mockito.spy(new HeldContainer(c5, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc5 = spy(new HeldContainer(c5, 0, 0, null, containerSignatureMatcher));
     when(hc5.getNode()).thenReturn(node1Rack2);
     when(hc5.getRack()).thenReturn(rack2);
     when(hc5.getContainer()).thenReturn(c5);
     ContainerId mockCId6 = ContainerId.newInstance(appId, 5);
     Container c6 = Container.newInstance(mockCId6, emptyHost, null, r, null, null);
-    HeldContainer hc6 = Mockito.spy(new HeldContainer(c6, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc6 = spy(new HeldContainer(c6, 0, 0, null, containerSignatureMatcher));
     when(hc6.getNode()).thenReturn(node2Rack2);
     when(hc6.getRack()).thenReturn(rack2);
     when(hc6.getContainer()).thenReturn(c6);
     ContainerId mockCId7 = ContainerId.newInstance(appId, 6);
     Container c7 = Container.newInstance(mockCId7, emptyHost, null, r, null, null);
-    HeldContainer hc7 = Mockito.spy(new HeldContainer(c7, 0, 0, null, containerSignatureMatcher));
+    HeldContainer hc7 = spy(new HeldContainer(c7, 0, 0, null, containerSignatureMatcher));
     when(hc7.getNode()).thenReturn(node1Rack3);
     when(hc7.getRack()).thenReturn(rack3);
     when(hc7.getContainer()).thenReturn(c7);
@@ -1143,7 +1142,7 @@ public class TestTaskScheduler {
 
         });
     
-    Mockito.doAnswer(new Answer() {
+    doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           ContainerId cId = (ContainerId) args[0];
@@ -1342,7 +1341,7 @@ public class TestTaskScheduler {
     List<Container> containers = new ArrayList<Container>();
     containers.add(mockContainer1);
     
-    Mockito.doAnswer(new Answer<Object>() {
+    doAnswer(new Answer<Object>() {
       public Object answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           ContainerId cId = (ContainerId) args[0];
@@ -1603,7 +1602,7 @@ public class TestTaskScheduler {
     statuses.add(mockStatus2);
     scheduler.onContainersCompleted(statuses);
 
-    verify(mockApp, times(0)).taskAllocated(any(), any(), any(Container.class));
+    verify(mockApp, times(0)).taskAllocated(any(), any(), any());
     verify(mockRMClient, times(3)).addContainerRequest(requestCaptor.capture());
     CookieContainerRequest resubmitRequest = requestCaptor.getValue();
     assertEquals(request2.getCookie().getTask(), resubmitRequest.getCookie().getTask());
@@ -1616,7 +1615,7 @@ public class TestTaskScheduler {
     assertFalse(scheduler.deallocateTask(mockTask2, true, null, null));
     scheduler.onContainersAllocated(containers);
     scheduler.onContainersCompleted(statuses);
-    verify(mockApp, times(0)).taskAllocated(any(), any(), any(Container.class));
+    verify(mockApp, times(0)).taskAllocated(any(), any(), any());
     verify(mockRMClient, times(3)).addContainerRequest(requestCaptor.capture());
   }
 

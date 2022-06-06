@@ -111,7 +111,7 @@ public class TestRecoveryParser {
     mockAppMaster.dagIDs = new HashSet<String>();
     when(mockAppMaster.getConfig()).thenReturn(new Configuration());
     mockDAGImpl = mock(DAGImpl.class);
-    when(mockAppMaster.createDAG(any(DAGPlan.class), any(TezDAGID.class))).thenReturn(mockDAGImpl);
+    when(mockAppMaster.createDAG(any(), any())).thenReturn(mockDAGImpl);
     parser = new RecoveryParser(mockAppMaster, localFS, recoveryPath, 3);
   }
 
@@ -198,7 +198,7 @@ public class TestRecoveryParser {
     assertTrue(dagData.reason.contains("DAG Commit was in progress, not recoverable,"));
     // DAGSubmittedEvent is handled but DAGInitializedEvent and DAGStartedEvent in the next attempt are both skipped
     // due to the dag is not recoerable.
-    verify(mockAppMaster).createDAG(any(DAGPlan.class),any(TezDAGID.class));
+    verify(mockAppMaster).createDAG(any(), any());
     assertNull(dagData.getDAGInitializedEvent());
     assertNull(dagData.getDAGStartedEvent());
   }
@@ -245,7 +245,7 @@ public class TestRecoveryParser {
     assertEquals(DAGState.FAILED, dagData.dagState);
     assertEquals(true, dagData.isCompleted);
     // DAGSubmittedEvent, DAGInitializedEvent and DAGFinishedEvent is handled
-    verify(mockAppMaster).createDAG(any(DAGPlan.class),any(TezDAGID.class));
+    verify(mockAppMaster).createDAG(any(), any());
     // DAGInitializedEvent may not been handled before DAGFinishedEvent,
     // because DAGFinishedEvent's writeToRecoveryImmediately is true
     assertNotNull(dagData.getDAGFinishedEvent());
@@ -294,7 +294,7 @@ public class TestRecoveryParser {
     assertEquals(null, dagData.reason);
     assertEquals(false, dagData.nonRecoverable);
     // verify DAGSubmitedEvent & DAGInititlizedEvent is handled.
-    verify(mockAppMaster).createDAG(any(DAGPlan.class),any(TezDAGID.class));
+    verify(mockAppMaster).createDAG(any(), any());
     assertNotNull(dagData.getDAGInitializedEvent());
   }
 

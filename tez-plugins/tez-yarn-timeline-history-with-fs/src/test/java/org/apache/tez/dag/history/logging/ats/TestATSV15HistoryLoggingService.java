@@ -24,10 +24,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.anyVararg;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -42,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -53,7 +50,6 @@ import org.apache.hadoop.yarn.api.records.timeline.TimelineEntityGroupId;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.security.client.TimelineDelegationTokenIdentifier;
 import org.apache.tez.common.security.DAGAccessControls;
 import org.apache.tez.common.security.HistoryACLPolicyManager;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -71,7 +67,6 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -448,17 +443,17 @@ public class TestATSV15HistoryLoggingService {
     entityLog = new HashMap<>();
     //timelineClient.init(conf);
     when(timelineClient.getDelegationToken(anyString())).thenReturn(null);
-    when(timelineClient.renewDelegationToken(Matchers.<Token<TimelineDelegationTokenIdentifier>>any())).thenReturn(0L);
-    when(timelineClient.putEntities(Matchers.<TimelineEntity>anyVararg())).thenAnswer(new Answer() {
+    when(timelineClient.renewDelegationToken(any())).thenReturn(0L);
+    when(timelineClient.putEntities(any())).thenAnswer(new Answer() {
       @Override
       public TimelinePutResponse answer(InvocationOnMock invocation) throws Throwable {
         return putEntityHelper(DEFAULT_GROUP_ID, invocation.getArguments(), 0);
       }
     });
-    when(timelineClient.putEntities(any(ApplicationAttemptId.class), any(TimelineEntityGroupId.class), Matchers.<TimelineEntity>anyVararg())).thenAnswer(new Answer() {
+    when(timelineClient.putEntities(any(), any(), any())).thenAnswer(new Answer() {
       @Override
       public TimelinePutResponse answer(InvocationOnMock invocation) throws Throwable {
-        return putEntityHelper(invocation.getArgumentAt(1, TimelineEntityGroupId.class), invocation.getArguments(), 2);
+        return putEntityHelper(invocation.getArgument(1, TimelineEntityGroupId.class), invocation.getArguments(), 2);
       }
     });
     service.timelineClient = timelineClient;

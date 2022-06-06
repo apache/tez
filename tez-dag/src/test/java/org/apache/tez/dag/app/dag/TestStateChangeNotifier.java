@@ -20,7 +20,7 @@ package org.apache.tez.dag.app.dag;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -139,14 +139,14 @@ public class TestStateChangeNotifier {
     verify(mockListener13, times(1)).onStateUpdated(argumentCaptor.capture());
     assertEquals(VertexState.RUNNING,
         argumentCaptor.getValue().getVertexState());
-    verify(mockListener14, never()).onStateUpdated(any(VertexStateUpdate.class));
+    verify(mockListener14, never()).onStateUpdated(any());
 
     // Vertex has not notified of state
     tracker.reset();
     VertexStateUpdateListener mockListener2 = mock(VertexStateUpdateListener.class);
     tracker.registerForVertexUpdates(v2.getName(), null, mockListener2);
     Assert.assertEquals(0, tracker.totalCount.get()); // there should no be any event sent out
-    verify(mockListener2, never()).onStateUpdated(any(VertexStateUpdate.class));
+    verify(mockListener2, never()).onStateUpdated(any());
 
     // Vertex has notified about parallelism update only
     tracker.stateChanged(v3.getVertexId(), new VertexStateUpdateParallelismUpdated(v3.getName(), 23, -1));
