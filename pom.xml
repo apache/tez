@@ -65,7 +65,6 @@
     <slf4j.version>1.7.36</slf4j.version>
     <protobuf.version>2.5.0</protobuf.version>
     <roaringbitmap.version>0.7.45</roaringbitmap.version>
-    <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <frontend-maven-plugin.version>1.4</frontend-maven-plugin.version>
     <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
@@ -1309,28 +1308,6 @@
           <version>${hadoop.version}</version>
         </dependency>
       </dependencies>
-    </profile>
-    <!-- This is because <protoc.path>${env.PROTOC_PATH}</protoc.path> above
-         doesn't let us define a default value in the absence of env.PROTOC_PATH.
-         By defining this profile, the following order is considered:
-
-         0. protoc.path == env.PROTOC_PATH by pom.xml, if protoc.path is not defined
-         1. -Dprotoc.path: if defined, it wins
-         2. env.PROTOC_PATH: if protoc.path is not defined, but env.PROTOC_PATH is defined, env.PROTOC_PATH wins
-            (because protoc.path ==> env.PROTOC_PATH)
-         3. if neither -Dprotoc.path, nor PROTOC_PATH is defined, protocw script will run
-            (which can run protoc from the PATH, or an automatically installed version from build-tools/protobuf)
-    -->
-    <profile>
-        <id>protoc-path-env-variable-not-defined</id>
-        <activation>
-            <property>
-                <name>!env.PROTOC_PATH</name>
-            </property>
-        </activation>
-        <properties>
-            <protoc.path>${basedir}/../build-tools/protocw</protoc.path>
-        </properties>
     </profile>
   </profiles>
 

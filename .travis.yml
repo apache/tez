@@ -22,9 +22,6 @@ sudo: required
 
 env: MAVEN_OPTS="-Xmx2G -XX:MaxPermSize=512M"
 
-before_install:
-  - ./build-tools/install-protobuf.sh
-
 script:
   - jdk_switcher use oraclejdk8
   - mvn -B clean install package -DskipTests=true -Dmaven.javadoc.skip=true
