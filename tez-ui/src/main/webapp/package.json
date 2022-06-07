@@ -62,5 +62,8 @@
   },
   "dependencies": {
     "em-tgraph": "0.0.14"
+  },
+  "resolutions": {
+    "**/form-data/async": "2.6.4"
   }
 }
