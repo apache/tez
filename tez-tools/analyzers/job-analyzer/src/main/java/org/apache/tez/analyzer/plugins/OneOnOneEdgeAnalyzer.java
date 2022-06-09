@@ -50,8 +50,8 @@ public class OneOnOneEdgeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final Logger LOG = LoggerFactory.getLogger(OneOnOneEdgeAnalyzer.class);
 
-  private final String[] headers = { "sourceVertex", "downstreamVertex", "srcTaskId",
-      "srcContainerHost", "destContainerHost" };
+  private final String[] headers = {"sourceVertex", "downstreamVertex", "srcTaskId",
+      "srcContainerHost", "destContainerHost"};
 
   // DataMovementType::ONE_TO_ONE
   private static final String ONE_TO_ONE = "ONE_TO_ONE";
@@ -87,7 +87,7 @@ public class OneOnOneEdgeAnalyzer extends TezAnalyzerBase implements Analyzer {
             String downstreamContainerHost = downStreamTaskToContainerMap.get(taskId);
             if (downstreamContainerHost != null) {
               if (!sourceContainerHost.equalsIgnoreCase(downstreamContainerHost)) {
-               // downstream task got scheduled on different machine than src
+                // downstream task got scheduled on different machine than src
                 LOG.info("TaskID: {}, source: {}, downStream:{}",
                     taskId, sourceContainerHost, downstreamContainerHost);
                 result.add(sourceVertex.getVertexName());
@@ -100,7 +100,7 @@ public class OneOnOneEdgeAnalyzer extends TezAnalyzerBase implements Analyzer {
                 missedCounter++;
               }
             }
-           result.clear();
+            result.clear();
           }
           LOG.info("Total tasks:{}, miss: {}", sourceTaskToContainerMap.size(), missedCounter);
         }
@@ -145,4 +145,3 @@ public class OneOnOneEdgeAnalyzer extends TezAnalyzerBase implements Analyzer {
     System.exit(res);
   }
 }
-

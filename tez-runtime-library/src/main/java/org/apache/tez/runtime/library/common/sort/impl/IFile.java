@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,8 +68,8 @@ public class IFile {
   public static final int RLE_MARKER = -2; // Repeat same key marker
   public static final int V_END_MARKER = -3; // End of values marker
   public static final DataInputBuffer REPEAT_KEY = new DataInputBuffer();
-  static final byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I',
-    (byte) 'F' , (byte) 0};
+  static final byte[] HEADER = new byte[]{(byte) 'T', (byte) 'I',
+      (byte) 'F', (byte) 0};
 
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
   private static final String REQ_BUFFER_SIZE_TOO_LARGE = "Size of data %d is greater than the max allowed of %d";
@@ -121,9 +121,9 @@ public class IFile {
      * @throws IOException
      */
     public FileBackedInMemIFileWriter(Serialization<?> keySerialization,
-        Serialization<?> valSerialization, FileSystem fs, TezTaskOutput taskOutput,
-        Class<?> keyClass, Class<?> valueClass, CompressionCodec codec, TezCounter writesCounter,
-        TezCounter serializedBytesCounter, int cacheSize) throws IOException {
+                                      Serialization<?> valSerialization, FileSystem fs, TezTaskOutput taskOutput,
+                                      Class<?> keyClass, Class<?> valueClass, CompressionCodec codec, TezCounter writesCounter,
+                                      TezCounter serializedBytesCounter, int cacheSize) throws IOException {
       super(keySerialization, valSerialization, new FSDataOutputStream(createBoundedBuffer(cacheSize), null),
           keyClass, valueClass, null, writesCounter, serializedBytesCounter);
       this.fs = fs;
@@ -204,10 +204,9 @@ public class IFile {
       bout.reset();
     }
 
-
     @Override
     protected void writeKVPair(byte[] keyData, int keyPos, int keyLength,
-        byte[] valueData, int valPos, int valueLength) throws IOException {
+                               byte[] valueData, int valPos, int valueLength) throws IOException {
       if (!bufferFull) {
         // Compute actual payload size: write RLE marker, length info and then entire data.
         totalSize += ((prevKey == REPEAT_KEY) ? V_END_MARKER_SIZE : 0)
@@ -311,14 +310,13 @@ public class IFile {
     // de-dup keys or not
     protected final boolean rle;
 
-
     public Writer(Serialization keySerialization, Serialization valSerialization, FileSystem fs, Path file,
                   Class keyClass, Class valueClass,
                   CompressionCodec codec,
                   TezCounter writesCounter,
                   TezCounter serializedBytesCounter) throws IOException {
       this(keySerialization, valSerialization, fs.create(file), keyClass, valueClass, codec,
-           writesCounter, serializedBytesCounter);
+          writesCounter, serializedBytesCounter);
       ownOutputStream = true;
     }
 
@@ -329,8 +327,8 @@ public class IFile {
     }
 
     public Writer(Serialization keySerialization, Serialization valSerialization, FSDataOutputStream outputStream,
-        Class keyClass, Class valueClass, CompressionCodec codec, TezCounter writesCounter,
-        TezCounter serializedBytesCounter) throws IOException {
+                  Class keyClass, Class valueClass, CompressionCodec codec, TezCounter writesCounter,
+                  TezCounter serializedBytesCounter) throws IOException {
       this(keySerialization, valSerialization, outputStream, keyClass, valueClass, codec, writesCounter,
           serializedBytesCounter, false);
     }
@@ -367,14 +365,14 @@ public class IFile {
         if (this.compressor != null) {
           this.compressor.reset();
           this.compressedOut = CodecUtils.createOutputStream(codec, checksumOut, compressor);
-          this.out = new FSDataOutputStream(this.compressedOut,  null);
+          this.out = new FSDataOutputStream(this.compressedOut, null);
           this.compressOutput = true;
         } else {
           LOG.warn("Could not obtain compressor from CodecPool");
-          this.out = new FSDataOutputStream(checksumOut,null);
+          this.out = new FSDataOutputStream(checksumOut, null);
         }
       } else {
-        this.out = new FSDataOutputStream(checksumOut,null);
+        this.out = new FSDataOutputStream(checksumOut, null);
       }
     }
 
@@ -462,7 +460,7 @@ public class IFile {
       if (!sameKey) {
         keySerializer.serialize(key);
         keyLength = buffer.getLength();
-        assert(keyLength >= 0);
+        assert (keyLength >= 0);
         if (rle && (keyLength == previous.getLength())) {
           sameKey = (BufferUtils.compare(previous, buffer) == 0);
         }
@@ -471,7 +469,7 @@ public class IFile {
       // Append the 'value'
       valueSerializer.serialize(value);
       int valueLength = buffer.getLength() - keyLength;
-      assert(valueLength >= 0);
+      assert (valueLength >= 0);
       if (!sameKey) {
         //dump entire key value pair
         writeKVPair(buffer.getData(), 0, keyLength, buffer.getData(),
@@ -517,7 +515,7 @@ public class IFile {
      */
     public void appendValue(DataInputBuffer value) throws IOException {
       int valueLength = value.getLength() - value.getPosition();
-      assert(valueLength >= 0);
+      assert (valueLength >= 0);
       writeValue(value.getData(), value.getPosition(), valueLength);
       buffer.reset();
       ++numRecordsWritten;
@@ -532,7 +530,7 @@ public class IFile {
      * @throws IOException
      */
     public <V> void appendValues(Iterator<V> valuesItr) throws IOException {
-      while(valuesItr.hasNext()) {
+      while (valuesItr.hasNext()) {
         appendValue(valuesItr.next());
       }
     }
@@ -551,7 +549,7 @@ public class IFile {
         append(key, valuesItr.next()); //append first KV pair
       }
       //append the remaining values
-      while(valuesItr.hasNext()) {
+      while (valuesItr.hasNext()) {
         appendValue(valuesItr.next());
       }
     }
@@ -569,10 +567,10 @@ public class IFile {
      */
     public void append(DataInputBuffer key, DataInputBuffer value) throws IOException {
       int keyLength = key.getLength() - key.getPosition();
-      assert(key == REPEAT_KEY || keyLength >=0);
+      assert (key == REPEAT_KEY || keyLength >= 0);
 
       int valueLength = value.getLength() - value.getPosition();
-      assert(valueLength >= 0);
+      assert (valueLength >= 0);
 
       sameKey = (key == REPEAT_KEY);
       if (!sameKey && rle) {
@@ -606,7 +604,7 @@ public class IFile {
     }
 
     protected void writeKVPair(byte[] keyData, int keyPos, int keyLength,
-        byte[] valueData, int valPos, int valueLength) throws IOException {
+                               byte[] valueData, int valPos, int valueLength) throws IOException {
       writeValueMarker(out);
       WritableUtils.writeVInt(out, keyLength);
       WritableUtils.writeVInt(out, valueLength);
@@ -650,7 +648,7 @@ public class IFile {
     }
 
     // Required for mark/reset
-    public DataOutputStream getOutputStream () {
+    public DataOutputStream getOutputStream() {
       return out;
     }
 
@@ -678,14 +676,14 @@ public class IFile {
 
     public enum KeyState {NO_KEY, NEW_KEY, SAME_KEY}
 
-    private static final int DEFAULT_BUFFER_SIZE = 128*1024;
+    private static final int DEFAULT_BUFFER_SIZE = 128 * 1024;
     @VisibleForTesting
     // Not final for testing
     protected static int MAX_BUFFER_SIZE
-            = Integer.MAX_VALUE - 8;  // The maximum array size is a little less than the
-                                      // max integer value. Trying to create a larger array
-                                      // will result in an OOM exception. The exact value
-                                      // is JVM dependent so setting it to max int - 8 to be safe.
+        = Integer.MAX_VALUE - 8;  // The maximum array size is a little less than the
+    // max integer value. Trying to create a larger array
+    // will result in an OOM exception. The exact value
+    // is JVM dependent so setting it to max int - 8 to be safe.
 
     // Count records read from disk
     private long numRecordsRead = 0;
@@ -742,10 +740,10 @@ public class IFile {
      * @throws IOException
      */
     public Reader(InputStream in, long length,
-        CompressionCodec codec,
-        TezCounter readsCounter, TezCounter bytesReadCounter,
-        boolean readAhead, int readAheadLength,
-        int bufferSize) throws IOException {
+                  CompressionCodec codec,
+                  TezCounter readsCounter, TezCounter bytesReadCounter,
+                  boolean readAhead, int readAheadLength,
+                  int bufferSize) throws IOException {
       this(in, ((in != null) ? (length - HEADER.length) : length), codec,
           readsCounter, bytesReadCounter, readAhead, readAheadLength,
           bufferSize, ((in != null) ? isCompressedFlagEnabled(in) : false));
@@ -809,7 +807,7 @@ public class IFile {
      * @throws IOException
      */
     public static void readToMemory(byte[] buffer, InputStream in, int compressedLength,
-        CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength)
+                                    CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength)
         throws IOException {
       boolean isCompressed = IFile.Reader.isCompressedFlagEnabled(in);
       IFileInputStream checksumIn = new IFileInputStream(in,
@@ -840,10 +838,10 @@ public class IFile {
           throw new IOException("Unexpected extra bytes from input stream");
         }
       } catch (IOException ioe) {
-        if(in != null) {
+        if (in != null) {
           try {
             in.close();
-          } catch(IOException e) {
+          } catch (IOException e) {
             LOG.debug("Exception in closing {}", in, e);
           }
         }
@@ -866,7 +864,7 @@ public class IFile {
      * @throws IOException
      */
     public static long readToDisk(OutputStream out, InputStream in, long length,
-        boolean ifileReadAhead, int ifileReadAheadLength)
+                                  boolean ifileReadAhead, int ifileReadAheadLength)
         throws IOException {
       final int BYTES_TO_READ = 64 * 1024;
       byte[] buf = new byte[BYTES_TO_READ];
@@ -974,11 +972,11 @@ public class IFile {
       // Sanity check
       if (currentKeyLength != RLE_MARKER && currentKeyLength < 0) {
         throw new IOException("Rec# " + recNo + ": Negative key-length: " +
-                              currentKeyLength + " PreviousKeyLen: " + prevKeyLength);
+            currentKeyLength + " PreviousKeyLen: " + prevKeyLength);
       }
       if (currentValueLength < 0) {
         throw new IOException("Rec# " + recNo + ": Negative value-length: " +
-                              currentValueLength);
+            currentValueLength);
       }
       return true;
     }
@@ -990,7 +988,7 @@ public class IFile {
     private static byte[] createLargerArray(int currentLength) {
       if (currentLength > MAX_BUFFER_SIZE) {
         throw new IllegalArgumentException(
-                String.format(REQ_BUFFER_SIZE_TOO_LARGE, currentLength, MAX_BUFFER_SIZE));
+            String.format(REQ_BUFFER_SIZE_TOO_LARGE, currentLength, MAX_BUFFER_SIZE));
       }
       int newLength;
       if (currentLength > (MAX_BUFFER_SIZE - currentLength)) {
@@ -1012,7 +1010,7 @@ public class IFile {
         }
         return KeyState.NO_KEY;
       }
-      if(currentKeyLength == RLE_MARKER) {
+      if (currentKeyLength == RLE_MARKER) {
         // get key length from original key
         key.reset(keyBytes, originalKeyLength);
         return KeyState.SAME_KEY;
@@ -1095,5 +1093,4 @@ public class IFile {
       checksumIn.disableChecksumValidation();
     }
   }
-
 }

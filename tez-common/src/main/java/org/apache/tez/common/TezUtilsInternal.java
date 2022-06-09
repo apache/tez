@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -227,7 +227,7 @@ public class TezUtilsInternal {
         Credentials credentials =
             DagTypeConverters.convertByteStringToCredentials(dagPlan.getCredentialsBinary());
         TextFormat.printField(entry.getKey(),
-            ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials,"dag").getBytes(
+            ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials, "dag").getBytes(
                 Charset.forName("UTF-8"))), sb);
       }
     }
@@ -307,7 +307,7 @@ public class TezUtilsInternal {
   }
 
   public static <T extends Enum<T>> Set<T> getEnums(Configuration conf, String confName,
-      Class<T> enumType, String defaultValues) {
+                                                    Class<T> enumType, String defaultValues) {
     String[] names = conf.getStrings(confName);
     if (names == null) {
       names = StringUtils.getStrings(defaultValues);
@@ -354,7 +354,7 @@ public class TezUtilsInternal {
     } catch (NoSuchMethodException e) {
       // This is not available, so ignore it.
     } catch (SecurityException | IllegalAccessException | IllegalArgumentException |
-        InvocationTargetException e) {
+             InvocationTargetException e) {
       log.warn("Error invoking SecurityUtil.setConfiguration: ", e);
       throw new TezUncheckedException("Error invoking SecurityUtil.setConfiguration", e);
     }

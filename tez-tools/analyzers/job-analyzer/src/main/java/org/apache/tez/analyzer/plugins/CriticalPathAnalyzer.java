@@ -80,33 +80,39 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     long startCriticalPathTime; // time at which attempt is on critical path
     long stopCriticalPathTime; // time at which attempt is off critical path
     List<String> notes = Lists.newLinkedList();
-    
+
     public CriticalPathStep(TaskAttemptInfo attempt, EntityType type) {
       this.type = type;
       this.attempt = attempt;
     }
+
     public EntityType getType() {
       return type;
     }
+
     public TaskAttemptInfo getAttempt() {
       return attempt;
     }
+
     public long getStartCriticalTime() {
       return startCriticalPathTime;
     }
+
     public long getStopCriticalTime() {
       return stopCriticalPathTime;
     }
+
     public CriticalPathDependency getReason() {
       return reason;
     }
+
     public List<String> getNotes() {
       return notes;
     }
   }
-  
+
   List<CriticalPathStep> criticalPath = Lists.newLinkedList();
-  
+
   Map<String, TaskAttemptInfo> attempts = Maps.newHashMap();
 
   int maxConcurrency = 0;
@@ -120,7 +126,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     super(conf);
   }
 
-  @Override 
+  @Override
   public void analyze(DagInfo dagInfo) throws TezException {
     // get all attempts in the dag and find the last failed/succeeded attempt.
     // ignore killed attempt to handle kills that happen upon dag completion
@@ -128,7 +134,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     long lastAttemptFinishTime = 0;
     for (VertexInfo vertex : dagInfo.getVertices()) {
       for (TaskInfo task : vertex.getTasks()) {
-        for (TaskAttemptInfo attempt : task.getTaskAttempts()) { 
+        for (TaskAttemptInfo attempt : task.getTaskAttempts()) {
           attempts.put(attempt.getTaskAttemptId(), attempt);
           if (attempt.getStatus().equals(SUCCEEDED_STATE) ||
               attempt.getStatus().equals(FAILED_STATE)) {
@@ -140,25 +146,25 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         }
       }
     }
-    
+
     if (lastAttempt == null) {
       LOG.info("Cannot find last attempt to finish in DAG " + dagInfo.getDagId());
       return;
     }
-    
+
     createCriticalPath(dagInfo, lastAttempt, lastAttemptFinishTime, attempts);
-    
+
     analyzeCriticalPath(dagInfo);
 
     if (getConf().getBoolean(DRAW_SVG, true)) {
       saveCriticalPathAsSVG(dagInfo);
     }
   }
-  
+
   public List<CriticalPathStep> getCriticalPath() {
     return criticalPath;
   }
-  
+
   private void saveCriticalPathAsSVG(DagInfo dagInfo) {
     SVGUtils svg = new SVGUtils();
     String outputDir = getOutputDir();
@@ -169,44 +175,44 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     LOG.info("Writing output to: " + outputFileName);
     svg.saveCriticalPathAsSVG(dagInfo, outputFileName, criticalPath);
   }
-  
+
   static class TimeInfo implements Comparable<TimeInfo> {
     long timestamp;
     int count;
     boolean start;
+
     TimeInfo(long timestamp, boolean start) {
       this.timestamp = timestamp;
       this.start = start;
     }
-    
+
     @Override
     public int compareTo(TimeInfo o) {
       return Long.compare(this.timestamp, o.timestamp);
     }
-    
+
     @Override
     public int hashCode() {
-      return (int)((timestamp >> 32) ^ timestamp);
+      return (int) ((timestamp >> 32) ^ timestamp);
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {
         return true;
       }
-      if(o == null) {
+      if (o == null) {
         return false;
       }
       if (o.getClass() == this.getClass()) {
         TimeInfo other = (TimeInfo) o;
         return (this.compareTo(other) == 0);
-      }
-      else {
+      } else {
         return false;
       }
     }
   }
-  
+
   private void determineConcurrency(DagInfo dag) {
     ArrayList<TimeInfo> timeInfo = Lists.newArrayList();
     for (VertexInfo v : dag.getVertices()) {
@@ -220,7 +226,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       }
     }
     Collections.sort(timeInfo);
-    
+
     int concurrency = 0;
     TimeInfo lastTimeInfo = null;
     for (TimeInfo t : timeInfo) {
@@ -229,7 +235,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       if (lastTimeInfo == null || lastTimeInfo.timestamp < t.timestamp) {
         lastTimeInfo = t;
         lastTimeInfo.count = concurrency;
-        concurrencyByTime.add(lastTimeInfo);        
+        concurrencyByTime.add(lastTimeInfo);
       } else {
         // lastTimeInfo.timestamp == t.timestamp
         lastTimeInfo.count = concurrency;
@@ -239,7 +245,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
 //      System.out.println(t.timestamp + " " + t.count);
 //    }
   }
-  
+
   private int getIntervalMaxConcurrency(long begin, long end) {
     int concurrency = 0;
     for (TimeInfo timeInfo : concurrencyByTime) {
@@ -255,7 +261,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     }
     return concurrency;
   }
-  
+
   private void analyzeAllocationOverhead(DagInfo dag) {
     List<TaskAttemptInfo> preemptedAttempts = Lists.newArrayList();
     for (VertexInfo v : dag.getVertices()) {
@@ -275,7 +281,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       if (step.getType() != EntityType.ATTEMPT) {
         continue;
       }
-      
+
       long creationTime = attempt.getCreationTime();
       long allocationTime = attempt.getAllocationTime();
       long finishTime = attempt.getFinishTime();
@@ -311,14 +317,14 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               // for containerAttempts that used the container while this attempt was waiting
               // add up time container was allocated to containerAttempt. Account for allocations
               // that started before this attempt was created.
-              containerPreviousAllocatedTime += 
+              containerPreviousAllocatedTime +=
                   (cFinishTime - (cAllocTime > creationTime ? cAllocTime : creationTime));
             }
           }
           int numVertexTasks = attempt.getTaskInfo().getVertexInfo().getNumTasks();
           int intervalMaxConcurrency = getIntervalMaxConcurrency(creationTime, finishTime);
           double numWaves = getWaves(numVertexTasks, intervalMaxConcurrency);
-          
+
           if (reUsesForVertex > 1) {
             step.notes.add("Container ran multiple tasks for this vertex. ");
             if (numWaves < 1) {
@@ -332,9 +338,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
             if (containerPreviousAllocatedTime >= attempt.getCreationToAllocationTimeInterval()) {
               step.notes.add("Container was fully allocated");
             } else {
-              step.notes.add("Container in use for " + 
-              SVGUtils.getTimeStr(containerPreviousAllocatedTime) + " out of " +
-                  SVGUtils.getTimeStr(attempt.getCreationToAllocationTimeInterval()) + 
+              step.notes.add("Container in use for " +
+                  SVGUtils.getTimeStr(containerPreviousAllocatedTime) + " out of " +
+                  SVGUtils.getTimeStr(attempt.getCreationToAllocationTimeInterval()) +
                   " of allocation wait time");
             }
           }
@@ -354,13 +360,13 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       }
     }
   }
-  
+
   private double getWaves(int numTasks, int concurrency) {
-    double numWaves = (numTasks*1.0) / concurrency;
-    numWaves = (double)Math.round(numWaves * 10d) / 10d; // convert to 1 decimal place
+    double numWaves = (numTasks * 1.0) / concurrency;
+    numWaves = (double) Math.round(numWaves * 10d) / 10d; // convert to 1 decimal place
     return numWaves;
   }
-  
+
   private void analyzeWaves(DagInfo dag) {
     for (int i = 0; i < criticalPath.size(); ++i) {
       CriticalPathStep step = criticalPath.get(i);
@@ -382,14 +388,14 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           + " tasks in " + numWaves
           + " waves with available concurrency of " + intervalMaxConcurrency);
       if (numWaves > 1) {
-        if (numWaves%1 < 0.5) {
+        if (numWaves % 1 < 0.5) {
           // more than 1 wave needed and last wave is small
           step.notes.add("Last partial wave did not use full concurrency. ");
         }
       }
     }
   }
-  
+
   private void analyzeStragglers(DagInfo dag) {
     long dagStartTime = dag.getStartTime();
     long dagTime = dag.getFinishTime() - dagStartTime;
@@ -412,17 +418,17 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         long attemptExecTime = attempt.getPostDataExecutionTimeInterval();
         if (avgPostDataExecutionTime * 1.25 < attemptExecTime) {
           step.notes
-              .add("Potential straggler. Post Data Execution time " + 
+              .add("Potential straggler. Post Data Execution time " +
                   SVGUtils.getTimeStr(attemptExecTime)
-                  + " compared to vertex average of " + 
+                  + " compared to vertex average of " +
                   SVGUtils.getTimeStr(avgPostDataExecutionTime));
         }
       }
     }
     LOG.debug("DAG time taken: " + dagTime + " TotalAttemptTime: " + totalAttemptCriticalTime
-            + " DAG finish time: " + dag.getFinishTime() + " DAG start time: " + dagStartTime);
+        + " DAG finish time: " + dag.getFinishTime() + " DAG start time: " + dagStartTime);
   }
-  
+
   private void analyzeCriticalPath(DagInfo dag) {
     if (!criticalPath.isEmpty()) {
       determineConcurrency(dag);
@@ -431,9 +437,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
       analyzeAllocationOverhead(dag);
     }
   }
-  
+
   private void createCriticalPath(DagInfo dagInfo, TaskAttemptInfo lastAttempt,
-      long lastAttemptFinishTime, Map<String, TaskAttemptInfo> attempts) {
+                                  long lastAttemptFinishTime, Map<String, TaskAttemptInfo> attempts) {
     List<CriticalPathStep> tempCP = Lists.newLinkedList();
     if (lastAttempt != null) {
       TaskAttemptInfo currentAttempt = lastAttempt;
@@ -455,7 +461,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         Preconditions.checkState(currentAttempt != null);
         Preconditions.checkState(currentAttemptStopCriticalPathTime > 0);
         LOG.debug("Step: " + tempCP.size() + " Attempt: " + currentAttempt.getTaskAttemptId());
-        
+
         currentStep = new CriticalPathStep(currentAttempt, EntityType.ATTEMPT);
         currentStep.stopCriticalPathTime = currentAttemptStopCriticalPathTime;
 
@@ -464,7 +470,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
         long currentStepLastDataEventTime = 0;
         String currentStepLastDataTA = null;
         DataDependencyEvent item = currentAttempt.getLastDataEventInfo(currentStep.stopCriticalPathTime);
-        if (item!=null) {
+        if (item != null) {
           currentStepLastDataEventTime = item.getTimestamp();
           currentStepLastDataTA = item.getTaskAttemptId();
         }
@@ -477,25 +483,25 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
               // this should only happen for read errors in currentAttempt
               List<DataDependencyEvent> dataEvents = currentAttempt.getLastDataEvents();
               Preconditions.checkState(dataEvents.size() > 1); // received
-                                                               // original and
-                                                               // retry data events
+              // original and
+              // retry data events
               Preconditions.checkState(currentStepLastDataEventTime < dataEvents
                   .get(dataEvents.size() - 1).getTimestamp()); // new event is
-                                                               // earlier than
-                                                               // last
+              // earlier than
+              // last
             }
           }
         }
 
         tempCP.add(currentStep);
-  
+
         // find the next attempt on the critical path
         boolean dataDependency = false;
         // find out predecessor dependency
         if (currentStepLastDataEventTime > currentAttempt.getCreationTime()) {
           dataDependency = true;
         }
-  
+
         long startCriticalPathTime = 0;
         String nextAttemptId = null;
         CriticalPathDependency reason = null;
@@ -532,7 +538,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
             if (nextAttemptId != null) {
               VertexInfo currentVertex = currentAttempt.getTaskInfo().getVertexInfo();
               VertexInfo nextVertex = nextAttempt.getTaskInfo().getVertexInfo();
-              if (!nextVertex.getVertexName().equals(currentVertex.getVertexName())){
+              if (!nextVertex.getVertexName().equals(currentVertex.getVertexName())) {
                 // cause from different vertex. Might be rerun to re-generate outputs
                 for (VertexInfo outVertex : currentVertex.getOutputVertices()) {
                   if (nextVertex.getVertexName().equals(outVertex.getVertexName())) {
@@ -582,9 +588,9 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
 
         currentStep.startCriticalPathTime = startCriticalPathTime;
         currentStep.reason = reason;
-        
+
         Preconditions.checkState(currentStep.stopCriticalPathTime >= currentStep.startCriticalPathTime);
-  
+
         if (Strings.isNullOrEmpty(nextAttemptId)) {
           Preconditions.checkState(reason.equals(CriticalPathDependency.INIT_DEPENDENCY));
           Preconditions.checkState(startCriticalPathTime == 0);
@@ -592,7 +598,7 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           // assume attempts start critical path time is when its scheduled. before that is 
           // vertex initialization time
           currentStep.startCriticalPathTime = currentStep.attempt.getCreationTime();
-          
+
           // add vertex init step
           long initStepStopCriticalTime = currentStep.startCriticalPathTime;
           currentStep = new CriticalPathStep(currentAttempt, EntityType.VERTEX_INIT);
@@ -600,33 +606,33 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
           currentStep.startCriticalPathTime = dagInfo.getStartTime();
           currentStep.reason = CriticalPathDependency.INIT_DEPENDENCY;
           tempCP.add(currentStep);
-          
+
           if (!tempCP.isEmpty()) {
-            for (int i=tempCP.size() - 1; i>=0; --i) {
+            for (int i = tempCP.size() - 1; i >= 0; --i) {
               criticalPath.add(tempCP.get(i));
             }
           }
           return;
         }
-  
+
         currentAttempt = attempts.get(nextAttemptId);
         currentAttemptStopCriticalPathTime = startCriticalPathTime;
       }
     }
   }
-  
+
   @Override
   public CSVResult getResult() throws TezException {
-    String[] headers = { "Entity", "PathReason", "Status", "CriticalStartTime", 
-        "CriticalStopTime", "Notes" };
+    String[] headers = {"Entity", "PathReason", "Status", "CriticalStartTime",
+        "CriticalStopTime", "Notes"};
 
     CSVResult csvResult = new CSVResult(headers);
     for (CriticalPathStep step : criticalPath) {
       String entity = (step.getType() == EntityType.ATTEMPT ? step.getAttempt().getTaskAttemptId()
           : (step.getType() == EntityType.VERTEX_INIT
-              ? step.attempt.getTaskInfo().getVertexInfo().getVertexName() : "DAG COMMIT"));
-      String [] record = {entity, step.getReason().name(), 
-          step.getAttempt().getDetailedStatus(), String.valueOf(step.getStartCriticalTime()), 
+          ? step.attempt.getTaskInfo().getVertexInfo().getVertexName() : "DAG COMMIT"));
+      String[] record = {entity, step.getReason().name(),
+          step.getAttempt().getDetailedStatus(), String.valueOf(step.getStartCriticalTime()),
           String.valueOf(step.getStopCriticalTime()),
           Joiner.on(";").join(step.getNotes())};
       csvResult.addRecord(record);
@@ -649,5 +655,4 @@ public class CriticalPathAnalyzer extends TezAnalyzerBase implements Analyzer {
     int res = ToolRunner.run(config, new CriticalPathAnalyzer(config), args);
     System.exit(res);
   }
-
 }

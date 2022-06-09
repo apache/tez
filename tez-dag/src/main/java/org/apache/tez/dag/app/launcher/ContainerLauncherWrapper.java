@@ -48,7 +48,7 @@ public class ContainerLauncherWrapper {
 
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     if (real instanceof DagContainerLauncher) {
-      ((DagContainerLauncher)real).dagComplete(dag, jobTokenSecretManager);
+      ((DagContainerLauncher) real).dagComplete(dag, jobTokenSecretManager);
     }
   }
 

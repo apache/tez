@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -47,7 +47,7 @@ public class ContainerContext {
   // FIXME Add support for service meta data comparisons
 
   public ContainerContext(Map<String, LocalResource> localResources,
-      Credentials credentials, Map<String, String> environment, String javaOpts) {
+                          Credentials credentials, Map<String, String> environment, String javaOpts) {
     Objects.requireNonNull(localResources,
         "localResources should not be null");
     Objects.requireNonNull(credentials, "credentials should not be null");
@@ -59,10 +59,10 @@ public class ContainerContext {
     this.javaOpts = javaOpts;
     this.vertex = null;
   }
-  
+
   public ContainerContext(Map<String, LocalResource> localResources,
-      Credentials credentials, Map<String, String> environment, String javaOpts,
-      @Nullable Vertex vertex) {
+                          Credentials credentials, Map<String, String> environment, String javaOpts,
+                          @Nullable Vertex vertex) {
     Objects.requireNonNull(localResources,
         "localResources should not be null");
     Objects.requireNonNull(credentials, "credentials should not be null");
@@ -105,8 +105,8 @@ public class ContainerContext {
     if (!this.javaOpts.equals(otherContext.javaOpts)) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Incompatible java opts, "
-          + ", this=" + this.javaOpts
-          + ", other=" + otherContext.javaOpts);
+            + ", this=" + this.javaOpts
+            + ", other=" + otherContext.javaOpts);
       }
       return false;
     }
@@ -114,7 +114,7 @@ public class ContainerContext {
     return isSuperSet(this.environment, otherContext.getEnvironment(), "Environment")
         && localResourcesCompatible(this.localResources, otherContext.getLocalResources());
   }
-  
+
   /**
    * @return true if this ContainerContext is an exact match of the specified
    *         container context.
@@ -127,7 +127,7 @@ public class ContainerContext {
   // YarnTezDAGChild knows how to handle the additional types in terms of
   // classpath modification
   private static boolean localResourcesCompatible(Map<String, LocalResource> srcLRs,
-      Map<String, LocalResource> reqLRs) {
+                                                  Map<String, LocalResource> reqLRs) {
     for (Entry<String, LocalResource> reqLREntry : reqLRs.entrySet()) {
       LocalResource requestedLocalResource = srcLRs.get(reqLREntry.getKey());
       if (requestedLocalResource == null) {
@@ -140,7 +140,7 @@ public class ContainerContext {
           }
           return false;
         }
-      } else if(!reqLREntry.getValue().equals(requestedLocalResource)) {
+      } else if (!reqLREntry.getValue().equals(requestedLocalResource)) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Cannot match container: Attempting to use same target resource name: "
               + reqLREntry.getKey()
@@ -154,7 +154,7 @@ public class ContainerContext {
   }
 
   private static <K, V> boolean isSuperSet(Map<K, V> srcMap, Map<K, V> matchMap,
-      String matchInfo) {
+                                           String matchInfo) {
     for (Entry<K, V> oEntry : matchMap.entrySet()) {
       K oKey = oEntry.getKey();
       V oVal = oEntry.getValue();
@@ -230,11 +230,10 @@ public class ContainerContext {
       }
     }
     sb.append("], javaOpts: ")
-      .append(javaOpts)
-      .append(", vertex: ")
-      .append(( vertex == null ? "null" : vertex.getLogIdentifier()));
+        .append(javaOpts)
+        .append(", vertex: ")
+        .append((vertex == null ? "null" : vertex.getLogIdentifier()));
 
     return sb.toString();
   }
-
 }

@@ -73,7 +73,6 @@ public class TestMRInputHelpers {
     Configuration testConf = new Configuration(
         dfsCluster.getFileSystem().getConf());
 
-
     FSDataOutputStream dataOutputStream = null;
     try {
       dataOutputStream = remoteFs.create(new Path("/tmp/input/test.xml"), true);
@@ -99,7 +98,6 @@ public class TestMRInputHelpers {
     oldSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirOld/"));
     newSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirNew/"));
   }
-
 
   @Test(timeout = 5000)
   public void testNewSplitsGen() throws Exception {
@@ -218,7 +216,6 @@ public class TestMRInputHelpers {
     return MRInputHelpers.configureMRInputWithLegacySplitGeneration(jobConf, inputSplitsDir, true);
   }
 
-
   private DataSourceDescriptor generateDataSourceDescriptorMapRed(Path inputSplitsDir)
       throws Exception {
     JobConf jobConf = new JobConf(dfsCluster.getFileSystem().getConf());
@@ -257,5 +254,4 @@ public class TestMRInputHelpers {
       localFs.delete(LOCAL_TEST_ROOT_DIR, true);
     }
   }
-
 }

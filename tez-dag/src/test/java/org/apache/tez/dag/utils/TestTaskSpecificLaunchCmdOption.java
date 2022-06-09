@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,7 +40,6 @@ public class TestTaskSpecificLaunchCmdOption {
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS, launchOpts);
     return new TaskSpecificLaunchCmdOption(conf);
   }
-
 
   @Test(timeout = 5000)
   public void testTaskSpecificJavaOptions() {
@@ -273,7 +272,6 @@ public class TestTaskSpecificLaunchCmdOption {
     assertTrue(optionStr.equals("dir=/tmp/v/4"));
   }
 
-
   @Test(timeout = 5000)
   public void testTaskSpecificLogOptions() {
     Configuration conf = new Configuration(false);
@@ -298,7 +296,7 @@ public class TestTaskSpecificLaunchCmdOption {
     assertEquals(1, options.getTaskSpecificLogParams().length);
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testTaskSpecificLogOptionsWithCommandOptions() {
     Configuration conf = new Configuration(false);
     conf.set(TezConfiguration.TEZ_TASK_SPECIFIC_LAUNCH_CMD_OPTS_LIST, "v1[0,2,5]");

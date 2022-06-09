@@ -42,9 +42,11 @@ public class TestTezSharedExecutor {
 
   private static class Sleep implements Runnable {
     private final long sleepTime;
+
     Sleep(long sleepTime) {
       this.sleepTime = sleepTime;
     }
+
     @Override
     public void run() {
       try {
@@ -57,9 +59,11 @@ public class TestTezSharedExecutor {
 
   private static class Wait implements Runnable {
     private final CountDownLatch latch;
+
     Wait(CountDownLatch latch) {
       this.latch = latch;
     }
+
     @Override
     public void run() {
       try {
@@ -72,12 +76,14 @@ public class TestTezSharedExecutor {
 
   private static class Counter implements Runnable {
     private final AtomicInteger counter;
+
     Counter(ConcurrentHashMap<String, AtomicInteger> map, String tag) {
       if (!map.contains(tag)) {
         map.putIfAbsent(tag, new AtomicInteger(0));
       }
       this.counter = map.get(tag);
     }
+
     @Override
     public void run() {
       counter.getAndIncrement();
@@ -87,10 +93,12 @@ public class TestTezSharedExecutor {
   private static class Appender<T> implements Runnable {
     private final Collection<T> collection;
     private final T obj;
+
     Appender(Collection<T> collection, T obj) {
       this.collection = collection;
       this.obj = obj;
     }
+
     @Override
     public void run() {
       collection.add(obj);
@@ -99,9 +107,11 @@ public class TestTezSharedExecutor {
 
   private static class Runner implements Runnable {
     private Runnable[] runnables;
-    Runner(Runnable ... runnables) {
+
+    Runner(Runnable... runnables) {
       this.runnables = runnables;
     }
+
     @Override
     public void run() {
       for (Runnable runnable : runnables) {
@@ -123,7 +133,7 @@ public class TestTezSharedExecutor {
     sharedExecutor = null;
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSimpleExecution() throws Exception {
     ConcurrentHashMap<String, AtomicInteger> map = new ConcurrentHashMap<>();
 
@@ -158,7 +168,7 @@ public class TestTezSharedExecutor {
     }
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testAwaitTermination() throws Exception {
     ExecutorService service = sharedExecutor.createExecutorService(1, "await-termination");
     CountDownLatch latch = new CountDownLatch(1);
@@ -179,7 +189,7 @@ public class TestTezSharedExecutor {
     Assert.assertTrue(service.isShutdown());
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSerialExecution() throws Exception {
     ExecutorService service = sharedExecutor.createExecutorService(1, "serial-test");
     CountDownLatch latch = new CountDownLatch(1);
@@ -208,7 +218,7 @@ public class TestTezSharedExecutor {
     Assert.assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), list);
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testParallelExecution() throws Exception {
     ConcurrentHashMap<String, AtomicInteger> map = new ConcurrentHashMap<>();
 
@@ -236,5 +246,4 @@ public class TestTezSharedExecutor {
     services[1].submit(new Counter(map, "test1")).get();
     Assert.assertEquals(expectedCounts[1] + 1, map.get("test1").get());
   }
-
 }

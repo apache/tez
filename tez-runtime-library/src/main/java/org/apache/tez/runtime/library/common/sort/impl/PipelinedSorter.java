@@ -1,20 +1,20 @@
-  /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.tez.runtime.library.common.sort.impl;
 
 import java.io.IOException;
@@ -73,9 +73,9 @@ import static org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord.ens
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class PipelinedSorter extends ExternalSorter {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(PipelinedSorter.class);
-  
+
   /**
    * The size of each record in the index file for the map-outputs.
    */
@@ -84,7 +84,7 @@ public class PipelinedSorter extends ExternalSorter {
   private final static int APPROX_HEADER_LENGTH = 150;
 
   private final int partitionBits;
-  
+
   private static final int PARTITION = 0;        // partition offset in acct
   private static final int KEYSTART = 1;         // key offset in acct
   private static final int VALSTART = 2;         // val offset in acct
@@ -104,11 +104,11 @@ public class PipelinedSorter extends ExternalSorter {
   private int bufferOverflowRecursion;
 
   // Merger
-  private final SpanMerger merger; 
+  private final SpanMerger merger;
   private final ExecutorService sortmaster;
 
   private final ArrayList<TezSpillRecord> indexCacheList =
-    new ArrayList<TezSpillRecord>();
+      new ArrayList<TezSpillRecord>();
 
   private final boolean pipelinedShuffle;
 
@@ -133,7 +133,7 @@ public class PipelinedSorter extends ExternalSorter {
   // TODO Set additional countesr - total bytes written, spills etc.
 
   public PipelinedSorter(OutputContext outputContext, Configuration conf, int numOutputs,
-      long initialMemoryAvailable) throws IOException {
+                         long initialMemoryAvailable) throws IOException {
     super(outputContext, conf, numOutputs, initialMemoryAvailable);
 
     lazyAllocateMem = this.conf.getBoolean(TezRuntimeConfiguration
@@ -162,7 +162,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     StringBuilder initialSetupLogLine = new StringBuilder("Setting up PipelinedSorter for ")
         .append(outputContext.getInputOutputVertexNames()).append(": ");
-    partitionBits = bitcount(partitions)+1;
+    partitionBits = bitcount(partitions) + 1;
 
     boolean confPipelinedShuffle = this.conf.getBoolean(TezRuntimeConfiguration
         .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, TezRuntimeConfiguration
@@ -179,8 +179,8 @@ public class PipelinedSorter extends ExternalSorter {
 
     initialSetupLogLine.append(", UsingHashComparator=");
     // k/v serialization
-    if(comparator instanceof ProxyComparator) {
-      hasher = (ProxyComparator)comparator;
+    if (comparator instanceof ProxyComparator) {
+      hasher = (ProxyComparator) comparator;
       initialSetupLogLine.append(true);
     } else {
       hasher = null;
@@ -192,7 +192,7 @@ public class PipelinedSorter extends ExternalSorter {
     long totalCapacityWithoutMeta = 0;
     long availableMem = maxMemLimit;
     int numBlocks = 0;
-    while(availableMem > 0) {
+    while (availableMem > 0) {
       long size = Math.min(availableMem, computeBlockSize(availableMem, maxMemLimit));
       int sizeWithoutMeta = (int) ((size) - (size % METASIZE));
       totalCapacityWithoutMeta += sizeWithoutMeta;
@@ -208,7 +208,7 @@ public class PipelinedSorter extends ExternalSorter {
     allocateSpace(); //Allocate the first block
     if (!lazyAllocateMem) {
       LOG.info("Pre allocating rest of memory buffers upfront");
-      while(allocateSpace() != null);
+      while (allocateSpace() != null) ;
     }
 
     initialSetupLogLine.append("#blocks=").append(maxNumberOfBlocks);
@@ -229,10 +229,10 @@ public class PipelinedSorter extends ExternalSorter {
 
     span = new SortSpan(buffers.get(bufferIndex), 1024 * 1024, 16, this.comparator);
     merger = new SpanMerger(); // SpanIterators are comparable
-    final int sortThreads = 
-            this.conf.getInt(
-                TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS,
-                TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS_DEFAULT);
+    final int sortThreads =
+        this.conf.getInt(
+            TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS,
+            TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS_DEFAULT);
     sortmaster = Executors.newFixedThreadPool(sortThreads,
         new ThreadFactoryBuilder().setDaemon(true)
             .setNameFormat("Sorter {" + TezUtilsInternal.cleanVertexName(outputContext.getTaskVertexName()) + " -> "
@@ -273,7 +273,6 @@ public class PipelinedSorter extends ExternalSorter {
         + ", total=" + (availableMemoryMb << 20));
     return space;
   }
-
 
   @VisibleForTesting
   int computeBlockSize(long availableMem, long maxAllocatedMemory) {
@@ -316,17 +315,17 @@ public class PipelinedSorter extends ExternalSorter {
 
   private int bitcount(int n) {
     int bit = 0;
-    while(n!=0) {
+    while (n != 0) {
       bit++;
       n >>= 1;
     }
     return bit;
   }
-  
+
   public void sort() throws IOException {
     SortSpan newSpan = span.next();
 
-    if(newSpan == null) {
+    if (newSpan == null) {
       //avoid sort/spill of empty span
       StopWatch stopWatch = new StopWatch();
       stopWatch.start();
@@ -344,20 +343,20 @@ public class PipelinedSorter extends ExternalSorter {
       // Use the next buffer
       bufferIndex = (bufferIndex + 1) % buffers.size();
       bufferUsage.set(bufferIndex, bufferUsage.get(bufferIndex) + 1);
-      int items = 1024*1024;
+      int items = 1024 * 1024;
       int perItem = 16;
-      if(span.length() != 0) {
+      if (span.length() != 0) {
         items = span.length();
-        perItem = span.kvbuffer.limit()/items;
-        items = (int) ((span.capacity)/(METASIZE+perItem));
-        if(items > 1024*1024) {
-            // our goal is to have 1M splits and sort early
-            items = 1024*1024;
+        perItem = span.kvbuffer.limit() / items;
+        items = (int) ((span.capacity) / (METASIZE + perItem));
+        if (items > 1024 * 1024) {
+          // our goal is to have 1M splits and sort early
+          items = 1024 * 1024;
         }
       }
       Preconditions.checkArgument(buffers.get(bufferIndex) != null, "block should not be empty");
       //TODO: fix per item being passed.
-      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), (1024*1024),
+      span = new SortSpan((ByteBuffer) buffers.get(bufferIndex).clear(), (1024 * 1024),
           perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
       // queue up the sort
@@ -372,9 +371,9 @@ public class PipelinedSorter extends ExternalSorter {
   }
 
   // if pipelined shuffle is enabled, this method is called to send events for every spill
-  private void sendPipelinedShuffleEvents() throws IOException{
+  private void sendPipelinedShuffleEvents() throws IOException {
     List<Event> events = Lists.newLinkedList();
-    String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills-1));
+    String pathComponent = (outputContext.getUniqueIdentifier() + "_" + (numSpills - 1));
     ShuffleUtils.generateEventOnSpill(events, isFinalMergeEnabled(), false,
         outputContext, (numSpills - 1), indexCacheList.get(numSpills - 1),
         partitions, sendEmptyPartitionDetails, pathComponent, partitionStats,
@@ -397,16 +396,16 @@ public class PipelinedSorter extends ExternalSorter {
    * storage to store one METADATA.
    */
   synchronized void collect(Object key, Object value, final int partition
-                                   ) throws IOException {
+  ) throws IOException {
     if (key.getClass() != serializationContext.getKeyClass()) {
       throw new IOException("Type mismatch in key from map: expected "
-                            + serializationContext.getKeyClass().getName() + ", received "
-                            + key.getClass().getName());
+          + serializationContext.getKeyClass().getName() + ", received "
+          + key.getClass().getName());
     }
     if (value.getClass() != serializationContext.getValueClass()) {
       throw new IOException("Type mismatch in value from map: expected "
-                            + serializationContext.getValueClass().getName() + ", received "
-                            + value.getClass().getName());
+          + serializationContext.getValueClass().getName() + ", received "
+          + value.getClass().getName());
     }
     if (partition < 0 || partition >= partitions) {
       throw new IOException("Illegal partition for " + key + " (" +
@@ -425,10 +424,10 @@ public class PipelinedSorter extends ExternalSorter {
     int valend = -1;
     try {
       keySerializer.serialize(key);
-      valstart = span.kvbuffer.position();      
+      valstart = span.kvbuffer.position();
       valSerializer.serialize(value);
       valend = span.kvbuffer.position();
-    } catch(BufferOverflowException overflow) {
+    } catch (BufferOverflowException overflow) {
       // restore limit
       span.kvbuffer.position(keystart);
       this.sort();
@@ -450,7 +449,7 @@ public class PipelinedSorter extends ExternalSorter {
 
     int prefix = 0;
 
-    if(hasher != null) {
+    if (hasher != null) {
       prefix = hasher.getProxy(key);
     }
 
@@ -484,7 +483,7 @@ public class PipelinedSorter extends ExternalSorter {
   // it is guaranteed that when spillSingleRecord is called, there is
   // no merger spans queued in executor.
   private void spillSingleRecord(final Object key, final Object value,
-          int partition) throws IOException {
+                                 int partition) throws IOException {
     final TezSpillRecord spillRec = new TezSpillRecord(partitions);
     // getSpillFileForWrite with size -1 as the serialized size of KV pair is still unknown
     final Path filename = mapOutputFile.getSpillFileForWrite(numSpills, -1);
@@ -544,15 +543,15 @@ public class PipelinedSorter extends ExternalSorter {
       indexCacheList.add(spillRec);
       ++numSpills;
       if (!isFinalMergeEnabled()) {
-          fileOutputByteCounter.increment(rfs.getFileStatus(filename).getLen());
-          //No final merge. Set the number of files offered via shuffle-handler
-          numShuffleChunks.setValue(numSpills);
+        fileOutputByteCounter.increment(rfs.getFileStatus(filename).getLen());
+        //No final merge. Set the number of files offered via shuffle-handler
+        numShuffleChunks.setValue(numSpills);
       }
       if (pipelinedShuffle) {
         sendPipelinedShuffleEvents();
       }
     } finally {
-        out.close();
+      out.close();
     }
   }
 
@@ -563,7 +562,7 @@ public class PipelinedSorter extends ExternalSorter {
         boolean ret = merger.ready();
         // if merger returned false and ignore merge is true,
         // then return directly without spilling
-        if (!ret && ignoreEmptySpills){
+        if (!ret && ignoreEmptySpills) {
           return false;
         }
       } catch (InterruptedException e) {
@@ -575,10 +574,10 @@ public class PipelinedSorter extends ExternalSorter {
 
       // create spill file
       final long size = capacity +
-          + (partitions * APPROX_HEADER_LENGTH);
+          +(partitions * APPROX_HEADER_LENGTH);
       final TezSpillRecord spillRec = new TezSpillRecord(partitions);
       final Path filename =
-        mapOutputFile.getSpillFileForWrite(numSpills, size);
+          mapOutputFile.getSpillFileForWrite(numSpills, size);
       spillFilePaths.put(numSpills, filename);
       out = rfs.create(filename, true, 4096);
       ensureSpillFilePermissions(filename, rfs);
@@ -603,7 +602,7 @@ public class PipelinedSorter extends ExternalSorter {
           while (kvIter.next()) {
             writer.append(kvIter.getKey(), kvIter.getValue());
           }
-        } else {          
+        } else {
           if (hasNext) {
             runCombineProcessor(kvIter, writer);
           }
@@ -627,8 +626,8 @@ public class PipelinedSorter extends ExternalSorter {
       }
 
       Path indexFilename =
-        mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
-            * MAP_OUTPUT_INDEX_RECORD_LENGTH);
+          mapOutputFile.getSpillIndexFileForWrite(numSpills, partitions
+              * MAP_OUTPUT_INDEX_RECORD_LENGTH);
       spillFileIndexPaths.put(numSpills, indexFilename);
       spillRec.writeToFile(indexFilename, conf, localFs);
       //TODO: honor cache limits
@@ -693,8 +692,7 @@ public class PipelinedSorter extends ExternalSorter {
       //safe to clean up
       buffers.clear();
 
-
-      if(indexCacheList.isEmpty()) {
+      if (indexCacheList.isEmpty()) {
         /*
          * If we do not have this check, and if the task gets killed in the middle, it can throw
          * NPE leading to distraction when debugging.
@@ -764,7 +762,7 @@ public class PipelinedSorter extends ExternalSorter {
       if (LOG.isDebugEnabled()) {
         LOG.debug(outputContext.getInputOutputVertexNames() + ": " +
             "numSpills: " + numSpills + ", finalOutputFile:" + finalOutputFile + ", finalIndexFile:"
-                + finalIndexFile);
+            + finalIndexFile);
       }
       //The output stream for the final single output file
       FSDataOutputStream finalOut = rfs.create(finalOutputFile, true, 4096);
@@ -850,7 +848,7 @@ public class PipelinedSorter extends ExternalSorter {
 
       spillFileIndexPaths.clear();
       spillFilePaths.clear();
-    } catch(InterruptedException ie) {
+    } catch (InterruptedException ie) {
       if (cleanup) {
         cleanup();
       }
@@ -869,32 +867,35 @@ public class PipelinedSorter extends ExternalSorter {
     return finalEvents;
   }
 
-
   private interface PartitionedRawKeyValueIterator extends TezRawKeyValueIterator {
     int getPartition();
+
     Integer peekPartition();
   }
 
-  private static class BufferStreamWrapper extends OutputStream
-  {
+  private static class BufferStreamWrapper extends OutputStream {
     private final ByteBuffer out;
+
     public BufferStreamWrapper(ByteBuffer out) {
       this.out = out;
     }
-    
+
     @Override
-    public void write(int b) throws IOException { out.put((byte)b); }
+    public void write(int b) throws IOException {out.put((byte) b);}
+
     @Override
-    public void write(byte[] b) throws IOException { out.put(b); }
+    public void write(byte[] b) throws IOException {out.put(b);}
+
     @Override
-    public void write(byte[] b, int off, int len) throws IOException { out.put(b, off, len); }
+    public void write(byte[] b, int off, int len) throws IOException {out.put(b, off, len);}
   }
 
   private static final class InputByteBuffer extends DataInputBuffer {
-    private byte[] buffer = new byte[256]; 
+    private byte[] buffer = new byte[256];
     private ByteBuffer wrapped = ByteBuffer.wrap(buffer);
+
     private void resize(int length) {
-      if(length > buffer.length || (buffer.length > 10 * (1+length))) {
+      if (length > buffer.length || (buffer.length > 10 * (1 + length))) {
         // scale down as well as scale up across values
         buffer = new byte[length];
         wrapped = ByteBuffer.wrap(buffer);
@@ -936,14 +937,13 @@ public class PipelinedSorter extends ExternalSorter {
     private boolean reinit = false;
     private int capacity;
 
-
     public SortSpan(ByteBuffer source, int maxItems, int perItem, RawComparator comparator) {
       capacity = source.remaining();
-      int metasize = METASIZE*maxItems;
+      int metasize = METASIZE * maxItems;
       int dataSize = maxItems * perItem;
-      if(capacity < (metasize+dataSize)) {
+      if (capacity < (metasize + dataSize)) {
         // try to allocate less meta space, because we have sample data
-        metasize = METASIZE*(capacity/(perItem+METASIZE));
+        metasize = METASIZE * (capacity / (perItem + METASIZE));
       }
       ByteBuffer reserved = source.duplicate();
       reserved.mark();
@@ -957,21 +957,21 @@ public class PipelinedSorter extends ExternalSorter {
       rawkvmeta = kvmetabuffer.array();
       kvmetabase = kvmetabuffer.arrayOffset();
       kvmeta = kvmetabuffer
-                .order(ByteOrder.nativeOrder())
-               .asIntBuffer();
+          .order(ByteOrder.nativeOrder())
+          .asIntBuffer();
       out = new NonSyncDataOutputStream(
-              new BufferStreamWrapper(kvbuffer));
+          new BufferStreamWrapper(kvbuffer));
       this.comparator = comparator;
     }
 
     public SpanIterator sort(IndexedSorter sorter) {
       long start = System.currentTimeMillis();
-      if(length() > 1) {
+      if (length() > 1) {
         sorter.sort(this, 0, length(), progressable);
       }
       LOG.info(outputContext.getInputOutputVertexNames() + ": " + "done sorting span=" + index + ", length=" + length()
           + ", " + "time=" + (System.currentTimeMillis() - start));
-      return new SpanIterator((SortSpan)this);
+      return new SpanIterator((SortSpan) this);
     }
 
     int offsetFor(int i) {
@@ -992,8 +992,8 @@ public class PipelinedSorter extends ExternalSorter {
     protected int compareKeys(final int kvi, final int kvj) {
       final int istart = kvmeta.get(kvi + KEYSTART);
       final int jstart = kvmeta.get(kvj + KEYSTART);
-      final int ilen   = kvmeta.get(kvi + VALSTART) - istart;
-      final int jlen   = kvmeta.get(kvj + VALSTART) - jstart;
+      final int ilen = kvmeta.get(kvi + VALSTART) - istart;
+      final int jlen = kvmeta.get(kvj + VALSTART) - jstart;
 
       if (ilen == 0 || jlen == 0) {
         if (ilen == jlen) {
@@ -1007,10 +1007,9 @@ public class PipelinedSorter extends ExternalSorter {
 
       // sort by key
       final int cmp = comparator.compare(buf, off + istart, ilen, buf, off + jstart, jlen);
-      if(cmp == 0) eq++;
+      if (cmp == 0) eq++;
       return cmp;
     }
-
 
     public int compare(final int mi, final int mj) {
       final int kvi = offsetFor(mi);
@@ -1026,13 +1025,13 @@ public class PipelinedSorter extends ExternalSorter {
 
     public SortSpan next() {
       ByteBuffer remaining = end();
-      if(remaining != null) {
+      if (remaining != null) {
         SortSpan newSpan = null;
         int items = length();
-        int perItem = kvbuffer.position()/items;
+        int perItem = kvbuffer.position() / items;
         if (reinit) { //next mem block
           //quite possible that the previous span had a length of 1. It is better to reinit here for new span.
-          items = 1024*1024;
+          items = 1024 * 1024;
           perItem = 16;
         }
         final RawComparator newComparator = ConfigUtils.getIntermediateOutputKeyComparator(conf);
@@ -1044,7 +1043,7 @@ public class PipelinedSorter extends ExternalSorter {
               System.identityHashCode(newComparator));
         }
         newSpan = new SortSpan(remaining, items, perItem, newComparator);
-        newSpan.index = index+1;
+        newSpan.index = index + 1;
         LOG.info(
             String.format(outputContext.getInputOutputVertexNames() + ": " + "New Span%d.length = %d, perItem = %d",
                 newSpan.index, newSpan.length(), perItem) + ", counter:" + mapOutputRecordCounter.getValue());
@@ -1054,7 +1053,7 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     public int length() {
-      return kvmeta.limit()/NMETA;
+      return kvmeta.limit() / NMETA;
     }
 
     public ByteBuffer end() {
@@ -1064,13 +1063,13 @@ public class PipelinedSorter extends ExternalSorter {
       kvbuffer.limit(kvbuffer.position());
       kvmeta.limit(kvmeta.position());
       int items = length();
-      if(items == 0) {
+      if (items == 0) {
         return null;
       }
-      int perItem = kvbuffer.position()/items;
+      int perItem = kvbuffer.position() / items;
       LOG.info(outputContext.getInputOutputVertexNames() + ": "
           + String.format("Span%d.length = %d, perItem = %d", index, length(), perItem));
-      if(remaining.remaining() < METASIZE+perItem) {
+      if (remaining.remaining() < METASIZE + perItem) {
         //Check if we can get the next Buffer from the main buffer list
         ByteBuffer space = allocateSpace();
         if (space != null) {
@@ -1090,28 +1089,28 @@ public class PipelinedSorter extends ExternalSorter {
       final int valstart;
       final int partition;
       partition = kvmeta.get(this.offsetFor(index) + PARTITION);
-      if(partition != needlePart) {
-          cmp = (partition-needlePart);
+      if (partition != needlePart) {
+        cmp = (partition - needlePart);
       } else {
         keystart = kvmeta.get(this.offsetFor(index) + KEYSTART);
         valstart = kvmeta.get(this.offsetFor(index) + VALSTART);
         final byte[] buf = kvbuffer.array();
         final int off = kvbuffer.arrayOffset();
         cmp = comparator.compare(buf,
-            keystart + off , (valstart - keystart),
+            keystart + off, (valstart - keystart),
             needle.getData(),
             needle.getPosition(), (needle.getLength() - needle.getPosition()));
       }
       return cmp;
     }
-    
+
     public long getEq() {
       return eq;
     }
-    
+
     @Override
     public String toString() {
-        return String.format("Span[%d,%d]", NMETA*kvmeta.capacity(), kvbuffer.limit());
+      return String.format("Span[%d,%d]", NMETA * kvmeta.capacity(), kvbuffer.limit());
     }
   }
 
@@ -1131,10 +1130,10 @@ public class PipelinedSorter extends ExternalSorter {
       this.kvmeta = span.kvmeta;
       this.kvbuffer = span.kvbuffer;
       this.span = span;
-      this.maxindex = (kvmeta.limit()/NMETA) - 1;
+      this.maxindex = (kvmeta.limit() / NMETA) - 1;
     }
 
-    public DataInputBuffer getKey()  {
+    public DataInputBuffer getKey() {
       final int keystart = kvmeta.get(span.offsetFor(kvindex) + KEYSTART);
       final int valstart = kvmeta.get(span.offsetFor(kvindex) + VALSTART);
       final byte[] buf = kvbuffer.array();
@@ -1154,9 +1153,9 @@ public class PipelinedSorter extends ExternalSorter {
 
     public boolean next() {
       // caveat: since we use this as a comparable in the merger 
-      if(kvindex == maxindex) return false;
+      if (kvindex == maxindex) return false;
       kvindex += 1;
-      if(kvindex % 100 == 0) {
+      if (kvindex % 100 == 0) {
         progress.set(1 - ((maxindex - kvindex) / (float) maxindex));
       }
       return true;
@@ -1170,7 +1169,7 @@ public class PipelinedSorter extends ExternalSorter {
     public void close() {
     }
 
-    public Progress getProgress() { 
+    public Progress getProgress() {
       return progress;
     }
 
@@ -1188,7 +1187,7 @@ public class PipelinedSorter extends ExternalSorter {
       if (!hasNext()) {
         return null;
       } else {
-          return kvmeta.get(span.offsetFor(kvindex + 1) + PARTITION);
+        return kvmeta.get(span.offsetFor(kvindex + 1) + PARTITION);
       }
     }
 
@@ -1210,52 +1209,52 @@ public class PipelinedSorter extends ExternalSorter {
      * bisect returns the next insertion point for a given raw key, skipping keys
      * which are <= needle using a binary search instead of a linear comparison.
      * This is massively efficient when long strings of identical keys occur.
-     * @param needle 
+     * @param needle
      * @param needlePart
      * @return
      */
     int bisect(DataInputBuffer needle, int needlePart) {
       int start = kvindex;
-      int end = maxindex-1;
+      int end = maxindex - 1;
       int mid = start;
       int cmp = 0;
 
-      if(end - start < minrun) {
+      if (end - start < minrun) {
         return 0;
       }
 
-      if(span.compareInternal(needle, needlePart, start) > 0) {
+      if (span.compareInternal(needle, needlePart, start) > 0) {
         return kvindex;
       }
-      
+
       // bail out early if we haven't got a min run 
-      if(span.compareInternal(needle, needlePart, start+minrun) > 0) {
+      if (span.compareInternal(needle, needlePart, start + minrun) > 0) {
         return 0;
       }
 
-      if(span.compareInternal(needle, needlePart, end) < 0) {
+      if (span.compareInternal(needle, needlePart, end) < 0) {
         return end - kvindex;
       }
-      
+
       boolean found = false;
-      
+
       // we sort 100k items, the max it can do is 20 loops, but break early
-      for(int i = 0; start < end && i < 16; i++) {
-        mid = start + (end - start)/2;
+      for (int i = 0; start < end && i < 16; i++) {
+        mid = start + (end - start) / 2;
         cmp = span.compareInternal(needle, needlePart, mid);
-        if(cmp == 0) {
+        if (cmp == 0) {
           start = mid;
           found = true;
-        } else if(cmp < 0) {
-          start = mid; 
+        } else if (cmp < 0) {
+          start = mid;
           found = true;
         }
-        if(cmp > 0) {
+        if (cmp > 0) {
           end = mid;
         }
       }
 
-      if(found) {
+      if (found) {
         return start - kvindex;
       }
       return 0;
@@ -1267,8 +1266,8 @@ public class PipelinedSorter extends ExternalSorter {
     private final IndexedSorter sorter;
 
     public SortTask(SortSpan sortable, IndexedSorter sorter) {
-        this.sortable = sortable;
-        this.sorter = sorter;
+      this.sortable = sortable;
+      this.sorter = sorter;
     }
 
     @Override
@@ -1281,12 +1280,17 @@ public class PipelinedSorter extends ExternalSorter {
     private final PartitionedRawKeyValueIterator iter;
     private int partition;
     private boolean dirty = false;
+
     public PartitionFilter(PartitionedRawKeyValueIterator iter) {
       this.iter = iter;
     }
-    public DataInputBuffer getKey() throws IOException { return iter.getKey(); }
-    public DataInputBuffer getValue() throws IOException { return iter.getValue(); }
-    public void close() throws IOException { }
+
+    public DataInputBuffer getKey() throws IOException {return iter.getKey();}
+
+    public DataInputBuffer getValue() throws IOException {return iter.getValue();}
+
+    public void close() throws IOException {}
+
     public Progress getProgress() {
       return new Progress();
     }
@@ -1297,13 +1301,13 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     public boolean next() throws IOException {
-      if(dirty || iter.next()) { 
+      if (dirty || iter.next()) {
         int prefix = iter.getPartition();
 
-        if((prefix >>> (32 - partitionBits)) == partition) {
+        if ((prefix >>> (32 - partitionBits)) == partition) {
           dirty = false; // we found what we were looking for, good
           return true;
-        } else if(!dirty) {
+        } else if (!dirty) {
           dirty = true; // we did a lookahead and failed to find partition
         }
       }
@@ -1343,6 +1347,7 @@ public class PipelinedSorter extends ExternalSorter {
     public SpanHeap() {
       super(256);
     }
+
     /**
      * {@link PriorityQueue}.poll() by a different name 
      * @return
@@ -1363,7 +1368,7 @@ public class PipelinedSorter extends ExternalSorter {
     InputByteBuffer value = new InputByteBuffer();
     int partition;
 
-    private ArrayList< Future<SpanIterator>> futures = new ArrayList< Future<SpanIterator>>();
+    private ArrayList<Future<SpanIterator>> futures = new ArrayList<Future<SpanIterator>>();
 
     private SpanHeap heap = new SpanHeap();
     private PartitionFilter partIter;
@@ -1372,14 +1377,14 @@ public class PipelinedSorter extends ExternalSorter {
     private SpanIterator horse;
     private long total = 0;
     private long eq = 0;
-    
+
     public SpanMerger() {
       // SpanIterators are comparable
       partIter = new PartitionFilter(this);
     }
 
     public final void add(SpanIterator iter) {
-      if(iter.next()) {
+      if (iter.next()) {
         heap.add(iter);
       }
     }
@@ -1392,7 +1397,7 @@ public class PipelinedSorter extends ExternalSorter {
       int numSpanItr = futures.size();
       try {
         SpanIterator iter = null;
-        while(this.futures.size() > 0) {
+        while (this.futures.size() > 0) {
           Future<SpanIterator> futureIter = this.futures.remove(0);
           iter = futureIter.get();
           this.add(iter);
@@ -1402,15 +1407,15 @@ public class PipelinedSorter extends ExternalSorter {
         if (heap.size() == 0) {
           return false;
         }
-        for(SpanIterator sp: heap) {
-            sb.append(sp.toString());
-            sb.append(",");
-            total += sp.span.length();
-            eq += sp.span.getEq();
+        for (SpanIterator sp : heap) {
+          sb.append(sp.toString());
+          sb.append(",");
+          total += sp.span.length();
+          eq += sp.span.getEq();
         }
         LOG.info(outputContext.getInputOutputVertexNames() + ": " + "Heap = " + sb.toString());
         return true;
-      } catch(ExecutionException e) {
+      } catch (ExecutionException e) {
         LOG.error("Heap size={}, total={}, eq={}, partition={}, gallop={}, totalItr={},"
                 + " futures.size={}, destVertexName={}",
             heap.size(), total, eq, partition, gallop, numSpanItr, futures.size(),
@@ -1420,21 +1425,21 @@ public class PipelinedSorter extends ExternalSorter {
     }
 
     private SpanIterator pop() {
-      if(gallop > 0) {
+      if (gallop > 0) {
         gallop--;
         return horse;
       }
       SpanIterator current = heap.pop();
       SpanIterator next = heap.peek();
-      if(next != null && current != null &&
-        ((Object)horse) == ((Object)current)) {
+      if (next != null && current != null &&
+          ((Object) horse) == ((Object) current)) {
         // TODO: a better threshold check than 1 key repeating
-        gallop = current.bisect(next.getKey(), next.getPartition())-1;
+        gallop = current.bisect(next.getKey(), next.getPartition()) - 1;
       }
       horse = current;
       return current;
     }
-    
+
     public boolean needsRLE() {
       return (eq > 0.1 * total);
     }
@@ -1450,11 +1455,11 @@ public class PipelinedSorter extends ExternalSorter {
     public final boolean next() {
       SpanIterator current = pop();
 
-      if(current != null) {
+      if (current != null) {
         partition = current.getPartition();
         key.reset(current.getKey());
         value.reset(current.getValue());
-        if(gallop <= 0) {
+        if (gallop <= 0) {
           // since all keys and values are references to the kvbuffer, no more deep copies
           this.add(current);
         } else {
@@ -1480,9 +1485,11 @@ public class PipelinedSorter extends ExternalSorter {
       }
     }
 
-    public DataInputBuffer getKey() { return key; }
-    public DataInputBuffer getValue() { return value; }
-    public int getPartition() { return partition; }
+    public DataInputBuffer getKey() {return key;}
+
+    public DataInputBuffer getValue() {return value;}
+
+    public int getPartition() {return partition;}
 
     public void close() throws IOException {
     }
@@ -1501,6 +1508,5 @@ public class PipelinedSorter extends ExternalSorter {
       partIter.reset(partition);
       return partIter;
     }
-
   }
 }

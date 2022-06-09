@@ -33,7 +33,7 @@ public interface TezExecutors {
   /**
    * Create a ExecutorService with the given parameters.
    *
-   * @param parallelism Represents total number of tasks to be executed in parallel.
+   * @param parallelism      Represents total number of tasks to be executed in parallel.
    * @param threadNameFormat The name the thread should take when executing tasks from this executor
    * @return An ExecutorService.
    */

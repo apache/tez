@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +26,7 @@ public class VertexIdentifierImpl implements VertexIdentifier {
   private final DagIdentifier dagIdentifier;
   private final TezVertexID vertexId;
   private final String vertexName;
-  
+
   public VertexIdentifierImpl(String dagName, String vertexName, TezVertexID vertexId) {
     this.vertexId = vertexId;
     this.vertexName = vertexName;
@@ -42,34 +42,33 @@ public class VertexIdentifierImpl implements VertexIdentifier {
   public int getIdentifier() {
     return vertexId.getId();
   }
-  
+
   @Override
   public DagIdentifier getDagIdentifier() {
     return dagIdentifier;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-    if(o == null) {
+    if (o == null) {
       return false;
     }
     if (o.getClass() == this.getClass()) {
       VertexIdentifierImpl other = (VertexIdentifierImpl) o;
       return this.vertexId.equals(other.vertexId);
-    }
-    else {
+    } else {
       return false;
     }
   }
-  
+
   @Override
   public String toString() {
     return dagIdentifier.toString() + " Vertex: " + vertexName + ":[" + getIdentifier() + "]";
   }
-  
+
   @Override
   public int hashCode() {
     return vertexId.hashCode();

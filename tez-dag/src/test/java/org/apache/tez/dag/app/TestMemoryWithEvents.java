@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app;
 
@@ -62,7 +62,7 @@ import com.google.common.collect.Lists;
 public class TestMemoryWithEvents {
   static Configuration defaultConf;
   static FileSystem localFs;
-  
+
   static {
     try {
       defaultConf = new Configuration(false);
@@ -81,7 +81,7 @@ public class TestMemoryWithEvents {
   final int numTasks = 10000;
 
   private void checkMemory(String name, MockDAGAppMaster mockApp) {
-    long mb = 1024*1024;
+    long mb = 1024 * 1024;
     long microsPerMs = 1000;
 
     //Getting the runtime reference from system
@@ -90,7 +90,7 @@ public class TestMemoryWithEvents {
     System.out.println("##### Heap utilization statistics [MB] for " + name);
 
     runtime.gc();
-    
+
     //Print used memory
     System.out.println("##### Used Memory:"
         + (runtime.totalMemory() - runtime.freeMemory()) / mb);
@@ -98,25 +98,25 @@ public class TestMemoryWithEvents {
     //Print free memory
     System.out.println("##### Free Memory:"
         + runtime.freeMemory() / mb);
-     
+
     //Print total available memory
     System.out.println("##### Total Memory:" + runtime.totalMemory() / mb);
 
     //Print Maximum available memory
     System.out.println("##### Max Memory:" + runtime.maxMemory() / mb);
-    
+
     //Print Maximum heartbeat time
     long numHeartbeats = mockApp.numHearbeats.get();
     if (numHeartbeats == 0) {
       numHeartbeats = 1;
     }
-    System.out.println("##### Heartbeat (ms) :" 
-        + " latency avg: " + ((mockApp.heartbeatTime.get() / numHeartbeats) / microsPerMs) 
+    System.out.println("##### Heartbeat (ms) :"
+        + " latency avg: " + ((mockApp.heartbeatTime.get() / numHeartbeats) / microsPerMs)
         + " cpu total: " + (mockApp.heartbeatCpu.get() / microsPerMs)
         + " cpu avg: " + ((mockApp.heartbeatCpu.get() / numHeartbeats) / microsPerMs)
         + " numHeartbeats: " + mockApp.numHearbeats.get());
   }
-  
+
   private void testMemory(DAG dag, boolean sendDMEvents) throws Exception {
     StopWatch stopwatch = new StopWatch();
     stopwatch.start();
@@ -125,7 +125,7 @@ public class TestMemoryWithEvents {
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
         null, false, false, numThreads, 1000);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -141,7 +141,7 @@ public class TestMemoryWithEvents {
     System.out.println("Time taken(ms): " + stopwatch.now(TimeUnit.MILLISECONDS));
     tezClient.stop();
   }
-  
+
   public static class SimulationInitializer extends InputInitializer {
     public SimulationInitializer(InputInitializerContext initializerContext) {
       super(initializerContext);
@@ -151,7 +151,7 @@ public class TestMemoryWithEvents {
     public List<Event> initialize() throws Exception {
       int numTasks = getContext().getNumTasks();
       List<Event> events = Lists.newArrayListWithCapacity(numTasks);
-      for (int i=0; i<numTasks; ++i) {
+      for (int i = 0; i < numTasks; ++i) {
         events.add(InputDataInformationEvent.createWithSerializedPayload(i, null));
       }
       return events;
@@ -163,7 +163,7 @@ public class TestMemoryWithEvents {
   }
 
   @Ignore
-  @Test (timeout = 600000)
+  @Test(timeout = 600000)
   public void testMemoryRootInputEvents() throws Exception {
     DAG dag = DAG.create("testMemoryRootInputEvents");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -175,9 +175,9 @@ public class TestMemoryWithEvents {
     dag.addVertex(vA).addVertex(vB);
     testMemory(dag, false);
   }
-  
+
   @Ignore
-  @Test (timeout = 600000)
+  @Test(timeout = 600000)
   public void testMemoryOneToOne() throws Exception {
     DAG dag = DAG.create("testMemoryOneToOne");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -192,7 +192,7 @@ public class TestMemoryWithEvents {
   }
 
   @Ignore
-  @Test (timeout = 600000)
+  @Test(timeout = 600000)
   public void testMemoryBroadcast() throws Exception {
     DAG dag = DAG.create("testMemoryBroadcast");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -205,9 +205,9 @@ public class TestMemoryWithEvents {
                 OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
     testMemory(dag, true);
   }
-  
+
   @Ignore
-  @Test (timeout = 600000)
+  @Test(timeout = 600000)
   public void testMemoryScatterGather() throws Exception {
     DAG dag = DAG.create("testMemoryScatterGather");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), numTasks);
@@ -220,5 +220,4 @@ public class TestMemoryWithEvents {
                 OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
     testMemory(dag, true);
   }
-
 }

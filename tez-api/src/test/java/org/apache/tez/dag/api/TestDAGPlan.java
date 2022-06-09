@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
 package org.apache.tez.dag.api;
 
 import java.nio.ByteBuffer;
+
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -64,45 +65,43 @@ public class TestDAGPlan {
   public void testBasicJobPlanSerde() throws IOException {
 
     DAGPlan job = DAGPlan.newBuilder()
-       .setName("test")
-       .addVertex(
-           VertexPlan.newBuilder()
-             .setName("vertex1")
-             .setType(PlanVertexType.NORMAL)
-             .addTaskLocationHint(PlanTaskLocationHint.newBuilder().addHost("machineName").addRack("rack1").build())
-             .setTaskConfig(
-                 PlanTaskConfiguration.newBuilder()
-                   .setNumTasks(2)
-                   .setVirtualCores(4)
-                   .setMemoryMb(1024)
-                   .setJavaOpts("")
-                   .setTaskModule("x.y")
-                   .build())
-             .build())
+        .setName("test")
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(PlanTaskLocationHint.newBuilder().addHost("machineName").addRack("rack1").build())
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x.y")
+                        .build())
+                .build())
         .build();
-   File file = tempFolder.newFile("jobPlan");
-   FileOutputStream outStream = null;
-   try {
-     outStream = new FileOutputStream(file);
-     job.writeTo(outStream);
-   }
-   finally {
-     if(outStream != null){
-       outStream.close();
-     }
-   }
+    File file = tempFolder.newFile("jobPlan");
+    FileOutputStream outStream = null;
+    try {
+      outStream = new FileOutputStream(file);
+      job.writeTo(outStream);
+    } finally {
+      if (outStream != null) {
+        outStream.close();
+      }
+    }
 
-   DAGPlan inJob;
-   FileInputStream inputStream;
-   try {
-     inputStream = new FileInputStream(file);
-     inJob = DAGPlan.newBuilder().mergeFrom(inputStream).build();
-   }
-   finally {
-     outStream.close();
-   }
+    DAGPlan inJob;
+    FileInputStream inputStream;
+    try {
+      inputStream = new FileInputStream(file);
+      inJob = DAGPlan.newBuilder().mergeFrom(inputStream).build();
+    } finally {
+      outStream.close();
+    }
 
-   Assert.assertEquals(job, inJob);
+    Assert.assertEquals(job, inJob);
   }
 
   @Test(timeout = 5000)
@@ -276,7 +275,7 @@ public class TestDAGPlan {
     assertEquals("output", edgeProperty.getEdgeSource().getClassName());
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testCredentialsSerde() {
     DAG dag = DAG.create("testDag");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
@@ -305,16 +304,16 @@ public class TestDAGPlan {
     Token<TokenIdentifier> token2 = new Token<TokenIdentifier>();
     dagCredentials.addToken(new Text("Token1"), token1);
     dagCredentials.addToken(new Text("Token2"), token2);
-    
+
     dag.setCredentials(dagCredentials);
 
     DAGPlan dagProto = dag.createDag(new TezConfiguration(), null, null, null, true);
 
     assertTrue(dagProto.hasCredentialsBinary());
-    
+
     Credentials fetchedCredentials = DagTypeConverters.convertByteStringToCredentials(dagProto
         .getCredentialsBinary());
-    
+
     assertEquals(2, fetchedCredentials.numberOfTokens());
     assertNotNull(fetchedCredentials.getToken(new Text("Token1")));
     assertNotNull(fetchedCredentials.getToken(new Text("Token2")));
@@ -342,7 +341,6 @@ public class TestDAGPlan {
     } catch (IllegalStateException e) {
       assertTrue(e.getMessage().contains("container execution"));
     }
-
   }
 
   @Test(timeout = 5000)
@@ -363,7 +361,6 @@ public class TestDAGPlan {
     VertexExecutionContext invalidExecContext3 =
         VertexExecutionContext.create("plugin", "plugin", "invalidplugin");
 
-
     DAG dag = DAG.create("dag1");
     dag.setExecutionContext(VertexExecutionContext.createExecuteInContainers(true));
     Vertex v1 = Vertex.create("testvertex", ProcessorDescriptor.create("processor1"), 1);
@@ -372,7 +369,6 @@ public class TestDAGPlan {
     // Should succeed. Default context is containers.
     dag.createDag(new TezConfiguration(false), null, null, null, true,
         servicePluginsDescriptor, null);
-
 
     // Set execute in AM should fail
     v1.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
@@ -424,7 +420,6 @@ public class TestDAGPlan {
       assertTrue(e.getMessage().contains("task communicator"));
       assertTrue(e.getMessage().contains("invalidplugin"));
     }
-
   }
 
   @Test(timeout = 5000)
@@ -516,7 +511,5 @@ public class TestDAGPlan {
     // Should not fail as no checker enabled
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, "  -XX:+UseParallelGC ");
     dag.createDag(conf, null, null, null, true, null, null);
-
   }
-
 }

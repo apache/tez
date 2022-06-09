@@ -94,9 +94,7 @@ public class TestExternalTezServices {
     ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor.create(true, true,
         taskSchedulerDescriptors, containerLauncherDescriptors, taskCommunicatorDescriptors);
 
-
     extServiceTestHelper.setupSharedTezClient(servicePluginsDescriptor);
-
 
     // Generate the join data set used for each run.
     // Can a timeout be enforced here ?
@@ -110,7 +108,6 @@ public class TestExternalTezServices {
   public static void tearDown() throws IOException, TezException {
     extServiceTestHelper.tearDownAll();
   }
-
 
   @Test(timeout = 60000)
   public void testAllInService() throws Exception {
@@ -187,11 +184,9 @@ public class TestExternalTezServices {
     runExceptionSimulation();
   }
 
-
-
   private void runExceptionSimulation() throws IOException, TezException, InterruptedException {
     DAG dag = DAG.create(ContainerRunnerImpl.DAG_NAME_INSTRUMENTED_FAILURES);
-    Vertex v =Vertex.create("Vertex1", ProcessorDescriptor.create(SleepProcessor.class.getName()),
+    Vertex v = Vertex.create("Vertex1", ProcessorDescriptor.create(SleepProcessor.class.getName()),
         3);
     v.setExecutionContext(EXECUTION_CONTEXT_EXT_SERVICE_PUSH);
     dag.addVertex(v);
@@ -201,7 +196,6 @@ public class TestExternalTezServices {
     assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
     assertEquals(1, dagStatus.getDAGProgress().getFailedTaskAttemptCount());
     assertEquals(1, dagStatus.getDAGProgress().getRejectedTaskAttemptCount());
-
   }
 
   private void runJoinValidate(String name, int extExpectedCount, VertexExecutionContext lhsContext,

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -119,7 +119,7 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
     this.numTasks = proto.getNumTasks();
     this.finishTime = proto.getFinishTime();
     this.state = VertexState.values()[proto.getState()];
-    if (proto.hasDiagnostics())  {
+    if (proto.hasDiagnostics()) {
       this.diagnostics = proto.getDiagnostics();
     }
   }
@@ -150,8 +150,8 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
         + ", timeTaken=" + (finishTime - startTime)
         + ", status=" + state.name()
         + ", diagnostics=" + diagnostics
-        + ", counters=" + ( tezCounters == null ? "null" :
-          tezCounters.toString().replaceAll("\\n", ", ").replaceAll("\\s+", " "))
+        + ", counters=" + (tezCounters == null ? "null" :
+        tezCounters.toString().replaceAll("\\n", ", ").replaceAll("\\s+", " "))
         + ", vertexStats=" + (vertexStats == null ? "null" : vertexStats.toString())
         + ", vertexTaskStats=" + (vertexTaskStats == null ? "null" : vertexTaskStats.toString())
         + ", servicePluginInfo="
@@ -214,7 +214,6 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
         .setEventType(getEventType().ordinal())
         .setEventPayload(finishStateProto.toByteString());
     builder.build().writeDelimitedTo(outputStream);
-
   }
 
   @Override
@@ -240,5 +239,4 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
   public ServicePluginInfo getServicePluginInfo() {
     return servicePluginInfo;
   }
-
 }

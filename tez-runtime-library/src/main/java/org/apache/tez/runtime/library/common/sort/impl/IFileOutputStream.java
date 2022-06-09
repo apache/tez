@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.util.DataChecksum;
+
 /**
  * A Checksum output stream.
  * Checksum for the contents of the file is calculated and
@@ -85,19 +86,19 @@ public class IFileOutputStream extends FilterOutputStream {
     finished = true;
     sum.update(buffer, 0, offset);
     sum.writeValue(barray, 0, false);
-    out.write (barray, 0, sum.getChecksumSize());
+    out.write(barray, 0, sum.getChecksumSize());
     out.flush();
   }
 
   private void checksum(byte[] b, int off, int len) {
-    if(len >= buffer.length) {
+    if (len >= buffer.length) {
       sum.update(buffer, 0, offset);
       offset = 0;
       sum.update(b, off, len);
       return;
     }
     final int remaining = buffer.length - offset;
-    if(len > remaining) {
+    if (len > remaining) {
       sum.update(buffer, 0, offset);
       offset = 0;
     }
@@ -121,13 +122,12 @@ public class IFileOutputStream extends FilterOutputStream {
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
     checksum(b, off, len);
-    out.write(b,off,len);
+    out.write(b, off, len);
   }
 
   @Override
   public void write(int b) throws IOException {
     barray[0] = (byte) (b & 0xFF);
-    write(barray,0,1);
+    write(barray, 0, 1);
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,15 +46,18 @@ public class InMemoryReader extends Reader {
 
     public void reset(byte[] input, int start, int length) {
       this.buf = input;
-      this.count = start+length;
+      this.count = start + length;
       this.mark = start;
       this.pos = start;
     }
 
-    public byte[] getData() { return buf; }
-    public int getPosition() { return pos; }
-    public int getLength() { return count; }
-    public int getMark() { return mark; }
+    public byte[] getData() {return buf;}
+
+    public int getPosition() {return pos;}
+
+    public int getLength() {return count;}
+
+    public int getMark() {return mark;}
 
     @Override
     public void readFully(byte[] b) throws IOException {
@@ -78,7 +81,7 @@ public class InMemoryReader extends Reader {
 
     @Override
     public byte readByte() throws IOException {
-      return (byte)read();
+      return (byte) read();
     }
 
     @Override
@@ -140,8 +143,8 @@ public class InMemoryReader extends Reader {
   private int originalKeyPos;
 
   public InMemoryReader(MergeManager merger,
-      InputAttemptIdentifier taskAttemptId, byte[] data, int start,
-      int length)
+                        InputAttemptIdentifier taskAttemptId, byte[] data, int start,
+                        int length)
       throws IOException {
     super(null, length - start, null, null, null, false, 0, -1);
     this.taskAttemptId = taskAttemptId;
@@ -177,7 +180,7 @@ public class InMemoryReader extends Reader {
   private void dumpOnError() {
     File dumpFile = new File("../output/" + taskAttemptId + ".dump");
     System.err.println("Dumping corrupt map-output of " + taskAttemptId +
-                       " to " + dumpFile.getAbsolutePath());
+        " to " + dumpFile.getAbsolutePath());
     FileOutputStream fos = null;
     try {
       fos = new FileOutputStream(dumpFile);

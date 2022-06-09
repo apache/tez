@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.api.client;
 
@@ -54,7 +54,7 @@ public class DAGClientServer extends AbstractService {
   final FileSystem stagingFs;
 
   public DAGClientServer(DAGClientHandler realInstance,
-      ApplicationAttemptId attemptId, FileSystem stagingFs) {
+                         ApplicationAttemptId attemptId, FileSystem stagingFs) {
     super("DAGClientRPCServer");
     this.realInstance = realInstance;
     this.secretManager = new ClientToAMTokenSecretManager(attemptId, null);
@@ -71,17 +71,17 @@ public class DAGClientServer extends AbstractService {
           new DAGClientAMProtocolBlockingPBServerImpl(realInstance, stagingFs);
 
       BlockingService blockingService =
-                DAGClientAMProtocol.newReflectiveBlockingService(service);
+          DAGClientAMProtocol.newReflectiveBlockingService(service);
 
       int numHandlers = conf.getInt(TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT,
-                          TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT);
+          TezConfiguration.TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT);
       if (numHandlers < 2) {
         numHandlers = 2;
       }
 
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
-                            numHandlers, blockingService, TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
-      
+          numHandlers, blockingService, TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
+
       // Enable service authorization?
       if (conf.getBoolean(
           CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
@@ -107,7 +107,7 @@ public class DAGClientServer extends AbstractService {
 
   @Override
   public void serviceStop() {
-    if(server != null) {
+    if (server != null) {
       server.stop();
     }
   }
@@ -115,7 +115,7 @@ public class DAGClientServer extends AbstractService {
   public InetSocketAddress getBindAddress() {
     return bindAddress;
   }
-  
+
   public void setClientAMSecretKey(ByteBuffer key) {
     if (key != null && key.hasRemaining()) {
       // non-empty key. must be useful
@@ -124,8 +124,8 @@ public class DAGClientServer extends AbstractService {
   }
 
   private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
-      int numHandlers,
-      BlockingService blockingService, String portRangeConfig) throws IOException {
+                              int numHandlers,
+                              BlockingService blockingService, String portRangeConfig) throws IOException {
     RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
         .setInstance(blockingService).setBindAddress(addr.getHostString())

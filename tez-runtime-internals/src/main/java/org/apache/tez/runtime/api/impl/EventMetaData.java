@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,8 +17,6 @@
  */
 
 package org.apache.tez.runtime.api.impl;
-
-
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -70,8 +68,8 @@ public class EventMetaData implements Writable, TaskAttemptIDAware {
   }
 
   public EventMetaData(EventProducerConsumerType generator,
-      String taskVertexName, @Nullable String edgeVertexName,
-      @Nullable TezTaskAttemptID taskAttemptID) {
+                       String taskVertexName, @Nullable String edgeVertexName,
+                       @Nullable TezTaskAttemptID taskAttemptID) {
     Objects.requireNonNull(generator, "generator is null");
     Objects.requireNonNull(taskVertexName, "taskVertexName is null");
     this.producerConsumerType = generator;
@@ -112,7 +110,7 @@ public class EventMetaData implements Writable, TaskAttemptIDAware {
     } else {
       out.writeBoolean(false);
     }
-    if(taskAttemptID != null) {
+    if (taskAttemptID != null) {
       out.writeBoolean(true);
       taskAttemptID.write(out);
     } else {
@@ -139,7 +137,7 @@ public class EventMetaData implements Writable, TaskAttemptIDAware {
     return "{ producerConsumerType=" + producerConsumerType
         + ", taskVertexName=" + taskVertexName
         + ", edgeVertexName=" + edgeVertexName
-        + ", taskAttemptId=" + (taskAttemptID == null? "null" : taskAttemptID)
+        + ", taskAttemptId=" + (taskAttemptID == null ? "null" : taskAttemptID)
         + " }";
   }
 
@@ -187,5 +185,4 @@ public class EventMetaData implements Writable, TaskAttemptIDAware {
       return false;
     return true;
   }
-
 }

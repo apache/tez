@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ public interface HistoryACLPolicyManager extends Configurable {
    * @throws Exception
    */
   public Map<String, String> setupNonSessionACLs(Configuration conf, ApplicationId applicationId,
-      DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException;
+                                                 DAGAccessControls dagAccessControls) throws IOException, HistoryACLPolicyException;
 
   /**
    * Take any necessary steps for setting up ACLs for a DAG that is submitted to a Session. This is
@@ -75,8 +75,8 @@ public interface HistoryACLPolicyManager extends Configurable {
    * @throws Exception
    */
   public Map<String, String> setupSessionDAGACLs(Configuration conf, ApplicationId applicationId,
-      String dagName, DAGAccessControls dagAccessControls)
-          throws IOException, HistoryACLPolicyException;
+                                                 String dagName, DAGAccessControls dagAccessControls)
+      throws IOException, HistoryACLPolicyException;
 
   /**
    * Called with a timeline entity which has to be updated with a domain id.

@@ -8,9 +8,9 @@ package org.apache.tez.runtime.library.utils;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,21 +41,19 @@ final class FastByteComparisons {
    * Lexicographically compare two byte arrays.
    */
   public static int compareTo(byte[] b1, int s1, int l1, byte[] b2, int s2,
-      int l2) {
+                              int l2) {
     return LexicographicalComparerHolder.BEST_COMPARER.compareTo(
         b1, s1, l1, b2, s2, l2);
   }
 
-
   private interface Comparer<T> {
     abstract public int compareTo(T buffer1, int offset1, int length1,
-        T buffer2, int offset2, int length2);
+                                  T buffer2, int offset2, int length2);
   }
 
   private static Comparer<byte[]> lexicographicalComparerJavaImpl() {
     return LexicographicalComparerHolder.PureJavaComparer.INSTANCE;
   }
-
 
   /**
    * Provides a lexicographical comparer implementation; either a Java
@@ -69,6 +67,7 @@ final class FastByteComparisons {
         LexicographicalComparerHolder.class.getName() + "$UnsafeComparer";
 
     static final Comparer<byte[]> BEST_COMPARER = getBestComparer();
+
     /**
      * Returns the Unsafe-using Comparer, or falls back to the pure-Java
      * implementation if unable to do so.
@@ -92,7 +91,7 @@ final class FastByteComparisons {
 
       @Override
       public int compareTo(byte[] buffer1, int offset1, int length1,
-          byte[] buffer2, int offset2, int length2) {
+                           byte[] buffer2, int offset2, int length2) {
         // Short circuit equal case
         if (buffer1 == buffer2 &&
             offset1 == offset2 &&
@@ -173,7 +172,7 @@ final class FastByteComparisons {
        */
       @Override
       public int compareTo(byte[] buffer1, int offset1, int length1,
-          byte[] buffer2, int offset2, int length2) {
+                           byte[] buffer2, int offset2, int length2) {
         // Short circuit equal case
         if (buffer1 == buffer2 &&
             offset1 == offset2 &&

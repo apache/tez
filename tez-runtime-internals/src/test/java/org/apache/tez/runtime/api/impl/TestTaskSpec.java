@@ -43,14 +43,14 @@ import org.junit.Test;
 
 public class TestTaskSpec {
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testSerDe() throws IOException {
     ByteBuffer payload = null;
     ProcessorDescriptor procDesc = ProcessorDescriptor.create("proc").setUserPayload(
         UserPayload.create(payload)).setHistoryText("historyText");
 
     List<InputSpec> inputSpecs = new ArrayList<>();
-    InputSpec inputSpec = new InputSpec("src1", InputDescriptor.create("inputClass"),10);
+    InputSpec inputSpec = new InputSpec("src1", InputDescriptor.create("inputClass"), 10);
     inputSpecs.add(inputSpec);
     List<OutputSpec> outputSpecs = new ArrayList<>();
     OutputSpec outputSpec = new OutputSpec("dest1", OutputDescriptor.create("outputClass"), 999);
@@ -87,5 +87,4 @@ public class TestTaskSpec {
 
     Assert.assertEquals(taskConf.get("foo"), deSerTaskSpec.getTaskConf().get("foo"));
   }
-
 }

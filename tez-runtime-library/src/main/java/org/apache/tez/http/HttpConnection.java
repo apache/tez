@@ -70,7 +70,7 @@ public class HttpConnection extends BaseHttpConnection {
    * @throws IOException
    */
   public HttpConnection(URL url, HttpConnectionParams connParams,
-      String logIdentifier, JobTokenSecretManager jobTokenSecretManager) throws IOException {
+                        String logIdentifier, JobTokenSecretManager jobTokenSecretManager) throws IOException {
     this.logIdentifier = logIdentifier;
     this.jobTokenSecretMgr = jobTokenSecretManager;
     this.httpConnParams = connParams;
@@ -188,7 +188,6 @@ public class HttpConnection extends BaseHttpConnection {
           // reset the connect time out for the final connect
           connection.setConnectTimeout(unit);
         }
-
       }
     }
     if (LOG.isDebugEnabled()) {
@@ -255,7 +254,7 @@ public class HttpConnection extends BaseHttpConnection {
     stopWatch.reset().start();
     if (connectionSucceeed) {
       input = new DataInputStream(new BufferedInputStream(
-              connection.getInputStream(), httpConnParams.getBufferSize()));
+          connection.getInputStream(), httpConnParams.getBufferSize()));
     }
     if (LOG.isDebugEnabled()) {
       LOG.debug("Time taken to getInputStream (connect) " + url +
@@ -325,4 +324,3 @@ public class HttpConnection extends BaseHttpConnection {
     }
   }
 }
-

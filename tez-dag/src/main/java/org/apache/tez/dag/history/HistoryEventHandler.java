@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -91,7 +91,7 @@ public class HistoryEventHandler extends CompositeService {
       String recoveryServiceClass = conf.get(TezConfiguration.TEZ_AM_RECOVERY_SERVICE_CLASS,
           TezConfiguration.TEZ_AM_RECOVERY_SERVICE_CLASS_DEFAULT);
       recoveryService = ReflectionUtils.createClazzInstance(recoveryServiceClass,
-          new Class[]{AppContext.class}, new Object[] {context});
+          new Class[]{AppContext.class}, new Object[]{context});
       addService(recoveryService);
     }
 
@@ -126,7 +126,7 @@ public class HistoryEventHandler extends CompositeService {
   public void handleCriticalEvent(DAGHistoryEvent event) throws IOException {
     TezDAGID dagId = event.getDAGID();
     String dagIdStr = "N/A";
-    if(dagId != null) {
+    if (dagId != null) {
       dagIdStr = dagId.toString();
     }
     HistoryEvent historyEvent = event.getHistoryEvent();
@@ -174,7 +174,7 @@ public class HistoryEventHandler extends CompositeService {
     HistoryEvent historyEvent = event.getHistoryEvent();
     HistoryEventType eventType = historyEvent.getEventType();
     if (eventType == HistoryEventType.DAG_SUBMITTED) {
-      Configuration dagConf = ((DAGSubmittedEvent)historyEvent).getConf();
+      Configuration dagConf = ((DAGSubmittedEvent) historyEvent).getConf();
       dagLogLevel = HistoryLogLevel.getLogLevel(dagConf, amHistoryLogLevel);
       dagIdToLogLevel.put(dagId, dagLogLevel);
       maybeUpdateDagTaskAttemptFilters(dagId, dagLogLevel, dagConf);
@@ -206,7 +206,7 @@ public class HistoryEventHandler extends CompositeService {
     HistoryEventType eventType = historyEvent.getEventType();
     if (dagLogLevel == HistoryLogLevel.TASK_ATTEMPT &&
         (eventType == HistoryEventType.TASK_ATTEMPT_STARTED ||
-         eventType == HistoryEventType.TASK_ATTEMPT_FINISHED)) {
+            eventType == HistoryEventType.TASK_ATTEMPT_FINISHED)) {
       TezDAGID dagId = event.getDAGID();
       Set<TaskAttemptTerminationCause> filters = null;
       if (dagId != null) {
@@ -219,10 +219,10 @@ public class HistoryEventHandler extends CompositeService {
         return true;
       }
       if (eventType == HistoryEventType.TASK_ATTEMPT_STARTED) {
-        suppressedEvents.put(((TaskAttemptStartedEvent)historyEvent).getTaskAttemptID(), event);
+        suppressedEvents.put(((TaskAttemptStartedEvent) historyEvent).getTaskAttemptID(), event);
         return false;
       } else { // TaskAttemptFinishedEvent
-        TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent)historyEvent;
+        TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent) historyEvent;
         if (filters.contains(finishedEvent.getTaskAttemptError())) {
           suppressedEvents.remove(finishedEvent.getTaskAttemptID());
           return false;
@@ -233,7 +233,7 @@ public class HistoryEventHandler extends CompositeService {
   }
 
   private void maybeUpdateDagTaskAttemptFilters(TezDAGID dagId, HistoryLogLevel dagLogLevel,
-      Configuration dagConf) {
+                                                Configuration dagConf) {
     if (dagLogLevel == HistoryLogLevel.TASK_ATTEMPT) {
       Set<TaskAttemptTerminationCause> filters = TezUtilsInternal.getEnums(
           dagConf,
@@ -248,7 +248,7 @@ public class HistoryEventHandler extends CompositeService {
 
   private DAGHistoryEvent getSupressedEvent(HistoryEvent historyEvent) {
     if (historyEvent.getEventType() == HistoryEventType.TASK_ATTEMPT_FINISHED) {
-      TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent)historyEvent;
+      TaskAttemptFinishedEvent finishedEvent = (TaskAttemptFinishedEvent) historyEvent;
       return suppressedEvents.remove(finishedEvent.getTaskAttemptID());
     }
     return null;
@@ -270,5 +270,4 @@ public class HistoryEventHandler extends CompositeService {
       return false;
     }
   }
-
 }

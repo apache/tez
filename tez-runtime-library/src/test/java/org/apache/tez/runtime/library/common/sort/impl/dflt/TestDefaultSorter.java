@@ -23,6 +23,7 @@ import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.junit.Assert;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -137,7 +138,7 @@ public class TestDefaultSorter {
     try {
       new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
       fail();
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
     }
 
@@ -145,11 +146,10 @@ public class TestDefaultSorter {
     try {
       new DefaultSorter(context, conf, 10, (10 * 1024 * 1024l));
       fail();
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_PERCENT));
     }
   }
-
 
   @Test
   @Ignore
@@ -227,7 +227,6 @@ public class TestDefaultSorter {
     }
   }
 
-
   @Test(timeout = 5000)
   public void testSortMBLimits() throws Exception {
 
@@ -240,13 +239,13 @@ public class TestDefaultSorter {
     try {
       DefaultSorter.computeSortBufferSize(0, "");
       fail("Should have thrown error for setting buffer size to 0");
-    } catch(RuntimeException re) {
+    } catch (RuntimeException re) {
     }
 
     try {
       DefaultSorter.computeSortBufferSize(-100, "");
       fail("Should have thrown error for setting buffer size to negative value");
-    } catch(RuntimeException re) {
+    } catch (RuntimeException re) {
     }
   }
 
@@ -263,7 +262,7 @@ public class TestDefaultSorter {
           ExternalSorter.getInitialMemoryRequirement(conf,
               context.getTotalMemoryAvailableToTask()), new MemoryUpdateCallbackHandler());
       fail();
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
     }
 
@@ -283,7 +282,7 @@ public class TestDefaultSorter {
       sorterWrapper.close();
       assertTrue(sorter.getNumSpills() > 2);
       verifyCounters(sorter, context);
-    } catch(IOException ioe) {
+    } catch (IOException ioe) {
       fail(ioe.getMessage());
     }
 
@@ -292,10 +291,10 @@ public class TestDefaultSorter {
 
   @Test(timeout = 30000)
   public void testEmptyCaseFileLengths() throws IOException {
-    testEmptyCaseFileLengthsHelper(50, new String[] {"a", "b"}, new String[] {"1", "2"});
-    testEmptyCaseFileLengthsHelper(50, new String[] {"a", "a"}, new String[] {"1", "2"});
-    testEmptyCaseFileLengthsHelper(50, new String[] {"aaa", "bbb", "aaa"}, new String[] {"1", "2", "3"});
-    testEmptyCaseFileLengthsHelper(1, new String[] {"abcdefghij"}, new String[] {"1234567890"});
+    testEmptyCaseFileLengthsHelper(50, new String[]{"a", "b"}, new String[]{"1", "2"});
+    testEmptyCaseFileLengthsHelper(50, new String[]{"a", "a"}, new String[]{"1", "2"});
+    testEmptyCaseFileLengthsHelper(50, new String[]{"aaa", "bbb", "aaa"}, new String[]{"1", "2", "3"});
+    testEmptyCaseFileLengthsHelper(1, new String[]{"abcdefghij"}, new String[]{"1234567890"});
   }
 
   public void testEmptyCaseFileLengthsHelper(int numPartitions, String[] keys, String[] values)
@@ -369,7 +368,7 @@ public class TestDefaultSorter {
       assertTrue(sorter.isClosed());
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID));
       verifyCounters(sorter, context);
-    } catch(Exception e) {
+    } catch (Exception e) {
       fail();
     }
   }
@@ -393,7 +392,7 @@ public class TestDefaultSorter {
       assertTrue(sorter.getFinalOutputFile().getParent().getName().equalsIgnoreCase(UniqueID +
           "_0"));
       verifyCounters(sorter, context);
-    } catch(Exception e) {
+    } catch (Exception e) {
       fail();
     }
   }
@@ -524,7 +523,7 @@ public class TestDefaultSorter {
     ArgumentCaptor<List> eventCaptor = ArgumentCaptor.forClass(List.class);
     verify(context, times(1)).sendEvents(eventCaptor.capture());
     List<Event> events = eventCaptor.getValue();
-    for(Event event : events) {
+    for (Event event : events) {
       if (event instanceof CompositeDataMovementEvent) {
         CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) event;
         ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
@@ -563,7 +562,7 @@ public class TestDefaultSorter {
     verify(context, times(1)).sendEvents(eventCaptor.capture());
     List<Event> events = eventCaptor.getValue();
     int spillIndex = 0;
-    for(Event event : events) {
+    for (Event event : events) {
       if (event instanceof CompositeDataMovementEvent) {
         CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) event;
         ShuffleUserPayloads.DataMovementEventPayloadProto shufflePayload = ShuffleUserPayloads
@@ -582,9 +581,9 @@ public class TestDefaultSorter {
         + "/" + Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
     Path outputPath = dirAllocator.getLocalPathToRead(subpath, conf);
     Path indexPath = dirAllocator.getLocalPathToRead(subpath + Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING, conf);
-    Assert.assertEquals("Incorrect output permissions", (short)0640,
+    Assert.assertEquals("Incorrect output permissions", (short) 0640,
         localFs.getFileStatus(outputPath).getPermission().toShort());
-    Assert.assertEquals("Incorrect index permissions", (short)0640,
+    Assert.assertEquals("Incorrect index permissions", (short) 0640,
         localFs.getFileStatus(indexPath).getPermission().toShort());
   }
 
@@ -627,7 +626,6 @@ public class TestDefaultSorter {
     private final Object[] lastKeys;
     private final int numPartitions;
 
-
     public SorterWrapper(OutputContext context, Configuration conf, int numPartitions, long memoryAssigned) throws IOException {
       sorter = new DefaultSorter(context, conf, numPartitions, memoryAssigned);
       partitioner = TezRuntimeUtils.instantiatePartitioner(conf);
@@ -654,7 +652,7 @@ public class TestDefaultSorter {
       return numPartitions - nonEmptyPartitions.cardinality();
     }
 
-    public void close () throws IOException {
+    public void close() throws IOException {
       sorter.flush();
       sorter.close();
     }
@@ -673,7 +671,7 @@ public class TestDefaultSorter {
   }
 
   private OutputContext createTezOutputContext() throws IOException {
-    String[] workingDirs = { workingDir.toString() };
+    String[] workingDirs = {workingDir.toString()};
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
     serviceProviderMetaData.writeInt(PORT);
@@ -695,7 +693,8 @@ public class TestDefaultSorter {
             (conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
                 TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
         long requestedSize = (Long) invocation.getArguments()[0];
         MemoryUpdateCallbackHandler callback = (MemoryUpdateCallbackHandler) invocation
             .getArguments()[1];

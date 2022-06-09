@@ -25,7 +25,6 @@ public class TezTestServiceNoOpContainerLauncher extends ContainerLauncher {
 
   static final Logger LOG = LoggerFactory.getLogger(TezTestServiceNoOpContainerLauncher.class);
 
-
   public TezTestServiceNoOpContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     super(containerLauncherContext);
   }

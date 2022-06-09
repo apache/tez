@@ -105,13 +105,13 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     }
 
     if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
-      YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
+        YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
       timelineClient = TimelineClient.createTimelineClient();
       timelineClient.init(conf);
     } else {
       this.timelineClient = null;
       if (conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-        .equals(atsHistoryLoggingServiceClassName)) {
+          .equals(atsHistoryLoggingServiceClassName)) {
         LOG.warn(atsHistoryLoggingServiceClassName
             + " is disabled due to Timeline Service being disabled, "
             + YarnConfiguration.TIMELINE_SERVICE_ENABLED + " set to false");
@@ -131,10 +131,10 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
     }
 
     LOG.info("Initializing " + ATSHistoryLoggingService.class.getSimpleName() + " with "
-      + "maxEventsPerBatch=" + maxEventsPerBatch
-      + ", maxPollingTime(ms)=" + maxPollingTimeMillis
-      + ", waitTimeForShutdown(ms)=" + maxTimeToWaitOnShutdown
-      + ", TimelineACLManagerClass=" + atsHistoryACLManagerClassName);
+        + "maxEventsPerBatch=" + maxEventsPerBatch
+        + ", maxPollingTime(ms)=" + maxPollingTimeMillis
+        + ", waitTimeForShutdown(ms)=" + maxTimeToWaitOnShutdown
+        + ", TimelineACLManagerClass=" + atsHistoryACLManagerClassName);
 
     try {
       historyACLPolicyManager = ReflectionUtils.createClazzInstance(
@@ -149,7 +149,6 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       }
       historyACLPolicyManager = null;
     }
-
   }
 
   @Override
@@ -174,7 +173,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
         List<DAGHistoryEvent> events = new LinkedList<DAGHistoryEvent>();
         boolean interrupted = false;
         while (!stopped.get() && !Thread.currentThread().isInterrupted()
-              && !interrupted) {
+            && !interrupted) {
 
           // Log the size of the event-queue every so often.
           if (eventCounter != 0 && eventCounter % 1000 == 0) {
@@ -236,7 +235,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
             getEventBatch(events);
           } catch (InterruptedException e) {
             LOG.info("ATSService interrupted while shutting down. Exiting."
-                  + " EventQueueBacklog=" + eventQueue.size());
+                + " EventQueueBacklog=" + eventQueue.size());
           }
           if (events.isEmpty()) {
             LOG.info("Event queue empty, stopping ATS Service");
@@ -340,7 +339,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
           event.getHistoryEvent());
       entities.addAll(eventEntities);
       if (historyACLPolicyManager != null && domainId != null && !domainId.isEmpty()) {
-        for (TimelineEntity entity: eventEntities) {
+        for (TimelineEntity entity : eventEntities) {
           historyACLPolicyManager.updateTimelineEntityDomain(entity, domainId);
         }
       }
@@ -353,7 +352,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       TimelinePutResponse response =
           timelineClient.putEntities(entities.toArray(new TimelineEntity[entities.size()]));
       if (response != null
-        && !response.getErrors().isEmpty()) {
+          && !response.getErrors().isEmpty()) {
         int count = response.getErrors().size();
         for (int i = 0; i < count; ++i) {
           TimelinePutError err = response.getErrors().get(i);
@@ -396,11 +395,11 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
       Configuration conf;
       DAGPlan dagPlan;
       if (HistoryEventType.DAG_SUBMITTED == historyEvent.getEventType()) {
-          conf = ((DAGSubmittedEvent)historyEvent).getConf();
-          dagPlan = ((DAGSubmittedEvent)historyEvent).getDAGPlan();
+        conf = ((DAGSubmittedEvent) historyEvent).getConf();
+        dagPlan = ((DAGSubmittedEvent) historyEvent).getDAGPlan();
       } else {
-         conf = appContext.getCurrentDAG().getConf();
-         dagPlan = appContext.getCurrentDAG().getJobPlan();
+        conf = appContext.getCurrentDAG().getConf();
+        dagPlan = appContext.getCurrentDAG().getJobPlan();
       }
       domainId = createDagDomain(conf, dagPlan, dagId);
 
@@ -416,6 +415,7 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   /**
    * Creates a domain for the session.
+   *
    * @return domainId to be used. null if acls are disabled.
    * @throws HistoryACLPolicyException, IOException Forward if historyACLPolicyManger exception.
    */
@@ -433,12 +433,13 @@ public class ATSHistoryLoggingService extends HistoryLoggingService {
 
   /**
    * When running in session mode, create a domain for the dag and return it.
+   *
    * @param dagConf The configuration the dag for which domain has to be created.
    * @param dagPlan The dag plan which contains the ACLs.
-   * @param dagId The dagId for which domain has to be created.
+   * @param dagId   The dagId for which domain has to be created.
    * @return The created domain id on success.
-   *     sessionDomainId: If there is a failure also disable history logging for this dag.
-   *     sessionDomainId: If historyACLPolicyManager returns null.
+   * sessionDomainId: If there is a failure also disable history logging for this dag.
+   * sessionDomainId: If historyACLPolicyManager returns null.
    */
   private String createDagDomain(Configuration dagConf, DAGPlan dagPlan, TezDAGID dagId) {
     // In non session mode dag domain is same as session domain id.

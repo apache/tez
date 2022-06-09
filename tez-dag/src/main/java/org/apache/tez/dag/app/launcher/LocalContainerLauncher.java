@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,7 +77,6 @@ import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.task.TezChild;
 
-
 /**
  * Runs the container task locally in a thread.
  * Since all (sub)tasks share the same local directory, they must be executed
@@ -106,7 +105,7 @@ public class LocalContainerLauncher extends DagContainerLauncher {
       new ConcurrentHashMap<>();
 
   private final ConcurrentHashMap<ContainerId, TezLocalCacheManager>
-          cacheManagers = new ConcurrentHashMap<>();
+      cacheManagers = new ConcurrentHashMap<>();
 
   private final ExecutorService callbackExecutor = Executors.newFixedThreadPool(1,
       new ThreadFactoryBuilder().setDaemon(true).setNameFormat("CallbackExecutor").build());
@@ -114,9 +113,7 @@ public class LocalContainerLauncher extends DagContainerLauncher {
   private BlockingQueue<ContainerOp> eventQueue = new LinkedBlockingQueue<>();
   private Thread eventHandlingThread;
 
-
   private ListeningExecutorService taskExecutorService;
-
 
   public LocalContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                 AppContext context,
@@ -157,20 +154,20 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     }
     numExecutors = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
         TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
-    Preconditions.checkState(numExecutors >=1, "Must have at least 1 executor");
+    Preconditions.checkState(numExecutors >= 1, "Must have at least 1 executor");
     ExecutorService rawExecutor = Executors.newFixedThreadPool(numExecutors,
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
     dagDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
         conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
-        TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
+            TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
     vertexDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
-            conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
-                    TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
+        conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+            TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
     failedTaskAttemptDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
         conf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
-        TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
+            TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
 
     if (dagDelete || vertexDelete || failedTaskAttemptDelete) {
       String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
@@ -205,8 +202,6 @@ public class LocalContainerLauncher extends DagContainerLauncher {
       deletionTracker.shutdown();
     }
   }
-
-
 
   // Thread to monitor the queue of incoming NMCommunicator events
   private class TezSubTaskRunner implements Runnable {
@@ -280,7 +275,7 @@ public class LocalContainerLauncher extends DagContainerLauncher {
         tezChild =
             createTezChild(conf, event.getContainerId(), tokenIdentifier,
                 context.getApplicationAttemptId().getAttemptId(), context.getLocalDirs(),
-                ((TezTaskCommunicatorImpl)tal.getTaskCommunicator(taskCommId).getTaskCommunicator()).getUmbilical(),
+                ((TezTaskCommunicatorImpl) tal.getTaskCommunicator(taskCommId).getTaskCommunicator()).getUmbilical(),
                 TezCommonUtils.parseCredentialsBytes(event.getContainerLaunchContext().getTokens().array()));
       } catch (InterruptedException e) {
         handleLaunchFailed(e, event.getContainerId());
@@ -392,7 +387,6 @@ public class LocalContainerLauncher extends DagContainerLauncher {
     }
   }
 
-
   //create a SubTask
   private synchronized Callable<TezChild.ContainerExecutionResult> createSubTask(
       final TezChild tezChild, final ContainerId containerId) {
@@ -433,7 +427,6 @@ public class LocalContainerLauncher extends DagContainerLauncher {
             context.getHadoopShim());
     return tezChild;
   }
-
 
   @Override
   public void launchContainer(ContainerLaunchRequest launchRequest) {

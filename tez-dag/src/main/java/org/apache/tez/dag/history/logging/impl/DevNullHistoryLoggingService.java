@@ -35,5 +35,4 @@ public class DevNullHistoryLoggingService extends HistoryLoggingService {
     // Sending all events to /dev/null
     // Done.
   }
-
 }

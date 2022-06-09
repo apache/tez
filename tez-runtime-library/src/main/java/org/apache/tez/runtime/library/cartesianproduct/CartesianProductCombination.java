@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,13 +54,13 @@ class CartesianProductCombination {
 
   public CartesianProductCombination(int[] numChunk) {
     Preconditions.checkArgument(!Ints.contains(numChunk, 0),
-      "CartesianProductCombination doesn't allow zero chunk");
+        "CartesianProductCombination doesn't allow zero chunk");
     this.numChunk = Arrays.copyOf(numChunk, numChunk.length);
     combination = new Integer[numChunk.length];
     factor = new Integer[numChunk.length];
-    factor[factor.length-1] = 1;
-    for (int i = combination.length-2; i >= 0; i--) {
-      factor[i] = factor[i+1]* numChunk[i+1];
+    factor[factor.length - 1] = 1;
+    for (int i = combination.length - 2; i >= 0; i--) {
+      factor[i] = factor[i + 1] * numChunk[i + 1];
     }
   }
 
@@ -93,8 +93,8 @@ class CartesianProductCombination {
   public boolean nextTaskWithFixedChunk() {
     Preconditions.checkArgument(positionId >= 0 && positionId < combination.length);
     int i;
-    for (i = combination.length-1; i >= 0; i--) {
-      if (i != positionId && combination[i] != numChunk[i]-1) {
+    for (i = combination.length - 1; i >= 0; i--) {
+      if (i != positionId && combination[i] != numChunk[i] - 1) {
         break;
       }
     }
@@ -127,8 +127,8 @@ class CartesianProductCombination {
    */
   public boolean nextTask() {
     int i;
-    for (i = combination.length-1; i >= 0; i--) {
-      if (combination[i] != numChunk[i]-1) {
+    for (i = combination.length - 1; i >= 0; i--) {
+      if (combination[i] != numChunk[i] - 1) {
         break;
       }
     }
@@ -138,7 +138,7 @@ class CartesianProductCombination {
     }
 
     combination[i]++;
-    Arrays.fill(combination, i+1, combination.length, 0);
+    Arrays.fill(combination, i + 1, combination.length, 0);
     return true;
   }
 
@@ -148,7 +148,7 @@ class CartesianProductCombination {
   public int getTaskId() {
     int chunkId = 0;
     for (int i = 0; i < combination.length; i++) {
-      chunkId += combination[i]*factor[i];
+      chunkId += combination[i] * factor[i];
     }
     return chunkId;
   }
@@ -157,7 +157,7 @@ class CartesianProductCombination {
                                                        int taskId) {
     CartesianProductCombination result = new CartesianProductCombination(numChunk);
     for (int i = 0; i < result.combination.length; i++) {
-      result.combination[i] = taskId/result.factor[i];
+      result.combination[i] = taskId / result.factor[i];
       taskId %= result.factor[i];
     }
     return result;

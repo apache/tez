@@ -46,7 +46,6 @@ public class TezTestService extends AbstractService implements ContainerRunner {
 
   private final AtomicInteger numSubmissions = new AtomicInteger(0);
 
-
   private final AtomicReference<InetSocketAddress> address = new AtomicReference<InetSocketAddress>();
 
   private final TezExecutors sharedExecutor;
@@ -113,8 +112,6 @@ public class TezTestService extends AbstractService implements ContainerRunner {
   public int getShufflePort() {
     return ShuffleHandler.get().getPort();
   }
-
-
 
   @Override
   public void queueContainer(RunContainerRequestProto request) throws TezException {

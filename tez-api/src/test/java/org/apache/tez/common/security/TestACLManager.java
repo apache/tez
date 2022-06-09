@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,6 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.ACLInfo;
 import org.junit.Assert;
 import org.junit.Test;
-
 
 public class TestACLManager {
 
@@ -76,9 +75,9 @@ public class TestACLManager {
 
   @Test(timeout = 5000)
   public void testOtherUserACLChecks() throws IOException {
-    String[] groups1 = new String[] {"grp1", "grp2"};
-    String[] groups2 = new String[] {"grp3", "grp4"};
-    String[] groups3 = new String[] {"grp5", "grp6"};
+    String[] groups1 = new String[]{"grp1", "grp2"};
+    String[] groups2 = new String[]{"grp3", "grp4"};
+    String[] groups3 = new String[]{"grp5", "grp6"};
 
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", groups1); // belongs to grp1 and grp2
@@ -104,7 +103,7 @@ public class TestACLManager {
     Assert.assertTrue(aclManager.checkAccess(user2, ACLType.AM_VIEW_ACL));
     Assert.assertFalse(aclManager.checkAccess(user3, ACLType.AM_VIEW_ACL));
     Assert.assertTrue(aclManager.checkAccess(user4, ACLType.AM_VIEW_ACL));
-    Assert.assertFalse(aclManager.checkAccess(user5,  ACLType.AM_VIEW_ACL));
+    Assert.assertFalse(aclManager.checkAccess(user5, ACLType.AM_VIEW_ACL));
     Assert.assertFalse(aclManager.checkAccess(user6, ACLType.AM_VIEW_ACL));
 
     Assert.assertTrue(aclManager.checkAccess(currentUser, ACLType.AM_MODIFY_ACL));
@@ -118,9 +117,9 @@ public class TestACLManager {
 
   @Test(timeout = 5000)
   public void testNoGroupsACLChecks() throws IOException {
-    String[] groups1 = new String[] {"grp1", "grp2"};
-    String[] groups2 = new String[] {"grp3", "grp4"};
-    String[] groups3 = new String[] {"grp5", "grp6"};
+    String[] groups1 = new String[]{"grp1", "grp2"};
+    String[] groups2 = new String[]{"grp3", "grp4"};
+    String[] groups3 = new String[]{"grp5", "grp6"};
 
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", groups1); // belongs to grp1 and grp2
@@ -158,10 +157,10 @@ public class TestACLManager {
 
   @Test(timeout = 5000)
   public void checkAMACLs() throws IOException {
-    String[] groups1 = new String[] {"grp1", "grp2"};
-    String[] groups2 = new String[] {"grp3", "grp4"};
-    String[] groups3 = new String[] {"grp5", "grp6"};
-    String[] admingroup1 = new String[] {"admgrp1"};
+    String[] groups1 = new String[]{"grp1", "grp2"};
+    String[] groups2 = new String[]{"grp3", "grp4"};
+    String[] groups3 = new String[]{"grp5", "grp6"};
+    String[] admingroup1 = new String[]{"admgrp1"};
 
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", groups1); // belongs to grp1 and grp2
@@ -229,10 +228,10 @@ public class TestACLManager {
 
   @Test(timeout = 5000)
   public void checkDAGACLs() throws IOException {
-    String[] groups1 = new String[] {"grp1", "grp2"};
-    String[] groups2 = new String[] {"grp3", "grp4"};
-    String[] groups3 = new String[] {"grp5", "grp6"};
-    String[] admingroup1 = new String[] {"admgrp1"};
+    String[] groups1 = new String[]{"grp1", "grp2"};
+    String[] groups2 = new String[]{"grp3", "grp4"};
+    String[] groups3 = new String[]{"grp5", "grp6"};
+    String[] admingroup1 = new String[]{"admgrp1"};
 
     UserGroupInformation currentUser = UserGroupInformation.createUserForTesting("currentUser", noGroups);
     UserGroupInformation user1 = UserGroupInformation.createUserForTesting("user1", groups1); // belongs to grp1 and grp2
@@ -313,7 +312,6 @@ public class TestACLManager {
     Assert.assertTrue(aclManager.checkDAGModifyAccess(user6));
     Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser1));
     Assert.assertTrue(aclManager.checkDAGModifyAccess(admuser2));
-
   }
 
   @Test(timeout = 5000)
@@ -414,7 +412,5 @@ public class TestACLManager {
     yarnAcls = aclManager1.toYARNACls();
     Assert.assertEquals("c1 grp3,grp4",
         yarnAcls.get(ApplicationAccessType.VIEW_APP));
-
   }
-
 }

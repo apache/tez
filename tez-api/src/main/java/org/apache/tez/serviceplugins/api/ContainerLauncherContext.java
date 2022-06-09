@@ -14,7 +14,6 @@
 
 package org.apache.tez.serviceplugins.api;
 
-
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -98,8 +97,6 @@ public interface ContainerLauncherContext extends ServicePluginContextBase {
    *
    * @param taskCommName the name of the task communicator
    * @return meta info for the requested task communicator
-   *
    */
   Object getTaskCommunicatorMetaInfo(String taskCommName);
-
 }

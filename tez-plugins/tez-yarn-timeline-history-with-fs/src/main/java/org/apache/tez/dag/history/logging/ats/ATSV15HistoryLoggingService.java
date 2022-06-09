@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -121,13 +121,13 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
     }
 
     if (conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
-      YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
+        YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED)) {
       timelineClient = TimelineClient.createTimelineClient();
       timelineClient.init(conf);
     } else {
       this.timelineClient = null;
       if (conf.get(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS, "")
-        .equals(atsHistoryLoggingServiceClassName)) {
+          .equals(atsHistoryLoggingServiceClassName)) {
         LOG.warn(atsHistoryLoggingServiceClassName
             + " is disabled due to Timeline Service being disabled, "
             + YarnConfiguration.TIMELINE_SERVICE_ENABLED + " set to false");
@@ -189,7 +189,7 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
         TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(),
             appContext.getApplicationID());
         while (!stopped.get() && !Thread.currentThread().isInterrupted()
-              && !interrupted) {
+            && !interrupted) {
 
           // Log the size of the event-queue every so often.
           if (eventCounter != 0 && eventCounter % 1000 == 0) {
@@ -436,11 +436,11 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       Configuration conf;
       DAGPlan dagPlan;
       if (HistoryEventType.DAG_SUBMITTED == historyEvent.getEventType()) {
-          conf = ((DAGSubmittedEvent)historyEvent).getConf();
-          dagPlan = ((DAGSubmittedEvent)historyEvent).getDAGPlan();
+        conf = ((DAGSubmittedEvent) historyEvent).getConf();
+        dagPlan = ((DAGSubmittedEvent) historyEvent).getDAGPlan();
       } else {
-         conf = appContext.getCurrentDAG().getConf();
-         dagPlan = appContext.getCurrentDAG().getJobPlan();
+        conf = appContext.getCurrentDAG().getConf();
+        dagPlan = appContext.getCurrentDAG().getJobPlan();
       }
       domainId = createDagDomain(conf, dagPlan, dagId);
 

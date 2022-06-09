@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,6 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
 
-
 public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
@@ -42,7 +41,6 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
   public FilterByWordOutputProcessor(ProcessorContext context) {
     super(context);
   }
-
 
   @Override
   public void handleEvents(List<Event> processorEvents) {
@@ -57,7 +55,7 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
 
   @Override
   public void run() throws Exception {
-    
+
     if (inputs.size() != 1) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with a single input");
     }
@@ -74,12 +72,12 @@ public class FilterByWordOutputProcessor extends SimpleMRProcessor {
     }
 
     LogicalInput li = inputs.values().iterator().next();
-    if (! (li instanceof UnorderedKVInput)) {
+    if (!(li instanceof UnorderedKVInput)) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with ShuffledUnorderedKVInput");
     }
 
     LogicalOutput lo = outputs.values().iterator().next();
-    if (! (lo instanceof MROutput)) {
+    if (!(lo instanceof MROutput)) {
       throw new IllegalStateException("FilterByWordOutputProcessor processor can only work with MROutput");
     }
 

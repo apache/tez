@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,49 +39,49 @@ public class OrderedGroupedInputLegacy extends OrderedGroupedKVInput {
   @Private
   public TezRawKeyValueIterator getIterator() throws IOException, InterruptedException, TezException {
     // wait for input so that iterator is available
-    synchronized(this) {
-    if (getNumPhysicalInputs() == 0) {
-      return new TezRawKeyValueIterator() {
-        @Override
-        public DataInputBuffer getKey() throws IOException {
-          throw new RuntimeException("No data available in Input");
-        }
+    synchronized (this) {
+      if (getNumPhysicalInputs() == 0) {
+        return new TezRawKeyValueIterator() {
+          @Override
+          public DataInputBuffer getKey() throws IOException {
+            throw new RuntimeException("No data available in Input");
+          }
 
-        @Override
-        public DataInputBuffer getValue() throws IOException {
-          throw new RuntimeException("No data available in Input");
-        }
+          @Override
+          public DataInputBuffer getValue() throws IOException {
+            throw new RuntimeException("No data available in Input");
+          }
 
-        @Override
-        public boolean next() throws IOException {
-          return false;
-        }
+          @Override
+          public boolean next() throws IOException {
+            return false;
+          }
 
-        @Override
-        public boolean hasNext() throws IOException {
-          return false;
-        }
+          @Override
+          public boolean hasNext() throws IOException {
+            return false;
+          }
 
-        @Override
-        public void close() throws IOException {
-        }
+          @Override
+          public void close() throws IOException {
+          }
 
-        @Override
-        public Progress getProgress() {
-          progress.complete();
-          return progress;
-        }
+          @Override
+          public Progress getProgress() {
+            progress.complete();
+            return progress;
+          }
 
-        @Override
-        public boolean isSameKey() throws IOException {
-          throw new UnsupportedOperationException("isSameKey is not supported");
-        }
-      };
-    }
+          @Override
+          public boolean isSameKey() throws IOException {
+            throw new UnsupportedOperationException("isSameKey is not supported");
+          }
+        };
+      }
     }
 
     waitForInputReady();
-    synchronized(this) {
+    synchronized (this) {
       return rawIter;
     }
   }

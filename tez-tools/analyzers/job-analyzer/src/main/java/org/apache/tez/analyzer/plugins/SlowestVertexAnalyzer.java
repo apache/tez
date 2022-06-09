@@ -42,10 +42,10 @@ import java.util.Map;
  */
 public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
 
-  private static final String[] headers = { "vertexName", "taskAttempts", "totalTime",
+  private static final String[] headers = {"vertexName", "taskAttempts", "totalTime",
       "shuffleTime", "shuffleTime_Max", "LastEventReceived", "LastEventReceivedFrom",
       "75thPercentile", "95thPercentile", "98thPercentile", "Median",
-      "observation", "comments" };
+      "observation", "comments"};
 
   private final CSVResult csvResult = new CSVResult(headers);
 
@@ -61,7 +61,6 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
     super(config);
     this.vertexRuntimeThreshold = Math.max(1, config.getLong(MAX_VERTEX_RUNTIME,
         MAX_VERTEX_RUNTIME_DEFAULT));
-
   }
 
   private long getTaskRuntime(VertexInfo vertexInfo) {
@@ -80,7 +79,7 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
 
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       String vertexName = vertexInfo.getVertexName();
-      if (vertexInfo.getFirstTaskToStart()  == null || vertexInfo.getLastTaskToFinish() == null) {
+      if (vertexInfo.getFirstTaskToStart() == null || vertexInfo.getLastTaskToFinish() == null) {
         continue;
       }
 
@@ -89,7 +88,6 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
       long slowestLastEventTime = Long.MIN_VALUE;
       String maxSourceName = "";
       taskAttemptRuntimeHistorgram = metrics.histogram(vertexName);
-
 
       for (TaskAttemptInfo attemptInfo : vertexInfo.getTaskAttempts()) {
 
@@ -186,7 +184,6 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
       csvResult.addRecord(record.toArray(new String[record.size()]));
     }
   }
-
 
   @Override
   public CSVResult getResult() throws TezException {

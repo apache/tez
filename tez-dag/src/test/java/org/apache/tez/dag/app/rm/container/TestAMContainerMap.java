@@ -45,12 +45,12 @@ import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.serviceplugins.api.ServicePluginException;
 import org.junit.Test;
+
 import static org.mockito.Mockito.when;
 
 public class TestAMContainerMap {
 
-
-  @Test (timeout = 10000)
+  @Test(timeout = 10000)
   public void testCleanupOnDagComplete() {
 
     ContainerHeartbeatHandler chh = mock(ContainerHeartbeatHandler.class);
@@ -58,11 +58,9 @@ public class TestAMContainerMap {
     AppContext appContext = mock(AppContext.class);
     when(appContext.getAMConf()).thenReturn(new Configuration());
 
-
-
     int numContainers = 7;
     WrappedContainer[] wContainers = new WrappedContainer[numContainers];
-    for (int i = 0 ; i < numContainers ; i++) {
+    for (int i = 0; i < numContainers; i++) {
       WrappedContainer wc =
           new WrappedContainer(false, null, i);
       wContainers[i] = wc;
@@ -71,10 +69,9 @@ public class TestAMContainerMap {
     AMContainerMap amContainerMap = new AMContainerMapForTest(chh, tal, mock(
         ContainerSignatureMatcher.class), appContext, wContainers);
 
-    for (int i = 0 ; i < numContainers ; i++) {
+    for (int i = 0; i < numContainers; i++) {
       amContainerMap.addContainerIfNew(wContainers[i].container, 0, 0, 0);
     }
-
 
     // Container 1 in LAUNCHING state
     wContainers[0].launchContainer();
@@ -128,7 +125,6 @@ public class TestAMContainerMap {
 
   private static class AMContainerMapForTest extends AMContainerMap {
 
-
     private WrappedContainer[] wrappedContainers;
 
     public AMContainerMapForTest(ContainerHeartbeatHandler chh,
@@ -148,6 +144,5 @@ public class TestAMContainerMap {
                                   int launcherId, int taskCommId, String auxiliaryService) {
       return wrappedContainers[container.getId().getId()].amContainer;
     }
-
   }
 }

@@ -36,7 +36,7 @@ import java.util.Map;
  */
 public class TaskAssignmentAnalyzer extends TezAnalyzerBase
     implements Analyzer {
-  private final String[] headers = { "vertex", "node", "numTaskAttempts", "load" };
+  private final String[] headers = {"vertex", "node", "numTaskAttempts", "load"};
   private final CSVResult csvResult;
 
   public TaskAssignmentAnalyzer(Configuration config) {
@@ -62,7 +62,7 @@ public class TaskAssignmentAnalyzer extends TezAnalyzerBase
   }
 
   private void addARecord(String vertexName, String node, int numTasks,
-      double load) {
+                          double load) {
     String[] record = new String[4];
     record[0] = vertexName;
     record[1] = node;

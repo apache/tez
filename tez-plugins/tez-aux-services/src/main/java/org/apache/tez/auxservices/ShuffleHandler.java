@@ -1,25 +1,26 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.auxservices;
 
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.util.DiskChecker;
+
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
@@ -161,7 +162,7 @@ public class ShuffleHandler extends AuxiliaryService {
 
   private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(ShuffleHandler.class);
   private static final org.slf4j.Logger AUDITLOG =
-      LoggerFactory.getLogger(ShuffleHandler.class.getName()+".audit");
+      LoggerFactory.getLogger(ShuffleHandler.class.getName() + ".audit");
   public static final String SHUFFLE_MANAGE_OS_CACHE = "tez.shuffle.manage.os.cache";
   public static final boolean DEFAULT_SHUFFLE_MANAGE_OS_CACHE = true;
 
@@ -206,7 +207,7 @@ public class ShuffleHandler extends AuxiliaryService {
   private int maxSessionOpenFiles;
   private ReadaheadPool readaheadPool = ReadaheadPool.getInstance();
 
-  private Map<String,String> userRsrc;
+  private Map<String, String> userRsrc;
   private JobTokenSecretManager secretManager;
 
   private DB stateDb = null;
@@ -236,7 +237,7 @@ public class ShuffleHandler extends AuxiliaryService {
   public static final boolean SHUFFLE_SSL_ENABLED_DEFAULT = false;
 
   public static final String SUFFLE_SSL_FILE_BUFFER_SIZE_KEY =
-    "tez.shuffle.ssl.file.buffer.size";
+      "tez.shuffle.ssl.file.buffer.size";
 
   public static final int DEFAULT_SUFFLE_SSL_FILE_BUFFER_SIZE = 60 * 1024;
 
@@ -251,7 +252,7 @@ public class ShuffleHandler extends AuxiliaryService {
       "tez.shuffle.transfer.buffer.size";
   public static final int DEFAULT_SHUFFLE_BUFFER_SIZE = 128 * 1024;
 
-  public static final String  SHUFFLE_TRANSFERTO_ALLOWED =
+  public static final String SHUFFLE_TRANSFERTO_ALLOWED =
       "tez.shuffle.transferTo.allowed";
   public static final boolean DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED = true;
   public static final boolean WINDOWS_DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED =
@@ -270,16 +271,16 @@ public class ShuffleHandler extends AuxiliaryService {
   private int connectionKeepAliveTimeOut;
   private int mapOutputMetaInfoCacheSize;
 
-  @Metrics(about="Shuffle output metrics", context="mapred", name="tez")
+  @Metrics(about = "Shuffle output metrics", context = "mapred", name = "tez")
   static class ShuffleMetrics implements ChannelFutureListener {
     @Metric("Shuffle output in bytes")
-        MutableCounterLong shuffleOutputBytes;
+    MutableCounterLong shuffleOutputBytes;
     @Metric("# of failed shuffle outputs")
-        MutableCounterInt shuffleOutputsFailed;
+    MutableCounterInt shuffleOutputsFailed;
     @Metric("# of succeeeded shuffle outputs")
-        MutableCounterInt shuffleOutputsOK;
+    MutableCounterInt shuffleOutputsOK;
     @Metric("# of current shuffle connections")
-        MutableGaugeInt shuffleConnections;
+    MutableGaugeInt shuffleConnections;
 
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
@@ -352,17 +353,17 @@ public class ShuffleHandler extends AuxiliaryService {
       this.reduceRange = reduceRange;
       this.dagId = dagId;
       /**
-      * Atomic count for tracking the no. of map outputs that are yet to
-      * complete. Multiple futureListeners' operationComplete() can decrement
-      * this value asynchronously. It is used to decide when the channel should
-      * be closed.
-      */
+       * Atomic count for tracking the no. of map outputs that are yet to
+       * complete. Multiple futureListeners' operationComplete() can decrement
+       * this value asynchronously. It is used to decide when the channel should
+       * be closed.
+       */
       this.mapsToWait = new AtomicInteger(mapIds.size());
       /**
-      * Atomic count for tracking the no. of map outputs that have been sent.
-      * Multiple sendMap() calls can increment this value
-      * asynchronously. Used to decide which mapId should be sent next.
-      */
+       * Atomic count for tracking the no. of map outputs that have been sent.
+       * Multiple sendMap() calls can increment this value
+       * asynchronously. Used to decide which mapId should be sent next.
+       */
       this.mapsToSend = new AtomicInteger(0);
       this.ctx = context;
       this.user = usr;
@@ -480,7 +481,7 @@ public class ShuffleHandler extends AuxiliaryService {
     // TODO these bytes should be versioned
     try {
       Token<JobTokenIdentifier> jt = deserializeServiceData(secret);
-       // TODO: Once SHuffle is out of NM, this can use MR APIs
+      // TODO: Once SHuffle is out of NM, this can use MR APIs
       JobID jobId = new JobID(Long.toString(appId.getClusterTimestamp()), appId.getId());
       recordJobShuffleInfo(jobId, user, jt);
     } catch (IOException e) {
@@ -510,19 +511,19 @@ public class ShuffleHandler extends AuxiliaryService {
         DEFAULT_SHUFFLE_READAHEAD_BYTES);
 
     maxShuffleConnections = conf.getInt(MAX_SHUFFLE_CONNECTIONS,
-                                        DEFAULT_MAX_SHUFFLE_CONNECTIONS);
+        DEFAULT_MAX_SHUFFLE_CONNECTIONS);
     int maxShuffleThreads = conf.getInt(MAX_SHUFFLE_THREADS,
-                                        DEFAULT_MAX_SHUFFLE_THREADS);
+        DEFAULT_MAX_SHUFFLE_THREADS);
     if (maxShuffleThreads == 0) {
       maxShuffleThreads = 2 * Runtime.getRuntime().availableProcessors();
     }
 
     shuffleBufferSize = conf.getInt(SHUFFLE_BUFFER_SIZE,
-                                    DEFAULT_SHUFFLE_BUFFER_SIZE);
+        DEFAULT_SHUFFLE_BUFFER_SIZE);
 
     shuffleTransferToAllowed = conf.getBoolean(SHUFFLE_TRANSFERTO_ALLOWED,
-         (Shell.WINDOWS)?WINDOWS_DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED:
-                         DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED);
+        (Shell.WINDOWS) ? WINDOWS_DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED :
+            DEFAULT_SHUFFLE_TRANSFERTO_ALLOWED);
 
     maxSessionOpenFiles = conf.getInt(SHUFFLE_MAX_SESSION_OPEN_FILES,
         DEFAULT_SHUFFLE_MAX_SESSION_OPEN_FILES);
@@ -552,7 +553,7 @@ public class ShuffleHandler extends AuxiliaryService {
   @Override
   protected void serviceStart() throws Exception {
     Configuration conf = getConfig();
-    userRsrc = new ConcurrentHashMap<String,String>();
+    userRsrc = new ConcurrentHashMap<String, String>();
     secretManager = new JobTokenSecretManager();
     recoverState(conf);
     ServerBootstrap bootstrap = new ServerBootstrap()
@@ -567,7 +568,7 @@ public class ShuffleHandler extends AuxiliaryService {
     accepted.add(ch);
 
     // setup port
-    port = ((InetSocketAddress)ch.localAddress()).getPort();
+    port = ((InetSocketAddress) ch.localAddress()).getPort();
     conf.set(SHUFFLE_PORT_CONFIG_KEY, Integer.toString(port));
     SHUFFLE.setPort(port);
     LOG.info(getName() + " listening on port " + port);
@@ -575,16 +576,16 @@ public class ShuffleHandler extends AuxiliaryService {
     super.serviceStart();
 
     sslFileBufferSize = conf.getInt(SUFFLE_SSL_FILE_BUFFER_SIZE_KEY,
-                                    DEFAULT_SUFFLE_SSL_FILE_BUFFER_SIZE);
+        DEFAULT_SUFFLE_SSL_FILE_BUFFER_SIZE);
     connectionKeepAliveEnabled =
         conf.getBoolean(SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED,
-          DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED);
+            DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED);
     connectionKeepAliveTimeOut =
         Math.max(1, conf.getInt(SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT,
-          DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT));
+            DEFAULT_SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT));
     mapOutputMetaInfoCacheSize =
         Math.max(1, conf.getInt(SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE,
-          DEFAULT_SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE));
+            DEFAULT_SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE));
   }
 
   private void initPipeline(ServerBootstrap bootstrap, Configuration conf) throws Exception {
@@ -598,20 +599,20 @@ public class ShuffleHandler extends AuxiliaryService {
     ChannelInitializer<NioSocketChannel> channelInitializer =
         new ChannelInitializer<NioSocketChannel>() {
           @Override
-      public void initChannel(NioSocketChannel ch) throws Exception {
-        ChannelPipeline pipeline = ch.pipeline();
-        if (sslFactory != null) {
-          pipeline.addLast("ssl", new SslHandler(sslFactory.createSSLEngine()));
-        }
-        pipeline.addLast("decoder", new HttpRequestDecoder());
-        pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("chunking", new ChunkedWriteHandler());
-        pipeline.addLast("shuffle", SHUFFLE);
-        pipeline.addLast("idle", new IdleStateHandler(0, connectionKeepAliveTimeOut, 0));
-        pipeline.addLast(TIMEOUT_HANDLER, new TimeoutHandler());
-      }
-    };
+          public void initChannel(NioSocketChannel ch) throws Exception {
+            ChannelPipeline pipeline = ch.pipeline();
+            if (sslFactory != null) {
+              pipeline.addLast("ssl", new SslHandler(sslFactory.createSSLEngine()));
+            }
+            pipeline.addLast("decoder", new HttpRequestDecoder());
+            pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
+            pipeline.addLast("encoder", new HttpResponseEncoder());
+            pipeline.addLast("chunking", new ChunkedWriteHandler());
+            pipeline.addLast("shuffle", SHUFFLE);
+            pipeline.addLast("idle", new IdleStateHandler(0, connectionKeepAliveTimeOut, 0));
+            pipeline.addLast(TIMEOUT_HANDLER, new TimeoutHandler());
+          }
+        };
     bootstrap.childHandler(channelInitializer);
   }
 
@@ -666,7 +667,7 @@ public class ShuffleHandler extends AuxiliaryService {
         iter = new LeveldbIterator(stateDb);
         iter.seek(bytes(JobID.JOB));
         while (iter.hasNext()) {
-          Map.Entry<byte[],byte[]> entry = iter.next();
+          Map.Entry<byte[], byte[]> entry = iter.next();
           String key = asString(entry.getKey());
           if (!jobPattern.matcher(key).matches()) {
             break;
@@ -767,13 +768,13 @@ public class ShuffleHandler extends AuxiliaryService {
       storeVersion();
     } else {
       throw new IOException(
-        "Incompatible version for state DB schema: expecting DB schema version "
-            + getCurrentVersion() + ", but loading version " + loadedVersion);
+          "Incompatible version for state DB schema: expecting DB schema version "
+              + getCurrentVersion() + ", but loading version " + loadedVersion);
     }
   }
 
   private void addJobToken(JobID jobId, String user,
-      Token<JobTokenIdentifier> jobToken) {
+                           Token<JobTokenIdentifier> jobToken) {
     userRsrc.put(jobId.toString(), user);
     getSecretManager().addTokenForJob(jobId.toString(), jobToken);
     LOG.info("Added token for " + jobId.toString());
@@ -799,7 +800,7 @@ public class ShuffleHandler extends AuxiliaryService {
   }
 
   private void recordJobShuffleInfo(JobID jobId, String user,
-      Token<JobTokenIdentifier> jobToken) throws IOException {
+                                    Token<JobTokenIdentifier> jobToken) throws IOException {
     if (stateDb != null) {
       // Discover type instead of assuming ByteString to allow for shading.
       TokenProto tokenProto = TokenProto.newBuilder()
@@ -893,48 +894,48 @@ public class ShuffleHandler extends AuxiliaryService {
     private final Configuration conf;
     private final IndexCache indexCache;
     private final LocalDirAllocator lDirAlloc =
-      new LocalDirAllocator(YarnConfiguration.NM_LOCAL_DIRS);
+        new LocalDirAllocator(YarnConfiguration.NM_LOCAL_DIRS);
     private int port;
     private final LoadingCache<AttemptPathIdentifier, AttemptPathInfo> pathCache =
-      CacheBuilder.newBuilder().expireAfterAccess(EXPIRE_AFTER_ACCESS_MINUTES,
-      TimeUnit.MINUTES).softValues().concurrencyLevel(ALLOWED_CONCURRENCY).
-      removalListener(
-          new RemovalListener<AttemptPathIdentifier, AttemptPathInfo>() {
-            @Override
-            public void onRemoval(RemovalNotification<AttemptPathIdentifier,
-                AttemptPathInfo> notification) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("PathCache Eviction: " + notification.getKey() +
-                    ", Reason=" + notification.getCause());
-              }
-            }
-          }
-      ).maximumWeight(MAX_WEIGHT).weigher(
-          new Weigher<AttemptPathIdentifier, AttemptPathInfo>() {
-            @Override
-            public int weigh(AttemptPathIdentifier key,
-                AttemptPathInfo value) {
-              return key.jobId.length() + key.user.length() +
-                  key.attemptId.length()+
-                  value.indexPath.toString().length() +
-                  value.dataPath.toString().length();
-            }
-          }
-      ).build(new CacheLoader<AttemptPathIdentifier, AttemptPathInfo>() {
-        @Override
-        public AttemptPathInfo load(AttemptPathIdentifier key) throws
-            Exception {
-          String base = getBaseLocation(key.jobId, key.dagId, key.user);
-          String attemptBase = base + key.attemptId;
-          Path indexFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + INDEX_FILE_NAME, conf);
-          Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
+        CacheBuilder.newBuilder().expireAfterAccess(EXPIRE_AFTER_ACCESS_MINUTES,
+                TimeUnit.MINUTES).softValues().concurrencyLevel(ALLOWED_CONCURRENCY).
+            removalListener(
+                new RemovalListener<AttemptPathIdentifier, AttemptPathInfo>() {
+                  @Override
+                  public void onRemoval(RemovalNotification<AttemptPathIdentifier,
+                      AttemptPathInfo> notification) {
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("PathCache Eviction: " + notification.getKey() +
+                          ", Reason=" + notification.getCause());
+                    }
+                  }
+                }
+            ).maximumWeight(MAX_WEIGHT).weigher(
+                new Weigher<AttemptPathIdentifier, AttemptPathInfo>() {
+                  @Override
+                  public int weigh(AttemptPathIdentifier key,
+                                   AttemptPathInfo value) {
+                    return key.jobId.length() + key.user.length() +
+                        key.attemptId.length() +
+                        value.indexPath.toString().length() +
+                        value.dataPath.toString().length();
+                  }
+                }
+            ).build(new CacheLoader<AttemptPathIdentifier, AttemptPathInfo>() {
+              @Override
+              public AttemptPathInfo load(AttemptPathIdentifier key) throws
+                  Exception {
+                String base = getBaseLocation(key.jobId, key.dagId, key.user);
+                String attemptBase = base + key.attemptId;
+                Path indexFileName = lDirAlloc.getLocalPathToRead(
+                    attemptBase + Path.SEPARATOR + INDEX_FILE_NAME, conf);
+                Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
+                    attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
 
-          LOG.debug("Loaded : {} via loader", key);
-          return new AttemptPathInfo(indexFileName, mapOutputFileName);
-        }
-      });
+                LOG.debug("Loaded : {} via loader", key);
+                return new AttemptPathInfo(indexFileName, mapOutputFileName);
+              }
+            });
 
     public Shuffle(Configuration conf) {
       this.conf = conf;
@@ -976,7 +977,7 @@ public class ShuffleHandler extends AuxiliaryService {
 
       if ((maxShuffleConnections > 0) && (accepted.size() >= maxShuffleConnections)) {
         LOG.info(String.format("Current number of shuffle connections (%d) is " +
-            "greater than or equal to the max allowed shuffle connections (%d)",
+                "greater than or equal to the max allowed shuffle connections (%d)",
             accepted.size(), maxShuffleConnections));
         ctx.channel().close();
         return;
@@ -996,14 +997,14 @@ public class ShuffleHandler extends AuxiliaryService {
     private void handleRequest(ChannelHandlerContext ctx, FullHttpRequest request)
         throws IOException, Exception {
       if (request.getMethod() != GET) {
-          sendError(ctx, METHOD_NOT_ALLOWED);
-          return;
+        sendError(ctx, METHOD_NOT_ALLOWED);
+        return;
       }
       // Check whether the shuffle version is compatible
       if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(
           request.headers().get(ShuffleHeader.HTTP_HEADER_NAME))
           || !ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION.equals(
-              request.headers().get(ShuffleHeader.HTTP_HEADER_VERSION))) {
+          request.headers().get(ShuffleHeader.HTTP_HEADER_VERSION))) {
         sendError(ctx, "Incompatible shuffle request version", BAD_REQUEST);
         return;
       }
@@ -1031,7 +1032,7 @@ public class ShuffleHandler extends AuxiliaryService {
             "\n  keepAlive: " + keepAliveParam);
       }
       // If the request is for Dag Deletion, process the request and send OK.
-      if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ))  {
+      if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ)) {
         return;
       }
       if (deleteVertexDirectories(ctx.channel(), vertexCompletedQ, jobQ, dagIdQ, vertexIdQ)) {
@@ -1054,7 +1055,7 @@ public class ShuffleHandler extends AuxiliaryService {
       // on log4j.properties by uncommenting the setting
       if (AUDITLOG.isDebugEnabled()) {
         AUDITLOG.debug("shuffle for " + jobQ.get(0) + " mapper: " + mapIds
-                         + " reducer: " + reduceRange);
+            + " reducer: " + reduceRange);
       }
       String jobId;
       String dagId;
@@ -1088,13 +1089,13 @@ public class ShuffleHandler extends AuxiliaryService {
           new HashMap<String, MapOutputInfo>();
       Channel ch = ctx.channel();
       ChannelPipeline pipeline = ch.pipeline();
-      TimeoutHandler timeoutHandler = (TimeoutHandler)pipeline.get(TIMEOUT_HANDLER);
+      TimeoutHandler timeoutHandler = (TimeoutHandler) pipeline.get(TIMEOUT_HANDLER);
       timeoutHandler.setEnabledTimeout(false);
       String user = userRsrc.get(jobId);
 
       try {
         populateHeaders(mapIds, jobId, dagId, user, reduceRange,
-          response, keepAliveParam, mapOutputInfoMap);
+            response, keepAliveParam, mapOutputInfoMap);
       } catch (DiskErrorException e) { // fatal error: fetcher should be aware of that
         LOG.error("Shuffle error in populating headers (fatal: DiskErrorException):", e);
         String errorMessage = getErrorMessage(e);
@@ -1117,7 +1118,7 @@ public class ShuffleHandler extends AuxiliaryService {
           user, mapOutputInfoMap, jobId, dagId, keepAlive);
       for (int i = 0; i < Math.min(maxSessionOpenFiles, mapIds.size()); i++) {
         ChannelFuture nextMap = sendMap(reduceContext);
-        if(nextMap == null) {
+        if (nextMap == null) {
           // by this special message flushed, we can make sure the whole response is finished
           ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
           return;
@@ -1144,15 +1145,15 @@ public class ShuffleHandler extends AuxiliaryService {
       if (jobQ == null || jobQ.isEmpty()) {
         return false;
       }
-      if (notEmptyAndContains(dagCompletedQ,"delete") && !isNullOrEmpty(dagIdQ)) {
+      if (notEmptyAndContains(dagCompletedQ, "delete") && !isNullOrEmpty(dagIdQ)) {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           FileContext lfc = FileContext.getLocalFSFileContext();
-          for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
+          for (Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
             lfc.delete(dagPath, true);
           }
         } catch (IOException e) {
-          LOG.warn("Encountered exception during dag delete "+ e);
+          LOG.warn("Encountered exception during dag delete " + e);
         }
         channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
             .addListener(ChannelFutureListener.CLOSE);
@@ -1174,18 +1175,18 @@ public class ShuffleHandler extends AuxiliaryService {
           LOG.warn("Encountered exception during vertex delete " + e);
         }
         channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
-                .addListener(ChannelFutureListener.CLOSE);
+            .addListener(ChannelFutureListener.CLOSE);
         return true;
       }
       return false;
     }
 
     private boolean deleteTaskAttemptDirectories(Channel channel, List<String> taskAttemptFailedQ,
-                                            List<String> jobQ, List<String> dagIdQ, List<String> taskAttemptIdQ) {
+                                                 List<String> jobQ, List<String> dagIdQ, List<String> taskAttemptIdQ) {
       if (jobQ == null || jobQ.isEmpty()) {
         return false;
       }
-      if (notEmptyAndContains(taskAttemptFailedQ,"delete") && !isNullOrEmpty(taskAttemptIdQ)) {
+      if (notEmptyAndContains(taskAttemptFailedQ, "delete") && !isNullOrEmpty(taskAttemptIdQ)) {
         for (String taskAttemptId : taskAttemptIdQ) {
           String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
           try {
@@ -1208,7 +1209,7 @@ public class ShuffleHandler extends AuxiliaryService {
           }
         }
         channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
-                .addListener(ChannelFutureListener.CLOSE);
+            .addListener(ChannelFutureListener.CLOSE);
         return true;
       }
       return false;
@@ -1287,7 +1288,7 @@ public class ShuffleHandler extends AuxiliaryService {
     private void deleteTaskDirsOfVertex(String jobId, String dagId, String vertexId, String user) throws IOException {
       String baseStr = getBaseLocation(jobId, dagId, user);
       FileContext lfc = FileContext.getLocalFSFileContext();
-      for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+      for (Path dagPath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
         RemoteIterator<FileStatus> status = lfc.listStatus(dagPath);
         final JobID jobID = JobID.forName(jobId);
         String taskDirPrefix = String.format("attempt%s_%s_%s_",
@@ -1296,7 +1297,7 @@ public class ShuffleHandler extends AuxiliaryService {
           FileStatus fileStatus = status.next();
           Path attemptPath = fileStatus.getPath();
           if (attemptPath.getName().startsWith(taskDirPrefix)) {
-            if(lfc.delete(attemptPath, true)) {
+            if (lfc.delete(attemptPath, true)) {
               LOG.debug("deleted shuffle data in task directory: {}", attemptPath);
             }
           }
@@ -1442,7 +1443,7 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     protected void verifyRequest(String appid, ChannelHandlerContext ctx,
-        HttpRequest request, HttpResponse response, URL requestUri)
+                                 HttpRequest request, HttpResponse response, URL requestUri)
         throws IOException {
       SecretKey tokenSecret = getSecretManager().retrieveTokenSecret(appid);
       if (null == tokenSecret) {
@@ -1453,7 +1454,7 @@ public class ShuffleHandler extends AuxiliaryService {
       String enc_str = SecureShuffleUtils.buildMsgFrom(requestUri);
       // hash from the fetcher
       String urlHashStr =
-        request.headers().get(SecureShuffleUtils.HTTP_HEADER_URL_HASH);
+          request.headers().get(SecureShuffleUtils.HTTP_HEADER_URL_HASH);
       if (urlHashStr == null) {
         LOG.info("Missing header hash for " + appid);
         throw new IOException("fetcher cannot be authenticated");
@@ -1461,14 +1462,14 @@ public class ShuffleHandler extends AuxiliaryService {
       if (LOG.isDebugEnabled()) {
         int len = urlHashStr.length();
         LOG.debug("verifying request. enc_str=" + enc_str + "; hash=..." +
-            urlHashStr.substring(len-len/2, len-1));
+            urlHashStr.substring(len - len / 2, len - 1));
       }
       // verify - throws exception
       SecureShuffleUtils.verifyReply(urlHashStr, enc_str, tokenSecret);
       // verification passed - encode the reply
       String reply =
-        SecureShuffleUtils.generateHash(urlHashStr.getBytes(Charsets.UTF_8),
-            tokenSecret);
+          SecureShuffleUtils.generateHash(urlHashStr.getBytes(Charsets.UTF_8),
+              tokenSecret);
       response.headers().set(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH, reply);
       // Put shuffle version into http header
       response.headers().set(ShuffleHeader.HTTP_HEADER_NAME,
@@ -1478,7 +1479,7 @@ public class ShuffleHandler extends AuxiliaryService {
       if (LOG.isDebugEnabled()) {
         int len = reply.length();
         LOG.debug("Fetcher request verfied. enc_str=" + enc_str + ";reply=" +
-            reply.substring(len-len/2, len-1));
+            reply.substring(len - len / 2, len - 1));
       }
     }
 
@@ -1554,7 +1555,7 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     private void sendFakeShuffleHeaderWithError(ChannelHandlerContext ctx, String message,
-        HttpResponse response) throws IOException {
+                                                HttpResponse response) throws IOException {
       FullHttpResponse fullResponse =
           new DefaultFullHttpResponse(response.getProtocolVersion(), response.getStatus());
       fullResponse.headers().set(response.headers());
@@ -1567,7 +1568,7 @@ public class ShuffleHandler extends AuxiliaryService {
     }
 
     protected void sendError(ChannelHandlerContext ctx, ByteBuf content,
-        FullHttpResponse response) {
+                             FullHttpResponse response) {
       response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
       // Put shuffle version into http header
       response.headers().set(ShuffleHeader.HTTP_HEADER_NAME,

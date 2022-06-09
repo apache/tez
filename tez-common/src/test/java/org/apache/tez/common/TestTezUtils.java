@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -42,7 +42,7 @@ import com.google.protobuf.ByteString;
 
 public class TestTezUtils {
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testByteStringToAndFromConf() throws IOException {
     Configuration conf = getConf();
     Assert.assertEquals(conf.size(), 6);
@@ -77,7 +77,7 @@ public class TestTezUtils {
     return TezUtils.createByteStringFromConf(conf);
   }
 
-  @Test (timeout=20000)
+  @Test(timeout = 20000)
   public void testByteStringToAndFromLargeConf() throws IOException {
     Configuration conf = getConf();
     String largeValue = constructLargeValue();
@@ -90,7 +90,7 @@ public class TestTezUtils {
     Assert.assertEquals(conf.get("testLargeValue"), largeValue);
   }
 
-  @Test (timeout=20000)
+  @Test(timeout = 20000)
   public void testByteStringAddToLargeConf() throws IOException {
     Configuration conf = getConf();
     String largeValue = constructLargeValue();
@@ -103,7 +103,7 @@ public class TestTezUtils {
     Assert.assertEquals(conf.get("testLargeValue"), largeValue);
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testPayloadToAndFromConf() throws IOException {
     Configuration conf = getConf();
     Assert.assertEquals(conf.size(), 6);
@@ -115,7 +115,7 @@ public class TestTezUtils {
     checkConf(conf);
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testCleanVertexName() {
     String testString = "special characters & spaces and longer than "
         + TezUtilsInternal.MAX_VERTEX_NAME_LENGTH + " characters";
@@ -126,7 +126,7 @@ public class TestTezUtils {
     Assert.assertTrue(cleaned.matches("\\w+"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testBitSetToByteArray() {
     BitSet bitSet = createBitSet(0);
     byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
@@ -137,7 +137,7 @@ public class TestTezUtils {
     Assert.assertEquals(bytes.length, (bitSet.length() + 7) / 8);
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testBitSetFromByteArray() {
     BitSet bitSet = createBitSet(0);
     byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
@@ -148,19 +148,19 @@ public class TestTezUtils {
     bytes = TezUtilsInternal.toByteArray(bitSet);
     Assert.assertEquals(TezUtilsInternal.fromByteArray(bytes).cardinality(), bitSet.cardinality());
     Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
-    
+
     bitSet = createBitSet(1000);
     bytes = TezUtilsInternal.toByteArray(bitSet);
     Assert.assertEquals(TezUtilsInternal.fromByteArray(bytes).cardinality(), bitSet.cardinality());
     Assert.assertTrue(TezUtilsInternal.fromByteArray(bytes).equals(bitSet));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testBitSetConversion() {
-    for (int i = 0 ; i < 16 ; i++) {
+    for (int i = 0; i < 16; i++) {
       BitSet bitSet = createBitSetWithSingleEntry(i);
       byte[] bytes = TezUtilsInternal.toByteArray(bitSet);
-      
+
       BitSet deseraialized = TezUtilsInternal.fromByteArray(bytes);
       Assert.assertEquals(bitSet, deseraialized);
       Assert.assertEquals(bitSet.cardinality(), deseraialized.cardinality());
@@ -172,7 +172,7 @@ public class TestTezUtils {
     BitSet bitSet = new BitSet();
     int bitsToEnable = (int) (size * 0.1);
     Random rnd = new Random();
-    for(int i = 0;i < bitsToEnable;i++) {
+    for (int i = 0; i < bitsToEnable; i++) {
       bitSet.set(rnd.nextInt(size));
     }
     return bitSet;
@@ -206,7 +206,6 @@ public class TestTezUtils {
     Assert.assertEquals(tmp[0], "S1");
     Assert.assertEquals(tmp[1], "S2");
     Assert.assertEquals(tmp[2], "S3");
-
   }
 
   private void checkJSONConfigObj(JSONObject confObject) throws JSONException {
@@ -219,7 +218,7 @@ public class TestTezUtils {
     Assert.assertEquals("S1,S2,S3", confObject.getString("test6"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testConvertToHistoryText() throws JSONException {
     Configuration conf = getConf();
 
@@ -244,10 +243,9 @@ public class TestTezUtils {
     Assert.assertTrue(jsonObject.has(ATSConstants.CONFIG));
     confObject = jsonObject.getJSONObject("config");
     checkJSONConfigObj(confObject);
-
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testConvertToHistoryTextWithReplaceVars() throws JSONException {
     Configuration conf = getConf();
     conf.set("user", "user1");
@@ -281,17 +279,15 @@ public class TestTezUtils {
     checkJSONConfigObj(confObject);
     Assert.assertEquals("user1", confObject.getString("user"));
     Assert.assertEquals(location, confObject.getString("location"));
-
   }
 
   @Test(timeout = 5000)
   public void testPopulateConfProtoFromEntries() {
-      Map<String, String> map = new HashMap<>();
-      map.put("nonNullKey", "value");
-      map.put("nullKey", null);
-      DAGProtos.ConfigurationProto.Builder confBuilder = DAGProtos.ConfigurationProto.newBuilder();
-      TezUtils.populateConfProtoFromEntries(map.entrySet(), confBuilder);
-      assertEquals(confBuilder.getConfKeyValuesList().size(), 1);
+    Map<String, String> map = new HashMap<>();
+    map.put("nonNullKey", "value");
+    map.put("nullKey", null);
+    DAGProtos.ConfigurationProto.Builder confBuilder = DAGProtos.ConfigurationProto.newBuilder();
+    TezUtils.populateConfProtoFromEntries(map.entrySet(), confBuilder);
+    assertEquals(confBuilder.getConfKeyValuesList().size(), 1);
   }
-
 }

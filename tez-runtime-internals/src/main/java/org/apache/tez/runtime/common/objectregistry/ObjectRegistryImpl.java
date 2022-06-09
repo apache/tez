@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,7 @@ import java.util.Map.Entry;
 import org.apache.tez.runtime.api.ObjectRegistry;
 
 public class ObjectRegistryImpl implements ObjectRegistry {
-  
+
   public enum ObjectLifeCycle {
     /** Objects are valid for the lifetime of the Tez JVM/Session
      */
@@ -44,7 +44,7 @@ public class ObjectRegistryImpl implements ObjectRegistry {
       new HashMap<String, Entry<Object, ObjectLifeCycle>>();
 
   private synchronized Object add(ObjectLifeCycle lifeCycle,
-      String key, Object value) {
+                                  String key, Object value) {
     Map.Entry<Object, ObjectLifeCycle> oldEntry =
         objectCache.put(key,
             new AbstractMap.SimpleImmutableEntry<Object, ObjectLifeCycle>(
@@ -66,7 +66,7 @@ public class ObjectRegistryImpl implements ObjectRegistry {
 
   public synchronized void clearCache(ObjectLifeCycle lifeCycle) {
     Iterator<Entry<String, Entry<Object, ObjectLifeCycle>>> it =
-      objectCache.entrySet().iterator();
+        objectCache.entrySet().iterator();
     while (it.hasNext()) {
       Entry<String, Entry<Object, ObjectLifeCycle>> entry = it.next();
       if (entry.getValue().getValue().equals(lifeCycle)) {
@@ -89,5 +89,4 @@ public class ObjectRegistryImpl implements ObjectRegistry {
   public synchronized Object cacheForSession(String key, Object value) {
     return add(ObjectLifeCycle.SESSION, key, value);
   }
-
 }

@@ -113,7 +113,6 @@ public class TestExternalTezServicesErrors {
   private static final Vertex.VertexExecutionContext EXECUTION_CONTEXT_SCHEDULER_REPORT_FATAL =
       Vertex.VertexExecutionContext.create(EXT_REPORT_FATAL_ERROR_ENTITY_NAME, EXT_PUSH_ENTITY_NAME, EXT_PUSH_ENTITY_NAME);
 
-
   private static final Vertex.VertexExecutionContext EXECUTION_CONTEXT_DEFAULT = EXECUTION_CONTEXT_EXT_SERVICE_PUSH;
 
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR + TestExternalTezServicesErrors.class.getName()
@@ -222,7 +221,7 @@ public class TestExternalTezServicesErrors {
             DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR.name()));
   }
 
-  @Test (timeout = 150000)
+  @Test(timeout = 150000)
   public void testNonFatalErrors() throws IOException, TezException, InterruptedException {
     String methodName = "testNonFatalErrors";
     TezConfiguration tezClientConf = new TezConfiguration(extServiceTestHelper.getConfForJobs());
@@ -236,11 +235,9 @@ public class TestExternalTezServicesErrors {
       tezClient.waitTillReady();
       LOG.info("TezSession ready for submission for " + methodName);
 
-
       runAndVerifyForNonFatalErrors(tezClient, SUFFIX_LAUNCHER, EXECUTION_CONTEXT_LAUNCHER_REPORT_NON_FATAL);
       runAndVerifyForNonFatalErrors(tezClient, SUFFIX_TASKCOMM, EXECUTION_CONTEXT_TASKCOMM_REPORT_NON_FATAL);
       runAndVerifyForNonFatalErrors(tezClient, SUFFIX_SCHEDULER, EXECUTION_CONTEXT_SCHEDULER_REPORT_NON_FATAL);
-
     } finally {
       tezClient.stop();
     }
@@ -269,7 +266,6 @@ public class TestExternalTezServicesErrors {
             ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
   }
 
-
   private void testFatalError(String methodName,
                               Vertex.VertexExecutionContext lhsExecutionContext,
                               String dagNameSuffix, List<String> expectedDiagMessages) throws
@@ -280,7 +276,7 @@ public class TestExternalTezServicesErrors {
             tezClientConf)
         .setIsSession(true).setServicePluginDescriptor(servicePluginsDescriptor).build();
 
-    ApplicationId appId= null;
+    ApplicationId appId = null;
     try {
       tezClient.start();
       LOG.info("TezSessionStarted for " + methodName);
@@ -360,7 +356,6 @@ public class TestExternalTezServicesErrors {
     return found;
   }
 
-
   private void runAndVerifyForNonFatalErrors(TezClient tezClient, String componentName,
                                              Vertex.VertexExecutionContext lhsContext) throws
       TezException,
@@ -392,5 +387,4 @@ public class TestExternalTezServicesErrors {
     }
     assertTrue(foundDiag);
   }
-
 }

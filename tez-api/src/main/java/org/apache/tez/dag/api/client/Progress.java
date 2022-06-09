@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.api.client;
 
@@ -28,13 +28,13 @@ import org.apache.tez.dag.api.records.DAGProtos.ProgressProtoOrBuilder;
 @Public
 @Evolving
 public class Progress {
-  
+
   ProgressProtoOrBuilder proxy = null;
-  
+
   Progress(ProgressProtoOrBuilder proxy) {
     this.proxy = proxy;
   }
-  
+
   public int getTotalTaskCount() {
     return proxy.getTotalTaskCount();
   }
@@ -69,9 +69,9 @@ public class Progress {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof Progress){
-      Progress other = (Progress)obj;
-      return getTotalTaskCount() == other.getTotalTaskCount() 
+    if (obj instanceof Progress) {
+      Progress other = (Progress) obj;
+      return getTotalTaskCount() == other.getTotalTaskCount()
           && getSucceededTaskCount() == other.getSucceededTaskCount()
           && getRunningTaskCount() == other.getRunningTaskCount()
           && getFailedTaskCount() == other.getFailedTaskCount()
@@ -114,9 +114,9 @@ public class Progress {
     sb.append(getSucceededTaskCount());
     sb.append(" Running: ");
     sb.append(getRunningTaskCount());
-    sb.append(" Failed: "); 
+    sb.append(" Failed: ");
     sb.append(getFailedTaskCount());
-    sb.append(" Killed: "); 
+    sb.append(" Killed: ");
     sb.append(getKilledTaskCount());
     if (getFailedTaskAttemptCount() > 0) {
       sb.append(" FailedTaskAttempts: ");
@@ -132,5 +132,4 @@ public class Progress {
     }
     return sb.toString();
   }
-
 }

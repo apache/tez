@@ -35,11 +35,11 @@ public class FetcherWithInjectableErrors extends Fetcher {
   private String srcNameTrimmed;
 
   protected FetcherWithInjectableErrors(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, InputContext inputContext,
-      JobTokenSecretManager jobTokenSecretManager, Configuration conf,
-      RawLocalFileSystem localFs, LocalDirAllocator localDirAllocator, Path lockPath, boolean localDiskFetchEnabled,
-      boolean sharedFetchEnabled, String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum,
-      boolean compositeFetch) {
+                                        FetchedInputAllocator inputManager, InputContext inputContext,
+                                        JobTokenSecretManager jobTokenSecretManager, Configuration conf,
+                                        RawLocalFileSystem localFs, LocalDirAllocator localDirAllocator, Path lockPath, boolean localDiskFetchEnabled,
+                                        boolean sharedFetchEnabled, String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum,
+                                        boolean compositeFetch) {
     super(fetcherCallback, params, inputManager, inputContext, jobTokenSecretManager, conf,
         localFs, localDirAllocator, lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort,
         asyncHttp, verifyDiskChecksum, compositeFetch);

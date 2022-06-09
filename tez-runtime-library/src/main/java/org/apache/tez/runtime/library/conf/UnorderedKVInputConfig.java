@@ -84,7 +84,6 @@ public class UnorderedKVInputConfig {
      * @return instance of the current builder
      */
     public T setMergeFraction(float mergeFraction);
-
   }
 
   @SuppressWarnings("rawtypes")
@@ -95,7 +94,6 @@ public class UnorderedKVInputConfig {
 
     private final E edgeBuilder;
     private final UnorderedKVInputConfig.Builder builder;
-
 
     @InterfaceAudience.Private
     SpecificBuilder(E edgeBuilder, UnorderedKVInputConfig.Builder builder) {
@@ -148,7 +146,6 @@ public class UnorderedKVInputConfig {
     public E done() {
       return edgeBuilder;
     }
-
   }
 
   @InterfaceAudience.Private
@@ -166,6 +163,7 @@ public class UnorderedKVInputConfig {
 
   /**
    * Get a UserPayload representation of the Configuration
+   *
    * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
   public UserPayload toUserPayload() {
@@ -207,8 +205,8 @@ public class UnorderedKVInputConfig {
     /**
      * Create a configuration builder for {@link org.apache.tez.runtime.library.input.UnorderedKVInput}
      *
-     * @param keyClassName         the key class name
-     * @param valueClassName       the value class name
+     * @param keyClassName   the key class name
+     * @param valueClassName the value class name
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName) {

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -63,14 +63,14 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * this value
    */
   public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION =
-    "tez.cartesian-product.min-src-fraction";
+      "tez.cartesian-product.min-src-fraction";
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT = 0.25f;
 
   /**
    * Schedule all tasks when the fraction of finished cartesian product source tasks reach this value
    */
   public static final String TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION =
-    "tez.cartesian-product.max-src-fraction";
+      "tez.cartesian-product.max-src-fraction";
   public static final float TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT = 0.75f;
 
   /**
@@ -78,7 +78,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * Set this if auto determined num partition is not large enough
    */
   public static final String TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS =
-    "tez.cartesian-product.num-partitions";
+      "tez.cartesian-product.num-partitions";
 
   /**
    * Whether to disable grouping in fair cartesian product
@@ -86,7 +86,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * unnecessary overhead caused by multiple partitions.
    */
   public static final String TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING =
-    "tez.cartesian-product.disable-grouping";
+      "tez.cartesian-product.disable-grouping";
   public static final boolean TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT = true;
 
   /**
@@ -97,14 +97,14 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * If not set, auto grouping will begin once every source vertex generate enough output
    */
   public static final String TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION =
-    "tez.cartesian-product.grouping-fraction";
+      "tez.cartesian-product.grouping-fraction";
 
   /**
    * Max parallelism, for fair cartesian product only.
    * This is used to avoid get too many tasks. The value must be positive.
    */
   public static final String TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM =
-    "tez.cartesian-product.max-parallelism";
+      "tez.cartesian-product.max-parallelism";
   public static final int TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT = 1000;
 
   /**
@@ -112,7 +112,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
    * This is used to avoid a task gets too small workload. The value must be positive.
    */
   public static final String TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER =
-    "tez.cartesian-product.min-ops-per-worker";
+      "tez.cartesian-product.min-ops-per-worker";
   public static final long TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT = 1000000;
 
   private CartesianProductVertexManagerReal vertexManagerReal = null;
@@ -120,13 +120,13 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
   public CartesianProductVertexManager(VertexManagerPluginContext context) {
     super(context);
     Preconditions.checkArgument(context.getVertexNumTasks(context.getVertexName()) == -1,
-      "Vertex with CartesianProductVertexManager cannot use pre-defined parallelism");
+        "Vertex with CartesianProductVertexManager cannot use pre-defined parallelism");
   }
 
   @Override
   public void initialize() throws Exception {
     CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(
-      ByteString.copyFrom(getContext().getUserPayload().getPayload()));
+        ByteString.copyFrom(getContext().getUserPayload().getPayload()));
     // check whether DAG and config are is consistent
     Map<String, EdgeProperty> edgePropertyMap = getContext().getInputVertexEdgeProperties();
     Set<String> sourceVerticesDAG = edgePropertyMap.keySet();
@@ -146,46 +146,46 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
       EdgeProperty edgeProperty = entry.getValue();
       EdgeManagerPluginDescriptor empDescriptor = edgeProperty.getEdgeManagerDescriptor();
       if (empDescriptor != null
-        && empDescriptor.getClassName().equals(CartesianProductEdgeManager.class.getName())) {
+          && empDescriptor.getClassName().equals(CartesianProductEdgeManager.class.getName())) {
         Preconditions.checkArgument(
-          sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
-          vertex + " has CartesianProductEdgeManager but isn't in " +
-            "CartesianProductVertexManagerConfig");
+            sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
+            vertex + " has CartesianProductEdgeManager but isn't in " +
+                "CartesianProductVertexManagerConfig");
       } else {
         Preconditions.checkArgument(
-          !sourceVerticesConfig.contains(vertex) && !sourceVerticesConfig.contains(group),
-          vertex + " has no CartesianProductEdgeManager but is in " +
-            "CartesianProductVertexManagerConfig");
+            !sourceVerticesConfig.contains(vertex) && !sourceVerticesConfig.contains(group),
+            vertex + " has no CartesianProductEdgeManager but is in " +
+                "CartesianProductVertexManagerConfig");
       }
 
       if (edgeProperty.getDataMovementType() == CUSTOM) {
         Preconditions.checkArgument(
-          sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
-          "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
+            sourceVerticesConfig.contains(vertex) || sourceVerticesConfig.contains(group),
+            "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
       } else {
         Preconditions.checkArgument(edgeProperty.getDataMovementType() == BROADCAST,
-          "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
+            "Only broadcast and cartesian product edges are allowed in cartesian product vertex");
       }
     }
 
     for (String src : sourceVerticesConfig) {
       List<String> vertices =
-        vertexGroups.containsKey(src) ? vertexGroups.get(src) : Collections.singletonList(src);
+          vertexGroups.containsKey(src) ? vertexGroups.get(src) : Collections.singletonList(src);
       for (String v : vertices) {
         Preconditions.checkArgument(
-          sourceVerticesDAG.contains(v),
-          v + " is in CartesianProductVertexManagerConfig but not a source vertex in DAG");
+            sourceVerticesDAG.contains(v),
+            v + " is in CartesianProductVertexManagerConfig but not a source vertex in DAG");
         Preconditions.checkArgument(
-          edgePropertyMap.get(v).getEdgeManagerDescriptor().getClassName()
-            .equals(CartesianProductEdgeManager.class.getName()),
-          v + " is in CartesianProductVertexManagerConfig and a source vertex, but has no " +
-            "CartesianProductEdgeManager");
+            edgePropertyMap.get(v).getEdgeManagerDescriptor().getClassName()
+                .equals(CartesianProductEdgeManager.class.getName()),
+            v + " is in CartesianProductVertexManagerConfig and a source vertex, but has no " +
+                "CartesianProductEdgeManager");
       }
     }
 
     vertexManagerReal = config.getIsPartitioned()
-      ? new CartesianProductVertexManagerPartitioned(getContext())
-      : new FairCartesianProductVertexManager(getContext());
+        ? new CartesianProductVertexManagerPartitioned(getContext())
+        : new FairCartesianProductVertexManager(getContext());
     vertexManagerReal.initialize(config);
   }
 
@@ -224,7 +224,7 @@ public class CartesianProductVertexManager extends VertexManagerPlugin {
   }
 
   @Override
-  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception{
+  public void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
     vertexManagerReal.onVertexStateUpdated(stateUpdate);
   }
 

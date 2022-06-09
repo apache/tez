@@ -44,9 +44,9 @@ import org.junit.Test;
 
 public class TestProcessorContext {
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testDagNumber() throws IOException {
-    String[] localDirs = new String[] {"dummyLocalDir"};
+    String[] localDirs = new String[]{"dummyLocalDir"};
     int appAttemptNumber = 1;
     TezUmbilical tezUmbilical = mock(TezUmbilical.class);
     String dagName = "DAG_NAME";
@@ -107,9 +107,9 @@ public class TestProcessorContext {
     assertEquals(vertexId.getId(), procContext.getTaskVertexIndex());
     assertTrue(Arrays.equals(localDirs, procContext.getWorkDirs()));
 
-     // test auto call of notifyProgress
-     procContext.setProgress(0.1f);
-     verify(mockTask, times(1)).notifyProgressInvocation();
-     sharedExecutor.shutdown();
+    // test auto call of notifyProgress
+    procContext.setProgress(0.1f);
+    verify(mockTask, times(1)).notifyProgressInvocation();
+    sharedExecutor.shutdown();
   }
 }

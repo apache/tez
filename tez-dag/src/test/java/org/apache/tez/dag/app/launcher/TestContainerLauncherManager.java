@@ -14,7 +14,6 @@
 
 package org.apache.tez.dag.app.launcher;
 
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -227,7 +226,6 @@ public class TestContainerLauncherManager {
 
       clr.handle(launchRequestEvent1);
 
-
       ArgumentCaptor<ContainerLaunchRequest> captor =
           ArgumentCaptor.forClass(ContainerLaunchRequest.class);
       verify(clr.getTestContainerLauncher(0)).launchContainer(captor.capture());
@@ -241,7 +239,6 @@ public class TestContainerLauncherManager {
       assertEquals(1, captor.getAllValues().size());
       ContainerLaunchRequest launchRequest2 = captor.getValue();
       assertEquals(clc2, launchRequest2.getContainerLaunchContext());
-
     } finally {
       clr.stop();
       verify(clr.getTestContainerLauncher(0)).shutdown();
@@ -277,7 +274,6 @@ public class TestContainerLauncherManager {
       Container container1 = mock(Container.class);
       ContainerLauncherLaunchRequestEvent launchRequestEvent =
           new ContainerLauncherLaunchRequestEvent(clc1, container1, 0, 0, 0);
-
 
       containerLauncherManager.handle(launchRequestEvent);
 
@@ -346,7 +342,6 @@ public class TestContainerLauncherManager {
       ContainerLauncherLaunchRequestEvent launchRequestEvent =
           new ContainerLauncherLaunchRequestEvent(clc1, container1, 0, 0, 0);
 
-
       containerLauncherManager.handle(launchRequestEvent);
 
       ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
@@ -402,7 +397,6 @@ public class TestContainerLauncherManager {
         new LinkedList<>();
     private static final List<String> containerLauncherNames = new LinkedList<>();
     private static final List<ContainerLauncher> testContainerLaunchers = new LinkedList<>();
-
 
     public static void reset() {
       numContainerLaunchers.set(0);
@@ -516,6 +510,7 @@ public class TestContainerLauncherManager {
 
   private static final String DAG_NAME = "dagName";
   private static final int DAG_INDEX = 1;
+
   public static class ContainerLauncherForTest extends ContainerLauncher {
 
     public ContainerLauncherForTest(
@@ -535,5 +530,4 @@ public class TestContainerLauncherManager {
           .reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError", new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
     }
   }
-
 }

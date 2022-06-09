@@ -21,7 +21,6 @@ package org.apache.tez.common;
 import java.util.Locale;
 import java.util.Properties;
 
-
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.tez.dag.api.TezConstants;
@@ -31,9 +30,9 @@ public class TezLog4jConfigurator extends PropertyConfigurator {
   public void doConfigure(Properties properties, LoggerRepository repository) {
     String logParams = System.getenv(TezConstants.TEZ_CONTAINER_LOG_PARAMS);
     if (logParams != null) {
-      String []parts = logParams.split(TezConstants.TEZ_CONTAINER_LOG_PARAMS_SEPARATOR);
+      String[] parts = logParams.split(TezConstants.TEZ_CONTAINER_LOG_PARAMS_SEPARATOR);
       for (String logParam : parts) {
-        String [] logParamParts = logParam.split("=");
+        String[] logParamParts = logParam.split("=");
         if (logParamParts.length == 2) {
           String loggerName = "log4j.logger." + logParamParts[0];
           String logLevel = logParamParts[1].toUpperCase(Locale.ENGLISH);
@@ -47,5 +46,4 @@ public class TezLog4jConfigurator extends PropertyConfigurator {
     }
     super.doConfigure(properties, repository);
   }
-
 }

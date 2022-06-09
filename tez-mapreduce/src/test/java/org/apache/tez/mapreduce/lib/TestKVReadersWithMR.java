@@ -86,7 +86,6 @@ public class TestKVReadersWithMR {
     } catch (IOException e) {
       assertTrue(e.getMessage().contains("For usage, please refer to"));
     }
-
   }
 
   public void testWithSpecificNumberOfKV_MapReduce(int kvPairs) throws IOException {
@@ -227,5 +226,4 @@ public class TestKVReadersWithMR {
     public void close() throws IOException {
     }
   }
-
 }

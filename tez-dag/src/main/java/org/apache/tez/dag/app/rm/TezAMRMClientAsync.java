@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,7 +55,7 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
   }
 
   private TreeMap<Priority, LocalityRequestCounter> knownRequestsByPriority =
-    new TreeMap<Priority, LocalityRequestCounter>();
+      new TreeMap<Priority, LocalityRequestCounter>();
 
   public static <T extends ContainerRequest> TezAMRMClientAsync<T> createAMRMClientAsync(
       int intervalMs, CallbackHandler callbackHandler) {
@@ -72,29 +72,29 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
       AMRMClientAsync.CallbackHandler callbackHandler) {
     super(client, intervalMs, callbackHandler);
   }
-  
+
   public synchronized Priority getTopPriority() {
     if (knownRequestsByPriority.isEmpty()) {
       return null;
     }
     return knownRequestsByPriority.lastKey();
   }
-  
+
   // Remove after YARN-1723 is fixed
   public synchronized void addNodeToBlacklist(NodeId nodeId) {
     client.updateBlacklist(Collections.singletonList(nodeId.getHost()), null);
   }
-  
+
   //Remove after YARN-1723 is fixed
-   public synchronized void removeNodeFromBlacklist(NodeId nodeId) {
-     client.updateBlacklist(null, Collections.singletonList(nodeId.getHost()));
-   }
+  public synchronized void removeNodeFromBlacklist(NodeId nodeId) {
+    client.updateBlacklist(null, Collections.singletonList(nodeId.getHost()));
+  }
 
   @Override
   public synchronized void addContainerRequest(T req) {
     super.addContainerRequest(req);
     boolean hasLocality = (req.getNodes() != null && !req.getNodes().isEmpty())
-      || (req.getRacks() != null && !req.getRacks().isEmpty());
+        || (req.getRacks() != null && !req.getRacks().isEmpty());
     LocalityRequestCounter lrc = knownRequestsByPriority.get(req.getPriority());
     if (lrc == null) {
       lrc = new LocalityRequestCounter();
@@ -111,9 +111,9 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
   public synchronized void removeContainerRequest(T req) {
     super.removeContainerRequest(req);
     boolean hasLocality = (req.getNodes() != null && !req.getNodes().isEmpty())
-      || (req.getRacks() != null && !req.getRacks().isEmpty());
+        || (req.getRacks() != null && !req.getRacks().isEmpty());
     LocalityRequestCounter lrc = knownRequestsByPriority.get(
-      req.getPriority());
+        req.getPriority());
     if (hasLocality) {
       lrc.localityRequests.decrementAndGet();
     } else {
@@ -126,11 +126,11 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
   }
 
   public synchronized List<? extends Collection<T>>
-    getMatchingRequestsForTopPriority(
-        String resourceName, Resource capability) {
+  getMatchingRequestsForTopPriority(
+      String resourceName, Resource capability) {
     // Sort based on reverse order. By default, Priority ordering is based on
     // highest numeric value being considered to be lowest priority.
-    Map.Entry<Priority,LocalityRequestCounter> entry = knownRequestsByPriority.lastEntry();
+    Map.Entry<Priority, LocalityRequestCounter> entry = knownRequestsByPriority.lastEntry();
     if (entry == null || entry.getValue() == null) {
       return Collections.emptyList();
     }
@@ -141,20 +141,19 @@ public class TezAMRMClientAsync<T extends ContainerRequest> extends AMRMClientAs
       // locality matching
       if (LOG.isDebugEnabled()) {
         LOG.debug("Over-ridding location request for matching containers as"
-          + " there are no pending requests that require locality at this"
-          + " priority"
-          + ", priority=" + p
-          + ", localityRequests=" + lrc.localityRequests
-          + ", noLocalityRequests=" + lrc.noLocalityRequests);
+            + " there are no pending requests that require locality at this"
+            + " priority"
+            + ", priority=" + p
+            + ", localityRequests=" + lrc.localityRequests
+            + ", noLocalityRequests=" + lrc.noLocalityRequests);
       }
       resourceName = ResourceRequest.ANY;
     }
     List<? extends Collection<T>> matched =
-      getMatchingRequests(p, resourceName, capability);
+        getMatchingRequests(p, resourceName, capability);
     if (matched != null && !matched.isEmpty()) {
       return matched;
     }
     return Collections.emptyList();
   }
-
 }

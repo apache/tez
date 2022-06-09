@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -151,7 +151,7 @@ public class TestMRCombiner {
       TezRawKeyValueIterator {
 
     private int i = -1;
-    private String[] keys = { "tez", "tez", "tez", "apache", "hadoop", "hadoop" };
+    private String[] keys = {"tez", "tez", "tez", "apache", "hadoop", "hadoop"};
 
     @Override
     public boolean next() throws IOException {
@@ -164,7 +164,7 @@ public class TestMRCombiner {
     }
 
     public boolean hasNext() throws IOException {
-      if (i < (keys.length -  1)) {
+      if (i < (keys.length - 1)) {
         return true;
       }
       return false;
@@ -218,7 +218,7 @@ public class TestMRCombiner {
 
     @Override
     public void reduce(Text key, Iterator<IntWritable> value,
-        OutputCollector<Text, IntWritable> collector, Reporter reporter)
+                       OutputCollector<Text, IntWritable> collector, Reporter reporter)
         throws IOException {
       int count = 0;
       while (value.hasNext()) {
@@ -232,7 +232,7 @@ public class TestMRCombiner {
       org.apache.hadoop.mapreduce.Reducer<Text, IntWritable, Text, IntWritable> {
     @Override
     protected void reduce(Text key, Iterable<IntWritable> values,
-        Context context) throws IOException, InterruptedException {
+                          Context context) throws IOException, InterruptedException {
       int count = 0;
       for (IntWritable value : values) {
         count += value.get();
@@ -244,7 +244,7 @@ public class TestMRCombiner {
   private static class Top2OldReducer extends OldReducer {
     @Override
     public void reduce(Text key, Iterator<IntWritable> value,
-        OutputCollector<Text, IntWritable> collector, Reporter reporter)
+                       OutputCollector<Text, IntWritable> collector, Reporter reporter)
         throws IOException {
       int i = 0;
       while (value.hasNext()) {
@@ -259,7 +259,7 @@ public class TestMRCombiner {
   private static class Top2NewReducer extends NewReducer {
     @Override
     protected void reduce(Text key, Iterable<IntWritable> values,
-        Context context) throws IOException, InterruptedException {
+                          Context context) throws IOException, InterruptedException {
       int i = 0;
       for (IntWritable value : values) {
         if (i++ < 2) {

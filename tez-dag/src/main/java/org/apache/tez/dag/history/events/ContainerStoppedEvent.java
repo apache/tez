@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,17 +38,17 @@ public class ContainerStoppedEvent implements HistoryEvent {
 
   public ContainerStoppedEvent() {
   }
-  
+
   public ContainerStoppedEvent(ContainerId containerId,
-      long stopTime,
-      int exitStatus,
-      ApplicationAttemptId applicationAttemptId) {
+                               long stopTime,
+                               int exitStatus,
+                               ApplicationAttemptId applicationAttemptId) {
     this.containerId = containerId;
     this.stopTime = stopTime;
     this.exitStatus = exitStatus;
     this.applicationAttemptId = applicationAttemptId;
   }
-  
+
   @Override
   public HistoryEventType getEventType() {
     return HistoryEventType.CONTAINER_STOPPED;
@@ -98,7 +98,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
   @Override
   public String toString() {
     return "containerId=" + containerId
-        + ", stoppedTime=" + stopTime 
+        + ", stoppedTime=" + stopTime
         + ", exitStatus=" + exitStatus;
   }
 
@@ -109,7 +109,7 @@ public class ContainerStoppedEvent implements HistoryEvent {
   public long getStoppedTime() {
     return stopTime;
   }
-  
+
   public int getExitStatus() {
     return exitStatus;
   }
@@ -117,5 +117,4 @@ public class ContainerStoppedEvent implements HistoryEvent {
   public ApplicationAttemptId getApplicationAttemptId() {
     return applicationAttemptId;
   }
-
 }

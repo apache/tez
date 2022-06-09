@@ -198,7 +198,6 @@ public class TestTaskExecution2 {
     }
   }
 
-
   // test task failed due to exception in Processor
   @Test(timeout = 5000)
   public void testFailedTaskTezException() throws IOException, InterruptedException, TezException,
@@ -235,7 +234,6 @@ public class TestTaskExecution2 {
       executor.shutdownNow();
     }
   }
-
 
   // Test task failed due to Processor class not found
   @Test(timeout = 5000)
@@ -298,7 +296,6 @@ public class TestTaskExecution2 {
       TaskRunner2Result result = taskRunnerFuture.get();
       verifyTaskRunnerResult(result, EndReason.TASK_ERROR, createProcessorIOException(), false, TaskFailureType.NON_FATAL);
 
-
       assertNull(taskReporter.currentCallable);
       umbilical.verifyTaskFailedEvent(
           FAILURE_START_STRING,
@@ -325,7 +322,7 @@ public class TestTaskExecution2 {
           umbilical = new TaskExecutionTestHelpers.TezTaskUmbilicalForTest();
 
       TaskReporter taskReporter = new TaskReporter(umbilical, 100, 1000, 100, new AtomicLong(0),
-        createContainerId(appId).toString()) {
+          createContainerId(appId).toString()) {
         @Override
         protected boolean isShuttingDown() {
           return true;
@@ -414,7 +411,6 @@ public class TestTaskExecution2 {
 
       TaskRunner2Result result = taskRunnerFuture.get();
       verifyTaskRunnerResult(result, EndReason.CONTAINER_STOP_REQUESTED, null, true, null);
-
 
       TestProcessor.awaitCompletion();
       assertTrue(TestProcessor.wasInterrupted());
@@ -656,7 +652,7 @@ public class TestTaskExecution2 {
   private void verifySysCounters(TezCounters tezCounters, int minTaskCounterCount, int minFsCounterCount) {
 
     Preconditions.checkArgument((minTaskCounterCount > 0 && minFsCounterCount > 0) ||
-        (minTaskCounterCount <= 0 && minFsCounterCount <= 0),
+            (minTaskCounterCount <= 0 && minFsCounterCount <= 0),
         "Both targetCounter counts should be postitive or negative. A mix is not expected");
 
     int numTaskCounters = 0;
@@ -708,12 +704,10 @@ public class TestTaskExecution2 {
       if (expectedExceptionMessage != null) {
         assertTrue(cause.getMessage().contains(expectedExceptionMessage));
       }
-
     }
     assertEquals(taskFailureType, taskRunner2Result.getTaskFailureType());
     assertEquals(wasShutdownRequested, taskRunner2Result.isContainerShutdownRequested());
   }
-
 
   private static class TaskRunnerCallable2ForTest implements Callable<TaskRunner2Result> {
     private final TezTaskRunner2 taskRunner;
@@ -734,7 +728,6 @@ public class TestTaskExecution2 {
                                           ListeningExecutorService executor, byte[] processorConf) throws
       IOException {
     return createTaskRunner(appId, umbilical, taskReporter, executor, processorConf, true);
-
   }
 
   private TezTaskRunner2 createTaskRunner(ApplicationId appId,
@@ -827,7 +820,6 @@ public class TestTaskExecution2 {
           sharedExecutor);
     }
 
-
     @Override
     @VisibleForTesting
     void processCallableResult(TaskRunner2Callable.TaskRunner2CallableResult executionResult) {
@@ -852,5 +844,4 @@ public class TestTaskExecution2 {
       }
     }
   }
-
 }

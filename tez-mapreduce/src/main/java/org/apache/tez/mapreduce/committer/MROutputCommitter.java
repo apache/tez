@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,7 +73,7 @@ public class MROutputCommitter extends OutputCommitter {
       jobConf = new JobConf(
           TezUtils.createConfFromUserPayload(userPayload));
     }
-    
+
     // Read all credentials into the credentials instance stored in JobConf.
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
@@ -111,12 +111,12 @@ public class MROutputCommitter extends OutputCommitter {
 
   @SuppressWarnings("rawtypes")
   private org.apache.hadoop.mapreduce.OutputCommitter
-      getOutputCommitter(OutputCommitterContext context) {
+  getOutputCommitter(OutputCommitterContext context) {
 
     org.apache.hadoop.mapreduce.OutputCommitter committer = null;
     newApiCommitter = false;
     if (jobConf.getBoolean("mapred.reducer.new-api", false)
-        || jobConf.getBoolean("mapred.mapper.new-api", false))  {
+        || jobConf.getBoolean("mapred.mapper.new-api", false)) {
       newApiCommitter = true;
     }
     LOG.info("Committer for " + getContext().getVertexName() + ":" + getContext().getOutputName() +
@@ -161,7 +161,7 @@ public class MROutputCommitter extends OutputCommitter {
   }
 
   private JobStatus.State getJobStateFromVertexStatusState(VertexStatus.State state) {
-    switch(state) {
+    switch (state) {
       case INITED:
         return JobStatus.State.PREP;
       case RUNNING:
@@ -184,7 +184,6 @@ public class MROutputCommitter extends OutputCommitter {
     public MRJobContextImpl(JobConf jobConf, JobID jobId) {
       super(jobConf, jobId);
     }
-
   }
 
   @SuppressWarnings("deprecation")
@@ -203,7 +202,7 @@ public class MROutputCommitter extends OutputCommitter {
     }
     TaskAttemptID taskAttemptID = new TaskAttemptID(
         Long.toString(getContext().getApplicationId().getClusterTimestamp())
-        + String.valueOf(getContext().getVertexIndex()),
+            + String.valueOf(getContext().getVertexIndex()),
         getContext().getApplicationId().getId(),
         ((jobConf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false) ?
             TaskType.MAP : TaskType.REDUCE)),
@@ -212,5 +211,4 @@ public class MROutputCommitter extends OutputCommitter {
         taskAttemptID);
     committer.recoverTask(taskContext);
   }
-
 }

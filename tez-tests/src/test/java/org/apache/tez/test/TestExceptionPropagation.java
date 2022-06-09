@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -213,9 +213,9 @@ public class TestExceptionPropagation {
   /**
    * verify the diagnostics in DAGStatus is correct in session mode, using local
    * mode for fast speed
-   * 
+   *
    * @throws Exception
-   * 
+   *
    */
   @Test(timeout = 600000)
   public void testExceptionPropagationSession() throws Exception {
@@ -243,7 +243,7 @@ public class TestExceptionPropagation {
    * verify the diagnostics in {@link DAGStatus} is correct in non-session mode,
    * and also verify that diagnostics from {@link DAGStatus} should match that
    * from {@link ApplicationReport}
-   * 
+   *
    * @throws Exception
    */
   @Test(timeout = 120000)
@@ -311,7 +311,7 @@ public class TestExceptionPropagation {
     PROCESSOR_COUNTER_EXCEEDED,
 
     // VM
-    VM_INITIALIZE, VM_ON_ROOTVERTEX_INITIALIZE,VM_ON_SOURCETASK_COMPLETED, VM_ON_VERTEX_STARTED,
+    VM_INITIALIZE, VM_ON_ROOTVERTEX_INITIALIZE, VM_ON_SOURCETASK_COMPLETED, VM_ON_VERTEX_STARTED,
     VM_ON_VERTEXMANAGEREVENT_RECEIVED,
 
     // EdgeManager
@@ -323,13 +323,12 @@ public class TestExceptionPropagation {
 
     // II
     II_Initialize, II_HandleInputInitializerEvents, II_OnVertexStateUpdated
-
   }
 
   /**
    * create a DAG with 2 vertices (v1 --> v2), set payload on Input/Output/Processor/VertexManagerPlugin to
    * control where throw exception
-   * 
+   *
    * @param exLocation
    * @return
    * @throws IOException
@@ -348,18 +347,18 @@ public class TestExceptionPropagation {
     v1.setVertexManagerPlugin(RootInputVertexManagerWithException
         .getVMDesc(exLocation));
 
-    Vertex v2 = 
+    Vertex v2 =
         Vertex.create("v2", DoNothingProcessor.getProcDesc(), 1);
     v2.addDataSource("input2",
         DataSourceDescriptor.create(InputDescriptor.create(NoOpInput.class.getName()),
-          InputInitializerWithException2.getIIDesc(payload), null));
+            InputInitializerWithException2.getIIDesc(payload), null));
 
     dag.addVertex(v1)
-      .addVertex(v2);
+        .addVertex(v2);
     if (exLocation.name().startsWith("EM_")) {
       dag.addEdge(Edge.create(v1, v2, EdgeProperty.create(
           EdgeManagerPluginDescriptor.create(CustomEdgeManager.class.getName())
-            .setUserPayload(payload),
+              .setUserPayload(payload),
           DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
           OutputWithException.getOutputDesc(payload), InputWithException.getInputDesc(payload))));
     } else {
@@ -400,7 +399,7 @@ public class TestExceptionPropagation {
 
     public static InputInitializerDescriptor getIIDesc(UserPayload payload) {
       return InputInitializerDescriptor.create(
-          InputInitializerWithException.class.getName())
+              InputInitializerWithException.class.getName())
           .setUserPayload(payload);
     }
   }
@@ -458,7 +457,7 @@ public class TestExceptionPropagation {
 
     public static InputInitializerDescriptor getIIDesc(UserPayload payload) {
       return InputInitializerDescriptor.create(
-          InputInitializerWithException2.class.getName())
+              InputInitializerWithException2.class.getName())
           .setUserPayload(payload);
     }
   }
@@ -519,7 +518,7 @@ public class TestExceptionPropagation {
       getContext().requestInitialMemory(0l, null); // mandatory call
       if (this.exLocation == ExceptionLocation.INPUT_INITIALIZE) {
         throw new Exception(this.exLocation.name());
-      } else if ( getContext().getSourceVertexName().equals("v1")) {
+      } else if (getContext().getSourceVertexName().equals("v1")) {
         if (this.exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource
             || this.exLocation == ExceptionLocation.EM_GetNumDestinationConsumerTasks) {
           Event errorEvent = InputReadErrorEvent.create("read error", 0, 0);
@@ -541,7 +540,7 @@ public class TestExceptionPropagation {
     private ExceptionLocation exLocation;
 
     public OutputWithException(OutputContext outputContext,
-        int numPhysicalOutputs) {
+                               int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
       this.exLocation =
           ExceptionLocation.valueOf(new String(getContext().getUserPayload()
@@ -553,7 +552,6 @@ public class TestExceptionPropagation {
       if (this.exLocation == ExceptionLocation.OUTPUT_START) {
         throw new Exception(this.exLocation.name());
       }
-
     }
 
     @Override
@@ -620,7 +618,7 @@ public class TestExceptionPropagation {
 
     @Override
     public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs) throws Exception {
+                    Map<String, LogicalOutput> outputs) throws Exception {
       InputWithException input = (InputWithException) inputs.get("input");
       input.start();
       input.getReader();
@@ -635,8 +633,8 @@ public class TestExceptionPropagation {
         throw new Exception(this.exLocation.name());
       } else if (this.exLocation == ExceptionLocation.PROCESSOR_COUNTER_EXCEEDED) {
         // simulate the counter limitation exceeded
-        for (int i=0;i< TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT+1; ++i) {
-          getContext().getCounters().findCounter("mycounter", "counter_"+i).increment(1);
+        for (int i = 0; i < TezConfiguration.TEZ_COUNTERS_MAX_DEFAULT + 1; ++i) {
+          getContext().getCounters().findCounter("mycounter", "counter_" + i).increment(1);
         }
       }
     }
@@ -699,7 +697,7 @@ public class TestExceptionPropagation {
 
     @Override
     public void onRootVertexInitialized(String inputName,
-        InputDescriptor inputDescriptor, List<Event> events) {
+                                        InputDescriptor inputDescriptor, List<Event> events) {
       if (this.exLocation == ExceptionLocation.VM_ON_ROOTVERTEX_INITIALIZE) {
         throw new RuntimeException(this.exLocation.name());
       }
@@ -728,7 +726,7 @@ public class TestExceptionPropagation {
       conf.set(Test_ExceptionLocation, exLocation.name());
       UserPayload payload = TezUtils.createUserPayloadFromConf(conf);
       return VertexManagerPluginDescriptor.create(
-          RootInputVertexManagerWithException.class.getName())
+              RootInputVertexManagerWithException.class.getName())
           .setUserPayload(payload);
     }
   }
@@ -783,7 +781,7 @@ public class TestExceptionPropagation {
       conf.set(Test_ExceptionLocation, exLocation.name());
       UserPayload payload = TezUtils.createUserPayloadFromConf(conf);
       return VertexManagerPluginDescriptor.create(InputReadyVertexManagerWithException.class.getName())
-              .setUserPayload(payload);
+          .setUserPayload(payload);
     }
   }
 
@@ -841,15 +839,15 @@ public class TestExceptionPropagation {
 
     @Override
     public void routeDataMovementEventToDestination(DataMovementEvent event,
-        int sourceTaskIndex, int sourceOutputIndex,
-        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+                                                    int sourceTaskIndex, int sourceOutputIndex,
+                                                    Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       if (exLocation == ExceptionLocation.EM_RouteDataMovementEventToDestination) {
         throw new RuntimeException(exLocation.name());
       }
       super.routeDataMovementEventToDestination(event, sourceTaskIndex,
           sourceOutputIndex, destinationTaskAndInputIndices);
     }
-    
+
     @Override
     public void prepareForRouting() throws Exception {
       if (exLocation == ExceptionLocation.EM_PrepareForRouting) {
@@ -879,7 +877,7 @@ public class TestExceptionPropagation {
 
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
-        int destinationTaskIndex, int destinationFailedInputIndex) {
+                                            int destinationTaskIndex, int destinationFailedInputIndex) {
       if (exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource) {
         throw new RuntimeException(exLocation.name());
       }
@@ -889,7 +887,7 @@ public class TestExceptionPropagation {
 
     @Override
     public int routeInputErrorEventToSource(int destinationTaskIndex,
-        int destinationFailedInputIndex) {
+                                            int destinationFailedInputIndex) {
       if (exLocation == ExceptionLocation.EM_RouteInputErrorEventToSource) {
         throw new RuntimeException(exLocation.name());
       }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -364,7 +364,7 @@ public class TestDAGVerify {
   //    v3    v4
   @Test(timeout = 5000)
   public void testCycle1() {
-    IllegalStateException ex=null;
+    IllegalStateException ex = null;
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -406,10 +406,9 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     dag.addEdge(e3);
     dag.addEdge(e4);
-    try{
+    try {
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNotNull(ex);
@@ -424,7 +423,7 @@ public class TestDAGVerify {
   //    v3    v4
   @Test(timeout = 5000)
   public void testCycle2() {
-    IllegalStateException ex=null;
+    IllegalStateException ex = null;
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -466,10 +465,9 @@ public class TestDAGVerify {
     dag.addEdge(e2);
     dag.addEdge(e3);
     dag.addEdge(e4);
-    try{
+    try {
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNotNull(ex);
@@ -479,8 +477,8 @@ public class TestDAGVerify {
 
   // v1 -> v1
   @Test(timeout = 5000)
-  public void testSelfCycle(){
-    IllegalStateException ex=null;
+  public void testSelfCycle() {
+    IllegalStateException ex = null;
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -492,10 +490,9 @@ public class TestDAGVerify {
     DAG dag = DAG.create("testDag");
     dag.addVertex(v1);
     dag.addEdge(e1);
-    try{
+    try {
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNotNull(ex);
@@ -505,7 +502,7 @@ public class TestDAGVerify {
 
   @Test(timeout = 5000)
   public void repeatedVertexName() {
-    IllegalStateException ex=null;
+    IllegalStateException ex = null;
     Vertex v1 = Vertex.create("v1",
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
@@ -517,8 +514,7 @@ public class TestDAGVerify {
       dag.addVertex(v1);
       dag.addVertex(v1repeat);
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNotNull(ex);
@@ -682,7 +678,7 @@ public class TestDAGVerify {
     dag.addEdge(e1);
     dag.addEdge(e2);
     dag.verify();
-    for (int i = 0; i< 10;++i){
+    for (int i = 0; i < 10; ++i) {
       dag.verify();  // should be OK when called multiple times
     }
 
@@ -741,7 +737,7 @@ public class TestDAGVerify {
     dag.addVertex(v5);
     dag.addEdge(e1);
     dag.addEdge(e2);
-    for (int i = 0; i< 10;++i){
+    for (int i = 0; i < 10; ++i) {
       dag.verify(); // should be OK when called multiple times
     }
 
@@ -823,7 +819,7 @@ public class TestDAGVerify {
     dag.addVertex(v5);
     dag.addEdge(e1);
     dag.addEdge(e2);
-    for (int i = 0; i< 10;++i){
+    for (int i = 0; i < 10; ++i) {
       dag.verify();  // should be OK when called multiple times
     }
 
@@ -863,8 +859,7 @@ public class TestDAGVerify {
       dag.addEdge(e1);
       dag.addEdge(e2);
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNull(ex);
@@ -872,12 +867,11 @@ public class TestDAGVerify {
 
   @Test(timeout = 5000)
   public void testDagWithNoVertices() {
-    IllegalStateException ex=null;
+    IllegalStateException ex = null;
     try {
       DAG dag = DAG.create("testDag");
       dag.verify();
-    }
-    catch (IllegalStateException e){
+    } catch (IllegalStateException e) {
       ex = e;
     }
     Assert.assertNotNull(ex);
@@ -941,7 +935,6 @@ public class TestDAGVerify {
 
     dag.createDag(new TezConfiguration(), null, null, null, true);
   }
-
 
   @Test(timeout = 5000)
   public void testDAGCreateDataInference() {
@@ -1113,7 +1106,7 @@ public class TestDAGVerify {
     v0.addDataSource("input", dsDesc);
     dag.addVertex(v0);
     dag.addEdge(Edge.create(v0, v1, EdgeProperty.create(DataMovementType.ONE_TO_ONE,
-        DataSourceType.PERSISTED,SchedulingType.SEQUENTIAL,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(dummyOutputClassName),
         InputDescriptor.create(dummyInputClassName))));
     dag.verify();
@@ -1138,7 +1131,7 @@ public class TestDAGVerify {
     v0.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(dummyVMPluginClassName));
     dag.addVertex(v0);
     dag.addEdge(Edge.create(v0, v1, EdgeProperty.create(DataMovementType.ONE_TO_ONE,
-        DataSourceType.PERSISTED,SchedulingType.SEQUENTIAL,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create(dummyOutputClassName),
         InputDescriptor.create(dummyInputClassName))));
     dag.verify();
@@ -1174,13 +1167,13 @@ public class TestDAGVerify {
     Map<String, LocalResource> localResourceMap = new HashMap<>();
     String commonResourceKey = "local resource";
     localResourceMap.put("lr", LocalResource.newInstance(null, LocalResourceType.FILE,
-      LocalResourceVisibility.APPLICATION, 0, 0));
+        LocalResourceVisibility.APPLICATION, 0, 0));
     dag.addTaskLocalFiles(localResourceMap);
 
     Vertex v1 = Vertex.create("v", ProcessorDescriptor.create(dummyProcessorClassName), 1);
     // same key but different resource
     localResourceMap.put("lr", LocalResource.newInstance(null, LocalResourceType.FILE,
-      LocalResourceVisibility.APPLICATION, 10, 0));
+        LocalResourceVisibility.APPLICATION, 10, 0));
     v1.addTaskLocalFiles(localResourceMap);
 
     dag.addVertex(v1);

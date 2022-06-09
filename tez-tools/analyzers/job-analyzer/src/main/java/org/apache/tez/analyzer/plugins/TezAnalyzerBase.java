@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 public abstract class TezAnalyzerBase extends Configured implements Tool, Analyzer {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezAnalyzerBase.class);
-  
+
   private static final String EVENT_FILE_NAME = "eventFileName";
   private static final String OUTPUT_DIR = "outputDir";
   private static final String SAVE_RESULTS = "saveResults";
@@ -86,12 +86,12 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
         .hasArg(false).isRequired(false).create();
 
     Option eventFileNameOption = OptionBuilder.withArgName(EVENT_FILE_NAME).withLongOpt
-        (EVENT_FILE_NAME)
+            (EVENT_FILE_NAME)
         .withDescription("File with event data for the DAG").hasArg()
         .isRequired(false).create();
-    
+
     Option fromSimpleHistoryOption = OptionBuilder.withArgName(FROM_SIMPLE_HISTORY).withLongOpt
-        (FROM_SIMPLE_HISTORY)
+            (FROM_SIMPLE_HISTORY)
         .withDescription("Event data from Simple History logging. Must also specify event file")
         .isRequired(false).create();
 
@@ -101,7 +101,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
             .isRequired(false).create();
 
     Option help = OptionBuilder.withArgName(HELP).withLongOpt
-        (HELP)
+            (HELP)
         .withDescription("print help")
         .isRequired(false).create();
 
@@ -115,11 +115,11 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     opts.addOption(help);
     return opts;
   }
-  
+
   protected String getOutputDir() {
     return outputDir;
   }
-  
+
   private void printUsage() {
     System.err.println("Analyzer base options are");
     Options options = buildOptions();
@@ -141,8 +141,8 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       return -1;
     }
     saveResults = cmdLine.hasOption(SAVE_RESULTS);
-    
-    if(cmdLine.hasOption(HELP)) {
+
+    if (cmdLine.hasOption(HELP)) {
       printUsage();
       return 0;
     }
@@ -169,7 +169,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     }
 
     DagInfo dagInfo = null;
-    
+
     if (files.isEmpty()) {
       if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
         System.err.println("Event file name must be specified when using simple history");
@@ -183,7 +183,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       }
 
       // using ATS - try to download directly
-      String[] importArgs = { "--dagId=" + dagId, "--downloadDir=" + outputDir };
+      String[] importArgs = {"--dagId=" + dagId, "--downloadDir=" + outputDir};
 
       int result = ATSImportTool.process(importArgs);
       if (result != 0) {
@@ -196,7 +196,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       files.add(new File(outputDir
           + Path.SEPARATOR + dagId + ".zip"));
     }
-    
+
     Preconditions.checkState(!files.isEmpty());
     if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
       SimpleHistoryParser parser = new SimpleHistoryParser(files);

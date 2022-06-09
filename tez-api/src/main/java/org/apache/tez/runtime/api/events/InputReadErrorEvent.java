@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -70,7 +70,7 @@ public final class InputReadErrorEvent extends Event {
   private final String destinationLocalhostName;
 
   private InputReadErrorEvent(final String diagnostics, final int index, final int version,
-      final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
+                              final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
     super();
     this.diagnostics = diagnostics;
     this.index = index;
@@ -94,7 +94,7 @@ public final class InputReadErrorEvent extends Event {
   }
 
   public static InputReadErrorEvent create(String diagnostics, int index, int version, boolean isLocalFetch,
-      boolean isDiskErrorAtSource, String destinationLocalhostName) {
+                                           boolean isDiskErrorAtSource, String destinationLocalhostName) {
     return create(diagnostics, index, version, 1, isLocalFetch, isDiskErrorAtSource, destinationLocalhostName);
   }
 
@@ -102,7 +102,7 @@ public final class InputReadErrorEvent extends Event {
    * Create an InputReadErrorEvent.
    */
   public static InputReadErrorEvent create(final String diagnostics, final int index, final int version,
-      final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
+                                           final int numFailures, boolean isLocalFetch, boolean isDiskErrorAtSource, String destinationLocalhostName) {
     return new InputReadErrorEvent(diagnostics, index, version, numFailures, isLocalFetch, isDiskErrorAtSource,
         destinationLocalhostName);
   }
@@ -134,7 +134,7 @@ public final class InputReadErrorEvent extends Event {
     return isDiskErrorAtSource;
   }
 
-  public String getDestinationLocalhostName(){
+  public String getDestinationLocalhostName() {
     return destinationLocalhostName;
   }
 

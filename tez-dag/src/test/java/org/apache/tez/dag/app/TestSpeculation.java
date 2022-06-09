@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app;
 
@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -112,7 +113,8 @@ public class TestSpeculation {
    * The interface Retry.
    */
   @Retention(RetentionPolicy.RUNTIME)
-  public @interface Retry {}
+  public @interface Retry {
+  }
 
   /**
    * The type Retry rule.
@@ -133,7 +135,7 @@ public class TestSpeculation {
 
     @Override
     public Statement apply(final Statement base,
-        final Description description) {
+                           final Description description) {
       return new Statement() {
         @Override
         public void evaluate() throws Throwable {
@@ -240,7 +242,7 @@ public class TestSpeculation {
    *
    * @param estimatorKlass the estimator klass
    */
-  public TestSpeculation(Class<? extends TaskRuntimeEstimator>  estimatorKlass) {
+  public TestSpeculation(Class<? extends TaskRuntimeEstimator> estimatorKlass) {
     this.estimatorClass = estimatorKlass;
   }
 
@@ -269,7 +271,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   void syncWithMockAppLauncher(boolean allowScheduling, AtomicBoolean mockAppLauncherGoFlag,
-      MockTezClient tezClient) throws Exception {
+                               MockTezClient tezClient) throws Exception {
     synchronized (mockAppLauncherGoFlag) {
       while (!mockAppLauncherGoFlag.get()) {
         mockAppLauncherGoFlag.wait();
@@ -278,7 +280,7 @@ public class TestSpeculation {
       mockLauncher = mockApp.getContainerLauncher();
       mockLauncher.startScheduling(allowScheduling);
       mockAppLauncherGoFlag.notify();
-    }     
+    }
   }
 
   /**
@@ -287,7 +289,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout = 30000)
+  @Test(timeout = 30000)
   public void testSingleTaskSpeculation() throws Exception {
     // Map<Timeout conf value, expected number of tasks>
     Map<Long, Integer> confToExpected = new HashMap<Long, Integer>();
@@ -295,15 +297,15 @@ public class TestSpeculation {
     confToExpected.put(100L, 2);
     confToExpected.put(-1L, 1); // Don't speculate
     defaultConf.setLong(TezConfiguration.TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE, 50);
-    for(Map.Entry<Long, Integer> entry : confToExpected.entrySet()) {
+    for (Map.Entry<Long, Integer> entry : confToExpected.entrySet()) {
       defaultConf.setLong(
-              TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
-              entry.getKey());
+          TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
+          entry.getKey());
 
       DAG dag = DAG.create("test");
       Vertex vA = Vertex.create("A",
-              ProcessorDescriptor.create("Proc.class"),
-              1);
+          ProcessorDescriptor.create("Proc.class"),
+          1);
       dag.addVertex(vA);
 
       MockTezClient tezClient = createTezSession();
@@ -330,7 +332,7 @@ public class TestSpeculation {
         TaskAttempt killedAttempt = task.getAttempt(killedTaId);
         Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
         Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
-                killedAttempt.getTerminationCause());
+            killedAttempt.getTerminationCause());
       }
       tezClient.stop();
     }
@@ -372,7 +374,7 @@ public class TestSpeculation {
     Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
-    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION, 
+    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
         killedAttempt.getTerminationCause());
     if (withProgress) {
       // without progress updates occasionally more than 1 task speculates
@@ -386,7 +388,7 @@ public class TestSpeculation {
     }
 
     LegacySpeculator speculator =
-        (LegacySpeculator)(dagImpl.getVertex(vA.getName())).getSpeculator();
+        (LegacySpeculator) (dagImpl.getVertex(vA.getName())).getSpeculator();
     Assert.assertEquals(20, speculator.getMinimumAllowedSpeculativeTasks());
     Assert.assertEquals(.2, speculator.getProportionTotalTasksSpeculatable(), 0);
     Assert.assertEquals(.25, speculator.getProportionRunningTasksSpeculatable(), 0);
@@ -402,7 +404,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=30000)
+  @Test(timeout = 30000)
   public void testBasicSpeculationWithProgress() throws Exception {
     testBasicSpeculation(true);
   }
@@ -413,7 +415,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=30000)
+  @Test(timeout = 30000)
   public void testBasicSpeculationWithoutProgress() throws Exception {
     testBasicSpeculation(false);
   }
@@ -424,7 +426,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=30000)
+  @Test(timeout = 30000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
     DAG dag = DAG.create("test");
     String vNameNoSpec = "A";
@@ -485,14 +487,14 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   @Retry
-  @Test (timeout=30000)
+  @Test(timeout = 30000)
   public void testBasicSpeculationNotUseful() throws Exception {
     DAG dag = DAG.create("test");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
     MockTezClient tezClient = createTezSession();
-    
+
     DAGClient dagClient = tezClient.submitDAG(dag);
     DAGImpl dagImpl = (DAGImpl) mockApp.getContext().getCurrentDAG();
     TezVertexID vertexId = TezVertexID.getInstance(dagImpl.getID(), 0);
@@ -511,7 +513,7 @@ public class TestSpeculation {
     Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed speculative attempt as");
-    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION, 
+    Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION,
         killedAttempt.getTerminationCause());
     Assert.assertEquals(1, task.getCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());

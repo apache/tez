@@ -77,7 +77,7 @@ public class TestShuffleScheduler {
     sharedExecutor.shutdownNow();
   }
 
-  @Test (timeout = 10000)
+  @Test(timeout = 10000)
   public void testNumParallelScheduledFetchers() throws IOException, InterruptedException {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -114,7 +114,6 @@ public class TestShuffleScheduler {
       // wait for all the copies to be scheduled with timeout
       scheduler.latch.await(2000, TimeUnit.MILLISECONDS);
       assertEquals(0, scheduler.latch.getCount());
-
     } finally {
       scheduler.close();
       if (executorFuture != null) {
@@ -124,7 +123,7 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testUseSharedExecutor() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();
@@ -190,7 +189,7 @@ public class TestShuffleScheduler {
         scheduler.copySucceeded(identifiers[i], mapHosts[i], 20, 25, 100, mapOutput, false);
         scheduler.freeHost(mapHosts[i]);
       }
-      
+
       verify(inputContext, atLeast(numInputs)).notifyProgress();
 
       // Ensure the executor exits, and without an error.
@@ -253,7 +252,6 @@ public class TestShuffleScheduler {
           new MapHost("host" + (i % totalProducerNodes), 10000, i, 1), false, true);
     }
 
-
     InputAttemptIdentifier inputAttemptIdentifier =
         new InputAttemptIdentifier(200, 0, "attempt_");
 
@@ -311,7 +309,6 @@ public class TestShuffleScheduler {
     }
     //120 are successful. so remaining is 200
     assertEquals(200, scheduler.remainingMaps.get());
-
 
     //200 pending to be downloaded. Download 190.
     for (int i = 0; i < 190; i++) {
@@ -390,8 +387,6 @@ public class TestShuffleScheduler {
     // these are the only pending tasks)
     verify(shuffle, atLeast(1)).reportException(any());
   }
-
-
 
   @Test(timeout = 60000)
   /**
@@ -504,7 +499,7 @@ public class TestShuffleScheduler {
           10000, i, 1), 100, 200, startTime + (i * 100), mapOutput, false);
     }
 
-      //319 succeeds
+    //319 succeeds
     for (int i = 64; i < 319; i++) {
       InputAttemptIdentifier inputAttemptIdentifier =
           new InputAttemptIdentifier(i, 0, "attempt_");
@@ -545,7 +540,6 @@ public class TestShuffleScheduler {
     scheduler.copyFailed(InputAttemptFetchFailure.fromAttempt(inputAttemptIdentifier),
         new MapHost("host" + (319 % totalProducerNodes), 10000, 319, 1), false, true);
     verify(shuffle, times(1)).reportException(any());
-
   }
 
   @Test(timeout = 60000)
@@ -610,7 +604,6 @@ public class TestShuffleScheduler {
     verify(shuffle, times(0)).reportException(any());
   }
 
-
   @Test(timeout = 60000)
   /**
    * Scenario
@@ -626,14 +619,13 @@ public class TestShuffleScheduler {
     Configuration conf = new TezConfiguration();
     conf.setBoolean
         (TezRuntimeConfiguration
-                .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, true);
+            .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, true);
     _testReducerHealth_6(conf);
 
     conf.setBoolean
         (TezRuntimeConfiguration
             .TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION, false);
     _testReducerHealth_6(conf);
-
   }
 
   public void _testReducerHealth_6(Configuration conf) throws IOException {
@@ -701,7 +693,6 @@ public class TestShuffleScheduler {
       //Do not bail out yet.
       verify(shuffle, atLeast(0)).reportException(any());
     }
-
   }
 
   @Test(timeout = 60000)
@@ -766,7 +757,7 @@ public class TestShuffleScheduler {
 
     final ShuffleSchedulerForTest scheduler =
         new ShuffleSchedulerForTest(inputContext, conf, numInputs, shuffle, mergeManager,
-            mergeManager,startTime, null, false, 0, "srcName");
+            mergeManager, startTime, null, false, 0, "srcName");
     return scheduler;
   }
 
@@ -798,14 +789,13 @@ public class TestShuffleScheduler {
     MapHost host = scheduler.getHost();
     assertFalse("Host identifier mismatch", (host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"));
 
-
     //Refree thread would release it after INITIAL_PENALTY timeout
     Thread.sleep(ShuffleScheduler.INITIAL_PENALTY + 1000);
     host = scheduler.getHost();
     assertFalse("Host identifier mismatch", (host.getHost() + ":" + host.getPort() + ":" + host.getPartitionId()).equalsIgnoreCase("host0:10000"));
   }
 
-  @Test (timeout = 20000)
+  @Test(timeout = 20000)
   public void testProgressDuringGetHostWait() throws IOException, InterruptedException {
     long startTime = System.currentTimeMillis();
     Configuration conf = new TezConfiguration();
@@ -933,8 +923,9 @@ public class TestShuffleScheduler {
     try {
       // Close the scheduler on different thread to trigger interrupt
       Thread thread = new Thread(new Runnable() {
-        @Override public void run() {
-            scheduler.close();
+        @Override
+        public void run() {
+          scheduler.close();
         }
       });
       thread.start();
@@ -946,7 +937,7 @@ public class TestShuffleScheduler {
     }
   }
 
-  @Test (timeout = 120000)
+  @Test(timeout = 120000)
   public void testPenalties() throws Exception {
     InputContext inputContext = createTezInputContext();
     Configuration conf = new TezConfiguration();

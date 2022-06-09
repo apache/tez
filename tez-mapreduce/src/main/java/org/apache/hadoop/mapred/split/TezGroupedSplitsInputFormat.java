@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,9 +51,9 @@ import org.apache.tez.common.Preconditions;
  */
 @Public
 @Evolving
-public class TezGroupedSplitsInputFormat<K, V> 
-  implements InputFormat<K, V>, Configurable{
-  
+public class TezGroupedSplitsInputFormat<K, V>
+    implements InputFormat<K, V>, Configurable {
+
   private static final Logger LOG = LoggerFactory.getLogger(TezGroupedSplitsInputFormat.class);
 
   InputFormat<K, V> wrappedInputFormat;
@@ -62,11 +62,11 @@ public class TezGroupedSplitsInputFormat<K, V>
 
   SplitSizeEstimator estimator;
   SplitLocationProvider locationProvider;
-  
+
   public TezGroupedSplitsInputFormat() {
-    
+
   }
-  
+
   public void setInputFormat(InputFormat<K, V> wrappedInputFormat) {
     this.wrappedInputFormat = wrappedInputFormat;
     if (LOG.isDebugEnabled()) {
@@ -83,13 +83,13 @@ public class TezGroupedSplitsInputFormat<K, V>
     this.locationProvider = Objects.requireNonNull(locationProvider);
     LOG.debug("Split size location provider: {}", locationProvider);
   }
-  
+
   public void setDesiredNumberOfSplits(int num) {
     Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
     LOG.debug("desiredNumSplits: {}", desiredNumSplits);
   }
-  
+
   @Override
   public InputSplit[] getSplits(JobConf job, int numSplits) throws IOException {
     InputSplit[] originalSplits = wrappedInputFormat.getSplits(job, numSplits);
@@ -99,10 +99,10 @@ public class TezGroupedSplitsInputFormat<K, V>
         .getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, estimator,
             locationProvider);
   }
-  
+
   @Override
   public RecordReader<K, V> getRecordReader(InputSplit split, JobConf job,
-      Reporter reporter) throws IOException {
+                                            Reporter reporter) throws IOException {
     TezGroupedSplit groupedSplit = (TezGroupedSplit) split;
     try {
       initInputFormatFromSplit(groupedSplit);
@@ -111,11 +111,11 @@ public class TezGroupedSplitsInputFormat<K, V>
     }
     return new TezGroupedSplitsRecordReader(groupedSplit, job, reporter);
   }
-  
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
   void initInputFormatFromSplit(TezGroupedSplit split) throws TezException {
     if (wrappedInputFormat == null) {
-      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>) 
+      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>)
           getClassFromName(split.wrappedInputFormatName);
       try {
         wrappedInputFormat = org.apache.hadoop.util.ReflectionUtils.newInstance(clazz, conf);
@@ -140,10 +140,10 @@ public class TezGroupedSplitsInputFormat<K, V>
     final AtomicInteger initIndex;
     final int numReaders;
     final ExecutorService initReaderExecService;
-    final Queue<Future<RecordReader<K,V>>> initedReaders;
+    final Queue<Future<RecordReader<K, V>>> initedReaders;
 
     public TezGroupedSplitsRecordReader(TezGroupedSplit split, JobConf job,
-        Reporter reporter) throws IOException {
+                                        Reporter reporter) throws IOException {
       this.groupedSplit = split;
       this.job = job;
       this.reporter = reporter;
@@ -189,7 +189,7 @@ public class TezGroupedSplitsInputFormat<K, V>
         }));
       }
     }
-    
+
     @Override
     public boolean next(K key, V value) throws IOException {
 
@@ -205,17 +205,17 @@ public class TezGroupedSplitsInputFormat<K, V>
     public K createKey() {
       return curReader.createKey();
     }
-    
+
     @Override
     public V createValue() {
       return curReader.createValue();
     }
-    
+
     @Override
     public float getProgress() throws IOException {
-      return Math.min(1.0f,  getPos()/(float)(groupedSplit.getLength()));
+      return Math.min(1.0f, getPos() / (float) (groupedSplit.getLength()));
     }
-    
+
     @Override
     public void close() throws IOException {
       if (curReader != null) {
@@ -223,13 +223,13 @@ public class TezGroupedSplitsInputFormat<K, V>
         curReader = null;
       }
     }
-    
+
     protected boolean initNextRecordReader() throws IOException {
       if (curReader != null) {
         curReader.close();
         curReader = null;
         if (idx > 0) {
-          progress += groupedSplit.wrappedSplits.get(idx-1).getLength();
+          progress += groupedSplit.wrappedSplits.get(idx - 1).getLength();
         }
       }
 
@@ -241,8 +241,8 @@ public class TezGroupedSplitsInputFormat<K, V>
       }
 
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Init record reader for index " + idx + " of " + 
-                  groupedSplit.wrappedSplits.size());
+        LOG.debug("Init record reader for index " + idx + " of " +
+            groupedSplit.wrappedSplits.size());
       }
 
       // get a record reader for the idx-th chunk
@@ -261,7 +261,7 @@ public class TezGroupedSplitsInputFormat<K, V>
     }
 
     private void cancelsFutures() {
-      for (Future<RecordReader<K,V>> f : initedReaders) {
+      for (Future<RecordReader<K, V>> f : initedReaders) {
         f.cancel(true);
       }
     }
@@ -286,5 +286,4 @@ public class TezGroupedSplitsInputFormat<K, V>
   public Configuration getConf() {
     return conf;
   }
-
 }

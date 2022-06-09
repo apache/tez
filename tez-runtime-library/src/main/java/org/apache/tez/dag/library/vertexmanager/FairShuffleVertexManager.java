@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.library.vertexmanager;
 
@@ -46,7 +46,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
 
 /**
  * Fair routing based on partition size distribution to achieve optimal
@@ -84,7 +83,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
       "tez.fair-shuffle-vertex-manager.enable.auto-parallel";
   public static final String
       TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_ENABLE_AUTO_PARALLEL_DEFAULT =
-          FairRoutingType.NONE.getType();
+      FairRoutingType.NONE.getType();
 
   /**
    * In case of a ScatterGather connection, the fraction of source tasks which
@@ -170,21 +169,21 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
         destinationInputsProperties = new HashMap<>();
 
     FairSourceVertexInfo(final EdgeProperty edgeProperty,
-        int totalTasksToSchedule) {
+                         int totalTasksToSchedule) {
       super(edgeProperty, totalTasksToSchedule);
     }
+
     public HashMap<Integer, DestinationTaskInputsProperty>
-        getDestinationInputsProperties() {
+    getDestinationInputsProperties() {
       return destinationInputsProperties;
     }
   }
 
   @Override
   SourceVertexInfo createSourceVertexInfo(EdgeProperty edgeProperty,
-      int numTasks) {
+                                          int numTasks) {
     return new FairSourceVertexInfo(edgeProperty, numTasks);
   }
-
 
   FairShuffleVertexManagerConfig mgrConfig;
 
@@ -225,8 +224,8 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
       // distributed.
       if (numOfPartitions > 0) {
         long estimatedPerPartitionSize =
-                getExpectedTotalBipartiteSourceTasksOutputSize().divide(
-                        BigInteger.valueOf(numOfPartitions)).longValue();
+            getExpectedTotalBipartiteSourceTasksOutputSize().divide(
+                BigInteger.valueOf(numOfPartitions)).longValue();
         for (int i = 0; i < numOfPartitions; i++) {
           estimatedPartitionOutputSize[i] = estimatedPerPartitionSize;
         }
@@ -292,8 +291,9 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
     // numOfBaseDestinationTasks == 1, numOfBaseSourceTasks == 2.
     private int numOfBaseSourceTasks = 0;
     private int numOfBaseDestinationTasks = 0;
+
     public PartitionsGroupingCalculator(long[] estimatedPartitionOutputSize,
-        FairSourceVertexInfo sourceVertexInfo) {
+                                        FairSourceVertexInfo sourceVertexInfo) {
       this.estimatedPartitionOutputSize = estimatedPartitionOutputSize;
       this.sourceVertexInfo = sourceVertexInfo;
     }
@@ -420,7 +420,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
           continue;
         }
         Iterator<DestinationTaskInputsProperty> it = iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
           DestinationTaskInputsProperty property = it.next();
           sourceVertexInfo.getDestinationInputsProperties().put(
               destinationIndex, property);
@@ -438,12 +438,12 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
     int finalTaskParallelism = 0;
     long[] estimatedPartitionOutputSize = estimatePartitionSize();
     for (Map.Entry<String, SourceVertexInfo> vInfo : getBipartiteInfo()) {
-      FairSourceVertexInfo info = (FairSourceVertexInfo)vInfo.getValue();
+      FairSourceVertexInfo info = (FairSourceVertexInfo) vInfo.getValue();
       computeParallelism(estimatedPartitionOutputSize, info);
       if (finalTaskParallelism != 0) {
         Preconditions.checkState(
             finalTaskParallelism == info.getDestinationInputsProperties().size(),
-                "the parallelism shall be the same for source vertices");
+            "the parallelism shall be the same for source vertices");
       }
       finalTaskParallelism = info.getDestinationInputsProperties().size();
 
@@ -470,7 +470,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
   }
 
   private void computeParallelism(long[] estimatedPartitionOutputSize,
-      FairSourceVertexInfo sourceVertexInfo) {
+                                  FairSourceVertexInfo sourceVertexInfo) {
     PartitionsGroupingCalculator calculator = new PartitionsGroupingCalculator(
         estimatedPartitionOutputSize, sourceVertexInfo);
     calculator.compute();
@@ -495,7 +495,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
       if (completedSourceAttempt != null) {
         srcTaskId = completedSourceAttempt.getTaskIdentifier().getIdentifier();
         String srcVertexName = completedSourceAttempt.getTaskIdentifier().getVertexIdentifier().getName();
-        srcInfo = (FairSourceVertexInfo)getSourceVertexInfo(srcVertexName);
+        srcInfo = (FairSourceVertexInfo) getSourceVertexInfo(srcVertexName);
       }
       while (it.hasNext() && numTasksToSchedule > 0) {
         Integer taskIndex = it.next().getIndex();
@@ -524,14 +524,16 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
 
   static class FairShuffleVertexManagerConfig extends ShuffleVertexManagerBaseConfig {
     final FairRoutingType fairRoutingType;
+
     public FairShuffleVertexManagerConfig(final boolean enableAutoParallelism,
-        final long desiredTaskInputDataSize, final float slowStartMinFraction,
-        final float slowStartMaxFraction, final FairRoutingType fairRoutingType) {
+                                          final long desiredTaskInputDataSize, final float slowStartMinFraction,
+                                          final float slowStartMaxFraction, final FairRoutingType fairRoutingType) {
       super(enableAutoParallelism, desiredTaskInputDataSize,
           slowStartMinFraction, slowStartMaxFraction);
       this.fairRoutingType = fairRoutingType;
       LOG.info("fairRoutingType {}", this.fairRoutingType);
     }
+
     FairRoutingType getFairRoutingType() {
       return fairRoutingType;
     }
@@ -555,7 +557,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
         conf.getFloat(
             TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
             Math.max(slowStartMinFraction,
-            TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT)),
+                TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT)),
         fairRoutingType);
     return mgrConfig;
   }
@@ -574,7 +576,7 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
    * @return {@link FairShuffleVertexManagerConfigBuilder}
    */
   public static FairShuffleVertexManagerConfigBuilder
-      createConfigBuilder(@Nullable Configuration conf) {
+  createConfigBuilder(@Nullable Configuration conf) {
     return new FairShuffleVertexManagerConfigBuilder(conf);
   }
 
@@ -600,14 +602,14 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
     }
 
     public FairShuffleVertexManagerConfigBuilder
-        setSlowStartMinSrcCompletionFraction(float minFraction) {
+    setSlowStartMinSrcCompletionFraction(float minFraction) {
       conf.setFloat(TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
           minFraction);
       return this;
     }
 
     public FairShuffleVertexManagerConfigBuilder
-        setSlowStartMaxSrcCompletionFraction(float maxFraction) {
+    setSlowStartMaxSrcCompletionFraction(float maxFraction) {
       conf.setFloat(TEZ_FAIR_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
           maxFraction);
       return this;

@@ -241,5 +241,4 @@ public class DAGSchedulerNaturalOrderControlled extends DAGScheduler {
   private void sendEvent(TaskAttemptEventSchedule event) {
     handler.handle(event);
   }
-
 }

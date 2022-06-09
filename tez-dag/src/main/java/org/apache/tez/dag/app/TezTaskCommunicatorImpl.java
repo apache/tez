@@ -78,7 +78,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   protected final ConcurrentMap<TezTaskAttemptID, ContainerId> attemptToContainerMap =
       new ConcurrentHashMap<>();
 
-
   protected final String tokenIdentifier;
   protected final Token<JobTokenIdentifier> sessionToken;
   protected final Configuration conf;
@@ -114,8 +113,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       taskPulled = false;
     }
   }
-
-
 
   /**
    * Construct the service.
@@ -207,7 +204,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
   public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason, String diagnostics) {
     ContainerInfo containerInfo = registeredContainers.remove(containerId);
     if (containerInfo != null) {
-      synchronized(containerInfo) {
+      synchronized (containerInfo) {
         if (containerInfo.taskSpec != null && containerInfo.taskSpec.getTaskAttemptID() != null) {
           attemptToContainerMap.remove(containerInfo.taskSpec.getTaskAttemptID());
         }
@@ -248,11 +245,10 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
     }
   }
 
-
   @Override
   public void unregisterRunningTaskAttempt(TezTaskAttemptID taskAttemptID, TaskAttemptEndReason endReason, String diagnostics) {
     ContainerId containerId = attemptToContainerMap.remove(taskAttemptID);
-    if(containerId == null) {
+    if (containerId == null) {
       LOG.warn("Unregister task attempt: " + taskAttemptID + " from unknown container");
       return;
     }
@@ -352,8 +348,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
         }
       }
 
-
-
       TezHeartbeatResponse response = new TezHeartbeatResponse();
       TezTaskAttemptID taskAttemptID = request.getCurrentTaskAttemptID();
       if (taskAttemptID != null) {
@@ -386,7 +380,6 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
       containerInfo.usedMemory = request.getUsedMemory();
       return response;
     }
-
 
     // TODO Remove this method once we move to the Protobuf RPC engine
     @Override

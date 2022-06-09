@@ -112,7 +112,7 @@ public class RPCLoadGen extends TezExampleBase {
 
   @Override
   protected final int validateArgs(String[] otherArgs) {
-    return (otherArgs.length >=3 && otherArgs.length <=4) ? 0 : 2;
+    return (otherArgs.length >= 3 && otherArgs.length <= 4) ? 0 : 2;
   }
 
   private DAG createDAG(TezConfiguration conf, int numTasks, int maxSleepTimeMillis,
@@ -156,7 +156,7 @@ public class RPCLoadGen extends TezExampleBase {
       FSDataOutputStream dataOut = fs.create(resourcePath, true);
       dataOut.write(diskPayload);
       dataOut.close();
-      fs.setReplication(resourcePath, (short)10);
+      fs.setReplication(resourcePath, (short) 10);
       FileStatus fileStatus = fs.getFileStatus(resourcePath);
 
       if (mode.equals(VIA_HDFS_DIST_CACHE)) {

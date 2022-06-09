@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -146,7 +146,7 @@ public class TestOnFileUnorderedKVOutput {
     assertEquals(45, task.getTaskStatistics().getIOStatistics().values().iterator().next().getDataSize());
     assertEquals(5, task.getTaskStatistics().getIOStatistics().values().iterator().next().getItemsProcessed());
     assertTrue(events != null && events.size() == 2);
-    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
+    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent) events.get(1);
 
     assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
 
@@ -215,8 +215,7 @@ public class TestOnFileUnorderedKVOutput {
     verify(outputContext, atLeast(1)).sendEvents(eventsCaptor.capture());
     events = eventsCaptor.getValue();
 
-
-    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent)events.get(1);
+    CompositeDataMovementEvent dmEvent = (CompositeDataMovementEvent) events.get(1);
     assertEquals("Invalid source index", 0, dmEvent.getSourceIndexStart());
 
     DataMovementEventPayloadProto shufflePayload = DataMovementEventPayloadProto
@@ -231,7 +230,7 @@ public class TestOnFileUnorderedKVOutput {
   }
 
   private OutputContext createOutputContext(Configuration payloadConf, Configuration baseConf,
-      TezSharedExecutor sharedExecutor) throws IOException {
+                                            TezSharedExecutor sharedExecutor) throws IOException {
     int appAttemptNumber = 1;
     TezUmbilical tezUmbilical = mock(TezUmbilical.class);
     String dagName = "currentDAG";
@@ -242,7 +241,7 @@ public class TestOnFileUnorderedKVOutput {
     TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
     TezTaskAttemptID taskAttemptID = TezTaskAttemptID.getInstance(taskID, 1);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(payloadConf);
-    
+
     TaskSpec mockSpec = mock(TaskSpec.class);
     when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
     when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
@@ -251,7 +250,7 @@ public class TestOnFileUnorderedKVOutput {
         new DefaultHadoopShim(), sharedExecutor);
 
     LogicalIOProcessorRuntimeTask runtimeTask = spy(task);
-    
+
     Map<String, String> auxEnv = new HashMap<String, String>();
     ByteBuffer bb = ByteBuffer.allocate(4);
     bb.putInt(shufflePort);
@@ -259,11 +258,10 @@ public class TestOnFileUnorderedKVOutput {
     AuxiliaryServiceHelper.setServiceDataIntoEnv(payloadConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT), bb, auxEnv);
 
-
     OutputDescriptor outputDescriptor = mock(OutputDescriptor.class);
     when(outputDescriptor.getClassName()).thenReturn("OutputDescriptor");
 
-    OutputContext realOutputContext = new TezOutputContextImpl(baseConf, new String[] {workDir.toString()},
+    OutputContext realOutputContext = new TezOutputContextImpl(baseConf, new String[]{workDir.toString()},
         appAttemptNumber, tezUmbilical, dagName, taskVertexName, destinationVertexName,
         -1, taskAttemptID, 0, userPayload, runtimeTask,
         null, auxEnv, new MemoryDistributor(1, 1, payloadConf), outputDescriptor, null,
@@ -274,7 +272,8 @@ public class TestOnFileUnorderedKVOutput {
     Assert.assertTrue(task.getTaskStatistics().getIOStatistics().containsKey(destinationVertexName));
     OutputContext outputContext = spy(realOutputContext);
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
         long requestedSize = (Long) invocation.getArguments()[0];
         MemoryUpdateCallbackHandler callback = (MemoryUpdateCallbackHandler) invocation
             .getArguments()[1];

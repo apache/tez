@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,7 +42,7 @@ public interface ObjectRegistry {
    * as there is only one instance of an Object stored for a given key
    * irrespective of the life-cycle attached to the Object. The object may stay
    * in the cache while the Vertex (to which the task belongs) is running.
-   * 
+   *
    * @param key
    *          Key to identify the Object
    * @param value
@@ -50,16 +50,16 @@ public interface ObjectRegistry {
    * @return Previous Object associated with the key attached if present else
    *         null. Could return the same object if the object was associated
    *         with the same key for a different life-cycle.
-   */  
+   */
   public Object cacheForVertex(String key, Object value);
-  
+
   /**
    * Insert or update object into the registry with DAG life-cycle. This will
    * remove an object associated with the same key with a different life-cycle
    * as there is only one instance of an Object stored for a given key
    * irrespective of the life-cycle attached to the Object. The object may stay
    * in the cache while the DAG (to which the task belongs) is running.
-   * 
+   *
    * @param key
    *          Key to identify the Object
    * @param value
@@ -67,16 +67,16 @@ public interface ObjectRegistry {
    * @return Previous Object associated with the key attached if present else
    *         null. Could return the same object if the object was associated
    *         with the same key for a different life-cycle.
-   */  
+   */
   public Object cacheForDAG(String key, Object value);
-  
+
   /**
    * Insert or update object into the registry with Session life-cycle. This
    * will remove an object associated with the same key with a different
    * life-cycle as there is only one instance of an Object stored for a given
    * key irrespective of the life-cycle attached to the Object. The object may stay
    * in the cache while the Session (to which the task belongs) is running.
-   * 
+   *
    * @param key
    *          Key to identify the Object
    * @param value
@@ -84,7 +84,7 @@ public interface ObjectRegistry {
    * @return Previous Object associated with the key attached if present else
    *         null. Could return the same object if the object was associated
    *         with the same key for a different life-cycle.
-   */  
+   */
   public Object cacheForSession(String key, Object value);
 
   /**
@@ -100,5 +100,4 @@ public interface ObjectRegistry {
    * @return True if an object was found and removed
    */
   public boolean delete(String key);
-
 }

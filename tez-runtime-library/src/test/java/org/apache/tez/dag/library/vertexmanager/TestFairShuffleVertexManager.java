@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -51,7 +51,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class TestFairShuffleVertexManager
     extends TestShuffleVertexManagerUtils {
   List<TaskAttemptIdentifier> emptyCompletions = null;
@@ -64,7 +64,7 @@ public class TestFairShuffleVertexManager
 
     final VertexManagerPluginContext mockContext = createVertexManagerContext(
         "Vertex1", 2, "Vertex2", 2, "Vertex3", 2,
-            "Vertex4", 4, scheduledTasks, null);
+        "Vertex4", 4, scheduledTasks, null);
 
     manager = createManager(null, mockContext, null, 0.5f);
     verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
@@ -117,23 +117,23 @@ public class TestFairShuffleVertexManager
     long[] partitionStats = new long[]{(MB), (2 * MB), (5 * MB)};
     testSchedulingWithPartitionStats(
         FairRoutingType.REDUCE_PARALLELISM, numScatherAndGatherSourceTasks,
-        partitionStats, 2,2, 2, newEdgeManagers);
+        partitionStats, 2, 2, 2, newEdgeManagers);
     EdgeManagerPluginOnDemand edgeManager =
-        (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
+        (EdgeManagerPluginOnDemand) newEdgeManagers.values().iterator().next();
 
     // The first destination task fetches two partitions from all source tasks.
     // Thus the # of inputs == # of source tasks * 2 merged partitions
     Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(0));
     for (int sourceTaskIndex = 0;
-        sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
+         sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
           Assert.assertEquals(2, routeMetadata.getCount());
           Assert.assertEquals(0, routeMetadata.getSource());
-          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+          Assert.assertEquals(sourceTaskIndex * 2, routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
@@ -160,21 +160,21 @@ public class TestFairShuffleVertexManager
 
     // Get the first edgeManager which is SCATTER_GATHER.
     EdgeManagerPluginOnDemand edgeManager =
-        (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
+        (EdgeManagerPluginOnDemand) newEdgeManagers.values().iterator().next();
 
     // The first destination task fetches two partitions from all source tasks.
     // Thus the # of inputs == # of source tasks * 2 merged partitions
     Assert.assertEquals(numScatherAndGatherSourceTasks * 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(0));
     for (int sourceTaskIndex = 0; sourceTaskIndex < numScatherAndGatherSourceTasks;
-        sourceTaskIndex++) {
+         sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
               edgeManager.routeCompositeDataMovementEventToDestination(sourceTaskIndex, 0);
           Assert.assertEquals(2, routeMetadata.getCount());
           Assert.assertEquals(0, routeMetadata.getSource());
-          Assert.assertEquals(sourceTaskIndex*2, routeMetadata.getTarget());
+          Assert.assertEquals(sourceTaskIndex * 2, routeMetadata.getTarget());
         } else {
           EdgeManagerPluginOnDemand.EventRouteMetadata routeMetadata =
               edgeManager.routeInputSourceTaskFailedEventToDestination(sourceTaskIndex, 0);
@@ -210,7 +210,7 @@ public class TestFairShuffleVertexManager
     Assert.assertEquals(numScatherAndGatherSourceTasks / 2,
         edgeManager.getNumDestinationTaskPhysicalInputs(2));
     for (int sourceTaskIndex = numScatherAndGatherSourceTasks / 2;
-        sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
+         sourceTaskIndex < numScatherAndGatherSourceTasks; sourceTaskIndex++) {
       for (int j = 0; j < 2; j++) {
         if (j == 0) {
           EdgeManagerPluginOnDemand.CompositeEventRouteMetadata routeMetadata =
@@ -235,7 +235,7 @@ public class TestFairShuffleVertexManager
   public void testOverflow() throws Exception {
     final int numScatherAndGatherSourceTasks = 30000;
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
-            new HashMap<String, EdgeManagerPlugin>();
+        new HashMap<String, EdgeManagerPlugin>();
     final int firstPartitionSize = 1;
     final int secondPartitionSize = 2;
     final int thirdPartitionSize = 500;
@@ -243,7 +243,7 @@ public class TestFairShuffleVertexManager
         (secondPartitionSize * MB), (thirdPartitionSize * MB)};
     final int expectedDestinationTasks =
         (firstPartitionSize + secondPartitionSize + thirdPartitionSize)
-           * numScatherAndGatherSourceTasks / 1000;
+            * numScatherAndGatherSourceTasks / 1000;
 
     testSchedulingWithPartitionStats(
         FairRoutingType.FAIR_PARALLELISM,
@@ -332,7 +332,6 @@ public class TestFairShuffleVertexManager
     Assert.assertTrue(manager.pendingTasks.size() == numOfTasksInDestination); // no tasks scheduled
     Assert.assertTrue(manager.totalNumBipartiteSourceTasks == numOfTasksInr1);
 
-
     for (int i = 0; i < numCompletedEvents; i++) {
       VertexManagerEvent vmEvent = getVertexManagerEvent(partitionStats, 0,
           r1, true);
@@ -353,7 +352,7 @@ public class TestFairShuffleVertexManager
 
     Assert.assertEquals(1, newEdgeManagers.size());
     EdgeManagerPluginOnDemand edgeManager =
-        (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
+        (EdgeManagerPluginOnDemand) newEdgeManagers.values().iterator().next();
     // For each source task, there are 3 outputs,
     // the same as original number of partitions.
     for (int i = 0; i < numOfTasksInr1; i++) {
@@ -362,23 +361,23 @@ public class TestFairShuffleVertexManager
     }
 
     for (int sourceTaskIndex = 0; sourceTaskIndex < numOfTasksInr1;
-        sourceTaskIndex++) {
+         sourceTaskIndex++) {
       Assert.assertEquals(expectedNumDestinationConsumerTasks,
           edgeManager.getNumDestinationConsumerTasks(sourceTaskIndex));
     }
   }
 
   private static FairShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context, Float min, Float max) {
+                                                        VertexManagerPluginContext context, Float min, Float max) {
     return createManager(conf, context, true, 1000l * MB, min, max);
   }
 
   private static FairShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context,
-      Boolean enableAutoParallelism, Long desiredTaskInputSize, Float min,
-      Float max) {
-    return (FairShuffleVertexManager)TestShuffleVertexManagerBase.createManager(
+                                                        VertexManagerPluginContext context,
+                                                        Boolean enableAutoParallelism, Long desiredTaskInputSize, Float min,
+                                                        Float max) {
+    return (FairShuffleVertexManager) TestShuffleVertexManagerBase.createManager(
         FairShuffleVertexManager.class, conf, context, enableAutoParallelism,
-            desiredTaskInputSize, min, max);
+        desiredTaskInputSize, min, max);
   }
 }

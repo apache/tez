@@ -170,7 +170,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       HistoryEventType type = historyEvent.getEventType();
       TezDAGID dagId = event.getDAGID();
       if (type == HistoryEventType.DAG_FINISHED) {
-        finishCurrentDag((DAGFinishedEvent)historyEvent);
+        finishCurrentDag((DAGFinishedEvent) historyEvent);
       } else if (type == HistoryEventType.DAG_SUBMITTED) {
         finishCurrentDag(null);
         currentDagId = dagId;

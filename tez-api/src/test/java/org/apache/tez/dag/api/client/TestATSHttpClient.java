@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -79,7 +79,7 @@ public class TestATSHttpClient {
   @Test(timeout = 5000)
   public void testGetDagStatusSimple() throws TezException, JSONException, IOException {
     DAGClientTimelineImpl
-        httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class),"EXAMPLE_DAG_ID",
+        httpClient = new DAGClientTimelineImpl(mock(ApplicationId.class), "EXAMPLE_DAG_ID",
         new TezConfiguration(), null, 0);
     DAGClientTimelineImpl spyClient = spy(httpClient);
     spyClient.baseUri = "http://yarn.ats.webapp/ws/v1/timeline";
@@ -91,9 +91,8 @@ public class TestATSHttpClient {
     Set<StatusGetOpts> statusOptions = new HashSet<StatusGetOpts>(1);
     statusOptions.add(StatusGetOpts.GET_COUNTERS);
 
-
     final String jsonDagData =
-            "{ " +
+        "{ " +
             "  otherinfo: { " +
             "    status: 'SUCCEEDED'," +
             "    diagnostics: 'SAMPLE_DIAGNOSTICS'," +
@@ -108,9 +107,9 @@ public class TestATSHttpClient {
 
     final String jsonVertexData = "{entities:[ " +
         "{otherinfo: {vertexName:'v1', numTasks:5,numFailedTasks:1,numSucceededTasks:2," +
-          "numKilledTasks:3,numCompletedTasks:3}}," +
+        "numKilledTasks:3,numCompletedTasks:3}}," +
         "{otherinfo: {vertexName:'v2',numTasks:10,numFailedTasks:1,numSucceededTasks:5," +
-          "numKilledTasks:3,numCompletedTasks:4}}" +
+        "numKilledTasks:3,numCompletedTasks:4}}" +
         "]}";
 
     doReturn(new JSONObject(jsonDagData)).when(spyClient).getJsonRootEntity(expectedDagUrl);

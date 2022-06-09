@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -48,15 +48,15 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
   private Map<String, InputSpecUpdate> rootInputSpecUpdates;
   private boolean setParallelismCalledFlag;
 
-  public VertexConfigurationDoneEvent() {  
+  public VertexConfigurationDoneEvent() {
   }
 
   public VertexConfigurationDoneEvent(TezVertexID vertexID,
-      long reconfigureDoneTime, int numTasks,
-      VertexLocationHint vertexLocationHint,
-      Map<String, EdgeProperty> sourceEdgeProperties,
-      Map<String, InputSpecUpdate> rootInputSpecUpdates,
-      boolean setParallelismCalledFlag) {
+                                      long reconfigureDoneTime, int numTasks,
+                                      VertexLocationHint vertexLocationHint,
+                                      Map<String, EdgeProperty> sourceEdgeProperties,
+                                      Map<String, InputSpecUpdate> rootInputSpecUpdates,
+                                      boolean setParallelismCalledFlag) {
     super();
     this.vertexID = vertexID;
     this.reconfigureDoneTime = reconfigureDoneTime;
@@ -92,11 +92,11 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
 
     if (vertexLocationHint != null) {
       builder.setVertexLocationHint(DagTypeConverters.convertVertexLocationHintToProto(
-            this.vertexLocationHint));
+          this.vertexLocationHint));
     }
     if (sourceEdgeProperties != null) {
       for (Entry<String, EdgeProperty> entry :
-        sourceEdgeProperties.entrySet()) {
+          sourceEdgeProperties.entrySet()) {
         EdgeManagerDescriptorProto.Builder edgeMgrBuilder =
             EdgeManagerDescriptorProto.newBuilder();
         edgeMgrBuilder.setEdgeName(entry.getKey());
@@ -131,7 +131,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
       this.sourceEdgeProperties = new HashMap<String, EdgeProperty>(
           proto.getEdgeManagerDescriptorsCount());
       for (EdgeManagerDescriptorProto edgeManagerProto :
-        proto.getEdgeManagerDescriptorsList()) {
+          proto.getEdgeManagerDescriptorsList()) {
         EdgeProperty edgeProperty =
             DagTypeConverters.convertFromProto(
                 edgeManagerProto.getEdgeProperty());
@@ -175,9 +175,9 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
         + ", reconfigureDoneTime=" + reconfigureDoneTime
         + ", numTasks=" + numTasks
         + ", vertexLocationHint=" +
-        (vertexLocationHint == null? "null" : vertexLocationHint)
+        (vertexLocationHint == null ? "null" : vertexLocationHint)
         + ", edgeManagersCount=" +
-        (sourceEdgeProperties == null? "null" : sourceEdgeProperties.size())
+        (sourceEdgeProperties == null ? "null" : sourceEdgeProperties.size())
         + ", rootInputSpecUpdateCount="
         + (rootInputSpecUpdates == null ? "null" : rootInputSpecUpdates.size())
         + ", setParallelismCalledFlag=" + setParallelismCalledFlag;

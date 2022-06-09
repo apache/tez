@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,10 +27,10 @@ import org.apache.tez.dag.history.recovery.RecoveryService;
 public abstract class AMShutdownController {
 
   private List<DAGHistoryEvent> historyEvents = new ArrayList<DAGHistoryEvent>();
-  
+
   protected AppContext appContext;
   protected RecoveryService recoveryService;
-  
+
   public AMShutdownController(AppContext appContext, RecoveryService recoveryService) {
     this.appContext = appContext;
     this.recoveryService = recoveryService;
@@ -50,8 +50,8 @@ public abstract class AMShutdownController {
   }
 
   protected abstract boolean shouldShutdownPreEvent(DAGHistoryEvent curEvent,
-      List<DAGHistoryEvent> historyEvents);
+                                                    List<DAGHistoryEvent> historyEvents);
 
   protected abstract boolean shouldShutdownPostEvent(DAGHistoryEvent curEvent,
-      List<DAGHistoryEvent> historyEvents);
+                                                     List<DAGHistoryEvent> historyEvents);
 }

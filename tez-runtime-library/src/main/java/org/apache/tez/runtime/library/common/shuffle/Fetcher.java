@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -132,24 +132,25 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
   private int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
-  
+
   private final JobTokenSecretManager jobTokenSecretMgr;
 
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
   private final ApplicationId appId;
   private final int dagIdentifier;
-  
+
   private final String logIdentifier;
 
   private final String localHostname;
-  
+
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
   protected final int fetcherIdentifier;
 
   // Parameters to track work.
   private List<InputAttemptIdentifier> srcAttempts;
+
   @VisibleForTesting
   public List<InputAttemptIdentifier> getSrcAttempts() {
     return srcAttempts;
@@ -159,6 +160,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   Map<String, InputAttemptIdentifier> srcAttemptsRemaining;
 
   private String host;
+
   @VisibleForTesting
   public String getHost() {
     return host;
@@ -173,7 +175,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private URL url;
   private volatile DataInputStream input;
-  
+
   BaseHttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
 
@@ -195,15 +197,15 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
   protected Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, InputContext inputContext,
-      JobTokenSecretManager jobTokenSecretManager, Configuration conf,
-      RawLocalFileSystem localFs,
-      LocalDirAllocator localDirAllocator,
-      Path lockPath,
-      boolean localDiskFetchEnabled,
-      boolean sharedFetchEnabled,
-      String localHostname,
-      int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
+                    FetchedInputAllocator inputManager, InputContext inputContext,
+                    JobTokenSecretManager jobTokenSecretManager, Configuration conf,
+                    RawLocalFileSystem localFs,
+                    LocalDirAllocator localDirAllocator,
+                    Path lockPath,
+                    boolean localDiskFetchEnabled,
+                    boolean sharedFetchEnabled,
+                    String localHostname,
+                    int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
     this.asyncHttp = asyncHttp;
     this.verifyDiskChecksum = verifyDiskChecksum;
     this.fetcherCallback = fetcherCallback;
@@ -222,7 +224,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     String sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + " -> "
         + TezUtilsInternal.cleanVertexName(inputContext.getTaskVertexName());
-    this.logIdentifier = " fetcher [" + sourceDestNameTrimmed +"] " + fetcherIdentifier;
+    this.logIdentifier = " fetcher [" + sourceDestNameTrimmed + "] " + fetcherIdentifier;
 
     this.localFs = localFs;
     this.localDirAllocator = localDirAllocator;
@@ -239,7 +241,6 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       LOG.warn("Error initializing local dirs for shared transfer " + e);
     }
   }
-
 
   // helper method to populate the remaining map
   void populateRemainingMap(List<InputAttemptIdentifier> origlist) {
@@ -262,7 +263,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     populateRemainingMap(srcAttempts);
     for (InputAttemptIdentifier in : srcAttemptsRemaining.values()) {
       if (in instanceof CompositeInputAttemptIdentifier) {
-        CompositeInputAttemptIdentifier cin = (CompositeInputAttemptIdentifier)in;
+        CompositeInputAttemptIdentifier cin = (CompositeInputAttemptIdentifier) in;
         for (int i = 0; i < cin.getInputIdentifierCount(); i++) {
           pathToAttemptMap.put(new PathPartition(cin.getPathComponent(), partition + i), cin.expand(i));
         }
@@ -287,7 +288,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       hostFetchResult = setupLocalDiskFetch();
     } else if (multiplex) {
       hostFetchResult = doSharedFetch();
-    } else{
+    } else {
       hostFetchResult = doHttpFetch();
     }
 
@@ -321,8 +322,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   private final class CachingCallBack {
     // this is a closure object wrapping this in an inner class
     public void cache(String host,
-        InputAttemptIdentifier srcAttemptId, FetchedInput fetchedInput,
-        long compressedLength, long decompressedLength) {
+                      InputAttemptIdentifier srcAttemptId, FetchedInput fetchedInput,
+                      long compressedLength, long decompressedLength) {
       try {
         // this breaks badly on partitioned input - please use responsibly
         Preconditions.checkArgument(partition == 0, "Partition == 0");
@@ -331,7 +332,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         final Path outputPath = localDirAllocator.getLocalPathForWrite(finalOutput, compressedLength, conf);
         final TezSpillRecord spillRec = new TezSpillRecord(1);
         final TezIndexRecord indexRec;
-        Path tmpIndex = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING+tmpSuffix);
+        Path tmpIndex = outputPath.suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING + tmpSuffix);
 
         if (localFs.exists(tmpIndex)) {
           LOG.warn("Found duplicate instance of input index file " + tmpIndex);
@@ -341,26 +342,26 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         Path tmpPath = null;
 
         switch (fetchedInput.getType()) {
-        case DISK: {
-          DiskFetchedInput input = (DiskFetchedInput) fetchedInput;
-          indexRec = new TezIndexRecord(0, decompressedLength, compressedLength);
-          localFs.mkdirs(outputPath.getParent());
-          // avoid pit-falls of speculation
-          tmpPath = outputPath.suffix(tmpSuffix);
-          // JDK7 - TODO: use Files implementation to speed up this process
-          localFs.copyFromLocalFile(input.getInputPath(), tmpPath);
-          // rename is atomic
-          boolean renamed = localFs.rename(tmpPath, outputPath);
-          if(!renamed) {
-            LOG.warn("Could not rename to cached file name " + outputPath);
-            localFs.delete(tmpPath, false);
-            return;
+          case DISK: {
+            DiskFetchedInput input = (DiskFetchedInput) fetchedInput;
+            indexRec = new TezIndexRecord(0, decompressedLength, compressedLength);
+            localFs.mkdirs(outputPath.getParent());
+            // avoid pit-falls of speculation
+            tmpPath = outputPath.suffix(tmpSuffix);
+            // JDK7 - TODO: use Files implementation to speed up this process
+            localFs.copyFromLocalFile(input.getInputPath(), tmpPath);
+            // rename is atomic
+            boolean renamed = localFs.rename(tmpPath, outputPath);
+            if (!renamed) {
+              LOG.warn("Could not rename to cached file name " + outputPath);
+              localFs.delete(tmpPath, false);
+              return;
+            }
           }
-        }
-        break;
-        default:
-          LOG.warn("Incorrect use of CachingCallback for " + srcAttemptId);
-          return;
+          break;
+          default:
+            LOG.warn("Incorrect use of CachingCallback for " + srcAttemptId);
+            return;
         }
 
         spillRec.putIndex(indexRec, 0);
@@ -374,7 +375,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           localFs.delete(outputPath, false);
           LOG.warn("Could not rename the index file to "
               + outputPath
-                  .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
+              .suffix(Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING));
           return;
         }
       } catch (IOException ioe) {
@@ -551,7 +552,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
             localHostname, host, port, firstAttempt), e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
-            new InputAttemptFetchFailure[] { new InputAttemptFetchFailure(firstAttempt) }, true);
+            new InputAttemptFetchFailure[]{new InputAttemptFetchFailure(firstAttempt)}, true);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); //reset status
@@ -559,7 +560,6 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
     return null;
   }
-
 
   protected void setupConnectionInternal(String host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
@@ -717,7 +717,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           }
         }
       }
-      if(!hasFailures) {
+      if (!hasFailures) {
         iterator.remove();
       }
     }
@@ -758,7 +758,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         pathComponent + Path.SEPARATOR +
         Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING;
 
-    if(ShuffleUtils.isTezShuffleHandler(conf)) {
+    if (ShuffleUtils.isTezShuffleHandler(conf)) {
       return Constants.DAG_PREFIX + this.dagIdentifier + Path.SEPARATOR +
           outputPath;
     }
@@ -845,7 +845,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   @VisibleForTesting
   InputAttemptFetchFailure[] fetchInputs(DataInputStream input, CachingCallBack callback,
-      InputAttemptIdentifier inputAttemptIdentifier)
+                                         InputAttemptIdentifier inputAttemptIdentifier)
       throws FetcherReadTimeoutException {
     FetchedInput fetchedInput = null;
     InputAttemptIdentifier srcAttemptId = null;
@@ -875,8 +875,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
                   + InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.getPartition()
                   + " while fetching " + inputAttemptIdentifier);
               // this should be treated as local fetch failure while reporting later
-              return new InputAttemptFetchFailure[] {
-                  InputAttemptFetchFailure.fromDiskErrorAtSource(inputAttemptIdentifier) };
+              return new InputAttemptFetchFailure[]{
+                  InputAttemptFetchFailure.fromDiskErrorAtSource(inputAttemptIdentifier)};
             } else {
               throw new IllegalArgumentException(
                   "Invalid map id: " + header.getMapId() + ", expected to start with "
@@ -926,8 +926,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
               srcAttemptId = getNextRemainingAttempt();
             }
             assert (srcAttemptId != null);
-            return new InputAttemptFetchFailure[] {
-                InputAttemptFetchFailure.fromAttempt(srcAttemptId) };
+            return new InputAttemptFetchFailure[]{
+                InputAttemptFetchFailure.fromAttempt(srcAttemptId)};
           } else {
             if (isDebugEnabled) {
               LOG.debug("Already shutdown. Ignoring verification failure.");
@@ -1031,8 +1031,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         if (srcAttemptId == null) {
           return InputAttemptFetchFailure.fromAttempts(srcAttemptsRemaining.values());
         } else {
-          return new InputAttemptFetchFailure[] {
-              new InputAttemptFetchFailure(srcAttemptId) };
+          return new InputAttemptFetchFailure[]{
+              new InputAttemptFetchFailure(srcAttemptId)};
         }
       }
       LOG.warn("Failed to shuffle output of " + srcAttemptId + " from " + host + " (to "
@@ -1041,8 +1041,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       // Cleanup the fetchedInput
       cleanupFetchedInput(fetchedInput);
       // metrics.failedFetch();
-      return new InputAttemptFetchFailure[] {
-          new InputAttemptFetchFailure(srcAttemptId) };
+      return new InputAttemptFetchFailure[]{
+          new InputAttemptFetchFailure(srcAttemptId)};
     }
     return null;
   }
@@ -1077,7 +1077,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
     if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
       LOG.warn("Shuffle output from " + srcAttemptId +
-          " failed (to "+ localHostname +"), retry it.");
+          " failed (to " + localHostname + "), retry it.");
       //retry connecting to the host
       return true;
     } else {
@@ -1090,7 +1090,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   /**
    * Do some basic verification on the input received -- Being defensive
-   * 
+   *
    * @param compressedLength
    * @param decompressedLength
    * @param fetchPartition
@@ -1099,7 +1099,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int fetchPartition, InputAttemptIdentifier srcAttemptId, String pathComponent) {
+                               int fetchPartition, InputAttemptIdentifier srcAttemptId, String pathComponent) {
     if (compressedLength < 0 || decompressedLength < 0) {
       // wrongLengthErrs.increment(1);
       LOG.warn(" invalid lengths in input header -> headerPathComponent: "
@@ -1120,7 +1120,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (srcAttemptsRemaining.size() > 0) {
       return srcAttemptsRemaining.values().iterator().next();
@@ -1137,21 +1137,21 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     private boolean workAssigned = false;
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
-        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, boolean localDiskFetchEnabled,
-        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
+                          HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+                          JobTokenSecretManager jobTokenSecretMgr, Configuration conf, boolean localDiskFetchEnabled,
+                          String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
       this.fetcher = new Fetcher(fetcherCallback, params, inputManager, inputContext,
           jobTokenSecretMgr, conf, null, null, null, localDiskFetchEnabled,
           false, localHostname, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
-        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, RawLocalFileSystem localFs,
-        LocalDirAllocator localDirAllocator, Path lockPath,
-        boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
-        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch,
-        boolean enableFetcherTestingErrors) {
+                          HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+                          JobTokenSecretManager jobTokenSecretMgr, Configuration conf, RawLocalFileSystem localFs,
+                          LocalDirAllocator localDirAllocator, Path lockPath,
+                          boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
+                          String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch,
+                          boolean enableFetcherTestingErrors) {
       if (enableFetcherTestingErrors) {
         this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, inputContext,
             jobTokenSecretMgr, conf, localFs, localDirAllocator,
@@ -1182,7 +1182,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
 
     public FetcherBuilder assignWork(String host, int port, int partition, int partitionCount,
-        List<InputAttemptIdentifier> inputs) {
+                                     List<InputAttemptIdentifier> inputs) {
       fetcher.host = host;
       fetcher.port = port;
       fetcher.partition = partition;
@@ -1218,4 +1218,3 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     return true;
   }
 }
-

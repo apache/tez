@@ -58,7 +58,8 @@ class OutputTestHelpers {
       throws IOException {
     OutputContext ctx = mock(OutputContext.class);
     doAnswer(new Answer<Void>() {
-      @Override public Void answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
         long requestedSize = (Long) invocation.getArguments()[0];
         MemoryUpdateCallbackHandler callback = (MemoryUpdateCallbackHandler) invocation
             .getArguments()[1];
@@ -71,7 +72,7 @@ class OutputTestHelpers {
     doReturn("taskVertex").when(ctx).getTaskVertexName();
     doReturn("destinationVertex").when(ctx).getDestinationVertexName();
     doReturn("UUID").when(ctx).getUniqueIdentifier();
-    doReturn(new String[] { workingDir.toString() }).when(ctx).getWorkDirs();
+    doReturn(new String[]{workingDir.toString()}).when(ctx).getWorkDirs();
     doReturn(200 * 1024 * 1024l).when(ctx).getTotalMemoryAvailableToTask();
     doReturn(new TezCounters()).when(ctx).getCounters();
     OutputStatisticsReporter statsReporter = mock(OutputStatisticsReporter.class);

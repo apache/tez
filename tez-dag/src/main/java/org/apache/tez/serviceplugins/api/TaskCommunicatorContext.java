@@ -26,7 +26,6 @@ import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.TaskFailureType;
 
-
 // Do not make calls into this from within a held lock.
 
 // TODO TEZ-2003 (post) TEZ-2665. Move to the tez-api module
@@ -42,7 +41,6 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
   // - Add methods to signal container / task state changes
   // - Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
   // - Handling of containres / tasks which no longer exist in the system (formalized interface instead of a shouldDie notification)
-
 
   /**
    * Get the application attempt id for the running application. Relevant when running under YARN
@@ -127,7 +125,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
 
   /**
    * Inform the framework that the task has started execution
-   *
+   * <p>
    * Use {@link #taskSubmitted(TezTaskAttemptID, ContainerId)}
    * and {@link #taskStartedRemotely(TezTaskAttemptID)} instead
    *
@@ -176,6 +174,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
 
   /**
    * Get an identifier for the executing context of the DAG.
+   *
    * @return a String identifier for the exeucting context.
    */
   String getCurrentAppIdentifier();

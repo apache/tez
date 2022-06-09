@@ -119,8 +119,8 @@ public class TestDagAwareYarnTaskScheduler {
     return new TaskSchedulerContextDrainable(wrapper);
   }
 
-  @SuppressWarnings({ "unchecked" })
-  @Test(timeout=30000)
+  @SuppressWarnings({"unchecked"})
+  @Test(timeout = 30000)
   public void testNoReuse() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -396,7 +396,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testSimpleReuseLocalMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -438,7 +438,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, "host3");
     MockTaskInfo taskv0t2 = new MockTaskInfo("taskv0t2", priorityv0, hostsv0t0);
@@ -501,7 +501,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testSimpleReuseRackMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -543,7 +543,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, "host2");
     MockTaskInfo taskv0t2 = new MockTaskInfo("taskv0t2", priorityv0, "host4", "/somerack");
@@ -608,7 +608,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testSimpleReuseAnyMatching() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -650,7 +650,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, "host2");
     MockTaskInfo taskv0t2 = new MockTaskInfo("taskv0t2", priorityv0, "host4", "/rack4");
@@ -724,7 +724,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testReuseWithAffinity() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -766,7 +766,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, hostsv0t0);
 
@@ -812,7 +812,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testReuseVertexDescendants() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -830,7 +830,7 @@ public class TestDagAwareYarnTaskScheduler {
     // vertex 0 and vertex 2 are root vertices and vertex 1 is a child of vertex 0
     DagInfo mockDagInfo = mock(DagInfo.class);
     when(mockDagInfo.getTotalVertices()).thenReturn(3);
-    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[] { 0x2 }));
+    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[]{0x2}));
     when(mockDagInfo.getVertexDescendants(1)).thenReturn(new BitSet());
     when(mockDagInfo.getVertexDescendants(2)).thenReturn(new BitSet());
     TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, conf);
@@ -858,7 +858,7 @@ public class TestDagAwareYarnTaskScheduler {
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
     Priority priorityv2 = Priority.newInstance(3);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     when(mockApp.getVertexIndexForTask(taskv0t0.task)).thenReturn(0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, "host3");
@@ -938,7 +938,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=30000)
+  @Test(timeout = 30000)
   public void testSessionContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1108,7 +1108,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=50000)
+  @Test(timeout = 50000)
   public void testPreemptionNoHeadroom() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1129,7 +1129,7 @@ public class TestDagAwareYarnTaskScheduler {
     // vertex 0 and vertex 2 are root vertices and vertex 1 is a child of vertex 0
     DagInfo mockDagInfo = mock(DagInfo.class);
     when(mockDagInfo.getTotalVertices()).thenReturn(3);
-    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[] { 0x2 }));
+    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[]{0x2}));
     when(mockDagInfo.getVertexDescendants(1)).thenReturn(new BitSet());
     when(mockDagInfo.getVertexDescendants(2)).thenReturn(new BitSet());
     TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, conf);
@@ -1157,7 +1157,7 @@ public class TestDagAwareYarnTaskScheduler {
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv1 = Priority.newInstance(2);
     Priority priorityv2 = Priority.newInstance(3);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     when(mockApp.getVertexIndexForTask(taskv0t0.task)).thenReturn(0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, hostsv0t0);
@@ -1251,7 +1251,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test (timeout = 50000L)
+  @Test(timeout = 50000L)
   public void testPreemptionWhenBlocked() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1269,11 +1269,10 @@ public class TestDagAwareYarnTaskScheduler {
     conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS, 3);
     conf.setInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS, 60 * 1000);
 
-
     DagInfo mockDagInfo = mock(DagInfo.class);
     when(mockDagInfo.getTotalVertices()).thenReturn(3);
-    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[] { 0x6 }));
-    when(mockDagInfo.getVertexDescendants(1)).thenReturn(BitSet.valueOf(new long[] { 0x2 }));
+    when(mockDagInfo.getVertexDescendants(0)).thenReturn(BitSet.valueOf(new long[]{0x6}));
+    when(mockDagInfo.getVertexDescendants(1)).thenReturn(BitSet.valueOf(new long[]{0x2}));
     when(mockDagInfo.getVertexDescendants(2)).thenReturn(new BitSet());
     TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, conf);
     when(mockApp.getCurrentDagInfo()).thenReturn(mockDagInfo);
@@ -1299,7 +1298,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     Priority priorityv0 = Priority.newInstance(1);
     Priority priorityv2 = Priority.newInstance(3);
-    String[] hostsv0t0 = { "host1", "host2" };
+    String[] hostsv0t0 = {"host1", "host2"};
     MockTaskInfo taskv0t0 = new MockTaskInfo("taskv0t0", priorityv0, hostsv0t0);
     when(mockApp.getVertexIndexForTask(taskv0t0.task)).thenReturn(0);
     MockTaskInfo taskv0t1 = new MockTaskInfo("taskv0t1", priorityv0, hostsv0t0);
@@ -1360,7 +1359,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).stop();
   }
 
-  @Test(timeout=50000)
+  @Test(timeout = 50000)
   public void testContainerAssignmentReleaseNewContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1430,7 +1429,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).releaseAssignedContainer(eq(cid1));
   }
 
-  @Test(timeout=50000)
+  @Test(timeout = 50000)
   public void testIdleContainerAssignmentReuseNewContainers() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
 
@@ -1562,7 +1561,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     @Override
     public RegisterApplicationMasterResponse registerApplicationMaster(String appHostName, int appHostPort,
-        String appTrackingUrl) throws YarnException, IOException {
+                                                                       String appTrackingUrl) throws YarnException, IOException {
       return client.registerApplicationMaster(appHostName, appHostPort, appTrackingUrl);
     }
 
@@ -1594,9 +1593,9 @@ public class TestDagAwareYarnTaskScheduler {
 
     @Override
     public RegisterApplicationMasterResponse registerApplicationMaster(String appHostName, int appHostPort,
-        String appTrackingUrl) {
+                                                                       String appTrackingUrl) {
       mockRegResponse = mock(RegisterApplicationMasterResponse.class);
-      Resource mockMaxResource = Resources.createResource(1024*1024, 1024);
+      Resource mockMaxResource = Resources.createResource(1024 * 1024, 1024);
       Map<ApplicationAccessType, String> mockAcls = Collections.emptyMap();
       when(mockRegResponse.getMaximumResourceCapability()).thenReturn(
           mockMaxResource);
@@ -1608,7 +1607,7 @@ public class TestDagAwareYarnTaskScheduler {
 
     @Override
     public void unregisterApplicationMaster(FinalApplicationStatus appStatus,
-        String appMessage, String appTrackingUrl) {
+                                            String appMessage, String appTrackingUrl) {
     }
 
     RegisterApplicationMasterResponse getRegistrationResponse() {
@@ -1641,7 +1640,7 @@ public class TestDagAwareYarnTaskScheduler {
     final Resource capability;
 
     MockTaskInfo(String name, Priority priority, String host) {
-      this(name, priority, host == null ? null : new String[] { host });
+      this(name, priority, host == null ? null : new String[]{host});
     }
 
     MockTaskInfo(String name, Priority priority, String[] hosts) {
@@ -1649,8 +1648,8 @@ public class TestDagAwareYarnTaskScheduler {
     }
 
     MockTaskInfo(String name, Priority priority, String host, String rack) {
-      this(name, priority, host == null ? null : new String[] { host },
-          rack == null ? null : new String[] { rack });
+      this(name, priority, host == null ? null : new String[]{host},
+          rack == null ? null : new String[]{rack});
     }
 
     MockTaskInfo(String name, Priority priority, String[] hosts, String[] racks) {
@@ -1679,7 +1678,7 @@ public class TestDagAwareYarnTaskScheduler {
     int invocationCount = 0;
 
     TaskRequestCaptor(AMRMClientAsync<TaskRequest> client, TaskScheduler scheduler,
-        TaskSchedulerContextDrainable drainableAppCallback) {
+                      TaskSchedulerContextDrainable drainableAppCallback) {
       this.client = client;
       this.scheduler = scheduler;
       this.drainableAppCallback = drainableAppCallback;

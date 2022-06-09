@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -80,7 +80,7 @@ public interface TaskContext {
    * @return Vertex Name
    */
   public String getTaskVertexName();
-  
+
   /**
    * Get the index of this task's vertex in the set of vertices in the DAG. This 
    * is consistent and valid across all tasks/vertices in the same DAG.
@@ -119,18 +119,18 @@ public interface TaskContext {
   /**
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output
-   * 
+   *
    * @return a unique identifier
    */
   public String getUniqueIdentifier();
-  
+
   /**
    * Returns a shared {@link ObjectRegistry} to hold user objects in memory 
    * between tasks. 
    * @return {@link ObjectRegistry}
    */
   public ObjectRegistry getObjectRegistry();
-  
+
   /**
    * Notifies the framework that progress is being made by this component. 
    * This is used to identify hung components that are not making progress.
@@ -157,7 +157,6 @@ public interface TaskContext {
    */
   @Deprecated
   public void fatalError(@Nullable Throwable exception, @Nullable String message);
-
 
   /**
    * Report an error to the framework. This will cause the entire task to be terminated.
@@ -198,34 +197,34 @@ public interface TaskContext {
    */
   @Nullable
   public ByteBuffer getServiceProviderMetaData(String serviceName);
-  
+
   /**
    * Request a specific amount of memory during initialization
    * (initialize(..*Context)) The requester is notified of allocation via the
    * provided callback handler.
-   * 
+   *
    * Currently, (post TEZ-668) the caller will be informed about the available
    * memory after initialization (I/P/O initialize(...)), and before the
    * start/run invocation. There will be no other invocations on the callback.
-   * 
+   *
    * This method can be called only once by any component. Calling it multiple
    * times from within the same component will result in an error.
-   * 
+   *
    * Each Input / Output must request memory. For Inputs / Outputs which do not
    * have a specific ask, a null callback handler can be specified with a
    * request size of 0.
-   * 
+   *
    * @param size
    *          request size in bytes.
    * @param callbackHandler
    *          the callback handler to be invoked once memory is assigned
    */
   public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler);
-  
+
   /**
    * Gets the total memory available to all components of the running task. This
    * values will always be constant, and does not factor in any allocations.
-   * 
+   *
    * @return the total available memory for all components of the task
    */
   public long getTotalMemoryAvailableToTask();

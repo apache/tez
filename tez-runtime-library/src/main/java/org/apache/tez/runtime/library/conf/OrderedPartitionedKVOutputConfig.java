@@ -39,12 +39,11 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
 import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
-
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 /**
  * Configure {@link org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput} </p>
- * 
+ *
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
@@ -54,14 +53,16 @@ public class OrderedPartitionedKVOutputConfig {
    * Currently supported sorter implementations
    */
   public enum SorterImpl {
-    /** Legacy sorter implementation based on Hadoop MapReduce shuffle impl.
+    /**
+     * Legacy sorter implementation based on Hadoop MapReduce shuffle impl.
      * Restricted to 2 GB memory limits.
      */
     LEGACY,
-    /** Pipeline sorter - a more efficient sorter that supports > 2 GB sort buffers */
+    /**
+     * Pipeline sorter - a more efficient sorter that supports > 2 GB sort buffers
+     */
     PIPELINED
   }
-
 
   /**
    * Configure parameters which are specific to the Output.
@@ -75,7 +76,6 @@ public class OrderedPartitionedKVOutputConfig {
      * @return instance of the current builder
      */
     public T setSortBufferSize(int sortBufferSize);
-
 
     /**
      * Configure the combiner class
@@ -113,7 +113,6 @@ public class OrderedPartitionedKVOutputConfig {
      * @return instance of the current builder
      */
     public T setSorter(SorterImpl sorterImpl);
-
   }
 
   @SuppressWarnings("rawtypes")
@@ -157,7 +156,6 @@ public class OrderedPartitionedKVOutputConfig {
       builder.setSorter(sorterImpl);
       return this;
     }
-
 
     @Override
     public SpecificBuilder<E> setAdditionalConfiguration(String key, String value) {
@@ -204,6 +202,7 @@ public class OrderedPartitionedKVOutputConfig {
 
   /**
    * Get a UserPayload representation of the Configuration
+   *
    * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
   public UserPayload toUserPayload() {
@@ -259,7 +258,7 @@ public class OrderedPartitionedKVOutputConfig {
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName, String partitionerClassName,
-                   @Nullable Map<String, String> partitionerConf) {
+            @Nullable Map<String, String> partitionerConf) {
       this();
       Objects.requireNonNull(keyClassName, "Key class name cannot be null");
       Objects.requireNonNull(valueClassName, "Value class name cannot be null");
@@ -339,7 +338,6 @@ public class OrderedPartitionedKVOutputConfig {
           sorterImpl.name());
       return this;
     }
-
 
     @SuppressWarnings("unchecked")
     @Override
@@ -453,10 +451,10 @@ public class OrderedPartitionedKVOutputConfig {
      *                               to the ones required by the comparator.
      * @return this object for further chained method calls
      * @throws NullPointerException if {@code serializationClassName} or
-     *           {@code comparatorClassName} is {@code null}
+     *                              {@code comparatorClassName} is {@code null}
      */
     public Builder setKeySerializationClass(String serializationClassName,
-        String comparatorClassName, @Nullable Map<String, String> serializerConf) {
+                                            String comparatorClassName, @Nullable Map<String, String> serializerConf) {
       Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       Objects.requireNonNull(comparatorClassName, "comparator cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
@@ -503,4 +501,3 @@ public class OrderedPartitionedKVOutputConfig {
     }
   }
 }
-

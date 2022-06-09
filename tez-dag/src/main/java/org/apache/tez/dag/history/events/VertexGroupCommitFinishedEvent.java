@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   }
 
   public VertexGroupCommitFinishedEvent(TezDAGID dagID,
-      String vertexGroupName, Collection<TezVertexID> vertexIds, long commitFinishTime) {
+                                        String vertexGroupName, Collection<TezVertexID> vertexIds, long commitFinishTime) {
     this.dagID = dagID;
     this.vertexGroupName = vertexGroupName;
     this.vertexIds = vertexIds;
@@ -70,7 +70,7 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   }
 
   public VertexGroupCommitFinishedProto toProto() {
-    Collection<String> vertexIdsStr = Collections2.transform(vertexIds, new Function<TezVertexID, String>(){
+    Collection<String> vertexIdsStr = Collections2.transform(vertexIds, new Function<TezVertexID, String>() {
       @Override
       public String apply(TezVertexID vertexId) {
         return vertexId.toString();
@@ -148,5 +148,4 @@ public class VertexGroupCommitFinishedEvent implements HistoryEvent, SummaryEven
   public Collection<TezVertexID> getVertexIds() {
     return vertexIds;
   }
-
 }

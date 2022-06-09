@@ -142,7 +142,6 @@ public class ExternalTezServiceTestHelper {
     }
   }
 
-
   public void setupHashJoinData(Path srcDataDir, Path dataPath1, Path dataPath2,
                                 Path expectedResultPath, Path outputPath) throws
       Exception {
@@ -161,7 +160,6 @@ public class ExternalTezServiceTestHelper {
     assertEquals(0, joinExample.run(tezConf, args, sharedTezClient));
     LOG.info("Completed generating Data - Expected Hash Result and Actual Join Result");
   }
-
 
   public MiniTezCluster getTezCluster() {
     return tezCluster;

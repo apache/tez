@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -95,7 +95,7 @@ public class HistoryEventJsonConversion {
         break;
       case VERTEX_FINISHED:
         jsonObject = convertVertexFinishedEvent((VertexFinishedEvent) historyEvent);
-      break;
+        break;
       case TASK_STARTED:
         jsonObject = convertTaskStartedEvent((TaskStartedEvent) historyEvent);
         break;
@@ -186,7 +186,7 @@ public class HistoryEventJsonConversion {
     jsonObject.put(ATSConstants.ENTITY,
         "tez_" + event.getApplicationAttemptId().toString());
     jsonObject.put(ATSConstants.ENTITY_TYPE,
-            EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
+        EntityTypes.TEZ_APPLICATION_ATTEMPT.name());
 
     // Related Entities
     JSONArray relatedEntities = new JSONArray();
@@ -199,7 +199,7 @@ public class HistoryEventJsonConversion {
     appAttemptEntity.put(ATSConstants.ENTITY,
         event.getApplicationAttemptId().toString());
     appAttemptEntity.put(ATSConstants.ENTITY_TYPE,
-            ATSConstants.APPLICATION_ATTEMPT_ID);
+        ATSConstants.APPLICATION_ATTEMPT_ID);
     relatedEntities.put(appEntity);
     relatedEntities.put(appAttemptEntity);
     jsonObject.put(ATSConstants.RELATED_ENTITIES, relatedEntities);
@@ -218,7 +218,7 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
     otherInfo.put(ATSConstants.APP_SUBMIT_TIME, event.getAppSubmitTime());
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
-    
+
     return jsonObject;
   }
 
@@ -255,7 +255,8 @@ public class HistoryEventJsonConversion {
     events.put(startEvent);
     jsonObject.put(ATSConstants.EVENTS, events);
 
-    return jsonObject;  }
+    return jsonObject;
+  }
 
   private static JSONObject convertContainerLaunchedEvent(ContainerLaunchedEvent event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
@@ -336,7 +337,8 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.EXIT_STATUS, event.getExitStatus());
     jsonObject.put(ATSConstants.OTHER_INFO, otherInfo);
 
-    return jsonObject;  }
+    return jsonObject;
+  }
 
   private static JSONObject convertDAGFinishedEvent(DAGFinishedEvent event) throws JSONException {
     JSONObject jsonObject = new JSONObject();
@@ -371,7 +373,7 @@ public class HistoryEventJsonConversion {
 
     final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
     if (dagTaskStats != null) {
-      for(Entry<String, Integer> entry : dagTaskStats.entrySet()) {
+      for (Entry<String, Integer> entry : dagTaskStats.entrySet()) {
         otherInfo.put(entry.getKey(), entry.getValue().intValue());
       }
     }
@@ -561,7 +563,7 @@ public class HistoryEventJsonConversion {
     otherInfo.put(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToJSON(event.getCounters()));
     if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
-      otherInfo.put(ATSConstants.LAST_DATA_EVENTS, 
+      otherInfo.put(ATSConstants.LAST_DATA_EVENTS,
           DAGUtils.convertDataEventDependencyInfoToJSON(event.getDataEvents()));
     }
     if (event.getNodeId() != null) {
@@ -718,7 +720,7 @@ public class HistoryEventJsonConversion {
 
     final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
     if (vertexTaskStats != null) {
-      for(Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
+      for (Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
         otherInfo.put(entry.getKey(), entry.getValue().intValue());
       }
     }
@@ -838,5 +840,4 @@ public class HistoryEventJsonConversion {
 
     return jsonObject;
   }
-
 }

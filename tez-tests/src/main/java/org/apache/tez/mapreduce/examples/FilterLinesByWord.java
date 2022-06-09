@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -84,13 +84,13 @@ public class FilterLinesByWord extends Configured implements Tool {
   private static Logger LOG = LoggerFactory.getLogger(FilterLinesByWord.class);
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
-  
+
   private boolean exitOnCompletion = false;
 
   public FilterLinesByWord(boolean exitOnCompletion) {
     this.exitOnCompletion = exitOnCompletion;
   }
-  
+
   private static void printUsage() {
     System.err.println("Usage filtelinesrbyword <in> <out> <filter_word> [-generateSplitsInClient true/<false>]");
     ToolRunner.printGenericCommandUsage(System.err);
@@ -99,7 +99,7 @@ public class FilterLinesByWord extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     Configuration conf = getConf();
-    String [] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+    String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     Credentials credentials = new Credentials();
 
     boolean generateSplitsInClient = false;
@@ -158,8 +158,6 @@ public class FilterLinesByWord extends Configured implements Tool {
         remoteJarStatus.getLen(), remoteJarStatus.getModificationTime());
     commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
 
-
-
     TezClient tezSession = TezClient.create("FilterLinesByWordSession", tezConf,
         commonLocalResources, credentials);
     tezSession.start(); // Why do I need to start the TezSession.
@@ -174,7 +172,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
     Vertex stage1Vertex = Vertex.create("stage1", ProcessorDescriptor.create(
-        FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
+            FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
         .addTaskLocalFiles(commonLocalResources);
 
     DataSourceDescriptor dsd;
@@ -216,11 +214,11 @@ public class FilterLinesByWord extends Configured implements Tool {
     LOG.info("Submitted DAG to Tez Session");
 
     DAGStatus dagStatus = null;
-    String[] vNames = { "stage1", "stage2" };
+    String[] vNames = {"stage1", "stage2"};
     try {
       while (true) {
         dagStatus = dagClient.getDAGStatus(null);
-        if(dagStatus.getState() == DAGStatus.State.RUNNING ||
+        if (dagStatus.getState() == DAGStatus.State.RUNNING ||
             dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
             dagStatus.getState() == DAGStatus.State.FAILED ||
             dagStatus.getState() == DAGStatus.State.KILLED ||
@@ -248,9 +246,8 @@ public class FilterLinesByWord extends Configured implements Tool {
           return -1;
         }
       }
-      
+
       dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
-      
     } finally {
       fs.delete(stagingDir, true);
       tezSession.stop();
@@ -260,7 +257,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
     return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
     FilterLinesByWord fl = new FilterLinesByWord(true);
     int status = ToolRunner.run(new Configuration(), fl, args);

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ public class VertexGroup {
     Set<String> outputs = new HashSet<String>();
     // destination vertex name to merged input map
     Map<String, InputDescriptor> edgeMergedInputs = Maps.newHashMap();
-    
+
     GroupInfo(String groupName, Vertex... vertices) {
       this.groupName = groupName;
       members = Sets.newHashSetWithExpectedSize(vertices.length);
@@ -55,19 +55,22 @@ public class VertexGroup {
         members.add(v);
       }
     }
+
     String getGroupName() {
       return groupName;
     }
+
     Set<Vertex> getMembers() {
       return members;
     }
+
     Set<String> getOutputs() {
       return outputs;
     }
   }
-  
+
   GroupInfo groupInfo;
-  
+
   /**
    * Create an object representing a group of vertices
    * @param groupName name of the group
@@ -86,26 +89,26 @@ public class VertexGroup {
   public String getGroupName() {
     return groupInfo.groupName;
   }
-  
+
   /**
    * Add an common data sink to the group of vertices.
    * Refer to {@link Vertex#addDataSink(String, DataSinkDescriptor)}
    * @return this object for further chained method calls
    */
   public VertexGroup addDataSink(String outputName, DataSinkDescriptor dataSinkDescriptor) {
-    RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput = 
+    RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> leafOutput =
         new RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor>(outputName,
-        dataSinkDescriptor.getOutputDescriptor(), dataSinkDescriptor.getOutputCommitterDescriptor());
+            dataSinkDescriptor.getOutputDescriptor(), dataSinkDescriptor.getOutputCommitterDescriptor());
     this.groupInfo.outputs.add(outputName);
-    
+
     // also add output to its members
     for (Vertex member : getMembers()) {
       member.addAdditionalDataSink(leafOutput);
     }
-    
+
     return this;
   }
-  
+
   @Override
   public String toString() {
     return "[ VertexGroup: " + groupInfo.getGroupName() + "]" + ", members=" + groupInfo.members;
@@ -114,15 +117,15 @@ public class VertexGroup {
   GroupInfo getGroupInfo() {
     return groupInfo;
   }
-  
+
   Set<Vertex> getMembers() {
     return groupInfo.members;
   }
-  
+
   void addOutputVertex(Vertex outputVertex, GroupInputEdge edge) {
     this.groupInfo.edgeMergedInputs.put(outputVertex.getName(), edge.getMergedInput());
   }
-  
+
   @Override
   public int hashCode() {
     final int prime = 31;

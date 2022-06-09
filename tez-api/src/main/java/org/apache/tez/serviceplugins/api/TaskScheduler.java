@@ -106,7 +106,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @return the resources available at the time of invocation
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract Resource getAvailableResources() throws ServicePluginException;
 
@@ -115,7 +115,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @return the total available resources from the source
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract Resource getTotalResources() throws ServicePluginException;
 
@@ -124,7 +124,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @return the number of nodes
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract int getClusterNodeCount() throws ServicePluginException;
 
@@ -134,7 +134,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @param nodeId te nodeId to be blacklisted
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void blacklistNode(NodeId nodeId) throws ServicePluginException;
 
@@ -144,7 +144,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @param nodeId the nodeId to be unblacklisted
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void unblacklistNode(NodeId nodeId) throws ServicePluginException;
 
@@ -165,7 +165,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *                           via the {@link TaskSchedulerContext#taskAllocated(Object, Object,
    *                           Container)} method when a task is assigned to a resource
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void allocateTask(Object task, Resource capability,
                                     String[] hosts, String[] racks, Priority priority,
@@ -188,7 +188,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *                           via the {@link TaskSchedulerContext#taskAllocated(Object, Object,
    *                           Container)} method when a task is assigned to a resource
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void allocateTask(Object task, Resource capability,
                                     ContainerId containerId, Priority priority,
@@ -220,8 +220,8 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    * @param diagnostics   additional diagnostics information which may be relevant
    * @return true if the task was associated with a container, false if the task was not associated
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
-   * with a container
+   *                                This will cause the app to shutdown.
+   *                                with a container
    */
   public abstract boolean deallocateTask(Object task, boolean taskSucceeded,
                                          TaskAttemptEndReason endReason,
@@ -233,15 +233,16 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    * @param containerId the containerId to de-allocate
    * @return the task which was previously associated with this container, null otherwise
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract Object deallocateContainer(ContainerId containerId) throws ServicePluginException;
 
   /**
    * Inform the scheduler that it should unregister. This is primarily valid for schedulers which
    * require registration (YARN a.t.m)
+   *
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void setShouldUnregister() throws ServicePluginException;
 
@@ -250,7 +251,7 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    *
    * @return true if the scheduler has unregistered. False otherwise.
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract boolean hasUnregistered() throws ServicePluginException;
 
@@ -258,9 +259,9 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    * Indicates to the scheduler that the currently running dag has completed.
    * This can be used to reset dag specific statistics, potentially release resources and prepare
    * for a new DAG.
+   *
    * @throws ServicePluginException when the service runs into a fatal error which it cannot handle.
-   *                               This will cause the app to shutdown.
+   *                                This will cause the app to shutdown.
    */
   public abstract void dagComplete() throws ServicePluginException;
-
 }

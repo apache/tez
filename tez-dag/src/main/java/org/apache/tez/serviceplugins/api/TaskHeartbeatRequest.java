@@ -30,7 +30,6 @@ public class TaskHeartbeatRequest {
   private final int preRoutedStartIndex;
   private final int maxEvents;
 
-
   public TaskHeartbeatRequest(String containerIdentifier, TezTaskAttemptID taskAttemptId, List<TezEvent> events, int startIndex,
                               int preRoutedStartIndex,
                               int maxEvents) {

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -102,9 +102,10 @@ public class TezCounters extends AbstractCounters<TezCounter, CounterGroup> {
     @Override
     protected <T extends Enum<T>>
     FrameworkGroupFactory<CounterGroup>
-        newFrameworkGroupFactory(final Class<T> cls) {
+    newFrameworkGroupFactory(final Class<T> cls) {
       return new FrameworkGroupFactory<CounterGroup>() {
-        @Override public CounterGroup newGroup(String name) {
+        @Override
+        public CounterGroup newGroup(String name) {
           return new FrameworkGroupImpl<T>(cls); // impl in this package
         }
       };

@@ -77,7 +77,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
     fromConfUnfiltered.set("test.conf.unfiltered.1", "unfiltered1");
     UnorderedPartitionedKVOutputConfig.Builder builder =
         UnorderedPartitionedKVOutputConfig.newBuilder("KEY", "VALUE", "PARTITIONER",
-            null)
+                null)
             .setCompression(true, "CustomCodec", null)
             .setAvailableBufferSize(1111)
             .setAdditionalConfiguration("fs.shouldExist", "fs")
@@ -87,7 +87,7 @@ public class TestUnorderedPartitionedKVOutputConfig {
             .setAdditionalConfiguration(TezRuntimeConfiguration
                 .TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE, "5120")
             .setAdditionalConfiguration(TezRuntimeConfiguration
-                .TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE,
+                    .TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE,
                 "false")
             .setAdditionalConfiguration(TezRuntimeConfiguration
                 .TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED, "true")
@@ -129,9 +129,9 @@ public class TestUnorderedPartitionedKVOutputConfig {
     assertEquals(2222,
         conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES, 0));
     assertEquals(true,
-            conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED, false));
+        conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED, false));
     assertEquals(5120,
-            conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE, 512));
+        conf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE, 512));
     assertEquals(false,
         conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE, true));
     assertEquals("io", conf.get("io.shouldExist"));

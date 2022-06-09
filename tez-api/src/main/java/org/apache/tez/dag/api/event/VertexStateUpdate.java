@@ -31,7 +31,6 @@ public class VertexStateUpdate {
   private final String vertexName;
   private final VertexState vertexState;
 
-
   public VertexStateUpdate(String vertexName, VertexState vertexState) {
     this.vertexName = vertexName;
     this.vertexState = vertexState;
@@ -39,6 +38,7 @@ public class VertexStateUpdate {
 
   /**
    * Get the name of the vertex for which the state has changed
+   *
    * @return the name of the vertex
    */
   public String getVertexName() {
@@ -47,6 +47,7 @@ public class VertexStateUpdate {
 
   /**
    * Get the updated state
+   *
    * @return the updated state
    */
   public VertexState getVertexState() {

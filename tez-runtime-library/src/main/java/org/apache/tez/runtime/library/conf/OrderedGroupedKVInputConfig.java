@@ -58,9 +58,11 @@ public class OrderedGroupedKVInputConfig {
 
     /**
      * Specifies whether the legacy version of this input should be used.
+     *
      * @return instance of the current builder
      */
     public T useLegacyInput();
+
     /**
      * Sets the buffer fraction, as a fraction of container size, to be used while fetching remote
      * data.
@@ -128,7 +130,6 @@ public class OrderedGroupedKVInputConfig {
      * @return instance of the current builder
      */
     public T setCombiner(String combinerClassName, @Nullable Map<String, String> combinerConf);
-
   }
 
   @SuppressWarnings("rawtypes")
@@ -139,7 +140,6 @@ public class OrderedGroupedKVInputConfig {
 
     private final E edgeBuilder;
     private final OrderedGroupedKVInputConfig.Builder builder;
-
 
     @InterfaceAudience.Private
     SpecificBuilder(E edgeBuilder, OrderedGroupedKVInputConfig.Builder builder) {
@@ -193,7 +193,6 @@ public class OrderedGroupedKVInputConfig {
       return this;
     }
 
-
     @Override
     public SpecificBuilder<E> setAdditionalConfiguration(String key, String value) {
       builder.setAdditionalConfiguration(key, value);
@@ -222,7 +221,6 @@ public class OrderedGroupedKVInputConfig {
     public E done() {
       return edgeBuilder;
     }
-
   }
 
   @InterfaceAudience.Private
@@ -247,6 +245,7 @@ public class OrderedGroupedKVInputConfig {
 
   /**
    * Get a UserPayload representation of the Configuration
+   *
    * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
   public UserPayload toUserPayload() {
@@ -293,8 +292,8 @@ public class OrderedGroupedKVInputConfig {
     /**
      * Create a configuration builder for {@link org.apache.tez.runtime.library.input.OrderedGroupedKVInput}
      *
-     * @param keyClassName         the key class name
-     * @param valueClassName       the value class name
+     * @param keyClassName   the key class name
+     * @param valueClassName the value class name
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName) {
@@ -492,7 +491,7 @@ public class OrderedGroupedKVInputConfig {
      * @return this object for further chained method calls
      */
     public Builder setKeySerializationClass(String serializationClassName,
-        String comparatorClassName, @Nullable Map<String, String> serializerConf) {
+                                            String comparatorClassName, @Nullable Map<String, String> serializerConf) {
       Objects.requireNonNull(serializationClassName, "serializationClassName cannot be null");
       Objects.requireNonNull(comparatorClassName, "comparator cannot be null");
       this.conf.set(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY, serializationClassName + ","
@@ -537,5 +536,4 @@ public class OrderedGroupedKVInputConfig {
       return new OrderedGroupedKVInputConfig(this.conf, this.useLegacyInput);
     }
   }
-
 }

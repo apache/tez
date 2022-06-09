@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.client;
 
@@ -51,7 +51,7 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
 public class ResourceMgrDelegate {
   private static final Logger LOG = LoggerFactory.getLogger(ResourceMgrDelegate.class);
-      
+
   private YarnConfiguration conf;
   private GetNewApplicationResponse application;
   private ApplicationId applicationId;
@@ -108,7 +108,7 @@ public class ResourceMgrDelegate {
     } catch (YarnException e) {
       throw new IOException(e);
     }
-    ClusterMetrics oldMetrics = new ClusterMetrics(1, 1, 1, 1, 1, 1, 
+    ClusterMetrics oldMetrics = new ClusterMetrics(1, 1, 1, 1, 1, 1,
         metrics.getNumNodeManagers() * 10, metrics.getNumNodeManagers() * 2, 1,
         metrics.getNumNodeManagers(), 0, 0);
     return oldMetrics;
@@ -120,7 +120,7 @@ public class ResourceMgrDelegate {
     try {
       // Remove rmAddress after YARN-868 is addressed
       return ConverterUtils.convertFromYarn(
-        client.getRMDelegationToken(renewer), rmAddress);
+          client.getRMDelegationToken(renewer), rmAddress);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -132,7 +132,7 @@ public class ResourceMgrDelegate {
 
   public JobID getNewJobID() throws IOException, InterruptedException {
     try {
-      this.application = 
+      this.application =
           client.createApplication().getNewApplicationResponse();
     } catch (YarnException e) {
       throw new IOException(e);
@@ -142,13 +142,13 @@ public class ResourceMgrDelegate {
   }
 
   public QueueInfo getQueue(String queueName) throws IOException,
-  InterruptedException {
+      InterruptedException {
     try {
       org.apache.hadoop.yarn.api.records.QueueInfo queueInfo =
           client.getQueueInfo(queueName);
       return (queueInfo == null) ? null : TypeConverter.fromYarn(queueInfo,
           conf);
-      } catch (YarnException e) {
+    } catch (YarnException e) {
       throw new IOException(e);
     }
   }
@@ -184,7 +184,7 @@ public class ResourceMgrDelegate {
       InterruptedException {
     try {
       return TypeConverter.fromYarnQueueInfo(client.getChildQueueInfos(parent),
-        this.conf);
+          this.conf);
     } catch (YarnException e) {
       throw new IOException(e);
     }
@@ -192,31 +192,28 @@ public class ResourceMgrDelegate {
 
   public String getStagingAreaDir() throws IOException, InterruptedException {
 //    Path path = new Path(MRJobConstants.JOB_SUBMIT_DIR);
-    String user = 
-      UserGroupInformation.getCurrentUser().getShortUserName();
+    String user =
+        UserGroupInformation.getCurrentUser().getShortUserName();
     Path path = MRApps.getStagingAreaDir(conf, user);
     LOG.debug("getStagingAreaDir: dir=" + path);
     return path.toString();
   }
-
 
   public String getSystemDir() throws IOException, InterruptedException {
     Path sysDir = new Path(MRJobConfig.JOB_SUBMIT_DIR);
     //FileContext.getFileContext(conf).delete(sysDir, true);
     return sysDir.toString();
   }
-  
 
   public long getTaskTrackerExpiryInterval() throws IOException,
       InterruptedException {
     return 0;
   }
-  
+
   public void setJobPriority(JobID arg0, String arg1) throws IOException,
       InterruptedException {
     return;
   }
-
 
   public long getProtocolVersion(String arg0, long arg1) throws IOException {
     return 0;
@@ -230,5 +227,4 @@ public class ResourceMgrDelegate {
       throws YarnException, IOException {
     client.killApplication(appId);
   }
-
 }

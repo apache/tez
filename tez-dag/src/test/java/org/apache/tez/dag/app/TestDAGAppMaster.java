@@ -18,6 +18,7 @@ import org.apache.hadoop.yarn.util.MonotonicClock;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.records.TezVertexID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -177,7 +178,6 @@ public class TestDAGAppMaster {
     assertTrue(pluginMap.containsKey(TezConstants.getTezUberServicePluginName()));
     assertTrue(1 == pluginMap.get(TezConstants.getTezUberServicePluginName()));
 
-
     String pluginName = "d1";
     ByteBuffer bb = ByteBuffer.allocate(4);
     bb.putInt(0, 3);
@@ -213,7 +213,6 @@ public class TestDAGAppMaster {
     entityDescriptors.clear();
   }
 
-
   @Test(timeout = 5000)
   public void testParseAllPluginsNoneSpecified() throws IOException {
     Configuration conf = new Configuration(false);
@@ -226,7 +225,6 @@ public class TestDAGAppMaster {
     BiMap<String, Integer> clMap;
     List<NamedEntityDescriptor> tcDescriptors;
     BiMap<String, Integer> tcMap;
-
 
     // No plugins. Non local
     tsDescriptors = Lists.newLinkedList();
@@ -272,7 +270,6 @@ public class TestDAGAppMaster {
     List<NamedEntityDescriptor> tcDescriptors;
     BiMap<String, Integer> tcMap;
 
-
     // Only plugin, Yarn.
     tsDescriptors = Lists.newLinkedList();
     tsMap = HashBiMap.create();
@@ -307,7 +304,6 @@ public class TestDAGAppMaster {
     BiMap<String, Integer> clMap;
     List<NamedEntityDescriptor> tcDescriptors;
     BiMap<String, Integer> tcMap;
-
 
     // Only plugin, Yarn.
     tsDescriptors = Lists.newLinkedList();
@@ -358,12 +354,12 @@ public class TestDAGAppMaster {
         .setContainersEnabled(enableYarn);
     if (addCustom) {
       builder.addTaskSchedulers(
-          TezNamedEntityDescriptorProto.newBuilder()
-              .setName(TS_NAME)
-              .setEntityDescriptor(
-                  DAGProtos.TezEntityDescriptorProto.newBuilder()
-                      .setClassName(TS_NAME + CLASS_SUFFIX)
-                      .setTezUserPayload(payloadProto)))
+              TezNamedEntityDescriptorProto.newBuilder()
+                  .setName(TS_NAME)
+                  .setEntityDescriptor(
+                      DAGProtos.TezEntityDescriptorProto.newBuilder()
+                          .setClassName(TS_NAME + CLASS_SUFFIX)
+                          .setTezUserPayload(payloadProto)))
           .addContainerLaunchers(
               TezNamedEntityDescriptorProto.newBuilder()
                   .setName(CL_NAME)
@@ -381,7 +377,6 @@ public class TestDAGAppMaster {
     }
     return builder.build();
   }
-
 
   @Test
   public void testDagCredentialsWithoutMerge() throws Exception {
@@ -427,8 +422,8 @@ public class TestDAGAppMaster {
     DAGAppMaster am = spy(new DAGAppMaster(attemptId,
         ContainerId.newContainerId(attemptId, 1),
         "127.0.0.1", 0, 0, new MonotonicClock(), 1, true,
-        TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
-        new String[] {TEST_DIR.toString()},
+        TEST_DIR.toString(), new String[]{TEST_DIR.toString()},
+        new String[]{TEST_DIR.toString()},
         new TezApiVersionInfo().getVersion(), amCreds,
         "someuser", null));
     when(am.getState()).thenReturn(DAGAppMasterState.RUNNING);
@@ -512,8 +507,8 @@ public class TestDAGAppMaster {
     DAGAppMaster am = new DAGAppMaster(attemptId,
         ContainerId.newInstance(attemptId, 1),
         "127.0.0.1", 0, 0, new SystemClock(), 1, true,
-        TEST_DIR.toString(), new String[] {TEST_DIR.toString()},
-        new String[] {TEST_DIR.toString()},
+        TEST_DIR.toString(), new String[]{TEST_DIR.toString()},
+        new String[]{TEST_DIR.toString()},
         new TezApiVersionInfo().getVersion(), amCreds,
         "someuser", null);
     am.init(conf);
@@ -634,7 +629,7 @@ public class TestDAGAppMaster {
     public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession) {
       super(attemptId, ContainerId.newContainerId(attemptId, 1), "hostname", 12345, 12346,
           new SystemClock(), 0, isSession, TEST_DIR.getAbsolutePath(),
-          new String[] { TEST_DIR.getAbsolutePath() }, new String[] { TEST_DIR.getAbsolutePath() },
+          new String[]{TEST_DIR.getAbsolutePath()}, new String[]{TEST_DIR.getAbsolutePath()},
           new TezDagVersionInfo().getVersion(), createCredentials(), "jobname", null);
     }
 

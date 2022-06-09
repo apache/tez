@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -69,7 +69,7 @@ public class VersionInfo {
   @VisibleForTesting
   @Private
   protected VersionInfo(String component, String version, String revision, String buildTime,
-      String scmUrl) {
+                        String scmUrl) {
     this.info = new Properties();
     this.component = component;
     info.setProperty(VERSION, version);
@@ -127,5 +127,4 @@ public class VersionInfo {
     System.out.println("This command was run using " +
         ClassUtil.findContainingJar(VersionInfo.class));
   }
-
 }

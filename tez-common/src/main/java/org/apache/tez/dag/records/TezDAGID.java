@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,7 +58,7 @@ public class TezDAGID extends TezID {
     Objects.requireNonNull(applicationId, "ApplicationID cannot be null");
     return tezDAGIDCache.intern(new TezDAGID(applicationId, id));
   }
-  
+
   /**
    * Get a DAGID object from given parts.
    * @param yarnRMIdentifier YARN RM identifier
@@ -83,7 +83,6 @@ public class TezDAGID extends TezID {
     this.applicationId = applicationId;
   }
 
-  
   private TezDAGID(String yarnRMIdentifier, int appId, int id) {
     this(ApplicationId.newInstance(Long.parseLong(yarnRMIdentifier),
         appId), id);
@@ -99,17 +98,16 @@ public class TezDAGID extends TezID {
     if (!super.equals(o))
       return false;
 
-    TezDAGID that = (TezDAGID)o;
+    TezDAGID that = (TezDAGID) o;
     return this.applicationId.equals(that.applicationId);
   }
 
   /**Compare TaskInProgressIds by first jobIds, then by tip numbers and type.*/
   @Override
   public int compareTo(TezID o) {
-    TezDAGID that = (TezDAGID)o;
+    TezDAGID that = (TezDAGID) o;
     return this.applicationId.compareTo(that.applicationId);
   }
-
 
   @Override
   // Can't do much about this instance if used via the RPC layer. Any downstream
@@ -127,7 +125,7 @@ public class TezDAGID extends TezID {
     TezDAGID dagID = getInstance(ApplicationId.newInstance(clusterId, appId), dagIdInt);
     return dagID;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(applicationId.getClusterTimestamp());
@@ -216,5 +214,4 @@ public class TezDAGID extends TezID {
   public int hashCode() {
     return applicationId.hashCode() * 524287 + id;
   }
-
 }

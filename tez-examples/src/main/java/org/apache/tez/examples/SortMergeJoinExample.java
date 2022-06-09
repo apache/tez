@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -93,7 +93,7 @@ public class SortMergeJoinExample extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
 
     String inputDir1 = args[0];
     String inputDir2 = args[1];
@@ -133,7 +133,7 @@ public class SortMergeJoinExample extends TezExampleBase {
    * v1 v2 <br>
    * &nbsp;\&nbsp;/ <br>
    * &nbsp;&nbsp;v3 <br>
-   * 
+   *
    * @param tezConf
    * @param inputPath1
    * @param inputPath2
@@ -143,7 +143,7 @@ public class SortMergeJoinExample extends TezExampleBase {
    * @throws IOException
    */
   private DAG createDag(TezConfiguration tezConf, Path inputPath1,
-      Path inputPath2, Path outPath, int numPartitions) throws IOException {
+                        Path inputPath2, Path outPath, int numPartitions) throws IOException {
     DAG dag = DAG.create("SortMergeJoinExample");
 
     /**
@@ -153,7 +153,7 @@ public class SortMergeJoinExample extends TezExampleBase {
      */
     Vertex inputVertex1 =
         Vertex.create("input1",
-            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+                ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
             .addDataSource(
                 inputFile,
                 MRInput
@@ -169,7 +169,7 @@ public class SortMergeJoinExample extends TezExampleBase {
      */
     Vertex inputVertex2 =
         Vertex.create("input2",
-            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+                ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
             .addDataSource(
                 inputFile,
                 MRInput
@@ -269,14 +269,14 @@ public class SortMergeJoinExample extends TezExampleBase {
     /**
      * Join 2 sorted inputs both from {@link KeyValuesReader} and write output
      * using {@link KeyValueWriter}
-     * 
+     *
      * @param inputReader1
      * @param inputReader2
      * @param writer
      * @throws IOException
      */
     private void join(KeyValuesReader inputReader1,
-        KeyValuesReader inputReader2, KeyValueWriter writer) throws IOException {
+                      KeyValuesReader inputReader2, KeyValueWriter writer) throws IOException {
 
       while (inputReader1.next() && inputReader2.next()) {
         Text value1 = (Text) inputReader1.getCurrentKey();

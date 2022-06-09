@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.tests;
 
@@ -84,12 +84,12 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
   }
 
   public MiniTezClusterWithTimeline(String testName, int noOfNMs,
-      int numLocalDirs, int numLogDirs)  {
+                                    int numLocalDirs, int numLogDirs) {
     super(testName, noOfNMs, numLocalDirs, numLogDirs);
   }
 
   public MiniTezClusterWithTimeline(String testName, int noOfNMs,
-                        int numLocalDirs, int numLogDirs, boolean enableAHS)  {
+                                    int numLocalDirs, int numLogDirs, boolean enableAHS) {
     super(testName, 1, noOfNMs, numLocalDirs, numLogDirs, enableAHS);
   }
 
@@ -110,7 +110,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, new File(getTestWorkDir(),
           "apps_staging_dir" + Path.SEPARATOR).getAbsolutePath());
     }
-    
+
     if (conf.get(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC) == null) {
       // nothing defined. set quick delete value
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
@@ -130,7 +130,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
     } else {
       LOG.info("Using Tez AppJar: " + appJarLocalFile.getAbsolutePath());
     }
-    
+
     FileSystem fs = FileSystem.get(conf);
     Path testRootDir = fs.makeQualified(new Path("target", getName() + "-tmpDir"));
     Path appRemoteJar = new Path(testRootDir, "TezAppJar.jar");
@@ -146,7 +146,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
     conf.setBoolean(YarnConfiguration.NM_PMEM_CHECK_ENABLED, false);
     conf.setBoolean(YarnConfiguration.NM_VMEM_CHECK_ENABLED, false);
 
-    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY,  "000");
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "000");
 
     try {
       Path stagingPath = FileContext.getFileContext(conf).makeQualified(
@@ -166,7 +166,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
                   .getAbsolutePath());
         }
       }
-      FileContext fc=FileContext.getFileContext(stagingPath.toUri(), conf);
+      FileContext fc = FileContext.getFileContext(stagingPath.toUri(), conf);
       if (fc.util().exists(stagingPath)) {
         LOG.info(stagingPath + " exists! deleting...");
         fc.delete(stagingPath, true);
@@ -186,9 +186,9 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
 
     //configure the shuffle service in NM
     conf.setStrings(YarnConfiguration.NM_AUX_SERVICES,
-        new String[] { ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID });
+        new String[]{ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID});
     conf.setClass(String.format(YarnConfiguration.NM_AUX_SERVICE_FMT,
-        ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID), ShuffleHandler.class,
+            ShuffleHandler.MAPREDUCE_SHUFFLE_SERVICEID), ShuffleHandler.class,
         Service.class);
 
     // Non-standard shuffle port
@@ -250,7 +250,7 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
           @Override
           public boolean apply(ApplicationReport appReport) {
             return EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
-                YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
+                    YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING)
                 .contains(appReport.getYarnApplicationState());
           }
         });
@@ -300,7 +300,6 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
             break;
           }
         } while (waitEndTime != -1 && waitEndTime > System.currentTimeMillis());
-
       }
     } catch (Exception e) {
       e.printStackTrace();
@@ -308,9 +307,8 @@ public class MiniTezClusterWithTimeline extends MiniYARNCluster {
       yarnClient.stop();
     }
   }
-  
+
   public Path getConfigFilePath() {
     return confFilePath;
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ public class TezHeartbeatResponse implements Writable {
   public long getLastRequestId() {
     return lastRequestId;
   }
-  
+
   public int getNextFromEventId() {
     return nextFromEventId;
   }
@@ -66,14 +66,14 @@ public class TezHeartbeatResponse implements Writable {
     this.events = Collections.unmodifiableList(events);
   }
 
-  public void setLastRequestId(long lastRequestId ) {
+  public void setLastRequestId(long lastRequestId) {
     this.lastRequestId = lastRequestId;
   }
 
   public void setShouldDie() {
     this.shouldDie = true;
   }
-  
+
   public void setNextFromEventId(int nextFromEventId) {
     this.nextFromEventId = nextFromEventId;
   }
@@ -88,7 +88,7 @@ public class TezHeartbeatResponse implements Writable {
     out.writeBoolean(shouldDie);
     out.writeInt(nextFromEventId);
     out.writeInt(nextPreRoutedEventId);
-    if(events != null) {
+    if (events != null) {
       out.writeBoolean(true);
       out.writeInt(events.size());
       for (TezEvent e : events) {
@@ -105,7 +105,7 @@ public class TezHeartbeatResponse implements Writable {
     shouldDie = in.readBoolean();
     nextFromEventId = in.readInt();
     nextPreRoutedEventId = in.readInt();
-    if(in.readBoolean()) {
+    if (in.readBoolean()) {
       int eventCount = in.readInt();
       events = new ArrayList<TezEvent>(eventCount);
       for (int i = 0; i < eventCount; ++i) {

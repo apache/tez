@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,9 +54,9 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 @Private
-public class MapProcessor extends MRTask{
+public class MapProcessor extends MRTask {
 
   private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
 
@@ -82,17 +82,17 @@ public class MapProcessor extends MRTask{
 
   @Override
   public void run(Map<String, LogicalInput> _inputs,
-      Map<String, LogicalOutput> _outputs) throws Exception {
+                  Map<String, LogicalOutput> _outputs) throws Exception {
     this.inputs = _inputs;
     this.outputs = _outputs;
     progressHelper = new ProgressHelper(this.inputs, getContext(), this.getClass().getSimpleName());
     LOG.info("Running map: " + processorContext.getUniqueIdentifier());
 
     if (_inputs.size() != 1
-            || _outputs.size() != 1) {
+        || _outputs.size() != 1) {
       throw new IOException("Cannot handle multiple _inputs or _outputs"
-              + ", inputCount=" + _inputs.size()
-              + ", outputCount=" + _outputs.size());
+          + ", inputCount=" + _inputs.size()
+          + ", outputCount=" + _outputs.size());
     }
 
     for (LogicalInput input : _inputs.values()) {
@@ -112,7 +112,7 @@ public class MapProcessor extends MRTask{
       throw new IOException(new TezException(
           "Only MRInputLegacy supported. Input: " + in.getClass()));
     }
-    MRInputLegacy input = (MRInputLegacy)in;
+    MRInputLegacy input = (MRInputLegacy) in;
     input.init();
     Configuration incrementalConf = input.getConfigUpdates();
     if (incrementalConf != null) {
@@ -123,9 +123,9 @@ public class MapProcessor extends MRTask{
 
     KeyValueWriter kvWriter = null;
     if ((out instanceof MROutputLegacy)) {
-      kvWriter = ((MROutputLegacy)out).getWriter();
-    } else if ((out instanceof OrderedPartitionedKVOutput)){
-      kvWriter = ((OrderedPartitionedKVOutput)out).getWriter();
+      kvWriter = ((MROutputLegacy) out).getWriter();
+    } else if ((out instanceof OrderedPartitionedKVOutput)) {
+      kvWriter = ((OrderedPartitionedKVOutput) out).getWriter();
     } else {
       throw new IOException("Illegal output to map, outputClass="
           + out.getClass());
@@ -139,7 +139,6 @@ public class MapProcessor extends MRTask{
 
     done();
   }
-  
 
   /**
    * Update the job with details about the file split
@@ -155,11 +154,11 @@ public class MapProcessor extends MRTask{
     }
     LOG.info("Processing mapred split: " + inputSplit);
   }
-  
+
   private void updateJobWithSplit(
       final JobConf job, org.apache.hadoop.mapreduce.InputSplit inputSplit) {
     if (inputSplit instanceof org.apache.hadoop.mapreduce.lib.input.FileSplit) {
-      org.apache.hadoop.mapreduce.lib.input.FileSplit fileSplit = 
+      org.apache.hadoop.mapreduce.lib.input.FileSplit fileSplit =
           (org.apache.hadoop.mapreduce.lib.input.FileSplit) inputSplit;
       job.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath().toString());
       job.setLong(JobContext.MAP_INPUT_START, fileSplit.getStart());
@@ -173,15 +172,15 @@ public class MapProcessor extends MRTask{
       final MRTaskReporter reporter,
       final MRInputLegacy input,
       final KeyValueWriter output
-      ) throws IOException, InterruptedException {
+  ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
     // Done only for MRInput.
     // TODO use new method in MRInput to get required info
     //input.initialize(job, master);
-    
+
     InputSplit inputSplit = input.getOldInputSplit();
-    
+
     updateJobWithSplit(job, inputSplit);
 
     RecordReader in = new OldRecordReader(input);
@@ -189,10 +188,10 @@ public class MapProcessor extends MRTask{
     OutputCollector collector = new OldOutputCollector(output);
 
     MapRunnable runner =
-        (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
+        (MapRunnable) ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
-    runner.run(in, collector, (Reporter)reporter);
-    
+    runner.run(in, collector, (Reporter) reporter);
+
     // Set progress to 1.0f if there was no exception,
     reporter.setProgress(1.0f);
     // start the sort phase only if there are reducers
@@ -200,10 +199,10 @@ public class MapProcessor extends MRTask{
   }
 
   private void runNewMapper(final JobConf job,
-      MRTaskReporter reporter,
-      final MRInputLegacy in,
-      KeyValueWriter out
-      ) throws IOException, InterruptedException {
+                            MRTaskReporter reporter,
+                            final MRInputLegacy in,
+                            KeyValueWriter out
+  ) throws IOException, InterruptedException {
 
     // Initialize input in-line since it sets parameters which may be used by the processor.
     // Done only for MRInput.
@@ -230,16 +229,16 @@ public class MapProcessor extends MRTask{
         new NewOutputCollector(out);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
-    
+
     updateJobWithSplit(job, split);
 
     org.apache.hadoop.mapreduce.MapContext
-    mapContext =
-    new MapContextImpl(
-        job, taskAttemptId,
-        input, output,
-        committer,
-        processorContext, split, reporter);
+        mapContext =
+        new MapContextImpl(
+            job, taskAttemptId,
+            input, output,
+            committer,
+            processorContext, split, reporter);
 
     org.apache.hadoop.mapreduce.Mapper.Context mapperContext =
         new WrappedMapper().getMapContext(mapContext);
@@ -248,7 +247,7 @@ public class MapProcessor extends MRTask{
     mapper.run(mapperContext);
     // Set progress to 1.0f if there was no exception,
     reporter.setProgress(1.0f);
-    
+
     this.statusUpdate();
     input.close();
     output.close(mapperContext);
@@ -266,7 +265,7 @@ public class MapProcessor extends MRTask{
 
     @Override
     public void initialize(org.apache.hadoop.mapreduce.InputSplit split,
-        TaskAttemptContext context) throws IOException,
+                           TaskAttemptContext context) throws IOException,
         InterruptedException {
       //in.initializeNewRecordReader(split, context);
     }
@@ -295,10 +294,10 @@ public class MapProcessor extends MRTask{
         return in.getProgress();
       } catch (ProgressFailedException e) {
         if (e.getCause() instanceof IOException) {
-          throw (IOException)e.getCause();
+          throw (IOException) e.getCause();
         }
         if (e.getCause() instanceof InterruptedException) {
-          throw (InterruptedException)e.getCause();
+          throw (InterruptedException) e.getCause();
         }
       }
       throw new RuntimeException("Could not get Processor progress");
@@ -361,7 +360,7 @@ public class MapProcessor extends MRTask{
   }
 
   private static class OldOutputCollector
-  implements OutputCollector {
+      implements OutputCollector {
     private final KeyValueWriter output;
 
     OldOutputCollector(KeyValueWriter output) {
@@ -369,12 +368,12 @@ public class MapProcessor extends MRTask{
     }
 
     public void collect(Object key, Object value) throws IOException {
-        output.write(key, value);
+      output.write(key, value);
     }
   }
 
   private static class NewOutputCollector
-    extends org.apache.hadoop.mapreduce.RecordWriter {
+      extends org.apache.hadoop.mapreduce.RecordWriter {
     private final KeyValueWriter out;
 
     NewOutputCollector(KeyValueWriter out) throws IOException {
@@ -388,7 +387,7 @@ public class MapProcessor extends MRTask{
 
     @Override
     public void close(TaskAttemptContext context
-                      ) throws IOException, InterruptedException {
+    ) throws IOException, InterruptedException {
     }
   }
 

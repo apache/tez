@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -112,7 +112,7 @@ public class MRInputHelpers {
       inputSplitInfo = generateInputSplits(conf, splitsDir);
 
       InputDescriptor inputDescriptor = InputDescriptor.create(useLegacyInput ? MRInputLegacy.class
-          .getName() : MRInput.class.getName())
+              .getName() : MRInput.class.getName())
           .setUserPayload(createMRInputPayload(conf, null, false, true));
       Map<String, LocalResource> additionalLocalResources = new HashMap<String, LocalResource>();
       updateLocalResourcesForInputSplits(conf, inputSplitInfo,
@@ -131,7 +131,6 @@ public class MRInputHelpers {
       throw new TezUncheckedException("Failed to generate InputSplits", e);
     }
   }
-
 
   /**
    * Parse the payload used by MRInputPayload
@@ -316,7 +315,7 @@ public class MRInputHelpers {
    */
   @InterfaceStability.Unstable
   public static InputSplitInfoMem generateInputSplitsToMem(Configuration conf,
-      boolean groupSplits, boolean sortSplits, int targetTasks)
+                                                           boolean groupSplits, boolean sortSplits, int targetTasks)
       throws IOException, ClassNotFoundException, InterruptedException {
 
     InputSplitInfoMem splitInfoMem = null;
@@ -410,13 +409,12 @@ public class MRInputHelpers {
     return Lists.newArrayList(iterable);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static org.apache.hadoop.mapreduce.InputSplit[] generateNewSplits(
       JobContext jobContext, boolean groupSplits, boolean sortSplits,
       int numTasks) throws ClassNotFoundException, IOException,
       InterruptedException {
     Configuration conf = jobContext.getConfiguration();
-
 
     // This is the real input format.
     org.apache.hadoop.mapreduce.InputFormat<?, ?> inputFormat = null;
@@ -456,7 +454,7 @@ public class MRInputHelpers {
     return splits;
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static org.apache.hadoop.mapred.InputSplit[] generateOldSplits(
       JobConf jobConf, boolean groupSplits, boolean sortSplits, int numTasks)
       throws IOException {
@@ -740,9 +738,9 @@ public class MRInputHelpers {
    */
   @InterfaceAudience.Private
   protected static UserPayload createMRInputPayload(Configuration conf,
-      MRRuntimeProtos.MRSplitsProto mrSplitsProto, boolean isGrouped,
-      boolean isSorted) throws
-          IOException {
+                                                    MRRuntimeProtos.MRSplitsProto mrSplitsProto, boolean isGrouped,
+                                                    boolean isSorted) throws
+      IOException {
     Preconditions
         .checkArgument(conf != null, "Configuration must be specified");
 
@@ -751,8 +749,8 @@ public class MRInputHelpers {
   }
 
   private static UserPayload createMRInputPayload(ByteString bytes,
-    MRRuntimeProtos.MRSplitsProto mrSplitsProto,
-    boolean isGrouped, boolean isSorted) throws IOException {
+                                                  MRRuntimeProtos.MRSplitsProto mrSplitsProto,
+                                                  boolean isGrouped, boolean isSorted) throws IOException {
     MRRuntimeProtos.MRInputUserPayloadProto.Builder userPayloadBuilder =
         MRRuntimeProtos.MRInputUserPayloadProto
             .newBuilder();
@@ -765,7 +763,6 @@ public class MRInputHelpers {
     return UserPayload.create(userPayloadBuilder.build().
         toByteString().asReadOnlyByteBuffer());
   }
-
 
   private static String getStringProperty(Configuration conf, String propertyName) {
     Objects.requireNonNull(conf, "Configuration must be provided");
@@ -926,5 +923,4 @@ public class MRInputHelpers {
   public static int getDagAttemptNumber(Configuration conf) {
     return getIntProperty(conf, MRInput.TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER);
   }
-
 }

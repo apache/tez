@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,6 @@ import org.apache.tez.mapreduce.combine.MRCombiner;
 import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
-
 /**
  * This class contains helper methods for frameworks which migrate from MapReduce to Tez, and need
  * to continue to work with existing MapReduce configurations.
@@ -48,7 +47,6 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 public class MRHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRHelpers.class);
-
 
   /**
    * Translate MapReduce configuration keys to the equivalent Tez keys in the provided
@@ -74,7 +72,6 @@ public class MRHelpers {
   public static void translateMRConfToTez(Configuration conf, boolean preferTez) {
     convertVertexConfToTez(conf, preferTez);
   }
-
 
   /**
    * Update the provided configuration to use the new API (mapreduce) or the old API (mapred) based
@@ -205,12 +202,12 @@ public class MRHelpers {
       return conf.get(
           MRJobConfig.MAP_LOG_LEVEL,
           MRJobConfig.DEFAULT_LOG_LEVEL
-          );
+      );
     } else {
       return conf.get(
           MRJobConfig.REDUCE_LOG_LEVEL,
           MRJobConfig.DEFAULT_LOG_LEVEL
-          );
+      );
     }
   }
 
@@ -222,7 +219,7 @@ public class MRHelpers {
   }
 
   private static String getLog4jCmdLineProperties(Configuration conf,
-      boolean isMap) {
+                                                  boolean isMap) {
     Vector<String> logProps = new Vector<String>(4);
     TezUtils.addLog4jSystemProperties(getChildLogLevel(conf, isMap), logProps);
     StringBuilder sb = new StringBuilder();
@@ -328,8 +325,8 @@ public class MRHelpers {
    * running Map tasks
    */
   public static Resource getResourceForMRMapper(Configuration conf) {
-    JobConf jobConf = conf instanceof JobConf ? (JobConf)conf : new JobConf(conf);
-    return Resource.newInstance((int)jobConf.getMemoryForMapTask(),
+    JobConf jobConf = conf instanceof JobConf ? (JobConf) conf : new JobConf(conf);
+    return Resource.newInstance((int) jobConf.getMemoryForMapTask(),
         jobConf.getInt(MRJobConfig.MAP_CPU_VCORES, MRJobConfig.DEFAULT_MAP_CPU_VCORES));
   }
 
@@ -350,8 +347,8 @@ public class MRHelpers {
    * running Reduce tasks
    */
   public static Resource getResourceForMRReducer(Configuration conf) {
-    JobConf jobConf = conf instanceof JobConf ? (JobConf)conf : new JobConf(conf);
-    return Resource.newInstance((int)jobConf.getMemoryForReduceTask(),
+    JobConf jobConf = conf instanceof JobConf ? (JobConf) conf : new JobConf(conf);
+    return Resource.newInstance((int) jobConf.getMemoryForReduceTask(),
         conf.getInt(MRJobConfig.REDUCE_CPU_VCORES, MRJobConfig.DEFAULT_REDUCE_CPU_VCORES));
   }
 
@@ -375,8 +372,8 @@ public class MRHelpers {
 
     // Add the env variables passed by the admin
     TezYARNUtils.appendToEnvFromInputString(environment, conf.get(
-        MRJobConfig.MAPRED_ADMIN_USER_ENV,
-        MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV),
+            MRJobConfig.MAPRED_ADMIN_USER_ENV,
+            MRJobConfig.DEFAULT_MAPRED_ADMIN_USER_ENV),
         File.pathSeparator);
 
     // Add the env variables passed by the user
@@ -402,5 +399,4 @@ public class MRHelpers {
     TezYARNUtils.appendToEnvFromInputString(environment, conf.get(MRJobConfig.MR_AM_ENV),
         File.pathSeparator);
   }
-
 }

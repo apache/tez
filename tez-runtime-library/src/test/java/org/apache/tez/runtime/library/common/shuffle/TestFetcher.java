@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -151,7 +151,7 @@ public class TestFetcher {
 
   @Test(timeout = 3000)
   public void testSetupLocalDiskFetch() throws Exception {
-    
+
     CompositeInputAttemptIdentifier[] srcAttempts = {
         new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", 1),
         new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", 1),
@@ -171,8 +171,8 @@ public class TestFetcher {
         createMockInputContext(), null, conf, true, HOST, PORT,
         false, true, true);
     ArrayList<InputAttemptIdentifier> inputAttemptIdentifiers = new ArrayList<>();
-    for(CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
-      for(int i=0;i<compositeInputAttemptIdentifier.getInputIdentifierCount();i++) {
+    for (CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
+      for (int i = 0; i < compositeInputAttemptIdentifier.getInputIdentifierCount(); i++) {
         inputAttemptIdentifiers.add(compositeInputAttemptIdentifier.expand(i));
       }
     }
@@ -180,11 +180,11 @@ public class TestFetcher {
     list.addAll(Arrays.asList(srcAttempts));
     builder.assignWork(HOST, PORT, partition, 1, list);
     Fetcher fetcher = spy(builder.build());
-    for(CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
-      for(int i=0;i<compositeInputAttemptIdentifier.getInputIdentifierCount();i++) {
+    for (CompositeInputAttemptIdentifier compositeInputAttemptIdentifier : srcAttempts) {
+      for (int i = 0; i < compositeInputAttemptIdentifier.getInputIdentifierCount(); i++) {
         inputAttemptIdentifiers.add(compositeInputAttemptIdentifier.expand(i));
         Fetcher.PathPartition pathPartition =
-            new Fetcher.PathPartition(compositeInputAttemptIdentifier.getPathComponent(),partition + i);
+            new Fetcher.PathPartition(compositeInputAttemptIdentifier.getPathComponent(), partition + i);
         fetcher.getPathToAttemptMap().put(pathPartition, compositeInputAttemptIdentifier.expand(i));
       }
     }
@@ -267,12 +267,12 @@ public class TestFetcher {
     Assert.assertEquals("success callback type", f.getType(), FetchedInput.Type.DISK_DIRECT);
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
         new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
             false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-            //duplicate entry
+        //duplicate entry
         new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
             false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
         // pipeline shuffle based identifiers, with multiple attempts
@@ -315,7 +315,7 @@ public class TestFetcher {
     Assert.assertTrue(expectedSrcAttempts.length == fetcher.srcAttemptsRemaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.srcAttemptsRemaining.entrySet().iterator();
     int count = 0;
-    while(iterator.hasNext()) {
+    while (iterator.hasNext()) {
       String key = iterator.next().getKey();
       Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
     }

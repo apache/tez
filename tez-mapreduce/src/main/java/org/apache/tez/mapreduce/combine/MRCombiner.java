@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,16 +65,16 @@ import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 public class MRCombiner implements Combiner {
 
   private static Logger LOG = LoggerFactory.getLogger(MRCombiner.class);
-  
+
   private final Configuration conf;
   private final Class<?> keyClass;
   private final Class<?> valClass;
   private final RawComparator<?> comparator;
   private final boolean useNewApi;
-  
+
   private final TezCounter combineInputRecordsCounter;
   private final TezCounter combineOutputRecordsCounter;
-  
+
   private final MRTaskReporter reporter;
   private final TaskAttemptID mrTaskAttemptID;
 
@@ -87,30 +87,30 @@ public class MRCombiner implements Combiner {
       conf = userConf;
     }
 
-    assert(taskContext instanceof InputContext || taskContext instanceof OutputContext);
+    assert (taskContext instanceof InputContext || taskContext instanceof OutputContext);
     if (taskContext instanceof OutputContext) {
       this.keyClass = ConfigUtils.getIntermediateOutputKeyClass(conf);
       this.valClass = ConfigUtils.getIntermediateOutputValueClass(conf);
       this.comparator = ConfigUtils.getIntermediateOutputKeyComparator(conf);
-      this.reporter = new MRTaskReporter((OutputContext)taskContext);
+      this.reporter = new MRTaskReporter((OutputContext) taskContext);
     } else {
       this.keyClass = ConfigUtils.getIntermediateInputKeyClass(conf);
       this.valClass = ConfigUtils.getIntermediateInputValueClass(conf);
       this.comparator = ConfigUtils.getIntermediateInputKeyComparator(conf);
-      this.reporter = new MRTaskReporter((InputContext)taskContext);
+      this.reporter = new MRTaskReporter((InputContext) taskContext);
     }
 
     combineInputRecordsCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_INPUT_RECORDS);
     combineOutputRecordsCounter = taskContext.getCounters().findCounter(TaskCounter.COMBINE_OUTPUT_RECORDS);
-    
-    boolean isMap = conf.getBoolean(MRConfig.IS_MAP_PROCESSOR,false);
+
+    boolean isMap = conf.getBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     this.mrTaskAttemptID = new TaskAttemptID(
         new TaskID(String.valueOf(taskContext.getApplicationId()
             .getClusterTimestamp()), taskContext.getApplicationId().getId(),
             isMap ? TaskType.MAP : TaskType.REDUCE,
             taskContext.getTaskIndex()), taskContext.getTaskAttemptNumber());
-    
-    LOG.info("Using combineKeyClass: " + keyClass + ", combineValueClass: " + valClass + ", combineComparator: " +comparator + ", useNewApi: " + useNewApi);
+
+    LOG.info("Using combineKeyClass: " + keyClass + ", combineValueClass: " + valClass + ", combineComparator: " + comparator + ", useNewApi: " + useNewApi);
   }
 
   @Override
@@ -121,16 +121,15 @@ public class MRCombiner implements Combiner {
     } else {
       runOldCombiner(rawIter, writer);
     }
-    
   }
 
   ///////////////// Methods for old API //////////////////////
-  
+
   private void runOldCombiner(final TezRawKeyValueIterator rawIter, final Writer writer) throws IOException {
     Class<? extends Reducer> reducerClazz = (Class<? extends Reducer>) conf.getClass("mapred.combiner.class", null, Reducer.class);
-    
+
     Reducer combiner = ReflectionUtils.newInstance(reducerClazz, conf);
-    
+
     OutputCollector collector = new OutputCollector() {
       @Override
       public void collect(Object key, Object value) throws IOException {
@@ -138,29 +137,29 @@ public class MRCombiner implements Combiner {
         combineOutputRecordsCounter.increment(1);
       }
     };
-    
+
     CombinerValuesIterator values = new CombinerValuesIterator(rawIter, keyClass, valClass, comparator);
-    
+
     while (values.moveToNext()) {
       combiner.reduce(values.getKey(), values.getValues().iterator(), collector, reporter);
     }
   }
-  
-  private final class CombinerValuesIterator<KEY,VALUE> extends ValuesIterator<KEY, VALUE> {
+
+  private final class CombinerValuesIterator<KEY, VALUE> extends ValuesIterator<KEY, VALUE> {
     public CombinerValuesIterator(TezRawKeyValueIterator rawIter,
-        Class<KEY> keyClass, Class<VALUE> valClass,
-        RawComparator<KEY> comparator) throws IOException {
+                                  Class<KEY> keyClass, Class<VALUE> valClass,
+                                  RawComparator<KEY> comparator) throws IOException {
       super(rawIter, comparator, keyClass, valClass, conf,
           null, combineInputRecordsCounter);
     }
   }
-  
+
   ///////////////// End of methods for old API //////////////////////
-  
+
   ///////////////// Methods for new API //////////////////////
-  
+
   private void runNewCombiner(final TezRawKeyValueIterator rawIter, final Writer writer) throws InterruptedException, IOException {
-    
+
     RecordWriter recordWriter = new RecordWriter() {
 
       @Override
@@ -176,12 +175,12 @@ public class MRCombiner implements Combiner {
         // Will be closed by whoever invokes the combiner.
       }
     };
-    
+
     Class<? extends org.apache.hadoop.mapreduce.Reducer> reducerClazz = (Class<? extends org.apache.hadoop.mapreduce.Reducer>) conf
         .getClass(MRJobConfig.COMBINE_CLASS_ATTR, null,
             org.apache.hadoop.mapreduce.Reducer.class);
     org.apache.hadoop.mapreduce.Reducer reducer = ReflectionUtils.newInstance(reducerClazz, conf);
-    
+
     org.apache.hadoop.mapreduce.Reducer.Context reducerContext =
         createReduceContext(
             conf,
@@ -191,10 +190,10 @@ public class MRCombiner implements Combiner {
             new MRCounters.MRCounter(combineOutputRecordsCounter),
             recordWriter,
             reporter,
-            (RawComparator)comparator,
+            (RawComparator) comparator,
             keyClass,
             valClass);
-    
+
     reducer.run(reducerContext);
     recordWriter.close(reducerContext);
   }
@@ -248,7 +247,4 @@ public class MRCombiner implements Combiner {
         .getReducerContext(rContext);
     return reducerContext;
   }
-
-  
- 
 }

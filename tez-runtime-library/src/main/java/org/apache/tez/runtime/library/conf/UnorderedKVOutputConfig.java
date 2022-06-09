@@ -113,6 +113,7 @@ public class UnorderedKVOutputConfig {
 
   /**
    * Get a UserPayload representation of the Configuration
+   *
    * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
   public UserPayload toUserPayload() {
@@ -154,8 +155,8 @@ public class UnorderedKVOutputConfig {
     /**
      * Create a configuration builder for {@link org.apache.tez.runtime.library.output.UnorderedKVOutput}
      *
-     * @param keyClassName         the key class name
-     * @param valueClassName       the value class name
+     * @param keyClassName   the key class name
+     * @param valueClassName the value class name
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName) {

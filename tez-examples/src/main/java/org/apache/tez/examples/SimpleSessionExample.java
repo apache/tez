@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ public class SimpleSessionExample extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
     System.out.println("Running SimpleSessionExample");
     String[] inputPaths = args[0].split(",");
     String[] outputPaths = args[1].split(",");
@@ -90,7 +90,7 @@ public class SimpleSessionExample extends TezExampleBase {
           isDisableSplitGrouping(), isGenerateSplitInClient(), ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
       LOG.info("Running dag number " + i);
-      if(runDag(dag, isCountersLog(), LOG) != 0) {
+      if (runDag(dag, isCountersLog(), LOG) != 0) {
         return -1;
       }
     }

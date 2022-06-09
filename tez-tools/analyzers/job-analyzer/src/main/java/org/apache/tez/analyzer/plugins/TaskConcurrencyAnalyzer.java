@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer {
 
-  private static final String[] headers = { "time", "vertexName", "concurrentTasksRunning" };
+  private static final String[] headers = {"time", "vertexName", "concurrentTasksRunning"};
 
   private final CSVResult csvResult;
 
@@ -78,7 +78,8 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
        * - Decrement concurrent tasks when start event is encountered
        */
       TreeMultiset<TimeInfo> timeInfoSet = TreeMultiset.create(new Comparator<TimeInfo>() {
-        @Override public int compare(TimeInfo o1, TimeInfo o2) {
+        @Override
+        public int compare(TimeInfo o1, TimeInfo o2) {
           if (o1.timestamp < o2.timestamp) {
             return -1;
           }
@@ -114,16 +115,16 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
 
       //Compute concurrent tasks in the list now.
       int concurrentTasks = 0;
-      for(TimeInfo timeInfo : timeInfoSet.elementSet()) {
+      for (TimeInfo timeInfo : timeInfoSet.elementSet()) {
         switch (timeInfo.eventType) {
-        case START:
-          concurrentTasks += timeInfoSet.count(timeInfo);
-          break;
-        case FINISH:
-          concurrentTasks -= timeInfoSet.count(timeInfo);
-          break;
-        default:
-          break;
+          case START:
+            concurrentTasks += timeInfoSet.count(timeInfo);
+            break;
+          case FINISH:
+            concurrentTasks -= timeInfoSet.count(timeInfo);
+            break;
+          default:
+            break;
         }
         timeInfo.concurrentTasks = concurrentTasks;
         addToResult(vertexName, timeInfo.timestamp, timeInfo.concurrentTasks);
@@ -132,7 +133,7 @@ public class TaskConcurrencyAnalyzer extends TezAnalyzerBase implements Analyzer
   }
 
   private void addToResult(String vertexName, long currentTime, int concurrentTasks) {
-    String[] record = { currentTime + "", vertexName, concurrentTasks + "" };
+    String[] record = {currentTime + "", vertexName, concurrentTasks + ""};
     csvResult.addRecord(record);
   }
 

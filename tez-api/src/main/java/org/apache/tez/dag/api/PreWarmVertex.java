@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,18 +53,16 @@ import org.apache.tez.runtime.api.Processor;
 @Public
 public class PreWarmVertex extends Vertex {
 
-
   private PreWarmVertex(String vertexName, ProcessorDescriptor processorDescriptor, int parallelism,
                         Resource taskResource) {
     super(vertexName, processorDescriptor, parallelism, taskResource);
   }
-  
 
   private PreWarmVertex(String vertexName, int parallelism, Resource taskResource) {
     this(vertexName, ProcessorDescriptor.create(
         "org.apache.tez.runtime.library.processor.PreWarmProcessor"), parallelism, taskResource);
   }
-  
+
   /**
    * Create a config builder for the @link {@link PreWarmVertex}. This may be used to construct the
    * pre-warm vertex more flexibly.
@@ -128,31 +126,31 @@ public class PreWarmVertex extends Vertex {
     ProcessorDescriptor proc;
     Resource resource;
     Configuration conf;
-    
+
     PreWarmVertexConfigBuilder(Configuration conf) {
       this.conf = conf;
     }
-    
+
     public PreWarmVertexConfigBuilder setName(String name) {
       this.name = name;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setProcessorDescriptor(ProcessorDescriptor proc) {
       this.proc = proc;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setResource(Resource resource) {
       this.resource = resource;
       return this;
     }
-    
+
     public PreWarmVertexConfigBuilder setParallelism(int parallelism) {
       this.parallelism = parallelism;
       return this;
     }
-    
+
     public PreWarmVertex build() {
       if (name == null) {
         name = "_PreWarm_";
@@ -160,7 +158,7 @@ public class PreWarmVertex extends Vertex {
       if (parallelism == 0) {
         parallelism = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, -1);
         if (parallelism == -1) {
-          throw new TezUncheckedException("Prewarm parallelism must be set or specified in conf via " 
+          throw new TezUncheckedException("Prewarm parallelism must be set or specified in conf via "
               + TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS);
         }
       }
@@ -168,9 +166,8 @@ public class PreWarmVertex extends Vertex {
         proc =
             ProcessorDescriptor.create("org.apache.tez.runtime.library.processor.PreWarmProcessor");
       }
-      
+
       return create(name, proc, parallelism, resource);
     }
   }
-
 }

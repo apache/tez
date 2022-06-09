@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,69 +45,69 @@ public final class HistoryEventProtoJsonConversion {
     JSONObject jsonObject = null;
 
     switch (historyEvent.getEventType()) {
-    case "APP_LAUNCHED":
-      jsonObject = convertAppLaunchedEvent(historyEvent);
-      break;
-    case "AM_LAUNCHED":
-      jsonObject = convertAMLaunchedEvent(historyEvent);
-      break;
-    case "AM_STARTED":
-      jsonObject = convertAMStartedEvent(historyEvent);
-      break;
-    case "CONTAINER_LAUNCHED":
-      jsonObject = convertContainerLaunchedEvent(historyEvent);
-      break;
-    case "CONTAINER_STOPPED":
-      jsonObject = convertContainerStoppedEvent(historyEvent);
-      break;
-    case "DAG_SUBMITTED":
-      jsonObject = convertDAGSubmittedEvent(historyEvent);
-      break;
-    case "DAG_INITIALIZED":
-      jsonObject = convertDAGInitializedEvent(historyEvent);
-      break;
-    case "DAG_STARTED":
-      jsonObject = convertDAGStartedEvent(historyEvent);
-      break;
-    case "DAG_FINISHED":
-      jsonObject = convertDAGFinishedEvent(historyEvent);
-      break;
-    case "VERTEX_INITIALIZED":
-      jsonObject = convertVertexInitializedEvent(historyEvent);
-      break;
-    case "VERTEX_STARTED":
-      jsonObject = convertVertexStartedEvent(historyEvent);
-      break;
-    case "VERTEX_FINISHED":
-      jsonObject = convertVertexFinishedEvent(historyEvent);
-      break;
-    case "TASK_STARTED":
-      jsonObject = convertTaskStartedEvent(historyEvent);
-      break;
-    case "TASK_FINISHED":
-      jsonObject = convertTaskFinishedEvent(historyEvent);
-      break;
-    case "TASK_ATTEMPT_STARTED":
-      jsonObject = convertTaskAttemptStartedEvent(historyEvent);
-      break;
-    case "TASK_ATTEMPT_FINISHED":
-      jsonObject = convertTaskAttemptFinishedEvent(historyEvent);
-      break;
-    case "VERTEX_CONFIGURE_DONE":
-      jsonObject = convertVertexReconfigureDoneEvent(historyEvent);
-      break;
-    case "DAG_RECOVERED":
-      jsonObject = convertDAGRecoveredEvent(historyEvent);
-      break;
-    case "VERTEX_COMMIT_STARTED":
-    case "VERTEX_GROUP_COMMIT_STARTED":
-    case "VERTEX_GROUP_COMMIT_FINISHED":
-    case "DAG_COMMIT_STARTED":
-      throw new UnsupportedOperationException(
-          "Invalid Event, does not support history" + ", eventType=" + historyEvent.getEventType());
-    default:
-      throw new UnsupportedOperationException(
-          "Unhandled Event" + ", eventType=" + historyEvent.getEventType());
+      case "APP_LAUNCHED":
+        jsonObject = convertAppLaunchedEvent(historyEvent);
+        break;
+      case "AM_LAUNCHED":
+        jsonObject = convertAMLaunchedEvent(historyEvent);
+        break;
+      case "AM_STARTED":
+        jsonObject = convertAMStartedEvent(historyEvent);
+        break;
+      case "CONTAINER_LAUNCHED":
+        jsonObject = convertContainerLaunchedEvent(historyEvent);
+        break;
+      case "CONTAINER_STOPPED":
+        jsonObject = convertContainerStoppedEvent(historyEvent);
+        break;
+      case "DAG_SUBMITTED":
+        jsonObject = convertDAGSubmittedEvent(historyEvent);
+        break;
+      case "DAG_INITIALIZED":
+        jsonObject = convertDAGInitializedEvent(historyEvent);
+        break;
+      case "DAG_STARTED":
+        jsonObject = convertDAGStartedEvent(historyEvent);
+        break;
+      case "DAG_FINISHED":
+        jsonObject = convertDAGFinishedEvent(historyEvent);
+        break;
+      case "VERTEX_INITIALIZED":
+        jsonObject = convertVertexInitializedEvent(historyEvent);
+        break;
+      case "VERTEX_STARTED":
+        jsonObject = convertVertexStartedEvent(historyEvent);
+        break;
+      case "VERTEX_FINISHED":
+        jsonObject = convertVertexFinishedEvent(historyEvent);
+        break;
+      case "TASK_STARTED":
+        jsonObject = convertTaskStartedEvent(historyEvent);
+        break;
+      case "TASK_FINISHED":
+        jsonObject = convertTaskFinishedEvent(historyEvent);
+        break;
+      case "TASK_ATTEMPT_STARTED":
+        jsonObject = convertTaskAttemptStartedEvent(historyEvent);
+        break;
+      case "TASK_ATTEMPT_FINISHED":
+        jsonObject = convertTaskAttemptFinishedEvent(historyEvent);
+        break;
+      case "VERTEX_CONFIGURE_DONE":
+        jsonObject = convertVertexReconfigureDoneEvent(historyEvent);
+        break;
+      case "DAG_RECOVERED":
+        jsonObject = convertDAGRecoveredEvent(historyEvent);
+        break;
+      case "VERTEX_COMMIT_STARTED":
+      case "VERTEX_GROUP_COMMIT_STARTED":
+      case "VERTEX_GROUP_COMMIT_FINISHED":
+      case "DAG_COMMIT_STARTED":
+        throw new UnsupportedOperationException(
+            "Invalid Event, does not support history" + ", eventType=" + historyEvent.getEventType());
+      default:
+        throw new UnsupportedOperationException(
+            "Unhandled Event" + ", eventType=" + historyEvent.getEventType());
     }
     return jsonObject;
   }

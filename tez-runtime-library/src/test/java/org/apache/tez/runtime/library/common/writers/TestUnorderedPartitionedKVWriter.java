@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -127,7 +127,7 @@ public class TestUnorderedPartitionedKVWriter {
   private Configuration defaultConf = new Configuration();
 
   public TestUnorderedPartitionedKVWriter(boolean shouldCompress,
-      ReportPartitionStats reportPartitionStats) {
+                                          ReportPartitionStats reportPartitionStats) {
     this.shouldCompress = shouldCompress;
     this.reportPartitionStats = reportPartitionStats;
   }
@@ -135,17 +135,17 @@ public class TestUnorderedPartitionedKVWriter {
   @SuppressWarnings("deprecation")
   @Parameterized.Parameters(name = "test[{0}, {1}]")
   public static Collection<Object[]> data() {
-    Object[][] data = new Object[][] {
-        { false, ReportPartitionStats.DISABLED },
-        { false, ReportPartitionStats.ENABLED },
-        { false, ReportPartitionStats.NONE },
-        { false, ReportPartitionStats.MEMORY_OPTIMIZED },
-        { false, ReportPartitionStats.PRECISE },
-        { true, ReportPartitionStats.DISABLED },
-        { true, ReportPartitionStats.ENABLED },
-        { true, ReportPartitionStats.NONE },
-        { true, ReportPartitionStats.MEMORY_OPTIMIZED },
-        { true, ReportPartitionStats.PRECISE }};
+    Object[][] data = new Object[][]{
+        {false, ReportPartitionStats.DISABLED},
+        {false, ReportPartitionStats.ENABLED},
+        {false, ReportPartitionStats.NONE},
+        {false, ReportPartitionStats.MEMORY_OPTIMIZED},
+        {false, ReportPartitionStats.PRECISE},
+        {true, ReportPartitionStats.DISABLED},
+        {true, ReportPartitionStats.ENABLED},
+        {true, ReportPartitionStats.NONE},
+        {true, ReportPartitionStats.MEMORY_OPTIMIZED},
+        {true, ReportPartitionStats.PRECISE}};
     return Arrays.asList(data);
   }
 
@@ -353,8 +353,8 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   public void textTest(int numRegularRecords, int numPartitions, long availableMemory,
-      int numLargeKeys, int numLargevalues, int numLargeKvPairs,
-      boolean pipeliningEnabled, boolean isFinalMergeEnabled) throws IOException,
+                       int numLargeKeys, int numLargevalues, int numLargeKvPairs,
+                       boolean pipeliningEnabled, boolean isFinalMergeEnabled) throws IOException,
       InterruptedException {
     Partitioner partitioner = new HashPartitioner();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
@@ -381,7 +381,7 @@ public class TestUnorderedPartitionedKVWriter {
 
     Map<Integer, Multimap<String, String>> expectedValues = new HashMap<Integer, Multimap<String, String>>();
     for (int i = 0; i < numPartitions; i++) {
-      expectedValues.put(i, LinkedListMultimap.<String, String> create());
+      expectedValues.put(i, LinkedListMultimap.<String, String>create());
     }
 
     UnorderedPartitionedKVWriter kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext,
@@ -465,8 +465,8 @@ public class TestUnorderedPartitionedKVWriter {
         }
       }
       VertexManagerEventPayloadProto vmEventPayload =
-        VertexManagerEventPayloadProto.parseFrom(
-          ByteString.copyFrom(vmEvent.getUserPayload().asReadOnlyBuffer()));
+          VertexManagerEventPayloadProto.parseFrom(
+              ByteString.copyFrom(vmEvent.getUserPayload().asReadOnlyBuffer()));
       assertEquals(numRecordsWritten, vmEventPayload.getNumRecord());
     }
 
@@ -572,7 +572,7 @@ public class TestUnorderedPartitionedKVWriter {
       List<Integer> sizeInMBList =
           payload.getDetailedPartitionStats().getSizeInMbList();
       int[] stats = new int[sizeInMBList.size()];
-      for (int i=0; i<sizeInMBList.size(); i++) {
+      for (int i = 0; i < sizeInMBList.size(); i++) {
         stats[i] += sizeInMBList.get(i);
       }
       return stats;
@@ -600,7 +600,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private void verifyPartitionStats(VertexManagerEvent vme,
-      BitSet expectedPartitionsWithData) throws IOException {
+                                    BitSet expectedPartitionsWithData) throws IOException {
     int[] stats = getPartitionStats(vme);
     if (stats == null) {
       return;
@@ -647,7 +647,6 @@ public class TestUnorderedPartitionedKVWriter {
   public void testLargeKvPairs_WithPipelinedShuffle() throws IOException, InterruptedException {
     textTest(0, 10, 2048, 10, 20, 50, true, false);
   }
-
 
   @SuppressWarnings("unchecked")
   private void baseTestWithPipelinedTransfer(int numRecords, int numPartitions, Set<Integer>
@@ -716,9 +715,9 @@ public class TestUnorderedPartitionedKVWriter {
     verify(outputContext, atLeast(numExpectedSpills)).sendEvents(eventCaptor.capture());
     int numOfCapturedEvents = eventCaptor.getAllValues().size();
     lastEvents = eventCaptor.getAllValues().get(numOfCapturedEvents - 1);
-    VertexManagerEvent VMEvent = (VertexManagerEvent)lastEvents.get(0);
+    VertexManagerEvent VMEvent = (VertexManagerEvent) lastEvents.get(0);
 
-    for (int i=0; i<numOfCapturedEvents; i++) {
+    for (int i = 0; i < numOfCapturedEvents; i++) {
       List<Event> events = eventCaptor.getAllValues().get(i);
       if (i < numOfCapturedEvents - 1) {
         assertTrue(events.size() == 1);
@@ -788,7 +787,7 @@ public class TestUnorderedPartitionedKVWriter {
     int index = lastEvents.size() - 1;
     assertTrue(lastEvents.get(index) instanceof CompositeDataMovementEvent);
     CompositeDataMovementEvent cdme =
-        (CompositeDataMovementEvent)lastEvents.get(index);
+        (CompositeDataMovementEvent) lastEvents.get(index);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numOutputs, cdme.getCount());
     DataMovementEventPayloadProto eventProto =
@@ -829,7 +828,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private void verifyEmptyPartitions(DataMovementEventPayloadProto eventProto,
-      int numRecordsWritten, int numPartitions, Set<Integer> skippedPartitions)
+                                     int numRecordsWritten, int numPartitions, Set<Integer> skippedPartitions)
       throws IOException {
     if (eventProto.hasEmptyPartitions()) {
       byte[] emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(
@@ -898,7 +897,7 @@ public class TestUnorderedPartitionedKVWriter {
 
   @SuppressWarnings("unchecked")
   private void baseTestWithFinalMergeDisabled(int numRecords, int numPartitions,
-      Set<Integer> skippedPartitions, boolean shouldCompress) throws IOException, InterruptedException {
+                                              Set<Integer> skippedPartitions, boolean shouldCompress) throws IOException, InterruptedException {
 
     PartitionerForTest partitioner = new PartitionerForTest();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
@@ -964,8 +963,8 @@ public class TestUnorderedPartitionedKVWriter {
     assertEquals((spills + 1), lastEvents.size()); //spills + VMEvent
     verify(outputContext, atMost(0)).sendEvents(eventCaptor.capture());
 
-    for (int i=0; i<lastEvents.size(); i++) {
-      Event event =lastEvents.get(i);
+    for (int i = 0; i < lastEvents.size(); i++) {
+      Event event = lastEvents.get(i);
       if (event instanceof VertexManagerEvent) {
         //when there are no records, empty IFile with 6 bytes would be created which would add up
         // to stats.
@@ -1012,7 +1011,7 @@ public class TestUnorderedPartitionedKVWriter {
       assertTrue(fileOutputBytes > 0);
       if (!shouldCompress) {
         assertTrue("fileOutputBytes=" + fileOutputBytes + ", outputRecordBytes="
-                +outputRecordBytesCounter.getValue(),
+                + outputRecordBytesCounter.getValue(),
             fileOutputBytes > outputRecordBytesCounter.getValue());
       }
     } else {
@@ -1037,7 +1036,7 @@ public class TestUnorderedPartitionedKVWriter {
     int index = lastEvents.size() - 1;
     assertTrue(lastEvents.get(index) instanceof CompositeDataMovementEvent);
     CompositeDataMovementEvent cdme =
-        (CompositeDataMovementEvent)lastEvents.get(index);
+        (CompositeDataMovementEvent) lastEvents.get(index);
     assertEquals(0, cdme.getSourceIndexStart());
     assertEquals(numOutputs, cdme.getCount());
     DataMovementEventPayloadProto eventProto =
@@ -1053,11 +1052,11 @@ public class TestUnorderedPartitionedKVWriter {
 
     // Verify if all path components have spillIds when final merge is disabled
     Pattern mergePathComponentPattern = Pattern.compile("(.*)(_\\d+)");
-    for(Event event : lastEvents) {
+    for (Event event : lastEvents) {
       if (!(event instanceof CompositeDataMovementEvent)) {
         continue;
       }
-      cdme = (CompositeDataMovementEvent)event;
+      cdme = (CompositeDataMovementEvent) event;
       eventProto = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(cdme.getUserPayload()));
 
       assertEquals(false, eventProto.getPipelined());
@@ -1085,7 +1084,6 @@ public class TestUnorderedPartitionedKVWriter {
       }
     }
 
-
     verify(outputContext, atLeast(1)).notifyProgress();
 
     // Verify if all spill files are available.
@@ -1103,16 +1101,16 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
-      boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent)
+                        boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent)
       throws IOException, InterruptedException {
     baseTest(numRecords, numPartitions, skippedPartitions, shouldCompress,
         maxSingleBufferSizeBytes, bufferMergePercent, 2048, false);
   }
 
   private void baseTest(int numRecords, int numPartitions, Set<Integer> skippedPartitions,
-      boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent, int
-      availableMemory, boolean dataViaEventEnabled)
-          throws IOException, InterruptedException {
+                        boolean shouldCompress, int maxSingleBufferSizeBytes, int bufferMergePercent, int
+                            availableMemory, boolean dataViaEventEnabled)
+      throws IOException, InterruptedException {
     PartitionerForTest partitioner = new PartitionerForTest();
     ApplicationId appId = ApplicationId.newInstance(10000000, 1);
     TezCounters counters = new TezCounters();
@@ -1142,7 +1140,7 @@ public class TestUnorderedPartitionedKVWriter {
 
     Map<Integer, Multimap<Integer, Long>> expectedValues = new HashMap<Integer, Multimap<Integer, Long>>();
     for (int i = 0; i < numOutputs; i++) {
-      expectedValues.put(i, LinkedListMultimap.<Integer, Long> create());
+      expectedValues.put(i, LinkedListMultimap.<Integer, Long>create());
     }
 
     UnorderedPartitionedKVWriter kvWriter = new UnorderedPartitionedKVWriterForTest(outputContext,
@@ -1300,24 +1298,24 @@ public class TestUnorderedPartitionedKVWriter {
       return;
     }
 
-    boolean isInMem= eventProto.getData().hasData();
+    boolean isInMem = eventProto.getData().hasData();
     assertTrue(localFs.exists(outputFilePath));
     assertEquals("Incorrect output permissions (user)", FsAction.READ_WRITE,
-            localFs.getFileStatus(outputFilePath).getPermission().getUserAction());
+        localFs.getFileStatus(outputFilePath).getPermission().getUserAction());
     assertEquals("Incorrect output permissions (group)", FsAction.READ,
-            localFs.getFileStatus(outputFilePath).getPermission().getGroupAction());
-    if( !isInMem ) {
+        localFs.getFileStatus(outputFilePath).getPermission().getGroupAction());
+    if (!isInMem) {
       assertTrue(localFs.exists(spillFilePath));
       assertEquals("Incorrect index permissions (user)", FsAction.READ_WRITE,
-              localFs.getFileStatus(spillFilePath).getPermission().getUserAction());
+          localFs.getFileStatus(spillFilePath).getPermission().getUserAction());
       assertEquals("Incorrect index permissions (group)", FsAction.READ,
-              localFs.getFileStatus(spillFilePath).getPermission().getGroupAction());
+          localFs.getFileStatus(spillFilePath).getPermission().getGroupAction());
 
       // verify no intermediate spill files have been left around
       synchronized (kvWriter.spillInfoList) {
         for (SpillInfo spill : kvWriter.spillInfoList) {
           assertFalse("lingering intermediate spill file " + spill.outPath,
-                  localFs.exists(spill.outPath));
+              localFs.exists(spill.outPath));
         }
       }
     }
@@ -1335,7 +1333,7 @@ public class TestUnorderedPartitionedKVWriter {
         int dataLoadSize = eventProto.getData().getData().size();
         inStream = new ByteArrayInputStream(eventProto.getData().getData().toByteArray());
         reader = new IFile.Reader(inStream, dataLoadSize, codec, null,
-                null, false, 0, -1);
+            null, false, 0, -1);
       } else {
         TezSpillRecord spillRecord = new TezSpillRecord(spillFilePath, conf);
         TezIndexRecord indexRecord = spillRecord.getIndex(i);
@@ -1348,7 +1346,7 @@ public class TestUnorderedPartitionedKVWriter {
         tmpStream.seek(indexRecord.getStartOffset());
         inStream = tmpStream;
         reader = new IFile.Reader(tmpStream, indexRecord.getPartLength(), codec, null,
-                null, false, 0, -1);
+            null, false, 0, -1);
       }
 
       while (reader.nextRawKey(keyBuffer)) {
@@ -1379,7 +1377,7 @@ public class TestUnorderedPartitionedKVWriter {
   }
 
   private OutputContext createMockOutputContext(TezCounters counters, ApplicationId appId,
-      String uniqueId, String auxiliaryService) {
+                                                String uniqueId, String auxiliaryService) {
     OutputContext outputContext = mock(OutputContext.class);
     doReturn(counters).when(outputContext).getCounters();
     doReturn(appId).when(outputContext).getApplicationId();
@@ -1405,22 +1403,22 @@ public class TestUnorderedPartitionedKVWriter {
     }).when(outputContext).getServiceProviderMetaData(eq(auxiliaryService));
 
     Path outDirBase = new Path(TEST_ROOT_DIR, "outDir_" + uniqueId);
-    String[] outDirs = new String[] { outDirBase.toString() };
+    String[] outDirs = new String[]{outDirBase.toString()};
     doReturn(outDirs).when(outputContext).getWorkDirs();
     return outputContext;
   }
 
   private Configuration createConfiguration(OutputContext outputContext,
-      Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
-      boolean shouldCompress, int maxSingleBufferSizeBytes) {
+                                            Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
+                                            boolean shouldCompress, int maxSingleBufferSizeBytes) {
     return createConfiguration(outputContext, keyClass, valClass, shouldCompress,
         maxSingleBufferSizeBytes, PartitionerForTest.class);
   }
 
   private Configuration createConfiguration(OutputContext outputContext,
-      Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
-      boolean shouldCompress, int maxSingleBufferSizeBytes,
-      Class<? extends Partitioner> partitionerClass) {
+                                            Class<? extends Writable> keyClass, Class<? extends Writable> valClass,
+                                            boolean shouldCompress, int maxSingleBufferSizeBytes,
+                                            Class<? extends Partitioner> partitionerClass) {
     Configuration conf = new Configuration(false);
     conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "077");
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, outputContext.getWorkDirs());
@@ -1456,7 +1454,7 @@ public class TestUnorderedPartitionedKVWriter {
   private static class UnorderedPartitionedKVWriterForTest extends UnorderedPartitionedKVWriter {
 
     public UnorderedPartitionedKVWriterForTest(OutputContext outputContext, Configuration conf,
-        int numOutputs, long availableMemoryBytes) throws IOException {
+                                               int numOutputs, long availableMemoryBytes) throws IOException {
       super(outputContext, conf, numOutputs, availableMemoryBytes);
     }
 

@@ -73,7 +73,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({"rawtypes", "unchecked"})
 @RunWith(Parameterized.class)
 public class TestOnFileSortedOutput {
   private static final Random rnd = new Random();
@@ -89,7 +89,7 @@ public class TestOnFileSortedOutput {
   //For sorter (pipelined / Default)
   private SorterImpl sorterImpl;
   private int sorterThreads;
-  
+
   final AtomicLong outputSize = new AtomicLong();
   final AtomicLong numRecords = new AtomicLong();
 
@@ -104,13 +104,13 @@ public class TestOnFileSortedOutput {
    * Constructor
    *
    * @param sendEmptyPartitionViaEvent
-   * @param sorterImpl Which sorter impl ( pipeline/legacy )
-   * @param sorterThreads number of threads needed for sorter (required only for pipelined sorter)
-   * @param emptyPartitionIdx for which data should not be generated
+   * @param sorterImpl                 Which sorter impl ( pipeline/legacy )
+   * @param sorterThreads              number of threads needed for sorter (required only for pipelined sorter)
+   * @param emptyPartitionIdx          for which data should not be generated
    */
   public TestOnFileSortedOutput(boolean sendEmptyPartitionViaEvent,
-      SorterImpl sorterImpl, int sorterThreads, int emptyPartitionIdx,
-      ReportPartitionStats reportPartitionStats) throws IOException {
+                                SorterImpl sorterImpl, int sorterThreads, int emptyPartitionIdx,
+                                ReportPartitionStats reportPartitionStats) throws IOException {
     this.sendEmptyPartitionViaEvent = sendEmptyPartitionViaEvent;
     this.emptyPartitionIdx = emptyPartitionIdx;
     this.sorterImpl = sorterImpl;
@@ -156,28 +156,28 @@ public class TestOnFileSortedOutput {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
     //empty_partition_via_events_enabled, noOfSortThreads,
     // partitionToBeEmpty, reportPartitionStats
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, -1,
-        ReportPartitionStats.ENABLED });
-    parameters.add(new Object[] { false, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.LEGACY, 1, 0,
-        ReportPartitionStats.PRECISE  });
+    parameters.add(new Object[]{false, SorterImpl.LEGACY, 1, -1,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{false, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.LEGACY, 1, -1,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.LEGACY, 1, 0,
+        ReportPartitionStats.PRECISE});
 
     //Pipelined sorter
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { false, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, -1,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.ENABLED  });
-    parameters.add(new Object[] { true, SorterImpl.PIPELINED, 2, 0,
-        ReportPartitionStats.PRECISE  });
+    parameters.add(new Object[]{false, SorterImpl.PIPELINED, 2, -1,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{false, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.PIPELINED, 2, -1,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.ENABLED});
+    parameters.add(new Object[]{true, SorterImpl.PIPELINED, 2, 0,
+        ReportPartitionStats.PRECISE});
     return parameters;
   }
 
@@ -210,12 +210,12 @@ public class TestOnFileSortedOutput {
     assertTrue(sortedOutput.pipelinedShuffle);
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testPipelinedShuffle() throws Exception {
     _testPipelinedShuffle(SorterImpl.PIPELINED.name());
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testPipelinedShuffleWithFinalMerge() throws Exception {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 3);
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_SORTER_CLASS, SorterImpl.PIPELINED.name());
@@ -252,14 +252,13 @@ public class TestOnFileSortedOutput {
       sortedOutput.start();
       fail("Should have thrown illegal argument exception as pipelining is enabled with "
           + "DefaultSorter");
-    } catch(IllegalArgumentException ie) {
+    } catch (IllegalArgumentException ie) {
       assertTrue(ie.getMessage().contains("works with PipelinedSorter"));
     }
-
   }
 
-  @Test (timeout = 5000)
-  public void testSortBufferSize() throws Exception{
+  @Test(timeout = 5000)
+  public void testSortBufferSize() throws Exception {
     OutputContext context = createTezOutputContext();
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 2048);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
@@ -268,9 +267,9 @@ public class TestOnFileSortedOutput {
     try {
       //Memory limit checks are done in sorter impls. For e.g, defaultsorter does not support > 2GB
       sortedOutput.initialize();
-      DefaultSorter sorter = new DefaultSorter(context, conf, 100, 3500*1024*1024l);
+      DefaultSorter sorter = new DefaultSorter(context, conf, 100, 3500 * 1024 * 1024l);
       fail();
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
     }
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0);
@@ -280,7 +279,7 @@ public class TestOnFileSortedOutput {
     try {
       sortedOutput.initialize();
       fail();
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
     }
   }
@@ -375,29 +374,30 @@ public class TestOnFileSortedOutput {
   }
 
   private OutputContext createTezOutputContext() throws IOException {
-    String[] workingDirs = { workingDir.toString() };
+    String[] workingDirs = {workingDir.toString()};
     Configuration localConf = new Configuration(false);
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     DataOutputBuffer serviceProviderMetaData = new DataOutputBuffer();
     serviceProviderMetaData.writeInt(PORT);
 
     TezCounters counters = new TezCounters();
-    
+
     OutputStatisticsReporter reporter = mock(OutputStatisticsReporter.class);
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
         outputSize.set((Long) invocation.getArguments()[0]);
         return null;
       }
     }).when(reporter).reportDataSize(anyLong());
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
         numRecords.set((Long) invocation.getArguments()[0]);
         return null;
       }
     }).when(reporter).reportItemsProcessed(anyLong());
 
-    
     OutputContext context = mock(OutputContext.class);
     doReturn(localConf).when(context).getContainerConfiguration();
     doReturn(counters).when(context).getCounters();
@@ -412,7 +412,8 @@ public class TestOnFileSortedOutput {
             (conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
                 TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
         long requestedSize = (Long) invocation.getArguments()[0];
         MemoryUpdateCallbackHandler callback = (MemoryUpdateCallbackHandler) invocation
             .getArguments()[1];
@@ -427,7 +428,7 @@ public class TestOnFileSortedOutput {
     return context;
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testInvalidSorter() throws Exception {
     try {
       _testPipelinedShuffle("Foo");
@@ -437,10 +438,8 @@ public class TestOnFileSortedOutput {
     }
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testLowerCaseNamedSorter() throws Exception {
     _testPipelinedShuffle("Pipelined");
   }
-
-
 }

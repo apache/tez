@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,7 +78,6 @@ import com.google.common.collect.Sets;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
-
 
 public class TestATSHistoryWithACLs {
 
@@ -216,11 +215,11 @@ public class TestATSHistoryWithACLs {
   }
 
   private void verifyDomainACLs(TimelineDomain timelineDomain,
-    Collection<String> users, Collection<String> groups) {
+                                Collection<String> users, Collection<String> groups) {
     String readers = timelineDomain.getReaders();
     int pos = readers.indexOf(" ");
     String readerUsers = readers.substring(0, pos);
-    String readerGroups = readers.substring(pos+1);
+    String readerGroups = readers.substring(pos + 1);
 
     assertTrue(readerUsers.contains(user));
     for (String s : users) {
@@ -233,10 +232,9 @@ public class TestATSHistoryWithACLs {
     if (!user.equals("nobody1") && !users.contains("nobody1")) {
       assertFalse(readerUsers.contains("nobody1"));
     }
-
   }
 
-  @Test (timeout=50000)
+  @Test(timeout = 50000)
   public void testSimpleAMACls() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -288,7 +286,7 @@ public class TestATSHistoryWithACLs {
     verifyEntityDomains(applicationId, true);
   }
 
-  @Test (timeout=50000)
+  @Test(timeout = 50000)
   public void testDAGACls() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -355,7 +353,7 @@ public class TestATSHistoryWithACLs {
    * due to failure to create domain in session start
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test(timeout = 50000)
   public void testDisableSessionLogging() throws Exception {
     TezClient tezSession = null;
     String viewAcls = "nobody nobody_group";
@@ -364,7 +362,7 @@ public class TestATSHistoryWithACLs {
     DAG dag = DAG.create("TezSleepProcessor");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-            Resource.newInstance(256, 1));
+        Resource.newInstance(256, 1));
     dag.addVertex(vertex);
     DAGAccessControls accessControls = new DAGAccessControls();
     accessControls.setUsersWithViewACLs(Collections.singleton("nobody2"));
@@ -397,8 +395,8 @@ public class TestATSHistoryWithACLs {
     //////submit second dag//////
     DAG dag2 = DAG.create("TezSleepProcessor2");
     vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
-          SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
-       Resource.newInstance(256, 1));
+            SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
+        Resource.newInstance(256, 1));
     dag2.addVertex(vertex);
     accessControls = new DAGAccessControls();
     accessControls.setUsersWithViewACLs(Collections.singleton("nobody3"));
@@ -408,7 +406,7 @@ public class TestATSHistoryWithACLs {
     dagStatus = dagClient.getDAGStatus(null);
     while (!dagStatus.isCompleted()) {
       LOG.info("Waiting for job to complete. Sleeping for 500ms." + " Current state: "
-                + dagStatus.getState());
+          + dagStatus.getState());
       Thread.sleep(500l);
       dagStatus = dagClient.getDAGStatus(null);
     }
@@ -420,7 +418,7 @@ public class TestATSHistoryWithACLs {
    * in dagsubmittedevent is set off
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test(timeout = 50000)
   public void testDagLoggingDisabled() throws Exception {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
@@ -441,17 +439,17 @@ public class TestATSHistoryWithACLs {
     historyLoggingService.start();
     ApplicationId appId = ApplicationId.newInstance(100l, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
-                        appId, 100);
+        appId, 100);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     DAGPlan dagPlan = DAGPlan.newBuilder().setName("DAGPlanMock").build();
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(tezDAGID,
-          1, dagPlan, appAttemptId, null,
-          "usr", tezConf, null, null);
+        1, dagPlan, appAttemptId, null,
+        "usr", tezConf, null, null);
     submittedEvent.setHistoryLoggingEnabled(false);
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
-    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
+    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/" + event.getDAGID();
     Client client = new Client();
     WebResource resource = client.resource(url);
 
@@ -459,17 +457,17 @@ public class TestATSHistoryWithACLs {
         .get(ClientResponse.class);
     assertEquals(404, response.getStatus());
   }
-  
+
   /**
    * use mini cluster to verify data do push to ats when
    * the dag logging flag in dagsubmitted event is set on
    * @throws Exception
    */
-  @Test (timeout=50000)
+  @Test(timeout = 50000)
   public void testDagLoggingEnabled() throws Exception {
     ATSHistoryLoggingService historyLoggingService;
     historyLoggingService =
-            ReflectionUtils.createClazzInstance(ATSHistoryLoggingService.class.getName());
+        ReflectionUtils.createClazzInstance(ATSHistoryLoggingService.class.getName());
     AppContext appContext = mock(AppContext.class);
     when(appContext.getApplicationID()).thenReturn(ApplicationId.newInstance(0, 1));
     historyLoggingService.setAppContext(appContext);
@@ -486,17 +484,17 @@ public class TestATSHistoryWithACLs {
     historyLoggingService.start();
     ApplicationId appId = ApplicationId.newInstance(100l, 1);
     TezDAGID tezDAGID = TezDAGID.getInstance(
-                        appId, 11);
+        appId, 11);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     DAGPlan dagPlan = DAGPlan.newBuilder().setName("DAGPlanMock").build();
     DAGSubmittedEvent submittedEvent = new DAGSubmittedEvent(tezDAGID,
-            1, dagPlan, appAttemptId, null,
-            "usr", tezConf, null, null);
+        1, dagPlan, appAttemptId, null,
+        "usr", tezConf, null, null);
     submittedEvent.setHistoryLoggingEnabled(true);
     DAGHistoryEvent event = new DAGHistoryEvent(tezDAGID, submittedEvent);
     historyLoggingService.handle(new DAGHistoryEvent(tezDAGID, submittedEvent));
     Thread.sleep(1000l);
-    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/"+event.getDAGID();
+    String url = "http://" + timelineAddress + "/ws/v1/timeline/TEZ_DAG_ID/" + event.getDAGID();
     Client client = new Client();
     WebResource resource = client.resource(url);
 
@@ -512,12 +510,13 @@ public class TestATSHistoryWithACLs {
 
   private static final String atsHistoryACLManagerClassName =
       "org.apache.tez.dag.history.ats.acls.ATSHistoryACLPolicyManager";
-  @Test (timeout=50000)
+
+  @Test(timeout = 50000)
   public void testTimelineServiceDisabled() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
         ATSHistoryLoggingService.class.getName());
-    tezConf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,false);
+    tezConf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, false);
     ATSHistoryACLPolicyManager historyACLPolicyManager = ReflectionUtils.createClazzInstance(
         atsHistoryACLManagerClassName);
     historyACLPolicyManager.setConf(tezConf);
@@ -548,5 +547,4 @@ public class TestATSHistoryWithACLs {
       assertEquals(appEntity.getDomainId(), dagEntity.getDomainId());
     }
   }
-
 }

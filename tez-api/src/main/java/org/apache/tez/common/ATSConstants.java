@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -111,7 +111,6 @@ public class ATSConstants {
   public static final String COUNTER_MAX_VALUE = "counterMaxValue";
   public static final String COUNTER_INSTANCE_COUNT = "counterInstanceCount";
 
-
   /* Url related */
   public static final String RESOURCE_URI_BASE = "/ws/v1/timeline";
   public static final String TEZ_DAG_ID = "TEZ_DAG_ID";
@@ -137,5 +136,4 @@ public class ATSConstants {
   public static final String CALLER_ID = "callerId";
   public static final String CALLER_TYPE = "callerType";
   public static final String DESCRIPTION = "description";
-
 }

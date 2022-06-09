@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,9 +41,9 @@ public class VertexManagerEvent extends Event {
    * Vertex to which the event should be sent 
    */
   private final String targetVertexName;
-  
+
   private TaskAttemptIdentifier producerAttempt;
-  
+
   /**
    * User payload to be sent
    */
@@ -74,11 +74,11 @@ public class VertexManagerEvent extends Event {
   public String getTargetVertexName() {
     return targetVertexName;
   }
-  
+
   public ByteBuffer getUserPayload() {
     return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
-  
+
   /**
    * Get metadata about the task attempt that produced the event.
    * This method will provide a valid return value only when invoked in the 
@@ -88,7 +88,7 @@ public class VertexManagerEvent extends Event {
   public TaskAttemptIdentifier getProducerAttemptIdentifier() {
     return producerAttempt;
   }
-  
+
   @Private
   public void setProducerAttemptIdentifier(TaskAttemptIdentifier producerAttempt) {
     this.producerAttempt = producerAttempt;

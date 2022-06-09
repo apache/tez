@@ -66,8 +66,6 @@ public class PerSourceNodeTracker {
     this.nodeUpdatesRescheduleEnabled = nodeUpdatesRescheduleEnabled;
   }
 
-
-
   public void nodeSeen(NodeId nodeId) {
     if (nodeMap.putIfAbsent(nodeId, new AMNodeImpl(nodeId, sourceId, maxTaskFailuresPerNode,
         eventHandler, nodeBlacklistingEnabled, nodeUpdatesRescheduleEnabled,

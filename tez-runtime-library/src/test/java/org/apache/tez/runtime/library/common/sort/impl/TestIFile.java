@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -127,18 +127,18 @@ public class TestIFile {
 
   @Test(timeout = 5000)
   public void testCompressedFlag() throws IOException {
-    byte[] HEADER = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F' , (byte) 1};
+    byte[] HEADER = new byte[]{(byte) 'T', (byte) 'I', (byte) 'F', (byte) 1};
     ByteArrayInputStream bin = new ByteArrayInputStream(HEADER);
     boolean compressed = IFile.Reader.isCompressedFlagEnabled(bin);
-    assert(compressed == true);
+    assert (compressed == true);
 
     //Negative case: Half cooked header
-    HEADER = new byte[] { (byte) 'T', (byte) 'I' };
+    HEADER = new byte[]{(byte) 'T', (byte) 'I'};
     bin = new ByteArrayInputStream(HEADER);
     try {
       compressed = IFile.Reader.isCompressedFlagEnabled(bin);
       fail("Should not have allowed wrong header");
-    } catch(Exception e) {
+    } catch (Exception e) {
       //correct path.
     }
   }
@@ -163,8 +163,8 @@ public class TestIFile {
     while (reader.nextRawKey(keyIn)) {
       reader.nextRawValue(valIn);
       records++;
-      assert(keyIn.getLength() == 0);
-      assert(valIn.getLength() == 0);
+      assert (keyIn.getLength() == 0);
+      assert (valIn.getLength() == 0);
     }
     assertTrue("Number of records read does not match", (records == 4));
     reader.close();
@@ -185,7 +185,6 @@ public class TestIFile {
     testWriterAndReader(sortedData);
     testWithDataBuffer(sortedData);
   }
-
 
   @Test(timeout = 5000)
   //test overflow
@@ -208,7 +207,7 @@ public class TestIFile {
     // Check Key length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
     writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
-            Text.class, Text.class, null, null, null, false);
+        Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
 
@@ -218,7 +217,7 @@ public class TestIFile {
     IFile.Reader.MAX_BUFFER_SIZE = 16;
 
     reader = new IFile.Reader(localFs, outputPath,
-            null, null, null, false, 0, -1);
+        null, null, null, false, 0, -1);
 
     try {
       reader.nextRawKey(keyIn);
@@ -231,7 +230,7 @@ public class TestIFile {
     // Check Value length exceeding MAX_BUFFER_SIZE
     out = localFs.create(outputPath);
     writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
-            Text.class, Text.class, null, null, null, false);
+        Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
 
@@ -241,7 +240,7 @@ public class TestIFile {
     IFile.Reader.MAX_BUFFER_SIZE = 16;
 
     reader = new IFile.Reader(localFs, outputPath,
-            null, null, null, false, 0, -1);
+        null, null, null, false, 0, -1);
 
     try {
       reader.nextRawKey(keyIn);
@@ -255,7 +254,7 @@ public class TestIFile {
     // Check Key length not getting doubled
     out = localFs.create(outputPath);
     writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
-            Text.class, Text.class, null, null, null, false);
+        Text.class, Text.class, null, null, null, false);
     writer.append(longString, shortString);
     writer.close();
 
@@ -265,7 +264,7 @@ public class TestIFile {
     IFile.Reader.MAX_BUFFER_SIZE = 32;
 
     reader = new IFile.Reader(localFs, outputPath,
-            null, null, null, false, 0, -1);
+        null, null, null, false, 0, -1);
 
     reader.nextRawKey(keyIn);
     assertEquals(longString.getLength() + 1, keyIn.getData().length);
@@ -274,7 +273,7 @@ public class TestIFile {
     // Check Value length not getting doubled
     out = localFs.create(outputPath);
     writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
-            Text.class, Text.class, null, null, null, false);
+        Text.class, Text.class, null, null, null, false);
     writer.append(shortString, longString);
     writer.close();
 
@@ -284,7 +283,7 @@ public class TestIFile {
     IFile.Reader.MAX_BUFFER_SIZE = 32;
 
     reader = new IFile.Reader(localFs, outputPath,
-            null, null, null, false, 0, -1);
+        null, null, null, false, 0, -1);
 
     reader.nextRawKey(keyIn);
     reader.nextRawValue(valIn);
@@ -319,7 +318,6 @@ public class TestIFile {
     writer.close();
     out.close();
 
-
     //Test with append(DataInputBuffer key, DataInputBuffer value)
     byte[] kvbuffer = "key1Value1key1Value2key3Value3".getBytes();
     int keyLength = 4;
@@ -329,7 +327,7 @@ public class TestIFile {
     writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, true);
 
-    BoundedByteArrayOutputStream boundedOut = new BoundedByteArrayOutputStream(1024*1024);
+    BoundedByteArrayOutputStream boundedOut = new BoundedByteArrayOutputStream(1024 * 1024);
     Writer inMemWriter = new InMemoryWriter(boundedOut, true);
 
     DataInputBuffer kin = new DataInputBuffer();
@@ -391,8 +389,8 @@ public class TestIFile {
     byte[] bytes;
     long compTotal = 0;
     // Known raw and compressed lengths of input
-    long raws[] = { 2392, 102314, 42576, 31432, 25090 };
-    long compressed[] = { 723, 25396, 10926, 8203, 6665 };
+    long raws[] = {2392, 102314, 42576, 31432, 25090};
+    long compressed[] = {723, 25396, 10926, 8203, 6665};
 
     CompressionCodecFactory codecFactory = new CompressionCodecFactory(new
         Configuration());
@@ -495,7 +493,7 @@ public class TestIFile {
 
     Text key = new Text("key");
     IntWritable val = new IntWritable(1);
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
       data.add(new KVPair(key, val));
       values.add(val);
     }
@@ -522,7 +520,7 @@ public class TestIFile {
     List<IntWritable> values = new ArrayList<>();
     Text key = new Text("key");
     IntWritable val = new IntWritable(1);
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
       data.add(new KVPair(key, val));
       values.add(val);
     }
@@ -580,7 +578,7 @@ public class TestIFile {
 
     Text key = new Text("key");
     IntWritable val = new IntWritable(1);
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
       data.add(new KVPair(key, val));
       values.add(val);
     }
@@ -638,7 +636,6 @@ public class TestIFile {
     readUsingInMemoryReader(bytes, data);
   }
 
-
   @Test(timeout = 5000)
   //Test appendKeyValues feature
   public void testAppendKeyValues() throws IOException {
@@ -647,7 +644,7 @@ public class TestIFile {
 
     Text key = new Text("key");
     IntWritable val = new IntWritable(1);
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) {
       data.add(new KVPair(key, val));
       values.add(val);
     }
@@ -876,7 +873,7 @@ public class TestIFile {
   }
 
   private void readAndVerifyData(long rawLength, long compressedLength,
-      List<KVPair> originalData, CompressionCodec codec) throws
+                                 List<KVPair> originalData, CompressionCodec codec) throws
       IOException {
     readFileUsingInMemoryReader(rawLength, compressedLength, originalData);
     readUsingIFileReader(originalData, codec);
@@ -891,7 +888,7 @@ public class TestIFile {
    * @throws IOException
    */
   private void readFileUsingInMemoryReader(long rawLength, long compressedLength,
-      List<KVPair> originalData) throws IOException {
+                                           List<KVPair> originalData) throws IOException {
     LOG.info("Read using in memory reader");
     FSDataInputStream inStream = localFs.open(outputPath);
     byte[] bytes = new byte[(int) rawLength];
@@ -918,7 +915,7 @@ public class TestIFile {
    * @throws IOException
    */
   private void readUsingIFileReader(List<KVPair> originalData,
-      CompressionCodec codec) throws IOException {
+                                    CompressionCodec codec) throws IOException {
     LOG.info("Read using IFile reader");
     IFile.Reader reader = new IFile.Reader(localFs, outputPath,
         codec, null, null, false, 0, -1);
@@ -970,17 +967,17 @@ public class TestIFile {
   }
 
   private Writer writeTestFile(boolean rle, boolean repeatKeys,
-      List<KVPair> data, CompressionCodec codec) throws IOException {
+                               List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
     IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
     writeTestFile(writer, repeatKeys, data);
     out.close();
-    return  writer;
+    return writer;
   }
 
   private Writer writeTestFile(IFile.Writer writer, boolean repeatKeys,
-      List<KVPair> data) throws IOException {
+                               List<KVPair> data) throws IOException {
     assertNotNull(writer);
 
     Text previousKey = null;
@@ -1003,7 +1000,7 @@ public class TestIFile {
   }
 
   private Writer writeTestFileUsingDataBuffer(boolean rle, boolean repeatKeys,
-      List<KVPair> data, CompressionCodec codec) throws IOException {
+                                              List<KVPair> data, CompressionCodec codec) throws IOException {
     FSDataOutputStream out = localFs.create(outputPath);
     IFile.Writer writer = new IFile.Writer(new WritableSerialization(), new WritableSerialization(), out,
         Text.class, IntWritable.class, codec, null, null, rle);
@@ -1013,7 +1010,7 @@ public class TestIFile {
   }
 
   private Writer writeTestFileUsingDataBuffer(Writer writer, boolean repeatKeys,
-      List<KVPair> data) throws IOException {
+                                              List<KVPair> data) throws IOException {
     DataInputBuffer previousKey = new DataInputBuffer();
     DataInputBuffer key = new DataInputBuffer();
     DataInputBuffer value = new DataInputBuffer();
@@ -1037,7 +1034,7 @@ public class TestIFile {
   }
 
   private void populateData(KVPair kvp, DataInputBuffer key, DataInputBuffer value)
-      throws  IOException {
+      throws IOException {
     DataOutputBuffer k = new DataOutputBuffer();
     DataOutputBuffer v = new DataOutputBuffer();
     kvp.getKey().write(k);

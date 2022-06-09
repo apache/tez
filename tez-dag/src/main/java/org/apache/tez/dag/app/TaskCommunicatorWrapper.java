@@ -37,7 +37,6 @@ public class TaskCommunicatorWrapper {
     this.real = real;
   }
 
-
   public void registerRunningContainer(ContainerId containerId, String hostname, int port) throws
       Exception {
     real.registerRunningContainer(containerId, hostname, port);
@@ -46,7 +45,6 @@ public class TaskCommunicatorWrapper {
   public void registerContainerEnd(ContainerId containerId, ContainerEndReason endReason,
                                    @Nullable String diagnostics) throws Exception {
     real.registerContainerEnd(containerId, endReason, diagnostics);
-
   }
 
   public void registerRunningTaskAttempt(ContainerId containerId, TaskSpec taskSpec,
@@ -91,5 +89,4 @@ public class TaskCommunicatorWrapper {
       throws Exception {
     return real.getCompletedLogsUrl(attemptID, containerNodeId);
   }
-
 }

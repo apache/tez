@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.rm.node;
 
@@ -37,9 +37,9 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class AMNodeTracker extends AbstractService implements
     EventHandler<AMNodeEvent> {
-  
+
   static final Logger LOG = LoggerFactory.getLogger(AMNodeTracker.class);
-  
+
   private final ConcurrentMap<Integer, PerSourceNodeTracker> perSourceNodeTrackers;
 
   @SuppressWarnings("rawtypes")
@@ -59,21 +59,21 @@ public class AMNodeTracker extends AbstractService implements
     this.eventHandler = eventHandler;
     this.appContext = appContext;
   }
-  
+
   @Override
   public synchronized void serviceInit(Configuration conf) {
     this.maxTaskFailuresPerNode = conf.getInt(
-        TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE, 
+        TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE,
         TezConfiguration.TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT);
     this.nodeBlacklistingEnabled = conf.getBoolean(
         TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED,
         TezConfiguration.TEZ_AM_NODE_BLACKLISTING_ENABLED_DEFAULT);
     this.blacklistDisablePercent = conf.getInt(
-          TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD,
-          TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
+        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD,
+        TezConfiguration.TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT);
     this.nodeUpdatesRescheduleEnabled = conf.getBoolean(
-          TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
-          TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT);
+        TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS,
+        TezConfiguration.TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT);
 
     LOG.info("blacklistDisablePercent is " + blacklistDisablePercent +
         ", blacklistingEnabled: " + nodeBlacklistingEnabled +
@@ -91,7 +91,6 @@ public class AMNodeTracker extends AbstractService implements
     PerSourceNodeTracker nodeTracker = getAndCreateIfNeededPerSourceTracker(schedulerId);
     nodeTracker.nodeSeen(nodeId);
   }
-
 
   boolean registerBadNodeAndShouldBlacklist(AMNode amNode, int schedulerId) {
     return perSourceNodeTrackers.get(schedulerId).registerBadNodeAndShouldBlacklist(amNode);

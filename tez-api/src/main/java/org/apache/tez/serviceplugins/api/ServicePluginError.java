@@ -43,6 +43,4 @@ public interface ServicePluginError {
    * @return the type of the error
    */
   ErrorType getErrorType();
-
-
 }

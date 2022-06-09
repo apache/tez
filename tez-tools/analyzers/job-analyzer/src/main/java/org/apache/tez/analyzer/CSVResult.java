@@ -68,7 +68,7 @@ public class CSVResult implements Result {
     return Iterators.unmodifiableIterator(recordsList.iterator());
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   public void sort(Comparator comparator) {
     Collections.sort(recordsList, comparator);
   }
@@ -77,15 +77,18 @@ public class CSVResult implements Result {
     this.comments = comments;
   }
 
-  @Override public String toJson() throws TezException {
+  @Override
+  public String toJson() throws TezException {
     return "";
   }
 
-  @Override public String getComments() {
+  @Override
+  public String getComments() {
     return comments;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "CSVResult{" +
         "headers=" + Arrays.toString(headers) +
         ", recordsList=" + recordsList +
@@ -107,7 +110,7 @@ public class CSVResult implements Result {
       }
 
       StringBuilder sb = new StringBuilder();
-      for(int i=0;i<record.length;i++) {
+      for (int i = 0; i < record.length; i++) {
         sb.append(!Strings.isNullOrEmpty(record[i]) ? record[i] : " ");
         if (i < record.length - 1) {
           sb.append(",");

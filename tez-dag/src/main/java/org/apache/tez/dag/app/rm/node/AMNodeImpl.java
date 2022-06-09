@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.rm.node;
 
@@ -80,113 +80,112 @@ public class AMNodeImpl implements AMNode {
   private final StateMachine<AMNodeState, AMNodeEventType, AMNodeEvent> stateMachine;
 
   private static StateMachineFactory
-  <AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>
-  stateMachineFactory =
-  new StateMachineFactory<AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>(
-  AMNodeState.ACTIVE)
-        // Transitions from ACTIVE state.
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
-          AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedTransition())
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
-          AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
-      .addTransition(AMNodeState.ACTIVE,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
-          AMNodeEventType.N_TA_ENDED, new TaskAttemptFailedTransition())
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_TURNED_UNHEALTHY,
-          new NodeTurnedUnhealthyTransition())
-      .addTransition(AMNodeState.ACTIVE,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingDisabledTransition())
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
-          AMNodeEventType.N_TURNED_HEALTHY)
-      .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
-          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
+      <AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>
+      stateMachineFactory =
+      new StateMachineFactory<AMNodeImpl, AMNodeState, AMNodeEventType, AMNodeEvent>(
+          AMNodeState.ACTIVE)
+          // Transitions from ACTIVE state.
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
+              AMNodeEventType.N_CONTAINER_ALLOCATED,
+              new ContainerAllocatedTransition())
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
+              AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
+          .addTransition(AMNodeState.ACTIVE,
+              EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
+              AMNodeEventType.N_TA_ENDED, new TaskAttemptFailedTransition())
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_TURNED_UNHEALTHY,
+              new NodeTurnedUnhealthyTransition())
+          .addTransition(AMNodeState.ACTIVE,
+              EnumSet.of(AMNodeState.ACTIVE, AMNodeState.BLACKLISTED),
+              AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
+              new IgnoreBlacklistingDisabledTransition())
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
+              new IgnoreBlacklistingStateChangeTransition(true))
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
+              AMNodeEventType.N_TURNED_HEALTHY)
+          .addTransition(AMNodeState.ACTIVE, AMNodeState.ACTIVE,
+              AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
 
-      // Transitions from BLACKLISTED state.
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
-          AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedWhileBlacklistedTransition())
-      .addTransition(AMNodeState.BLACKLISTED,
-          EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
-          AMNodeEventType.N_TA_SUCCEEDED,
-          new TaskAttemptSucceededWhileBlacklistedTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
-          AMNodeEventType.N_TA_ENDED, new CountFailedTaskAttemptTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_TURNED_UNHEALTHY,
-          new NodeTurnedUnhealthyTransition())
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
-      .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
-          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
-      .addTransition(
-          AMNodeState.BLACKLISTED,
-          AMNodeState.BLACKLISTED,
-          EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
-              AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED),
-          new GenericErrorTransition())
+          // Transitions from BLACKLISTED state.
+          .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+              AMNodeEventType.N_CONTAINER_ALLOCATED,
+              new ContainerAllocatedWhileBlacklistedTransition())
+          .addTransition(AMNodeState.BLACKLISTED,
+              EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
+              AMNodeEventType.N_TA_SUCCEEDED,
+              new TaskAttemptSucceededWhileBlacklistedTransition())
+          .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+              AMNodeEventType.N_TA_ENDED, new CountFailedTaskAttemptTransition())
+          .addTransition(AMNodeState.BLACKLISTED, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_TURNED_UNHEALTHY,
+              new NodeTurnedUnhealthyTransition())
+          .addTransition(AMNodeState.BLACKLISTED, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
+              new IgnoreBlacklistingStateChangeTransition(true))
+          .addTransition(AMNodeState.BLACKLISTED, AMNodeState.BLACKLISTED,
+              AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
+          .addTransition(
+              AMNodeState.BLACKLISTED,
+              AMNodeState.BLACKLISTED,
+              EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
+                  AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED),
+              new GenericErrorTransition())
 
-      // Transitions from FORCED_ACTIVE state.
-      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedTransition())
-      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
-      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_TA_ENDED, new CountFailedTaskAttemptTransition())
-      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_TURNED_UNHEALTHY,
-          new NodeTurnedUnhealthyTransition())
-      .addTransition(AMNodeState.FORCED_ACTIVE,
-          EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingDisabledTransition())
-      .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
-          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
-      .addTransition(
-          AMNodeState.FORCED_ACTIVE,
-          AMNodeState.FORCED_ACTIVE,
-          EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
-              AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED),
-          new GenericErrorTransition())
+          // Transitions from FORCED_ACTIVE state.
+          .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_CONTAINER_ALLOCATED,
+              new ContainerAllocatedTransition())
+          .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_TA_SUCCEEDED, new TaskAttemptSucceededTransition())
+          .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_TA_ENDED, new CountFailedTaskAttemptTransition())
+          .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_TURNED_UNHEALTHY,
+              new NodeTurnedUnhealthyTransition())
+          .addTransition(AMNodeState.FORCED_ACTIVE,
+              EnumSet.of(AMNodeState.BLACKLISTED, AMNodeState.ACTIVE),
+              AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
+              new IgnoreBlacklistingDisabledTransition())
+          .addTransition(AMNodeState.FORCED_ACTIVE, AMNodeState.FORCED_ACTIVE,
+              AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
+          .addTransition(
+              AMNodeState.FORCED_ACTIVE,
+              AMNodeState.FORCED_ACTIVE,
+              EnumSet.of(AMNodeEventType.N_TURNED_HEALTHY,
+                  AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED),
+              new GenericErrorTransition())
 
-      // Transitions from UNHEALTHY state.
-      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_CONTAINER_ALLOCATED,
-          new ContainerAllocatedWhileUnhealthyTransition())
-      .addTransition(
-          AMNodeState.UNHEALTHY,
-          AMNodeState.UNHEALTHY,
-          EnumSet
-              .of(AMNodeEventType.N_TA_SUCCEEDED, AMNodeEventType.N_TA_ENDED))
-      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
-          new IgnoreBlacklistingStateChangeTransition(false))
-      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
-          new IgnoreBlacklistingStateChangeTransition(true))
-      .addTransition(AMNodeState.UNHEALTHY,
-          EnumSet.of(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE),
-          AMNodeEventType.N_TURNED_HEALTHY, new NodeTurnedHealthyTransition())
-      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
-      .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
-          AMNodeEventType.N_TURNED_UNHEALTHY, new GenericErrorTransition())
+          // Transitions from UNHEALTHY state.
+          .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_CONTAINER_ALLOCATED,
+              new ContainerAllocatedWhileUnhealthyTransition())
+          .addTransition(
+              AMNodeState.UNHEALTHY,
+              AMNodeState.UNHEALTHY,
+              EnumSet
+                  .of(AMNodeEventType.N_TA_SUCCEEDED, AMNodeEventType.N_TA_ENDED))
+          .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_IGNORE_BLACKLISTING_DISABLED,
+              new IgnoreBlacklistingStateChangeTransition(false))
+          .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_IGNORE_BLACKLISTING_ENABLED,
+              new IgnoreBlacklistingStateChangeTransition(true))
+          .addTransition(AMNodeState.UNHEALTHY,
+              EnumSet.of(AMNodeState.ACTIVE, AMNodeState.FORCED_ACTIVE),
+              AMNodeEventType.N_TURNED_HEALTHY, new NodeTurnedHealthyTransition())
+          .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_CONTAINER_COMPLETED, CONTAINER_COMPLETED_TRANSITION)
+          .addTransition(AMNodeState.UNHEALTHY, AMNodeState.UNHEALTHY,
+              AMNodeEventType.N_TURNED_UNHEALTHY, new GenericErrorTransition())
 
-        .installTopology();
-
+          .installTopology();
 
   @SuppressWarnings("rawtypes")
   public AMNodeImpl(NodeId nodeId, int schedulerId, int maxTaskFailuresPerNode,
-      EventHandler eventHandler, boolean blacklistingEnabled,
-      boolean rescheduleOnUnhealthyNode, AppContext appContext) {
+                    EventHandler eventHandler, boolean blacklistingEnabled,
+                    boolean rescheduleOnUnhealthyNode, AppContext appContext) {
     ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     this.readLock = rwLock.readLock();
     this.writeLock = rwLock.writeLock();
@@ -480,7 +479,7 @@ public class AMNodeImpl implements AMNode {
       this.readLock.unlock();
     }
   }
-  
+
   @Override
   public boolean isUsable() {
     return !(isUnhealthy() || isBlacklisted());
@@ -493,7 +492,6 @@ public class AMNodeImpl implements AMNode {
       int countBefore = containers.size();
       int countCompleted = completedContainers.size();
 
-
       // Actual functionality.
       containers.removeAll(completedContainers);
       completedContainers.clear();
@@ -504,7 +502,6 @@ public class AMNodeImpl implements AMNode {
             "Node {}, cleaning up knownContainers. current={}, completed={}, postCleanup={}",
             getNodeId(), countBefore, countCompleted, countAfter);
       }
-
     } finally {
       this.writeLock.unlock();
     }

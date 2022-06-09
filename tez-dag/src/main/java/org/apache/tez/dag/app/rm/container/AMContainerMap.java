@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,7 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
   private String auxiliaryService;
 
   public AMContainerMap(ContainerHeartbeatHandler chh, TaskCommunicatorManagerInterface tal,
-      ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
+                        ContainerSignatureMatcher containerSignatureMatcher, AppContext context) {
     super("AMContainerMaps");
     this.chh = chh;
     this.tal = tal;
@@ -96,7 +96,7 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
     return containerMap.values();
   }
 
-  public void dagComplete(DAG dag){
+  public void dagComplete(DAG dag) {
     AMContainerHelpers.dagComplete(dag.getID());
     // Cleanup completed containers after a query completes.
     cleanupCompletedContainers();
@@ -117,5 +117,4 @@ public class AMContainerMap extends AbstractService implements EventHandler<AMCo
         "Cleaned up completed containers on dagComplete. Removed={}, Remaining={}",
         count, containerMap.size());
   }
-
 }

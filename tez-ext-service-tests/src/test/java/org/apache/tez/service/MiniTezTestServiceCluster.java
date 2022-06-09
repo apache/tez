@@ -100,7 +100,7 @@ public class MiniTezTestServiceCluster extends AbstractService {
 
     // Setup Local Dirs
     localDirs = new String[numLocalDirs];
-    for (int i = 0 ; i < numLocalDirs ; i++) {
+    for (int i = 0; i < numLocalDirs; i++) {
       File f = new File(testWorkDir, "localDir");
       f.mkdirs();
       LOG.info("Created localDir: " + f.getAbsolutePath());
@@ -112,7 +112,6 @@ public class MiniTezTestServiceCluster extends AbstractService {
   public void serviceInit(Configuration conf) {
     tezTestService = new TezTestService(conf, numExecutorsPerService, availableMemory, localDirs);
     tezTestService.init(conf);
-
   }
 
   @Override
@@ -141,6 +140,7 @@ public class MiniTezTestServiceCluster extends AbstractService {
 
   /**
    * return the address at which the service is listening
+   *
    * @return host:port
    */
   public InetSocketAddress getServiceAddress() {
@@ -162,5 +162,4 @@ public class MiniTezTestServiceCluster extends AbstractService {
   public int getNumSubmissions() {
     return tezTestService.getNumSubmissions();
   }
-
 }

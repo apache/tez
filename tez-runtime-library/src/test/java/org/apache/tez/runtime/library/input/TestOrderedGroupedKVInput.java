@@ -55,7 +55,6 @@ public class TestOrderedGroupedKVInput {
     } catch (IOException e) {
       Assert.assertTrue(e instanceof IOInterruptedException);
     }
-
   }
 
   @Test
@@ -72,7 +71,6 @@ public class TestOrderedGroupedKVInput {
     String[] workingDirs = new String[]{"workDir1"};
     TezCounters counters = new TezCounters();
 
-
     doReturn(payLoad).when(inputContext).getUserPayload();
     doReturn(workingDirs).when(inputContext).getWorkDirs();
     doReturn(counters).when(inputContext).getCounters();
@@ -86,14 +84,12 @@ public class TestOrderedGroupedKVInput {
     assertEquals("local-value", mergedConf.get("local-key"));
   }
 
-
   private InputContext createMockInputContext() throws IOException {
     InputContext inputContext = mock(InputContext.class);
     Configuration conf = new TezConfiguration();
     UserPayload payLoad = TezUtils.createUserPayloadFromConf(conf);
     String[] workingDirs = new String[]{"workDir1"};
     TezCounters counters = new TezCounters();
-
 
     doReturn(payLoad).when(inputContext).getUserPayload();
     doReturn(workingDirs).when(inputContext).getWorkDirs();
@@ -139,5 +135,4 @@ public class TestOrderedGroupedKVInput {
       return shuffle;
     }
   }
-
 }

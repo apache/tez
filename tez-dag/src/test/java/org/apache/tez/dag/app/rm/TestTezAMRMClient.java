@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,7 @@ public class TestTezAMRMClient {
   @Before
   public void setup() {
     amrmClient = new TezAMRMClientAsync(new AMRMClientImpl(),
-      1000, mock(AMRMClientAsync.CallbackHandler.class));
+        1000, mock(AMRMClientAsync.CallbackHandler.class));
     RackResolver.init(new Configuration());
   }
 
@@ -60,29 +60,29 @@ public class TestTezAMRMClient {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testMatchingRequestsForTopPriority() {
-    String[] hosts = { "host1" };
-    String[] racks = { "rack1" };
+    String[] hosts = {"host1"};
+    String[] racks = {"rack1"};
     AMRMClient.ContainerRequest req1 = new AMRMClient.ContainerRequest(
-      Resource.newInstance(2048, 1), hosts, racks,
-      Priority.newInstance(1));
+        Resource.newInstance(2048, 1), hosts, racks,
+        Priority.newInstance(1));
     AMRMClient.ContainerRequest req2 = new AMRMClient.ContainerRequest(
-      Resource.newInstance(1024, 1), hosts, racks,
-      Priority.newInstance(2));
+        Resource.newInstance(1024, 1), hosts, racks,
+        Priority.newInstance(2));
     AMRMClient.ContainerRequest req3 = new AMRMClient.ContainerRequest(
-      Resource.newInstance(1024, 1), hosts, racks,
-      Priority.newInstance(3));
+        Resource.newInstance(1024, 1), hosts, racks,
+        Priority.newInstance(3));
     amrmClient.addContainerRequest(req1);
     amrmClient.addContainerRequest(req2);
     amrmClient.addContainerRequest(req3);
 
     Assert.assertTrue(amrmClient.getMatchingRequestsForTopPriority("host1",
-      Resource.newInstance(1024, 1)).isEmpty());
+        Resource.newInstance(1024, 1)).isEmpty());
 
     List<? extends Collection<AMRMClient.ContainerRequest>> ret =
-      amrmClient.getMatchingRequestsForTopPriority("host1",
-        Resource.newInstance(2048, 1));
+        amrmClient.getMatchingRequestsForTopPriority("host1",
+            Resource.newInstance(2048, 1));
     Assert.assertFalse(ret.isEmpty());
     Assert.assertEquals(req1, ret.get(0).iterator().next());
 
@@ -93,5 +93,4 @@ public class TestTezAMRMClient {
     Assert.assertFalse(ret.isEmpty());
     Assert.assertEquals(req2, ret.get(0).iterator().next());
   }
-
 }

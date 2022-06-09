@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -85,7 +85,7 @@ public class TestSecureShuffle {
   private boolean asyncHttp;
 
   public TestSecureShuffle(boolean sslInCluster, int resultWithTezSSL, int resultWithoutTezSSL,
-      boolean asyncHttp) {
+                           boolean asyncHttp) {
     this.enableSSLInCluster = sslInCluster;
     this.resultWithTezSSL = resultWithTezSSL;
     this.resultWithoutTezSSL = resultWithoutTezSSL;
@@ -97,15 +97,15 @@ public class TestSecureShuffle {
   public static Collection<Object[]> getParameters() {
     Collection<Object[]> parameters = new ArrayList<Object[]>();
     //enable ssl in cluster, succeed with tez-ssl enabled, fail with tez-ssl disabled
-    parameters.add(new Object[] { true, 0, 1, false });
+    parameters.add(new Object[]{true, 0, 1, false});
 
     //With asyncHttp
-    parameters.add(new Object[] { true, 0, 1, true });
-    parameters.add(new Object[] { false, 1, 0, true });
+    parameters.add(new Object[]{true, 0, 1, true});
+    parameters.add(new Object[]{false, 1, 0, true});
 
     //Negative testcase
     //disable ssl in cluster, fail with tez-ssl enabled, succeed with tez-ssl disabled
-    parameters.add(new Object[] { false, 1, 0, false });
+    parameters.add(new Object[]{false, 1, 0, false});
 
     return parameters;
   }
@@ -174,8 +174,8 @@ public class TestSecureShuffle {
     TestOrderedWordCount wordCount = new TestOrderedWordCount();
     wordCount.setConf(new Configuration(miniTezCluster.getConfig()));
 
-    String[] args = new String[] { "-DUSE_MR_CONFIGS=false",
-        inputLoc.toString(), outputLoc.toString() };
+    String[] args = new String[]{"-DUSE_MR_CONFIGS=false",
+        inputLoc.toString(), outputLoc.toString()};
     assertEquals(expectedResult, wordCount.run(args));
   }
 
@@ -239,7 +239,7 @@ public class TestSecureShuffle {
    * which fixes another issue.
    */
   public static void setupSSLConfig(String keystoresDir, String sslConfDir, Configuration config,
-      boolean useClientCert, boolean trustStore, String excludeCiphers) throws Exception {
+                                    boolean useClientCert, boolean trustStore, String excludeCiphers) throws Exception {
     String clientKS = keystoresDir + "/clientKS.jks";
     String clientPassword = "clientP";
     String serverKS = keystoresDir + "/serverKS.jks";
@@ -263,7 +263,7 @@ public class TestSecureShuffle {
     String localhostName = InetAddress.getLocalHost().getHostName();
     KeyPair sKP = KeyStoreTestUtil.generateKeyPair("RSA");
     X509Certificate sCert =
-        generateCertificate("CN="+localhostName+", O=server", sKP, 30, "SHA1withRSA");
+        generateCertificate("CN=" + localhostName + ", O=server", sKP, 30, "SHA1withRSA");
     KeyStoreTestUtil.createKeyStore(serverKS, serverPassword, "server", sKP.getPrivate(), sCert);
     certs.put("server", sCert);
 
@@ -305,7 +305,7 @@ public class TestSecureShuffle {
     String hostName = InetAddress.getLocalHost().getHostName();
     String hostAddress = InetAddress.getLocalHost().getHostAddress();
     certGen.addExtension(X509Extensions.SubjectAlternativeName, false,
-        new GeneralNames(new GeneralName[] {
+        new GeneralNames(new GeneralName[]{
             new GeneralName(GeneralName.iPAddress, hostAddress),
             new GeneralName(GeneralName.dNSName, hostName),
             new GeneralName(GeneralName.dNSName, "localhost")

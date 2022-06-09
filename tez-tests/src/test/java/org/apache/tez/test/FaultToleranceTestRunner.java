@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,6 +32,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.hadoop.util.GenericOptionsParser;
+
 /**
  * Run a DAG on a cluster with the given configuration. Starts a TezSession
  * using default cluster configuration from installation. Then uses reflection
@@ -42,13 +43,13 @@ import org.apache.hadoop.util.GenericOptionsParser;
  * then executed in the session. Returns success if DAG succeeds.
  */
 public class FaultToleranceTestRunner {
-  
+
   static String DEFAULT_FT_STAGING_DIR = "tmp";
   static String FT_STAGING_DIR = "tez.test-fault-tolerance.staging-dir";
   Configuration conf = null;
   TezClient tezSession = null;
   Resource defaultResource = Resource.newInstance(100, 0);
-  
+
   void setup() throws Exception {
     TezConfiguration tezConf = null;
     if (conf == null) {
@@ -69,44 +70,44 @@ public class FaultToleranceTestRunner {
     Path remoteStagingDir = defaultFs.makeQualified(new Path(testRootDir, String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(tezConf, remoteStagingDir);
-    
+
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
     tezSession = TezClient.create("FaultToleranceTestRunner", tezConf);
     tezSession.start();
   }
-  
+
   void tearDown() throws Exception {
     if (tezSession != null) {
       tezSession.stop();
     }
   }
-  
+
   DAG getDAG(String className, String confFilePath) throws Exception {
     Class<?> clazz = Class.forName(className);
     Method method = clazz.getMethod("createDAG", Configuration.class);
-    
+
     Configuration testConf = new Configuration(false);
     if (confFilePath != null) {
       Path confPath = new Path(confFilePath);
       testConf.addResource(confPath);
     }
-    
+
     DAG dag = (DAG) method.invoke(null, testConf);
-    
+
     return dag;
   }
-  
+
   boolean run(Configuration conf, String className, String confFilePath) throws Exception {
     this.conf = conf;
     setup();
-    
+
     try {
       tezSession.waitTillReady();
-      
+
       DAG dag = getDAG(className, confFilePath);
-      
+
       DAGClient dagClient = tezSession.submitDAG(dag);
       DAGStatus dagStatus = dagClient.getDAGStatus(null);
       while (!dagStatus.isCompleted()) {
@@ -117,24 +118,23 @@ public class FaultToleranceTestRunner {
         Thread.sleep(500);
         dagStatus = dagClient.getDAGStatus(null);
       }
-      
+
       if (dagStatus.getState() == DAGStatus.State.SUCCEEDED) {
         return true;
       }
-      
     } finally {
       tearDown();
     }
-    
+
     return false;
   }
-  
+
   static void printUsage() {
     System.err.println(
         "Usage: " + " FaultToleranceTestRunner [generic options] <dag-class-name> <test-conf-path>");
     GenericOptionsParser.printGenericCommandUsage(System.err);
   }
-  
+
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
@@ -149,13 +149,13 @@ public class FaultToleranceTestRunner {
       printUsage();
       System.exit(1);
     }
-    
+
     FaultToleranceTestRunner job = new FaultToleranceTestRunner();
     if (job.run(conf, className, confFilePath)) {
       System.out.println("Succeeded.");
     } else {
       System.out.println("Failed.");
       System.exit(2);
-    } 
+    }
   }
 }

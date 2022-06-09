@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,12 +61,12 @@ public class InputAttemptIdentifier {
   }
 
   public InputAttemptIdentifier(int inputIdentifier, int attemptNumber, String pathComponent,
-      boolean shared, SPILL_INFO fetchTypeInfo, int spillEventId) {
+                                boolean shared, SPILL_INFO fetchTypeInfo, int spillEventId) {
     this.inputIdentifier = inputIdentifier;
     this.attemptNumber = attemptNumber;
     this.pathComponent = pathComponent;
     this.shared = shared;
-    this.fetchTypeInfo = (byte)fetchTypeInfo.ordinal();
+    this.fetchTypeInfo = (byte) fetchTypeInfo.ordinal();
     this.spillEventId = spillEventId;
     if (pathComponent != null && !pathComponent.startsWith(PATH_PREFIX)) {
       throw new TezUncheckedException(
@@ -81,7 +81,7 @@ public class InputAttemptIdentifier {
   public int getAttemptNumber() {
     return attemptNumber;
   }
-  
+
   public String getPathComponent() {
     return pathComponent;
   }
@@ -139,6 +139,6 @@ public class InputAttemptIdentifier {
   public String toString() {
     return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
         + ", attemptNumber=" + attemptNumber + ", pathComponent="
-        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId  +"]";
+        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId + "]";
   }
 }

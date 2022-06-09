@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,7 +42,6 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGSubmittedProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
 
-
 public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(DAGSubmittedEvent.class);
@@ -65,9 +64,9 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware
   }
 
   public DAGSubmittedEvent(TezDAGID dagID, long submitTime,
-      DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
-      Map<String, LocalResource> cumulativeAdditionalLocalResources,
-      String user, Configuration conf, String containerLogs, String queueName) {
+                           DAGProtos.DAGPlan dagPlan, ApplicationAttemptId applicationAttemptId,
+                           Map<String, LocalResource> cumulativeAdditionalLocalResources,
+                           String user, Configuration conf, String containerLogs, String queueName) {
     this.dagID = dagID;
     this.dagName = dagPlan.getName();
     this.submitTime = submitTime;
@@ -96,7 +95,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware
   }
 
   public DAGSubmittedProto toProto() {
-    DAGSubmittedProto.Builder builder =DAGSubmittedProto.newBuilder()
+    DAGSubmittedProto.Builder builder = DAGSubmittedProto.newBuilder()
         .setDagId(dagID.toString())
         .setApplicationAttemptId(applicationAttemptId.toString())
         .setDagPlan(dagPlan)
@@ -151,7 +150,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     ProtoUtils.toSummaryEventProto(dagID, submitTime,
-        HistoryEventType.DAG_SUBMITTED, dagName.getBytes(CHARSET_NAME))
+            HistoryEventType.DAG_SUBMITTED, dagName.getBytes(CHARSET_NAME))
         .writeDelimitedTo(outputStream);
   }
 

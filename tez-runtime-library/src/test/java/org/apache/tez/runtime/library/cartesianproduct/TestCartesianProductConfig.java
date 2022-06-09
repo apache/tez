@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,10 +55,10 @@ public class TestCartesianProductConfig {
     byte[] bytes = new byte[10];
     (new Random()).nextBytes(bytes);
     CartesianProductFilterDescriptor filterDescriptor =
-      new CartesianProductFilterDescriptor(filterClassName)
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(bytes)));
+        new CartesianProductFilterDescriptor(filterClassName)
+            .setUserPayload(UserPayload.create(ByteBuffer.wrap(bytes)));
     CartesianProductConfig config =
-      new CartesianProductConfig(vertexPartitionMap, filterDescriptor);
+        new CartesianProductConfig(vertexPartitionMap, filterDescriptor);
     UserPayload payload = config.toUserPayload(conf);
     CartesianProductConfig parsedConfig = CartesianProductConfig.fromUserPayload(payload);
     assertConfigEquals(config, parsedConfig);
@@ -71,14 +71,14 @@ public class TestCartesianProductConfig {
     sourceVertices.add("v2");
     sourceVertices.add("v3");
     CartesianProductConfig config =
-      new CartesianProductConfig(sourceVertices);
+        new CartesianProductConfig(sourceVertices);
     UserPayload payload = config.toUserPayload(conf);
     CartesianProductConfig parsedConfig = CartesianProductConfig.fromUserPayload(payload);
     assertConfigEquals(config, parsedConfig);
 
     // fair cartesian product config should have null in numPartitions fields
     try {
-      config = new CartesianProductConfig(false, new int[]{}, new String[]{"v0","v1"},null);
+      config = new CartesianProductConfig(false, new int[]{}, new String[]{"v0", "v1"}, null);
       config.checkNumPartitions();
     } catch (Exception e) {
       return;
@@ -88,12 +88,12 @@ public class TestCartesianProductConfig {
 
   private void assertConfigEquals(CartesianProductConfig config1, CartesianProductConfig config2) {
     assertArrayEquals(config1.getSourceVertices().toArray(new String[0]),
-      config2.getSourceVertices().toArray(new String[0]));
+        config2.getSourceVertices().toArray(new String[0]));
     if (config1.getNumPartitions() == null) {
       assertNull(config2.getNumPartitions());
     } else {
       assertArrayEquals(Ints.toArray(config1.getNumPartitions()),
-        Ints.toArray(config2.getNumPartitions()));
+          Ints.toArray(config2.getNumPartitions()));
     }
     CartesianProductFilterDescriptor descriptor1 = config1.getFilterDescriptor();
     CartesianProductFilterDescriptor descriptor2 = config1.getFilterDescriptor();
@@ -121,11 +121,11 @@ public class TestCartesianProductConfig {
     // conf not set
     CartesianProductConfigProto proto = config.toProto(conf);
     assertEquals(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT,
-      proto.getMaxParallelism());
+        proto.getMaxParallelism());
     assertEquals(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT,
-      proto.getMinOpsPerWorker());
+        proto.getMinOpsPerWorker());
     assertEquals(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT,
-      proto.getEnableGrouping());
+        proto.getEnableGrouping());
     assertFalse(proto.hasNumPartitionsForFairCase());
     assertFalse(proto.hasGroupingFraction());
 

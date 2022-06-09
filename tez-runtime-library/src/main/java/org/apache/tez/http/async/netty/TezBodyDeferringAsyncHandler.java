@@ -207,7 +207,7 @@ class TezBodyDeferringAsyncHandler implements AsyncHandler<Response> {
     private final TezBodyDeferringAsyncHandler bdah;
 
     public BodyDeferringInputStream(final Future<Response> future,
-        final TezBodyDeferringAsyncHandler bdah, final InputStream in) {
+                                    final TezBodyDeferringAsyncHandler bdah, final InputStream in) {
       super(in);
       this.future = future;
       this.bdah = bdah;

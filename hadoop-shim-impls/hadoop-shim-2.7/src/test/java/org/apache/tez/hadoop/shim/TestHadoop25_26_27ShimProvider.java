@@ -77,5 +77,4 @@ public class TestHadoop25_26_27ShimProvider {
     Assert.assertNotNull(shim);
     Assert.assertEquals(DefaultHadoopShim.class, shim.getClass());
   }
-
 }

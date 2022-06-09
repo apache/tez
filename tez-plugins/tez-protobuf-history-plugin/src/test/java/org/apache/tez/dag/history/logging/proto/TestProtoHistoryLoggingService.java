@@ -221,14 +221,15 @@ public class TestProtoHistoryLoggingService {
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,
-      ProtoHistoryLoggingService service) {
+                                                  ProtoHistoryLoggingService service) {
     List<DAGHistoryEvent> historyEvents = new ArrayList<>();
     DAGPlan dagPlan = DAGPlan.newBuilder().setName("DAGPlanMock").build();
 
     long time = System.currentTimeMillis();
     Configuration conf = new Configuration(service.getConfig());
     historyEvents.add(new DAGHistoryEvent(null, new AppLaunchedEvent(appId, time, time, user, conf,
-        new VersionInfo("component", "1.1.0", "rev1", "20120101", "git.apache.org") {})));
+        new VersionInfo("component", "1.1.0", "rev1", "20120101", "git.apache.org") {
+        })));
     historyEvents.add(new DAGHistoryEvent(dagId, new DAGSubmittedEvent(dagId, time,
         DAGPlan.getDefaultInstance(), attemptId, null, user, conf, null, "default")));
     historyEvents.add(new DAGHistoryEvent(dagId, new DAGInitializedEvent(dagId, time + 1, user,
@@ -272,7 +273,8 @@ public class TestProtoHistoryLoggingService {
     when(appContext.getApplicationID()).thenReturn(appId);
     when(appContext.getApplicationAttemptId()).thenReturn(attemptId);
     when(appContext.getUser()).thenReturn(user);
-    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {});
+    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {
+    });
     when(appContext.getClock()).thenReturn(clock);
     service.setAppContext(appContext);
     Configuration conf = new Configuration(false);
@@ -285,7 +287,7 @@ public class TestProtoHistoryLoggingService {
   }
 
   private void assertEventsRead(ProtoMessageReader<HistoryEventProto> reader,
-      List<HistoryEventProto> protos, int start, int finish) throws Exception {
+                                List<HistoryEventProto> protos, int start, int finish) throws Exception {
     for (int i = start; i < finish; ++i) {
       try {
         HistoryEventProto evt = reader.readEvent();

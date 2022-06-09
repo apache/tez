@@ -85,7 +85,6 @@ public class TestJavaOptsChecker {
     // Invalid negative can be ignored
     opts = " -XX:+UseG1GC -XX:+UseParallelGC -XX:-UseG1GC -XX:-UseConcMarkSweepGC ";
     javaOptsChecker.checkOpts(opts);
-
   }
 
   @Test(timeout = 5000)
@@ -107,8 +106,5 @@ public class TestJavaOptsChecker {
       Assert.assertTrue(e.getMessage(),
           e.getMessage().contains("Invalid/conflicting GC options found"));
     }
-
-
   }
-
 }

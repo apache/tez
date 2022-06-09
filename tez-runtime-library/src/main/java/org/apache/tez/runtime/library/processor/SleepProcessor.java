@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,14 +58,14 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void initialize()
-    throws Exception {
+      throws Exception {
     if (getContext().getUserPayload() == null) {
       LOG.info("No processor user payload specified"
-        + ", using default timeToSleep of 1 ms");
+          + ", using default timeToSleep of 1 ms");
       timeToSleepMS = 1;
     } else {
       SleepProcessorConfig cfg =
-        new SleepProcessorConfig();
+          new SleepProcessorConfig();
       cfg.fromUserPayload(getContext().getUserPayload());
       timeToSleepMS = cfg.getTimeToSleepMS();
     }
@@ -77,9 +77,9 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
                   Map<String, LogicalOutput> _outputs) throws Exception {
     inputs = _inputs;
     outputs = _outputs;
-    progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
+    progressHelper = new ProgressHelper(this.inputs, getContext(), this.getClass().getSimpleName());
     LOG.info("Running the Sleep Processor, sleeping for "
-      + timeToSleepMS + " ms");
+        + timeToSleepMS + " ms");
     for (LogicalInput input : _inputs.values()) {
       input.start();
     }
@@ -120,7 +120,7 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
     /**
      * @param timeToSleepMS Time to sleep in milliseconds
      */
-    public SleepProcessorConfig (int timeToSleepMS) {
+    public SleepProcessorConfig(int timeToSleepMS) {
       this.timeToSleepMS = timeToSleepMS;
     }
 
@@ -137,5 +137,4 @@ public class SleepProcessor extends AbstractLogicalIOProcessor {
       return timeToSleepMS;
     }
   }
-
 }

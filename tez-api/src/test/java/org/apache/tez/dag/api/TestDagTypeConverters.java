@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,7 +58,7 @@ public class TestDagTypeConverters {
     String historytext = "Bar123";
     EntityDescriptor entityDescriptor =
         InputDescriptor.create("inputClazz").setUserPayload(payload)
-        .setHistoryText(historytext);
+            .setHistoryText(historytext);
     TezEntityDescriptorProto proto =
         DagTypeConverters.convertToDAGPlan(entityDescriptor);
     Assert.assertEquals(payload.getVersion(), proto.getTezUserPayload().getVersion());
@@ -93,7 +93,6 @@ public class TestDagTypeConverters {
     Assert.assertEquals("/file", lr1UrlDeserialized.getFile());
     Assert.assertEquals("hdfs", lr1UrlDeserialized.getScheme());
 
-
     // With port
     String p2String = "hdfs://mycluster:2311/file";
     Path p2Path = new Path(p2String);
@@ -109,13 +108,11 @@ public class TestDagTypeConverters {
     Assert.assertEquals(2311, lr2UrlDeserialized.getPort());
   }
 
-
   @Test(timeout = 5000)
   public void testVertexExecutionContextTranslation() {
     VertexExecutionContext originalContext;
     VertexExecutionContextProto contextProto;
     VertexExecutionContext retrievedContext;
-
 
     // Uber
     originalContext = VertexExecutionContext.createExecuteInAm(true);
@@ -136,7 +133,6 @@ public class TestDagTypeConverters {
     assertEquals(originalContext, retrievedContext);
   }
 
-
   static final String testScheduler = "testScheduler";
   static final String testLauncher = "testLauncher";
   static final String testComm = "testComm";
@@ -144,7 +140,6 @@ public class TestDagTypeConverters {
 
   @Test(timeout = 5000)
   public void testServiceDescriptorTranslation() {
-
 
     TaskSchedulerDescriptor[] taskSchedulers;
     ContainerLauncherDescriptor[] containerLaunchers;
@@ -179,7 +174,6 @@ public class TestDagTypeConverters {
     verifyPlugins(proto.getTaskSchedulersList(), 1, testScheduler, false);
     verifyPlugins(proto.getContainerLaunchersList(), 1, testLauncher, false);
     verifyPlugins(proto.getTaskCommunicatorsList(), 1, testComm, true);
-
 
     // Multiple plugin set specified. All with a payload
     taskSchedulers = createTaskScheduelrs(3, true);

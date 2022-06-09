@@ -103,35 +103,35 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
   }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty) {
+                                        ByteString emptyPartitionByteString, boolean allPartitionsEmpty) {
     return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
         allPartitionsEmpty, false, false, 0);
   }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
-      finalMergeDisabled, boolean incrementalEvent, int spillId) {
+                                        ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+                                            finalMergeDisabled, boolean incrementalEvent, int spillId) {
     return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
         allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, HOST, PORT);
   }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
-      finalMergeDisabled, boolean incrementalEvent, int spillId, int attemptNum) {
+                                        ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+                                            finalMergeDisabled, boolean incrementalEvent, int spillId, int attemptNum) {
     return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
         allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, HOST, PORT, attemptNum);
   }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
-      finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port) {
+                                        ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+                                            finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port) {
     return createDataMovementEvent(srcIndex, targetIndex, emptyPartitionByteString,
         allPartitionsEmpty, finalMergeDisabled, incrementalEvent, spillId, host, port, 0);
   }
 
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
-      finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port, int attemptNum) {
+                                        ByteString emptyPartitionByteString, boolean allPartitionsEmpty, boolean
+                                            finalMergeDisabled, boolean incrementalEvent, int spillId, String host, int port, int attemptNum) {
     ShuffleUserPayloads.DataMovementEventPayloadProto.Builder builder =
         ShuffleUserPayloads.DataMovementEventPayloadProto
             .newBuilder();
@@ -183,7 +183,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     mergeManager = mock(MergeManager.class);
   }
 
-  @Test (timeout = 10000)
+  @Test(timeout = 10000)
   public void testPiplinedShuffleEvents() throws IOException, InterruptedException {
     //test with 2 events per input (2 inputs)
     int attemptNum = 0;
@@ -241,7 +241,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     assertTrue(scheduler.isDone());
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testPiplinedShuffleEvents_WithOutofOrderAttempts() throws IOException, InterruptedException {
     //Process attempt #1 first
     int attemptNum = 1;
@@ -275,7 +275,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     verify(scheduler, times(1)).killSelf(any(), any());
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testPipelinedShuffle_WithObsoleteEvents() throws IOException, InterruptedException {
     //Process attempt #1 first
     int attemptNum = 1;
@@ -349,7 +349,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);
     verify(scheduler).copySucceeded(eq(expectedIdentifier), any(), eq(0L),
-            eq(0L), eq(0L), any(), eq(true));
+        eq(0L), eq(0L), any(), eq(true));
   }
 
   @Test(timeout = 5000)

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 package org.apache.tez.mapreduce.processor.reduce;
-
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -85,22 +84,22 @@ import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
 
-
 @SuppressWarnings("deprecation")
 public class TestReduceProcessor {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TestReduceProcessor.class);
 
   private static JobConf defaultConf = new JobConf();
   private static FileSystem localFs = null;
   private static Path workDir = null;
+
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
       localFs = FileSystem.getLocal(defaultConf);
       workDir =
           new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-                   "TestReduceProcessor").makeQualified(localFs);
+              "TestReduceProcessor").makeQualified(localFs);
       LOG.info("Using workDir: " + workDir);
       MapUtils.configureLocalDirs(defaultConf, workDir.toString());
     } catch (IOException e) {
@@ -133,14 +132,14 @@ public class TestReduceProcessor {
     String reduceVertexName = MultiStageMRConfigUtil.getFinalReduceVertexName();
     JobConf jobConf = new JobConf(defaultConf);
     setUpJobConf(jobConf);
-    
+
     MRHelpers.translateMRConfToTez(jobConf);
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, 0);
 
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
     jobConf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
-    
+
     Path mapInput = new Path(workDir, "map0");
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
@@ -151,9 +150,9 @@ public class TestReduceProcessor {
                     .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
                     .toByteArray()))),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex",
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName()).
-          setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
+            setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
     // Run a map
 
     TestUmbilical testUmbilical = new TestUmbilical();
@@ -177,9 +176,9 @@ public class TestReduceProcessor {
     Assert.assertEquals(1, cdmEvent.getCount());
     DataMovementEvent dme = cdmEvent.getEvents().iterator().next();
     dme.setTargetIndex(0);
-    
+
     LOG.info("Starting reduce...");
-    
+
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(dagName));
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
     Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>(identifier,
@@ -194,7 +193,7 @@ public class TestReduceProcessor {
     ProcessorDescriptor reduceProcessorDesc = ProcessorDescriptor.create(
         ReduceProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
-    
+
     InputSpec reduceInputSpec = new InputSpec(mapVertexName,
         InputDescriptor.create(OrderedGroupedInputLegacy.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
@@ -226,7 +225,7 @@ public class TestReduceProcessor {
         taskSpec,
         0,
         jobConf,
-        new String[] {workDir.toString()},
+        new String[]{workDir.toString()},
         new TestUmbilical(),
         serviceConsumerMetadata,
         serviceProviderEnvMap,
@@ -247,8 +246,6 @@ public class TestReduceProcessor {
     // TODO NEWTEZ Verify the partitioner has not been created
     // Likely not applicable anymore.
     // Assert.assertNull(mrTask.getPartitioner());
-
-
 
     // Only a task commit happens, hence the data is still in the temporary directory.
     Path reduceOutputDir = new Path(new Path(workDir, "output"),
@@ -272,5 +269,4 @@ public class TestReduceProcessor {
 
     reader.close();
   }
-
 }

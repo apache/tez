@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.processor;
 
@@ -99,7 +99,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   protected TaskAttemptID taskAttemptId;
   protected Progress progress = new Progress();
   protected SecretKey jobTokenSecret;
-  
+
   LogicalInput input;
   LogicalOutput output;
 
@@ -111,6 +111,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   /** Construct output file names so that, when an output directory listing is
    * sorted lexicographically, positions correspond to output partitions.*/
   private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
+
   static {
     NUMBER_FORMAT.setMinimumIntegerDigits(5);
     NUMBER_FORMAT.setGroupingUsed(false);
@@ -127,7 +128,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   // TODO how to update progress
   @Override
   public void initialize() throws IOException,
-  InterruptedException {
+      InterruptedException {
 
     DeprecatedKeys.init();
 
@@ -144,14 +145,14 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     UserPayload userPayload = processorContext.getUserPayload();
     Configuration conf = TezUtils.createConfFromUserPayload(userPayload);
     if (conf instanceof JobConf) {
-      this.jobConf = (JobConf)conf;
+      this.jobConf = (JobConf) conf;
     } else {
       this.jobConf = new JobConf(conf);
     }
     jobConf.set(Constants.TEZ_RUNTIME_TASK_ATTEMPT_ID,
         taskAttemptId.toString());
     jobConf.set(MRJobConfig.TASK_ATTEMPT_ID,
-      taskAttemptId.toString());
+        taskAttemptId.toString());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         processorContext.getDAGAttemptNumber());
 
@@ -246,8 +247,8 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
         workDir = lDirAlloc.getLocalPathToRead("work", jobConf);
       }
       if (!madeDir) {
-          throw new IOException("Mkdirs failed to create "
-              + workDir.toString());
+        throw new IOException("Mkdirs failed to create "
+            + workDir.toString());
       }
     }
     // TODO NEWTEZ Is this required ?
@@ -312,11 +313,11 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   }
 
   public void initTask(LogicalOutput output) throws IOException,
-                                InterruptedException {
+      InterruptedException {
     // By this time output has been initialized
     this.output = output;
     if (output instanceof MROutputLegacy) {
-      committer = ((MROutputLegacy)output).getOutputCommitter();
+      committer = ((MROutputLegacy) output).getOutputCommitter();
     }
     this.mrReporter = new MRTaskReporter(processorContext);
     this.useNewApi = jobConf.getUseNewMapper();
@@ -333,7 +334,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     return mrReporter;
   }
 
-  public TezCounters getCounters() { return counters; }
+  public TezCounters getCounters() {return counters;}
 
   public void setConf(JobConf jobConf) {
     this.jobConf = jobConf;
@@ -359,7 +360,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     // TODO change this to use the new context
     // TODO TEZ Interaciton between Commit and OutputReady. Merge ?
     if (output instanceof MROutputLegacy) {
-      MROutputLegacy sOut = (MROutputLegacy)output;
+      MROutputLegacy sOut = (MROutputLegacy) output;
       if (sOut.isCommitRequired()) {
         //wait for commit approval and commit
         // TODO EVENTUALLY - Commit is not required for map tasks.
@@ -398,7 +399,7 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
           break;
         }
         Thread.sleep(1000);
-      } catch(InterruptedException ie) {
+      } catch (InterruptedException ie) {
         //ignore
       } catch (IOException ie) {
         LOG.warn("Failure sending canCommit: "
@@ -426,13 +427,12 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     }
   }
 
-  private
-  void discardOutput(MROutputLegacy output) {
+  private void discardOutput(MROutputLegacy output) {
     try {
       output.abort();
-    } catch (IOException ioe)  {
+    } catch (IOException ioe) {
       LOG.warn("Failure cleaning up: " +
-               ExceptionUtils.getStackTrace(ioe));
+          ExceptionUtils.getStackTrace(ioe));
     }
   }
 
@@ -450,16 +450,16 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     return status;
   }
 
-  protected static <INKEY,INVALUE,OUTKEY,OUTVALUE>
-  org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
+  protected static <INKEY, INVALUE, OUTKEY, OUTVALUE>
+  org.apache.hadoop.mapreduce.Reducer<INKEY, INVALUE, OUTKEY, OUTVALUE>.Context
   createReduceContext(org.apache.hadoop.mapreduce.Reducer
-                        <INKEY,INVALUE,OUTKEY,OUTVALUE> reducer,
+                          <INKEY, INVALUE, OUTKEY, OUTVALUE> reducer,
                       Configuration job,
                       TaskAttemptID taskId,
                       final TezRawKeyValueIterator rIter,
                       org.apache.hadoop.mapreduce.Counter inputKeyCounter,
                       org.apache.hadoop.mapreduce.Counter inputValueCounter,
-                      org.apache.hadoop.mapreduce.RecordWriter<OUTKEY,OUTVALUE> output,
+                      org.apache.hadoop.mapreduce.RecordWriter<OUTKEY, OUTVALUE> output,
                       org.apache.hadoop.mapreduce.OutputCommitter committer,
                       org.apache.hadoop.mapreduce.StatusReporter reporter,
                       RawComparator<INKEY> comparator,
@@ -494,25 +494,25 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
           }
         };
     org.apache.hadoop.mapreduce.ReduceContext<INKEY, INVALUE, OUTKEY, OUTVALUE>
-    reduceContext =
-      new ReduceContextImpl<INKEY, INVALUE, OUTKEY, OUTVALUE>(
-          job,
-          taskId,
-          r,
-          inputKeyCounter,
-          inputValueCounter,
-          output,
-          committer,
-          reporter,
-          comparator,
-          keyClass,
-          valueClass);
+        reduceContext =
+        new ReduceContextImpl<INKEY, INVALUE, OUTKEY, OUTVALUE>(
+            job,
+            taskId,
+            r,
+            inputKeyCounter,
+            inputValueCounter,
+            output,
+            committer,
+            reporter,
+            comparator,
+            keyClass,
+            valueClass);
     LOG.debug("Using key class: {}, valueClass: {}", keyClass, valueClass);
 
-    org.apache.hadoop.mapreduce.Reducer<INKEY,INVALUE,OUTKEY,OUTVALUE>.Context
+    org.apache.hadoop.mapreduce.Reducer<INKEY, INVALUE, OUTKEY, OUTVALUE>.Context
         reducerContext =
-          new WrappedReducer<INKEY, INVALUE, OUTKEY, OUTVALUE>().getReducerContext(
-              reduceContext);
+        new WrappedReducer<INKEY, INVALUE, OUTKEY, OUTVALUE>().getReducerContext(
+            reduceContext);
 
     return reducerContext;
   }
@@ -535,14 +535,14 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
     jobConf.setInt(JobContext.TASK_PARTITION,
         taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
-    
+
     jobConf.setBoolean(MRJobConfig.TASK_ISMAP, isMap);
-    
+
     Path outputPath = FileOutputFormat.getOutputPath(jobConf);
     if (outputPath != null) {
       if ((committer instanceof FileOutputCommitter)) {
-        FileOutputFormat.setWorkOutputPath(jobConf, 
-          ((FileOutputCommitter)committer).getTaskAttemptPath(taskAttemptContext));
+        FileOutputFormat.setWorkOutputPath(jobConf,
+            ((FileOutputCommitter) committer).getTaskAttemptPath(taskAttemptContext));
       } else {
         FileOutputFormat.setWorkOutputPath(jobConf, outputPath);
       }
@@ -560,5 +560,4 @@ public abstract class MRTask extends AbstractLogicalIOProcessor {
   public TaskAttemptID getTaskAttemptId() {
     return taskAttemptId;
   }
-
 }

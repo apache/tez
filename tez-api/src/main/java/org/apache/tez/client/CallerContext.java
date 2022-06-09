@@ -64,28 +64,30 @@ public class CallerContext {
 
   /**
    * Instantiate the Caller Context
-   * @param context Context in which Tez is being invoked. For example, HIVE or PIG.
-   * @param callerId Caller ID. An ID to uniquely identifier the caller within the callerType
-   *                 namespace
+   *
+   * @param context    Context in which Tez is being invoked. For example, HIVE or PIG.
+   * @param callerId   Caller ID. An ID to uniquely identifier the caller within the callerType
+   *                   namespace
    * @param callerType Type of the caller. Should ideally be used along with callerId to uniquely
    *                   identify the caller. When used with YARN Timeline, this should map to
    *                   the Timeline Entity Type. For example, HIVE_QUERY_ID.
-   * @param blob Free-form text or a json-representation of relevant meta-data.
-   *             This can be used to describe the work being done. For example, for Hive,
-   *             this could be the Hive query text.
+   * @param blob       Free-form text or a json-representation of relevant meta-data.
+   *                   This can be used to describe the work being done. For example, for Hive,
+   *                   this could be the Hive query text.
    * @return CallerContext
    */
   public static CallerContext create(String context, String callerId,
-      String callerType, @Nullable String blob) {
+                                     String callerType, @Nullable String blob) {
     return new CallerContext(context, callerId, callerType, blob);
   }
 
   /**
    * Instantiate the Caller Context
+   *
    * @param context Context in which Tez is being invoked. For example, HIVE or PIG.
-   * @param blob Free-form text or a json-representation of relevant meta-data.
-   *             This can be used to describe the work being done. For example, for Hive,
-   *             this could be the Hive query text.
+   * @param blob    Free-form text or a json-representation of relevant meta-data.
+   *                This can be used to describe the work being done. For example, for Hive,
+   *                this could be the Hive query text.
    * @return CallerContext
    */
   @Private
@@ -93,9 +95,8 @@ public class CallerContext {
     return new CallerContext(context, blob);
   }
 
-
   private CallerContext(String context, String callerId, String callerType,
-      @Nullable String blob) {
+                        @Nullable String blob) {
     if (callerId != null || callerType != null) {
       setCallerIdAndType(callerId, callerType);
     }
@@ -135,15 +136,15 @@ public class CallerContext {
   }
 
   /**
-   * @param callerId Caller ID. An ID to uniquely identifier the caller within the callerType
-   *                 namespace
+   * @param callerId   Caller ID. An ID to uniquely identifier the caller within the callerType
+   *                   namespace
    * @param callerType Type of the caller. Should ideally be used along with callerId to uniquely
    *                   identify the caller. When used with YARN Timeline, this should map to
    *                   the Timeline Entity Type. For example, HIVE_QUERY_ID.
    */
   public CallerContext setCallerIdAndType(String callerId, String callerType) {
     Preconditions.checkArgument(callerType != null && !callerType.isEmpty()
-        && callerId != null && !callerId.isEmpty(),
+            && callerId != null && !callerId.isEmpty(),
         "Caller Id and Caller Type cannot be null or empty");
     this.callerType = callerType;
     this.callerId = callerId;
@@ -175,6 +176,4 @@ public class CallerContext {
         + ", callerId=" + callerId
         + " }";
   }
-
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -193,7 +193,7 @@ public class TestDAGImpl {
   private AppContext dagWithCustomEdgeAppContext;
   private HistoryEventHandler historyEventHandler;
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
-  private ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
+  private ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192, 10));
   private HadoopShim defaultShim = new DefaultHadoopShim();
 
   static {
@@ -218,7 +218,7 @@ public class TestDAGImpl {
           + ", dagId=" + curDAGId);
     }
   }
-  
+
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
     public void handle(DAGEvent event) {
@@ -235,7 +235,7 @@ public class TestDAGImpl {
       DAGImpl handler = chooseDAG(id);
       Vertex vertex = handler.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
-      ((EventHandler<TaskEvent>)task).handle(event);
+      ((EventHandler<TaskEvent>) task).handle(event);
     }
   }
 
@@ -255,10 +255,10 @@ public class TestDAGImpl {
       Vertex vertex = handler.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
-      ((EventHandler<TaskAttemptEvent>)ta).handle(event);
+      ((EventHandler<TaskAttemptEvent>) ta).handle(event);
     }
   }
-  
+
   private class VertexEventDispatcher
       implements EventHandler<VertexEvent> {
 
@@ -273,7 +273,7 @@ public class TestDAGImpl {
   }
 
   private class DAGFinishEventHandler
-  implements EventHandler<DAGAppMasterEventDAGFinished> {
+      implements EventHandler<DAGAppMasterEventDAGFinished> {
     public int dagFinishEvents = 0;
 
     @Override
@@ -288,136 +288,138 @@ public class TestDAGImpl {
         .setName("testverteximpl")
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex1")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host1")
-                .addRack("rack1")
-                .build()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host1")
+                        .addRack("rack1")
+                        .build()
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x1.y1")
-                    .build()
-                    )
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
                 .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setIODescriptor(
-                        TezEntityDescriptorProto.newBuilder().setClassName("output1").build()
-                    )
-                    .setName("output1")
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName("output1").build()
+                        )
+                        .setName("output1")
                         .setControllerDescriptor(
                             TezEntityDescriptorProto.newBuilder().setClassName(
                                 CountingOutputCommitter.class.getName()))
-                    )
-                    .addOutEdgeId("e1")
-                    .build()
-            )
+                )
+                .addOutEdgeId("e1")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex2")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host2")
-                .addRack("rack2")
-                .build()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("")
-                    .setTaskModule("x2.y2")
-                    .build()
-                    )
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
                 .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setIODescriptor(
-                        TezEntityDescriptorProto.newBuilder().setClassName("output2").build()
-                    )
-                    .setName("output2")
-                    .setControllerDescriptor(
-                        TezEntityDescriptorProto.newBuilder().setClassName(
-                            CountingOutputCommitter.class.getName()))
-                 )
-                   .addInEdgeId("e1")
-                    .addOutEdgeId("e2")
-                    .build()
-            )
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName("output2").build()
+                        )
+                        .setName("output2")
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                CountingOutputCommitter.class.getName()))
+                )
+                .addInEdgeId("e1")
+                .addOutEdgeId("e2")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex3")
-            .setType(PlanVertexType.NORMAL)
-            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host3")
-                .addRack("rack3")
-                .build()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host3")
+                        .addRack("rack3")
+                        .build()
                 )
                 .setTaskConfig(
                     PlanTaskConfiguration.newBuilder()
-                    .setNumTasks(1)
-                    .setVirtualCores(4)
-                    .setMemoryMb(1024)
-                    .setJavaOpts("foo")
-                    .setTaskModule("x3.y3")
-                    .build()
-                    )
-               .addOutputs(
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .addOutputs(
                     DAGProtos.RootInputLeafOutputProto.newBuilder()
-                    .setIODescriptor(
-                        TezEntityDescriptorProto.newBuilder().setClassName("output3").build()
-                    )
-                    .setName("output3")
-                    .setControllerDescriptor(
-                        TezEntityDescriptorProto.newBuilder().setClassName(
-                            CountingOutputCommitter.class.getName()))
-               )
-               .addInEdgeId("e2")
-               .build()
-            )
+                        .setIODescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName("output3").build()
+                        )
+                        .setName("output3")
+                        .setControllerDescriptor(
+                            TezEntityDescriptorProto.newBuilder().setClassName(
+                                CountingOutputCommitter.class.getName()))
+                )
+                .addInEdgeId("e2")
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i2"))
-            .setInputVertexName("vertex1")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
-            .setOutputVertexName("vertex2")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e1")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
-       .addEdge(
-           EdgePlan.newBuilder()
-           .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3"))
-           .setInputVertexName("vertex2")
-           .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
-           .setOutputVertexName("vertex3")
-           .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-           .setId("e2")
-           .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-           .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-           .build()
-           )
-      .build();
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i2"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                .setOutputVertexName("vertex2")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e2")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
 
     return dag;
   }
 
   public static class TotalCountingOutputCommitter extends CountingOutputCommitter {
     static int totalCommitCounter = 0;
+
     public TotalCountingOutputCommitter(OutputCommitterContext context) {
       super(context);
     }
+
     @Override
     public void commitOutput() throws IOException {
       ++totalCommitCounter;
@@ -473,219 +475,219 @@ public class TestDAGImpl {
                 .setValue(3 + "")))
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex1")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host1")
-                .addRack("rack1")
-                .build()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host1")
+                        .addRack("rack1")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(1)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x1.y1")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
                 )
-            .setVertexConf(ConfigurationProto.newBuilder()
-                .addConfKeyValues(PlanKeyValuePair.newBuilder()
-                    .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
-                    .setValue(2+"")))
-            .addOutEdgeId("e1")
-            .build()
-            )
+                .setVertexConf(ConfigurationProto.newBuilder()
+                    .addConfKeyValues(PlanKeyValuePair.newBuilder()
+                        .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
+                        .setValue(2 + "")))
+                .addOutEdgeId("e1")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex2")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host2")
-                .addRack("rack2")
-                .build()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x2.y2")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
                 )
-            .addOutEdgeId("e2")
-            .build()
-            )
+                .addOutEdgeId("e2")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex3")
-            .setType(PlanVertexType.NORMAL)
-            .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host3")
-                .addRack("rack3")
-                .build()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host3")
+                        .addRack("rack3")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("foo")
-                .setTaskModule("x3.y3")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x3.y3")
+                        .build()
                 )
-            .addInEdgeId("e1")
-            .addInEdgeId("e2")
-            .addOutEdgeId("e3")
-            .addOutEdgeId("e4")
-            .build()
-            )
+                .addInEdgeId("e1")
+                .addInEdgeId("e2")
+                .addOutEdgeId("e3")
+                .addOutEdgeId("e4")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex4")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host4")
-                .addRack("rack4")
-                .build()
+                .setName("vertex4")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host4")
+                        .addRack("rack4")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x4.y4")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x4.y4")
+                        .build()
                 )
-            .addInEdgeId("e3")
-            .addOutEdgeId("e5")
-            .build()
-            )
+                .addInEdgeId("e3")
+                .addOutEdgeId("e5")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex5")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host5")
-                .addRack("rack5")
-                .build()
+                .setName("vertex5")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host5")
+                        .addRack("rack5")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x5.y5")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x5.y5")
+                        .build()
                 )
-            .addInEdgeId("e4")
-            .addOutEdgeId("e6")
-            .build()
-            )
+                .addInEdgeId("e4")
+                .addOutEdgeId("e6")
+                .build()
+        )
         .addVertex(
             VertexPlan.newBuilder()
-            .setName("vertex6")
-            .setType(PlanVertexType.NORMAL)
-            .addTaskLocationHint(
-                PlanTaskLocationHint.newBuilder()
-                .addHost("host6")
-                .addRack("rack6")
-                .build()
+                .setName("vertex6")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host6")
+                        .addRack("rack6")
+                        .build()
                 )
-            .setTaskConfig(
-                PlanTaskConfiguration.newBuilder()
-                .setNumTasks(2)
-                .setVirtualCores(4)
-                .setMemoryMb(1024)
-                .setJavaOpts("")
-                .setTaskModule("x6.y6")
-                .build()
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x6.y6")
+                        .build()
                 )
-            .addInEdgeId("e5")
-            .addInEdgeId("e6")
-            .build()
-            )
+                .addInEdgeId("e5")
+                .addInEdgeId("e6")
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
-            .setInputVertexName("vertex1")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
-            .setOutputVertexName("vertex3")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e1")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
-            .setInputVertexName("vertex2")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
-            .setOutputVertexName("vertex3")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e2")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e2")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
-            .setInputVertexName("vertex3")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
-            .setOutputVertexName("vertex4")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e3")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
+                .setInputVertexName("vertex3")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
+                .setOutputVertexName("vertex4")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e3")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
-            .setInputVertexName("vertex3")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
-            .setOutputVertexName("vertex5")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e4")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
+                .setInputVertexName("vertex3")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
+                .setOutputVertexName("vertex5")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e4")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
-            .setInputVertexName("vertex4")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
-            .setOutputVertexName("vertex6")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e5")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
+                .setInputVertexName("vertex4")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
+                .setOutputVertexName("vertex6")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e5")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .addEdge(
             EdgePlan.newBuilder()
-            .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
-            .setInputVertexName("vertex5")
-            .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
-            .setOutputVertexName("vertex6")
-            .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
-            .setId("e6")
-            .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-            .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-            .build()
-            )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
+                .setInputVertexName("vertex5")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
+                .setOutputVertexName("vertex6")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e6")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
         .build();
 
     return dag;
@@ -718,49 +720,49 @@ public class TestDAGImpl {
                 .addOutEdgeId("e1")
                 .build()
         )
-          .addVertex(
-              VertexPlan.newBuilder()
-                  .setName("vertex2")
-                  .setType(PlanVertexType.NORMAL)
-                  .setProcessorDescriptor(
-                      TezEntityDescriptorProto.newBuilder().setClassName("x2.y2"))
-                  .addTaskLocationHint(
-                      PlanTaskLocationHint.newBuilder()
-                          .addHost("host2")
-                          .addRack("rack2")
-                          .build()
-                  )
-                  .setTaskConfig(
-                      PlanTaskConfiguration.newBuilder()
-                          .setNumTasks(2)
-                          .setVirtualCores(4)
-                          .setMemoryMb(1024)
-                          .setJavaOpts("foo")
-                          .setTaskModule("x2.y2")
-                          .build()
-                  )
-                  .addInEdgeId("e1")
-                  .build()
-          )
-         .addEdge(
-             EdgePlan.newBuilder()
-                 .setEdgeManager(TezEntityDescriptorProto.newBuilder()
-                         .setClassName(useLegacy ? CustomizedEdgeManagerLegacy.class.getName() :
-                           CustomizedEdgeManager.class.getName())
-                         .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
-                            .setUserPayload(ByteString.copyFromUtf8(exLocation.name())))
-                 )
-                 .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
-                 .setInputVertexName("vertex1")
-                 .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
-                 .setOutputVertexName("vertex2")
-                 .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
-                 .setId("e1")
-                 .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                 .build()
-         )
-          .build();
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(
+                    TezEntityDescriptorProto.newBuilder().setClassName("x2.y2"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeManager(TezEntityDescriptorProto.newBuilder()
+                    .setClassName(useLegacy ? CustomizedEdgeManagerLegacy.class.getName() :
+                        CustomizedEdgeManager.class.getName())
+                    .setTezUserPayload(DAGProtos.TezUserPayloadProto.newBuilder()
+                        .setUserPayload(ByteString.copyFromUtf8(exLocation.name())))
+                )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                .setOutputVertexName("vertex2")
+                .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
     return dag;
   }
 
@@ -791,46 +793,46 @@ public class TestDAGImpl {
                 .addOutEdgeId("e1")
                 .build()
         )
-          .addVertex(
-              VertexPlan.newBuilder()
-                  .setName("vertex2")
-                  .setType(PlanVertexType.NORMAL)
-                  .setProcessorDescriptor(
-                      TezEntityDescriptorProto.newBuilder().setClassName("x2.y2"))
-                  .addTaskLocationHint(
-                      PlanTaskLocationHint.newBuilder()
-                          .addHost("host2")
-                          .addRack("rack2")
-                          .build()
-                  )
-                  .setTaskConfig(
-                      PlanTaskConfiguration.newBuilder()
-                          .setNumTasks(2)
-                          .setVirtualCores(4)
-                          .setMemoryMb(1024)
-                          .setJavaOpts("foo")
-                          .setTaskModule("x2.y2")
-                          .build()
-                  )
-                  .addInEdgeId("e1")
-                  .build()
-          )
-         .addEdge(
-             EdgePlan.newBuilder()
-                 .setEdgeManager(TezEntityDescriptorProto.newBuilder()
-                         .setClassName("non-exist-edge-manager")
-                 )
-                 .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
-                 .setInputVertexName("vertex1")
-                 .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
-                 .setOutputVertexName("vertex2")
-                 .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
-                 .setId("e1")
-                 .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
-                 .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
-                 .build()
-         )
-          .build();
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(
+                    TezEntityDescriptorProto.newBuilder().setClassName("x2.y2"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeManager(TezEntityDescriptorProto.newBuilder()
+                    .setClassName("non-exist-edge-manager")
+                )
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("v1_v2"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                .setOutputVertexName("vertex2")
+                .setDataMovementType(PlanEdgeDataMovementType.CUSTOM)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
     return dag;
   }
 
@@ -839,7 +841,7 @@ public class TestDAGImpl {
     MockDNSToSwitchMapping.initializeMockRackResolver();
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setup() {
     conf = new Configuration();
@@ -856,16 +858,17 @@ public class TestDAGImpl {
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     when(appContext.getHadoopShim()).thenReturn(defaultShim);
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
-    
+
     doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
-          Object[] args = invocation.getArguments();
-          CallableEvent e = (CallableEvent) args[0];
-          dispatcher.getEventHandler().handle(e);
-          return mockFuture;
-      }})
-    .when(execService).submit((Callable<Void>) any());
-    
+        Object[] args = invocation.getArguments();
+        CallableEvent e = (CallableEvent) args[0];
+        dispatcher.getEventHandler().handle(e);
+        return mockFuture;
+      }
+    })
+        .when(execService).submit((Callable<Void>) any());
+
     doReturn(execService).when(appContext).getExecService();
     historyEventHandler = mock(HistoryEventHandler.class);
     aclManager = new ACLManager("amUser");
@@ -936,7 +939,7 @@ public class TestDAGImpl {
     dispatcher.init(conf);
     dispatcher.start();
   }
-  
+
   @After
   public void teardown() {
     dispatcher.await();
@@ -971,9 +974,9 @@ public class TestDAGImpl {
   private void setupDAGWithCustomEdge(ExceptionLocation exLocation) {
     setupDAGWithCustomEdge(exLocation, false);
   }
-  
+
   private void setupDAGWithCustomEdge(ExceptionLocation exLocation, boolean useLegacy) {
-    dagWithCustomEdgeId =  TezDAGID.getInstance(appAttemptId.getApplicationId(), 4);
+    dagWithCustomEdgeId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 4);
     dagPlanWithCustomEdge = createDAGWithCustomEdge(exLocation, useLegacy);
     dagWithCustomEdgeAppContext = mock(AppContext.class);
     doReturn(aclManager).when(dagWithCustomEdgeAppContext).getAMACLManager();
@@ -1008,7 +1011,7 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, impl.getState());
   }
-  
+
   @Test(timeout = 5000)
   public void testDAGInit() {
     initDAG(dag);
@@ -1030,7 +1033,7 @@ public class TestDAGImpl {
   @Test(timeout = 5000)
   public void testDAGInitFailedDuetoInvalidResource() {
     // cluster maxContainerCapability is less than the vertex resource request
-    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(512,10));
+    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(512, 10));
     doReturn(clusterInfo).when(appContext).getClusterInfo();
     dag.handle(
         new DAGEvent(dag.getID(), DAGEventType.DAG_INIT));
@@ -1047,7 +1050,7 @@ public class TestDAGImpl {
     startDAG(dag);
     dispatcher.await();
 
-    for (int i = 0 ; i < 6; ++i ) {
+    for (int i = 0; i < 6; ++i) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.RUNNING, v.getState());
@@ -1055,14 +1058,14 @@ public class TestDAGImpl {
         Assert.assertEquals(0, v.getDistanceFromRoot());
       } else if (i == 2) {
         Assert.assertEquals(1, v.getDistanceFromRoot());
-      } else if ( i > 2 && i < 5) {
+      } else if (i > 2 && i < 5) {
         Assert.assertEquals(2, v.getDistanceFromRoot());
       } else if (i == 5) {
         Assert.assertEquals(3, v.getDistanceFromRoot());
       }
     }
 
-    for (int i = 0 ; i < 6; ++i ) {
+    for (int i = 0; i < 6; ++i) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       LOG.info("Distance from root: v" + i + ":"
           + dag.getVertex(vId).getDistanceFromRoot());
@@ -1073,7 +1076,7 @@ public class TestDAGImpl {
   public void testNonExistEdgeManagerPlugin() {
     dagPlan = createDAGWithNonExistEdgeManager();
     dag = new DAGImpl(dagId, conf, dagPlan,
-        dispatcher.getEventHandler(),  taskCommunicatorManagerInterface,
+        dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh, appContext);
     dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
     doReturn(dag).when(appContext).getCurrentDAG();
@@ -1085,11 +1088,11 @@ public class TestDAGImpl {
         .contains("java.lang.ClassNotFoundException: non-exist-edge-manager"));
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testNonExistDAGScheduler() {
     conf.set(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS, "non-exist-dag-scheduler");
     dag = new DAGImpl(dagId, conf, dagPlan,
-        dispatcher.getEventHandler(),  taskCommunicatorManagerInterface,
+        dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh, appContext);
     dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
     doReturn(dag).when(appContext).getCurrentDAG();
@@ -1126,7 +1129,7 @@ public class TestDAGImpl {
     Assert.assertEquals((float) 2 / 11,
         dag.getCompletedTaskProgress(), 0.05);
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testEdgeManager_GetNumDestinationTaskPhysicalInputs() {
@@ -1137,7 +1140,7 @@ public class TestDAGImpl {
         null));
     dispatcher.await();
 
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.GetNumDestinationTaskPhysicalInputs.name()));
   }
@@ -1155,30 +1158,30 @@ public class TestDAGImpl {
     // dag failed.
     Assert.assertEquals(DAGState.FAILED, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
     String diag = StringUtils.join(v1.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.GetNumSourceTaskPhysicalOutputs.name()));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testEdgeManager_RouteDataMovementEventToDestination() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteDataMovementEventToDestination);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
-    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
+    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
+    Task t1 = v2.getTask(0);
+    TaskAttemptImpl ta1 = (TaskAttemptImpl) t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
-    TezEvent tezEvent = new TezEvent(daEvent, 
+    TezEvent tezEvent = new TezEvent(daEvent,
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1190,7 +1193,7 @@ public class TestDAGImpl {
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.RouteDataMovementEventToDestination.name()));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testEdgeManager_RouteDataMovementEventToDestinationWithLegacyRouting() {
@@ -1203,15 +1206,15 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
 
     dispatcher.await();
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
+    Task t1 = v2.getTask(0);
+    TaskAttemptImpl ta1 = (TaskAttemptImpl) t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
-    TezEvent tezEvent = new TezEvent(daEvent, 
+    TezEvent tezEvent = new TezEvent(daEvent,
         new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
@@ -1230,26 +1233,26 @@ public class TestDAGImpl {
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination, true);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
-    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
+    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
 
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
+    Task t1 = v2.getTask(0);
+    TaskAttemptImpl ta1 = (TaskAttemptImpl) t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputFailedEvent ifEvent = InputFailedEvent.create(0, 1);
-    TezEvent tezEvent = new TezEvent(ifEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getTaskAttemptID()));
+    TezEvent tezEvent = new TezEvent(ifEvent,
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
-    
+
     Assert.assertEquals(VertexState.KILLED, v1.getState());
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.RouteInputSourceTaskFailedEventToDestination.name()));
@@ -1266,16 +1269,16 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
 
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
+    Task t1 = v2.getTask(0);
+    TaskAttemptImpl ta1 = (TaskAttemptImpl) t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
-    TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
+    TezEvent tezEvent = new TezEvent(ireEvent,
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1285,27 +1288,27 @@ public class TestDAGImpl {
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.GetNumDestinationConsumerTasks.name()));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testEdgeManager_RouteInputErrorEventToSource() {
     setupDAGWithCustomEdge(ExceptionLocation.RouteInputErrorEventToSource);
     dispatcher.getEventHandler().handle(
         new DAGEvent(dagWithCustomEdge.getID(), DAGEventType.DAG_INIT));
-    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(), 
+    dispatcher.getEventHandler().handle(new DAGEventStartDag(dagWithCustomEdge.getID(),
         null));
     dispatcher.await();
     Assert.assertEquals(DAGState.RUNNING, dagWithCustomEdge.getState());
 
-    VertexImpl v1 = (VertexImpl)dagWithCustomEdge.getVertex("vertex1");
-    VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
+    VertexImpl v1 = (VertexImpl) dagWithCustomEdge.getVertex("vertex1");
+    VertexImpl v2 = (VertexImpl) dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
 
-    Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
+    Task t1 = v2.getTask(0);
+    TaskAttemptImpl ta1 = (TaskAttemptImpl) t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
-    TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
+    TezEvent tezEvent = new TezEvent(ireEvent,
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     // 
@@ -1314,7 +1317,7 @@ public class TestDAGImpl {
     String diag = StringUtils.join(v2.getDiagnostics(), ",");
     Assert.assertTrue(diag.contains(ExceptionLocation.RouteInputErrorEventToSource.name()));
   }
-  
+
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGroupDAGCompletionWithCommitSuccess() {
@@ -1323,20 +1326,20 @@ public class TestDAGImpl {
     startDAG(groupDag);
     dispatcher.await();
 
-    for (int i=0; i<3; ++i) {
-      Vertex v = groupDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 3; ++i) {
+      Vertex v = groupDag.getVertex("vertex" + (i + 1));
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, groupDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, groupDag.getSuccessfulVertices());
     }
-    
+
     Assert.assertEquals(3, groupDag.getSuccessfulVertices());
     Assert.assertTrue(1.0f == groupDag.getCompletedTaskProgress());
     Assert.assertEquals(DAGState.SUCCEEDED, groupDag.getState());
     Assert.assertEquals(2, TotalCountingOutputCommitter.totalCommitCounter);
-  }  
+  }
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
@@ -1395,26 +1398,26 @@ public class TestDAGImpl {
     dispatcher.await();
     startDAG(mrrDag);
     dispatcher.await();
-    for (int i=0; i<2; ++i) {
-      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex" + (i + 1));
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, mrrDag.getSuccessfulVertices());
     }
-    
+
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(0, committer.abortCounter);
         Assert.assertEquals(0, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
         Assert.assertEquals(1, committer.setupCounter);
       }
     }
-    
+
     // dag completion and commit
     Vertex v = mrrDag.getVertex("vertex3");
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
@@ -1423,10 +1426,10 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
     Assert.assertEquals(DAGState.SUCCEEDED, mrrDag.getState());
-    
+
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(0, committer.abortCounter);
         Assert.assertEquals(1, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
@@ -1434,9 +1437,9 @@ public class TestDAGImpl {
       }
     }
   }
-  
+
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testDAGCompletionWithCommitFailure() throws IOException {
     // all vertices completed -> DAG completion and commit
     initDAG(mrrDag);
@@ -1461,29 +1464,29 @@ public class TestDAGImpl {
         )
         .build());
     badVertex.setAdditionalOutputs(outputs);
-    
+
     startDAG(mrrDag);
     dispatcher.await();
-    for (int i=0; i<2; ++i) {
-      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex" + (i + 1));
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, mrrDag.getSuccessfulVertices());
     }
-    
+
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(0, committer.abortCounter);
         Assert.assertEquals(0, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
         Assert.assertEquals(1, committer.setupCounter);
       }
     }
-    
+
     // dag completion and commit. Exception causes all outputs to be aborted
     Vertex v = mrrDag.getVertex("vertex3");
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
@@ -1493,45 +1496,45 @@ public class TestDAGImpl {
     Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
     Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
     Assert.assertEquals(DAGTerminationCause.COMMIT_FAILURE, mrrDag.getTerminationCause());
-    
+
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(1, committer.abortCounter);
         Assert.assertEquals(1, committer.initCounter);
         Assert.assertEquals(1, committer.setupCounter);
       }
     }
   }
-  
+
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testDAGErrorAbortAllOutputs() {
     // error on a vertex -> dag error -> all outputs aborted.
     initDAG(mrrDag);
     dispatcher.await();
     startDAG(mrrDag);
     dispatcher.await();
-    for (int i=0; i<2; ++i) {
-      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex" + (i + 1));
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, mrrDag.getSuccessfulVertices());
     }
-    
+
     // no commit yet
     for (Vertex v : mrrDag.vertices.values()) {
       for (OutputCommitter c : v.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(0, committer.abortCounter);
         Assert.assertEquals(0, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
         Assert.assertEquals(1, committer.setupCounter);
       }
     }
-    
+
     // vertex error -> dag error -> abort all outputs
     Vertex v = mrrDag.getVertex("vertex3");
     dispatcher.getEventHandler().handle(new VertexEvent(
@@ -1539,10 +1542,10 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(VertexState.ERROR, v.getState());
     Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
-    
+
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(1, committer.abortCounter);
         Assert.assertEquals(0, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
@@ -1552,7 +1555,7 @@ public class TestDAGImpl {
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testDAGErrorAbortNonSuccessfulOutputs() {
     // vertex success -> vertex output commit. failed dag aborts only non-successful vertices
     mrrDag.getConf().setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS, false);
@@ -1560,35 +1563,35 @@ public class TestDAGImpl {
     dispatcher.await();
     startDAG(mrrDag);
     dispatcher.await();
-    for (int i=0; i<2; ++i) {
-      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 2; ++i) {
+      Vertex v = mrrDag.getVertex("vertex" + (i + 1));
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
           TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, mrrDag.getSuccessfulVertices());
       for (OutputCommitter c : v.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         Assert.assertEquals(0, committer.abortCounter);
         Assert.assertEquals(1, committer.commitCounter);
         Assert.assertEquals(1, committer.initCounter);
         Assert.assertEquals(1, committer.setupCounter);
       }
     }
-    
+
     // error on vertex -> dag error
     Vertex errorVertex = mrrDag.getVertex("vertex3");
     dispatcher.getEventHandler().handle(new VertexEvent(
         errorVertex.getVertexId(), VertexEventType.V_INTERNAL_ERROR));
     dispatcher.await();
     Assert.assertEquals(VertexState.ERROR, errorVertex.getState());
-    
+
     dispatcher.await();
     Assert.assertEquals(DAGState.ERROR, mrrDag.getState());
-    
+
     for (Vertex vertex : mrrDag.vertices.values()) {
       for (OutputCommitter c : vertex.getOutputCommitters().values()) {
-        CountingOutputCommitter committer= (CountingOutputCommitter) c;
+        CountingOutputCommitter committer = (CountingOutputCommitter) c;
         if (vertex == errorVertex) {
           Assert.assertEquals(1, committer.abortCounter);
           Assert.assertEquals(0, committer.commitCounter);
@@ -1599,14 +1602,14 @@ public class TestDAGImpl {
           Assert.assertEquals(1, committer.abortCounter);
           Assert.assertEquals(1, committer.commitCounter);
           Assert.assertEquals(1, committer.initCounter);
-          Assert.assertEquals(1, committer.setupCounter);          
+          Assert.assertEquals(1, committer.setupCounter);
         }
       }
     }
   }
 
   @SuppressWarnings("unchecked")
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testVertexReRunning() {
     initDAG(dag);
     dag.dagScheduler = mock(DAGScheduler.class);
@@ -1624,22 +1627,21 @@ public class TestDAGImpl {
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
-    
+
     dispatcher.getEventHandler().handle(
         new VertexEventTaskReschedule(TezTaskID.getInstance(vId, 0)));
     dispatcher.await();
     Assert.assertEquals(VertexState.RUNNING, v.getState());
     Assert.assertEquals(0, dag.getSuccessfulVertices());
     Assert.assertEquals(0, dag.numCompletedVertices);
-    
+
     dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
         TezTaskID.getInstance(vId, 0), TaskState.SUCCEEDED));
-          dispatcher.await();
+    dispatcher.await();
 
     Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
     Assert.assertEquals(1, dag.getSuccessfulVertices());
     Assert.assertEquals(1, dag.numCompletedVertices);
-    
   }
 
   @SuppressWarnings("unchecked")
@@ -1652,12 +1654,11 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Assert.assertEquals(DAGState.KILLED, dag.getState());
-    for (int i = 0 ; i < 6; ++i ) {
+    for (int i = 0; i < 6; ++i) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.KILLED, v.getState());
     }
-
   }
 
   @Test(timeout = 5000)
@@ -1695,7 +1696,7 @@ public class TestDAGImpl {
     Assert.assertEquals(DAGState.TERMINATING, dag.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v0.getState());
     Assert.assertEquals(VertexState.TERMINATING, v1.getState());
-    for (int i = 2 ; i < 6; ++i ) {
+    for (int i = 2; i < 6; ++i) {
       TezVertexID vId = TezVertexID.getInstance(dagId, i);
       Vertex v = dag.getVertex(vId);
       Assert.assertEquals(VertexState.KILLED, v.getState());
@@ -1791,7 +1792,6 @@ public class TestDAGImpl {
     runTestGetDAGStatusReturnOnDagFinished(DAGStatus.State.ERROR);
   }
 
-
   @SuppressWarnings("unchecked")
   public void runTestGetDAGStatusReturnOnDagFinished(DAGStatusBuilder.State testState) throws TezException, InterruptedException {
     initDAG(dag);
@@ -1856,11 +1856,10 @@ public class TestDAGImpl {
     long diff = statusCheckRunnable.dagStatusEndTime - statusCheckRunnable.dagStatusStartTime;
     Assert.assertNotNull(statusCheckRunnable.dagStatus);
     Assert.assertTrue("Status: " + statusCheckRunnable.dagStatus.getState()
-            + ", Diff:" + diff, diff >= 0 && diff < 3500);
+        + ", Diff:" + diff, diff >= 0 && diff < 3500);
     Assert.assertEquals(testState, statusCheckRunnable.dagStatus.getState());
     t1.join();
   }
-
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
@@ -1889,7 +1888,6 @@ public class TestDAGImpl {
       Assert.assertEquals(VertexState.KILLED, v.getState());
     }
   }
-
 
   @Test(timeout = 5000)
   public void testDAGKill() {
@@ -1937,7 +1935,7 @@ public class TestDAGImpl {
     Assert.assertEquals(1, dagFinishEventHandler.dagFinishEvents);
   }
 
-  @Test (timeout = 5000L)
+  @Test(timeout = 5000L)
   @SuppressWarnings("unchecked")
   public void testDAGHang() throws Exception {
     conf.setBoolean(
@@ -1974,7 +1972,7 @@ public class TestDAGImpl {
     dispatcher.await();
     Assert.assertEquals(DAGState.COMMITTING, dag.getState());
     DAGEventCommitCompleted dagEvent = new DAGEventCommitCompleted(
-        dagId, outputKey, false , new RuntimeException("test"));
+        dagId, outputKey, false, new RuntimeException("test"));
     doThrow(new RuntimeException("test")).when(
         dag).logJobHistoryUnsuccesfulEvent(any(), any());
     dag.handle(dagEvent);
@@ -2109,7 +2107,7 @@ public class TestDAGImpl {
 
     public static EdgeManagerPluginDescriptor getUserPayload(ExceptionLocation exLocation) {
       return EdgeManagerPluginDescriptor.create(CustomizedEdgeManager.class.getName())
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
+          .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
     }
 
     public CustomizedEdgeManagerLegacy(EdgeManagerPluginContext context) {
@@ -2145,8 +2143,8 @@ public class TestDAGImpl {
 
     @Override
     public void routeDataMovementEventToDestination(DataMovementEvent event,
-        int sourceTaskIndex, int sourceOutputIndex,
-        Map<Integer, List<Integer>> destinationTaskAndInputIndices)
+                                                    int sourceTaskIndex, int sourceOutputIndex,
+                                                    Map<Integer, List<Integer>> destinationTaskAndInputIndices)
         throws Exception {
       if (exLocation == ExceptionLocation.RouteDataMovementEventToDestination) {
         throw new Exception(exLocation.name());
@@ -2174,7 +2172,7 @@ public class TestDAGImpl {
 
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
-        int destinationTaskIndex, int destinationFailedInputIndex)
+                                            int destinationTaskIndex, int destinationFailedInputIndex)
         throws Exception {
       if (exLocation == ExceptionLocation.RouteInputErrorEventToSource) {
         throw new Exception(exLocation.name());
@@ -2188,7 +2186,7 @@ public class TestDAGImpl {
 
     public static EdgeManagerPluginDescriptor getUserPayload(ExceptionLocation exLocation) {
       return EdgeManagerPluginDescriptor.create(CustomizedEdgeManager.class.getName())
-        .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
+          .setUserPayload(UserPayload.create(ByteBuffer.wrap(exLocation.name().getBytes())));
     }
 
     public CustomizedEdgeManager(EdgeManagerPluginContext context) {
@@ -2233,7 +2231,7 @@ public class TestDAGImpl {
 
     @Override
     public int routeInputErrorEventToSource(int destinationTaskIndex,
-        int destinationFailedInputIndex) throws Exception {
+                                            int destinationFailedInputIndex) throws Exception {
       if (exLocation == ExceptionLocation.RouteInputErrorEventToSource) {
         throw new Exception(exLocation.name());
       }
@@ -2242,7 +2240,7 @@ public class TestDAGImpl {
 
     @Override
     public EventRouteMetadata routeDataMovementEventToDestination(int sourceTaskIndex,
-        int sourceOutputIndex, int destinationTaskIndex) throws Exception {
+                                                                  int sourceOutputIndex, int destinationTaskIndex) throws Exception {
       if (exLocation == ExceptionLocation.RouteDataMovementEventToDestination) {
         throw new Exception(exLocation.name());
       }
@@ -2272,7 +2270,6 @@ public class TestDAGImpl {
     public void prepareForRouting() throws Exception {
     }
   }
-
 
   // Specificially for testGetDAGStatusReturnOnDagSuccess
   private class DagStatusCheckRunnable implements Runnable {
@@ -2328,25 +2325,23 @@ public class TestDAGImpl {
     dispatcher.await();
     startDAG(mrrDag);
     dispatcher.await();
-    for (int i=0; i<3; ++i) {
-      Vertex v = mrrDag.getVertex("vertex"+(i+1));
+    for (int i = 0; i < 3; ++i) {
+      Vertex v = mrrDag.getVertex("vertex" + (i + 1));
       TezCounters ctrs = new TezCounters();
       for (int j = 0; j < 50; ++j) {
         ctrs.findCounter("g", "c" + i + "_" + j).increment(1);
       }
       ((VertexImpl) v).setCounters(ctrs);
       dispatcher.getEventHandler().handle(new VertexEventTaskCompleted(
-        TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
+          TezTaskID.getInstance(v.getVertexId(), 0), TaskState.SUCCEEDED));
       dispatcher.await();
       Assert.assertEquals(VertexState.SUCCEEDED, v.getState());
-      Assert.assertEquals(i+1, mrrDag.getSuccessfulVertices());
+      Assert.assertEquals(i + 1, mrrDag.getSuccessfulVertices());
     }
 
     Assert.assertEquals(3, mrrDag.getSuccessfulVertices());
     Assert.assertEquals(DAGState.FAILED, mrrDag.getState());
     Assert.assertTrue("Diagnostics should contain counter limits error message",
         StringUtils.join(mrrDag.getDiagnostics(), ",").contains("Counters limit exceeded"));
-
   }
-
 }

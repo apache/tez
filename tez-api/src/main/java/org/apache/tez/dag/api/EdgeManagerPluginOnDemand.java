@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.api;
 
@@ -77,7 +77,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
     private final int numEvents;
     private final int[] targetIndices;
     private final int[] sourceIndices;
-    
+
     /**
      * Create an {@link EventRouteMetadata} that will create numEvents copies of
      * the {@link Event} to be routed. Use this to create
@@ -85,7 +85,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
      * {@link InputFailedEvent}s where the target input indices must be
      * specified to route those events. Typically numEvents would be 1 for these
      * events.
-     * 
+     *
      * @param numEvents
      *          Number of copies of the event to be routed
      * @param targetIndices
@@ -97,14 +97,14 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
     public static EventRouteMetadata create(int numEvents, int[] targetIndices) {
       return new EventRouteMetadata(numEvents, targetIndices, null);
     }
-    
+
     /**
      * Create an {@link EventRouteMetadata} that will create numEvents copies of
      * the {@link Event} to be routed. Use this to create
      * {@link EventRouteMetadata} for {@link CompositeDataMovementEvent} where
      * the target input indices and source output indices must be specified to
      * route those events. Typically numEvents would be 1 for these events.
-     * 
+     *
      * @param numEvents
      *          Number of copies of the event to be routed
      * @param targetIndices
@@ -157,7 +157,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * extending this to create a {@link EdgeManagerPluginOnDemand}, must provide
    * the same constructor so that Tez can create an instance of the class at
    * runtime.
-   * 
+   *
    * @param context
    *          the context within which this {@link EdgeManagerPluginOnDemand}
    *          will run. Includes information like configuration which the user
@@ -177,7 +177,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract void initialize() throws Exception;
-  
+
   /**
    * This method will be invoked just before routing of events will begin. The
    * plugin can use this opportunity to make any runtime initialization's that
@@ -202,17 +202,17 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Get the number of destination tasks that consume data from the source task
    * @param sourceTaskIndex Source task index
    * @throws Exception
    */
   public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Return the source task index to which to send the input error event
-   * 
+   *
    * @param destinationTaskIndex
    *          Destination task that reported the error
    * @param destinationFailedInputIndex
@@ -222,8 +222,8 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int routeInputErrorEventToSource(int destinationTaskIndex,
-      int destinationFailedInputIndex) throws Exception;
-  
+                                                   int destinationFailedInputIndex) throws Exception;
+
   /**
    * The method provides the {@link EventRouteMetadata} to route a
    * {@link DataMovementEvent} produced by the given source task to the given
@@ -231,7 +231,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * target input indices set to enable the routing. If the routing metadata is
    * common across different events then the plugin can cache and reuse the same
    * object.
-   * 
+   *
    * @param sourceTaskIndex
    *          The index of the task in the source vertex of this edge that
    *          produced a {@link DataMovementEvent}
@@ -245,7 +245,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract @Nullable EventRouteMetadata routeDataMovementEventToDestination(int sourceTaskIndex,
-      int sourceOutputIndex, int destinationTaskIndex) throws Exception;
+                                                                                   int sourceOutputIndex, int destinationTaskIndex) throws Exception;
 
   /**
    * The method provides the {@link EventRouteMetadata} to route a
@@ -254,7 +254,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * the target input indices and source output indices set to enable the
    * routing. If the routing metadata is common across different events then the
    * plugin can cache and reuse the same object.
-   * 
+   *
    * @param sourceTaskIndex
    *          The index of the task in the source vertex of this edge that
    *          produced a {@link CompositeDataMovementEvent}
@@ -275,7 +275,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * target input indices set to enable the routing. If the routing metadata is
    * common across different events then the plugin can cache and reuse the same
    * object.
-   * 
+   *
    * @param sourceTaskIndex
    *          The index of the failed task in the source vertex of this edge.
    * @param destinationTaskIndex
@@ -287,7 +287,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    */
   public abstract @Nullable EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex) throws Exception;
-  
+
   /**
    * Return the {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of
    * the vertex manager.
@@ -299,13 +299,14 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
   }
 
   // Empty implementations of EdgeManagerPlugin interfaces that are not needed
+
   /**
    * Return the routing information to inform consumers about the source task
    * output that is now available. The return map has the routing information.
    * The event will be routed to every destination task index in the key of the
    * map. Every physical input in the value for that task key will receive the
    * input.
-   * 
+   *
    * @param event
    *          Data movement event that contains the output information
    * @param sourceTaskIndex
@@ -318,8 +319,8 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception {}
+                                                  int sourceTaskIndex, int sourceOutputIndex,
+                                                  Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception {}
 
   /**
    * Return the routing information to inform consumers about the failure of a
@@ -329,7 +330,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * for that task key will receive the failure notification. This method will
    * be called once for every source task failure and information for all
    * affected destinations must be provided in that invocation.
-   * 
+   *
    * @param sourceTaskIndex
    *          Source task
    * @param destinationTaskAndInputIndices
@@ -337,11 +338,11 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception {}
+                                                           Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception {}
 
   /**
    * Return the source task index to which to send the input error event
-   * 
+   *
    * @param event
    *          Input read error event. Has more information about the error
    * @param destinationTaskIndex
@@ -353,8 +354,7 @@ public abstract class EdgeManagerPluginOnDemand extends EdgeManagerPlugin {
    * @throws Exception
    */
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex, int destinationFailedInputIndex) throws Exception { 
+                                          int destinationTaskIndex, int destinationFailedInputIndex) throws Exception {
     return routeInputErrorEventToSource(destinationTaskIndex, destinationFailedInputIndex);
   }
-
 }

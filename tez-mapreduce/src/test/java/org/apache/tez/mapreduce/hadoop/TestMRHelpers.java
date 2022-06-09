@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -116,7 +116,7 @@ public class TestMRHelpers {
     conf.set(MRJobConfig.MAP_LOG_LEVEL, "TRACE");
     conf.set(MRJobConfig.REDUCE_LOG_LEVEL, "FATAL");
     final String mapredAdminUserEnv = Shell.WINDOWS ?
-        "PATH=%PATH%" + File.pathSeparator + "%TEZ_ADMIN_ENV%\\bin":
+        "PATH=%PATH%" + File.pathSeparator + "%TEZ_ADMIN_ENV%\\bin" :
         "LD_LIBRARY_PATH=$TEZ_ADMIN_ENV_TEST/lib/native";
 
     conf.set(MRJobConfig.MAPRED_ADMIN_USER_ENV, mapredAdminUserEnv);
@@ -212,5 +212,4 @@ public class TestMRHelpers {
     Assert.assertNull(conf3.get(org.apache.tez.mapreduce.hadoop.MRJobConfig.IO_SORT_MB));
     Assert.assertEquals(500, conf3.getLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 0));
   }
-
 }

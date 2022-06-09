@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,7 +55,7 @@ import org.apache.tez.common.Preconditions;
  * The example extends WordCount by sorting the words by their count.
  */
 public class OrderedWordCount extends TezExampleBase {
-  
+
   private static String INPUT = WordCount.INPUT;
   private static String OUTPUT = WordCount.OUTPUT;
   private static String TOKENIZER = WordCount.TOKENIZER;
@@ -64,8 +64,8 @@ public class OrderedWordCount extends TezExampleBase {
   private static final Logger LOG = LoggerFactory.getLogger(OrderedWordCount.class);
 
   /*
-   * SumProcessor similar to WordCount except that it writes the count as key and the 
-   * word as value. This is because we can and ordered partitioned key value edge to group the 
+   * SumProcessor similar to WordCount except that it writes the count as key and the
+   * word as value. This is because we can and ordered partitioned key value edge to group the
    * words with the same count (as key) and order the counts.
    */
   public static class SumProcessor extends SimpleProcessor {
@@ -95,7 +95,7 @@ public class OrderedWordCount extends TezExampleBase {
       }
     }
   }
-  
+
   /**
    * No-op sorter processor. It does not need to apply any logic since the ordered partitioned edge 
    * ensures that we get the data sorted and grouped by the the sum key.
@@ -121,13 +121,13 @@ public class OrderedWordCount extends TezExampleBase {
       // deriving from SimpleMRProcessor takes care of committing the output
     }
   }
-  
+
   public static DAG createDAG(TezConfiguration tezConf, String inputPath, String outputPath,
-      int numPartitions, boolean disableSplitGrouping, boolean isGenerateSplitInClient, String dagName) throws IOException {
+                              int numPartitions, boolean disableSplitGrouping, boolean isGenerateSplitInClient, String dagName) throws IOException {
 
     DataSourceDescriptor dataSource = MRInput.createConfigBuilder(new Configuration(tezConf),
-        TextInputFormat.class, inputPath).groupSplits(!disableSplitGrouping)
-          .generateSplitsInAM(!isGenerateSplitInClient).build();
+            TextInputFormat.class, inputPath).groupSplits(!disableSplitGrouping)
+        .generateSplitsInAM(!isGenerateSplitInClient).build();
 
     DataSinkDescriptor dataSink = MROutput.createConfigBuilder(new Configuration(tezConf),
         TextOutputFormat.class, outputPath).build();
@@ -149,7 +149,7 @@ public class OrderedWordCount extends TezExampleBase {
     // via an output edge.
     Vertex summationVertex = Vertex.create(SUMMATION, ProcessorDescriptor.create(
         SumProcessor.class.getName()), numPartitions);
-    
+
     // Use IntWritable key and Text value to bring all words with the same count in the same 
     // partition. The data will be ordered by count and words grouped by count. The
     // setFromConfiguration call is optional and allows overriding the config options with
@@ -167,7 +167,7 @@ public class OrderedWordCount extends TezExampleBase {
     sorterVertex.addDataSink(OUTPUT, dataSink);
 
     // No need to add jar containing this class as assumed to be part of the tez jars.
-    
+
     DAG dag = DAG.create(dagName);
     dag.addVertex(tokenizerVertex)
         .addVertex(summationVertex)
@@ -177,14 +177,13 @@ public class OrderedWordCount extends TezExampleBase {
                 summationEdgeConf.createDefaultEdgeProperty()))
         .addEdge(
             Edge.create(summationVertex, sorterVertex, sorterEdgeConf.createDefaultEdgeProperty()));
-    return dag;  
+    return dag;
   }
 
   @Override
   protected void printUsage() {
     System.err.println("Usage: " + " orderedwordcount in out [numPartitions]");
   }
-
 
   @Override
   protected int validateArgs(String[] otherArgs) {
@@ -196,7 +195,7 @@ public class OrderedWordCount extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
     DAG dag = createDAG(tezConf, args[0], args[1],
         args.length == 3 ? Integer.parseInt(args[2]) : 1, isDisableSplitGrouping(),
         isGenerateSplitInClient(), "OrderedWordCount");

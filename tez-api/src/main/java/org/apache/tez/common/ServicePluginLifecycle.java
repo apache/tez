@@ -44,5 +44,4 @@ public interface ServicePluginLifecycle {
    * Shutdown the service. This will be invoked when the service is shutting down.
    */
   void shutdown() throws Exception;
-
 }

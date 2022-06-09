@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,7 @@ import com.google.common.collect.Lists;
  * Update Input specs for Inputs running in a task. Allows setting the number of physical
  * inputs for all work units if they have the same number of physical inputs, or individual
  * numPhysicalInputs for each work unit.
- * 
+ *
  */
 @Unstable
 @Public
@@ -41,11 +41,11 @@ public class InputSpecUpdate {
   private final List<Integer> numPhysicalInputs;
 
   private final static InputSpecUpdate DEFAULT_SINGLE_PHYSICAL_INPUT_SPEC = createAllTaskInputSpecUpdate(1);
-  
+
   /**
    * Create an update instance where all work units (typically represented by
    * {@link InputDataInformationEvent}) will have the same number of physical inputs.
-   * 
+   *
    * @param numPhysicalInputs
    *          the number of physical inputs for all work units which will use the LogicalInput
    * @return a new InputSpecUpdate instance given the parameters
@@ -57,7 +57,7 @@ public class InputSpecUpdate {
   /**
    * Create an update instance where all work units (typically represented by
    * {@link InputDataInformationEvent}) will have the same number of physical inputs.
-   * 
+   *
    * @param perWorkUnitNumPhysicalInputs
    *          A list containing one entry per work unit. The order in the list corresponds to task
    *          index or equivalently the order of {@link InputDataInformationEvent}s being sent.
@@ -67,7 +67,7 @@ public class InputSpecUpdate {
       List<Integer> perWorkUnitNumPhysicalInputs) {
     return new InputSpecUpdate(perWorkUnitNumPhysicalInputs);
   }
-  
+
   public static InputSpecUpdate getDefaultSinglePhysicalInputSpecUpdate() {
     return DEFAULT_SINGLE_PHYSICAL_INPUT_SPEC;
   }
@@ -90,13 +90,13 @@ public class InputSpecUpdate {
       return numPhysicalInputs.get(index);
     }
   }
-  
+
   @Private
   /* Used for recovery serialization */
   public boolean isForAllWorkUnits() {
     return this.forAllWorkUnits;
   }
-  
+
   @Private
   /* Used for recovery serialization */
   public List<Integer> getAllNumPhysicalInputs() {

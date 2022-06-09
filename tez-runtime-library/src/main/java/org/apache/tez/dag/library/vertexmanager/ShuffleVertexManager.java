@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.library.vertexmanager;
 
@@ -89,7 +89,6 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
       "tez.shuffle-vertex-manager.min-task-parallelism";
   public static final int TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT = 1;
 
-
   /**
    * In case of a ScatterGather connection, the fraction of source tasks which
    * should complete before tasks for the current vertex are scheduled
@@ -115,21 +114,22 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
   private int basePartitionRange;
   private int remainderRangeForLastShuffler;
 
-
   public ShuffleVertexManager(VertexManagerPluginContext context) {
     super(context);
   }
 
   static class ShuffleVertexManagerConfig extends ShuffleVertexManagerBaseConfig {
     final int minTaskParallelism;
+
     public ShuffleVertexManagerConfig(final boolean enableAutoParallelism,
-        final long desiredTaskInputDataSize, final float slowStartMinFraction,
-        final float slowStartMaxFraction, final int minTaskParallelism) {
+                                      final long desiredTaskInputDataSize, final float slowStartMinFraction,
+                                      final float slowStartMaxFraction, final int minTaskParallelism) {
       super(enableAutoParallelism, desiredTaskInputDataSize,
           slowStartMinFraction, slowStartMaxFraction);
       this.minTaskParallelism = minTaskParallelism;
       LOG.info("minTaskParallelism {}", this.minTaskParallelism);
     }
+
     int getMinTaskParallelism() {
       return minTaskParallelism;
     }
@@ -152,15 +152,15 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         conf.getFloat(
             TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
             Math.max(slowStartMinFraction,
-            TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT)),
+                TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT)),
         Math.max(1, conf
             .getInt(TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
-            TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT)));
+                TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM_DEFAULT)));
     return mgrConfig;
   }
 
   static int[] createIndices(int partitionRange, int taskIndex,
-      int offSetPerTask) {
+                             int offSetPerTask) {
     int startIndex = taskIndex * offSetPerTask;
     int[] indices = new int[partitionRange];
     for (int currentIndex = 0; currentIndex < partitionRange; ++currentIndex) {
@@ -175,7 +175,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     int basePartitionRange;
     int remainderRangeForLastShuffler;
     int numSourceTasks;
-    
+
     int[][] sourceIndices;
     int[][] targetIndices;
 
@@ -210,7 +210,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     @Override
     public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
       int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
+      if (destinationTaskIndex < numDestinationTasks - 1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
@@ -222,24 +222,24 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
       return numSourceTaskOutputs;
     }
-    
+
     @Override
     public void routeDataMovementEventToDestination(DataMovementEvent event,
-        int sourceTaskIndex, int sourceOutputIndex, 
-        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+                                                    int sourceTaskIndex, int sourceOutputIndex,
+                                                    Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       int sourceIndex = event.getSourceIndex();
-      int destinationTaskIndex = sourceIndex/basePartitionRange;
+      int destinationTaskIndex = sourceIndex / basePartitionRange;
       int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
+      if (destinationTaskIndex < numDestinationTasks - 1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
 
       // all inputs from a source task are next to each other in original order
-      int targetIndex = 
-          sourceTaskIndex * partitionRange 
-          + sourceIndex % partitionRange;
+      int targetIndex =
+          sourceTaskIndex * partitionRange
+              + sourceIndex % partitionRange;
 
       destinationTaskAndInputIndices.put(
           destinationTaskIndex, Collections.singletonList(targetIndex));
@@ -249,41 +249,40 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     public EventRouteMetadata routeDataMovementEventToDestination(
         int sourceTaskIndex, int sourceOutputIndex, int destTaskIndex) throws Exception {
       int sourceIndex = sourceOutputIndex;
-      int destinationTaskIndex = sourceIndex/basePartitionRange;
+      int destinationTaskIndex = sourceIndex / basePartitionRange;
       if (destinationTaskIndex != destTaskIndex) {
         return null;
       }
       int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
+      if (destinationTaskIndex < numDestinationTasks - 1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
-      
+
       // all inputs from a source task are next to each other in original order
-      int targetIndex = 
-          sourceTaskIndex * partitionRange 
-          + sourceIndex % partitionRange;
+      int targetIndex =
+          sourceTaskIndex * partitionRange
+              + sourceIndex % partitionRange;
       return EventRouteMetadata.create(1, new int[]{targetIndex});
     }
 
-    
     @Override
     public void prepareForRouting() throws Exception {
       // target indices derive from num src tasks
       int numSourceTasks = getContext().getSourceVertexNumTasks();
       targetIndices = new int[numSourceTasks][];
-      for (int srcTaskIndex=0; srcTaskIndex<numSourceTasks; ++srcTaskIndex) {
+      for (int srcTaskIndex = 0; srcTaskIndex < numSourceTasks; ++srcTaskIndex) {
         targetIndices[srcTaskIndex] = createIndices(basePartitionRange, srcTaskIndex,
             basePartitionRange);
       }
-      
+
       // source indices derive from num dest tasks (==partitions)
       int numTargetTasks = getContext().getDestinationVertexNumTasks();
       sourceIndices = new int[numTargetTasks][];
-      for (int destTaskIndex=0; destTaskIndex<numTargetTasks; ++destTaskIndex) {
+      for (int destTaskIndex = 0; destTaskIndex < numTargetTasks; ++destTaskIndex) {
         int partitionRange = basePartitionRange;
-        if (destTaskIndex == (numTargetTasks-1)) {
+        if (destTaskIndex == (numTargetTasks - 1)) {
           partitionRange = remainderRangeForLastShuffler;
         }
         // skip the basePartitionRange per destination task
@@ -297,14 +296,14 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
       return createIndices(remainderRangeForLastShuffler, srcTaskIndex,
           remainderRangeForLastShuffler);
     }
-    
+
     @Override
     public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
         int sourceTaskIndex, int destinationTaskIndex)
         throws Exception {
       int[] targetIndicesToSend;
       int partitionRange;
-      if(destinationTaskIndex == (numDestinationTasks-1)) {
+      if (destinationTaskIndex == (numDestinationTasks - 1)) {
         if (remainderRangeForLastShuffler != basePartitionRange) {
           targetIndicesToSend = createTargetIndicesForRemainder(sourceTaskIndex);
         } else {
@@ -316,7 +315,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         partitionRange = basePartitionRange;
       }
 
-      return CompositeEventRouteMetadata.create(partitionRange, targetIndicesToSend[0], 
+      return CompositeEventRouteMetadata.create(partitionRange, targetIndicesToSend[0],
           sourceIndices[destinationTaskIndex][0]);
     }
 
@@ -324,48 +323,47 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(
         int sourceTaskIndex, int destinationTaskIndex) throws Exception {
       int partitionRange = basePartitionRange;
-      if (destinationTaskIndex == (numDestinationTasks-1)) {
+      if (destinationTaskIndex == (numDestinationTasks - 1)) {
         partitionRange = remainderRangeForLastShuffler;
       }
-      int startOffset = sourceTaskIndex * partitionRange;        
+      int startOffset = sourceTaskIndex * partitionRange;
       int[] targetIndices = new int[partitionRange];
-      for (int i=0; i<partitionRange; ++i) {
+      for (int i = 0; i < partitionRange; ++i) {
         targetIndices[i] = (startOffset + i);
       }
       return EventRouteMetadata.create(partitionRange, targetIndices);
     }
 
     @Override
-    public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex, 
-        Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
+                                                             Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
       if (remainderRangeForLastShuffler < basePartitionRange) {
         int startOffset = sourceTaskIndex * basePartitionRange;
         List<Integer> allIndices = Lists.newArrayListWithCapacity(basePartitionRange);
-        for (int i=0; i<basePartitionRange; ++i) {
+        for (int i = 0; i < basePartitionRange; ++i) {
           allIndices.add(startOffset + i);
         }
         List<Integer> inputIndices = Collections.unmodifiableList(allIndices);
-        for (int i=0; i<numDestinationTasks-1; ++i) {
+        for (int i = 0; i < numDestinationTasks - 1; ++i) {
           destinationTaskAndInputIndices.put(i, inputIndices);
         }
-        
-        
+
         startOffset = sourceTaskIndex * remainderRangeForLastShuffler;
         allIndices = Lists.newArrayListWithCapacity(remainderRangeForLastShuffler);
-        for (int i=0; i<remainderRangeForLastShuffler; ++i) {
-          allIndices.add(startOffset+i);
+        for (int i = 0; i < remainderRangeForLastShuffler; ++i) {
+          allIndices.add(startOffset + i);
         }
         inputIndices = Collections.unmodifiableList(allIndices);
-        destinationTaskAndInputIndices.put(numDestinationTasks-1, inputIndices);
+        destinationTaskAndInputIndices.put(numDestinationTasks - 1, inputIndices);
       } else {
         // all tasks have same pattern
-        int startOffset = sourceTaskIndex * basePartitionRange;        
+        int startOffset = sourceTaskIndex * basePartitionRange;
         List<Integer> allIndices = Lists.newArrayListWithCapacity(basePartitionRange);
-        for (int i=0; i<basePartitionRange; ++i) {
+        for (int i = 0; i < basePartitionRange; ++i) {
           allIndices.add(startOffset + i);
         }
         List<Integer> inputIndices = Collections.unmodifiableList(allIndices);
-        for (int i=0; i<numDestinationTasks; ++i) {
+        for (int i = 0; i < numDestinationTasks; ++i) {
           destinationTaskAndInputIndices.put(i, inputIndices);
         }
       }
@@ -373,33 +371,33 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
 
     @Override
     public int routeInputErrorEventToSource(InputReadErrorEvent event,
-        int destinationTaskIndex, int destinationFailedInputIndex) {
+                                            int destinationTaskIndex, int destinationFailedInputIndex) {
       int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
+      if (destinationTaskIndex < numDestinationTasks - 1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
-      return destinationFailedInputIndex/partitionRange;
+      return destinationFailedInputIndex / partitionRange;
     }
 
     @Override
     public int routeInputErrorEventToSource(int destinationTaskIndex,
-        int destinationFailedInputIndex) {
+                                            int destinationFailedInputIndex) {
       int partitionRange = 1;
-      if(destinationTaskIndex < numDestinationTasks-1) {
+      if (destinationTaskIndex < numDestinationTasks - 1) {
         partitionRange = basePartitionRange;
       } else {
         partitionRange = remainderRangeForLastShuffler;
       }
-      return destinationFailedInputIndex/partitionRange;
+      return destinationFailedInputIndex / partitionRange;
     }
 
     @Override
     public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
       return numDestinationTasks;
     }
-   }
+  }
 
   private static class CustomShuffleEdgeManagerConfig {
     int numSourceTaskOutputs;
@@ -408,9 +406,9 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     int remainderRangeForLastShuffler;
 
     private CustomShuffleEdgeManagerConfig(int numSourceTaskOutputs,
-        int numDestinationTasks,
-        int basePartitionRange,
-        int remainderRangeForLastShuffler) {
+                                           int numDestinationTasks,
+                                           int basePartitionRange,
+                                           int remainderRangeForLastShuffler) {
       this.numSourceTaskOutputs = numSourceTaskOutputs;
       this.numDestinationTasks = numDestinationTasks;
       this.basePartitionRange = basePartitionRange;
@@ -436,7 +434,6 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
           proto.getNumDestinationTasks(),
           proto.getBasePartitionRange(),
           proto.getRemainderRangeForLastShuffler());
-
     }
   }
 
@@ -450,8 +447,8 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         getExpectedTotalBipartiteSourceTasksOutputSize();
 
     LOG.info("Expected output: {} based on actual output: {} from {} vertex " +
-        "manager events. desiredTaskInputSize: {} max slow start tasks: {} " +
-        " num sources completed: {}", expectedTotalSourceTasksOutputSize,
+            "manager events. desiredTaskInputSize: {} max slow start tasks: {} " +
+            " num sources completed: {}", expectedTotalSourceTasksOutputSize,
         completedSourceTasksOutputSize, numVertexManagerEventsReceived,
         config.getDesiredTaskInputDataSize(),
         (totalNumBipartiteSourceTasks * config.getMaxFraction()),
@@ -463,7 +460,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     BigInteger bigDesiredTaskParallelism =
         expectedTotalSourceTasksOutputSize.add(desiredTaskInputDataSizeMinusOne).divide(desiredTaskInputDataSize);
 
-    if(bigDesiredTaskParallelism.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+    if (bigDesiredTaskParallelism.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
       LOG.info("Not reducing auto parallelism for vertex: {}"
               + " since the desired parallelism of {} is greater than or equal"
               + " to the max parallelism of {}", getContext().getVertexName(),
@@ -471,25 +468,25 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
       return null;
     }
     int desiredTaskParallelism = bigDesiredTaskParallelism.intValue();
-    if(desiredTaskParallelism < mgrConfig.getMinTaskParallelism()) {
+    if (desiredTaskParallelism < mgrConfig.getMinTaskParallelism()) {
       desiredTaskParallelism = mgrConfig.getMinTaskParallelism();
     }
 
-    if(desiredTaskParallelism >= currentParallelism) {
+    if (desiredTaskParallelism >= currentParallelism) {
       LOG.info("Not reducing auto parallelism for vertex: {}"
-          + " since the desired parallelism of {} is greater than or equal"
-          + " to the current parallelism of {}", getContext().getVertexName(),
+              + " since the desired parallelism of {} is greater than or equal"
+              + " to the current parallelism of {}", getContext().getVertexName(),
           desiredTaskParallelism, pendingTasks.size());
       return null;
     }
 
     // most shufflers will be assigned this range
-    basePartitionRange = currentParallelism/desiredTaskParallelism;
+    basePartitionRange = currentParallelism / desiredTaskParallelism;
     if (basePartitionRange <= 1) {
       // nothing to do if range is equal 1 partition. shuffler does it by default
       LOG.info("Not reducing auto parallelism for vertex: {} by less than"
-          + " half since combining two inputs will potentially break the"
-          + " desired task input size of {}", getContext().getVertexName(),
+              + " half since combining two inputs will potentially break the"
+              + " desired task input size of {}", getContext().getVertexName(),
           config.getDesiredTaskInputDataSize());
       return null;
     }
@@ -503,7 +500,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         getContext().getVertexName(), pendingTasks.size(),
         finalTaskParallelism);
 
-    if(finalTaskParallelism >= currentParallelism) {
+    if (finalTaskParallelism >= currentParallelism) {
       return null;
     }
 
@@ -511,13 +508,13 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
         new CustomShuffleEdgeManagerConfig(
             currentParallelism, finalTaskParallelism, basePartitionRange,
             ((remainderRangeForLastShuffler > 0) ?
-            remainderRangeForLastShuffler : basePartitionRange));
+                remainderRangeForLastShuffler : basePartitionRange));
     EdgeManagerPluginDescriptor descriptor =
         EdgeManagerPluginDescriptor.create(CustomShuffleEdgeManager.class.getName());
     descriptor.setUserPayload(edgeManagerConfig.toUserPayload());
 
     Iterable<Map.Entry<String, SourceVertexInfo>> bipartiteItr = getBipartiteInfo();
-    for(Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
+    for (Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
       entry.getValue().newDescriptor = descriptor;
     }
     ReconfigVertexParams params =
@@ -527,7 +524,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
 
   @Override
   void postReconfigVertex() {
-      configureTargetMapping(pendingTasks.size());
+    configureTargetMapping(pendingTasks.size());
   }
 
   private void configureTargetMapping(int tasks) {
@@ -615,7 +612,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
       int index = taskInfo.getIndex();
       if (targetIndexes != null) { //parallelism has changed.
         Preconditions.checkState(index < targetIndexes.length,
-            "index=" + index +", targetIndexes length=" + targetIndexes.length);
+            "index=" + index + ", targetIndexes length=" + targetIndexes.length);
         int[] mapping = targetIndexes[index];
         int partitionStats = 0;
         for (int i : mapping) {
@@ -630,12 +627,10 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     return computedPartitionSizes;
   }
 
-
-
   /**
    * Create a {@link VertexManagerPluginDescriptor} builder that can be used to
    * configure the plugin.
-   * 
+   *
    * @param conf
    *          {@link Configuration} May be modified in place. May be null if the
    *          configuration parameters are to be set only via code. If
@@ -672,13 +667,13 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     }
 
     public ShuffleVertexManagerConfigBuilder
-        setSlowStartMinSrcCompletionFraction(float minFraction) {
+    setSlowStartMinSrcCompletionFraction(float minFraction) {
       conf.setFloat(TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION, minFraction);
       return this;
     }
 
     public ShuffleVertexManagerConfigBuilder
-        setSlowStartMaxSrcCompletionFraction(float maxFraction) {
+    setSlowStartMaxSrcCompletionFraction(float maxFraction) {
       conf.setFloat(TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION, maxFraction);
       return this;
     }
@@ -693,7 +688,7 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     public ShuffleVertexManagerConfigBuilder setMinTaskParallelism(
         int minTaskParallelism) {
       conf.setInt(TEZ_SHUFFLE_VERTEX_MANAGER_MIN_TASK_PARALLELISM,
-        minTaskParallelism);
+          minTaskParallelism);
       return this;
     }
 

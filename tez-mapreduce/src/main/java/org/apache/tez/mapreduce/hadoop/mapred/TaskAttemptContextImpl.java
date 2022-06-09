@@ -29,34 +29,34 @@ import org.apache.tez.mapreduce.processor.MRTaskReporter;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TaskAttemptContextImpl
-       extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl 
-       implements TaskAttemptContext {
+    extends org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl
+    implements TaskAttemptContext {
   private MRTaskReporter reporter;
 
   // FIXME we need to use DAG Id but we are using App Id
   public TaskAttemptContextImpl(JobConf conf, TaskAttemptID taskAttemptId,
-                         MRTaskReporter reporter) {
+                                MRTaskReporter reporter) {
     super(conf, taskAttemptId);
     this.reporter = reporter;
   }
-  
+
   /**
    * Get the taskAttemptID.
-   *  
+   *
    * @return TaskAttemptID
    */
   public TaskAttemptID getTaskAttemptID() {
     return (TaskAttemptID) super.getTaskAttemptID();
   }
-  
+
   public Progressable getProgressible() {
     return reporter;
   }
-  
+
   public JobConf getJobConf() {
     return (JobConf) getConfiguration();
   }
-  
+
   @Override
   public float getProgress() {
     return reporter.getProgress();
@@ -88,6 +88,4 @@ public class TaskAttemptContextImpl
     setStatusString(status);
     reporter.setStatus(status);
   }
-
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,11 +47,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestImmediateStartVertexManager {
-  
-  @SuppressWarnings({ "unchecked", "rawtypes" })
-  @Test (timeout=5000)
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  @Test(timeout = 5000)
   public void testBasic() {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     final String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -73,9 +73,9 @@ public class TestImmediateStartVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     final String mockManagedVertexId = "Vertex4";
-    
+
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     mockInputVertices.put(mockSrcVertexId2, eProp2);
     mockInputVertices.put(mockSrcVertexId3, eProp3);
@@ -87,19 +87,20 @@ public class TestImmediateStartVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(2);
-    
+
     final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
-          Object[] args = invocation.getArguments();
-          scheduledTasks.clear();
-          List<ScheduleTaskRequest> tasks = (List<ScheduleTaskRequest>)args[0];
-          for (ScheduleTaskRequest task : tasks) {
-            scheduledTasks.add(task.getTaskIndex());
-          }
-          return null;
-      }}).when(mockContext).scheduleTasks(anyList());
-    
+        Object[] args = invocation.getArguments();
+        scheduledTasks.clear();
+        List<ScheduleTaskRequest> tasks = (List<ScheduleTaskRequest>) args[0];
+        for (ScheduleTaskRequest task : tasks) {
+          scheduledTasks.add(task.getTaskIndex());
+        }
+        return null;
+      }
+    }).when(mockContext).scheduleTasks(anyList());
+
     List<TaskAttemptIdentifier> emptyCompletions = null;
     ImmediateStartVertexManager manager = new ImmediateStartVertexManager(mockContext);
     manager.initialize();
@@ -119,15 +120,15 @@ public class TestImmediateStartVertexManager {
     final ImmediateStartVertexManager raceManager = new ImmediateStartVertexManager(mockContext);
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) throws Exception {
-        raceManager.onVertexStateUpdated(new VertexStateUpdate((String)invocation.getArguments()[0],
+        raceManager.onVertexStateUpdated(new VertexStateUpdate((String) invocation.getArguments()[0],
             VertexState.CONFIGURED));
         scheduledTasks.clear();
         return null;
-    }}).when(mockContext).registerForVertexStateUpdates(anyString(), anySet());
+      }
+    }).when(mockContext).registerForVertexStateUpdates(anyString(), anySet());
     raceManager.initialize();
     raceManager.onVertexStarted(emptyCompletions);
     verify(mockContext, times(2)).scheduleTasks(anyList());
     Assert.assertEquals(4, scheduledTasks.size());
   }
-  
 }

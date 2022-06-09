@@ -115,7 +115,6 @@ public class ProtoConverters {
     if (taskSpec.getGroupInputs() != null && !taskSpec.getGroupInputs().isEmpty()) {
       for (GroupInputSpec groupInputSpec : taskSpec.getGroupInputs()) {
         builder.addGroupedInputSpecs(convertGroupInputSpecToProto(groupInputSpec));
-
       }
     }
     if (taskSpec.getTaskConf() != null) {
@@ -131,7 +130,6 @@ public class ProtoConverters {
     }
     return builder.build();
   }
-
 
   public static InputSpec getInputSpecFromProto(IOSpecProto inputSpecProto) {
     InputDescriptor inputDescriptor = null;
@@ -195,5 +193,4 @@ public class ProtoConverters {
         DagTypeConverters.convertToDAGPlan(groupInputSpec.getMergedInputDescriptor()));
     return builder.build();
   }
-
 }

@@ -36,15 +36,12 @@ import org.junit.Test;
 
 public class TestTezTaskCommunicatorManager {
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testContainerAliveOnGetTask() throws IOException {
 
     TaskCommunicatorContext context = mock(TaskCommunicatorContext.class);
     Configuration conf = new Configuration(false);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
-
-
-
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);

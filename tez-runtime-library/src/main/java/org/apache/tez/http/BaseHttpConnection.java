@@ -59,5 +59,4 @@ public abstract class BaseHttpConnection {
    * @throws IOException
    */
   public abstract void cleanup(boolean disconnect) throws IOException;
-
 }

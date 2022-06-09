@@ -6,9 +6,9 @@
  * to you under the Apache License: Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing: software
  * distributed under the License is distributed on an "AS IS" BASIS:
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND: either express or implied.
@@ -81,12 +81,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class TestHistoryEventsProtoConversion {
 
   private static final Logger LOG = LoggerFactory.getLogger(
       TestHistoryEventsProtoConversion.class);
-
 
   private HistoryEvent testProtoConversion(HistoryEvent event) throws IOException, TezException {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -122,12 +120,12 @@ public class TestHistoryEventsProtoConversion {
             new ByteArrayInputStream(os.toByteArray()));
     deserializedEvent = ReflectionUtils.createClazzInstance(
         event.getClass().getName());
-    ((SummaryEvent)deserializedEvent).fromSummaryProtoStream(summaryEventProto);
+    ((SummaryEvent) deserializedEvent).fromSummaryProtoStream(summaryEventProto);
     return deserializedEvent;
   }
 
   private void logEvents(HistoryEvent event,
-      HistoryEvent deserializedEvent) {
+                         HistoryEvent deserializedEvent) {
     LOG.info("Initial Event toString: " + event.toString());
     LOG.info("Deserialized Event toString: " + deserializedEvent.toString());
   }
@@ -143,7 +141,6 @@ public class TestHistoryEventsProtoConversion {
     }
 
     LOG.info("Initial Event toString: " + event.toString());
-
   }
 
   private void testAMLaunchedEvent() throws Exception {
@@ -176,6 +173,7 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private final String QUEUE_NAME = "TEST_QUEUE_NAME";
+
   private void testDAGSubmittedEvent() throws Exception {
     DAGSubmittedEvent event = new DAGSubmittedEvent(TezDAGID.getInstance(
         ApplicationId.newInstance(0, 1), 1), 1001l,
@@ -223,8 +221,8 @@ public class TestHistoryEventsProtoConversion {
   }
 
   private void testDAGKillRequestEvent() throws Exception {
-    DAGKillRequestEvent event = 
-        new DAGKillRequestEvent(TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l,false);
+    DAGKillRequestEvent event =
+        new DAGKillRequestEvent(TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 100334l, false);
     DAGKillRequestEvent deserializedEvent = (DAGKillRequestEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getDagID(),
@@ -328,17 +326,17 @@ public class TestHistoryEventsProtoConversion {
     Map<String, InputSpecUpdate> rootInputSpecUpdates = new HashMap<String, InputSpecUpdate>();
     rootInputSpecUpdates.put("input1", rootInputSpecUpdateBulk);
     rootInputSpecUpdates.put("input2", rootInputSpecUpdatePerTask);
-    
+
     Map<String, EdgeProperty> sourceEdgeManagers
-      = new HashMap<String, EdgeProperty>();
+        = new HashMap<String, EdgeProperty>();
     // add standard and custom edge
-    sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER, 
-        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+    sourceEdgeManagers.put("foo", EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
     sourceEdgeManagers.put("foo1", EdgeProperty.create(EdgeManagerPluginDescriptor.create("bar1")
-        .setUserPayload(
-            UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)), 
-        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL, 
+            .setUserPayload(
+                UserPayload.create(ByteBuffer.wrap(new String("payload").getBytes()), 100)),
+        DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out1"), InputDescriptor.create("in1")));
 
     final long reconfigureDoneTime = 100;
@@ -352,7 +350,7 @@ public class TestHistoryEventsProtoConversion {
     Assert.assertEquals(numTasks, event.getNumTasks());
     Assert.assertEquals(reconfigureDoneTime, event.getReconfigureDoneTime());
     VertexConfigurationDoneEvent deserializedEvent = (VertexConfigurationDoneEvent)
-          testProtoConversion(event);
+        testProtoConversion(event);
     Assert.assertEquals(event.getVertexID(), deserializedEvent.getVertexID());
     Assert.assertEquals(event.getNumTasks(), deserializedEvent.getNumTasks());
     Assert.assertEquals(event.isSetParallelismCalled(), deserializedEvent.isSetParallelismCalled());
@@ -489,7 +487,7 @@ public class TestHistoryEventsProtoConversion {
         ApplicationAttemptId.newInstance(
             ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
         "host1", 19999), "inProgress", "Completed", "nodeHttpAddress"
-        );
+    );
     TaskAttemptStartedEvent deserializedEvent = (TaskAttemptStartedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getTaskAttemptID(),
@@ -512,9 +510,9 @@ public class TestHistoryEventsProtoConversion {
           TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
               TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 0), 1024,
           ContainerId.newInstance(
-                  ApplicationAttemptId.newInstance(
-                      ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
-                  "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
+              ApplicationAttemptId.newInstance(
+                  ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
+          "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskAttemptID(),
@@ -561,7 +559,7 @@ public class TestHistoryEventsProtoConversion {
           ContainerId.newInstance(
               ApplicationAttemptId.newInstance(
                   ApplicationId.newInstance(0, 1), 1), 1001), NodeId.newInstance(
-              "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
+          "host1", 19999), "inProgress", "Completed", "nodeHttpAddress");
       TaskAttemptFinishedEvent deserializedEvent = (TaskAttemptFinishedEvent)
           testProtoConversion(event);
       Assert.assertEquals(event.getTaskAttemptID(),
@@ -637,19 +635,19 @@ public class TestHistoryEventsProtoConversion {
     {
       // toString shouldn't include null fields
       TezTaskAttemptID taId =
-        TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-          TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 0), 0);
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 0), 0);
       long timestamp = 1024L;
       List<DataEventDependencyInfo> events = Lists.newArrayList();
       events.add(new DataEventDependencyInfo(timestamp, taId));
       events.add(new DataEventDependencyInfo(timestamp, taId));
       TaskAttemptFinishedEvent event = new TaskAttemptFinishedEvent(
-        TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-          TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
-        "vertex1", 10001l, 1000434444l, TaskAttemptState.SUCCEEDED, null, null,
-        null, new TezCounters(), events, null, 0, null, 0, null, null, null, null, null);
+          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+              TezDAGID.getInstance(ApplicationId.newInstance(0, 1), 1), 111), 1), 1),
+          "vertex1", 10001l, 1000434444l, TaskAttemptState.SUCCEEDED, null, null,
+          null, new TezCounters(), events, null, 0, null, 0, null, null, null, null, null);
       String eventStr = event.toString();
-      String[] items = new String[] {"taskFailureType", "errorEnum", "diagnostics", "containerId",
+      String[] items = new String[]{"taskFailureType", "errorEnum", "diagnostics", "containerId",
           "nodeId", "nodeHttpAddress"};
       for (String item : items) {
         assertFalse(eventStr.contains(item));
@@ -681,7 +679,7 @@ public class TestHistoryEventsProtoConversion {
         ContainerId.newInstance(ApplicationAttemptId.newInstance(
             ApplicationId.newInstance(0, 1), 1), 1001), 100034566,
         ContainerExitStatus.SUCCESS, ApplicationAttemptId.newInstance(
-            ApplicationId.newInstance(0, 1), 1));
+        ApplicationId.newInstance(0, 1), 1));
     ContainerStoppedEvent deserializedEvent = (ContainerStoppedEvent)
         testProtoConversion(event);
     Assert.assertEquals(event.getContainerId(),
@@ -766,7 +764,6 @@ public class TestHistoryEventsProtoConversion {
     }
   }
 
-
   @Test//(timeout = 5000)
   public void testDefaultProtoConversion() throws Exception {
     for (HistoryEventType eventType : HistoryEventType.values()) {
@@ -842,9 +839,9 @@ public class TestHistoryEventsProtoConversion {
           break;
         default:
           throw new Exception("Unhandled Event type in Unit tests: " + eventType);
-        }
       }
     }
+  }
 
   private void testDAGRecoveredEvent() throws TezException {
     DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(
@@ -859,7 +856,5 @@ public class TestHistoryEventsProtoConversion {
     } catch (IOException e) {
       Assert.fail("Proto conversion should have failed with Unsupported Exception");
     }
-
   }
-
 }

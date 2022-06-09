@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,11 +32,10 @@ import org.apache.hadoop.io.FileChunk;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
 
-
 abstract class MapOutput {
   private static final Logger LOG = LoggerFactory.getLogger(MapOutput.class);
   private static AtomicInteger ID = new AtomicInteger(0);
-  
+
   public enum Type {
     WAIT,
     MEMORY,
@@ -79,15 +78,15 @@ abstract class MapOutput {
   }
 
   public static MapOutput createLocalDiskMapOutput(InputAttemptIdentifier attemptIdentifier,
-                                                   FetchedInputAllocatorOrderedGrouped callback, Path path,  long offset,
-                                                   long size, boolean primaryMapOutput)  {
+                                                   FetchedInputAllocatorOrderedGrouped callback, Path path, long offset,
+                                                   long size, boolean primaryMapOutput) {
     return new DiskDirectMapOutput(attemptIdentifier, callback, size, path, offset,
         primaryMapOutput);
   }
 
   public static MapOutput createMemoryMapOutput(InputAttemptIdentifier attemptIdentifier,
                                                 FetchedInputAllocatorOrderedGrouped callback, int size,
-                                                boolean primaryMapOutput)  {
+                                                boolean primaryMapOutput) {
     return new InMemoryMapOutput(attemptIdentifier, callback, size, primaryMapOutput);
   }
 
@@ -102,7 +101,7 @@ abstract class MapOutput {
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof MapOutput) {
-      return id == ((MapOutput)obj).id;
+      return id == ((MapOutput) obj).id;
     }
     return false;
   }
@@ -119,7 +118,7 @@ abstract class MapOutput {
   public byte[] getMemory() {
     return null;
   }
-  
+
   public OutputStream getDisk() {
     return null;
   }
@@ -136,27 +135,27 @@ abstract class MapOutput {
 
   public void commit() throws IOException {
   }
-  
+
   public void abort() {
   }
-  
+
   public String toString() {
     return "MapOutput( AttemptIdentifier: " + attemptIdentifier + ", Type: " + getType() + ")";
   }
-  
-  public static class MapOutputComparator 
-  implements Comparator<MapOutput> {
+
+  public static class MapOutputComparator
+      implements Comparator<MapOutput> {
     public int compare(MapOutput o1, MapOutput o2) {
-      if (o1.id == o2.id) { 
+      if (o1.id == o2.id) {
         return 0;
       }
-      
+
       if (o1.getSize() < o2.getSize()) {
         return -1;
       } else if (o1.getSize() > o2.getSize()) {
         return 1;
       }
-      
+
       if (o1.id < o2.id) {
         return -1;
       } else {
@@ -167,8 +166,9 @@ abstract class MapOutput {
 
   private static class DiskDirectMapOutput extends MapOutput {
     private final FileChunk outputPath;
+
     private DiskDirectMapOutput(InputAttemptIdentifier attemptIdentifier, FetchedInputAllocatorOrderedGrouped callback,
-                      long size, Path outputPath, long offset, boolean primaryMapOutput) {
+                                long size, Path outputPath, long offset, boolean primaryMapOutput) {
       super(attemptIdentifier, callback, primaryMapOutput);
       this.outputPath = new FileChunk(outputPath, offset, size, true, attemptIdentifier);
     }
@@ -203,8 +203,9 @@ abstract class MapOutput {
     private final Path tmpOutputPath;
     private final FileChunk outputPath;
     private OutputStream disk;
+
     private DiskMapOutput(InputAttemptIdentifier attemptIdentifier, FetchedInputAllocatorOrderedGrouped callback,
-                                long size, Path outputPath, long offset, boolean primaryMapOutput, Path tmpOutputPath) {
+                          long size, Path outputPath, long offset, boolean primaryMapOutput, Path tmpOutputPath) {
       super(attemptIdentifier, callback, primaryMapOutput);
 
       this.tmpOutputPath = tmpOutputPath;
@@ -250,11 +251,12 @@ abstract class MapOutput {
 
   private static class InMemoryMapOutput extends MapOutput {
     private byte[] byteArray;
+
     private InMemoryMapOutput(InputAttemptIdentifier attemptIdentifier,
                               FetchedInputAllocatorOrderedGrouped callback,
                               long size, boolean primaryMapOutput) {
       super(attemptIdentifier, callback, primaryMapOutput);
-      this.byteArray = new byte[(int)size];
+      this.byteArray = new byte[(int) size];
     }
 
     @Override

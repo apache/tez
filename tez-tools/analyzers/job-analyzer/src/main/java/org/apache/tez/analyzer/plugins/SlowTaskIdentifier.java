@@ -33,18 +33,17 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-
 /**
  * Analyze slow tasks in the DAG. Top 100 tasks are listed by default.
- *
+ * <p>
  * <p/>
  * //TODO: We do not get counters for killed task attempts yet.
  */
 public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
 
-  private static final String[] headers = { "vertexName", "taskAttemptId",
+  private static final String[] headers = {"vertexName", "taskAttemptId",
       "Node", "taskDuration", "Status", "diagnostics",
-      "NoOfInputs" };
+      "NoOfInputs"};
 
   private final CSVResult csvResult;
 
@@ -59,13 +58,14 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
   @Override
   public void analyze(DagInfo dagInfo) throws TezException {
     List<TaskAttemptInfo> taskAttempts = Lists.newArrayList();
-    for(VertexInfo vertexInfo : dagInfo.getVertices()) {
+    for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       taskAttempts.addAll(vertexInfo.getTaskAttempts());
     }
 
     //sort them by runtime in descending order
     Collections.sort(taskAttempts, new Comparator<TaskAttemptInfo>() {
-      @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
+      @Override
+      public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
         return (o1.getTimeTaken() > o2.getTimeTaken()) ? -1 :
             ((o1.getTimeTaken() == o2.getTimeTaken()) ?
                 0 : 1);
@@ -91,7 +91,6 @@ public class SlowTaskIdentifier extends TezAnalyzerBase implements Analyzer {
 
       csvResult.addRecord(record.toArray(new String[record.size()]));
     }
-
   }
 
   @Override

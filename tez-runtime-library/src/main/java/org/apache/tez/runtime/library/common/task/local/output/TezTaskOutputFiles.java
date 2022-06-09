@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,7 +58,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   ${yarnLocalDir}/usercache/${user}/appcache/${applicationId}. (Referred to as ${appDir} later in the docs
    */
   private final LocalDirAllocator lDirAlloc =
-    new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+      new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
 
   /*
    * if service_id = mapreduce_shuffle  then "${appDir}/output/${uniqueId}"
@@ -69,7 +69,6 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     String dagPath = getDagOutputDir(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR);
     return new Path(dagPath, uniqueId);
   }
-
 
   /**
    * Create a local output file name.
@@ -86,7 +85,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getOutputFileForWrite(long size) throws IOException {
     Path attemptOutput =
-      new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+        new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), size, conf);
   }
 
@@ -106,7 +105,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getOutputFileForWrite() throws IOException {
     Path attemptOutput =
-      new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
+        new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptOutput.toString(), conf);
   }
 
@@ -136,7 +135,6 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     return new Path(attemptDir, Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
   }
 
-
   /**
    * Create a local output index file name.
    *
@@ -152,8 +150,8 @@ public class TezTaskOutputFiles extends TezTaskOutput {
   @Override
   public Path getOutputIndexFileForWrite(long size) throws IOException {
     Path attemptIndexOutput =
-      new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
-                                      Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
+        new Path(getAttemptOutputDir(), Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING +
+            Constants.TEZ_RUNTIME_TASK_OUTPUT_INDEX_SUFFIX_STRING);
     return lDirAlloc.getLocalPathForWrite(attemptIndexOutput.toString(),
         size, conf);
   }
@@ -230,7 +228,6 @@ public class TezTaskOutputFiles extends TezTaskOutput {
     return lDirAlloc.getLocalPathForWrite(outputDir.toString(), size, conf);
   }
 
-
   /**
    * Create a local input file name.
    *
@@ -247,7 +244,7 @@ public class TezTaskOutputFiles extends TezTaskOutput {
    */
   @Override
   public Path getInputFileForWrite(int srcIdentifier,
-      int spillNum, long size) throws IOException {
+                                   int spillNum, long size) throws IOException {
     String dagPath = getDagOutputDir(getSpillFileName(srcIdentifier, spillNum));
     return lDirAlloc.getLocalPathForWrite(dagPath, size, conf);
   }

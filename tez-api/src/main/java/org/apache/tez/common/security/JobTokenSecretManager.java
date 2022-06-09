@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,7 +67,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
    * @return the computed hash
    */
   public byte[] computeHash(byte[] msg) {
-    synchronized(mac) {
+    synchronized (mac) {
       return mac.doFinal(msg);
     }
   }
@@ -91,7 +91,6 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
       throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
     }
   }
-
 
   /**
    * Create a new password/secret for the given job token identifier.
@@ -124,7 +123,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
       currentJobTokens.remove(jobId);
     }
   }
-  
+
   /**
    * Look up the token password/secret for the given jobId.
    * @param jobId the jobId to look up
@@ -141,7 +140,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
     }
     return tokenSecret;
   }
-  
+
   /**
    * Look up the token password/secret for the given job token identifier.
    * @param identifier the job token identifier to look up

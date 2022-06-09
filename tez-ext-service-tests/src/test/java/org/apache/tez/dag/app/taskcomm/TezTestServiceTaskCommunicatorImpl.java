@@ -43,7 +43,6 @@ import org.apache.tez.util.ProtoConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl {
 
   private static final Logger
@@ -91,7 +90,6 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
     this.communicator.stop();
   }
 
-
   @Override
   public void registerRunningContainer(ContainerId containerId, String hostname, int port) {
     super.registerRunningContainer(containerId, hostname, port);
@@ -107,7 +105,7 @@ public class TezTestServiceTaskCommunicatorImpl extends TezTaskCommunicatorImpl 
                                          Map<String, LocalResource> additionalResources,
                                          Credentials credentials,
                                          boolean credentialsChanged,
-                                         int priority)  {
+                                         int priority) {
     super.registerRunningTaskAttempt(containerId, taskSpec, additionalResources, credentials,
         credentialsChanged, priority);
     SubmitWorkRequestProto requestProto = null;

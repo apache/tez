@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -230,7 +230,6 @@ public class TestHistoryEventTimelineConversion {
     MockVersionInfo() {
       super("component", "1.1.0", "rev1", "20120101", "git.apache.org");
     }
-
   }
 
   @Test(timeout = 5000)
@@ -315,7 +314,6 @@ public class TestHistoryEventTimelineConversion {
         versionInfo.get(ATSConstants.REVISION));
     Assert.assertEquals(mockVersionInfo.getBuildTime(),
         versionInfo.get(ATSConstants.BUILD_TIME));
-
   }
 
   @Test(timeout = 5000)
@@ -375,13 +373,12 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(2, primaryFilters.size());
     Assert.assertTrue(primaryFilters.get(ATSConstants.USER).contains(user));
     Assert.assertTrue(primaryFilters.get(ATSConstants.APPLICATION_ID)
-            .contains(applicationId.toString()));
+        .contains(applicationId.toString()));
 
     Assert.assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent evt = timelineEntity.getEvents().get(0);
     Assert.assertEquals(HistoryEventType.AM_STARTED.name(), evt.getEventType());
     Assert.assertEquals(startTime, evt.getTimestamp());
-
   }
 
   @Test(timeout = 5000)
@@ -460,7 +457,6 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
 
-
     Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
     Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
 
@@ -493,7 +489,6 @@ public class TestHistoryEventTimelineConversion {
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
     Assert.assertEquals(2, entities.size());
 
-
     if (entities.get(0).getEntityType().equals(EntityTypes.TEZ_DAG_ID.name())) {
       assertDagSubmittedEntity(submitTime, event, entities.get(0));
       assertDagSubmittedExtraInfoEntity(submitTime, event, entities.get(1));
@@ -504,7 +499,7 @@ public class TestHistoryEventTimelineConversion {
   }
 
   private void assertDagSubmittedEntity(long submitTime, DAGSubmittedEvent event,
-      TimelineEntity timelineEntity) {
+                                        TimelineEntity timelineEntity) {
     Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
     Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
@@ -556,19 +551,18 @@ public class TestHistoryEventTimelineConversion {
             + applicationAttemptId.getAttemptId()));
     Assert.assertEquals(
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT_ID),
-            dagPlan.getCallerContext().getCallerId());
+        dagPlan.getCallerContext().getCallerId());
     Assert.assertEquals(
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT_TYPE),
-            dagPlan.getCallerContext().getCallerType());
+        dagPlan.getCallerContext().getCallerType());
     Assert.assertEquals(dagPlan.getCallerContext().getContext(),
         timelineEntity.getOtherInfo().get(ATSConstants.CALLER_CONTEXT));
     Assert.assertEquals(
         event.getQueueName(), timelineEntity.getOtherInfo().get(ATSConstants.DAG_QUEUE_NAME));
-
   }
 
   private void assertDagSubmittedExtraInfoEntity(long submitTime, DAGSubmittedEvent event,
-      TimelineEntity timelineEntity) {
+                                                 TimelineEntity timelineEntity) {
     Assert.assertEquals(EntityTypes.TEZ_DAG_EXTRA_INFO.name(), timelineEntity.getEntityType());
     Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
@@ -635,7 +629,7 @@ public class TestHistoryEventTimelineConversion {
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
     Assert.assertEquals(17, otherInfo.size());
-    Assert.assertEquals(tezTaskAttemptID.toString(), 
+    Assert.assertEquals(tezTaskAttemptID.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
     Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
     Assert.assertEquals(allocationTime, timelineEntity.getOtherInfo().get(ATSConstants.ALLOCATION_TIME));
@@ -646,7 +640,7 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(TaskFailureType.FATAL.name(), otherInfo.get(ATSConstants.TASK_FAILURE_TYPE));
     Assert.assertEquals(error.name(), otherInfo.get(ATSConstants.TASK_ATTEMPT_ERROR_ENUM));
     Assert.assertEquals(diagnostics, otherInfo.get(ATSConstants.DIAGNOSTICS));
-    Map<String, Object> obj1 = (Map<String, Object>)otherInfo.get(ATSConstants.LAST_DATA_EVENTS);
+    Map<String, Object> obj1 = (Map<String, Object>) otherInfo.get(ATSConstants.LAST_DATA_EVENTS);
     List<Object> obj2 = (List<Object>) obj1.get(ATSConstants.LAST_DATA_EVENTS);
     Assert.assertEquals(2, obj2.size());
     Map<String, Object> obj3 = (Map<String, Object>) obj2.get(0);
@@ -684,7 +678,6 @@ public class TestHistoryEventTimelineConversion {
     DAGInitializedEvent event = new DAGInitializedEvent(tezDAGID, initTime, "user", "dagName",
         nameIdMap);
 
-
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
     Assert.assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
@@ -715,7 +708,6 @@ public class TestHistoryEventTimelineConversion {
     Assert.assertEquals(1, vIdMap.size());
     Assert.assertNotNull(vIdMap.containsKey("foo"));
     Assert.assertEquals(tezVertexID.toString(), vIdMap.get("foo"));
-
   }
 
   @Test(timeout = 5000)
@@ -742,7 +734,7 @@ public class TestHistoryEventTimelineConversion {
   }
 
   private void assertDagFinishedEntity(long finishTime, long startTime, DAGFinishedEvent event,
-      TimelineEntity timelineEntity) {
+                                       TimelineEntity timelineEntity) {
     Assert.assertEquals(EntityTypes.TEZ_DAG_ID.name(), timelineEntity.getEntityType());
     Assert.assertEquals(tezDAGID.toString(), timelineEntity.getEntityId());
 
@@ -818,7 +810,6 @@ public class TestHistoryEventTimelineConversion {
             .setTaskSchedulerClassName("def1")
             .setTaskCommunicatorClassName("ghi1"));
 
-
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
     Assert.assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
@@ -859,22 +850,22 @@ public class TestHistoryEventTimelineConversion {
         ((Integer) timelineEntity.getOtherInfo().get(ATSConstants.NUM_TASKS)).intValue());
     Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
     Assert.assertEquals("abc",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_NAME));
     Assert.assertEquals("def",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_NAME));
     Assert.assertEquals("ghi",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_NAME));
     Assert.assertEquals("abc1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
     Assert.assertEquals("def1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_CLASS_NAME));
     Assert.assertEquals("ghi1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
   }
 
@@ -896,10 +887,10 @@ public class TestHistoryEventTimelineConversion {
 
     Assert.assertEquals(2, timelineEntity.getPrimaryFilters().size());
     Assert.assertTrue(timelineEntity.getPrimaryFilters().get(ATSConstants.APPLICATION_ID)
-            .contains(applicationId.toString()));
+        .contains(applicationId.toString()));
     Assert.assertTrue(
-            timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
-                    tezDAGID.toString()));
+        timelineEntity.getPrimaryFilters().get(EntityTypes.TEZ_DAG_ID.name()).contains(
+            tezDAGID.toString()));
 
     Assert.assertEquals(1, timelineEntity.getEvents().size());
     TimelineEvent timelineEvent = timelineEntity.getEvents().get(0);
@@ -908,11 +899,11 @@ public class TestHistoryEventTimelineConversion {
 
     Assert.assertEquals(3, timelineEntity.getOtherInfo().size());
     Assert.assertEquals(startRequestedTime,
-            ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_REQUESTED_TIME)).longValue());
+        ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_REQUESTED_TIME)).longValue());
     Assert.assertEquals(startTime,
-            ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
+        ((Long) timelineEntity.getOtherInfo().get(ATSConstants.START_TIME)).longValue());
     Assert.assertEquals(VertexState.RUNNING.name(),
-            timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
+        timelineEntity.getOtherInfo().get(ATSConstants.STATUS));
   }
 
   @SuppressWarnings("unchecked")
@@ -974,22 +965,22 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.DIAGNOSTICS));
     Assert.assertNotNull(timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN));
     Assert.assertEquals("abc",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_NAME));
     Assert.assertEquals("def",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_NAME));
     Assert.assertEquals("ghi",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_NAME));
     Assert.assertEquals("abc1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.CONTAINER_LAUNCHER_CLASS_NAME));
     Assert.assertEquals("def1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_SCHEDULER_CLASS_NAME));
     Assert.assertEquals("ghi1",
-        ((Map<String, Object>)timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
+        ((Map<String, Object>) timelineEntity.getOtherInfo().get(ATSConstants.SERVICE_PLUGIN)).get(
             ATSConstants.TASK_COMMUNICATOR_CLASS_NAME));
 
     Assert.assertTrue(timelineEntity.getOtherInfo().containsKey(ATSConstants.STATS));
@@ -1152,9 +1143,9 @@ public class TestHistoryEventTimelineConversion {
     TezVertexID vId = tezVertexID;
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
-    
+
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
-        .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));
     VertexConfigurationDoneEvent event = new VertexConfigurationDoneEvent(vId, 0L, 1, null,
         edgeMgrs, null, true);
@@ -1238,7 +1229,6 @@ public class TestHistoryEventTimelineConversion {
     DAGRecoveredEvent event = new DAGRecoveredEvent(applicationAttemptId, tezDAGID,
         dagPlan.getName(), user, recoverTime, DAGState.ERROR, "mock reason", containerLogs);
 
-
     List<TimelineEntity> entities = HistoryEventTimelineConversion.convertToTimelineEntities(event);
     Assert.assertEquals(1, entities.size());
     TimelineEntity timelineEntity = entities.get(0);
@@ -1273,6 +1263,4 @@ public class TestHistoryEventTimelineConversion {
         timelineEntity.getOtherInfo().get(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
             + applicationAttemptId.getAttemptId()));
   }
-
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -86,8 +86,8 @@ public class HistoryEventTimelineConversion {
             convertContainerStoppedEvent((ContainerStoppedEvent) historyEvent));
       case DAG_SUBMITTED:
         return Lists.newArrayList(
-            convertDAGSubmittedEvent((DAGSubmittedEvent)historyEvent),
-            convertDAGSubmittedToDAGExtraInfoEntity((DAGSubmittedEvent)historyEvent));
+            convertDAGSubmittedEvent((DAGSubmittedEvent) historyEvent),
+            convertDAGSubmittedToDAGExtraInfoEntity((DAGSubmittedEvent) historyEvent));
       case DAG_INITIALIZED:
         return Collections.singletonList(
             convertDAGInitializedEvent((DAGInitializedEvent) historyEvent));
@@ -177,7 +177,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.CONFIG,
         DAGUtils.convertConfigurationToATSMap(event.getConf()));
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
-            event.getApplicationId().toString());
+        event.getApplicationId().toString());
     atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
 
     atsEntity.setStartTime(event.getLaunchTime());
@@ -316,7 +316,7 @@ public class HistoryEventTimelineConversion {
 
     final Map<String, Integer> dagTaskStats = event.getDagTaskStats();
     if (dagTaskStats != null) {
-      for(Entry<String, Integer> entry : dagTaskStats.entrySet()) {
+      for (Entry<String, Integer> entry : dagTaskStats.entrySet()) {
         atsEntity.addOtherInfo(entry.getKey(), entry.getValue());
       }
     }
@@ -340,7 +340,6 @@ public class HistoryEventTimelineConversion {
         DAGUtils.convertCountersToATSMap(event.getTezCounters()));
     return atsEntity;
   }
-
 
   private static TimelineEntity convertDAGInitializedEvent(DAGInitializedEvent event) {
     TimelineEntity atsEntity = new TimelineEntity();
@@ -427,7 +426,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ID,
         event.getApplicationAttemptId().getApplicationId().toString());
     atsEntity.addOtherInfo(ATSConstants.APPLICATION_ATTEMPT_ID,
-            event.getApplicationAttemptId().toString());
+        event.getApplicationAttemptId().toString());
     atsEntity.addOtherInfo(ATSConstants.USER, event.getUser());
     atsEntity.addOtherInfo(ATSConstants.DAG_AM_WEB_SERVICE_VERSION, AMWebController.VERSION);
     atsEntity.addOtherInfo(ATSConstants.IN_PROGRESS_LOGS_URL + "_"
@@ -511,7 +510,7 @@ public class HistoryEventTimelineConversion {
     atsEntity.addOtherInfo(ATSConstants.COUNTERS,
         DAGUtils.convertCountersToATSMap(event.getCounters()));
     if (event.getDataEvents() != null && !event.getDataEvents().isEmpty()) {
-      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS, 
+      atsEntity.addOtherInfo(ATSConstants.LAST_DATA_EVENTS,
           DAGUtils.convertDataEventDependecyInfoToATS(event.getDataEvents()));
     }
     if (event.getNodeId() != null) {
@@ -670,7 +669,7 @@ public class HistoryEventTimelineConversion {
 
     final Map<String, Integer> vertexTaskStats = event.getVertexTaskStats();
     if (vertexTaskStats != null) {
-      for(Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
+      for (Entry<String, Integer> entry : vertexTaskStats.entrySet()) {
         atsEntity.addOtherInfo(entry.getKey(), entry.getValue());
       }
     }
@@ -748,7 +747,7 @@ public class HistoryEventTimelineConversion {
     updateEvt.setEventType(HistoryEventType.VERTEX_CONFIGURE_DONE.name());
     updateEvt.setTimestamp(event.getReconfigureDoneTime());
 
-    Map<String,Object> eventInfo = new HashMap<>();
+    Map<String, Object> eventInfo = new HashMap<>();
     if (event.getSourceEdgeProperties() != null && !event.getSourceEdgeProperties().isEmpty()) {
       Map<String, Object> updatedEdgeManagers = new HashMap<>();
       for (Entry<String, EdgeProperty> entry :
@@ -766,5 +765,4 @@ public class HistoryEventTimelineConversion {
 
     return atsEntity;
   }
-
 }

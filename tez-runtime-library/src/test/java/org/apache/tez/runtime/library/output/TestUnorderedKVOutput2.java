@@ -55,7 +55,7 @@ public class TestUnorderedKVOutput2 {
     workingDir = new Path(System.getProperty("test.build.data",
         System.getProperty("java.io.tmpdir", "/tmp")),
         TestUnorderedKVOutput2.class.getName()).makeQualified(
-            localFs.getUri(), localFs.getWorkingDirectory());
+        localFs.getUri(), localFs.getWorkingDirectory());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS, Text.class.getName());
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
@@ -88,7 +88,7 @@ public class TestUnorderedKVOutput2 {
         .getEmptyPartitions());
     BitSet emptyPartionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
     assertEquals(numPartitions, emptyPartionsBitSet.cardinality());
-    for (int i = 0 ; i < numPartitions ; i++) {
+    for (int i = 0; i < numPartitions; i++) {
       assertTrue(emptyPartionsBitSet.get(i));
     }
   }

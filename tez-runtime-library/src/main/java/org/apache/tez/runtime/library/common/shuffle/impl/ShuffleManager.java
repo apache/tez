@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -152,7 +152,7 @@ public class ShuffleManager implements FetcherCallback {
   private final BlockingQueue<InputHost> pendingHosts;
   private final Set<InputAttemptIdentifier> obsoletedInputs;
   private Set<Fetcher> runningFetchers;
-  
+
   private final AtomicInteger numCompletedInputs = new AtomicInteger(0);
   private final AtomicInteger numFetchedSpills = new AtomicInteger(0);
 
@@ -163,10 +163,10 @@ public class ShuffleManager implements FetcherCallback {
   // Required to be held when manipulating pendingHosts
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition wakeLoop = lock.newCondition();
-  
+
   private final int numFetchers;
   private final boolean asyncHttp;
-  
+
   // Parameters required by Fetchers
   private final JobTokenSecretManager jobTokenSecretMgr;
   private final CompressionCodec codec;
@@ -184,7 +184,7 @@ public class ShuffleManager implements FetcherCallback {
    * Holds the time to wait for failures to batch them and send less events.
    */
   private final int maxTimeToWaitForReportMillis;
-  
+
   private final String sourceDestNameTrimmed;
 
   private final int maxTaskOutputAtOnce;
@@ -201,10 +201,9 @@ public class ShuffleManager implements FetcherCallback {
   private final TezCounter bytesShuffledToDiskCounter;
   private final TezCounter bytesShuffledToMemCounter;
   private final TezCounter bytesShuffledDirectDiskCounter;
-  
+
   private volatile Throwable shuffleError;
   private final HttpConnectionParams httpConnectionParams;
-  
 
   private final LocalDirAllocator localDirAllocator;
   private final RawLocalFileSystem localFs;
@@ -221,10 +220,10 @@ public class ShuffleManager implements FetcherCallback {
   final Map<Integer, ShuffleEventInfo> shuffleInfoEventsMap;
 
   // TODO More counters - FetchErrors, speed?
-  
+
   public ShuffleManager(InputContext inputContext, Configuration conf, int numInputs,
-      int bufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength,
-      CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
+                        int bufferSize, boolean ifileReadAheadEnabled, int ifileReadAheadLength,
+                        CompressionCodec codec, FetchedInputAllocator inputAllocator) throws IOException {
     this.inputContext = inputContext;
     this.numInputs = numInputs;
 
@@ -236,7 +235,6 @@ public class ShuffleManager implements FetcherCallback {
     this.bytesShuffledToDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_DISK);
     this.bytesShuffledToMemCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_TO_MEM);
     this.bytesShuffledDirectDiskCounter = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_BYTES_DISK_DIRECT);
-
 
     this.ifileBufferSize = bufferSize;
     this.ifileReadAhead = ifileReadAheadEnabled;
@@ -254,12 +252,11 @@ public class ShuffleManager implements FetcherCallback {
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT,
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_BATCH_WAIT_DEFAULT);
 
-
     this.shufflePhaseTime = inputContext.getCounters().findCounter(TaskCounter.SHUFFLE_PHASE_TIME);
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
     this.compositeFetch = ShuffleUtils.isTezShuffleHandler(conf);
-    
+
     this.enableFetcherTestingErrors =
         conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS_DEFAULT);
@@ -278,11 +275,11 @@ public class ShuffleManager implements FetcherCallback {
     obsoletedInputs = Collections.newSetFromMap(new ConcurrentHashMap<InputAttemptIdentifier, Boolean>());
     runningFetchers = Collections.newSetFromMap(new ConcurrentHashMap<Fetcher, Boolean>());
 
-    int maxConfiguredFetchers = 
+    int maxConfiguredFetchers =
         conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES_DEFAULT);
-    
+
     this.numFetchers = Math.min(maxConfiguredFetchers, numInputs);
 
     final ExecutorService fetcherRawExecutor;
@@ -300,7 +297,7 @@ public class ShuffleManager implements FetcherCallback {
         .setDaemon(true).setNameFormat("ShuffleRunner {" + sourceDestNameTrimmed + "}").build());
     this.schedulerExecutor = MoreExecutors.listeningDecorator(schedulerRawExecutor);
     this.schedulerCallable = new RunShuffleCallable(conf);
-    
+
     this.startTime = System.currentTimeMillis();
     this.lastProgressTime = startTime;
 
@@ -340,7 +337,7 @@ public class ShuffleManager implements FetcherCallback {
     LOG.info(sourceDestNameTrimmed + ": numInputs=" + numInputs + ", compressionCodec="
         + (codec == null ? "NoCompressionCodec" : codec.getClass().getName()) + ", numFetchers="
         + numFetchers + ", ifileBufferSize=" + ifileBufferSize + ", ifileReadAheadEnabled="
-        + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength +", "
+        + ifileReadAhead + ", ifileReadAheadLength=" + ifileReadAheadLength + ", "
         + "localDiskFetchEnabled=" + localDiskFetchEnabled + ", "
         + "sharedFetchEnabled=" + sharedFetchEnabled + ", "
         + httpConnectionParams.toString() + ", maxTaskOutputAtOnce=" + maxTaskOutputAtOnce
@@ -378,6 +375,7 @@ public class ShuffleManager implements FetcherCallback {
      * Measures if the batching interval has ended.
      */
     private final Clock clock;
+
     ReporterCallable() {
       clock = new MonotonicClock();
     }
@@ -460,7 +458,7 @@ public class ShuffleManager implements FetcherCallback {
               } catch (InterruptedException e) {
                 if (isShutdown.get()) {
                   LOG.info(sourceDestNameTrimmed + ": " +
-                    "Interrupted and hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
+                      "Interrupted and hasBeenShutdown, Breaking out of ShuffleScheduler Loop");
                   Thread.currentThread().interrupt();
                   break;
                 } else {
@@ -500,7 +498,7 @@ public class ShuffleManager implements FetcherCallback {
       }
       shufflePhaseTime.setValue(System.currentTimeMillis() - startTime);
       LOG.info(sourceDestNameTrimmed + ": " + "Shutting down FetchScheduler, Was Interrupted: " +
-        Thread.currentThread().isInterrupted());
+          Thread.currentThread().isInterrupted());
       if (!fetcherExecutor.isShutdown()) {
         fetcherExecutor.shutdownNow();
       }
@@ -564,8 +562,8 @@ public class ShuffleManager implements FetcherCallback {
         .clearAndGetOnePartitionRange();
     int includedMaps = 0;
     for (Iterator<InputAttemptIdentifier> inputIter =
-        pendingInputsOfOnePartitionRange.getInputs().iterator();
-            inputIter.hasNext();) {
+         pendingInputsOfOnePartitionRange.getInputs().iterator();
+         inputIter.hasNext(); ) {
       InputAttemptIdentifier input = inputIter.next();
 
       //For pipelined shuffle.
@@ -576,12 +574,12 @@ public class ShuffleManager implements FetcherCallback {
       // Avoid adding attempts which have already completed.
       boolean alreadyCompleted;
       if (input instanceof CompositeInputAttemptIdentifier) {
-        CompositeInputAttemptIdentifier compositeInput = (CompositeInputAttemptIdentifier)input;
+        CompositeInputAttemptIdentifier compositeInput = (CompositeInputAttemptIdentifier) input;
         int nextClearBit = completedInputSet.nextClearBit(compositeInput.getInputIdentifier());
         int maxClearBit = compositeInput.getInputIdentifier() + compositeInput.getInputIdentifierCount();
         alreadyCompleted = nextClearBit > maxClearBit;
       } else {
-          alreadyCompleted = completedInputSet.get(input.getInputIdentifier());
+        alreadyCompleted = completedInputSet.get(input.getInputIdentifier());
       }
       // Avoid adding attempts which have already completed or have been marked as OBSOLETE
       if (alreadyCompleted || obsoletedInputs.contains(input)) {
@@ -602,7 +600,7 @@ public class ShuffleManager implements FetcherCallback {
     if (inputHost.getNumPendingPartitions() > 0) {
       pendingHosts.add(inputHost); //add it to queue
     }
-    for(InputAttemptIdentifier input : pendingInputsOfOnePartitionRange.getInputs()) {
+    for (InputAttemptIdentifier input : pendingInputsOfOnePartitionRange.getInputs()) {
       ShuffleEventInfo eventInfo = shuffleInfoEventsMap.get(input.getInputIdentifier());
       if (eventInfo != null) {
         eventInfo.scheduledForDownload = true;
@@ -611,7 +609,7 @@ public class ShuffleManager implements FetcherCallback {
     fetcherBuilder.assignWork(inputHost.getHost(), inputHost.getPort(),
         pendingInputsOfOnePartitionRange.getPartition(),
         pendingInputsOfOnePartitionRange.getPartitionCount(),
-            pendingInputsOfOnePartitionRange.getInputs());
+        pendingInputsOfOnePartitionRange.getInputs());
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created Fetcher for host: " + inputHost.getHost()
           + ", info: " + inputHost.getAdditionalInfo()
@@ -619,9 +617,9 @@ public class ShuffleManager implements FetcherCallback {
     }
     return fetcherBuilder.build();
   }
-  
+
   /////////////////// Methods for InputEventHandler
-  
+
   public void addKnownInput(String hostName, int port,
                             CompositeInputAttemptIdentifier srcAttemptIdentifier, int srcPhysicalIndex) {
     HostPort identifier = new HostPort(hostName, port);
@@ -731,7 +729,7 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
 
-  protected synchronized  void updateEventReceivedTime() {
+  protected synchronized void updateEventReceivedTime() {
     long relativeTime = System.currentTimeMillis() - startTime;
     if (firstEventReceived.getValue() == 0) {
       firstEventReceived.setValue(relativeTime);
@@ -759,7 +757,6 @@ public class ShuffleManager implements FetcherCallback {
     int attemptNum;
     String id;
     boolean scheduledForDownload; // whether chunks got scheduled for download
-
 
     ShuffleEventInfo(InputAttemptIdentifier input) {
       this.id = input.getInputIdentifier() + "_" + input.getAttemptNumber();
@@ -790,14 +787,14 @@ public class ShuffleManager implements FetcherCallback {
 
     public String toString() {
       return "[eventsProcessed=" + eventsProcessed + ", finalEventId=" + finalEventId
-          +  ", id=" + id + ", attemptNum=" + attemptNum
+          + ", id=" + id + ", attemptNum=" + attemptNum
           + ", scheduledForDownload=" + scheduledForDownload + "]";
     }
   }
 
   @Override
   public void fetchSucceeded(String host, InputAttemptIdentifier srcAttemptIdentifier,
-      FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
+                             FetchedInput fetchedInput, long fetchedBytes, long decompressedLength, long copyDuration)
       throws IOException {
     int inputIdentifier = srcAttemptIdentifier.getInputIdentifier();
 
@@ -888,7 +885,7 @@ public class ShuffleManager implements FetcherCallback {
   }
 
   private void registerCompletedInputForPipelinedShuffle(InputAttemptIdentifier
-      srcAttemptIdentifier, FetchedInput fetchedInput) {
+                                                             srcAttemptIdentifier, FetchedInput fetchedInput) {
     /**
      * For pipelinedshuffle it is possible to get multiple spills. Claim success only when
      * all spills pertaining to an attempt are done.
@@ -906,7 +903,7 @@ public class ShuffleManager implements FetcherCallback {
       shuffleInfoEventsMap.put(inputIdentifier, eventInfo);
     }
 
-    assert(eventInfo != null);
+    assert (eventInfo != null);
     eventInfo.spillProcessed(srcAttemptIdentifier.getSpillEventId());
     numFetchedSpills.getAndIncrement();
 
@@ -922,7 +919,6 @@ public class ShuffleManager implements FetcherCallback {
        * spills are downloaded from the source.
        */
       maybeInformInputReady(fetchedInput);
-
 
       //check if we downloaded all spills pertaining to this InputAttemptIdentifier
       if (eventInfo.isDone()) {
@@ -945,7 +941,7 @@ public class ShuffleManager implements FetcherCallback {
 
   @Override
   public void fetchFailed(String host,
-      InputAttemptFetchFailure inputAttemptFetchFailure, boolean connectFailed) {
+                          InputAttemptFetchFailure inputAttemptFetchFailure, boolean connectFailed) {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
     InputAttemptIdentifier srcAttemptIdentifier = inputAttemptFetchFailure.getInputAttemptIdentifier();
@@ -1070,7 +1066,6 @@ public class ShuffleManager implements FetcherCallback {
 
   /////////////////// End of methods for walking the available inputs
 
-
   /**
    * Fake input that is added to the completed input list in case an input does not have any data.
    *
@@ -1133,10 +1128,8 @@ public class ShuffleManager implements FetcherCallback {
           numInputs +
           ". Transfer rate (CumulativeDataFetched/TimeSinceInputStarted)) "
           + mbpsFormat.format(transferRate) + " MB/s)");
-
     }
   }
-
 
   private class SchedulerFutureCallback implements FutureCallback<Void> {
 
@@ -1154,17 +1147,16 @@ public class ShuffleManager implements FetcherCallback {
         inputContext.reportFailure(TaskFailureType.NON_FATAL, t, "Shuffle Scheduler Failed");
       }
     }
-    
   }
-  
+
   private class FetchFutureCallback implements FutureCallback<FetchResult> {
 
     private final Fetcher fetcher;
-    
+
     public FetchFutureCallback(Fetcher fetcher) {
       this.fetcher = fetcher;
     }
-    
+
     private void doBookKeepingForFetcherComplete() {
       lock.lock();
       try {
@@ -1174,7 +1166,7 @@ public class ShuffleManager implements FetcherCallback {
         lock.unlock();
       }
     }
-    
+
     @Override
     public void onSuccess(FetchResult result) {
       fetcher.shutdown();
@@ -1212,4 +1204,3 @@ public class ShuffleManager implements FetcherCallback {
     }
   }
 }
-

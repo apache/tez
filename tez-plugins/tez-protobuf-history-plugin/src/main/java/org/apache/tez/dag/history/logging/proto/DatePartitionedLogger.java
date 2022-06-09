@@ -49,10 +49,10 @@ public class DatePartitionedLogger<T extends MessageLite> {
   private static final Logger LOG = LoggerFactory.getLogger(DatePartitionedLogger.class);
   // Everyone has permission to write, but with sticky set so that delete is restricted.
   // This is required, since the path is same for all users and everyone writes into it.
-  private static final FsPermission DIR_PERMISSION = FsPermission.createImmutable((short)01777);
+  private static final FsPermission DIR_PERMISSION = FsPermission.createImmutable((short) 01777);
 
   // Since the directories have broad permissions restrict the file read access.
-  private static final FsPermission FILE_UMASK = FsPermission.createImmutable((short)0066);
+  private static final FsPermission FILE_UMASK = FsPermission.createImmutable((short) 0066);
 
   private final Parser<T> parser;
   private final Path basePath;
@@ -115,7 +115,7 @@ public class DatePartitionedLogger<T extends MessageLite> {
    */
   public LocalDate getDateFromDir(String dirName) {
     if (!dirName.startsWith("date=")) {
-      throw new IllegalArgumentException("Invalid directory: "+ dirName);
+      throw new IllegalArgumentException("Invalid directory: " + dirName);
     }
     return LocalDate.parse(dirName.substring(5), DateTimeFormatter.ISO_LOCAL_DATE);
   }

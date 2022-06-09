@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,8 +49,8 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
   private static final Logger LOG = LoggerFactory.getLogger(TezMapredSplitsGrouper.class);
 
   public InputSplit[] getGroupedSplits(Configuration conf,
-      InputSplit[] originalSplits, int desiredNumSplits,
-      String wrappedInputFormatName) throws IOException {
+                                       InputSplit[] originalSplits, int desiredNumSplits,
+                                       String wrappedInputFormatName) throws IOException {
     return getGroupedSplits(conf, originalSplits, desiredNumSplits, wrappedInputFormatName, null);
   }
 
@@ -62,10 +62,9 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
         estimator, null);
   }
 
-
   public InputSplit[] getGroupedSplits(Configuration conf,
-      InputSplit[] originalSplits, int desiredNumSplits,
-      String wrappedInputFormatName, SplitSizeEstimator estimator, SplitLocationProvider locationProvider) throws IOException {
+                                       InputSplit[] originalSplits, int desiredNumSplits,
+                                       String wrappedInputFormatName, SplitSizeEstimator estimator, SplitLocationProvider locationProvider) throws IOException {
     Objects.requireNonNull(originalSplits, "Splits must be specified");
 
     List<SplitContainer> originalSplitContainers = Lists.transform(Arrays.asList(originalSplits),
@@ -93,7 +92,6 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
                       return ((MapredSplitContainer) input).getRawSplit();
                     }
                   });
-
 
               return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
                   input.getLocations(), input.getRack(), input.getLength());

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,7 +59,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 @RunWith(Parameterized.class)
 public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils {
 
@@ -279,8 +279,8 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     final List<Integer> scheduledTasks = Lists.newLinkedList();
 
     final VertexManagerPluginContext mockContext = createVertexManagerContext(
-            mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
-            mockManagedVertexId, 4, scheduledTasks, null);
+        mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
+        mockManagedVertexId, 4, scheduledTasks, null);
 
     //min/max fraction of 0.01/0.75 would ensure that we hit determineParallelism code path on receiving first event itself.
     manager = createManager(conf, mockContext, 0.01f, 0.75f);
@@ -346,14 +346,14 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertEquals(40, manager.totalNumBipartiteSourceTasks);
     Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
     //send 8 events with payload size as 10MB
-    for(int i=0;i<8;i++) {
+    for (int i = 0; i < 8; i++) {
       //small payload - create new event each time or it will be ignored (from same task)
       manager.onVertexManagerEventReceived(getVertexManagerEvent(null, 10 * MB, mockSrcVertexId1));
       manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId1, i));
       //should not change parallelism
       verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     }
-    for(int i=0;i<3;i++) {
+    for (int i = 0; i < 3; i++) {
       manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, i));
       verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
     }
@@ -377,11 +377,11 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
 
     final List<Integer> scheduledTasks = Lists.newLinkedList();
     final Map<String, EdgeManagerPlugin> newEdgeManagers =
-            new HashMap<String, EdgeManagerPlugin>();
+        new HashMap<String, EdgeManagerPlugin>();
 
     final VertexManagerPluginContext mockContext = createVertexManagerContext(
-            mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
-            mockManagedVertexId, 4, scheduledTasks, newEdgeManagers);
+        mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
+        mockManagedVertexId, 4, scheduledTasks, newEdgeManagers);
 
     // parallelism changed due to small data size
     manager = createManager(conf, mockContext, 0.5f, 0.5f);
@@ -433,7 +433,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertEquals(2, newEdgeManagers.size());
 
     EdgeManagerPluginOnDemand edgeManager =
-        (EdgeManagerPluginOnDemand)newEdgeManagers.values().iterator().next();
+        (EdgeManagerPluginOnDemand) newEdgeManagers.values().iterator().next();
 
     // 4 source task outputs - same as original number of partitions
     Assert.assertEquals(4, edgeManager.getNumSourceTaskPhysicalOutputs(0));
@@ -572,14 +572,14 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
 
     Assert.assertEquals(3, manager.pendingTasks.size());
-    Assert.assertEquals(numTasks*2, manager.totalNumBipartiteSourceTasks);
+    Assert.assertEquals(numTasks * 2, manager.totalNumBipartiteSourceTasks);
     Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
     float completedTasksThreshold = 0.8f * numTasks;
     // Finish all tasks before exceeding the threshold
-    for (String mockSrcVertex : new String[] { mockSrcVertexId1, mockSrcVertexId2 }) {
+    for (String mockSrcVertex : new String[]{mockSrcVertexId1, mockSrcVertexId2}) {
       for (int i = 0; i < mockContext.getVertexNumTasks(mockSrcVertex); ++i) {
         // complete 0th tasks outside the loop
-        manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertex, i+1));
+        manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertex, i + 1));
         if ((i + 2) >= completedTasksThreshold) {
           // stop before completing more than min/max source tasks
           break;
@@ -1012,7 +1012,6 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     Assert.assertTrue(manager.pendingTasks.size() == 0); // all tasks scheduled
     Assert.assertTrue(scheduledTasks.size() == 3);
 
-
     //try with a zero task vertex (with non-scatter-gather edges)
     scheduledTasks.clear();
     manager = createManager(conf, mockContext, 0.001f, 0.001f);
@@ -1103,8 +1102,7 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     verify(mockContext).doneReconfiguringVertex();
   }
 
-
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testTezDrainCompletionsOnVertexStart() throws IOException {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
@@ -1117,20 +1115,19 @@ public class TestShuffleVertexManagerBase extends TestShuffleVertexManagerUtils 
     final List<Integer> scheduledTasks = Lists.newLinkedList();
 
     final VertexManagerPluginContext mockContext = createVertexManagerContext(
-      mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
-      mockManagedVertexId, 4, scheduledTasks, null);
+        mockSrcVertexId1, 2, mockSrcVertexId2, 2, mockSrcVertexId3, 2,
+        mockManagedVertexId, 4, scheduledTasks, null);
 
     //min/max fraction of 0.01/0.75 would ensure that we hit determineParallelism code path on receiving first event itself.
     manager = createManager(conf, mockContext, 0.01f, 0.75f);
     Assert.assertEquals(0, manager.numBipartiteSourceTasksCompleted);
     manager.onVertexStarted(Collections.singletonList(
-      TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
+        TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
     Assert.assertEquals(1, manager.numBipartiteSourceTasksCompleted);
-
   }
 
   private ShuffleVertexManagerBase createManager(Configuration conf,
-      VertexManagerPluginContext context, Float min, Float max) {
+                                                 VertexManagerPluginContext context, Float min, Float max) {
     return createManager(this.shuffleVertexManagerClass, conf, context, true,
         null, min, max);
   }

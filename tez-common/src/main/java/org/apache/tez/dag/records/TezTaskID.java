@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,7 +44,7 @@ import com.google.common.collect.Interners;
 public class TezTaskID extends TezID implements VertexIDAware {
   public static final String TASK = "task";
   private final int serializingHash;
-  
+
   static final ThreadLocal<FastNumberFormat> tezTaskIdFormat = new ThreadLocal<FastNumberFormat>() {
     @Override
     public FastNumberFormat initialValue() {
@@ -73,7 +73,7 @@ public class TezTaskID extends TezID implements VertexIDAware {
     this.vertexId = vertexID;
     this.serializingHash = getHashCode(true);
   }
-  
+
   public int getSerializingHash() {
     return serializingHash;
   }
@@ -89,20 +89,20 @@ public class TezTaskID extends TezID implements VertexIDAware {
     if (!super.equals(o))
       return false;
 
-    TezTaskID that = (TezTaskID)o;
+    TezTaskID that = (TezTaskID) o;
     return this.vertexId.equals(that.vertexId);
   }
 
   /**Compare TaskInProgressIds by first jobIds, then by tip numbers and type.*/
   @Override
   public int compareTo(TezID o) {
-    TezTaskID that = (TezTaskID)o;
+    TezTaskID that = (TezTaskID) o;
     int vertexComp = this.vertexId.compareTo(that.vertexId);
-    if(vertexComp == 0) {
+    if (vertexComp == 0) {
       return this.id - that.id;
-    }
-    else return vertexComp;
+    } else return vertexComp;
   }
+
   @Override
   public String toString() {
     return appendTo(new StringBuilder(TASK)).toString();
@@ -139,7 +139,7 @@ public class TezTaskID extends TezID implements VertexIDAware {
     vertexId = TezVertexID.readTezVertexID(in);
     super.readFields(in);
   }
-  
+
   public static TezTaskID readTezTaskID(DataInput in) throws IOException {
     TezVertexID vertexID = TezVertexID.readTezVertexID(in);
     int taskIdInt = TezID.readID(in);
@@ -166,13 +166,12 @@ public class TezTaskID extends TezID implements VertexIDAware {
       int id = Integer.parseInt(taskIdStr.substring(pos5 + 1));
 
       return TezTaskID.getInstance(
-              TezVertexID.getInstance(
-                  TezDAGID.getInstance(rmId, appId, dagId),
-                  vId), id);
+          TezVertexID.getInstance(
+              TezDAGID.getInstance(rmId, appId, dagId),
+              vId), id);
     } catch (Exception e) {
       e.printStackTrace();
     }
     return null;
   }
-
 }

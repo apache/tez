@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.client;
 
@@ -123,7 +123,7 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * This class enables the current JobClient (0.22 hadoop) to run on YARN-TEZ.
  */
-@SuppressWarnings({ "unchecked" })
+@SuppressWarnings({"unchecked"})
 @LimitedPrivate("Mapreduce")
 public class YARNRunner implements ClientProtocol {
 
@@ -158,7 +158,7 @@ public class YARNRunner implements ClientProtocol {
    * @param resMgrDelegate the resourcemanager client handle.
    */
   public YARNRunner(Configuration conf, ResourceMgrDelegate resMgrDelegate) {
-   this(conf, resMgrDelegate, new ClientCache(conf, resMgrDelegate));
+    this(conf, resMgrDelegate, new ClientCache(conf, resMgrDelegate));
   }
 
   /**
@@ -169,14 +169,13 @@ public class YARNRunner implements ClientProtocol {
    * @param clientCache the client cache object.
    */
   public YARNRunner(Configuration conf, ResourceMgrDelegate resMgrDelegate,
-      ClientCache clientCache) {
+                    ClientCache clientCache) {
     this.conf = conf;
     this.tezConf = new TezConfiguration(conf);
     try {
       this.resMgrDelegate = resMgrDelegate;
       this.clientCache = clientCache;
       this.defaultFileContext = FileContext.getFileContext(this.conf);
-
     } catch (UnsupportedFileSystemException ufe) {
       throw new RuntimeException("Error in instantiating YarnClient", ufe);
     }
@@ -321,7 +320,7 @@ public class YARNRunner implements ClientProtocol {
     }
 
     // TODO gross hack
-    for (String s : new String[] {
+    for (String s : new String[]{
         MRJobConfig.JOB_SPLIT,
         MRJobConfig.JOB_SPLIT_METAINFO}) {
       localResources.put(s,
@@ -337,8 +336,8 @@ public class YARNRunner implements ClientProtocol {
   // FIXME isn't this a nice mess of a client?
   // read input, write splits, read splits again
   private List<TaskLocationHint> getMapLocationHintsFromInputSplits(JobID jobId,
-      FileSystem fs, Configuration conf,
-      String jobSubmitDir) throws IOException {
+                                                                    FileSystem fs, Configuration conf,
+                                                                    String jobSubmitDir) throws IOException {
     TaskSplitMetaInfo[] splitsInfo =
         SplitMetaInfoReader.readSplitMetaInfo(jobId, fs, conf,
             new Path(jobSubmitDir));
@@ -357,27 +356,27 @@ public class YARNRunner implements ClientProtocol {
   }
 
   private void setupMapReduceEnv(Configuration jobConf,
-      Map<String, String> environment, boolean isMap) throws IOException {
+                                 Map<String, String> environment, boolean isMap) throws IOException {
 
     if (isMap) {
       warnForJavaLibPath(
-          jobConf.get(MRJobConfig.MAP_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAP_JAVA_OPTS, ""),
           "map",
           MRJobConfig.MAP_JAVA_OPTS,
           MRJobConfig.MAP_ENV);
       warnForJavaLibPath(
-          jobConf.get(MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS, ""),
           "map",
           MRJobConfig.MAPRED_MAP_ADMIN_JAVA_OPTS,
           MRJobConfig.MAPRED_ADMIN_USER_ENV);
     } else {
       warnForJavaLibPath(
-          jobConf.get(MRJobConfig.REDUCE_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.REDUCE_JAVA_OPTS, ""),
           "reduce",
           MRJobConfig.REDUCE_JAVA_OPTS,
           MRJobConfig.REDUCE_ENV);
       warnForJavaLibPath(
-          jobConf.get(MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,""),
+          jobConf.get(MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS, ""),
           "reduce",
           MRJobConfig.MAPRED_REDUCE_ADMIN_JAVA_OPTS,
           MRJobConfig.MAPRED_ADMIN_USER_ENV);
@@ -387,8 +386,8 @@ public class YARNRunner implements ClientProtocol {
   }
 
   private Vertex createVertexForStage(Configuration stageConf,
-      Map<String, LocalResource> jobLocalResources,
-      List<TaskLocationHint> locations, int stageNum, int totalStages)
+                                      Map<String, LocalResource> jobLocalResources,
+                                      List<TaskLocationHint> locations, int stageNum, int totalStages)
       throws IOException {
     // stageNum starts from 0, goes till numStages - 1
     boolean isMap = false;
@@ -414,9 +413,9 @@ public class YARNRunner implements ClientProtocol {
 
     Resource taskResource = isMap ? MRHelpers.getResourceForMRMapper(stageConf)
         : MRHelpers.getResourceForMRReducer(stageConf);
-    
+
     stageConf.set(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX, "part");
-    
+
     UserPayload vertexUserPayload = TezUtils.createUserPayloadFromConf(stageConf);
     Vertex vertex = Vertex.create(vertexName,
         ProcessorDescriptor.create(processorName).setUserPayload(vertexUserPayload),
@@ -431,7 +430,7 @@ public class YARNRunner implements ClientProtocol {
           configureMRInputWithLegacySplitsGenerated(stageConf, true));
     }
     // Map only jobs.
-    if (stageNum == totalStages -1) {
+    if (stageNum == totalStages - 1) {
       OutputDescriptor od = OutputDescriptor.create(MROutputLegacy.class.getName())
           .setUserPayload(vertexUserPayload);
       if (stageConf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT,
@@ -458,18 +457,18 @@ public class YARNRunner implements ClientProtocol {
         .addTaskLocalFiles(taskLocalResources)
         .setLocationHint(VertexLocationHint.create(locations))
         .setTaskLaunchCmdOpts(taskJavaOpts);
-    
+
     if (!isMap) {
       vertex.setVertexManagerPlugin((ShuffleVertexManager.createConfigBuilder(stageConf).build()));
     }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("Adding vertex to DAG" + ", vertexName="
-          + vertex.getName() + ", processor="
-          + vertex.getProcessorDescriptor().getClassName() + ", parallelism="
-          + vertex.getParallelism() + ", javaOpts=" + vertex.getTaskLaunchCmdOpts()
-          + ", resources=" + vertex.getTaskResource()
-      // TODO Add localResources and Environment
+              + vertex.getName() + ", processor="
+              + vertex.getProcessorDescriptor().getClassName() + ", parallelism="
+              + vertex.getParallelism() + ", javaOpts=" + vertex.getTaskLaunchCmdOpts()
+              + ", resources=" + vertex.getTaskResource()
+          // TODO Add localResources and Environment
       );
     }
 
@@ -477,8 +476,8 @@ public class YARNRunner implements ClientProtocol {
   }
 
   private DAG createDAG(FileSystem fs, JobID jobId, Configuration[] stageConfs,
-      String jobSubmitDir, Credentials ts,
-      Map<String, LocalResource> jobLocalResources) throws IOException {
+                        String jobSubmitDir, Credentials ts,
+                        Map<String, LocalResource> jobLocalResources) throws IOException {
 
     String jobName = stageConfs[0].get(MRJobConfig.JOB_NAME,
         YarnConfiguration.DEFAULT_APPLICATION_NAME);
@@ -504,7 +503,7 @@ public class YARNRunner implements ClientProtocol {
         // Set edge conf based on Input conf (compression etc properties for MapReduce are
         // w.r.t Outputs - MAP_OUTPUT_COMPRESS for example)
         Map<String, String> partitionerConf = null;
-        if (stageConfs[i-1] != null) {
+        if (stageConfs[i - 1] != null) {
           partitionerConf = Maps.newHashMap();
           for (Map.Entry<String, String> entry : stageConfs[i - 1]) {
             partitionerConf.put(entry.getKey(), entry.getValue());
@@ -512,16 +511,15 @@ public class YARNRunner implements ClientProtocol {
         }
         OrderedPartitionedKVEdgeConfig edgeConf =
             OrderedPartitionedKVEdgeConfig.newBuilder(stageConfs[i - 1].get(
-                    TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
-                stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
-                MRPartitioner.class.getName(), partitionerConf)
-                .setFromConfigurationUnfiltered(stageConfs[i-1])
+                        TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS),
+                    stageConfs[i - 1].get(TezRuntimeConfiguration.TEZ_RUNTIME_VALUE_CLASS),
+                    MRPartitioner.class.getName(), partitionerConf)
+                .setFromConfigurationUnfiltered(stageConfs[i - 1])
                 .configureInput().useLegacyInput().done()
                 .build();
         Edge edge = Edge.create(vertices[i - 1], vertices[i], edgeConf.createDefaultEdgeProperty());
         dag.addEdge(edge);
       }
-
     }
     return dag;
   }
@@ -547,7 +545,7 @@ public class YARNRunner implements ClientProtocol {
 
   @Override
   public JobStatus submitJob(JobID jobId, String jobSubmitDir, Credentials ts)
-  throws IOException, InterruptedException {
+      throws IOException, InterruptedException {
 
     ApplicationId appId = resMgrDelegate.getApplicationId();
 
@@ -623,20 +621,20 @@ public class YARNRunner implements ClientProtocol {
     try {
       dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           jobSubmitDir);
-      
+
       // Set Tez parameters based on MR parameters.
       String queueName = jobConf.get(JobContext.QUEUE_NAME,
           YarnConfiguration.DEFAULT_QUEUE_NAME);
       dagAMConf.set(TezConfiguration.TEZ_QUEUE_NAME, queueName);
-      
+
       int amMemMB = jobConf.getInt(MRJobConfig.MR_AM_VMEM_MB, MRJobConfig.DEFAULT_MR_AM_VMEM_MB);
       int amCores = jobConf.getInt(MRJobConfig.MR_AM_CPU_VCORES, MRJobConfig.DEFAULT_MR_AM_CPU_VCORES);
       dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_MEMORY_MB, amMemMB);
       dagAMConf.setInt(TezConfiguration.TEZ_AM_RESOURCE_CPU_VCORES, amCores);
 
-      dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS, 
+      dagAMConf.setInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
           jobConf.getInt(MRJobConfig.MR_AM_MAX_ATTEMPTS, MRJobConfig.DEFAULT_MR_AM_MAX_ATTEMPTS));
-      
+
       tezClient = new MRTezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
       tezClient.start();
       tezClient.submitDAGApplication(appId, dag);
@@ -649,7 +647,7 @@ public class YARNRunner implements ClientProtocol {
   }
 
   private LocalResource createApplicationResource(FileContext fs, Path p,
-      LocalResourceType type) throws IOException {
+                                                  LocalResourceType type) throws IOException {
     LocalResource rsrc = Records.newRecord(LocalResource.class);
     FileStatus rsrcStat = fs.getFileStatus(p);
     rsrc.setResource(ConverterUtils.getYarnUrlFromPath(fs
@@ -683,7 +681,6 @@ public class YARNRunner implements ClientProtocol {
     throw new UnsupportedOperationException("Use Token.renew instead");
   }
 
-
   @Override
   public Counters getJobCounters(JobID arg0) throws IOException,
       InterruptedException {
@@ -702,7 +699,7 @@ public class YARNRunner implements ClientProtocol {
     String jobFile = MRApps.getJobFile(conf, user, jobID);
     DAGStatus dagStatus;
     try {
-      if(dagClient == null) {
+      if (dagClient == null) {
         dagClient = MRTezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf, null);
       }
       dagStatus = dagClient.getDAGStatus(null);
@@ -714,7 +711,7 @@ public class YARNRunner implements ClientProtocol {
 
   @Override
   public TaskCompletionEvent[] getTaskCompletionEvents(JobID arg0, int arg1,
-      int arg2) throws IOException, InterruptedException {
+                                                       int arg2) throws IOException, InterruptedException {
     return clientCache.getClient(arg0).getTaskCompletionEvents(arg0, arg1, arg2);
   }
 
@@ -726,7 +723,7 @@ public class YARNRunner implements ClientProtocol {
 
   @Override
   public TaskReport[] getTaskReports(JobID jobID, TaskType taskType)
-  throws IOException, InterruptedException {
+      throws IOException, InterruptedException {
     return clientCache.getClient(jobID)
         .getTaskReports(jobID, taskType);
   }
@@ -765,7 +762,7 @@ public class YARNRunner implements ClientProtocol {
 
   @Override
   public ProtocolSignature getProtocolSignature(String protocol,
-      long clientVersion, int clientMethodsHash) throws IOException {
+                                                long clientVersion, int clientMethodsHash) throws IOException {
     return ProtocolSignature.getProtocolSignature(this, protocol, clientVersion,
         clientMethodsHash);
   }
@@ -781,13 +778,13 @@ public class YARNRunner implements ClientProtocol {
   }
 
   private static void warnForJavaLibPath(String opts, String component,
-      String javaConf, String envConf) {
+                                         String javaConf, String envConf) {
     if (opts != null && opts.contains("-Djava.library.path")) {
       LOG.warn("Usage of -Djava.library.path in " + javaConf + " can cause " +
-               "programs to no longer function if hadoop native libraries " +
-               "are used. These values should be set as part of the " +
-               "LD_LIBRARY_PATH in the " + component + " JVM env using " +
-               envConf + " config settings.");
+          "programs to no longer function if hadoop native libraries " +
+          "are used. These values should be set as part of the " +
+          "LD_LIBRARY_PATH in the " + component + " JVM env using " +
+          envConf + " config settings.");
     }
   }
 
@@ -798,7 +795,7 @@ public class YARNRunner implements ClientProtocol {
 
     try {
       inputDescriptor = InputDescriptor.create(useLegacyInput ? MRInputLegacy.class
-          .getName() : MRInput.class.getName())
+              .getName() : MRInput.class.getName())
           .setUserPayload(MRInputHelpersInternal.createMRInputPayload(conf, null));
     } catch (IOException e) {
       throw new TezUncheckedException(e);
@@ -816,11 +813,10 @@ public class YARNRunner implements ClientProtocol {
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-        MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
-            IOException {
+                                                      MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+        IOException {
       return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto, false,
           true);
     }
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -106,10 +106,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 /**
  * Tests for Tez example jobs
- * 
+ *
  */
 public class TestTezJobs {
 
@@ -144,7 +143,6 @@ public class TestTezJobs {
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
-
   }
 
   @AfterClass
@@ -193,9 +191,9 @@ public class TestTezJobs {
     out1.close();
     out2.close();
 
-    String[] args = new String[] {
+    String[] args = new String[]{
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
     assertEquals(0, hashJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
@@ -246,22 +244,22 @@ public class TestTezJobs {
       tezSession.start();
 
       JoinDataGen dataGen = new JoinDataGen();
-      String[] dataGenArgs = new String[] {
-              "-counter",
-              dataPath1.toString(), "1048576", dataPath2.toString(), "8",
-              expectedOutputPath.toString(), "2" };
+      String[] dataGenArgs = new String[]{
+          "-counter",
+          dataPath1.toString(), "1048576", dataPath2.toString(), "8",
+          expectedOutputPath.toString(), "2"};
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
 
       HashJoinExample joinExample = new HashJoinExample();
-      String[] args = new String[] {
-              dataPath1.toString(), dataPath2.toString(), "1", outPath.toString(),
-              "doBroadcast"};
+      String[] args = new String[]{
+          dataPath1.toString(), dataPath2.toString(), "1", outPath.toString(),
+          "doBroadcast"};
 
       assertEquals(0, joinExample.run(tezConf, args, tezSession));
 
       JoinValidate joinValidate = new JoinValidate();
-      String[] validateArgs = new String[] {
-              "-counter", expectedOutputPath.toString(), outPath.toString(), "3" };
+      String[] validateArgs = new String[]{
+          "-counter", expectedOutputPath.toString(), outPath.toString(), "3"};
       assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
     } finally {
       if (tezSession != null) {
@@ -304,10 +302,10 @@ public class TestTezJobs {
     out1.close();
     out2.close();
 
-    String[] args = new String[] {
+    String[] args = new String[]{
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
         "-counter", "-local", "-disableSplitGrouping",
-        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
     assertEquals(0, hashJoinExample.run(args));
 
     FileStatus[] statuses = localFs.listStatus(outPath, new PathFilter() {
@@ -361,10 +359,10 @@ public class TestTezJobs {
     out1.close();
     out2.close();
 
-    String[] args = new String[] {
+    String[] args = new String[]{
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
         "-D" + TezConfiguration.TEZ_AM_APPLICATION_PRIORITY + "=" + "2",
-        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
     assertEquals(0, sortMergeJoinExample.run(args));
 
     FileStatus[] statuses = remoteFs.listStatus(outPath, new PathFilter() {
@@ -403,9 +401,9 @@ public class TestTezJobs {
     SortMergeJoinHelper sortMergeJoinHelper = new SortMergeJoinHelper(tezClient);
     sortMergeJoinHelper.setConf(conf);
 
-    String[] args = new String[] {
+    String[] args = new String[]{
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
     assertEquals(0, sortMergeJoinHelper.run(conf, args, tezClient));
 
     verifySortMergeJoinInput(outPath, expectedResults);
@@ -450,7 +448,7 @@ public class TestTezJobs {
 
     int nonZeroCounters = 0;
     // verify that the sum of the counter values for edges add up to the aggregated counter value.
-    for(TaskCounter c : countersToVerifyAgg) {
+    for (TaskCounter c : countersToVerifyAgg) {
       TezCounter aggregatedCounter = aggregatedGroup.findCounter(c.name(), false);
       TezCounter input1Counter = input1Group.findCounter(c.name(), false);
       TezCounter input2Counter = input2Group.findCounter(c.name(), false);
@@ -480,7 +478,6 @@ public class TestTezJobs {
     assertEquals("aggregated counter does not match sum of output counters " + outputCounterName,
         aggregateCounter.getValue(), joinerOutputCounter.getValue());
   }
-
 
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
@@ -516,10 +513,10 @@ public class TestTezJobs {
     out1.close();
     out2.close();
 
-    String[] args = new String[] {
+    String[] args = new String[]{
         "-D" + TezConfiguration.TEZ_AM_STAGING_DIR + "=" + stagingDirPath.toString(),
-        "-counter", "-local","-disableSplitGrouping",
-        inPath1.toString(), inPath2.toString(), "1", outPath.toString() };
+        "-counter", "-local", "-disableSplitGrouping",
+        inPath1.toString(), inPath2.toString(), "1", outPath.toString()};
     assertEquals(0, sortMergeJoinExample.run(args));
 
     FileStatus[] statuses = localFs.listStatus(outPath, new PathFilter() {
@@ -566,22 +563,21 @@ public class TestTezJobs {
       tezSession.start();
 
       JoinDataGen dataGen = new JoinDataGen();
-      String[] dataGenArgs = new String[] {
+      String[] dataGenArgs = new String[]{
           "-counter",
           dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
-          expectedOutputPath.toString(), "2" };
+          expectedOutputPath.toString(), "2"};
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
 
       HashJoinExample joinExample = new HashJoinExample();
-      String[] args = new String[] {
-          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
+      String[] args = new String[]{
+          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString()};
       assertEquals(0, joinExample.run(tezConf, args, tezSession));
 
       JoinValidate joinValidate = new JoinValidate();
-      String[] validateArgs = new String[] {
-          "-counter", expectedOutputPath.toString(), outPath.toString(), "3" };
+      String[] validateArgs = new String[]{
+          "-counter", expectedOutputPath.toString(), outPath.toString(), "3"};
       assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
-
     } finally {
       if (tezSession != null) {
         tezSession.stop();
@@ -615,21 +611,20 @@ public class TestTezJobs {
       tezSession.start();
 
       JoinDataGen dataGen = new JoinDataGen();
-      String[] dataGenArgs = new String[] {
+      String[] dataGenArgs = new String[]{
           dataPath1.toString(), "1048576", dataPath2.toString(), "524288",
-          expectedOutputPath.toString(), "2" };
+          expectedOutputPath.toString(), "2"};
       assertEquals(0, dataGen.run(tezConf, dataGenArgs, tezSession));
 
       SortMergeJoinExample joinExample = new SortMergeJoinExample();
-      String[] args = new String[] {
-          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString() };
+      String[] args = new String[]{
+          dataPath1.toString(), dataPath2.toString(), "2", outPath.toString()};
       assertEquals(0, joinExample.run(tezConf, args, tezSession));
 
       JoinValidate joinValidate = new JoinValidate();
-      String[] validateArgs = new String[] {
-          expectedOutputPath.toString(), outPath.toString(), "3" };
+      String[] validateArgs = new String[]{
+          expectedOutputPath.toString(), outPath.toString(), "3"};
       assertEquals(0, joinValidate.run(tezConf, validateArgs, tezSession));
-
     } finally {
       if (tezSession != null) {
         tezSession.stop();
@@ -685,16 +680,16 @@ public class TestTezJobs {
     while ((line = reader.readLine()) != null) {
       LOG.info("Line: " + line + ", counter=" + currentCounter);
       int pos = line.indexOf("\t");
-      String word = line.substring(0, pos-1);
+      String word = line.substring(0, pos - 1);
       Assert.assertEquals(prefix + "_" + currentCounter, word);
-      String val = line.substring(pos+1, line.length());
-      Assert.assertEquals((long)(11 - currentCounter) * 2, (long)Long.valueOf(val));
+      String val = line.substring(pos + 1, line.length());
+      Assert.assertEquals((long) (11 - currentCounter) * 2, (long) Long.valueOf(val));
       currentCounter--;
     }
 
     Assert.assertEquals(0, currentCounter);
   }
-  
+
   public static void verifyOutput(Path outputDir, FileSystem fs) throws IOException {
     FileStatus[] fileStatuses = fs.listStatus(outputDir);
     Path resultFile = null;
@@ -723,7 +718,7 @@ public class TestTezJobs {
     assertTrue(foundSuccessFile);
     verifyOrderedWordCountOutput(resultFile, fs);
   }
-  
+
   @Test(timeout = 60000)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
@@ -743,18 +738,16 @@ public class TestTezJobs {
     try {
 
       OrderedWordCount job = new OrderedWordCount();
-      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null)==0);
+      Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", inputDirStr, outputDirStr, "2"}, null) == 0);
       verifyOutput(outputDir, remoteFs);
-
     } finally {
       remoteFs.delete(stagingDirPath, true);
       if (tezSession != null) {
         tezSession.stop();
       }
     }
-
   }
-  
+
   @Test(timeout = 60000)
   public void testOrderedWordCountDisableSplitGrouping() throws Exception {
     String inputDirStr = TEST_ROOT_DIR + "/tmp/owc-input/";
@@ -776,16 +769,14 @@ public class TestTezJobs {
 
       OrderedWordCount job = new OrderedWordCount();
       Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter", "-local", "-disableSplitGrouping",
-          inputDirStr, outputDirStr, "2"}, null)==0);
+          inputDirStr, outputDirStr, "2"}, null) == 0);
       verifyOutput(outputDir, localFs);
-
     } finally {
       localFs.delete(stagingDirPath, true);
       if (tezSession != null) {
         tezSession.stop();
       }
     }
-
   }
 
   @Test(timeout = 60000)
@@ -797,28 +788,27 @@ public class TestTezJobs {
     String[] inputPaths = new String[numIterations];
     String[] outputPaths = new String[numIterations];
     Path[] outputDirs = new Path[numIterations];
-    for (int i=0; i<numIterations; ++i) {
+    for (int i = 0; i < numIterations; ++i) {
       String inputDirStr = "/tmp/owc-input-" + i + "/";
       inputPaths[i] = inputDirStr;
       Path inputDir = new Path(inputDirStr);
       remoteFs.mkdirs(inputDir);
       generateOrderedWordCountInput(inputDir, remoteFs);
-      String outputDirStr = "/tmp/owc-output-" + i + "/"; 
+      String outputDirStr = "/tmp/owc-output-" + i + "/";
       outputPaths[i] = outputDirStr;
       Path outputDir = new Path(outputDirStr);
       outputDirs[i] = outputDir;
     }
-
 
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirPath.toString());
     YarnClient yarnClient = YarnClient.createYarnClient();
 
     try {
-      
+
       yarnClient.init(mrrTezCluster.getConfig());
       yarnClient.start();
-      
+
       List<ApplicationReport> apps = yarnClient.getApplications();
       int appsBeforeCount = apps != null ? apps.size() : 0;
 
@@ -826,16 +816,16 @@ public class TestTezJobs {
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
       Assert.assertTrue(
           "SimpleSessionExample failed",
-          job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-              StringUtils.join(",", outputPaths), "2" }, null) == 0);
+          job.run(tezConf, new String[]{StringUtils.join(",", inputPaths),
+              StringUtils.join(",", outputPaths), "2"}, null) == 0);
 
-      for (int i=0; i<numIterations; ++i) {
+      for (int i = 0; i < numIterations; ++i) {
         verifyOutput(outputDirs[i], remoteFs);
       }
-      
+
       apps = yarnClient.getApplications();
       int appsAfterCount = apps != null ? apps.size() : 0;
-      
+
       // Running in session mode. So should only create 1 more app.
       Assert.assertEquals(appsBeforeCount + 1, appsAfterCount);
     } finally {
@@ -844,7 +834,6 @@ public class TestTezJobs {
         yarnClient.stop();
       }
     }
-
   }
 
   @Test(timeout = 60000)
@@ -869,8 +858,8 @@ public class TestTezJobs {
       remoteFs.mkdirs(inputDir);
       String outputDirStr = "/tmp/owc-output";
       outputPaths[0] = outputDirStr;
-      int result = job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-          StringUtils.join(",", outputPaths), "2" }, null);
+      int result = job.run(tezConf, new String[]{StringUtils.join(",", inputPaths),
+          StringUtils.join(",", outputPaths), "2"}, null);
       Assert.assertTrue("Job should have failed", result != 0);
     } catch (TezException e) {
       Assert.assertTrue(e.getMessage().contains("Failed to submit application"));
@@ -903,8 +892,8 @@ public class TestTezJobs {
       remoteFs.mkdirs(inputDir);
       String outputDirStr = "/tmp/owc-output";
       outputPaths[0] = outputDirStr;
-      job.run(tezConf, new String[] { StringUtils.join(",", inputPaths),
-          StringUtils.join(",", outputPaths), "2" }, null);
+      job.run(tezConf, new String[]{StringUtils.join(",", inputPaths),
+          StringUtils.join(",", outputPaths), "2"}, null);
       fail("Job submission should have failed");
     } catch (SessionNotRunning e) {
       // Expected
@@ -916,47 +905,45 @@ public class TestTezJobs {
         yarnClient.stop();
       }
     }
-
   }
 
-
-  @Test (timeout=60000)
+  @Test(timeout = 60000)
   public void testVertexOrder() throws Exception {
     TezConfiguration tezConf = new TezConfiguration(mrrTezCluster.getConfig());
     TezClient tezClient = TezClient.create("TestVertexOrder", tezConf);
     tezClient.start();
 
     try {
-    DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
-    DAGClient dagClient = tezClient.submitDAG(dag);
-    DAGStatus dagStatus = dagClient.getDAGStatus(null);
-    while (!dagStatus.isCompleted()) {
-      LOG.info("Waiting for dag to complete. Sleeping for 500ms."
-          + " DAG name: " + dag.getName()
-          + " DAG context: " + dagClient.getExecutionContext()
-          + " Current state: " + dagStatus.getState());
-      Thread.sleep(100);
-      dagStatus = dagClient.getDAGStatus(null);
-    }
-
-    Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
-
-    // verify vertex order
-    Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
-    Assert.assertEquals(6, resultVertices.size());
-    int i = 0;
-    for (String vertexName : resultVertices){
-      if (i <= 1){
-        Assert.assertTrue( vertexName.equals("v1") || vertexName.equals("v2"));
-      } else if (i == 2){
-        Assert.assertTrue( vertexName.equals("v3"));
-      } else if (i <= 4){
-        Assert.assertTrue( vertexName.equals("v4") || vertexName.equals("v5"));
-      } else {
-        Assert.assertTrue( vertexName.equals("v6"));
+      DAG dag = SimpleTestDAG.createDAGForVertexOrder("dag1", conf);
+      DAGClient dagClient = tezClient.submitDAG(dag);
+      DAGStatus dagStatus = dagClient.getDAGStatus(null);
+      while (!dagStatus.isCompleted()) {
+        LOG.info("Waiting for dag to complete. Sleeping for 500ms."
+            + " DAG name: " + dag.getName()
+            + " DAG context: " + dagClient.getExecutionContext()
+            + " Current state: " + dagStatus.getState());
+        Thread.sleep(100);
+        dagStatus = dagClient.getDAGStatus(null);
       }
-      i++;
-    }
+
+      Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+      // verify vertex order
+      Set<String> resultVertices = dagStatus.getVertexProgress().keySet();
+      Assert.assertEquals(6, resultVertices.size());
+      int i = 0;
+      for (String vertexName : resultVertices) {
+        if (i <= 1) {
+          Assert.assertTrue(vertexName.equals("v1") || vertexName.equals("v2"));
+        } else if (i == 2) {
+          Assert.assertTrue(vertexName.equals("v3"));
+        } else if (i <= 4) {
+          Assert.assertTrue(vertexName.equals("v4") || vertexName.equals("v5"));
+        } else {
+          Assert.assertTrue(vertexName.equals("v6"));
+        }
+        i++;
+      }
     } finally {
       if (tezClient != null) {
         tezClient.stop();
@@ -974,8 +961,8 @@ public class TestTezJobs {
     try {
       DAG dag = DAG.create("TestInputInitializerEvents");
       Vertex vertex1 = Vertex.create(VERTEX_WITH_INITIALIZER_NAME, ProcessorDescriptor.create(
-          SleepProcessor.class.getName())
-          .setUserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1)
+                  SleepProcessor.class.getName())
+              .setUserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1)
           .addDataSource(INPUT1_NAME,
               DataSourceDescriptor
                   .create(InputDescriptor.create(MultiAttemptDAG.NoOpInput.class.getName()),
@@ -1013,8 +1000,8 @@ public class TestTezJobs {
     try {
       MultipleCommitsExample job = new MultipleCommitsExample();
       Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
-          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
-          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + ""}, null)==0);
+          new String[]{v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+              uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + ""}, null) == 0);
       verifyCommits(v1OutputPathPrefix, v1OutputNum);
       verifyCommits(v2OutputPathPrefix, v2OutputNum);
       verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
@@ -1026,7 +1013,7 @@ public class TestTezJobs {
       }
     }
   }
-  
+
   @Test(timeout = 60000)
   public void testMultipleCommits_OnVertexSuccess() throws Exception {
     Path stagingDirPath = new Path("/tmp/commit-staging-dir");
@@ -1046,9 +1033,9 @@ public class TestTezJobs {
     try {
       MultipleCommitsExample job = new MultipleCommitsExample();
       Assert.assertTrue("MultipleCommitsExample failed", job.run(tezConf,
-          new String[]{ v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
-          uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + "",
-          MultipleCommitsExample.CommitOnVertexSuccessOption}, null)==0);
+          new String[]{v1OutputPathPrefix, v1OutputNum + "", v2OutputPathPrefix, v2OutputNum + "",
+              uv12OutputPathPrefix, uv12OutputNum + "", v3OutputPathPrefix, v3OutputNum + "",
+              MultipleCommitsExample.CommitOnVertexSuccessOption}, null) == 0);
       verifyCommits(v1OutputPathPrefix, v1OutputNum);
       verifyCommits(v2OutputPathPrefix, v2OutputNum);
       verifyCommits(uv12OutputPathPrefix, uv12OutputNum);
@@ -1060,12 +1047,12 @@ public class TestTezJobs {
       }
     }
   }
-  
+
   private void verifyCommits(String outputPrefix, int outputNum) throws IllegalArgumentException, IOException {
-    for (int i=0; i< outputNum; ++i) {
+    for (int i = 0; i < outputNum; ++i) {
       String outputDir = outputPrefix + "_" + i;
       Assert.assertTrue("Output of " + outputDir + " is not succeeded",
-          remoteFs.exists(new Path( outputDir + "/_SUCCESS")));
+          remoteFs.exists(new Path(outputDir + "/_SUCCESS")));
     }
   }
 
@@ -1133,7 +1120,6 @@ public class TestTezJobs {
       }
       return null;
     }
-
 
     @Override
     public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
@@ -1294,7 +1280,6 @@ public class TestTezJobs {
           + ", report=" + report);
       Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
           report.getDiagnostics().contains("Client-to-AM Heartbeat timeout interval expired"));
-
     } finally {
       remoteFs.delete(stagingDirPath, true);
       if (yarnClient != null) {
@@ -1349,7 +1334,6 @@ public class TestTezJobs {
           + ", report=" + report);
       Assert.assertTrue("Actual diagnostics: " + report.getDiagnostics(),
           report.getDiagnostics().contains("Session timed out"));
-
     } finally {
       remoteFs.delete(stagingDirPath, true);
       if (yarnClient != null) {

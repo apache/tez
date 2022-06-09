@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -127,12 +127,12 @@ public class TezChild {
   private final TezExecutors sharedExecutor;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
-      Map<String, String> serviceProviderEnvMap,
-      ObjectRegistryImpl objectRegistry, String pid,
-      ExecutionContext executionContext,
-      Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
-      boolean updateSysCounters, HadoopShim hadoopShim) throws IOException, InterruptedException {
+                  String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
+                  Map<String, String> serviceProviderEnvMap,
+                  ObjectRegistryImpl objectRegistry, String pid,
+                  ExecutionContext executionContext,
+                  Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
+                  boolean updateSysCounters, HadoopShim hadoopShim) throws IOException, InterruptedException {
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -168,11 +168,10 @@ public class TezChild {
 
     this.objectRegistry = objectRegistry;
 
-
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("",token);
+        LOG.debug("", token);
       }
     }
 
@@ -202,7 +201,7 @@ public class TezChild {
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
   }
-  
+
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
 
     ContainerContext containerContext = new ContainerContext(containerIdString);
@@ -299,7 +298,7 @@ public class TezChild {
 
   /**
    * Setup
-   * 
+   *
    * @param containerTask
    *          the new task specification. Must be a valid task
    * @param childUGI
@@ -307,7 +306,7 @@ public class TezChild {
    * @return childUGI
    */
   UserGroupInformation handleNewTaskCredentials(ContainerTask containerTask,
-      UserGroupInformation childUGI) {
+                                                UserGroupInformation childUGI) {
     // Re-use the UGI only if the Credentials have not changed.
     Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
@@ -328,13 +327,13 @@ public class TezChild {
 
   /**
    * Handles any additional resources to be localized for the new task
-   * 
+   *
    * @param containerTask
    * @throws IOException
    * @throws TezException
    */
   private void handleNewTaskLocalResources(ContainerTask containerTask,
-      UserGroupInformation ugi) throws IOException, TezException {
+                                           UserGroupInformation ugi) throws IOException, TezException {
 
     final Map<String, TezLocalResource> additionalResources = containerTask.getAdditionalResources();
     LOG.debug("Additional Resources added to container: {}", additionalResources);
@@ -365,7 +364,7 @@ public class TezChild {
 
   /**
    * Cleans entries from the object registry, and resets the startedInputsMap if required
-   * 
+   *
    * @param containerTask
    *          the new task specification. Must be a valid task
    */
@@ -395,7 +394,7 @@ public class TezChild {
       for (Runnable r : pendingRunnables) {
         LOG.info("Cancelling pending runnable ({}) during TezChild shutdown for containerId={}", r.hashCode(),
             containerIdString);
-        ((FutureTask)r).cancel(false);
+        ((FutureTask) r).cancel(false);
       }
       if (taskReporter != null) {
         taskReporter.shutdown();
@@ -431,7 +430,7 @@ public class TezChild {
     private final String errorMessage;
 
     public ContainerExecutionResult(ExitStatus exitStatus, @Nullable Throwable throwable,
-                             @Nullable String errorMessage) {
+                                    @Nullable String errorMessage) {
       this.exitStatus = exitStatus;
       this.throwable = throwable;
       this.errorMessage = errorMessage;
@@ -460,10 +459,10 @@ public class TezChild {
   }
 
   public static TezChild newTezChild(Configuration conf, String host, int port, String containerIdentifier,
-      String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
-      Map<String, String> serviceProviderEnvMap, @Nullable String pid,
-      ExecutionContext executionContext, Credentials credentials, long memAvailable, String user,
-      TezTaskUmbilicalProtocol tezUmbilical, boolean updateSysCounters, HadoopShim hadoopShim)
+                                     String tokenIdentifier, int attemptNumber, String[] localDirs, String workingDirectory,
+                                     Map<String, String> serviceProviderEnvMap, @Nullable String pid,
+                                     ExecutionContext executionContext, Credentials credentials, long memAvailable, String user,
+                                     TezTaskUmbilicalProtocol tezUmbilical, boolean updateSysCounters, HadoopShim hadoopShim)
       throws IOException, InterruptedException, TezException {
 
     // Pull in configuration specified for the session.
@@ -488,7 +487,6 @@ public class TezChild {
 
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
     final String pid = System.getenv().get("JVM_PID");
-
 
     assert args.length == 5;
     String host = args[0];
@@ -534,5 +532,4 @@ public class TezChild {
   private void handleError(Throwable t) {
     shutdown();
   }
-
 }

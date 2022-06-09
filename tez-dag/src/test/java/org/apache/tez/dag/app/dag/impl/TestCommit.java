@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -121,15 +121,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * 
+ *
  * The test case of commit here are different from that in TestDAGImpl &
  * TestVertexImpl in that the commits here are running in separated thread. So
  * should need to pay some special attention.
- * 
+ *
  * 2 kinds of commit 
  * <li> test XXX_OnDAGSuccess means TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is true
  * <li> test XXX_OnVertexSuccess means TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS is false
- * 
+ *
  */
 public class TestCommit {
 
@@ -262,7 +262,7 @@ public class TestCommit {
       }
 
       public CountingOutputCommitterConfig(boolean throwError,
-          boolean blockCommit) {
+                                           boolean blockCommit) {
         this.throwError = throwError;
         this.blockCommit = blockCommit;
       }
@@ -323,7 +323,7 @@ public class TestCommit {
         taskCommunicatorManagerInterface, fsTokens, clock, "user", thh, appContext);
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dispatcher.getEventHandler()).when(appContext).getEventHandler();
-    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
+    ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192, 10));
     doReturn(clusterInfo).when(appContext).getClusterInfo();
     dispatcher.register(CallableEventType.class, new CallableEventDispatcher());
     taskEventDispatcher = new TaskEventDispatcher();
@@ -400,7 +400,7 @@ public class TestCommit {
   // v2->v3
   // vertex_group (v1, v2)
   private DAGPlan createDAGPlan(boolean vertexGroupCommitSucceeded,
-      boolean v3CommitSucceeded) throws Exception {
+                                boolean v3CommitSucceeded) throws Exception {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -451,13 +451,13 @@ public class TestCommit {
   // v2->v3
   // vertex_group (v1, v2) has 2 shared outputs
   private DAGPlan createDAGPlanWith2VertexGroupOutputs(boolean vertexGroupCommitSucceeded1,
-    boolean vertexGroupCommitSucceeded2, boolean v3CommitSucceeded) throws Exception {
+                                                       boolean vertexGroupCommitSucceeded2, boolean v3CommitSucceeded) throws Exception {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
     org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create(
-            "vertex1", ProcessorDescriptor.create("Processor"), dummyTaskCount,
-            dummyTaskResource);
+        "vertex1", ProcessorDescriptor.create("Processor"), dummyTaskCount,
+        dummyTaskResource);
     org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create(
         "vertex2", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
@@ -473,9 +473,9 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !vertexGroupCommitSucceeded1, true).toUserPayload())));
     OutputCommitterDescriptor ocd2 = OutputCommitterDescriptor.create(
-    CountingOutputCommitter.class.getName()).setUserPayload(
-    UserPayload.create(ByteBuffer
-        .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
+        CountingOutputCommitter.class.getName()).setUserPayload(
+        UserPayload.create(ByteBuffer
+            .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !vertexGroupCommitSucceeded2, true).toUserPayload())));
     OutputCommitterDescriptor ocd3 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -511,7 +511,7 @@ public class TestCommit {
 
   // used for route event error in VM
   private DAGPlan createDAGPlan_SingleVertexWith2Committer
-    (boolean commit1Succeed, boolean commit2Succeed, boolean customVM) throws IOException {
+  (boolean commit1Succeed, boolean commit2Succeed, boolean customVM) throws IOException {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -793,7 +793,7 @@ public class TestCommit {
     VertexManagerEvent vmEvent = VertexManagerEvent.create("vertex1", ByteBuffer.wrap(new byte[0]));
     TezTaskAttemptID taId = TezTaskAttemptID.getInstance(TezTaskID.getInstance(v1.getVertexId(), 0), 0);
     TezEvent tezEvent = new TezEvent(vmEvent,
-        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1", 
+        new EventMetaData(EventProducerConsumerType.OUTPUT, "vertex1",
             null, taId));
     v1.handle(new VertexEventRouteEvent(v1.getVertexId(), Collections.singletonList(tezEvent)));
     waitUntil(dag, DAGState.FAILED);
@@ -1342,7 +1342,7 @@ public class TestCommit {
   }
 
   // vertex group (v1,v2) succeeded first and then commit of vertex v3 fail
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testDAGCommitFail3_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
@@ -1464,7 +1464,7 @@ public class TestCommit {
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testDAGInternalErrorWhileCommiting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
@@ -1513,7 +1513,6 @@ public class TestCommit {
     // TODO abort it when internal error happens TEZ-2250
     // Assert.assertEquals(0, v3OutputCommitter.abortCounter);
   }
-
 
   @Test(timeout = 5000)
   public void testDAGKilledWhileCommitting1_OnDAGSuccess() throws Exception {
@@ -1578,7 +1577,6 @@ public class TestCommit {
     // commit may not have started, so can't verify commitCounter
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
-
 
   @Test(timeout = 5000)
   public void testDAGKilledWhileCommitting1_OnVertexSuccess() throws Exception {
@@ -1827,13 +1825,13 @@ public class TestCommit {
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testVertexGroupCommitFinishedEventFail_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
     setupDAG(createDAGPlan(true, true));
     historyEventHandler.failVertexGroupCommitFinishedEvent = true;
-    
+
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
@@ -1870,7 +1868,7 @@ public class TestCommit {
     Assert.assertEquals(VertexState.KILLED, v3.getState());
     Assert.assertEquals(VertexTerminationCause.OTHER_VERTEX_FAILURE, v3.getTerminationCause());
     Assert.assertTrue(v3.commitFutures.isEmpty());
-    
+
     Assert.assertEquals(1, v12OutputCommitter.initCounter);
     Assert.assertEquals(1, v12OutputCommitter.setupCounter);
     Assert.assertEquals(1, v12OutputCommitter.commitCounter);
@@ -1888,7 +1886,7 @@ public class TestCommit {
         true);
     setupDAG(createDAGPlan(true, true));
     historyEventHandler.failDAGCommitStartedEvent = true;
-    
+
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
@@ -1971,7 +1969,7 @@ public class TestCommit {
 
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
     waitUntil(dag, terminationCause.getFinishedState());
-    
+
     Assert.assertEquals(terminationCause, dag.getTerminationCause());
     // mean the commits have been canceled
     Assert.assertTrue(dag.commitFutures.isEmpty());
@@ -1995,13 +1993,12 @@ public class TestCommit {
     // commit is not started because ControlledThreadPoolExecutor wait before schedule tasks
     Assert.assertEquals(0, v12OutputCommitter.commitCounter);
     Assert.assertEquals(1, v12OutputCommitter.abortCounter);
-    
+
     Assert.assertEquals(1, v3OutputCommitter.initCounter);
     Assert.assertEquals(1, v3OutputCommitter.setupCounter);
     // commit is not started because ControlledThreadPoolExecutor  wait before schedule tasks
     Assert.assertEquals(0, v3OutputCommitter.commitCounter);
     Assert.assertEquals(1, v3OutputCommitter.abortCounter);
-
   }
 
   public static class FailOnVMEventReceivedlVertexManager extends ImmediateStartVertexManager {
@@ -2015,7 +2012,6 @@ public class TestCommit {
       super.onVertexManagerEventReceived(vmEvent);
       throw new RuntimeException("fail vm");
     }
-
   }
 
   private static class MockHistoryEventHandler extends HistoryEventHandler {
@@ -2023,6 +2019,7 @@ public class TestCommit {
     public boolean failVertexGroupCommitFinishedEvent = false;
     public boolean failDAGCommitStartedEvent = false;
     public Queue<HistoryEvent> historyEvents = new ConcurrentLinkedQueue<HistoryEvent>();
+
     public MockHistoryEventHandler(AppContext context) {
       super(context);
     }
@@ -2044,9 +2041,9 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.VERTEX_GROUP_COMMIT_STARTED) {
-          VertexGroupCommitStartedEvent startedEvent = (VertexGroupCommitStartedEvent)event;
+          VertexGroupCommitStartedEvent startedEvent = (VertexGroupCommitStartedEvent) event;
           if (startedEvent.getVertexGroupName().equals(groupName)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
@@ -2057,9 +2054,9 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.VERTEX_GROUP_COMMIT_FINISHED) {
-          VertexGroupCommitFinishedEvent finishedEvent = (VertexGroupCommitFinishedEvent)event;
+          VertexGroupCommitFinishedEvent finishedEvent = (VertexGroupCommitFinishedEvent) event;
           if (finishedEvent.getVertexGroupName().equals(groupName)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
@@ -2070,9 +2067,9 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.VERTEX_COMMIT_STARTED) {
-          VertexCommitStartedEvent startedEvent = (VertexCommitStartedEvent)event;
+          VertexCommitStartedEvent startedEvent = (VertexCommitStartedEvent) event;
           if (startedEvent.getVertexID().equals(vertexId)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
@@ -2083,9 +2080,9 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.VERTEX_FINISHED) {
-          VertexFinishedEvent finishedEvent = (VertexFinishedEvent)event;
+          VertexFinishedEvent finishedEvent = (VertexFinishedEvent) event;
           if (finishedEvent.getVertexID().equals(vertexId)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
@@ -2096,9 +2093,9 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.DAG_COMMIT_STARTED) {
-          DAGCommitStartedEvent startedEvent = (DAGCommitStartedEvent)event;
+          DAGCommitStartedEvent startedEvent = (DAGCommitStartedEvent) event;
           if (startedEvent.getDagID().equals(dagId)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
@@ -2109,16 +2106,16 @@ public class TestCommit {
       int actualTimes = 0;
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.DAG_FINISHED) {
-          DAGFinishedEvent startedEvent = (DAGFinishedEvent)event;
+          DAGFinishedEvent startedEvent = (DAGFinishedEvent) event;
           if (startedEvent.getDAGID().equals(dagId)) {
-            actualTimes ++;
+            actualTimes++;
           }
         }
       }
       Assert.assertEquals(expectedTimes, actualTimes);
     }
   }
-  
+
   private static class ControlledThreadPoolExecutor extends ThreadPoolExecutor {
 
     public ControlledThreadPoolExecutor(int poolSize) {
@@ -2127,15 +2124,15 @@ public class TestCommit {
     }
 
     public ControlledThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
-        long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+                                        long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
       super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
     }
 
     public boolean startFlag = false;
-    
+
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
-      while(!startFlag) {
+      while (!startFlag) {
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {

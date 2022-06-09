@@ -142,16 +142,15 @@ public class TestPipelinedShuffle {
     PipelinedShuffleJob pipelinedShuffle = new PipelinedShuffleJob();
     pipelinedShuffle.setConf(conf);
 
-    String[] args = new String[] { };
+    String[] args = new String[]{};
     assertEquals(0, pipelinedShuffle.run(args));
   }
 
   /**
-   *
    * mapper1 --\
-   *            --> reducer
+   * --> reducer
    * mapper2 --/
-   *
+   * <p>
    * Mappers just generate dummy data, but ensures that there is enough spills.
    * Reducer should process them correctly and validate the total number of records.
    * Only record count is validated in the reducer which is fine for this test.
@@ -165,7 +164,8 @@ public class TestPipelinedShuffle {
         super(context);
       }
 
-      @Override public void run() throws Exception {
+      @Override
+      public void run() throws Exception {
         Preconditions.checkArgument(getInputs().size() == 0);
         Preconditions.checkArgument(getOutputs().size() == 1);
         KeyValueWriter writer = (KeyValueWriter) getOutputs().get("reducer").getWriter();
@@ -267,5 +267,4 @@ public class TestPipelinedShuffle {
       return 0;
     }
   }
-
 }

@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements an {@link AbstractLogicalIOProcessor} and provides empty
  * implementations of most methods and handles input/output initialization.
- * This can be used to implement simple {@link Processor}s that dont need to 
+ * This can be used to implement simple {@link Processor}s that dont need to
  * do event handling etc.
  */
 @Public
@@ -56,7 +56,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
       throws Exception {
     this.inputs = _inputs;
     this.outputs = _outputs;
-    progressHelper = new ProgressHelper(this.inputs, getContext(),this.getClass().getSimpleName());
+    progressHelper = new ProgressHelper(this.inputs, getContext(), this.getClass().getSimpleName());
     preOp();
     run();
     postOp();
@@ -65,6 +65,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
   /**
    * Users must implement this method to provide the main
    * application logic code
+   *
    * @throws Exception
    */
   public abstract void run() throws Exception;
@@ -72,7 +73,8 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
   /**
    * Implements input/output initialization. Can be overriden
    * to implement custom behavior. Called before {@link #run()}
-   * is called. 
+   * is called.
+   *
    * @throws Exception
    */
   protected void preOp() throws Exception {
@@ -90,12 +92,13 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
   }
 
   /**
-   * Called after {@link #run()} is called and can be used to 
+   * Called after {@link #run()} is called and can be used to
    * do post-processing like committing output etc
+   *
    * @throws Exception
    */
   protected void postOp() throws Exception {
-   //No-op
+    //No-op
   }
 
   @Override
@@ -110,7 +113,7 @@ public abstract class SimpleProcessor extends AbstractLogicalIOProcessor {
 
   @Override
   public void close() throws Exception {
-    if( progressHelper != null) {
+    if (progressHelper != null) {
       progressHelper.shutDownProgressTaskService();
     }
   }

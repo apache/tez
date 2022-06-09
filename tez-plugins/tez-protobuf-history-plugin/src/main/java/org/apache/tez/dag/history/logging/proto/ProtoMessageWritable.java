@@ -54,6 +54,7 @@ public class ProtoMessageWritable<T extends MessageLite> implements Writable {
 
   private static class DataOutputStream extends OutputStream {
     DataOutput out;
+
     @Override
     public void write(int b) throws IOException {
       out.write(b);
@@ -78,6 +79,7 @@ public class ProtoMessageWritable<T extends MessageLite> implements Writable {
 
   private static class DataInputStream extends InputStream {
     DataInput in;
+
     @Override
     public int read() throws IOException {
       try {

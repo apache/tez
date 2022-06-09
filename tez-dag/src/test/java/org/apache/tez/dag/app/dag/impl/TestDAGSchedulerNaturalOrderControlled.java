@@ -96,7 +96,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
     verify(eventHandler, times(vertices[3].getTotalTasks() - 3)).handle(any());
     reset(eventHandler);
 
-
     // Schedule all tasks belonging to v4
     for (int i = 0; i < vertices[4].getTotalTasks(); i++) {
       dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[4].getVertexId(), i, 0));
@@ -173,7 +172,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
     reset(eventHandler);
   }
 
-
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testParallelismUpdated() {
@@ -246,7 +244,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
     verify(eventHandler, times(vertices[0].getTotalTasks() - 1)).handle(any());
     reset(eventHandler);
 
-
     // Schedule all tasks belonging to v2
     for (int i = 0; i < vertices[2].getTotalTasks(); i++) {
       dagScheduler.scheduleTaskEx(createScheduleRequest(vertices[2].getVertexId(), i, 0));
@@ -269,7 +266,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
     // One v0 request and all of v2 should have gone out
     verify(eventHandler, times(1 + vertices[2].getTotalTasks())).handle(any());
   }
-
 
   // Test parallelism updated form -1
   // Reduce parallelism
@@ -309,7 +305,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
       doReturn(vertices[i]).when(dag).getVertex(vertexId);
     }
 
-
     updateMockVertexWithConnections(vertices[0], createConnectionMap((Vertex[]) null),
         createConnectionMap(vertices[2]));
     updateMockVertexWithConnections(vertices[1], createConnectionMap((Vertex[]) null),
@@ -323,7 +318,6 @@ public class TestDAGSchedulerNaturalOrderControlled {
 
     return dag;
   }
-
 
   private void updateParallelismOnMockVertex(Vertex vertex, int newParallelism) {
     doReturn(newParallelism).when(vertex).getTotalTasks();
@@ -374,5 +368,4 @@ public class TestDAGSchedulerNaturalOrderControlled {
     TaskAttempt mockAttempt = createTaskAttempt(vertexId, taskIdInt, attemptIdInt);
     return new DAGEventSchedulerUpdate(DAGEventSchedulerUpdate.UpdateType.TA_SCHEDULE, mockAttempt);
   }
-
 }

@@ -1,24 +1,22 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag.impl;
-
-
 
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
@@ -99,7 +97,7 @@ public class VertexManager {
   final AppContext appContext;
   final BlockingQueue<TezEvent> rootInputInitEventQueue;
   final StateChangeNotifier stateChangeNotifier;
-  
+
   private final ListeningExecutorService execService;
   private final LinkedBlockingQueue<VertexManagerEvent> eventQueue;
   private final AtomicBoolean eventInFlight;
@@ -124,13 +122,13 @@ public class VertexManager {
         throw new TezUncheckedException("Cannot invoke context methods after throwing an exception");
       }
     }
-    
+
     @Override
     public synchronized Map<String, EdgeProperty> getInputVertexEdgeProperties() {
       checkAndThrowIfDone();
       Map<Vertex, Edge> inputs = managedVertex.getInputVertices();
       Map<String, EdgeProperty> vertexEdgeMap =
-                          Maps.newHashMapWithExpectedSize(inputs.size());
+          Maps.newHashMapWithExpectedSize(inputs.size());
       for (Map.Entry<Vertex, Edge> entry : inputs.entrySet()) {
         vertexEdgeMap.put(entry.getKey().getName(), entry.getValue().getEdgeProperty());
       }
@@ -142,17 +140,17 @@ public class VertexManager {
       checkAndThrowIfDone();
       Map<Vertex, Edge> outputs = managedVertex.getOutputVertices();
       Map<String, EdgeProperty> vertexEdgeMap =
-                          Maps.newHashMapWithExpectedSize(outputs.size());
+          Maps.newHashMapWithExpectedSize(outputs.size());
       for (Map.Entry<Vertex, Edge> entry : outputs.entrySet()) {
         vertexEdgeMap.put(entry.getKey().getName(), entry.getValue().getEdgeProperty());
       }
       return vertexEdgeMap;
     }
-    
+
     @Override
     public synchronized VertexStatistics getVertexStatistics(String vertexName) {
       checkAndThrowIfDone();
-      return appContext.getCurrentDAG().getVertex(vertexName).getStatistics();      
+      return appContext.getCurrentDAG().getVertex(vertexName).getStatistics();
     }
 
     @Override
@@ -169,8 +167,8 @@ public class VertexManager {
 
     @Override
     public synchronized void setVertexParallelism(int parallelism, VertexLocationHint vertexLocationHint,
-        Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
-        Map<String, InputSpecUpdate> rootInputSpecUpdate) {
+                                                  Map<String, EdgeManagerPluginDescriptor> sourceEdgeManagers,
+                                                  Map<String, InputSpecUpdate> rootInputSpecUpdate) {
       checkAndThrowIfDone();
       try {
         managedVertex.setParallelism(parallelism, vertexLocationHint, sourceEdgeManagers,
@@ -179,11 +177,11 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public synchronized void reconfigureVertex(int parallelism, VertexLocationHint vertexLocationHint,
-        Map<String, EdgeProperty> sourceEdgeProperties,
-        Map<String, InputSpecUpdate> rootInputSpecUpdate) {
+                                               Map<String, EdgeProperty> sourceEdgeProperties,
+                                               Map<String, InputSpecUpdate> rootInputSpecUpdate) {
       checkAndThrowIfDone();
       try {
         managedVertex.reconfigureVertex(parallelism, vertexLocationHint, sourceEdgeProperties,
@@ -192,11 +190,11 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public synchronized void reconfigureVertex(int parallelism,
-        @Nullable VertexLocationHint locationHint,
-        @Nullable Map<String, EdgeProperty> sourceEdgeProperties) {
+                                               @Nullable VertexLocationHint locationHint,
+                                               @Nullable Map<String, EdgeProperty> sourceEdgeProperties) {
       checkAndThrowIfDone();
       try {
         managedVertex.reconfigureVertex(parallelism, locationHint, sourceEdgeProperties);
@@ -204,11 +202,11 @@ public class VertexManager {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     @Override
     public void reconfigureVertex(@Nullable Map<String, InputSpecUpdate> rootInputSpecUpdate,
-        @Nullable VertexLocationHint locationHint,
-        int parallelism) {
+                                  @Nullable VertexLocationHint locationHint,
+                                  int parallelism) {
       checkAndThrowIfDone();
       try {
         managedVertex.reconfigureVertex(rootInputSpecUpdate, parallelism, locationHint);
@@ -222,7 +220,7 @@ public class VertexManager {
       checkAndThrowIfDone();
       managedVertex.scheduleTasks(tasks);
     }
-    
+
     @Override
     public synchronized void scheduleVertexTasks(List<TaskWithLocationHint> tasks) {
       checkAndThrowIfDone();
@@ -255,7 +253,7 @@ public class VertexManager {
 
     @Override
     public synchronized void addRootInputEvents(final String inputName,
-        Collection<InputDataInformationEvent> events) {
+                                                Collection<InputDataInformationEvent> events) {
       checkAndThrowIfDone();
       verifyIsRootInput(inputName);
       final long currTime = appContext.getClock().getTime();
@@ -271,7 +269,7 @@ public class VertexManager {
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("vertex:" + managedVertex.getLogIdentifier() + "; Added " + events.size() + " for input " +
-                "name " + inputName);
+            "name " + inputName);
       }
       rootInputInitEventQueue.addAll(tezEvents);
       // Recovery handling is taken care of by the Vertex.
@@ -281,8 +279,8 @@ public class VertexManager {
     public void sendEventToProcessor(Collection<CustomProcessorEvent> events, int taskId) {
       checkAndThrowIfDone();
       Preconditions.checkArgument(taskId >= 0 && taskId < managedVertex.getTotalTasks(),
-        "Invalid taskId " + taskId + "; " + "There are " + managedVertex.getTotalTasks()
-          + " tasks in total.");
+          "Invalid taskId " + taskId + "; " + "There are " + managedVertex.getTotalTasks()
+              + " tasks in total.");
 
       if (events != null && events.size() > 0) {
         List<TezEvent> tezEvents = new ArrayList<>();
@@ -291,13 +289,13 @@ public class VertexManager {
           // use dummy task attempt id since this is not an task attempt specific event and task
           // attempt id won't be used anyway
           EventMetaData destinationMeta = new EventMetaData(EventProducerConsumerType.PROCESSOR,
-            managedVertex.getName(), managedVertex.getName(),
-            TezTaskAttemptID.getInstance(managedVertex.getTask(taskId).getTaskID(), -1));
+              managedVertex.getName(), managedVertex.getName(),
+              TezTaskAttemptID.getInstance(managedVertex.getTask(taskId).getTaskID(), -1));
           tezEvent.setDestinationInfo(destinationMeta);
           tezEvents.add(tezEvent);
         }
         appContext.getEventHandler().handle(
-          new VertexEventRouteEvent(managedVertex.getVertexId(), tezEvents));
+            new VertexEventRouteEvent(managedVertex.getVertexId(), tezEvents));
       }
     }
 
@@ -350,7 +348,7 @@ public class VertexManager {
     @Override
     public synchronized void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
       checkAndThrowIfDone();
-      synchronized(notificationRegisteredVertices) {
+      synchronized (notificationRegisteredVertices) {
         notificationRegisteredVertices.add(vertexName);
       }
       stateChangeNotifier.registerForVertexUpdates(vertexName, stateSet, this);
@@ -361,10 +359,9 @@ public class VertexManager {
         for (String vertexName : notificationRegisteredVertices) {
           stateChangeNotifier.unregisterForVertexUpdates(vertexName, this);
         }
-
       }
     }
-    
+
     boolean isComplete() {
       return (isComplete.get() == true);
     }
@@ -407,11 +404,10 @@ public class VertexManager {
       // no need to synchronize this. similar to other external notification methods
       enqueueAndScheduleNextEvent(new VertexManagerEventOnVertexStateUpdate(event));
     }
-
   }
 
   public VertexManager(VertexManagerPluginDescriptor pluginDesc, UserGroupInformation dagUgi,
-      Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) throws TezException {
+                       Vertex managedVertex, AppContext appContext, StateChangeNotifier stateChangeNotifier) throws TezException {
     Objects.requireNonNull(pluginDesc, "pluginDesc is null");
     Objects.requireNonNull(managedVertex, "managedVertex is null");
     Objects.requireNonNull(appContext, "appContext is null");
@@ -423,12 +419,12 @@ public class VertexManager {
     this.stateChangeNotifier = stateChangeNotifier;
     // don't specify the size of rootInputInitEventQueue, otherwise it will fail when addAll
     this.rootInputInitEventQueue = new LinkedBlockingQueue<TezEvent>();
-    
+
     pluginContext = new VertexManagerPluginContextImpl();
     payload = pluginDesc.getUserPayload();
     pluginFailed = new AtomicBoolean(false);
     plugin = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
-        new Class[] { VertexManagerPluginContext.class }, new Object[] { pluginContext });
+        new Class[]{VertexManagerPluginContext.class}, new Object[]{pluginContext});
     execService = appContext.getExecService();
     eventQueue = new LinkedBlockingQueue<VertexManagerEvent>();
     eventInFlight = new AtomicBoolean(false);
@@ -450,7 +446,7 @@ public class VertexManager {
       throw new AMUserCodeException(Source.VertexManager, e);
     }
   }
-  
+
   private boolean pluginInvocationAllowed(String msg) {
     if (pluginFailed.get()) {
       if (LOG.isDebugEnabled()) {
@@ -460,13 +456,13 @@ public class VertexManager {
     }
     if (pluginContext.isComplete()) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug(msg+ " . Manager complete. Not scheduling event. Vertex=" + managedVertex.getLogIdentifier());
+        LOG.debug(msg + " . Manager complete. Not scheduling event. Vertex=" + managedVertex.getLogIdentifier());
       }
       return false;
     }
     return true;
   }
-  
+
   private void enqueueAndScheduleNextEvent(VertexManagerEvent e) {
     if (!pluginInvocationAllowed("Dropping event")) {
       return;
@@ -474,7 +470,7 @@ public class VertexManager {
     eventQueue.add(e);
     tryScheduleNextEvent();
   }
-  
+
   private void tryScheduleNextEvent() {
     if (!pluginInvocationAllowed("Not scheduling")) {
       return;
@@ -517,7 +513,7 @@ public class VertexManager {
   }
 
   public void onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events) throws AMUserCodeException {
+                                      InputDescriptor inputDescriptor, List<Event> events) throws AMUserCodeException {
     if (LOG.isDebugEnabled()) {
       LOG.debug("vertex:" + managedVertex.getLogIdentifier() + "; enqueueing onRootVertexInitialized"
           + " on input:" + inputName + ", current task events size is " + rootInputInitEventQueue.size());
@@ -551,7 +547,7 @@ public class VertexManager {
         sendInternalError(e);
       }
     }
-    
+
     @Override
     public void onSuccess(Void result) {
       try {
@@ -562,10 +558,10 @@ public class VertexManager {
         sendInternalError(e);
       }
     }
-    
+
     protected void onSuccessDerived(Void result) {
     }
-    
+
     private void sendInternalError(Exception e) {
       // fail the DAG so that we dont hang
       // state change must be triggered via an event transition
@@ -573,10 +569,10 @@ public class VertexManager {
       appContext.getEventHandler().handle(
           (new DAGEventInternalError(managedVertex.getVertexId().getDAGID(),
               "Error in VertexManager for vertex: " + managedVertex.getLogIdentifier()
-              + ", error=" + ExceptionUtils.getStackTrace(e))));
+                  + ", error=" + ExceptionUtils.getStackTrace(e))));
     }
   }
-  
+
   private class VertexManagerRootInputInitializedCallback extends VertexManagerCallback {
 
     @Override
@@ -592,10 +588,10 @@ public class VertexManager {
           new VertexEventInputDataInformation(managedVertex.getVertexId(), resultEvents));
     }
   }
-  
+
   class VertexManagerEventOnVertexStateUpdate extends VertexManagerEvent {
     private final VertexStateUpdate event;
-    
+
     public VertexManagerEventOnVertexStateUpdate(VertexStateUpdate event) {
       this.event = event;
     }
@@ -604,58 +600,54 @@ public class VertexManager {
     public void invoke() throws Exception {
       plugin.onVertexStateUpdated(event);
     }
-    
   }
-  
+
   class VertexManagerEventOnVertexStarted extends VertexManagerEvent {
     private final List<TaskAttemptIdentifier> pluginCompletions;
 
     public VertexManagerEventOnVertexStarted(List<TaskAttemptIdentifier> pluginCompletions) {
       this.pluginCompletions = pluginCompletions;
     }
-    
+
     @Override
     public void invoke() throws Exception {
       plugin.onVertexStarted(pluginCompletions);
     }
-    
   }
-  
+
   class VertexManagerEventSourceTaskCompleted extends VertexManagerEvent {
     private final TaskAttemptIdentifier attempt;
-    
+
     public VertexManagerEventSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       this.attempt = attempt;
     }
-    
+
     @Override
     public void invoke() throws Exception {
-      plugin.onSourceTaskCompleted(attempt);      
+      plugin.onSourceTaskCompleted(attempt);
     }
-    
   }
-  
+
   class VertexManagerEventReceived extends VertexManagerEvent {
     private final org.apache.tez.runtime.api.events.VertexManagerEvent vmEvent;
-    
+
     public VertexManagerEventReceived(org.apache.tez.runtime.api.events.VertexManagerEvent vmEvent) {
       this.vmEvent = vmEvent;
     }
-    
+
     @Override
     public void invoke() throws Exception {
       plugin.onVertexManagerEventReceived(vmEvent);
     }
-    
   }
-  
+
   class VertexManagerEventRootInputInitialized extends VertexManagerEvent {
     private final String inputName;
     private final InputDescriptor inputDescriptor;
     private final List<Event> events;
-    
+
     public VertexManagerEventRootInputInitialized(String inputName,
-        InputDescriptor inputDescriptor, List<Event> events) {
+                                                  InputDescriptor inputDescriptor, List<Event> events) {
       super(new VertexManagerRootInputInitializedCallback());
       this.inputName = inputName;
       this.inputDescriptor = inputDescriptor;
@@ -666,13 +658,13 @@ public class VertexManager {
     public void invoke() throws Exception {
       plugin.onRootVertexInitialized(inputName, inputDescriptor, events);
     }
-
   }
-  
+
   abstract class VertexManagerEvent extends CallableEvent {
     public VertexManagerEvent() {
       this(VM_CALLBACK);
     }
+
     public VertexManagerEvent(VertexManagerCallback callback) {
       super(callback);
     }

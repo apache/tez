@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -92,15 +92,19 @@ import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 @Private
 public class DagTypeConverters {
 
-  public static PlanLocalResourceVisibility convertToDAGPlan(LocalResourceVisibility visibility){
-    switch(visibility){
-      case PUBLIC : return PlanLocalResourceVisibility.PUBLIC;
-      case PRIVATE : return PlanLocalResourceVisibility.PRIVATE;
-      case APPLICATION : return PlanLocalResourceVisibility.APPLICATION;
-      default : throw new RuntimeException("unknown 'visibility': " + visibility);
+  public static PlanLocalResourceVisibility convertToDAGPlan(LocalResourceVisibility visibility) {
+    switch (visibility) {
+      case PUBLIC:
+        return PlanLocalResourceVisibility.PUBLIC;
+      case PRIVATE:
+        return PlanLocalResourceVisibility.PRIVATE;
+      case APPLICATION:
+        return PlanLocalResourceVisibility.APPLICATION;
+      default:
+        throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
-  
+
   public static List<PlanLocalResource> convertToDAGPlan(Map<String, LocalResource> lrs) {
     List<PlanLocalResource> planLrs = Lists.newArrayListWithCapacity(lrs.size());
     for (Entry<String, LocalResource> entry : lrs.entrySet()) {
@@ -109,17 +113,17 @@ public class DagTypeConverters {
       LocalResource lr = entry.getValue();
       localResourcesBuilder.setName(key);
       localResourcesBuilder.setUri(
-        DagTypeConverters.convertToDAGPlan(lr.getResource()));
+          DagTypeConverters.convertToDAGPlan(lr.getResource()));
       localResourcesBuilder.setSize(lr.getSize());
       localResourcesBuilder.setTimeStamp(lr.getTimestamp());
       localResourcesBuilder.setType(
-        DagTypeConverters.convertToDAGPlan(lr.getType()));
+          DagTypeConverters.convertToDAGPlan(lr.getType()));
       localResourcesBuilder.setVisibility(
-        DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+          DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
       if (lr.getType() == LocalResourceType.PATTERN) {
         if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
           throw new TezUncheckedException("LocalResource type set to pattern"
-            + " but pattern is null or empty");
+              + " but pattern is null or empty");
         }
         localResourcesBuilder.setPattern(lr.getPattern());
       }
@@ -128,84 +132,120 @@ public class DagTypeConverters {
     return planLrs;
   }
 
-  public static LocalResourceVisibility convertFromDAGPlan(PlanLocalResourceVisibility visibility){
-    switch(visibility){
-      case PUBLIC : return LocalResourceVisibility.PUBLIC;
-      case PRIVATE : return LocalResourceVisibility.PRIVATE;
-      case APPLICATION : return LocalResourceVisibility.APPLICATION;
-      default : throw new RuntimeException("unknown 'visibility': " + visibility);
+  public static LocalResourceVisibility convertFromDAGPlan(PlanLocalResourceVisibility visibility) {
+    switch (visibility) {
+      case PUBLIC:
+        return LocalResourceVisibility.PUBLIC;
+      case PRIVATE:
+        return LocalResourceVisibility.PRIVATE;
+      case APPLICATION:
+        return LocalResourceVisibility.APPLICATION;
+      default:
+        throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
 
-  public static PlanEdgeDataSourceType convertToDAGPlan(DataSourceType sourceType){
-    switch(sourceType){
-      case PERSISTED : return PlanEdgeDataSourceType.PERSISTED;
-      case PERSISTED_RELIABLE : return PlanEdgeDataSourceType.PERSISTED_RELIABLE;
-      case EPHEMERAL :  return PlanEdgeDataSourceType.EPHEMERAL;
-      default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
+  public static PlanEdgeDataSourceType convertToDAGPlan(DataSourceType sourceType) {
+    switch (sourceType) {
+      case PERSISTED:
+        return PlanEdgeDataSourceType.PERSISTED;
+      case PERSISTED_RELIABLE:
+        return PlanEdgeDataSourceType.PERSISTED_RELIABLE;
+      case EPHEMERAL:
+        return PlanEdgeDataSourceType.EPHEMERAL;
+      default:
+        throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
 
-  public static DataSourceType convertFromDAGPlan(PlanEdgeDataSourceType sourceType){
-    switch(sourceType){
-      case PERSISTED : return DataSourceType.PERSISTED;
-      case PERSISTED_RELIABLE : return DataSourceType.PERSISTED_RELIABLE;
-      case EPHEMERAL :  return DataSourceType.EPHEMERAL;
-      default : throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
+  public static DataSourceType convertFromDAGPlan(PlanEdgeDataSourceType sourceType) {
+    switch (sourceType) {
+      case PERSISTED:
+        return DataSourceType.PERSISTED;
+      case PERSISTED_RELIABLE:
+        return DataSourceType.PERSISTED_RELIABLE;
+      case EPHEMERAL:
+        return DataSourceType.EPHEMERAL;
+      default:
+        throw new RuntimeException("unknown 'dataSourceType': " + sourceType);
     }
   }
 
-  public static PlanEdgeDataMovementType convertToDAGPlan(DataMovementType type){
-    switch(type){
-      case ONE_TO_ONE : return PlanEdgeDataMovementType.ONE_TO_ONE;
-      case BROADCAST : return PlanEdgeDataMovementType.BROADCAST;
-      case SCATTER_GATHER : return PlanEdgeDataMovementType.SCATTER_GATHER;
-      case CUSTOM: return PlanEdgeDataMovementType.CUSTOM;
-      default : throw new RuntimeException("unknown 'dataMovementType': " + type);
+  public static PlanEdgeDataMovementType convertToDAGPlan(DataMovementType type) {
+    switch (type) {
+      case ONE_TO_ONE:
+        return PlanEdgeDataMovementType.ONE_TO_ONE;
+      case BROADCAST:
+        return PlanEdgeDataMovementType.BROADCAST;
+      case SCATTER_GATHER:
+        return PlanEdgeDataMovementType.SCATTER_GATHER;
+      case CUSTOM:
+        return PlanEdgeDataMovementType.CUSTOM;
+      default:
+        throw new RuntimeException("unknown 'dataMovementType': " + type);
     }
   }
 
-  public static DataMovementType convertFromDAGPlan(PlanEdgeDataMovementType type){
-    switch(type){
-      case ONE_TO_ONE : return DataMovementType.ONE_TO_ONE;
-      case BROADCAST : return DataMovementType.BROADCAST;
-      case SCATTER_GATHER : return DataMovementType.SCATTER_GATHER;
-      case CUSTOM : return DataMovementType.CUSTOM;
-      default : throw new IllegalArgumentException("unknown 'dataMovementType': " + type);
+  public static DataMovementType convertFromDAGPlan(PlanEdgeDataMovementType type) {
+    switch (type) {
+      case ONE_TO_ONE:
+        return DataMovementType.ONE_TO_ONE;
+      case BROADCAST:
+        return DataMovementType.BROADCAST;
+      case SCATTER_GATHER:
+        return DataMovementType.SCATTER_GATHER;
+      case CUSTOM:
+        return DataMovementType.CUSTOM;
+      default:
+        throw new IllegalArgumentException("unknown 'dataMovementType': " + type);
     }
   }
 
-  public static PlanEdgeSchedulingType convertToDAGPlan(SchedulingType type){
-    switch(type){
-      case SEQUENTIAL : return PlanEdgeSchedulingType.SEQUENTIAL;
-      case CONCURRENT : return PlanEdgeSchedulingType.CONCURRENT;
-      default : throw new RuntimeException("unknown 'SchedulingType': " + type);
+  public static PlanEdgeSchedulingType convertToDAGPlan(SchedulingType type) {
+    switch (type) {
+      case SEQUENTIAL:
+        return PlanEdgeSchedulingType.SEQUENTIAL;
+      case CONCURRENT:
+        return PlanEdgeSchedulingType.CONCURRENT;
+      default:
+        throw new RuntimeException("unknown 'SchedulingType': " + type);
     }
   }
 
-  public static SchedulingType convertFromDAGPlan(PlanEdgeSchedulingType type){
-    switch(type){
-      case SEQUENTIAL : return SchedulingType.SEQUENTIAL;
-      case CONCURRENT : return SchedulingType.CONCURRENT;
-      default : throw new IllegalArgumentException("unknown 'SchedulingType': " + type);
+  public static SchedulingType convertFromDAGPlan(PlanEdgeSchedulingType type) {
+    switch (type) {
+      case SEQUENTIAL:
+        return SchedulingType.SEQUENTIAL;
+      case CONCURRENT:
+        return SchedulingType.CONCURRENT;
+      default:
+        throw new IllegalArgumentException("unknown 'SchedulingType': " + type);
     }
   }
 
   public static PlanLocalResourceType convertToDAGPlan(LocalResourceType type) {
-    switch(type){
-    case ARCHIVE : return PlanLocalResourceType.ARCHIVE;
-    case FILE : return PlanLocalResourceType.FILE;
-    case PATTERN : return PlanLocalResourceType.PATTERN;
-    default : throw new IllegalArgumentException("unknown 'type': " + type);
+    switch (type) {
+      case ARCHIVE:
+        return PlanLocalResourceType.ARCHIVE;
+      case FILE:
+        return PlanLocalResourceType.FILE;
+      case PATTERN:
+        return PlanLocalResourceType.PATTERN;
+      default:
+        throw new IllegalArgumentException("unknown 'type': " + type);
     }
   }
 
   public static LocalResourceType convertFromDAGPlan(PlanLocalResourceType type) {
-    switch(type){
-    case ARCHIVE : return LocalResourceType.ARCHIVE;
-    case FILE : return LocalResourceType.FILE;
-    case PATTERN : return LocalResourceType.PATTERN;
-    default : throw new IllegalArgumentException("unknown 'type': " + type);
+    switch (type) {
+      case ARCHIVE:
+        return LocalResourceType.ARCHIVE;
+      case FILE:
+        return LocalResourceType.FILE;
+      case PATTERN:
+        return LocalResourceType.PATTERN;
+      default:
+        throw new IllegalArgumentException("unknown 'type': " + type);
     }
   }
 
@@ -214,7 +254,7 @@ public class DagTypeConverters {
 
     List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>();
 
-    for(PlanTaskLocationHint inputHint : locationHints){
+    for (PlanTaskLocationHint inputHint : locationHints) {
       TaskLocationHint outputHint = TaskLocationHint.createTaskLocationHint(
           new HashSet<String>(inputHint.getHostList()),
           new HashSet<String>(inputHint.getRackList()));
@@ -222,7 +262,7 @@ public class DagTypeConverters {
     }
     return VertexLocationHint.create(outputList);
   }
-  
+
   public static String convertToDAGPlan(URL resource) {
     Path p;
     try {
@@ -242,12 +282,12 @@ public class DagTypeConverters {
   public static Map<String, LocalResource> createLocalResourceMapFromDAGPlan(
       List<PlanLocalResource> localResourcesList) {
     Map<String, LocalResource> map = new HashMap<String, LocalResource>();
-    for(PlanLocalResource res : localResourcesList){
+    for (PlanLocalResource res : localResourcesList) {
       LocalResource r = new LocalResourcePBImpl();
 
       //NOTE: have to check every optional field in protobuf generated classes for existence before accessing
       //else we will receive a default value back, eg ""
-      if(res.hasPattern()){
+      if (res.hasPattern()) {
         r.setPattern(res.getPattern());
       }
       r.setResource(convertToYarnURL(res.getUri()));
@@ -264,22 +304,22 @@ public class DagTypeConverters {
       List<PlanKeyValuePair> environmentSettingList) {
 
     Map<String, String> map = new HashMap<String, String>();
-    for(PlanKeyValuePair setting : environmentSettingList){
+    for (PlanKeyValuePair setting : environmentSettingList) {
       map.put(setting.getKey(), setting.getValue());
     }
 
     return map;
   }
 
-  public static Map<String, EdgePlan> createEdgePlanMapFromDAGPlan(List<EdgePlan> edgeList){
+  public static Map<String, EdgePlan> createEdgePlanMapFromDAGPlan(List<EdgePlan> edgeList) {
     Map<String, EdgePlan> edgePlanMap =
         new HashMap<String, EdgePlan>();
-    for(EdgePlan edgePlanItem : edgeList){
+    for (EdgePlan edgePlanItem : edgeList) {
       edgePlanMap.put(edgePlanItem.getId(), edgePlanItem);
     }
     return edgePlanMap;
   }
-  
+
   public static PlanEdgeProperty convertToProto(EdgeProperty prop) {
     PlanEdgeProperty.Builder edgePropBuilder = PlanEdgeProperty.newBuilder();
     edgePropBuilder.setDataMovementType(convertToDAGPlan(prop.getDataMovementType()));
@@ -292,20 +332,20 @@ public class DagTypeConverters {
       edgePropBuilder.setEdgeManager(DagTypeConverters.convertToDAGPlan(prop
           .getEdgeManagerDescriptor()));
     }
-    
+
     return edgePropBuilder.build();
   }
-  
+
   public static EdgeProperty convertFromProto(PlanEdgeProperty edge) {
-      return EdgeProperty.create(
-          (edge.hasEdgeManager() ?
-              convertEdgeManagerPluginDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
-          convertFromDAGPlan(edge.getDataMovementType()),
-          convertFromDAGPlan(edge.getDataSourceType()),
-          convertFromDAGPlan(edge.getSchedulingType()),
-          convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
-          convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
-      );
+    return EdgeProperty.create(
+        (edge.hasEdgeManager() ?
+            convertEdgeManagerPluginDescriptorFromDAGPlan(edge.getEdgeManager()) : null),
+        convertFromDAGPlan(edge.getDataMovementType()),
+        convertFromDAGPlan(edge.getDataSourceType()),
+        convertFromDAGPlan(edge.getSchedulingType()),
+        convertOutputDescriptorFromDAGPlan(edge.getEdgeSource()),
+        convertInputDescriptorFromDAGPlan(edge.getEdgeDestination())
+    );
   }
 
   public static EdgeProperty createEdgePropertyMapFromDAGPlan(EdgePlan edge) {
@@ -338,7 +378,7 @@ public class DagTypeConverters {
       ConfigurationProto confProto) {
     List<PlanKeyValuePair> settingList = confProto.getConfKeyValuesList();
     Map<String, String> map = new HashMap<String, String>();
-    for(PlanKeyValuePair setting: settingList){
+    for (PlanKeyValuePair setting : settingList) {
       map.put(setting.getKey(), setting.getValue());
     }
     return map;
@@ -382,8 +422,6 @@ public class DagTypeConverters {
     }
   }
 
-
-
   public static RootInputLeafOutputProto convertToDAGPlan(
       RootInputLeafOutput<? extends EntityDescriptor<?>, ? extends EntityDescriptor<?>> rootIO) {
     RootInputLeafOutputProto.Builder builder = RootInputLeafOutputProto.newBuilder();
@@ -408,8 +446,6 @@ public class DagTypeConverters {
     }
     return userPayload;
   }
-
-
 
   private static void setUserPayload(EntityDescriptor<?> entity, UserPayload payload) {
     if (payload != null) {
@@ -490,42 +526,41 @@ public class DagTypeConverters {
   }
 
   public static TezAppMasterStatus convertTezAppMasterStatusFromProto(
-          TezAppMasterStatusProto proto) {
+      TezAppMasterStatusProto proto) {
     switch (proto) {
-    case INITIALIZING:
-      return TezAppMasterStatus.INITIALIZING;
-    case READY:
-      return TezAppMasterStatus.READY;
-    case RUNNING:
-      return TezAppMasterStatus.RUNNING;
-    case SHUTDOWN:
-      return TezAppMasterStatus.SHUTDOWN;
+      case INITIALIZING:
+        return TezAppMasterStatus.INITIALIZING;
+      case READY:
+        return TezAppMasterStatus.READY;
+      case RUNNING:
+        return TezAppMasterStatus.RUNNING;
+      case SHUTDOWN:
+        return TezAppMasterStatus.SHUTDOWN;
     }
     throw new TezUncheckedException("Could not convert to TezSessionStatus from"
         + " proto");
   }
 
   public static TezAppMasterStatusProto convertTezAppMasterStatusToProto(
-    TezAppMasterStatus status) {
+      TezAppMasterStatus status) {
     switch (status) {
-    case INITIALIZING:
-      return TezAppMasterStatusProto.INITIALIZING;
-    case READY:
-      return TezAppMasterStatusProto.READY;
-    case RUNNING:
-      return TezAppMasterStatusProto.RUNNING;
-    case SHUTDOWN:
-      return TezAppMasterStatusProto.SHUTDOWN;
+      case INITIALIZING:
+        return TezAppMasterStatusProto.INITIALIZING;
+      case READY:
+        return TezAppMasterStatusProto.READY;
+      case RUNNING:
+        return TezAppMasterStatusProto.RUNNING;
+      case SHUTDOWN:
+        return TezAppMasterStatusProto.SHUTDOWN;
     }
     throw new TezUncheckedException("Could not convert TezSessionStatus to"
         + " proto");
   }
 
-
   public static PlanLocalResourcesProto convertFromLocalResources(
-    Map<String, LocalResource> localResources) {
+      Map<String, LocalResource> localResources) {
     PlanLocalResourcesProto.Builder builder =
-      PlanLocalResourcesProto.newBuilder();
+        PlanLocalResourcesProto.newBuilder();
     for (Map.Entry<String, LocalResource> entry : localResources.entrySet()) {
       PlanLocalResource plr = convertLocalResourceToPlanLocalResource(
           entry.getKey(), entry.getValue());
@@ -535,9 +570,9 @@ public class DagTypeConverters {
   }
 
   public static Map<String, LocalResource> convertFromPlanLocalResources(
-    PlanLocalResourcesProto proto) {
+      PlanLocalResourcesProto proto) {
     Map<String, LocalResource> localResources =
-      new HashMap<String, LocalResource>(proto.getLocalResourcesCount());
+        new HashMap<String, LocalResource>(proto.getLocalResourcesCount());
     for (PlanLocalResource plr : proto.getLocalResourcesList()) {
       String name = plr.getName();
       LocalResource lr = convertPlanLocalResourceToLocalResource(plr);
@@ -547,21 +582,21 @@ public class DagTypeConverters {
   }
 
   public static PlanLocalResource convertLocalResourceToPlanLocalResource(
-    String name, LocalResource lr) {
+      String name, LocalResource lr) {
     PlanLocalResource.Builder localResourcesBuilder = PlanLocalResource.newBuilder();
     localResourcesBuilder.setName(name);
     localResourcesBuilder.setUri(
-      DagTypeConverters.convertToDAGPlan(lr.getResource()));
+        DagTypeConverters.convertToDAGPlan(lr.getResource()));
     localResourcesBuilder.setSize(lr.getSize());
     localResourcesBuilder.setTimeStamp(lr.getTimestamp());
     localResourcesBuilder.setType(
-      DagTypeConverters.convertToDAGPlan(lr.getType()));
+        DagTypeConverters.convertToDAGPlan(lr.getType()));
     localResourcesBuilder.setVisibility(
-      DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
+        DagTypeConverters.convertToDAGPlan(lr.getVisibility()));
     if (lr.getType() == LocalResourceType.PATTERN) {
       if (lr.getPattern() == null || lr.getPattern().isEmpty()) {
         throw new TezUncheckedException("LocalResource type set to pattern"
-          + " but pattern is null or empty");
+            + " but pattern is null or empty");
       }
       localResourcesBuilder.setPattern(lr.getPattern());
     }
@@ -582,12 +617,12 @@ public class DagTypeConverters {
     TezCounters counters = new TezCounters();
     for (TezCounterGroupProto counterGroupProto : proto.getCounterGroupsList()) {
       CounterGroup group = counters.addGroup(counterGroupProto.getName(),
-        counterGroupProto.getDisplayName());
+          counterGroupProto.getDisplayName());
       for (TezCounterProto counterProto :
-        counterGroupProto.getCountersList()) {
+          counterGroupProto.getCountersList()) {
         TezCounter counter = group.findCounter(
-          counterProto.getName(),
-          counterProto.getDisplayName());
+            counterProto.getName(),
+            counterProto.getDisplayName());
         counter.setValue(counterProto.getValue());
       }
     }
@@ -602,7 +637,7 @@ public class DagTypeConverters {
     while (groupIterator.hasNext()) {
       CounterGroup counterGroup = groupIterator.next();
       TezCounterGroupProto.Builder groupBuilder =
-        TezCounterGroupProto.newBuilder();
+          TezCounterGroupProto.newBuilder();
       groupBuilder.setName(counterGroup.getName());
       groupBuilder.setDisplayName(counterGroup.getDisplayName());
       Iterator<TezCounter> counterIterator = counterGroup.iterator();
@@ -610,10 +645,10 @@ public class DagTypeConverters {
       while (counterIterator.hasNext()) {
         TezCounter counter = counterIterator.next();
         TezCounterProto tezCounterProto = TezCounterProto.newBuilder()
-          .setName(counter.getName())
-          .setDisplayName(counter.getDisplayName())
-          .setValue(counter.getValue())
-          .build();
+            .setName(counter.getName())
+            .setDisplayName(counter.getDisplayName())
+            .setValue(counter.getValue())
+            .build();
         groupBuilder.addCounters(counterIndex, tezCounterProto);
         ++counterIndex;
       }
@@ -626,28 +661,28 @@ public class DagTypeConverters {
   public static DAGProtos.StatusGetOptsProto convertStatusGetOptsToProto(
       StatusGetOpts statusGetOpts) {
     switch (statusGetOpts) {
-    case GET_COUNTERS:
-      return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
-    case GET_MEMORY_USAGE:
-      return DAGProtos.StatusGetOptsProto.GET_MEMORY_USAGE;
+      case GET_COUNTERS:
+        return DAGProtos.StatusGetOptsProto.GET_COUNTERS;
+      case GET_MEMORY_USAGE:
+        return DAGProtos.StatusGetOptsProto.GET_MEMORY_USAGE;
     }
     throw new TezUncheckedException("Could not convert StatusGetOpts to" + " proto");
   }
 
   public static StatusGetOpts convertStatusGetOptsFromProto(DAGProtos.StatusGetOptsProto proto) {
     switch (proto) {
-    case GET_COUNTERS:
-      return StatusGetOpts.GET_COUNTERS;
-    case GET_MEMORY_USAGE:
-      return StatusGetOpts.GET_MEMORY_USAGE;
+      case GET_COUNTERS:
+        return StatusGetOpts.GET_COUNTERS;
+      case GET_MEMORY_USAGE:
+        return StatusGetOpts.GET_MEMORY_USAGE;
     }
     throw new TezUncheckedException("Could not convert to StatusGetOpts from" + " proto");
   }
 
   public static List<DAGProtos.StatusGetOptsProto> convertStatusGetOptsToProto(
-    Set<StatusGetOpts> statusGetOpts) {
+      Set<StatusGetOpts> statusGetOpts) {
     List<DAGProtos.StatusGetOptsProto> protos =
-      new ArrayList<DAGProtos.StatusGetOptsProto>(statusGetOpts.size());
+        new ArrayList<DAGProtos.StatusGetOptsProto>(statusGetOpts.size());
     for (StatusGetOpts opt : statusGetOpts) {
       protos.add(convertStatusGetOptsToProto(opt));
     }
@@ -693,10 +728,10 @@ public class DagTypeConverters {
   }
 
   public static VertexLocationHint convertVertexLocationHintFromProto(
-    VertexLocationHintProto proto) {
+      VertexLocationHintProto proto) {
     List<TaskLocationHint> outputList = new ArrayList<TaskLocationHint>(
-      proto.getTaskLocationHintsCount());
-    for(PlanTaskLocationHint inputHint : proto.getTaskLocationHintsList()){
+        proto.getTaskLocationHintsCount());
+    for (PlanTaskLocationHint inputHint : proto.getTaskLocationHintsList()) {
       TaskLocationHint outputHint = TaskLocationHint.createTaskLocationHint(
           new HashSet<String>(inputHint.getHostList()),
           new HashSet<String>(inputHint.getRackList()));
@@ -709,12 +744,12 @@ public class DagTypeConverters {
   public static VertexLocationHintProto convertVertexLocationHintToProto(
       VertexLocationHint vertexLocationHint) {
     VertexLocationHintProto.Builder builder =
-      VertexLocationHintProto.newBuilder();
+        VertexLocationHintProto.newBuilder();
     if (vertexLocationHint.getTaskLocationHints() != null) {
       for (TaskLocationHint taskLocationHint :
-        vertexLocationHint.getTaskLocationHints()) {
+          vertexLocationHint.getTaskLocationHints()) {
         PlanTaskLocationHint.Builder taskLHBuilder =
-          PlanTaskLocationHint.newBuilder();
+            PlanTaskLocationHint.newBuilder();
         if (taskLocationHint.getHosts() != null) {
           taskLHBuilder.addAllHost(taskLocationHint.getHosts());
         }
@@ -836,7 +871,6 @@ public class DagTypeConverters {
             servicePluginsDescriptor.getTaskCommunicatorDescriptors());
         pluginDescriptorBuilder.addAllTaskCommunicators(namedEntityProtos);
       }
-
     } else {
       pluginDescriptorBuilder.setContainersEnabled(true).setUberEnabled(false);
     }

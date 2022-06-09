@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -58,18 +58,18 @@ public class TezSpillRecord {
   }
 
   public TezSpillRecord(Path indexFileName, FileSystem fs, String expectedIndexOwner)
-    throws IOException {
+      throws IOException {
     this(indexFileName, fs, new PureJavaCrc32(), expectedIndexOwner);
   }
 
   public TezSpillRecord(Path indexFileName, FileSystem rfs, Checksum crc,
-                     String expectedIndexOwner)
+                        String expectedIndexOwner)
       throws IOException {
 
     final FSDataInputStream in = rfs.open(indexFileName);
     try {
       final long length = rfs.getFileStatus(indexFileName).getLen();
-      final int partitions = 
+      final int partitions =
           (int) length / Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH;
       final int size = partitions * Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH;
 
@@ -80,7 +80,7 @@ public class TezSpillRecord {
         IOUtils.readFully(chk, buf.array(), 0, size);
         if (chk.getChecksum().getValue() != in.readLong()) {
           throw new ChecksumException("Checksum error reading spill index: " +
-                                indexFileName, -1);
+              indexFileName, -1);
         }
       } else {
         IOUtils.readFully(in, buf.array(), 0, size);
@@ -104,7 +104,7 @@ public class TezSpillRecord {
   public TezIndexRecord getIndex(int partition) {
     final int pos = partition * Constants.MAP_OUTPUT_INDEX_RECORD_LENGTH / 8;
     return new TezIndexRecord(entries.get(pos), entries.get(pos + 1),
-                           entries.get(pos + 2));
+        entries.get(pos + 2));
   }
 
   /**

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -32,7 +32,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class TezTypeConverters {
 
   // TODO Remove unused methods
-  
+
   // Tez objects will be imported. Others will use the fully qualified name when
   // required.
   // All public methods named toYarn / toTez / toMapReduce
@@ -40,9 +40,8 @@ public class TezTypeConverters {
   public static org.apache.hadoop.mapreduce.JobID toJobID(TezDAGID id) {
     return new JobID(
         String.valueOf(id.getApplicationId().getClusterTimestamp()), id.getId());
-
   }
-  
+
   public static TaskAttemptId toYarn(TezTaskAttemptID taskAttemptId) {
     TaskAttemptID mrTaskAttemptId = IDConverter
         .toMRTaskAttemptId(taskAttemptId);
@@ -68,7 +67,6 @@ public class TezTypeConverters {
         Counter counter =
             counters.findCounter(xGrp.getName(), xCounter.getName());
         counter.setValue(xCounter.getValue());
-
       }
     }
     return counters;

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,7 @@ import org.apache.hadoop.io.WritableUtils;
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class ShuffleHeader implements Writable {
-  
+
   /** Header info of the shuffle http request/response */
   public static final String HTTP_HEADER_NAME = "name";
   public static final String DEFAULT_HTTP_HEADER_NAME = "mapreduce";
@@ -51,25 +51,25 @@ public class ShuffleHeader implements Writable {
   long uncompressedLength;
   long compressedLength;
   int forReduce;
-  
-  public ShuffleHeader() { }
-  
+
+  public ShuffleHeader() {}
+
   public ShuffleHeader(String mapId, long compressedLength,
-      long uncompressedLength, int forReduce) {
+                       long uncompressedLength, int forReduce) {
     this.mapId = mapId;
     this.compressedLength = compressedLength;
     this.uncompressedLength = uncompressedLength;
     this.forReduce = forReduce;
   }
-  
+
   public String getMapId() {
     return this.mapId;
   }
-  
+
   public int getPartition() {
     return this.forReduce;
   }
-  
+
   public long getUncompressedLength() {
     return uncompressedLength;
   }
@@ -97,6 +97,7 @@ public class ShuffleHeader implements Writable {
 
     return length;
   }
+
   public void write(DataOutput out) throws IOException {
     Text.writeString(out, mapId);
     WritableUtils.writeVLong(out, compressedLength);

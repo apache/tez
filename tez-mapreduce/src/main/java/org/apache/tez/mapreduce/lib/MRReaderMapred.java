@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,14 +57,14 @@ public class MRReaderMapred extends MRReader {
 
   private boolean setupComplete = false;
 
-  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter, 
-      InputContext context)
+  public MRReaderMapred(JobConf jobConf, TezCounters tezCounters, TezCounter inputRecordCounter,
+                        InputContext context)
       throws IOException {
     this(jobConf, null, tezCounters, inputRecordCounter, context);
   }
 
   public MRReaderMapred(JobConf jobConf, InputSplit inputSplit, TezCounters tezCounters,
-      TezCounter inputRecordCounter, InputContext context) throws IOException {
+                        TezCounter inputRecordCounter, InputContext context) throws IOException {
     super(context);
     this.jobConf = jobConf;
     this.tezCounters = tezCounters;
@@ -142,7 +142,7 @@ public class MRReaderMapred extends MRReader {
    * {@link MRInput} sets some additional parameters like split location when using the new API.
    * This methods returns the list of additional updates, and should be used by Processors using the
    * old MapReduce API with {@link MRInput}.
-   * 
+   *
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {

@@ -27,12 +27,12 @@ public abstract class HadoopShimProvider {
 
   /**
    * Provides a HadoopShim if the version matches the implementation of the Shim
+   *
    * @param hadoopVersion Full version string of hadoop-common's version
-   * @param majorVersion Major version
-   * @param minorVersion Minor version
+   * @param majorVersion  Major version
+   * @param minorVersion  Minor version
    * @return HadoopShim object if there is a match else null
    */
   public abstract HadoopShim createHadoopShim(String hadoopVersion, int majorVersion,
-      int minorVersion);
-
+                                              int minorVersion);
 }

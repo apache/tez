@@ -29,9 +29,7 @@ import java.util.Set;
 
 import org.junit.Test;
 
-
 public class TestTezRuntimeConfiguration {
-
 
   @Test(timeout = 5000)
   public void testKeySet() throws IllegalAccessException {
@@ -51,5 +49,4 @@ public class TestTezRuntimeConfiguration {
     }
     assertTrue("Missing keys in key set: " + expectedKeys, expectedKeys.size() == 0);
   }
-
 }

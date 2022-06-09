@@ -24,5 +24,6 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.SubmitWorkRe
 public interface ContainerRunner {
 
   void queueContainer(RunContainerRequestProto request) throws TezException;
+
   void submitWork(SubmitWorkRequestProto request) throws TezException;
 }

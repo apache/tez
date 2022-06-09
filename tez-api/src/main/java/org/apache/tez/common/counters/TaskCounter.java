@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 @Private
 public enum TaskCounter {
   // TODO Eventually, rename counters to be non-MR specific and map them to MR equivalent.
-  
+
   NUM_SPECULATIONS,
 
   /**
@@ -39,18 +39,18 @@ public enum TaskCounter {
    * Alternately number of records seen by a ReduceProcessor
    */
   REDUCE_INPUT_RECORDS,
-  
+
   REDUCE_OUTPUT_RECORDS, // Not used at the moment.
   REDUCE_SKIPPED_GROUPS, // Not used at the moment.
   REDUCE_SKIPPED_RECORDS, // Not used at the moment.
   SPLIT_RAW_BYTES,
-  
+
   COMBINE_INPUT_RECORDS,
   COMBINE_OUTPUT_RECORDS, // Not used at the moment.
 
   /**
    * Number of records written to disk in case of OnFileSortedOutput.
-   * 
+   *
    * Number of additional records writtent out to disk in case of
    * ShuffledMergedInput; this represents the number of unnecessary spills to
    * disk caused by lac of memory.
@@ -61,7 +61,7 @@ public enum TaskCounter {
    * Number of Inputs from which data is copied. Represents physical Inputs. 
    */
   NUM_SHUFFLED_INPUTS,
-  
+
   /**
    * Number of Inputs from which data was not copied - typically due to an empty Input
    */
@@ -71,7 +71,7 @@ public enum TaskCounter {
    * Number of failed copy attempts (physical inputs)
    */
   NUM_FAILED_SHUFFLE_INPUTS,
-  
+
   MERGED_MAP_OUTPUTS,
   GC_TIME_MILLIS,
   CPU_MILLISECONDS,
@@ -84,7 +84,7 @@ public enum TaskCounter {
   /**
    * Represents the number of Input Records that were actually processed.
    * Used by MRInput and ShuffledUnorderedKVInput
-   * 
+   *
    */
   INPUT_RECORDS_PROCESSED,
 
@@ -112,7 +112,7 @@ public enum TaskCounter {
    * spilled directly
    */
   OUTPUT_LARGE_RECORDS,
-  
+
   SKIPPED_RECORDS, // Not used at the moment.
 
   /**
@@ -132,19 +132,19 @@ public enum TaskCounter {
    * size + overhead)
    */
   OUTPUT_BYTES_PHYSICAL,
-  
+
   /**
    * Bytes written to disk due to unnecessary spills (lac of adequate memory).
    * Used by OnFileSortedOutput and ShuffledMergedInput
    */
   ADDITIONAL_SPILLS_BYTES_WRITTEN,
-  
+
   /**
    * Bytes read from disk due to previous spills (lac of adequate memory).
    * Used by OnFileSortedOutput and ShuffledMergedInput
    */
   ADDITIONAL_SPILLS_BYTES_READ,
-  
+
   /**
    * Spills that were generated & read by the same task (unnecessary spills due to lac of
    * adequate memory).
@@ -159,7 +159,7 @@ public enum TaskCounter {
    * as final merge is avoided.
    */
   SHUFFLE_CHUNK_COUNT,
-  
+
   INPUT_GROUPS, // Not used at the moment. Will eventually replace REDUCE_INPUT_GROUPS
 
   /**
@@ -172,7 +172,7 @@ public enum TaskCounter {
    * Uncompressed size of the data being processed by the relevant Shuffle.
    * Includes serialization, file format etc overheads.
    */
-  SHUFFLE_BYTES_DECOMPRESSED, 
+  SHUFFLE_BYTES_DECOMPRESSED,
 
   /**
    * Number of bytes which were shuffled directly to memory. 
@@ -229,7 +229,6 @@ public enum TaskCounter {
    * Represented in milliseconds
    */
   LAST_EVENT_RECEIVED,
-
 
   /**
    * The size of the data that is transmitted via event.

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,11 +37,11 @@ public class Grouper {
 
   public Grouper init(int numItem, int numGroup) {
     Preconditions.checkArgument(numGroup > 0,
-      "Number of groups is " + numGroup + ". Should be positive");
+        "Number of groups is " + numGroup + ". Should be positive");
     Preconditions.checkArgument(numItem > 0,
-      "Number of items is " + numItem + ". Should be positive");
+        "Number of items is " + numItem + ". Should be positive");
     Preconditions.checkArgument(numItem >= numGroup,
-      "Num of groups + " + numGroup + " shouldn't be more than number of items " + numItem);
+        "Num of groups + " + numGroup + " shouldn't be more than number of items " + numItem);
     this.numItem = numItem;
     this.numGroup = numGroup;
     this.itemPerGroup1 = numItem / numGroup;
@@ -74,7 +74,7 @@ public class Grouper {
   public int getGroupId(int itemId) {
     Preconditions.checkArgument(0 <= itemId && itemId < numItem, "Invalid itemId" + itemId);
     if (itemId < itemPerGroup1 * numGroup1) {
-      return itemId/ itemPerGroup1;
+      return itemId / itemPerGroup1;
     } else {
       return numGroup1 + (itemId - itemPerGroup1 * numGroup1) / itemPerGroup2;
     }
@@ -84,6 +84,6 @@ public class Grouper {
     Preconditions.checkArgument(0 <= groupId && groupId < numGroup, "Invalid groupId" + groupId);
     Preconditions.checkArgument(0 <= itemId && itemId < numItem, "Invalid itemId" + itemId);
     return getFirstItemInGroup(groupId) <= itemId
-      && itemId < getFirstItemInGroup(groupId) + getNumItemsInGroup(groupId);
+        && itemId < getFirstItemInGroup(groupId) + getNumItemsInGroup(groupId);
   }
 }

@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * Defines the framework facing interfact for a {@link LogicalInput}
- *
+ * <p>
  * User implementations are expected to derive from {@link AbstractLogicalInput}
  */
 @Public

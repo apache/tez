@@ -124,7 +124,7 @@ public class TestHttpConnection {
     AsyncHttpConnection asyncHttpConn = getAsyncHttpConnection(params);
     Future<Void> future = executorService.submit(new Worker(latch, asyncHttpConn, true));
 
-    while(currentThread == null) {
+    while (currentThread == null) {
       synchronized (this) {
         wait(100);
       }
@@ -179,7 +179,7 @@ public class TestHttpConnection {
         currentThread = Thread.currentThread();
         connection.connect();
         fail();
-      } catch(Throwable t) {
+      } catch (Throwable t) {
         if (expectingInterrupt) {
           if (t instanceof ConnectException) {
             //ClosedByInterruptException via NettyConnectListener.operationComplete()

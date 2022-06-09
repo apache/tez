@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -86,8 +86,8 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minOpsPerWorker)
-      .setNumPartitionsForFairCase(numPartition);
+        .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minOpsPerWorker)
+        .setNumPartitionsForFairCase(numPartition);
     vertexManager.initialize(builder.build());
   }
 
@@ -103,8 +103,8 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minWorkloadPerWorker)
-      .setNumPartitionsForFairCase(maxParallelism);
+        .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minWorkloadPerWorker)
+        .setNumPartitionsForFairCase(maxParallelism);
     vertexManager.initialize(builder.build());
   }
 
@@ -122,8 +122,8 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("g0")
-      .setNumPartitionsForFairCase(maxParallelism).setMaxParallelism(maxParallelism)
-      .setMinOpsPerWorker(minWorkloadPerWorker);
+        .setNumPartitionsForFairCase(maxParallelism).setMaxParallelism(maxParallelism)
+        .setMinOpsPerWorker(minWorkloadPerWorker);
     vertexManager.initialize(builder.build());
   }
 
@@ -142,16 +142,16 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("g0").addSources("g1")
-      .setNumPartitionsForFairCase(maxParallelism)
-      .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minWorkloadPerWorker);
+        .setNumPartitionsForFairCase(maxParallelism)
+        .setMaxParallelism(maxParallelism).setMinOpsPerWorker(minWorkloadPerWorker);
     vertexManager.initialize(builder.build());
   }
 
   private Map<String, EdgeProperty> getEdgePropertyMap(int numSrcV) {
     Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
     for (int i = 0; i < numSrcV; i++) {
-      edgePropertyMap.put("v"+i, EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-        CartesianProductEdgeManager.class.getName()), null, null, null, null));
+      edgePropertyMap.put("v" + i, EdgeProperty.create(EdgeManagerPluginDescriptor.create(
+          CartesianProductEdgeManager.class.getName()), null, null, null, null));
     }
     return edgePropertyMap;
   }
@@ -159,15 +159,15 @@ public class TestFairCartesianProductVertexManager {
   private void setSrcParallelism(VertexManagerPluginContext ctx, int multiplier, int... numTasks) {
     int i = 0;
     for (int numTask : numTasks) {
-      when(ctx.getVertexNumTasks(eq("v"+i))).thenReturn(numTask * multiplier);
+      when(ctx.getVertexNumTasks(eq("v" + i))).thenReturn(numTask * multiplier);
       i++;
     }
   }
 
   private TaskAttemptIdentifier getTaId(String vertexName, int taskId) {
     return new TaskAttemptIdentifierImpl("dag", vertexName,
-      TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-        TezDAGID.getInstance("0", 0, 0), 0), taskId), 0));
+        TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+            TezDAGID.getInstance("0", 0, 0), 0), taskId), 0));
   }
 
   private VertexManagerEvent getVMEvent(long numRecord, String vName, int taskId) {
@@ -175,16 +175,16 @@ public class TestFairCartesianProductVertexManager {
     VertexManagerEventPayloadProto.Builder builder = VertexManagerEventPayloadProto.newBuilder();
     builder.setNumRecord(numRecord);
     VertexManagerEvent vmEvent =
-      VertexManagerEvent.create("cp vertex", builder.build().toByteString().asReadOnlyByteBuffer());
+        VertexManagerEvent.create("cp vertex", builder.build().toByteString().asReadOnlyByteBuffer());
     vmEvent.setProducerAttemptIdentifier(getTaId(vName, taskId));
     return vmEvent;
   }
 
   private void verifyEdgeProperties(EdgeProperty edgeProperty, String[] sources,
                                     int[] numChunksPerSrc, int maxParallelism)
-    throws InvalidProtocolBufferException {
+      throws InvalidProtocolBufferException {
     CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(ByteString.copyFrom(
-      edgeProperty.getEdgeManagerDescriptor().getUserPayload().getPayload()));
+        edgeProperty.getEdgeManagerDescriptor().getUserPayload().getPayload()));
     assertArrayEquals(sources, config.getSourcesList().toArray());
     assertArrayEquals(numChunksPerSrc, Ints.toArray(config.getNumChunksList()));
     assertEquals(maxParallelism, config.getMaxParallelism());
@@ -192,9 +192,9 @@ public class TestFairCartesianProductVertexManager {
 
   private void verifyVertexGroupInfo(EdgeProperty edgeProperty, int positionInGroup,
                                      int... numTaskPerVertexInGroup)
-    throws InvalidProtocolBufferException {
+      throws InvalidProtocolBufferException {
     CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(ByteString.copyFrom(
-      edgeProperty.getEdgeManagerDescriptor().getUserPayload().getPayload()));
+        edgeProperty.getEdgeManagerDescriptor().getUserPayload().getPayload()));
     assertEquals(positionInGroup, config.getPositionInGroup());
     int i = 0;
     for (int numTask : numTaskPerVertexInGroup) {
@@ -223,7 +223,7 @@ public class TestFairCartesianProductVertexManager {
 
     vertexManager.onVertexManagerEventReceived(getVMEvent(250, "v0", 0));
     verify(ctx, never()).reconfigureVertex(
-            anyInt(), any(), anyMap());
+        anyInt(), any(), anyMap());
 
     vertexManager.onVertexManagerEventReceived(getVMEvent(200, "v1", 0));
     verify(ctx, times(1)).reconfigureVertex(
@@ -292,7 +292,7 @@ public class TestFairCartesianProductVertexManager {
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     for (int i = 0; i < 3; i++) {
       verifyEdgeProperties(edgeProperties.get("v" + i), new String[]{"v0", "g0"},
-        new int[]{20, 5}, 100);
+          new int[]{20, 5}, 100);
     }
 
     vertexManager.onVertexStarted(null);
@@ -326,7 +326,7 @@ public class TestFairCartesianProductVertexManager {
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     for (int i = 0; i < 4; i++) {
       verifyEdgeProperties(edgeProperties.get("v" + i), new String[]{"g0", "g1"},
-        new int[]{10, 10}, 100);
+          new int[]{10, 10}, 100);
     }
     verifyVertexGroupInfo(edgeProperties.get("v0"), 0);
     verifyVertexGroupInfo(edgeProperties.get("v1"), 1, 2);
@@ -362,7 +362,6 @@ public class TestFairCartesianProductVertexManager {
     verifyScheduleRequest(1, 0, 1, 6, 7);
   }
 
-
   @Test(timeout = 5000)
   public void testOnVertexStart() throws Exception {
     setupDAGVertexOnly(6, 1, 6, 1);
@@ -386,14 +385,14 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .addNumChunks(2).addNumChunks(3).setMaxParallelism(6);
+        .addNumChunks(2).addNumChunks(3).setMaxParallelism(6);
     CartesianProductConfigProto config = builder.build();
 
     Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
     edgePropertyMap.put("v0", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+        CartesianProductEdgeManager.class.getName()), null, null, null, null));
     edgePropertyMap.put("v1", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+        CartesianProductEdgeManager.class.getName()), null, null, null, null));
     when(ctx.getInputVertexEdgeProperties()).thenReturn(edgePropertyMap);
 
     vertexManager.initialize(config);
@@ -410,13 +409,14 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .setMaxParallelism(30).setMinOpsPerWorker(1)
-      .setNumPartitionsForFairCase(30).setGroupingFraction(0.5f);
+        .setMaxParallelism(30).setMinOpsPerWorker(1)
+        .setNumPartitionsForFairCase(30).setGroupingFraction(0.5f);
     vertexManager.initialize(builder.build());
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
   }
+
   @Test(timeout = 5000)
   public void testGroupingFraction() throws Exception {
     setupGroupingFractionTest();
@@ -485,7 +485,7 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .setMaxParallelism(30).setMinOpsPerWorker(1).setEnableGrouping(false);
+        .setMaxParallelism(30).setMinOpsPerWorker(1).setEnableGrouping(false);
     vertexManager.initialize(builder.build());
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -513,7 +513,7 @@ public class TestFairCartesianProductVertexManager {
         eq(99), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1"},
-      new int[]{99, 1}, 100);
+        new int[]{99, 1}, 100);
   }
 
   @Test(timeout = 5000)
@@ -523,8 +523,8 @@ public class TestFairCartesianProductVertexManager {
 
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1").addSources("v2")
-      .setMaxParallelism(100).setMinOpsPerWorker(10000)
-      .setNumPartitionsForFairCase(10);
+        .setMaxParallelism(100).setMinOpsPerWorker(10000)
+        .setNumPartitionsForFairCase(10);
     vertexManager.initialize(builder.build());
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
@@ -541,6 +541,6 @@ public class TestFairCartesianProductVertexManager {
         eq(93), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1", "v2"},
-      new int[]{31, 3, 1}, 100);
+        new int[]{31, 3, 1}, 100);
   }
 }

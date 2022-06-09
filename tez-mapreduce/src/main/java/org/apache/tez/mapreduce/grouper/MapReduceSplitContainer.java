@@ -54,7 +54,6 @@ public class MapReduceSplitContainer extends SplitContainer {
     MapReduceSplitContainer that = (MapReduceSplitContainer) o;
 
     return !(inputSplit != null ? !inputSplit.equals(that.inputSplit) : that.inputSplit != null);
-
   }
 
   @Override

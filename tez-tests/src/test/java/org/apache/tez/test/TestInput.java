@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.test;
 
@@ -57,7 +57,7 @@ import com.google.common.collect.Sets;
 public class TestInput extends AbstractLogicalInput {
   private static final Logger LOG = LoggerFactory
       .getLogger(TestInput.class);
-  
+
   public static final String COUNTER_NAME = "TestInput";
 
   Configuration conf;
@@ -66,7 +66,7 @@ public class TestInput extends AbstractLogicalInput {
   AtomicInteger inputReady = new AtomicInteger(-1);
   int lastInputReadyValue = -1;
   int failingInputUpto = 0;
-  
+
   boolean doFail = false;
   boolean doRandomFail = false;
   float randomFailProbability = 0.0f;
@@ -76,7 +76,7 @@ public class TestInput extends AbstractLogicalInput {
   Set<Integer> failingInputIndices = Sets.newHashSet();
   Integer failAll = new Integer(-1);
   int[] inputValues;
-  
+
   /**
    * Enable failure for this logical input
    */
@@ -130,7 +130,7 @@ public class TestInput extends AbstractLogicalInput {
     super(inputContext, numPhysicalInputs);
     this.completedInputVersion = new int[numPhysicalInputs];
     this.inputValues = new int[numPhysicalInputs];
-    for (int i=0; i<numPhysicalInputs; ++i) {
+    for (int i = 0; i < numPhysicalInputs; ++i) {
       this.completedInputVersion[i] = -1;
       this.inputValues[i] = -1;
     }
@@ -151,7 +151,7 @@ public class TestInput extends AbstractLogicalInput {
       synchronized (inputReady) {
         while (inputReady.get() <= lastInputReadyValue) {
           try {
-            LOG.info("Waiting for inputReady: " + inputReady.get() + 
+            LOG.info("Waiting for inputReady: " + inputReady.get() +
                 " last: " + lastInputReadyValue);
             inputReady.wait();
           } catch (InterruptedException e) {
@@ -166,14 +166,14 @@ public class TestInput extends AbstractLogicalInput {
         if (doFail) {
           if (
               (failingTaskIndices.contains(failAll) ||
-              failingTaskIndices.contains(getContext().getTaskIndex())) &&
-              (failingTaskAttempts.contains(failAll) || 
-               failingTaskAttempts.contains(getContext().getTaskAttemptNumber())) &&
-               (lastInputReadyValue <= failingInputUpto)) {
+                  failingTaskIndices.contains(getContext().getTaskIndex())) &&
+                  (failingTaskAttempts.contains(failAll) ||
+                      failingTaskAttempts.contains(getContext().getTaskAttemptNumber())) &&
+                  (lastInputReadyValue <= failingInputUpto)) {
             List<Event> events = Lists.newLinkedList();
             if (failingInputIndices.contains(failAll)) {
-              for (int i=0; i<getNumPhysicalInputs(); ++i) {
-                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
+              for (int i = 0; i < getNumPhysicalInputs(); ++i) {
+                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() +
                     " index: " + i + " version: " + lastInputReadyValue);
                 events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue, 1, false, false, "localhost"));
                 LOG.info("Failing input: " + msg);
@@ -181,13 +181,13 @@ public class TestInput extends AbstractLogicalInput {
             } else {
               for (Integer index : failingInputIndices) {
                 if (index.intValue() >= getNumPhysicalInputs()) {
-                  throwException("InputIndex: " + index.intValue() + 
+                  throwException("InputIndex: " + index.intValue() +
                       " should be less than numInputs: " + getNumPhysicalInputs());
                 }
                 if (completedInputVersion[index.intValue()] < lastInputReadyValue) {
                   continue; // dont fail a previous version now.
                 }
-                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
+                String msg = ("FailingInput: " + getContext().getUniqueIdentifier() +
                     " index: " + index.intValue() + " version: " + lastInputReadyValue);
                 events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue, 1, false, false,
                     "localhost"));
@@ -220,19 +220,19 @@ public class TestInput extends AbstractLogicalInput {
               done = false;
             }
           } else if ((failingTaskIndices.contains(failAll) ||
-              failingTaskIndices.contains(getContext().getTaskIndex()))){
+              failingTaskIndices.contains(getContext().getTaskIndex()))) {
             boolean previousAttemptReadFailed = false;
             if (failingTaskAttempts.contains(failAll)) {
               previousAttemptReadFailed = true;
             } else {
-              for (int i=0 ; i<getContext().getTaskAttemptNumber(); ++i) {
+              for (int i = 0; i < getContext().getTaskAttemptNumber(); ++i) {
                 if (failingTaskAttempts.contains(new Integer(i))) {
                   previousAttemptReadFailed = true;
                   break;
                 }
               }
             }
-            if (previousAttemptReadFailed && 
+            if (previousAttemptReadFailed &&
                 (lastInputReadyValue <= failingInputUpto)) {
               // if any previous attempt has failed then dont be done when we see
               // a previously failed input
@@ -240,29 +240,28 @@ public class TestInput extends AbstractLogicalInput {
               done = false;
             }
           }
-          
         }
       } else {
         // random fail
         List<Event> events = Lists.newLinkedList();
-        for (int index=0; index<getNumPhysicalInputs(); ++index) {
+        for (int index = 0; index < getNumPhysicalInputs(); ++index) {
           // completedInputVersion[index] has DataMovementEvent.getVersion() value.
           int sourceInputVersion = completedInputVersion[index];
-          int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 
+          int maxFailedAttempt = conf.getInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS,
               TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT);
           if (sourceInputVersion < maxFailedAttempt - 1) {
             float rollNumber = (float) Math.random();
             String msg = "FailingInput random fail turned on." +
-                "Do a roll:" + getContext().getUniqueIdentifier() + 
+                "Do a roll:" + getContext().getUniqueIdentifier() +
                 " index: " + index + " version: " + sourceInputVersion +
-                " rollNumber: " + rollNumber + 
+                " rollNumber: " + rollNumber +
                 " randomFailProbability " + randomFailProbability;
             LOG.info(msg);
             if (rollNumber < randomFailProbability) {
               // fail the source input
-              msg = "FailingInput: rollNumber < randomFailProbability. Do fail." + 
-                            getContext().getUniqueIdentifier() + 
-                            " index: " + index + " version: " + sourceInputVersion;
+              msg = "FailingInput: rollNumber < randomFailProbability. Do fail." +
+                  getContext().getUniqueIdentifier() +
+                  " index: " + index + " version: " + sourceInputVersion;
               LOG.info(msg);
               events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion, 1, false, false, "localhost"));
             }
@@ -271,10 +270,10 @@ public class TestInput extends AbstractLogicalInput {
         getContext().sendEvents(events);
       }
     } while (!done);
-    
+
     // sum input value given by upstream tasks
     int sum = 0;
-    for (int i=0; i<getNumPhysicalInputs(); ++i) {
+    for (int i = 0; i < getNumPhysicalInputs(); ++i) {
       if (inputValues[i] == -1) {
         throwException("Invalid input value : " + i);
       }
@@ -283,13 +282,13 @@ public class TestInput extends AbstractLogicalInput {
     // return sum value
     return sum;
   }
-  
+
   void throwException(String msg) {
     RuntimeException e = new RuntimeException(msg);
-    getContext().reportFailure(TaskFailureType.NON_FATAL, e , msg);
+    getContext().reportFailure(TaskFailureType.NON_FATAL, e, msg);
     throw e;
   }
-  
+
   public static String getVertexConfName(String confName, String vertexName) {
     return confName + "." + vertexName;
   }
@@ -306,24 +305,24 @@ public class TestInput extends AbstractLogicalInput {
           getVertexConfName(TEZ_FAILING_INPUT_DO_FAIL_AND_EXIT, vName), false);
       LOG.info("doFail: " + doFail + " doFailAndExit: " + doFailAndExit);
       if (doFail) {
-        for (String failingIndex : 
-          conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_INDEX, vName))) {
+        for (String failingIndex :
+            conf.getTrimmedStringCollection(
+                getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_INDEX, vName))) {
           LOG.info("Adding failing task index: " + failingIndex);
           failingTaskIndices.add(Integer.valueOf(failingIndex));
         }
-        for (String failingIndex : 
-          conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, vName))) {
+        for (String failingIndex :
+            conf.getTrimmedStringCollection(
+                getVertexConfName(TEZ_FAILING_INPUT_FAILING_TASK_ATTEMPT, vName))) {
           LOG.info("Adding failing task attempt: " + failingIndex);
           failingTaskAttempts.add(Integer.valueOf(failingIndex));
         }
         failingInputUpto = conf.getInt(
             getVertexConfName(TEZ_FAILING_INPUT_FAILING_UPTO_INPUT_ATTEMPT, vName), 0);
         LOG.info("Adding failing input upto: " + failingInputUpto);
-        for (String failingIndex : 
-          conf.getTrimmedStringCollection(
-              getVertexConfName(TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, vName))) {
+        for (String failingIndex :
+            conf.getTrimmedStringCollection(
+                getVertexConfName(TEZ_FAILING_INPUT_FAILING_INPUT_INDEX, vName))) {
           LOG.info("Adding failing input index: " + failingIndex);
           failingInputIndices.add(Integer.valueOf(failingIndex));
         }
@@ -359,7 +358,7 @@ public class TestInput extends AbstractLogicalInput {
             " numInputs: " + getNumPhysicalInputs() +
             " numCompletedInputs: " + numCompletedInputs);
         this.completedInputVersion[dmEvent.getTargetIndex()] = dmEvent.getVersion();
-        this.inputValues[dmEvent.getTargetIndex()] = 
+        this.inputValues[dmEvent.getTargetIndex()] =
             dmEvent.getUserPayload().getInt();
       } else if (event instanceof InputFailedEvent) {
         InputFailedEvent ifEvent = (InputFailedEvent) event;
@@ -373,8 +372,8 @@ public class TestInput extends AbstractLogicalInput {
       }
     }
     if (numCompletedInputs == getNumPhysicalInputs()) {
-      int maxInputVersionSeen = -1;  
-      for (int i=0; i<getNumPhysicalInputs(); ++i) {
+      int maxInputVersionSeen = -1;
+      for (int i = 0; i < getNumPhysicalInputs(); ++i) {
         if (completedInputVersion[i] < 0) {
           LOG.info("Not received completion for input " + i);
           return;
@@ -393,8 +392,8 @@ public class TestInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> close() throws Exception {
-    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);
+    ;
     return null;
   }
-
 }

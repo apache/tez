@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -214,7 +214,7 @@ public class ACLManager {
     if (groups != null && !groups.isEmpty()) {
       for (Entry<ACLType, Set<String>> entry : groups.entrySet()) {
         if (entry.getKey().equals(ACLType.AM_VIEW_ACL)
-          && !viewAclsWildCard && !entry.getValue().isEmpty()) {
+            && !viewAclsWildCard && !entry.getValue().isEmpty()) {
           // Append groups only if wild card not set
           String aclsStr = acls.containsKey(ApplicationAccessType.VIEW_APP) ?
               acls.get(ApplicationAccessType.VIEW_APP) : "";
@@ -247,5 +247,3 @@ public class ACLManager {
     return sb.toString();
   }
 }
-
-

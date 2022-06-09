@@ -30,35 +30,35 @@ public interface ContainerSignatureMatcher {
    * Checks the compatibility between the specified container signatures.
    *
    * @return true if the first signature is a super set of the second
-   *         signature.
+   * signature.
    */
   public boolean isSuperSet(Object cs1, Object cs2);
-  
+
   /**
    * Checks if the container signatures match exactly
+   *
    * @return true if exact match
    */
   public boolean isExactMatch(Object cs1, Object cs2);
-  
+
   /**
    * Gets additional resources specified in lr2, which are not present for lr1
-   * 
+   *
    * @param lr1
    * @param lr2
    * @return additional resources specified in lr2, which are not present for lr1
    */
   public Map<String, LocalResource> getAdditionalResources(Map<String, LocalResource> lr1,
-      Map<String, LocalResource> lr2);
-
+                                                           Map<String, LocalResource> lr2);
 
   /**
    * Do a union of 2 signatures
    * Pre-condition. This function should only be invoked iff cs1 is compatible with cs2.
    * i.e. isSuperSet should not return false.
+   *
    * @param cs1 Signature 1 Original signature
    * @param cs2 Signature 2 New signature
    * @return Union of 2 signatures
    */
   public Object union(Object cs1, Object cs2);
-
 }

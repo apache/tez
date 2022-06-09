@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,16 +44,20 @@ public class TaskLocationHint {
   public static class TaskBasedLocationAffinity {
     private String vertexName;
     private int taskIndex;
+
     public TaskBasedLocationAffinity(String vertexName, int taskIndex) {
       this.vertexName = vertexName;
       this.taskIndex = taskIndex;
     }
+
     public String getVertexName() {
       return vertexName;
     }
+
     public int getTaskIndex() {
       return taskIndex;
     }
+
     @Override
     public String toString() {
       return "[Vertex: " + vertexName + ", TaskIndex: " + taskIndex + "]";
@@ -64,7 +68,7 @@ public class TaskLocationHint {
   private Set<String> hosts;
   // Rack names if any to be used
   private Set<String> racks;
-  
+
   private TaskBasedLocationAffinity affinitizedTask;
 
   private TaskLocationHint(String vertexName, int taskIndex) {
@@ -124,10 +128,10 @@ public class TaskLocationHint {
   public int hashCode() {
     final int prime = 9397;
     int result = 1;
-    result = ( hosts != null) ?
+    result = (hosts != null) ?
         prime * result + hosts.hashCode() :
         result + prime;
-    result = ( racks != null) ?
+    result = (racks != null) ?
         prime * result + racks.hashCode() :
         result + prime;
     if (affinitizedTask != null) {
@@ -171,7 +175,7 @@ public class TaskLocationHint {
       } else if (!affinitizedTask.getVertexName().equals(other.affinitizedTask.getVertexName())) {
         return false;
       }
-    } else if (other.affinitizedTask != null){
+    } else if (other.affinitizedTask != null) {
       return false;
     }
     return true;

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -72,7 +72,7 @@ public class JoinDataGen extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
     LOG.info("Running JoinDataGen");
 
     String outDir1 = args[0];
@@ -130,7 +130,7 @@ public class JoinDataGen extends TezExampleBase {
   }
 
   private DAG createDag(TezConfiguration tezConf, Path largeOutPath, Path smallOutPath,
-      Path expectedOutputPath, int numTasks, long largeOutSize, long smallOutSize)
+                        Path expectedOutputPath, int numTasks, long largeOutSize, long smallOutSize)
       throws IOException {
 
     long largeOutSizePerTask = largeOutSize / numTasks;
@@ -142,13 +142,13 @@ public class JoinDataGen extends TezExampleBase {
         GenDataProcessor.class.getName()).setUserPayload(
         UserPayload.create(ByteBuffer.wrap(GenDataProcessor.createConfiguration(largeOutSizePerTask,
             smallOutSizePerTask)))), numTasks);
-    genDataVertex.addDataSink(STREAM_OUTPUT_NAME, 
+    genDataVertex.addDataSink(STREAM_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, largeOutPath.toUri().toString()).build());
-    genDataVertex.addDataSink(HASH_OUTPUT_NAME, 
+    genDataVertex.addDataSink(HASH_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, smallOutPath.toUri().toString()).build());
-    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME, 
+    genDataVertex.addDataSink(EXPECTED_OUTPUT_NAME,
         MROutput.createConfigBuilder(new Configuration(tezConf),
             TextOutputFormat.class, expectedOutputPath.toUri().toString()).build());
 
@@ -276,7 +276,6 @@ public class JoinDataGen extends TezExampleBase {
       sb.append("_").append(getContext().getTaskIndex()).append("_").append(count);
       return sb.toString();
     }
-
   }
 
   private int checkOutputDirectory(Configuration conf, Path path) throws IOException {
@@ -288,5 +287,4 @@ public class JoinDataGen extends TezExampleBase {
     }
     return 0;
   }
-
 }

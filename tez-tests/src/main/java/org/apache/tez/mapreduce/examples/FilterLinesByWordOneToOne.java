@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,7 +77,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
 
   private static void printUsage() {
-    System.err.println("Usage filterLinesByWordOneToOne <in> <out> <filter_word>" 
+    System.err.println("Usage filterLinesByWordOneToOne <in> <out> <filter_word>"
         + " [-generateSplitsInClient true/<false>]");
     ToolRunner.printGenericCommandUsage(System.err);
   }
@@ -112,7 +112,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     String inputPath = otherArgs[0];
     String outputPath = otherArgs[1];
     String filterWord = otherArgs[2];
-    
+
     Configuration conf = getConf();
     FileSystem fs = FileSystem.get(conf);
     if (fs.exists(new Path(outputPath))) {
@@ -144,8 +144,6 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
         remoteJarStatus.getLen(), remoteJarStatus.getModificationTime());
     commonLocalResources.put("dag_job.jar", dagJarLocalRsrc);
 
-
-
     TezClient tezSession = TezClient.create("FilterLinesByWordSession", tezConf,
         commonLocalResources, null);
     tezSession.start(); // Why do I need to start the TezSession.
@@ -161,7 +159,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
     // Setup stage1 Vertex
     Vertex stage1Vertex = Vertex.create("stage1", ProcessorDescriptor.create(
-        FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
+            FilterByWordInputProcessor.class.getName()).setUserPayload(stage1Payload))
         .addTaskLocalFiles(commonLocalResources);
 
     DataSourceDescriptor dsd;
@@ -186,7 +184,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     stage2Vertex.addDataSink(
         "MROutput",
         DataSinkDescriptor.create(OutputDescriptor.create(MROutput.class.getName())
-            .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf)),
+                .setUserPayload(TezUtils.createUserPayloadFromConf(stage2Conf)),
             OutputCommitterDescriptor.create(MROutputCommitter.class.getName()), null));
 
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig
@@ -203,11 +201,11 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     LOG.info("Submitted DAG to Tez Session");
 
     DAGStatus dagStatus = null;
-    String[] vNames = { "stage1", "stage2" };
+    String[] vNames = {"stage1", "stage2"};
     try {
       while (true) {
         dagStatus = dagClient.getDAGStatus(null);
-        if(dagStatus.getState() == DAGStatus.State.RUNNING ||
+        if (dagStatus.getState() == DAGStatus.State.RUNNING ||
             dagStatus.getState() == DAGStatus.State.SUCCEEDED ||
             dagStatus.getState() == DAGStatus.State.FAILED ||
             dagStatus.getState() == DAGStatus.State.KILLED ||

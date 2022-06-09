@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -83,7 +83,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-
 public class TestFetcher {
 
   public static final String SHUFFLE_INPUT_FILE_PREFIX = "shuffle_input_file_";
@@ -138,7 +137,6 @@ public class TestFetcher {
     verify(scheduler).freeHost(mapHost);
     verify(scheduler).putBackKnownMapOutput(mapHost, inputAttemptIdentifier);
   }
-
 
   @Test(timeout = 5000)
   public void testLocalFetchModeSetting1() throws Exception {
@@ -224,7 +222,6 @@ public class TestFetcher {
         connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
-
     final List<CompositeInputAttemptIdentifier> srcAttempts = Arrays.asList(
         new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", 1),
         new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", 1),
@@ -234,7 +231,7 @@ public class TestFetcher {
     );
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
-    final int[] successfulAttemptsIndexes = { 0, 1, 3 };
+    final int[] successfulAttemptsIndexes = {0, 1, 3};
 
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
 
@@ -243,8 +240,8 @@ public class TestFetcher {
       for (int i = 0; i < srcAttempt.getInputIdentifierCount(); i++) {
         ShuffleScheduler.PathPartition pathPartition = new ShuffleScheduler.PathPartition(srcAttempt.getPathComponent(), host.getPartitionId() + i);
         pathToIdentifierMap.put(pathPartition, srcAttempt.expand(i));
-        }
       }
+    }
     doAnswer(new Answer<InputAttemptIdentifier>() {
       @Override
       public InputAttemptIdentifier answer(InvocationOnMock invocation) throws Throwable {
@@ -289,7 +286,7 @@ public class TestFetcher {
             throw new IOException("failing to simulate failure case");
           }
           // match with params for copySucceeded below.
-          return new TezIndexRecord(p * 10, (p+1) * 1000, (p+2) * 100);
+          return new TezIndexRecord(p * 10, (p + 1) * 1000, (p + 2) * 100);
         }
       }).when(spyFetcher).getIndexRecord(any(), eq(host.getPartitionId() + i));
     }
@@ -321,7 +318,7 @@ public class TestFetcher {
     verify(scheduler).putBackKnownMapOutput(host, srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX));
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testSetupLocalDiskFetchEmptyPartitions() throws Exception {
     Configuration conf = new TezConfiguration();
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
@@ -407,7 +404,6 @@ public class TestFetcher {
         connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
-
     final List<CompositeInputAttemptIdentifier> srcAttempts = Arrays.asList(
         new CompositeInputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0", host.getPartitionCount()),
         new CompositeInputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1", host.getPartitionCount()),
@@ -417,7 +413,7 @@ public class TestFetcher {
     );
     final int FIRST_FAILED_ATTEMPT_IDX = 2;
     final int SECOND_FAILED_ATTEMPT_IDX = 4;
-    final int[] successfulAttemptsIndexes = { 0, 1, 3 };
+    final int[] successfulAttemptsIndexes = {0, 1, 3};
 
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
     final ConcurrentMap<ShuffleScheduler.PathPartition, InputAttemptIdentifier> pathToIdentifierMap
@@ -430,15 +426,15 @@ public class TestFetcher {
     }
 
     doAnswer(new Answer<InputAttemptIdentifier>() {
-        @Override
-        public InputAttemptIdentifier answer(InvocationOnMock invocation) throws Throwable {
-          Object[] args = invocation.getArguments();
-          String path = (String) args[0];
-          int reduceId = (int) args[1];
-          return pathToIdentifierMap.get(new ShuffleScheduler.PathPartition(path, reduceId));
-        }
-      }).when(scheduler)
-          .getIdentifierForFetchedOutput(any(String.class), any(int.class));
+      @Override
+      public InputAttemptIdentifier answer(InvocationOnMock invocation) throws Throwable {
+        Object[] args = invocation.getArguments();
+        String path = (String) args[0];
+        int reduceId = (int) args[1];
+        return pathToIdentifierMap.get(new ShuffleScheduler.PathPartition(path, reduceId));
+      }
+    }).when(scheduler)
+        .getIdentifierForFetchedOutput(any(String.class), any(int.class));
 
     doAnswer(new Answer<MapOutput>() {
       @Override
@@ -506,10 +502,10 @@ public class TestFetcher {
         eq(InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(FIRST_FAILED_ATTEMPT_IDX).expand(1))),
         eq(host), eq(true), eq(false));
     verify(scheduler).copyFailed(eq(
-        InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0))),
+            InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(0))),
         eq(host), eq(true), eq(false));
     verify(scheduler).copyFailed(eq(
-        InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1))),
+            InputAttemptFetchFailure.fromLocalFetchFailure(srcAttempts.get(SECOND_FAILED_ATTEMPT_IDX).expand(1))),
         eq(host), eq(true), eq(false));
 
     verify(spyFetcher).putBackRemainingMapOutputs(host);
@@ -520,14 +516,14 @@ public class TestFetcher {
   }
 
   private void verifyCopySucceeded(ShuffleScheduler scheduler, MapHost host,
-      List<CompositeInputAttemptIdentifier> srcAttempts, long p, int j) throws
+                                   List<CompositeInputAttemptIdentifier> srcAttempts, long p, int j) throws
       IOException {
     // need to verify filename, offsets, sizes wherever they are used.
     InputAttemptIdentifier srcAttemptToMatch = srcAttempts.get((int) p).expand(j);
     String filenameToMatch = SHUFFLE_INPUT_FILE_PREFIX + srcAttemptToMatch.getPathComponent();
     ArgumentCaptor<MapOutput> captureMapOutput = ArgumentCaptor.forClass(MapOutput.class);
-    verify(scheduler).copySucceeded(eq(srcAttemptToMatch), eq(host), eq((p+2) * 100),
-        eq((p+1) * 1000), anyLong(), captureMapOutput.capture(), anyBoolean());
+    verify(scheduler).copySucceeded(eq(srcAttemptToMatch), eq(host), eq((p + 2) * 100),
+        eq((p + 1) * 1000), anyLong(), captureMapOutput.capture(), anyBoolean());
 
     // cannot use the equals of MapOutput as it compares id which is private. so doing it manually
     MapOutput m = captureMapOutput.getAllValues().get(0);
@@ -538,7 +534,7 @@ public class TestFetcher {
   static class FakeHttpConnection extends HttpConnection {
 
     public FakeHttpConnection(URL url,
-        HttpConnectionParams connParams, String logIdentifier, JobTokenSecretManager jobTokenSecretMgr)
+                              HttpConnectionParams connParams, String logIdentifier, JobTokenSecretManager jobTokenSecretMgr)
         throws IOException {
       super(url, connParams, logIdentifier, jobTokenSecretMgr);
       this.connection = mock(HttpURLConnection.class);
@@ -584,7 +580,6 @@ public class TestFetcher {
         connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
-
     final List<InputAttemptIdentifier> srcAttempts = Arrays.asList(
         new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0"),
         new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1"),
@@ -609,7 +604,8 @@ public class TestFetcher {
 
     //Create read timeout when reading data
     doAnswer(new Answer<Void>() {
-      @Override public Void answer(InvocationOnMock invocation) throws Throwable {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
         doReturn(false).when(fetcher).setupConnection(any(MapHost.class), any(Collection.class));
         // Simulate read timeout by throwing proper exception
         throw new FetcherReadTimeoutException("creating fetcher socket read timeout exception");
@@ -618,29 +614,27 @@ public class TestFetcher {
 
     try {
       fetcher.copyFromHost(host);
-    } catch(IOException e) {
+    } catch (IOException e) {
       //ignore
     }
     //setup connection should be called twice (1 for connect and another for retry)
     verify(fetcher, times(2)).setupConnection(any(MapHost.class), any(Collection.class));
     //since copyMapOutput consistently fails, it should call copyFailed once
     verify(scheduler, times(1)).copyFailed(any(InputAttemptFetchFailure.class), any(MapHost.class),
-          anyBoolean(), anyBoolean());
+        anyBoolean(), anyBoolean());
 
     verify(fetcher, times(1)).putBackRemainingMapOutputs(any(MapHost.class));
     verify(scheduler, times(3)).putBackKnownMapOutput(any(MapHost.class),
         any(InputAttemptIdentifier.class));
-
 
     //Verify by stopping the fetcher abruptly
     try {
       fetcher.stopped = false; // flag to indicate fetcher stopped
       fetcher.copyFromHost(host);
       verify(fetcher, times(2)).putBackRemainingMapOutputs(any(MapHost.class));
-    } catch(IOException e) {
+    } catch (IOException e) {
       //ignore
     }
-
   }
 
   @Test
@@ -687,37 +681,37 @@ public class TestFetcher {
   @Test(timeout = 5000)
   public void testInputAttemptIdentifierMap() {
     InputAttemptIdentifier[] srcAttempts = {
-      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-          //duplicate entry
-      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      // pipeline shuffle based identifiers, with multiple attempts
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
-          false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
-      new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
-          false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
+        new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        //duplicate entry
+        new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        // pipeline shuffle based identifiers, with multiple attempts
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
+        new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
     };
     InputAttemptIdentifier[] expectedSrcAttempts = {
-      new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      // pipeline shuffle based identifiers
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
-          false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
-      new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
-          false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
-      new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
-          false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
+        new InputAttemptIdentifier(0, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_0",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        // pipeline shuffle based identifiers
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(1, 2, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_1",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 0),
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_2",
+            false, InputAttemptIdentifier.SPILL_INFO.INCREMENTAL_UPDATE, 1),
+        new InputAttemptIdentifier(1, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_UPDATE, 2),
+        new InputAttemptIdentifier(2, 1, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3",
+            false, InputAttemptIdentifier.SPILL_INFO.FINAL_MERGE_ENABLED, 0)
     };
 
     Configuration conf = new TezConfiguration();
@@ -733,7 +727,7 @@ public class TestFetcher {
     Assert.assertEquals(expectedSrcAttempts.length, fetcher.remaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.remaining.entrySet().iterator();
     int count = 0;
-    while(iterator.hasNext()) {
+    while (iterator.hasNext()) {
       String key = iterator.next().getKey();
       Assert.assertTrue(expectedSrcAttempts[count++].toString().compareTo(key) == 0);
     }
@@ -773,7 +767,6 @@ public class TestFetcher {
       throw new RuntimeException(e);
     }
   }
-
 
   private InputContext createMockInputContext() {
     InputContext inputContext = mock(InputContext.class);

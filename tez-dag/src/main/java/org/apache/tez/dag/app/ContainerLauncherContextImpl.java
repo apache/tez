@@ -71,7 +71,6 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
         containerId, context.getClock().getTime(), context.getApplicationAttemptId());
     context.getHistoryHandler().handle(new DAGHistoryEvent(
         null, lEvt));
-
   }
 
   @Override
@@ -144,6 +143,4 @@ public class ContainerLauncherContextImpl implements ContainerLauncherContext {
     Objects.requireNonNull(servicePluginError, "ServiceError must be specified");
     containerLauncherManager.reportError(containerLauncherIndex, servicePluginError, message, dagInfo);
   }
-
-
 }

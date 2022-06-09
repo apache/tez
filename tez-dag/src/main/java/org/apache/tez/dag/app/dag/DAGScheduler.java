@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag;
 
@@ -37,9 +37,9 @@ public abstract class DAGScheduler {
       this.concurrencyLimit = limit;
     }
   }
-  
+
   Map<TezVertexID, VertexInfo> vertexInfo = null;
-  
+
   public void addVertexConcurrencyLimit(TezVertexID vId, int concurrency) {
     if (vertexInfo == null) {
       vertexInfo = new HashMap<>();
@@ -48,7 +48,7 @@ public abstract class DAGScheduler {
       vertexInfo.put(vId, new VertexInfo(concurrency));
     }
   }
-  
+
   public void scheduleTask(DAGEventSchedulerUpdate event) {
     VertexInfo vInfo = null;
     if (vertexInfo != null) {
@@ -56,7 +56,7 @@ public abstract class DAGScheduler {
     }
     scheduleTaskWithLimit(event, vInfo);
   }
-  
+
   private void scheduleTaskWithLimit(DAGEventSchedulerUpdate event, VertexInfo vInfo) {
     if (vInfo != null) {
       if (vInfo.concurrency >= vInfo.concurrencyLimit) {
@@ -67,15 +67,15 @@ public abstract class DAGScheduler {
     }
     scheduleTaskEx(event);
   }
-  
+
   public void taskCompleted(DAGEventSchedulerUpdate event) {
     taskCompletedEx(event);
     if (vertexInfo != null) {
       VertexInfo vInfo = vertexInfo.get(event.getVertexID());
       if (vInfo != null) {
-        if(vInfo.pendingAttempts.remove(event.getTaskAttemptID()) == null) {
+        if (vInfo.pendingAttempts.remove(event.getTaskAttemptID()) == null) {
           vInfo.concurrency--;
-          if(!vInfo.pendingAttempts.isEmpty()) {
+          if (!vInfo.pendingAttempts.isEmpty()) {
             Iterator<DAGEventSchedulerUpdate> i = vInfo.pendingAttempts.values().iterator();
             DAGEventSchedulerUpdate nextTaskAttempt = i.next();
             i.remove();
@@ -85,9 +85,9 @@ public abstract class DAGScheduler {
       }
     }
   }
-  
+
   public abstract void scheduleTaskEx(DAGEventSchedulerUpdate event);
-  
+
   public abstract void taskCompletedEx(DAGEventSchedulerUpdate event);
 
   /**
@@ -108,7 +108,6 @@ public abstract class DAGScheduler {
    * @return the priority
    */
   public int getPriorityHighLimit(final DAG dag, final Vertex vertex) {
-    return  getPriorityLowLimit(dag, vertex) - 2;
+    return getPriorityLowLimit(dag, vertex) - 2;
   }
-
 }

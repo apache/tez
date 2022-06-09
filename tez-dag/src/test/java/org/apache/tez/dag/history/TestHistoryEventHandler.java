@@ -156,7 +156,7 @@ public class TestHistoryEventHandler {
   }
 
   private void testLogLevel(HistoryLogLevel defaultLogLevel, HistoryLogLevel dagLogLevel,
-      int expectedCount) {
+                            int expectedCount) {
     HistoryEventHandler handler = createHandler(defaultLogLevel);
     InMemoryHistoryLoggingService.events.clear();
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 1);
@@ -178,7 +178,9 @@ public class TestHistoryEventHandler {
     public InMemoryHistoryLoggingService() {
       super("InMemoryHistoryLoggingService");
     }
+
     static List<DAGHistoryEvent> events = new ArrayList<>();
+
     @Override
     public void handle(DAGHistoryEvent event) {
       events.add(event);
@@ -199,11 +201,12 @@ public class TestHistoryEventHandler {
 
     AppContext appContext = mock(AppContext.class);
     when(appContext.getApplicationID()).thenReturn(appId);
-    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {});
+    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {
+    });
     when(appContext.getAMConf()).thenReturn(conf);
     when(appContext.getCurrentDAG()).thenReturn(dag);
 
-    HistoryEventHandler handler =  new HistoryEventHandler(appContext);
+    HistoryEventHandler handler = new HistoryEventHandler(appContext);
     handler.init(conf);
 
     return handler;

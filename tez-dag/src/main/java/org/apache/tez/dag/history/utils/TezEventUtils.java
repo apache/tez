@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 package org.apache.tez.dag.history.utils;
 
 import java.io.IOException;
+
 import org.apache.tez.common.ProtoConverters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
@@ -50,7 +51,7 @@ public class TezEventUtils {
           .convertRootInputInitializerEventToProto((InputInitializerEvent) event.getEvent()));
     } else if (event.getEventType().equals(EventType.VERTEX_MANAGER_EVENT)) {
       evtBuilder.setVmEvent(ProtoConverters
-          .convertVertexManagerEventToProto((VertexManagerEvent)event.getEvent()));
+          .convertVertexManagerEventToProto((VertexManagerEvent) event.getEvent()));
     } else if (event.getEventType().equals(EventType.ROOT_INPUT_DATA_INFORMATION_EVENT)) {
       evtBuilder.setRootInputDataInformationEvent(
           ProtoConverters.convertRootInputDataInformationEventToProto(
@@ -102,16 +103,16 @@ public class TezEventUtils {
     tezEvent.setDestinationInfo(destinationInfo);
     return tezEvent;
   }
-  
+
   public static RecoveryProtos.EventMetaDataProto convertEventMetaDataToProto(
       EventMetaData eventMetaData) {
     RecoveryProtos.EventMetaDataProto.Builder builder =
         RecoveryProtos.EventMetaDataProto.newBuilder()
-        .setProducerConsumerType(eventMetaData.getEventGenerator().ordinal())
-        .setEdgeVertexName(eventMetaData.getEdgeVertexName())
-        .setTaskVertexName(eventMetaData.getTaskVertexName());
+            .setProducerConsumerType(eventMetaData.getEventGenerator().ordinal())
+            .setEdgeVertexName(eventMetaData.getEdgeVertexName())
+            .setTaskVertexName(eventMetaData.getTaskVertexName());
     if (eventMetaData.getTaskAttemptID() != null) {
-        builder.setTaskAttemptId(eventMetaData.getTaskAttemptID().toString());
+      builder.setTaskAttemptId(eventMetaData.getTaskAttemptID().toString());
     }
     return builder.build();
   }

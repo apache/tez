@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -106,7 +106,7 @@ public class DagInfo extends BaseInfo {
     JSONObject otherInfoNode = jsonObject.getJSONObject(Constants.OTHER_INFO);
 
     long sTime = otherInfoNode.optLong(Constants.START_TIME);
-    long eTime= otherInfoNode.optLong(Constants.FINISH_TIME);
+    long eTime = otherInfoNode.optLong(Constants.FINISH_TIME);
     userName = otherInfoNode.optString(Constants.USER);
     if (eTime < sTime) {
       LOG.warn("DAG has got wrong start/end values. "
@@ -114,16 +114,16 @@ public class DagInfo extends BaseInfo {
           + "timestamps in DAG started/finished events");
 
       // Check if events DAG_STARTED, DAG_FINISHED can be made use of
-      for(Event event : eventList) {
+      for (Event event : eventList) {
         switch (HistoryEventType.valueOf(event.getType())) {
-        case DAG_STARTED:
-          sTime = event.getAbsoluteTime();
-          break;
-        case DAG_FINISHED:
-          eTime = event.getAbsoluteTime();
-          break;
-        default:
-          break;
+          case DAG_STARTED:
+            sTime = event.getAbsoluteTime();
+            break;
+          case DAG_FINISHED:
+            eTime = event.getAbsoluteTime();
+            break;
+          default:
+            break;
         }
       }
 
@@ -203,7 +203,6 @@ public class DagInfo extends BaseInfo {
     } else {
       LOG.info("No DAG Caller Context Id and Type available");
     }
-
   }
 
   private void parseBasicVertexInfo(JSONArray verticesInfo) throws JSONException {
@@ -273,7 +272,6 @@ public class DagInfo extends BaseInfo {
 
         additionalInputOutputDetails[j] =
             new AdditionalInputOutputDetails(name, clazz, initializer, userPayloadText);
-
       }
       return additionalInputOutputDetails;
     }
@@ -502,7 +500,8 @@ public class DagInfo extends BaseInfo {
     List<VertexInfo> vertices = Lists.newLinkedList(vertexNameMap.values());
     Collections.sort(vertices, new Comparator<VertexInfo>() {
 
-      @Override public int compare(VertexInfo o1, VertexInfo o2) {
+      @Override
+      public int compare(VertexInfo o1, VertexInfo o2) {
         return (o1.getStartTimeInterval() < o2.getStartTimeInterval()) ? -1 :
             ((o1.getStartTimeInterval() == o2.getStartTimeInterval()) ?
                 0 : 1);
@@ -547,7 +546,8 @@ public class DagInfo extends BaseInfo {
   public final List<VertexInfo> getVertices(final VertexState state) {
     return Collections.unmodifiableList(Lists.newLinkedList(Iterables.filter(Lists.newLinkedList
                     (vertexNameMap.values()), new Predicate<VertexInfo>() {
-                  @Override public boolean apply(VertexInfo input) {
+                  @Override
+                  public boolean apply(VertexInfo input) {
                     return input.getStatus() != null && input.getStatus().equals(state.toString());
                   }
                 }
@@ -562,7 +562,8 @@ public class DagInfo extends BaseInfo {
 
   private Ordering<VertexInfo> getVertexOrdering() {
     return Ordering.from(new Comparator<VertexInfo>() {
-      @Override public int compare(VertexInfo o1, VertexInfo o2) {
+      @Override
+      public int compare(VertexInfo o1, VertexInfo o2) {
         return (o1.getTimeTaken() < o2.getTimeTaken()) ? -1 :
             ((o1.getTimeTaken() == o2.getTimeTaken()) ?
                 0 : 1);

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -79,7 +79,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-
 public class TestLogicalIOProcessorRuntimeTask {
 
   @Test(timeout = 5000)
@@ -126,7 +125,7 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertEquals(30, lio1.getProcessorContext().getVertexParallelism());
       assertEquals(30, lio1.getInputContexts().iterator().next().getVertexParallelism());
       assertEquals(30, lio1.getOutputContexts().iterator().next().getVertexParallelism());
-    } catch(Exception e) {
+    } catch (Exception e) {
       fail();
       sharedExecutor.shutdownNow();
     } finally {
@@ -154,13 +153,12 @@ public class TestLogicalIOProcessorRuntimeTask {
       assertEquals(10, lio2.getProcessorContext().getVertexParallelism());
       assertEquals(10, lio2.getInputContexts().iterator().next().getVertexParallelism());
       assertEquals(10, lio2.getOutputContexts().iterator().next().getVertexParallelism());
-    } catch(Exception e) {
+    } catch (Exception e) {
       fail();
     } finally {
       cleanupAndTest(lio2);
       sharedExecutor.shutdownNow();
     }
-
   }
 
   @Test
@@ -193,7 +191,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     runner.call();
 
     // We verify that no events were sent
-    verify(umbilical, only()).addEvents(Collections.<TezEvent> emptyList());
+    verify(umbilical, only()).addEvents(Collections.<TezEvent>emptyList());
   }
 
   /**
@@ -288,8 +286,8 @@ public class TestLogicalIOProcessorRuntimeTask {
   }
 
   private TaskSpec createTaskSpec(TezTaskAttemptID taskAttemptID,
-      String dagName, String vertexName, int parallelism,
-      String processorClassname, String outputClassName) {
+                                  String dagName, String vertexName, int parallelism,
+                                  String processorClassname, String outputClassName) {
     ProcessorDescriptor processorDesc = createProcessorDescriptor(processorClassname);
     TaskSpec taskSpec = new TaskSpec(taskAttemptID,
         dagName, vertexName, parallelism, processorDesc,
@@ -331,24 +329,25 @@ public class TestLogicalIOProcessorRuntimeTask {
   private static class CleanupLogicalIOProcessorRuntimeTask
       extends LogicalIOProcessorRuntimeTask {
     CleanupLogicalIOProcessorRuntimeTask(TaskSpec taskSpec,
-        int appAttemptNumber, Configuration tezConf, String[] localDirs,
-        TezUmbilical tezUmbilical,
-        Map<String, ByteBuffer> serviceConsumerMetadata,
-        Map<String, String> envMap, Multimap<String, String> startedInputsMap,
-        ObjectRegistry objectRegistry, String pid,
-        org.apache.tez.runtime.api.ExecutionContext ExecutionContext,
-        long memAvailable, boolean updateSysCounters, HadoopShim hadoopShim,
-        TezExecutors sharedExecutor) throws IOException {
+                                         int appAttemptNumber, Configuration tezConf, String[] localDirs,
+                                         TezUmbilical tezUmbilical,
+                                         Map<String, ByteBuffer> serviceConsumerMetadata,
+                                         Map<String, String> envMap, Multimap<String, String> startedInputsMap,
+                                         ObjectRegistry objectRegistry, String pid,
+                                         org.apache.tez.runtime.api.ExecutionContext ExecutionContext,
+                                         long memAvailable, boolean updateSysCounters, HadoopShim hadoopShim,
+                                         TezExecutors sharedExecutor) throws IOException {
       super(taskSpec, appAttemptNumber, tezConf, localDirs, tezUmbilical,
           serviceConsumerMetadata, envMap, startedInputsMap, objectRegistry,
           pid, ExecutionContext, memAvailable, updateSysCounters, hadoopShim,
           sharedExecutor);
     }
 
-    @Override public void cleanup() throws InterruptedException {
+    @Override
+    public void cleanup() throws InterruptedException {
       getOutputContexts().forEach(context
           -> context.sendEvents(Arrays.asList(
-              CompositeDataMovementEvent.create(0, 0, null)
+          CompositeDataMovementEvent.create(0, 0, null)
       )));
     }
   }
@@ -379,7 +378,6 @@ public class TestLogicalIOProcessorRuntimeTask {
     @Override
     public void close() throws Exception {
     }
-
   }
 
   public static class RunExceptionProcessor
@@ -390,7 +388,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     }
 
     public void run(Map<String, LogicalInput> inputs,
-        Map<String, LogicalOutput> outputs)
+                    Map<String, LogicalOutput> outputs)
         throws Exception {
       // This exception is thrown in purpose because we want to test this
       throw new RuntimeException();
@@ -413,7 +411,6 @@ public class TestLogicalIOProcessorRuntimeTask {
     public void close() throws Exception {
       throw new RuntimeException();
     }
-
   }
 
   public static class TestInput extends AbstractLogicalInput {
@@ -452,7 +449,6 @@ public class TestLogicalIOProcessorRuntimeTask {
     public List<Event> close() throws Exception {
       return null;
     }
-
   }
 
   public static class TestOutput extends AbstractLogicalOutput {
@@ -463,7 +459,6 @@ public class TestLogicalIOProcessorRuntimeTask {
     public TestOutput(OutputContext outputContext, int numPhysicalOutputs) {
       super(outputContext, numPhysicalOutputs);
     }
-
 
     @Override
     public List<Event> initialize() throws Exception {

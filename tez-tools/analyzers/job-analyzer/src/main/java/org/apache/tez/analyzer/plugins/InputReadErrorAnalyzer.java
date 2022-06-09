@@ -34,7 +34,7 @@ import org.apache.tez.history.parser.datamodel.VertexInfo;
  * Helps finding the root cause of shuffle errors, e.g. which node(s) can be blamed for them.
  */
 public class InputReadErrorAnalyzer extends TezAnalyzerBase implements Analyzer {
-  private final String[] headers = { "vertex:attempt", "status", "time", "node", "diagnostics" };
+  private final String[] headers = {"vertex:attempt", "status", "time", "node", "diagnostics"};
   private final CSVResult csvResult;
 
   public InputReadErrorAnalyzer(Configuration config) {
@@ -52,10 +52,10 @@ public class InputReadErrorAnalyzer extends TezAnalyzerBase implements Analyzer 
             || "NODE_FAILED".equalsIgnoreCase(terminationCause)) {
           for (Event event : attempt.getEvents()) {
             if (event.getType().equalsIgnoreCase("TASK_ATTEMPT_FINISHED")) {
-              csvResult.addRecord(new String[] {
+              csvResult.addRecord(new String[]{
                   vertex.getVertexName() + ":" + attempt.getTaskAttemptId(),
                   attempt.getDetailedStatus(), String.valueOf(event.getTime()), attempt.getNodeId(),
-                  attempt.getDiagnostics().replaceAll(",", " ").replaceAll("\n", " ") });
+                  attempt.getDiagnostics().replaceAll(",", " ").replaceAll("\n", " ")});
             }
           }
         }

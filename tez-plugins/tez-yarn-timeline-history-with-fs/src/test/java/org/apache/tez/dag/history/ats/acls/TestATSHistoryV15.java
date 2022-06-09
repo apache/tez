@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -114,7 +114,6 @@ public class TestATSHistoryV15 {
         conf.set(YarnConfiguration.TIMELINE_SERVICE_ENTITYGROUP_FS_STORE_DONE_DIR,
             remoteFs.resolvePath(atsDonePath).toString());
 
-
         mrrTezCluster.init(conf);
         mrrTezCluster.start();
       } catch (Throwable e) {
@@ -143,7 +142,7 @@ public class TestATSHistoryV15 {
     }
   }
 
-  @Test(timeout=50000)
+  @Test(timeout = 50000)
   public void testSimpleDAG() throws Exception {
     TezClient tezSession = null;
     ApplicationId applicationId;
@@ -303,7 +302,8 @@ public class TestATSHistoryV15 {
       ATSV15HistoryLoggingService service = new ATSV15HistoryLoggingService();
       AppContext appContext = mock(AppContext.class);
       when(appContext.getApplicationID()).thenReturn(appId);
-      when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {});
+      when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {
+      });
       service.setAppContext(appContext);
 
       TimelineEntityGroupId grpId = service.getGroupId(event);
@@ -323,5 +323,4 @@ public class TestATSHistoryV15 {
       service.close();
     }
   }
-
 }

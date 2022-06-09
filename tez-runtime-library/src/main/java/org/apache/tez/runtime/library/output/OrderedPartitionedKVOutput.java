@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -143,7 +143,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
 
         Preconditions.checkArgument(sorterImpl.equals(SorterImpl.PIPELINED),
             TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED
-              + "only works with PipelinedSorter.");
+                + "only works with PipelinedSorter.");
       }
 
       if (sorterImpl.equals(SorterImpl.PIPELINED)) {
@@ -195,7 +195,7 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
       sorter = null;
     } else {
       LOG.warn(getContext().getInputOutputVertexNames() +
-          ": Attempting to close output {} of type {} before it was started. Generating empty events",
+              ": Attempting to close output {} of type {} before it was started. Generating empty events",
           getContext().getDestinationVertexName(), this.getClass().getSimpleName());
       returnEvents = generateEmptyEvents();
     }
@@ -222,7 +222,6 @@ public class OrderedPartitionedKVOutput extends AbstractLogicalOutput {
     ShuffleUtils.generateEventsForNonStartedOutput(eventList, getNumPhysicalOutputs(), getContext(), true, true, deflater);
     return eventList;
   }
-
 
   private static final Set<String> confKeys = new HashSet<String>();
 

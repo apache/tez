@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.processor;
 
@@ -55,9 +55,9 @@ public class MRTaskReporter
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
-  
+
   public MRTaskReporter(InputContext context) {
-    this.context= context;
+    this.context = context;
     this.reporter = new MRReporter(context.getCounters());
     this.isProcessorContext = false;
   }
@@ -68,7 +68,7 @@ public class MRTaskReporter
     progress = ProgressHelper.processProgress(progress);
     reporter.setProgress(progress);
     if (isProcessorContext) {
-      ((ProcessorContext)context).setProgress(progress);
+      ((ProcessorContext) context).setProgress(progress);
     } else {
       // TODO FIXME NEWTEZ - will MROutput's reporter use this api?
     }
@@ -80,7 +80,9 @@ public class MRTaskReporter
 
   public float getProgress() {
     return reporter.getProgress();
-  };
+  }
+
+  ;
 
   public void progress() {
     reporter.progress();
@@ -123,5 +125,4 @@ public class MRTaskReporter
       return split;
     }
   }
-
 }

@@ -100,12 +100,9 @@ public class TestShuffle {
 
       Throwable t = throwableArgumentCaptor.getValue();
       assertTrue(t.getCause().getMessage().contains(exceptionMessage));
-
     } finally {
       shuffle.shutdown();
     }
-
-
   }
 
   @Test(timeout = 10000)
@@ -135,9 +132,7 @@ public class TestShuffle {
     } finally {
       shuffle.shutdown();
     }
-
   }
-
 
   private InputContext createTezInputContext() throws IOException {
     ApplicationId applicationId = ApplicationId.newInstance(1, 1);

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -76,23 +76,23 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   private String nodeHttpAddress;
 
   public TaskAttemptFinishedEvent(TezTaskAttemptID taId,
-      String vertexName,
-      long startTime,
-      long finishTime,
-      TaskAttemptState state,
-      @Nullable TaskFailureType taskFailureType,
-      TaskAttemptTerminationCause error,
-      String diagnostics, TezCounters counters, 
-      List<DataEventDependencyInfo> dataEvents,
-      List<TezEvent> taGeneratedEvents,
-      long creationTime, 
-      TezTaskAttemptID creationCausalTA, 
-      long allocationTime,
-      ContainerId containerId,
-      NodeId nodeId,
-      String inProgressLogsUrl,
-      String completedLogsUrl,
-      String nodeHttpAddress) {
+                                  String vertexName,
+                                  long startTime,
+                                  long finishTime,
+                                  TaskAttemptState state,
+                                  @Nullable TaskFailureType taskFailureType,
+                                  TaskAttemptTerminationCause error,
+                                  String diagnostics, TezCounters counters,
+                                  List<DataEventDependencyInfo> dataEvents,
+                                  List<TezEvent> taGeneratedEvents,
+                                  long creationTime,
+                                  TezTaskAttemptID creationCausalTA,
+                                  long allocationTime,
+                                  ContainerId containerId,
+                                  NodeId nodeId,
+                                  String inProgressLogsUrl,
+                                  String completedLogsUrl,
+                                  String nodeHttpAddress) {
     this.taskAttemptId = taId;
     this.vertexName = vertexName;
     this.creationCausalTA = creationCausalTA;
@@ -131,11 +131,11 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public boolean isHistoryEvent() {
     return true;
   }
-  
+
   public List<DataEventDependencyInfo> getDataEvents() {
     return dataEvents;
   }
-  
+
   public TaskAttemptFinishedProto toProto() throws IOException {
     TaskAttemptFinishedProto.Builder builder =
         TaskAttemptFinishedProto.newBuilder();
@@ -203,7 +203,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
     }
     if (proto.hasCounters()) {
       this.tezCounters = DagTypeConverters.convertTezCountersFromProto(
-        proto.getCounters());
+          proto.getCounters());
     }
     if (proto.getDataEventsCount() > 0) {
       this.dataEvents = Lists.newArrayListWithCapacity(proto.getDataEventsCount());
@@ -320,7 +320,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public String getDiagnostics() {
     return diagnostics;
   }
-  
+
   public TaskAttemptTerminationCause getTaskAttemptError() {
     return error;
   }
@@ -340,15 +340,15 @@ public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAwar
   public long getStartTime() {
     return startTime;
   }
-  
+
   public long getCreationTime() {
     return creationTime;
   }
-  
+
   public long getAllocationTime() {
     return allocationTime;
   }
-  
+
   public TezTaskAttemptID getCreationCausalTA() {
     return creationCausalTA;
   }

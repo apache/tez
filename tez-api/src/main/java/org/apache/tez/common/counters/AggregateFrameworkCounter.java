@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,8 @@ package org.apache.tez.common.counters;
 import org.apache.tez.common.counters.FrameworkCounterGroup.FrameworkCounter;
 
 @SuppressWarnings("rawtypes")
-public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCounter implements AggregateTezCounter  {
-  
+public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCounter implements AggregateTezCounter {
+
   private long min = Long.MAX_VALUE;
   private long max = Long.MIN_VALUE;
   private long count = 0;
@@ -36,7 +36,7 @@ public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCount
   public void increment(long incr) {
     throw new IllegalArgumentException("Cannot increment an aggregate counter directly");
   }
-  
+
   @Override
   public void aggregate(TezCounter other) {
     final long val = other.getValue();
@@ -71,15 +71,14 @@ public class AggregateFrameworkCounter<T extends Enum<T>> extends FrameworkCount
   public long getMax() {
     return max;
   }
-  
+
   @SuppressWarnings("unchecked")
   public FrameworkCounter<T> asFrameworkCounter() {
-    return ((FrameworkCounter<T>)this);
+    return ((FrameworkCounter<T>) this);
   }
 
   @Override
   public long getCount() {
     return count;
   }
-
 }

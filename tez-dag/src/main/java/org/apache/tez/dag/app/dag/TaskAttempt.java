@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag;
 
@@ -43,7 +43,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
     public TaskAttemptState state;
     public float progress;
     public TezCounters counters;
-    
+
     public TaskAttemptStatus(TezTaskAttemptID id) {
       this.id = id;
     }
@@ -51,6 +51,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
     // insert these counters till they come natively from the task itself.
     // HDFS-5098
     private AtomicBoolean localitySet = new AtomicBoolean(false);
+
     public void setLocalityCounter(DAGCounter localityCounter) {
       if (!localitySet.get()) {
         localitySet.set(true);
@@ -66,17 +67,24 @@ public interface TaskAttempt extends TaskAttemptIDAware {
   }
 
   Task getTask();
+
   TaskAttemptReport getReport();
+
   List<String> getDiagnostics();
+
   TaskAttemptTerminationCause getTerminationCause();
+
   TezCounters getCounters();
+
   float getProgress();
+
   TaskAttemptState getState();
+
   TaskAttemptState getStateNoLock();
-  
+
   void setLastEventSent(TezEvent lastEventSent);
 
-  /** 
+  /**
    * Has attempt reached the final state or not.
    * @return true if it has finished, else false
    */
@@ -86,7 +94,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    * @return the container ID if a container is assigned, otherwise null.
    */
   ContainerId getAssignedContainerID();
-  
+
   /**
    * @return the container if assigned, otherwise null
    */
@@ -96,23 +104,23 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    * @return container mgr address if a container is assigned, otherwise null.
    */
   String getAssignedContainerMgrAddress();
-  
+
   /**
    * @return node's id if a container is assigned, otherwise null.
    */
   NodeId getNodeId();
-  
+
   /**
    * @return node's http address if a container is assigned, otherwise null.
    */
   String getNodeHttpAddress();
-  
+
   /**
    * @return node's rack name if a container is assigned, otherwise null.
    */
   String getNodeRackName();
 
-  /** 
+  /**
    * @return time at which container is launched. If container is not launched
    * yet, returns 0.
    */
@@ -124,7 +132,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
    */
   long getScheduleTime();
 
-  /** 
+  /**
    * @return attempt's finish time. If attempt is not finished
    *  yet, returns 0.
    */

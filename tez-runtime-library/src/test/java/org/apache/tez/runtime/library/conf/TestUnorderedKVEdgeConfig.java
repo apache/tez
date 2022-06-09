@@ -39,7 +39,7 @@ import org.junit.Test;
 
 public class TestUnorderedKVEdgeConfig {
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testNullParams() {
     try {
       UnorderedKVEdgeConfig.newBuilder(null, "VALUE");
@@ -56,14 +56,13 @@ public class TestUnorderedKVEdgeConfig {
     }
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testDefaultConfigsUsed() {
     UnorderedKVEdgeConfig.Builder builder =
         UnorderedKVEdgeConfig.newBuilder("KEY", "VALUE");
     builder.setKeySerializationClass("SerClass1", null).setValueSerializationClass("SerClass2", null);
 
     UnorderedKVEdgeConfig configuration = builder.build();
-
 
     UnorderedKVOutputConfig rebuiltOutput =
         new UnorderedKVOutputConfig();
@@ -89,7 +88,7 @@ public class TestUnorderedKVEdgeConfig {
         ("SerClass2,SerClass1"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     UnorderedKVEdgeConfig.Builder builder =
@@ -113,7 +112,7 @@ public class TestUnorderedKVEdgeConfig {
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void tetCommonConf() {
 
     Configuration fromConf = new Configuration(false);
@@ -186,7 +185,7 @@ public class TestUnorderedKVEdgeConfig {
         TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testHistoryText() {
     UnorderedKVEdgeConfig.Builder builder = UnorderedKVEdgeConfig.newBuilder("KEY", "VALUE");
     Configuration fromConf = new Configuration(false);
@@ -211,8 +210,5 @@ public class TestUnorderedKVEdgeConfig {
     EdgeProperty edgeProperty = builder.build().createDefaultCustomEdgeProperty(descriptor);
     checkHistoryText(edgeProperty.getEdgeDestination().getHistoryText());
     checkHistoryText(edgeProperty.getEdgeSource().getHistoryText());
-
   }
-
-
 }

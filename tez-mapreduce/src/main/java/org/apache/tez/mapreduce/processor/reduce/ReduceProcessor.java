@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ import org.apache.tez.runtime.library.input.OrderedGroupedInputLegacy;
 import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 
 @Private
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class ReduceProcessor extends MRTask {
 
   private static final Logger LOG = LoggerFactory.getLogger(ReduceProcessor.class);
@@ -82,12 +82,11 @@ public class ReduceProcessor extends MRTask {
     if (progressHelper != null) {
       progressHelper.shutDownProgressTaskService();
     }
-
   }
 
   @Override
   public void run(Map<String, LogicalInput> _inputs,
-      Map<String, LogicalOutput> _outputs) throws Exception {
+                  Map<String, LogicalOutput> _outputs) throws Exception {
     this.inputs = _inputs;
     this.outputs = _outputs;
     progressHelper = new ProgressHelper(this.inputs, processorContext, this.getClass().getSimpleName());
@@ -135,11 +134,11 @@ public class ReduceProcessor extends MRTask {
     if (!(in instanceof OrderedGroupedInputLegacy)) {
       throw new IOException("Illegal input to reduce: " + in.getClass());
     }
-    OrderedGroupedInputLegacy shuffleInput = (OrderedGroupedInputLegacy)in;
+    OrderedGroupedInputLegacy shuffleInput = (OrderedGroupedInputLegacy) in;
     KeyValuesReader kvReader = shuffleInput.getReader();
 
     KeyValueWriter kvWriter = null;
-    if((out instanceof MROutputLegacy)) {
+    if ((out instanceof MROutputLegacy)) {
       kvWriter = ((MROutputLegacy) out).getWriter();
     } else if ((out instanceof OrderedPartitionedKVOutput)) {
       kvWriter = ((OrderedPartitionedKVOutput) out).getWriter();
@@ -152,7 +151,7 @@ public class ReduceProcessor extends MRTask {
         runNewReducer(
             jobConf,
             mrReporter,
-            shuffleInput, comparator,  keyClass, valueClass,
+            shuffleInput, comparator, keyClass, valueClass,
             kvWriter);
       } catch (ClassNotFoundException cnfe) {
         throw new IOException(cnfe);
@@ -167,12 +166,12 @@ public class ReduceProcessor extends MRTask {
   }
 
   void runOldReducer(JobConf job,
-      final MRTaskReporter reporter,
-      KeyValuesReader input,
-      RawComparator comparator,
-      Class keyClass,
-      Class valueClass,
-      final KeyValueWriter output) throws IOException, InterruptedException {
+                     final MRTaskReporter reporter,
+                     KeyValuesReader input,
+                     RawComparator comparator,
+                     Class keyClass,
+                     Class valueClass,
+                     final KeyValueWriter output) throws IOException, InterruptedException {
 
     Reducer reducer =
         ReflectionUtils.newInstance(job.getReducerClass(), job);
@@ -181,11 +180,11 @@ public class ReduceProcessor extends MRTask {
 
     OutputCollector collector =
         new OutputCollector() {
-      public void collect(Object key, Object value)
-          throws IOException {
-        output.write(key, value);
-      }
-    };
+          public void collect(Object key, Object value)
+              throws IOException {
+            output.write(key, value);
+          }
+        };
 
     // apply reduce function
     try {
@@ -202,7 +201,7 @@ public class ReduceProcessor extends MRTask {
 
       // Set progress to 1.0f if there was no exception,
       reporter.setProgress(1.0f);
-      
+
       //Clean up: repeated in catch block below
       reducer.close();
       //End of clean up.
@@ -216,18 +215,18 @@ public class ReduceProcessor extends MRTask {
     }
   }
 
-  private static class ReduceValuesIterator<KEY,VALUE>
-  implements Iterator<VALUE> {
+  private static class ReduceValuesIterator<KEY, VALUE>
+      implements Iterator<VALUE> {
     private Counter reduceInputValueCounter;
     private KeyValuesReader in;
     private Progressable reporter;
     private Object currentKey;
     private Iterator<Object> currentValues;
 
-    public ReduceValuesIterator (KeyValuesReader in,
-        Progressable reporter,
-        Counter reduceInputValueCounter)
-            throws IOException {
+    public ReduceValuesIterator(KeyValuesReader in,
+                                Progressable reporter,
+                                Counter reduceInputValueCounter)
+        throws IOException {
       this.reduceInputValueCounter = reduceInputValueCounter;
       this.in = in;
       this.reporter = reporter;
@@ -235,7 +234,7 @@ public class ReduceProcessor extends MRTask {
 
     public boolean more() throws IOException {
       boolean more = in.next();
-      if(more) {
+      if (more) {
         currentKey = in.getCurrentKey();
         currentValues = in.getCurrentValues().iterator();
       } else {
@@ -268,17 +267,16 @@ public class ReduceProcessor extends MRTask {
     public void remove() {
       throw new UnsupportedOperationException();
     }
-
   }
 
   void runNewReducer(JobConf job,
-      final MRTaskReporter reporter,
-      OrderedGroupedInputLegacy input,
-      RawComparator comparator,
-      Class keyClass,
-      Class valueClass,
-      final KeyValueWriter out
-      ) throws IOException, InterruptedException, ClassNotFoundException, TezException {
+                     final MRTaskReporter reporter,
+                     OrderedGroupedInputLegacy input,
+                     RawComparator comparator,
+                     Class keyClass,
+                     Class valueClass,
+                     final KeyValueWriter out
+  ) throws IOException, InterruptedException, ClassNotFoundException, TezException {
 
     // make a task context so we can get the classes
     org.apache.hadoop.mapreduce.TaskAttemptContext taskContext = getTaskAttemptContext();
@@ -286,7 +284,7 @@ public class ReduceProcessor extends MRTask {
     // make a reducer
     org.apache.hadoop.mapreduce.Reducer reducer =
         (org.apache.hadoop.mapreduce.Reducer)
-        ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
+            ReflectionUtils.newInstance(taskContext.getReducerClass(), job);
 
     // wrap value iterator to report progress.
     final TezRawKeyValueIterator rawIter = input.getIterator();
@@ -294,9 +292,11 @@ public class ReduceProcessor extends MRTask {
       public void close() throws IOException {
         rawIter.close();
       }
+
       public DataInputBuffer getKey() throws IOException {
         return rawIter.getKey();
       }
+
       public Progress getProgress() {
         return rawIter.getProgress();
       }
@@ -325,17 +325,17 @@ public class ReduceProcessor extends MRTask {
     org.apache.hadoop.mapreduce.RecordWriter trackedRW =
         new org.apache.hadoop.mapreduce.RecordWriter() {
 
-      @Override
-      public void write(Object key, Object value) throws IOException,
-      InterruptedException {
-        out.write(key, value);
-      }
+          @Override
+          public void write(Object key, Object value) throws IOException,
+              InterruptedException {
+            out.write(key, value);
+          }
 
-      @Override
-      public void close(TaskAttemptContext context) throws IOException,
-      InterruptedException {
-      }
-    };
+          @Override
+          public void close(TaskAttemptContext context) throws IOException,
+              InterruptedException {
+          }
+        };
 
     org.apache.hadoop.mapreduce.Reducer.Context reducerContext =
         createReduceContext(
@@ -346,8 +346,6 @@ public class ReduceProcessor extends MRTask {
             committer,
             reporter, comparator, keyClass,
             valueClass);
-
-
 
     reducer.run(reducerContext);
 
@@ -363,5 +361,4 @@ public class ReduceProcessor extends MRTask {
     super.localizeConfiguration(jobConf);
     jobConf.setBoolean(JobContext.TASK_ISMAP, false);
   }
-
 }

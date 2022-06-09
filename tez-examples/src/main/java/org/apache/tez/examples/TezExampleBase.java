@@ -66,7 +66,6 @@ public abstract class TezExampleBase extends Configured implements Tool {
   protected static final String LEAVE_AM_RUNNING = "leaveAmRunning";
   protected static final String RECONNECT_APP_ID = "reconnectAppId";
 
-
   private boolean disableSplitGrouping = false;
   private boolean isLocalMode = false;
   private boolean isCountersLog = false;
@@ -76,7 +75,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
   private HadoopShim hadoopShim;
 
   protected boolean isCountersLog() {
-	  return isCountersLog;
+    return isCountersLog;
   }
 
   protected boolean isDisableSplitGrouping() {
@@ -90,8 +89,8 @@ public abstract class TezExampleBase extends Configured implements Tool {
   private Options getExtraOptions() {
     Options options = new Options();
     options.addOption(LOCAL_MODE, false, "run it as local mode");
-    options.addOption(DISABLE_SPLIT_GROUPING, false , "disable split grouping");
-    options.addOption(COUNTER_LOG, false , "print counter log");
+    options.addOption(DISABLE_SPLIT_GROUPING, false, "disable split grouping");
+    options.addOption(COUNTER_LOG, false, "print counter log");
     options.addOption(GENERATE_SPLIT_IN_CLIENT, false, "whether generate split in client");
     options.addOption(LEAVE_AM_RUNNING, false, "whether client should stop session");
     options.addOption(RECONNECT_APP_ID, true, "appId for client reconnect");
@@ -119,7 +118,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
       leaveAmRunning = true;
     }
     if (optionParser.getCommandLine().hasOption(RECONNECT_APP_ID)) {
-        reconnectAppId = optionParser.getCommandLine().getOptionValue(RECONNECT_APP_ID);
+      reconnectAppId = optionParser.getCommandLine().getOptionValue(RECONNECT_APP_ID);
     }
     hadoopShim = new HadoopShimsLoader(conf).getHadoopShim();
 
@@ -137,7 +136,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    *                  provided configuration. If TezClient is specified, local mode option can not been
    *                  specified in arguments, it takes no effect.
    * @return Zero indicates success, non-zero indicates failure
-   * @throws Exception 
+   * @throws Exception
    */
   public int run(TezConfiguration conf, String[] args, @Nullable TezClient tezClient) throws
       Exception {
@@ -252,7 +251,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
 
   private TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
     TezClient tezClient = TezClient.create("TezExampleApplication", tezConf);
-    if(reconnectAppId != null) {
+    if (reconnectAppId != null) {
       ApplicationId appId = TezClient.appIdfromString(reconnectAppId);
       tezClient.getClient(appId);
     } else {
@@ -311,7 +310,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    */
   protected abstract int runJob(String[] args, TezConfiguration tezConf,
                                 TezClient tezClient) throws Exception;
-  
+
   @Private
   @VisibleForTesting
   public ApplicationId getAppId() {
