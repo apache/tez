@@ -22,7 +22,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Objects;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -181,12 +180,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     Set<Vertex> sources = vertex.getInputVertices().keySet();
-    return Iterables.transform(sources, new Function<Vertex, String>() {
-      @Override
-      public String apply(Vertex input) {
-        return input.getName();
-      }
-    });
+    return Iterables.transform(sources, input -> input.getName());
   }
 
   @Override

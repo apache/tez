@@ -23,9 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapredSplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitContainer;
 import org.apache.tez.mapreduce.grouper.SplitLocationProviderWrapperMapred;
@@ -69,36 +67,21 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
     Objects.requireNonNull(originalSplits, "Splits must be specified");
 
     List<SplitContainer> originalSplitContainers = Lists.transform(Arrays.asList(originalSplits),
-        new Function<InputSplit, SplitContainer>() {
-          @Override
-          public SplitContainer apply(InputSplit input) {
-            return new MapredSplitContainer(input);
-          }
-        });
+        input -> new MapredSplitContainer(input));
 
     try {
-      List<InputSplit> resultList = Lists.transform(super
-              .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
-                  wrappedInputFormatName, estimator == null ? null :
-                      new SplitSizeEstimatorWrapperMapred(estimator),
-                  locationProvider == null ? null :
-                      new SplitLocationProviderWrapperMapred(locationProvider)),
-          new Function<GroupedSplitContainer, InputSplit>() {
-            @Override
-            public InputSplit apply(GroupedSplitContainer input) {
-              List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
-                  new Function<SplitContainer, InputSplit>() {
-                    @Override
-                    public InputSplit apply(SplitContainer input) {
-                      return ((MapredSplitContainer) input).getRawSplit();
-                    }
-                  });
+      List<InputSplit> resultList =
+          Lists.transform(super.getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
+              wrappedInputFormatName, estimator == null ? null : new SplitSizeEstimatorWrapperMapred(estimator),
+              locationProvider == null ? null : new SplitLocationProviderWrapperMapred(locationProvider)),
+              input -> {
+                List<InputSplit> underlyingSplits = Lists.transform(input.getWrappedSplitContainers(),
+                    input1 -> ((MapredSplitContainer) input1).getRawSplit());
 
-
-              return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
-                  input.getLocations(), input.getRack(), input.getLength());
-            }
-          });
+                return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
+                    input.getLocations(), input.getRack(), input.getLength());
+              }
+         );
       InputSplit[] resultArr = resultList.toArray(new InputSplit[resultList.size()]);
       return resultArr;
     } catch (InterruptedException e) {

@@ -43,7 +43,6 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.api.TaskContext;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Iterables;
 
@@ -123,19 +122,11 @@ public class MemoryDistributor {
     logInitialRequests(requestList);
 
     Iterable<InitialMemoryRequestContext> requestContexts = Iterables.transform(requestList,
-        new Function<RequestorInfo, InitialMemoryRequestContext>() {
-          public InitialMemoryRequestContext apply(RequestorInfo requestInfo) {
-            return requestInfo.getRequestContext();
-          }
-        });
+        requestInfo -> requestInfo.getRequestContext());
 
     Iterable<Long> allocations = null;
     if (!isEnabled) {
-      allocations = Iterables.transform(requestList, new Function<RequestorInfo, Long>() {
-        public Long apply(RequestorInfo requestInfo) {
-          return requestInfo.getRequestContext().getRequestedSize();
-        }
-      });
+      allocations = Iterables.transform(requestList, requestInfo -> requestInfo.getRequestContext().getRequestedSize());
     } else {
       InitialMemoryAllocator allocator = ReflectionUtils.createClazzInstance(allocatorClassName);
       allocator.setConf(conf);

@@ -19,7 +19,6 @@
 package org.apache.tez.history.parser.datamodel;
 
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -127,11 +126,9 @@ public abstract class BaseParser {
    * @param referenceTime
    */
   private void setReferenceTime(List<Event> eventList, final long referenceTime) {
-    Iterables.all(eventList, new Predicate<Event>() {
-      @Override public boolean apply(Event input) {
-        input.setReferenceTime(referenceTime);
-        return false;
-      }
+    Iterables.all(eventList, input -> {
+      input.setReferenceTime(referenceTime);
+      return false;
     });
   }
 

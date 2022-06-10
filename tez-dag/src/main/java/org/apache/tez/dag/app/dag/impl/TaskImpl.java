@@ -33,7 +33,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import org.apache.commons.lang.StringUtils;
@@ -954,12 +953,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   int getUncompletedAttemptsCount() {
     try {
       readLock.lock();
-      return Maps.filterValues(taskAttemptStatus, new Predicate<Boolean>() {
-        @Override
-        public boolean apply(Boolean state) {
-          return !state;
-        }
-      }).size();
+      return Maps.filterValues(taskAttemptStatus, state -> !state).size();
     } finally {
       readLock.unlock();
     }
@@ -969,12 +963,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   int getFinishedAttemptsCount() {
     try {
       readLock.lock();
-      return Maps.filterValues(taskAttemptStatus, new Predicate<Boolean>() {
-        @Override
-        public boolean apply(Boolean state) {
-          return state;
-        }
-      }).size();
+      return Maps.filterValues(taskAttemptStatus, state -> state).size();
     } finally {
       readLock.unlock();
     }

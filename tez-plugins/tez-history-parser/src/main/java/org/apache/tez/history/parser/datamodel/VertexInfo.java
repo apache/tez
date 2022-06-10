@@ -19,8 +19,6 @@
 package org.apache.tez.history.parser.datamodel;
 
 import org.apache.tez.common.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,6 +40,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.apache.hadoop.classification.InterfaceAudience.Public;
 import static org.apache.hadoop.classification.InterfaceStability.Evolving;
@@ -408,13 +407,9 @@ public class VertexInfo extends BaseInfo {
    * @return List<TaskAttemptInfo>
    */
   public final List<TaskInfo> getTasks(final TaskState state) {
-    return Collections.unmodifiableList(Lists.newLinkedList(Iterables.filter(Lists.newLinkedList
-                    (taskInfoMap.values()), new Predicate<TaskInfo>() {
-                  @Override public boolean apply(TaskInfo input) {
-                    return input.getStatus() != null && input.getStatus().equals(state.toString());
-                  }
-                }
-            )
+    return Collections.unmodifiableList(Lists.newLinkedList(Lists.newLinkedList(taskInfoMap.values()).stream()
+            .filter(input -> input.getStatus() != null && input.getStatus().equals(state.toString()))
+            .collect(Collectors.toList())
         )
     );
   }

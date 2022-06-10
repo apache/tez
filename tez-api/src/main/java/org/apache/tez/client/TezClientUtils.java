@@ -1010,11 +1010,11 @@ public class TezClientUtils {
       return javaOpts;
     }
 
-    if ((maxHeapFactor <= 0 && Double.valueOf("-1") != maxHeapFactor) || maxHeapFactor >= 1) {
+    if ((maxHeapFactor <= 0 && Double.parseDouble("-1") != maxHeapFactor) || maxHeapFactor >= 1) {
       return javaOpts;
     }
 
-    if (Double.valueOf("-1") == maxHeapFactor) {
+    if (Double.parseDouble("-1") == maxHeapFactor) {
       maxHeapFactor = resource.getMemory() < TezConstants.TEZ_CONTAINER_SMALL_SLAB_BOUND_MB
         ? TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB
         : TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB;
