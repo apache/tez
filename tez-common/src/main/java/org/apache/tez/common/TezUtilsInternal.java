@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -320,6 +321,25 @@ public class TezUtilsInternal {
       enums.add(Enum.valueOf(enumType, name));
     }
     return enums;
+  }
+
+  public static Integer getPid() {
+    String pidStr = null;
+    String name = ManagementFactory.getRuntimeMXBean().getName();
+    if (name != null) {
+      int idx = name.indexOf("@");
+      if (idx != -1) {
+        pidStr = name.substring(0, name.indexOf("@"));
+      }
+    }
+    try {
+      if (pidStr != null) {
+        return Integer.valueOf(pidStr);
+      }
+    } catch (NumberFormatException nfe) {
+      LOG.info("Couldn't parse \"{}\" into integer pid", pidStr);
+    }
+    return null;
   }
 
   @Private
