@@ -64,6 +64,8 @@
     "em-tgraph": "0.0.14"
   },
   "resolutions": {
-    "**/form-data/async": "2.6.4"
+    "**/form-data/async": "2.6.4",
+    "**/mkdirp/minimist": "1.2.6",
+    "**/optimist/minimist": "1.2.6"
   }
 }
