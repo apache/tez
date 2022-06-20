@@ -66,6 +66,7 @@
   "resolutions": {
     "**/form-data/async": "2.6.4",
     "**/mkdirp/minimist": "1.2.6",
-    "**/optimist/minimist": "1.2.6"
+    "**/optimist/minimist": "1.2.6",
+    "**/jsprim/json-schema": "0.4.0"
   }
 }
