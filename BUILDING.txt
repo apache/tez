@@ -122,10 +122,11 @@ The version of Protocol Buffer compiler, protoc, can be defined on-the-fly as:
 
 The default version is defined in the root pom.xml.
 
-If you have multiple versions of protoc in your system, you can set in your 
-build shell the PROTOC_PATH environment variable to point to the one you 
-want to use for the Tez build. If you don't define this environment variable,
-protoc is looked up in the PATH.
+If you have multiple versions of protoc in your system, you can set in your
+build shell the PROTOC_PATH environment variable to point to the one you
+want to use for the Tez build. If you don't define this environment variable then the
+embedded protoc compiler will be used with the version defined in ${protobuf.version}.
+It detects the platform and executes the corresponding protoc binary at build time.
 
 You can also specify the path to protoc while building using -Dprotoc.path
 

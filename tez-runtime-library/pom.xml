@@ -114,30 +114,27 @@
         <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-maven-plugins</artifactId>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>3.11.4</version>
         <executions>
           <execution>
-            <id>compile-protoc</id>
             <phase>generate-sources</phase>
             <goals>
-              <goal>protoc</goal>
+              <goal>run</goal>
             </goals>
             <configuration>
-              <protocVersion>${protobuf.version}</protocVersion>
+              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}</protocArtifact>
               <protocCommand>${protoc.path}</protocCommand>
-              <imports>
-                <param>${basedir}/src/main/proto</param>
-              </imports>
-              <source>
-                <directory>${basedir}/src/main/proto</directory>
-                <includes>
-                  <include>ShufflePayloads.proto</include>
-                  <include>CartesianProductPayload.proto</include>
-                  <include>FairShufflePayloads.proto</include>
-                </includes>
-              </source>
-              <output>${project.build.directory}/generated-sources/java</output>
+              <addSources>none</addSources>
+              <inputDirectories>
+                <include>${basedir}/src/main/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
+                </outputTarget>
+              </outputTargets>
             </configuration>
           </execution>
         </executions>

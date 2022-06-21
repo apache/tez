@@ -165,29 +165,30 @@
         <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-maven-plugins</artifactId>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
+        <version>3.11.4</version>
         <executions>
           <execution>
-            <id>compile-protoc</id>
             <phase>generate-sources</phase>
             <goals>
-              <goal>protoc</goal>
+              <goal>run</goal>
             </goals>
             <configuration>
-              <protocVersion>${protobuf.version}</protocVersion>
+              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}</protocArtifact>
               <protocCommand>${protoc.path}</protocCommand>
-              <imports>
-                <param>${basedir}/src/test/proto</param>
+              <addSources>none</addSources>
+              <includeDirectories>
                 <param>${basedir}/../tez-api/src/main/proto</param>
-              </imports>
-              <source>
-                <directory>${basedir}/src/test/proto</directory>
-                <includes>
-                  <include>TezDaemonProtocol.proto</include>
-                </includes>
-              </source>
-              <output>${project.build.directory}/generated-test-sources/java</output>
+              </includeDirectories>
+              <inputDirectories>
+                <include>${basedir}/src/test/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <outputDirectory>${project.build.directory}/generated-test-sources/java</outputDirectory>
+                </outputTarget>
+              </outputTargets>
             </configuration>
           </execution>
         </executions>
