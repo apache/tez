@@ -51,11 +51,11 @@ public class TestDAGClientHandler {
     DAG mockDAG = mock(DAG.class);
     when(mockDAG.getID()).thenReturn(mockTezDAGId);
     DAGStatusBuilder mockDagStatusBuilder = mock(DAGStatusBuilder.class);
-    when(mockDAG.getDAGStatus(anySetOf(StatusGetOpts.class))).thenReturn(
+    when(mockDAG.getDAGStatus(anySet())).thenReturn(
         mockDagStatusBuilder);
     VertexStatusBuilder mockVertexStatusBuilder =
         mock(VertexStatusBuilder.class);
-    when(mockDAG.getVertexStatus(anyString(), anySetOf(StatusGetOpts.class)))
+    when(mockDAG.getVertexStatus(anyString(), anySet()))
         .thenReturn(mockVertexStatusBuilder);
 
     DAGAppMaster mockDagAM = mock(DAGAppMaster.class);

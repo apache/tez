@@ -14,8 +14,8 @@
 
 package org.apache.tez.runtime.library.output;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -28,7 +28,6 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
@@ -66,7 +65,7 @@ class OutputTestHelpers {
         callback.memoryAssigned(requestedSize);
         return null;
       }
-    }).when(ctx).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
+    }).when(ctx).requestInitialMemory(anyLong(), any());
     doReturn(conf).when(ctx).getContainerConfiguration();
     doReturn(TezUtils.createUserPayloadFromConf(userPayloadConf)).when(ctx).getUserPayload();
     doReturn("taskVertex").when(ctx).getTaskVertexName();

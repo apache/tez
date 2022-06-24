@@ -36,12 +36,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -142,8 +142,8 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 1));
     // Auto-reduce is triggered
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(VertexLocationHint.class), anyMap());
-    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(VertexLocationHint.class), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), anyMap());
+    verify(mockContext, times(1)).reconfigureVertex(eq(2), any(), anyMap());
     Assert.assertEquals(2, newEdgeManagers.size());
     Assert.assertEquals(0, manager.pendingTasks.size()); // all tasks scheduled
     Assert.assertEquals(2, scheduledTasks.size());

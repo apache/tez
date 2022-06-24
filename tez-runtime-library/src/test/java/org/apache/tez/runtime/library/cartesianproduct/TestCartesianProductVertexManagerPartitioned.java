@@ -21,7 +21,6 @@ import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezReflectionException;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.event.VertexState;
@@ -37,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Matchers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
@@ -48,8 +46,9 @@ import java.util.Map;
 import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -75,7 +74,7 @@ public class TestCartesianProductVertexManagerPartitioned {
 
   private void setupWithConfig(CartesianProductConfigProto config)
     throws TezReflectionException {
-    MockitoAnnotations.initMocks(this);
+    MockitoAnnotations.openMocks(this);
     context = mock(VertexManagerPluginContext.class);
     when(context.getVertexName()).thenReturn("cp");
     when(context.getVertexNumTasks("cp")).thenReturn(-1);
@@ -110,7 +109,7 @@ public class TestCartesianProductVertexManagerPartitioned {
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     verify(context, times(1)).reconfigureVertex(parallelismCaptor.capture(),
-      isNull(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        isNull(), edgePropertiesCaptor.capture());
     assertEquals((int)parallelismCaptor.getValue(), parallelism);
     assertNull(edgePropertiesCaptor.getValue());
   }
@@ -134,12 +133,12 @@ public class TestCartesianProductVertexManagerPartitioned {
 
     vertexManager.onSourceTaskCompleted(allCompletions.get(0));
     vertexManager.onSourceTaskCompleted(allCompletions.get(1));
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+    verify(context, never()).scheduleTasks(any());
 
     List<ScheduleTaskRequest> scheduleTaskRequests;
     vertexManager.onSourceTaskCompleted(allCompletions.get(2));
     // shouldn't start schedule because broadcast src is not in RUNNING state
-    verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+    verify(context, never()).scheduleTasks(any());
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v2", VertexState.RUNNING));
     verify(context, times(1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
@@ -161,7 +160,7 @@ public class TestCartesianProductVertexManagerPartitioned {
 
     for (int i = 6; i < 8; i++) {
       vertexManager.onSourceTaskCompleted(allCompletions.get(i));
-      verify(context, times(4)).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+      verify(context, times(4)).scheduleTasks(any());
     }
   }
 
@@ -191,7 +190,7 @@ public class TestCartesianProductVertexManagerPartitioned {
     vertexManager.onVertexStarted(completions);
 
     if (!broadcastRunning) {
-      verify(context, never()).scheduleTasks(Matchers.<List<ScheduleTaskRequest>>any());
+      verify(context, never()).scheduleTasks(any());
       vertexManager.onVertexStateUpdated(new VertexStateUpdate("v2", VertexState.RUNNING));
     }
 

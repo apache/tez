@@ -57,8 +57,12 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tez</groupId>
+      <artifactId>hadoop-shim</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
@@ -172,6 +176,7 @@
             </goals>
             <configuration>
               <protocArtifact>com.google.protobuf:protoc:${protobuf.version}</protocArtifact>
+              <protocCommand>${protoc.path}</protocCommand>
               <addSources>none</addSources>
               <includeDirectories>
                 <param>${basedir}/../tez-api/src/main/proto</param>

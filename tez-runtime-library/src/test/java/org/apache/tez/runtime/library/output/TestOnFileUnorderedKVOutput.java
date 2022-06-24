@@ -18,8 +18,8 @@
 
 package org.apache.tez.runtime.library.output;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -61,7 +61,6 @@ import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
@@ -282,7 +281,7 @@ public class TestOnFileUnorderedKVOutput {
         callback.memoryAssigned(requestedSize);
         return null;
       }
-    }).when(outputContext).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
+    }).when(outputContext).requestInitialMemory(anyLong(), any());
 
     return outputContext;
   }

@@ -18,10 +18,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -187,7 +187,7 @@ public class TestTaskCommunicatorManager {
 
     AppContext appContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
     NodeId nodeId = NodeId.newInstance("host1", 3131);
-    when(appContext.getAllContainers().get(any(ContainerId.class)).getContainer().getNodeId())
+    when(appContext.getAllContainers().get(any()).getContainer().getNodeId())
         .thenReturn(nodeId);
     TaskHeartbeatHandler thh = mock(TaskHeartbeatHandler.class);
     ContainerHeartbeatHandler chh = mock(ContainerHeartbeatHandler.class);
@@ -348,7 +348,7 @@ public class TestTaskCommunicatorManager {
       assertTrue(event.getDiagnosticInfo().contains(expectedId));
 
 
-      when(appContext.getAllContainers().get(any(ContainerId.class)).getContainer().getNodeId())
+      when(appContext.getAllContainers().get(any()).getContainer().getNodeId())
           .thenReturn(mock(NodeId.class));
 
       taskCommunicatorManager.registerRunningContainer(mock(ContainerId.class), 0);

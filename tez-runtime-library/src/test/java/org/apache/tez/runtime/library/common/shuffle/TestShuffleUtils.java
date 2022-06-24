@@ -36,7 +36,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.slf4j.Logger;
 
 import java.io.ByteArrayInputStream;
@@ -257,28 +257,28 @@ public class TestShuffleUtils {
         outputContext, spillId, new TezSpillRecord(indexFile, conf),
             physicalOutputs, true, pathComponent, null, false, auxiliaryService, TezCommonUtils.newBestCompressionDeflater());
 
-    Assert.assertTrue(events.size() == 2); //one for VM
+    Assert.assertEquals(2, events.size()); //one for VM
     Assert.assertTrue(events.get(0) instanceof VertexManagerEvent);
     Assert.assertTrue(events.get(1) instanceof CompositeDataMovementEvent);
 
     CompositeDataMovementEvent cdme = (CompositeDataMovementEvent) events.get(1);
-    Assert.assertTrue(cdme.getCount() == physicalOutputs);
-    Assert.assertTrue(cdme.getSourceIndexStart() == 0);
+    Assert.assertEquals(cdme.getCount(), physicalOutputs);
+    Assert.assertEquals(0, cdme.getSourceIndexStart());
 
     ShuffleUserPayloads.DataMovementEventPayloadProto dmeProto =
         ShuffleUserPayloads.DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom( cdme.getUserPayload()));
 
     //spill details should be present
-    Assert.assertTrue(dmeProto.getSpillId() == 0);
+    Assert.assertEquals(0, dmeProto.getSpillId());
     Assert.assertTrue(dmeProto.hasLastEvent() && dmeProto.getLastEvent());
 
-    Assert.assertTrue(dmeProto.getPathComponent().equals(""));
+    Assert.assertEquals("", dmeProto.getPathComponent());
 
     byte[]  emptyPartitions = TezCommonUtils.decompressByteStringToByteArray(dmeProto
         .getEmptyPartitions());
     BitSet  emptyPartitionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
-    Assert.assertTrue("emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet
-        .cardinality(), emptyPartitionsBitSet.cardinality() == 10);
+    Assert.assertEquals("emptyPartitionBitSet cardinality (expecting 10) = " + emptyPartitionsBitSet
+            .cardinality(), 10, emptyPartitionsBitSet.cardinality());
 
   }
 
@@ -289,10 +289,10 @@ public class TestShuffleUtils {
     when(mockCodecStream.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new InternalError(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
-    CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
-    when(((ConfigurableCodecForTest) mockCodec).getConf()).thenReturn(mock(Configuration.class));
+    ConfigurableCodecForTest mockCodec = mock(ConfigurableCodecForTest.class);
+    when(mockCodec.getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
-    when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
+    when(mockCodec.createInputStream(any(), any()))
         .thenReturn(mockCodecStream);
     byte[] header = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F', (byte) 1};
     try {
@@ -312,10 +312,10 @@ public class TestShuffleUtils {
     when(mockCodecStream.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new IllegalArgumentException(codecErrorMsg));
     Decompressor mockDecoder = mock(Decompressor.class);
-    CompressionCodec mockCodec = mock(ConfigurableCodecForTest.class);
-    when(((ConfigurableCodecForTest) mockCodec).getConf()).thenReturn(mock(Configuration.class));
+    ConfigurableCodecForTest mockCodec = mock(ConfigurableCodecForTest.class);
+    when(mockCodec.getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec.createDecompressor()).thenReturn(mockDecoder);
-    when(mockCodec.createInputStream(any(InputStream.class), any(Decompressor.class)))
+    when(mockCodec.createInputStream(any(), any()))
         .thenReturn(mockCodecStream);
     byte[] header = new byte[] { (byte) 'T', (byte) 'I', (byte) 'F', (byte) 1};
     try {
@@ -329,10 +329,10 @@ public class TestShuffleUtils {
     CompressionInputStream mockCodecStream1 = mock(CompressionInputStream.class);
     when(mockCodecStream1.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new SocketTimeoutException(codecErrorMsg));
-    CompressionCodec mockCodec1 = mock(ConfigurableCodecForTest.class);
-    when(((ConfigurableCodecForTest) mockCodec1).getConf()).thenReturn(mock(Configuration.class));
+    ConfigurableCodecForTest mockCodec1 = mock(ConfigurableCodecForTest.class);
+    when(mockCodec1.getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec1.createDecompressor()).thenReturn(mockDecoder);
-    when(mockCodec1.createInputStream(any(InputStream.class), any(Decompressor.class)))
+    when(mockCodec1.createInputStream(any(), any()))
         .thenReturn(mockCodecStream1);
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
@@ -345,10 +345,10 @@ public class TestShuffleUtils {
     CompressionInputStream mockCodecStream2 = mock(CompressionInputStream.class);
     when(mockCodecStream2.read(any(byte[].class), anyInt(), anyInt()))
         .thenThrow(new InternalError(codecErrorMsg));
-    CompressionCodec mockCodec2 = mock(ConfigurableCodecForTest.class);
-    when(((ConfigurableCodecForTest) mockCodec2).getConf()).thenReturn(mock(Configuration.class));
+    ConfigurableCodecForTest mockCodec2 = mock(ConfigurableCodecForTest.class);
+    when(mockCodec2.getConf()).thenReturn(mock(Configuration.class));
     when(mockCodec2.createDecompressor()).thenReturn(mockDecoder);
-    when(mockCodec2.createInputStream(any(InputStream.class), any(Decompressor.class)))
+    when(mockCodec2.createInputStream(any(), any()))
         .thenReturn(mockCodecStream2);
     try {
       ShuffleUtils.shuffleToMemory(new byte[1024], new ByteArrayInputStream(header),
@@ -394,14 +394,14 @@ public class TestShuffleUtils {
       logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
     }
     verify(activeLogger, times(0)).info(anyString());
-    verify(aggregateLogger, times(1)).info(anyString(), Matchers.<Object[]>anyVararg());
+    verify(aggregateLogger, times(1)).info(anyString(), ArgumentMatchers.<Object[]>any());
 
     when(activeLogger.isInfoEnabled()).thenReturn(true);
     for (int i = 0; i < 1000; i++) {
       logger.logIndividualFetchComplete(10, 100, 1000, "testType", ident);
     }
     verify(activeLogger, times(1000)).info(anyString());
-    verify(aggregateLogger, times(1)).info(anyString(), Matchers.<Object[]>anyVararg());
+    verify(aggregateLogger, times(1)).info(anyString(), ArgumentMatchers.<Object[]>any());
   }
 
   /**

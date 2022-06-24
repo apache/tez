@@ -19,7 +19,7 @@ package org.apache.tez.test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -74,8 +74,13 @@ public class TestAM {
       Configuration tezClusterConf = new Configuration();
       tezClusterConf.set("fs.defaultFS", remoteFs.getUri().toString()); // use HDFS
       tezClusterConf.setInt("yarn.nodemanager.delete.debug-delay-sec", 20000);
-      tezClusterConf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 1000);
+      tezClusterConf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 2000);
       tezClusterConf.set(YarnConfiguration.PROXY_ADDRESS, "localhost");
+      //provide temporary profiler script to test /prof endpoint
+      File profiler = getProfiler();
+      profiler.createNewFile();
+      profiler.setExecutable(true, false);
+      tezClusterConf.set(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS, ("-Dasync.profiler.home=" + getProfilerHomePath()));
       tezCluster.init(tezClusterConf);
       tezCluster.start();
     }
@@ -91,6 +96,7 @@ public class TestAM {
       dfsCluster.shutdown();
       dfsCluster = null;
     }
+    getProfiler().delete();
   }
 
   @Test(timeout = 60000)
@@ -122,6 +128,8 @@ public class TestAM {
     checkAddress(webUIAddress + "/jmx");
     checkAddress(webUIAddress + "/conf");
     checkAddress(webUIAddress + "/stacks");
+    checkAddress(webUIAddress + "/prof", 202);
+    checkAddress(webUIAddress + "/prof-output");
 
     URL url = new URL(webUIAddress);
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
@@ -133,14 +141,26 @@ public class TestAM {
   }
 
   private void checkAddress(String url) {
+    checkAddress(url, 200);
+  }
+
+  private void checkAddress(String url, int expectedCode) {
     boolean success = false;
     try {
       HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
       connection.connect();
-      success = (connection.getResponseCode() == 200);
+      success = (connection.getResponseCode() == expectedCode);
     } catch (Exception e) {
       LOG.error("Error while checking url: " + url, e);
     }
     assertTrue(url + " should be available", success);
+  }
+
+  private static File getProfiler() {
+    return new File(getProfilerHomePath(), "profiler.sh");
+  }
+
+  private static String getProfilerHomePath() {
+    return System.getProperty("java.io.tmpdir");
   }
 }

@@ -29,7 +29,7 @@
   <properties>
     <webappDir>src/main/webapp</webappDir>
 
-    <nodeVersion>v5.12.0</nodeVersion>
+    <nodeVersion>v8.9.0</nodeVersion>
     <nodeExecutable>${basedir}/src/main/webapp/node/node</nodeExecutable>
 
     <packageManagerScript>node/yarn/dist/bin/yarn.js</packageManagerScript>
@@ -374,7 +374,7 @@
             </goals>
             <configuration>
               <nodeVersion>${nodeVersion}</nodeVersion>
-              <yarnVersion>v0.21.3</yarnVersion>
+              <yarnVersion>v1.6.0</yarnVersion>
             </configuration>
           </execution>
           <execution>

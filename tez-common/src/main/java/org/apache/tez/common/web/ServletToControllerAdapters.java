@@ -42,4 +42,17 @@ public class ServletToControllerAdapters {
       this.servlet = new StackServlet();
     }
   }
+
+  public static class ProfileServletController extends AbstractServletToControllerAdapter {
+    public ProfileServletController() throws ServletException {
+      this.servlet = new ProfileServlet();
+    }
+  }
+
+  public static class ProfileOutputServletController extends AbstractServletToControllerAdapter {
+    public ProfileOutputServletController() throws ServletException {
+      this.servlet = new ProfileOutputServlet();
+    }
+  }
+
 }
