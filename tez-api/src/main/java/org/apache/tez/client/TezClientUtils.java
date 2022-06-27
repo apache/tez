@@ -29,6 +29,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -767,7 +768,7 @@ public class TezClientUtils {
   public static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
     List<String> vargs = new ArrayList<String>(5);
     if (javaOpts != null) {
-      vargs.add(javaOpts);
+      Collections.addAll(vargs, javaOpts.split(" "));
     } else {
       vargs.add("");
     }
