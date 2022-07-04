@@ -90,7 +90,6 @@ public class TestRootInputInitializerManager {
     String srcVertexName = "srcVertexName";
     List<TezEvent> eventList = Lists.newLinkedList();
 
-
     // First Attempt send event
     TezTaskAttemptID srcTaskAttemptId11 = TezTaskAttemptID.getInstance(srcTaskId1, 1);
     EventMetaData sourceInfo11 =
@@ -165,7 +164,6 @@ public class TestRootInputInitializerManager {
     String srcVertexName = "srcVertexName";
     List<TezEvent> eventList = Lists.newLinkedList();
 
-
     // First Attempt send event
     TezTaskAttemptID srcTaskAttemptId11 = TezTaskAttemptID.getInstance(srcTaskId1, 1);
     EventMetaData sourceInfo11 =
@@ -188,7 +186,6 @@ public class TestRootInputInitializerManager {
 
     reset(initializer);
 
-
     TezTaskAttemptID srcTaskAttemptId12 = TezTaskAttemptID.getInstance(srcTaskId1, 2);
     // 2nd attempt succeeded
     initializerWrapper.onTaskSucceeded(srcVertexName, srcTaskId1, srcTaskAttemptId12.getId());
@@ -206,8 +203,7 @@ public class TestRootInputInitializerManager {
     verify(initializer, never()).handleInputInitializerEvent(any());
   }
 
-
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testCorrectUgiUsage() throws TezException, InterruptedException {
     Vertex vertex = mock(Vertex.class);
     doReturn(mock(TezVertexID.class)).when(vertex).getVertexId();

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,9 +73,9 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
   private ExecutorService execService;
   private final int numThreads;
-  
+
   protected final Map<Class<? extends Enum>, EventHandler> eventHandlers = Maps.newHashMap();
-  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> eventDispatchers = 
+  protected final Map<Class<? extends Enum>, AsyncDispatcherConcurrent> eventDispatchers =
       Maps.newHashMap();
   private boolean exitOnDispatchException = false;
 
@@ -86,14 +86,14 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     this.eventQueues = Lists.newArrayListWithCapacity(numThreads);
     this.numThreads = numThreads;
   }
-  
+
   class DispatchRunner implements Runnable {
     final LinkedBlockingQueue<Event> queue;
-    
+
     public DispatchRunner(LinkedBlockingQueue<Event> queue) {
       this.queue = queue;
     }
-    
+
     @Override
     public void run() {
       while (!stopped && !Thread.currentThread().isInterrupted()) {
@@ -111,7 +111,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         Event event;
         try {
           event = queue.take();
-        } catch(InterruptedException ie) {
+        } catch (InterruptedException ie) {
           if (!stopped) {
             LOG.warn("AsyncDispatcher thread interrupted", ie);
           }
@@ -122,8 +122,10 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         }
       }
     }
-  };
-  
+  }
+
+  ;
+
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
@@ -133,10 +135,10 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
   protected void serviceStart() throws Exception {
     execService = Executors.newFixedThreadPool(numThreads, new ThreadFactoryBuilder().setDaemon(true)
         .setNameFormat("Dispatcher {" + this.name + "} #%d").build());
-    for (int i=0; i<numThreads; ++i) {
+    for (int i = 0; i < numThreads; ++i) {
       eventQueues.add(new LinkedBlockingQueue<Event>());
     }
-    for (int i=0; i<numThreads; ++i) {
+    for (int i = 0; i < numThreads; ++i) {
       execService.execute(new DispatchRunner(eventQueues.get(i)));
     }
     //start all the components
@@ -163,7 +165,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
       stopped = true;
 
-      for (int i=0; i<numThreads; ++i) {
+      for (int i = 0; i < numThreads; ++i) {
         LOG.info("AsyncDispatcher stopping with events: " + eventQueues.get(i).size()
             + " in queue: " + i);
       }
@@ -183,9 +185,9 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
     Class<? extends Enum> type = event.getType().getDeclaringClass();
 
-    try{
+    try {
       EventHandler handler = eventHandlers.get(type);
-      if(handler != null) {
+      if (handler != null) {
         handler.handle(event);
       } else {
         throw new Exception("No handler for registered for " + type);
@@ -205,7 +207,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
   private void checkForExistingHandler(Class<? extends Enum> eventType) {
     EventHandler<Event> registeredHandler = (EventHandler<Event>) eventHandlers.get(eventType);
-    Preconditions.checkState(registeredHandler == null, 
+    Preconditions.checkState(registeredHandler == null,
         "Cannot register same event on multiple dispatchers");
   }
 
@@ -227,7 +229,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
    */
   @Override
   public void register(Class<? extends Enum> eventType,
-      EventHandler handler) {
+                       EventHandler handler) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
     /* check to see if we have a listener registered */
     EventHandler<Event> registeredHandler = (EventHandler<Event>) eventHandlers.get(eventType);
@@ -235,7 +237,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     LOG.info("Registering " + eventType + " for " + handler.getClass());
     if (registeredHandler == null) {
       eventHandlers.put(eventType, handler);
-    } else if (!(registeredHandler instanceof MultiListenerHandler)){
+    } else if (!(registeredHandler instanceof MultiListenerHandler)) {
       /* for multiple listeners of an event add the multiple listener handler */
       MultiListenerHandler multiHandler = new MultiListenerHandler();
       multiHandler.addHandler(registeredHandler);
@@ -244,38 +246,38 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     } else {
       /* already a multilistener, just add to it */
       MultiListenerHandler multiHandler
-      = (MultiListenerHandler) registeredHandler;
+          = (MultiListenerHandler) registeredHandler;
       multiHandler.addHandler(handler);
     }
   }
-  
+
   /**
    * Add an EventHandler for events handled in their own dispatchers with given name and threads
    */
-  
+
   public AsyncDispatcherConcurrent registerAndCreateDispatcher(Class<? extends Enum> eventType,
-      EventHandler handler, String dispatcherName, int numThreads) {
+                                                               EventHandler handler, String dispatcherName, int numThreads) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info(
-          "Registering " + eventType + " for independent dispatch using: " + handler.getClass());
+        "Registering " + eventType + " for independent dispatch using: " + handler.getClass());
     AsyncDispatcherConcurrent dispatcher = new AsyncDispatcherConcurrent(dispatcherName, numThreads);
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
     addIfService(dispatcher);
     return dispatcher;
   }
-  
+
   public void registerWithExistingDispatcher(Class<? extends Enum> eventType,
-      EventHandler handler, AsyncDispatcherConcurrent dispatcher) {
+                                             EventHandler handler, AsyncDispatcherConcurrent dispatcher) {
     Preconditions.checkState(getServiceState() == STATE.NOTINITED);
-    
+
     /* check to see if we have a listener registered */
     checkForExistingDispatchers(true, eventType);
     LOG.info("Registering " + eventType + " wit existing concurrent dispatch using: "
-          + handler.getClass());
+        + handler.getClass());
     dispatcher.register(eventType, handler);
     eventDispatchers.put(eventType, dispatcher);
   }
@@ -299,7 +301,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         return;
       }
       drained = false;
-      
+
       // offload to specific dispatcher if one exists
       Class<? extends Enum> type = event.getType().getDeclaringClass();
       AsyncDispatcherConcurrent registeredDispatcher = eventDispatchers.get(type);
@@ -307,14 +309,14 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         registeredDispatcher.getEventHandler().handle(event);
         return;
       }
-      
+
       int index = numThreads > 1 ? event.getSerializingHash() % numThreads : 0;
 
-     // no registered dispatcher. use internal dispatcher.
+      // no registered dispatcher. use internal dispatcher.
       LinkedBlockingQueue<Event> queue = eventQueues.get(index);
       /* all this method does is enqueue all the events onto the queue */
       int qSize = queue.size();
-      if (qSize !=0 && qSize %1000 == 0) {
+      if (qSize != 0 && qSize % 1000 == 0) {
         LOG.info("Size of event-queue is " + qSize);
       }
       int remCapacity = queue.remainingCapacity();
@@ -330,7 +332,9 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
         }
         throw new YarnRuntimeException(e);
       }
-    };
+    }
+
+    ;
   }
 
   /**
@@ -347,7 +351,7 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
 
     @Override
     public void handle(Event event) {
-      for (EventHandler<Event> handler: listofHandlers) {
+      for (EventHandler<Event> handler : listofHandlers) {
         handler.handle(event);
       }
     }
@@ -355,7 +359,6 @@ public class AsyncDispatcherConcurrent extends CompositeService implements Dispa
     void addHandler(EventHandler<Event> handler) {
       listofHandlers.add(handler);
     }
-
   }
 
   Runnable createShutDownThread() {

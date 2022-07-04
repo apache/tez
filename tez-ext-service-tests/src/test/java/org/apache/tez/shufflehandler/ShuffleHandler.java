@@ -129,7 +129,7 @@ public class ShuffleHandler {
    */
   private final int maxShuffleConnections;
 
-  private Map<String,String> userRsrc;
+  private Map<String, String> userRsrc;
   private JobTokenSecretManager secretManager;
 
   public static final String SHUFFLE_PORT_CONFIG_KEY = "tez.shuffle.port";
@@ -153,18 +153,17 @@ public class ShuffleHandler {
 
   public static final String MAX_SHUFFLE_CONNECTIONS = "mapreduce.shuffle.max.connections";
   public static final int DEFAULT_MAX_SHUFFLE_CONNECTIONS = 0; // 0 implies no limit
-  
+
   public static final String MAX_SHUFFLE_THREADS = "mapreduce.shuffle.max.threads";
   // 0 implies Netty default of 2 * number of available processors
   public static final int DEFAULT_MAX_SHUFFLE_THREADS = 0;
-  
+
   final boolean connectionKeepAliveEnabled;
   final int connectionKeepAliveTimeOut;
   final int mapOutputMetaInfoCacheSize;
   private static final AtomicBoolean started = new AtomicBoolean(false);
   private static final AtomicBoolean initing = new AtomicBoolean(false);
   private static ShuffleHandler INSTANCE;
-
 
   public ShuffleHandler(Configuration conf) {
     this.conf = conf;
@@ -205,10 +204,9 @@ public class ShuffleHandler {
         Math.max(1, conf.getInt(SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE,
             DEFAULT_SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE));
 
-    userRsrc = new ConcurrentHashMap<String,String>();
+    userRsrc = new ConcurrentHashMap<String, String>();
     secretManager = new JobTokenSecretManager();
   }
-
 
   public void start() throws Exception {
     ServerBootstrap bootstrap = new ServerBootstrap()
@@ -219,7 +217,7 @@ public class ShuffleHandler {
     port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     Channel ch = bootstrap.bind().sync().channel();
     accepted.add(ch);
-    port = ((InetSocketAddress)ch.localAddress()).getPort();
+    port = ((InetSocketAddress) ch.localAddress()).getPort();
     conf.set(SHUFFLE_PORT_CONFIG_KEY, Integer.toString(port));
     SHUFFLE.setPort(port);
     LOG.info("TezShuffleHandler" + " listening on port " + port);
@@ -237,15 +235,15 @@ public class ShuffleHandler {
     ChannelInitializer<NioSocketChannel> channelInitializer =
         new ChannelInitializer<NioSocketChannel>() {
           @Override
-      public void initChannel(NioSocketChannel ch) throws Exception {
-        ChannelPipeline pipeline = ch.pipeline();
-        pipeline.addLast("decoder", new HttpRequestDecoder());
-        pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("chunking", new ChunkedWriteHandler());
-        pipeline.addLast("shuffle", SHUFFLE);
-      }
-    };
+          public void initChannel(NioSocketChannel ch) throws Exception {
+            ChannelPipeline pipeline = ch.pipeline();
+            pipeline.addLast("decoder", new HttpRequestDecoder());
+            pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
+            pipeline.addLast("encoder", new HttpResponseEncoder());
+            pipeline.addLast("chunking", new ChunkedWriteHandler());
+            pipeline.addLast("shuffle", SHUFFLE);
+          }
+        };
     bootstrap.childHandler(channelInitializer);
   }
 
@@ -294,7 +292,7 @@ public class ShuffleHandler {
   }
 
   private void addJobToken(String appIdString, String user,
-      Token<JobTokenIdentifier> jobToken) {
+                           Token<JobTokenIdentifier> jobToken) {
     String jobIdString = appIdString.replace("application", "job");
     userRsrc.put(jobIdString, user);
     secretManager.addTokenForJob(jobIdString, jobToken);
@@ -302,7 +300,7 @@ public class ShuffleHandler {
   }
 
   private void recordJobShuffleInfo(String appIdString, String user,
-      Token<JobTokenIdentifier> jobToken) {
+                                    Token<JobTokenIdentifier> jobToken) {
     addJobToken(appIdString, user, jobToken);
   }
 
@@ -317,7 +315,7 @@ public class ShuffleHandler {
     private final Configuration conf;
     private final IndexCache indexCache;
     private final LocalDirAllocator lDirAlloc =
-      new LocalDirAllocator(SHUFFLE_HANDLER_LOCAL_DIRS);
+        new LocalDirAllocator(SHUFFLE_HANDLER_LOCAL_DIRS);
     private int port;
 
     public Shuffle(Configuration conf) {
@@ -325,7 +323,7 @@ public class ShuffleHandler {
       indexCache = new IndexCache(conf);
       this.port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     }
-    
+
     public void setPort(int port) {
       this.port = port;
     }
@@ -347,7 +345,7 @@ public class ShuffleHandler {
 
       if ((maxShuffleConnections > 0) && (accepted.size() >= maxShuffleConnections)) {
         LOG.info(String.format("Current number of shuffle connections (%d) is " +
-            "greater than or equal to the max allowed shuffle connections (%d)",
+                "greater than or equal to the max allowed shuffle connections (%d)",
             accepted.size(), maxShuffleConnections));
         ctx.channel().close();
         return;
@@ -361,14 +359,14 @@ public class ShuffleHandler {
         throws Exception {
       HttpRequest request = (HttpRequest) message;
       if (request.getMethod() != GET) {
-          sendError(ctx, METHOD_NOT_ALLOWED);
-          return;
+        sendError(ctx, METHOD_NOT_ALLOWED);
+        return;
       }
       // Check whether the shuffle version is compatible
       if (!ShuffleHeader.DEFAULT_HTTP_HEADER_NAME.equals(
           request.headers().get(ShuffleHeader.HTTP_HEADER_NAME))
           || !ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION.equals(
-              request.headers().get(ShuffleHeader.HTTP_HEADER_VERSION))) {
+          request.headers().get(ShuffleHeader.HTTP_HEADER_VERSION))) {
         sendError(ctx, "Incompatible shuffle request version", BAD_REQUEST);
       }
       final Map<String, List<String>> q = new QueryStringDecoder(request.getUri()).parameters();
@@ -378,7 +376,7 @@ public class ShuffleHandler {
         keepAliveParam = Boolean.valueOf(keepAliveList.get(0));
         if (LOG.isDebugEnabled()) {
           LOG.debug("KeepAliveParam : " + keepAliveList
-            + " : " + keepAliveParam);
+              + " : " + keepAliveParam);
         }
       }
       final List<String> mapIds = splitMaps(q.get("map"));
@@ -440,12 +438,12 @@ public class ShuffleHandler {
 
       try {
         populateHeaders(mapIds, outputBasePathStr, user, reduceId, request,
-          response, keepAliveParam, mapOutputInfoMap);
-      } catch(IOException e) {
+            response, keepAliveParam, mapOutputInfoMap);
+      } catch (IOException e) {
         ch.writeAndFlush(response);
         LOG.error("Shuffle error in populating headers :", e);
         String errorMessage = getErrorMessage(e);
-        sendError(ctx,errorMessage , INTERNAL_SERVER_ERROR);
+        sendError(ctx, errorMessage, INTERNAL_SERVER_ERROR);
         return;
       }
       ch.writeAndFlush(response);
@@ -459,7 +457,7 @@ public class ShuffleHandler {
           }
           lastMap =
               sendMapOutput(ctx, ch, user, mapId,
-                reduceId, info);
+                  reduceId, info);
           if (null == lastMap) {
             sendError(ctx, NOT_FOUND);
             return;
@@ -467,7 +465,7 @@ public class ShuffleHandler {
         } catch (IOException e) {
           LOG.error("Shuffle error :", e);
           String errorMessage = getErrorMessage(e);
-          sendError(ctx,errorMessage , INTERNAL_SERVER_ERROR);
+          sendError(ctx, errorMessage, INTERNAL_SERVER_ERROR);
           return;
         }
       }
@@ -499,7 +497,7 @@ public class ShuffleHandler {
     }
 
     protected MapOutputInfo getMapOutputInfo(String base, String mapId,
-        int reduce, String user) throws IOException {
+                                             int reduce, String user) throws IOException {
       // Index file
       Path indexFileName =
           lDirAlloc.getLocalPathToRead(base + "/file.out.index", conf);
@@ -516,8 +514,8 @@ public class ShuffleHandler {
     }
 
     protected void populateHeaders(List<String> mapIds, String outputBaseStr,
-        String user, int reduce, HttpRequest request, HttpResponse response,
-        boolean keepAliveParam, Map<String, MapOutputInfo> mapOutputInfoMap)
+                                   String user, int reduce, HttpRequest request, HttpResponse response,
+                                   boolean keepAliveParam, Map<String, MapOutputInfo> mapOutputInfoMap)
         throws IOException {
 
       long contentLength = 0;
@@ -546,13 +544,13 @@ public class ShuffleHandler {
     }
 
     protected void setResponseHeaders(HttpResponse response,
-        boolean keepAliveParam, long contentLength) {
+                                      boolean keepAliveParam, long contentLength) {
       if (!connectionKeepAliveEnabled && !keepAliveParam) {
         LOG.info("Setting connection close header...");
         response.headers().set(HttpHeaders.Names.CONNECTION, CONNECTION_CLOSE);
       } else {
         response.headers().set(HttpHeaders.Names.CONTENT_LENGTH,
-          String.valueOf(contentLength));
+            String.valueOf(contentLength));
         response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
         response.headers().set(HttpHeaders.Values.KEEP_ALIVE, "timeout="
             + connectionKeepAliveTimeOut);
@@ -571,7 +569,7 @@ public class ShuffleHandler {
     }
 
     protected void verifyRequest(String appid, ChannelHandlerContext ctx,
-        HttpRequest request, HttpResponse response, URL requestUri)
+                                 HttpRequest request, HttpResponse response, URL requestUri)
         throws IOException {
       SecretKey tokenSecret = secretManager.retrieveTokenSecret(appid);
       if (null == tokenSecret) {
@@ -582,7 +580,7 @@ public class ShuffleHandler {
       String enc_str = SecureShuffleUtils.buildMsgFrom(requestUri);
       // hash from the fetcher
       String urlHashStr =
-        request.headers().get(SecureShuffleUtils.HTTP_HEADER_URL_HASH);
+          request.headers().get(SecureShuffleUtils.HTTP_HEADER_URL_HASH);
       if (urlHashStr == null) {
         LOG.info("Missing header hash for " + appid);
         throw new IOException("fetcher cannot be authenticated");
@@ -590,14 +588,14 @@ public class ShuffleHandler {
       if (LOG.isDebugEnabled()) {
         int len = urlHashStr.length();
         LOG.debug("verifying request. enc_str=" + enc_str + "; hash=..." +
-            urlHashStr.substring(len-len/2, len-1));
+            urlHashStr.substring(len - len / 2, len - 1));
       }
       // verify - throws exception
       SecureShuffleUtils.verifyReply(urlHashStr, enc_str, tokenSecret);
       // verification passed - encode the reply
       String reply =
-        SecureShuffleUtils.generateHash(urlHashStr.getBytes(Charsets.UTF_8), 
-            tokenSecret);
+          SecureShuffleUtils.generateHash(urlHashStr.getBytes(Charsets.UTF_8),
+              tokenSecret);
       response.headers().set(SecureShuffleUtils.HTTP_HEADER_REPLY_URL_HASH, reply);
       // Put shuffle version into http header
       response.headers().set(ShuffleHeader.HTTP_HEADER_NAME,
@@ -607,16 +605,16 @@ public class ShuffleHandler {
       if (LOG.isDebugEnabled()) {
         int len = reply.length();
         LOG.debug("Fetcher request verfied. enc_str=" + enc_str + ";reply=" +
-            reply.substring(len-len/2, len-1));
+            reply.substring(len - len / 2, len - 1));
       }
     }
 
     protected ChannelFuture sendMapOutput(ChannelHandlerContext ctx, Channel ch,
-        String user, String mapId, int reduce, MapOutputInfo mapOutputInfo)
+                                          String user, String mapId, int reduce, MapOutputInfo mapOutputInfo)
         throws IOException {
       final TezIndexRecord info = mapOutputInfo.indexRecord;
       final ShuffleHeader header =
-        new ShuffleHeader(mapId, info.getPartLength(), info.getRawLength(), reduce);
+          new ShuffleHeader(mapId, info.getPartLength(), info.getRawLength(), reduce);
       final DataOutputBuffer dob = new DataOutputBuffer();
       header.write(dob);
       ch.writeAndFlush(wrappedBuffer(dob.getData(), 0, dob.getLength()));
@@ -637,12 +635,12 @@ public class ShuffleHandler {
     }
 
     protected void sendError(ChannelHandlerContext ctx,
-        HttpResponseStatus status) {
+                             HttpResponseStatus status) {
       sendError(ctx, "", status);
     }
 
     protected void sendError(ChannelHandlerContext ctx, String message,
-        HttpResponseStatus status) {
+                             HttpResponseStatus status) {
       FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
       response.headers().set(CONTENT_TYPE, "text/plain; charset=UTF-8");
       // Put shuffle version into http header

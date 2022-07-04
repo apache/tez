@@ -33,14 +33,13 @@ import org.apache.tez.history.parser.datamodel.VertexInfo;
 
 import java.util.List;
 
-
 /**
  * Get container reuse information at a per vertex level basis.
  */
 public class ContainerReuseAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final String[] headers =
-      { "vertexName", "taskAttempts", "node", "containerId", "reuseCount" };
+      {"vertexName", "taskAttempts", "node", "containerId", "reuseCount"};
 
   private final CSVResult csvResult;
 

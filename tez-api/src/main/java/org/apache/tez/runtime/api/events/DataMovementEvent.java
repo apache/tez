@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,12 +56,11 @@ public final class DataMovementEvent extends Event {
    */
   private int version;
 
-
   @Private
   DataMovementEvent(int sourceIndex,
-                            int targetIndex,
-                            int version,
-                            ByteBuffer userPayload) {
+                    int targetIndex,
+                    int version,
+                    ByteBuffer userPayload) {
     this.userPayload = userPayload;
     this.sourceIndex = sourceIndex;
     this.version = version;
@@ -82,7 +81,7 @@ public final class DataMovementEvent extends Event {
                                          ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, -1, -1, userPayload);
   }
-  
+
   @Private
   /**
    * Constructor for Processor-generated User Events
@@ -99,11 +98,11 @@ public final class DataMovementEvent extends Event {
                                          ByteBuffer userPayload) {
     return new DataMovementEvent(sourceIndex, targetIndex, version, userPayload);
   }
-  
+
   /**
    * Make a routable copy of the {@link DataMovementEvent} by adding a target
    * input index
-   * 
+   *
    * @param targetIndex
    *          The index of the physical input to which this
    *          {@link DataMovementEvent} should be routed

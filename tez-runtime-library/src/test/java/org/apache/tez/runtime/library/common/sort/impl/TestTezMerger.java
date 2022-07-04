@@ -220,13 +220,13 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "", DIFF_KEY },
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY },
-            { "1", DIFF_KEY },
-            { "2", DIFF_KEY }
+            {"", DIFF_KEY},
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY},
+            {"1", DIFF_KEY},
+            {"2", DIFF_KEY}
         };
 
     verify(records, expectedResult);
@@ -267,15 +267,15 @@ public class TestTezMerger {
 
     String[][] expectedResult =
         {
-            { "1", DIFF_KEY },
-            { "2", DIFF_KEY },
-            { "3", DIFF_KEY },
-            { "4", DIFF_KEY },
-            { "5", DIFF_KEY },
-            { "6", DIFF_KEY },
-            { "7", DIFF_KEY },
-            { "8", DIFF_KEY },
-            { "9", DIFF_KEY }
+            {"1", DIFF_KEY},
+            {"2", DIFF_KEY},
+            {"3", DIFF_KEY},
+            {"4", DIFF_KEY},
+            {"5", DIFF_KEY},
+            {"6", DIFF_KEY},
+            {"7", DIFF_KEY},
+            {"8", DIFF_KEY},
+            {"9", DIFF_KEY}
         };
 
     verify(records, expectedResult);
@@ -311,16 +311,15 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY },
-            { "1", DIFF_KEY }
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY},
+            {"1", DIFF_KEY}
         };
 
     verify(records, expectedResult);
     pathList.clear();
     data.clear();
-
   }
 
   @Test(timeout = 5000)
@@ -360,11 +359,11 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "", DIFF_KEY },
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY }
+            {"", DIFF_KEY},
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY}
         };
 
     verify(records, expectedResult);
@@ -399,11 +398,11 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "1", DIFF_KEY },
-            { "2", DIFF_KEY },
-              { "2", SAME_KEY },
-              { "2", SAME_KEY },
-            { "3", DIFF_KEY }
+            {"1", DIFF_KEY},
+            {"2", DIFF_KEY},
+            {"2", SAME_KEY},
+            {"2", SAME_KEY},
+            {"3", DIFF_KEY}
         };
 
     verify(records, expectedResult);
@@ -444,15 +443,14 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-              { "0", SAME_KEY },
-            { "1", DIFF_KEY },
-              { "1", SAME_KEY },
-              { "1", SAME_KEY },
-              { "1", SAME_KEY },
-              { "1", SAME_KEY }
-
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"0", SAME_KEY},
+            {"1", DIFF_KEY},
+            {"1", SAME_KEY},
+            {"1", SAME_KEY},
+            {"1", SAME_KEY},
+            {"1", SAME_KEY}
         };
 
     verify(records, expectedResult);
@@ -488,9 +486,9 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-            { "1", DIFF_KEY }
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"1", DIFF_KEY}
         };
 
     verify(records, expectedResult);
@@ -523,10 +521,10 @@ public class TestTezMerger {
     String[][] expectedResult =
         {
             //formatting intentionally
-            { "0", DIFF_KEY },
-              { "0", SAME_KEY },
-            { "1", DIFF_KEY },
-              { "1", SAME_KEY } };
+            {"0", DIFF_KEY},
+            {"0", SAME_KEY},
+            {"1", DIFF_KEY},
+            {"1", SAME_KEY}};
 
     verify(records, expectedResult);
     pathList.clear();
@@ -578,8 +576,6 @@ public class TestTezMerger {
         new Reporter(), null, null, null, new Progress());
     return records;
   }
-
-
 
   //Sample comparator to test TEZ-1999 corner case
   static class CustomComparator extends WritableComparator {
@@ -742,8 +738,8 @@ public class TestTezMerger {
   }
 
   private void populateData(IntWritable intKey, LongWritable longVal, DataInputBuffer key,
-      DataInputBuffer value)
-      throws  IOException {
+                            DataInputBuffer value)
+      throws IOException {
     DataOutputBuffer k = new DataOutputBuffer();
     DataOutputBuffer v = new DataOutputBuffer();
     intKey.write(k);
@@ -828,5 +824,4 @@ public class TestTezMerger {
     public void progress() {
     }
   }
-
 }

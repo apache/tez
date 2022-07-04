@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -98,7 +98,6 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
         sb.append(", ");
         sb.append("name ");
         sb.append(name);
-
       }
       sb.append(", num chunk ").append(numChunk);
       sb.append(": {");
@@ -198,7 +197,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
   }
 
   private static final Logger LOG =
-    org.slf4j.LoggerFactory.getLogger(FairCartesianProductVertexManager.class);
+      org.slf4j.LoggerFactory.getLogger(FairCartesianProductVertexManager.class);
 
   private CartesianProductConfigProto config;
   private List<String> sourceList;
@@ -233,11 +232,11 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
   public void initialize(CartesianProductConfigProto config) throws Exception {
     this.config = config;
     maxParallelism = config.hasMaxParallelism() ? config.getMaxParallelism()
-      :CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT;
+        : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT;
     enableGrouping = config.hasEnableGrouping() ? config.getEnableGrouping()
-      :CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT;
+        : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT;
     minOpsPerWorker = config.hasMinOpsPerWorker() ? config.getMinOpsPerWorker()
-      : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT;
+        : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT;
     sourceList = config.getSourcesList();
     if (config.hasNumPartitionsForFairCase()) {
       numPartitions = config.getNumPartitionsForFairCase();
@@ -247,8 +246,8 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
     for (Map.Entry<String, EdgeProperty> e : getContext().getInputVertexEdgeProperties().entrySet()) {
       if (e.getValue().getDataMovementType() == CUSTOM
-        && e.getValue().getEdgeManagerDescriptor().getClassName()
-        .equals(CartesianProductEdgeManager.class.getName())) {
+          && e.getValue().getEdgeManagerDescriptor().getClassName()
+          .equals(CartesianProductEdgeManager.class.getName())) {
         srcVerticesByName.put(e.getKey(), new SrcVertex());
         srcVerticesByName.get(e.getKey()).name = e.getKey();
         getContext().registerForVertexStateUpdates(e.getKey(), EnumSet.of(VertexState.CONFIGURED));
@@ -279,7 +278,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     }
 
     minNumRecordForEstimation =
-      (long) Math.pow(minOpsPerWorker * maxParallelism, 1.0 / sourceList.size());
+        (long) Math.pow(minOpsPerWorker * maxParallelism, 1.0 / sourceList.size());
 
     numChunksPerSrc = new int[sourcesByName.size()];
     getContext().vertexReconfigurationPlanned();
@@ -287,7 +286,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
   @Override
   public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions)
-    throws Exception {
+      throws Exception {
     vertexStarted = true;
     if (completions != null) {
       LOG.info("OnVertexStarted with " + completions.size() + " completed source task");
@@ -330,13 +329,13 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
   private boolean tryStartSchedule() {
     vertexStartSchedule =
-      (vertexReconfigured && vertexStarted && numBroadcastSrcNotInRunningState == 0);
+        (vertexReconfigured && vertexStarted && numBroadcastSrcNotInRunningState == 0);
     return vertexStartSchedule;
   }
 
   @Override
   public synchronized void onVertexManagerEventReceived(VertexManagerEvent vmEvent)
-    throws IOException {
+      throws IOException {
     /* vmEvent after reconfigure doesn't matter */
     if (vertexReconfigured) {
       return;
@@ -344,7 +343,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
     if (vmEvent.getUserPayload() != null) {
       String srcVertex =
-        vmEvent.getProducerAttemptIdentifier().getTaskIdentifier().getVertexIdentifier().getName();
+          vmEvent.getProducerAttemptIdentifier().getTaskIdentifier().getVertexIdentifier().getName();
       SrcVertex srcV = srcVerticesByName.get(srcVertex);
 
       // vmEvent from non-cp vertex doesn't matter
@@ -353,10 +352,10 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       }
 
       VertexManagerEventPayloadProto proto =
-        VertexManagerEventPayloadProto.parseFrom(ByteString.copyFrom(vmEvent.getUserPayload()));
+          VertexManagerEventPayloadProto.parseFrom(ByteString.copyFrom(vmEvent.getUserPayload()));
       srcV.numRecord += proto.getNumRecord();
       srcV.taskWithVMEvent.add(
-        vmEvent.getProducerAttemptIdentifier().getTaskIdentifier().getIdentifier());
+          vmEvent.getProducerAttemptIdentifier().getTaskIdentifier().getIdentifier());
     }
 
     tryScheduleTasks();
@@ -385,8 +384,8 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       // every src vertex must complete a certain number of task before we do estimation
       for (SrcVertex srcV : srcVerticesByName.values()) {
         if (srcV.taskCompleted.getCardinality() < srcV.numTask
-          && (srcV.numTask * config.getGroupingFraction() > srcV.taskCompleted.getCardinality()
-          || srcV.numRecord == 0)) {
+            && (srcV.numTask * config.getGroupingFraction() > srcV.taskCompleted.getCardinality()
+            || srcV.numRecord == 0)) {
           return false;
         }
       }
@@ -395,16 +394,16 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       // or all its tasks already finish but we cannot get enough result for estimation
       for (SrcVertex srcV : srcVerticesByName.values()) {
         if (srcV.numRecord < minNumRecordForEstimation
-          && srcV.taskWithVMEvent.getCardinality() < srcV.numTask) {
+            && srcV.taskWithVMEvent.getCardinality() < srcV.numTask) {
           return false;
         }
       }
     }
 
     LOG.info("Start reconfiguring vertex " + getContext().getVertexName()
-      + ", max parallelism: " + maxParallelism
-      + ", min-ops-per-worker: " + minOpsPerWorker
-      + ", num partition: " + numPartitions);
+        + ", max parallelism: " + maxParallelism
+        + ", min-ops-per-worker: " + minOpsPerWorker
+        + ", num partition: " + numPartitions);
     for (Source src : sourcesByName.values()) {
       LOG.info(src.toString());
     }
@@ -419,7 +418,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
       }
 
       try {
-        totalOps  = LongMath.checkedMultiply(totalOps, src.numRecord);
+        totalOps = LongMath.checkedMultiply(totalOps, src.numRecord);
       } catch (ArithmeticException e) {
         LOG.info("totalOps exceeds " + Long.MAX_VALUE + ", capping to " + Long.MAX_VALUE);
         totalOps = Long.MAX_VALUE;
@@ -476,7 +475,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
         SrcVertex srcV = src.srcVertices.get(i);
         builder.setPositionInGroup(i);
         edgeProperties.get(srcV.name).getEdgeManagerDescriptor()
-          .setUserPayload(UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray())));
+            .setUserPayload(UserPayload.create(ByteBuffer.wrap(builder.build().toByteArray())));
         builder.addNumTaskPerVertexInGroup(srcV.numTask);
       }
     }
@@ -517,8 +516,8 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
     for (Source src : sourcesByName.values()) {
       if (src.numChunk != 1) {
         src.numChunk = Math.min(maxParallelism,
-          Math.min(src.getSrcVertexWithMostOutput().numTask * numPartitions,
-            Math.max(1, (int) (src.numRecord * k))));
+            Math.min(src.getSrcVertexWithMostOutput().numTask * numPartitions,
+                Math.max(1, (int) (src.numRecord * k))));
       }
     }
   }
@@ -548,7 +547,7 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
 
     List<ScheduleTaskRequest> requests = new ArrayList<>();
     CartesianProductCombination combination =
-      new CartesianProductCombination(numChunksPerSrc, src.position);
+        new CartesianProductCombination(numChunksPerSrc, src.position);
 
     grouper.init(srcV.numTask * numPartitions, src.numChunk);
     int firstRelevantChunk = grouper.getGroupId(taskId * numPartitions);
@@ -565,9 +564,9 @@ class FairCartesianProductVertexManager extends CartesianProductVertexManagerRea
         // a task is ready for schedule only if all its src chunk has been completed
         boolean readyToSchedule = src.isChunkCompleted(list.get(src.position));
         for (int srcId = 0; readyToSchedule && srcId < list.size(); srcId++) {
-          if (srcId != src.position){
+          if (srcId != src.position) {
             readyToSchedule =
-              sourcesByName.get(sourceList.get(srcId)).isChunkCompleted(list.get(srcId));
+                sourcesByName.get(sourceList.get(srcId)).isChunkCompleted(list.get(srcId));
           }
         }
 

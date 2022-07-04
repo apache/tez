@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,13 +55,13 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
   private final EventMetaData sourceInfo;
 
   public TezProcessorContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String dagName, String vertexName,
-      int vertexParallelism, TezTaskAttemptID taskAttemptID,
-      @Nullable UserPayload userPayload, LogicalIOProcessorRuntimeTask runtimeTask,
-      Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
+                                 TezUmbilical tezUmbilical, String dagName, String vertexName,
+                                 int vertexParallelism, TezTaskAttemptID taskAttemptID,
+                                 @Nullable UserPayload userPayload, LogicalIOProcessorRuntimeTask runtimeTask,
+                                 Map<String, ByteBuffer> serviceConsumerMetadata,
+                                 Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+                                 ProcessorDescriptor processorDescriptor, InputReadyTracker inputReadyTracker, ObjectRegistry objectRegistry,
+                                 ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
     super(conf, workDirs, appAttemptNumber, dagName, vertexName, vertexParallelism, taskAttemptID,
         runtimeTask.addAndGetTezCounter(vertexName), runtimeTask, tezUmbilical, serviceConsumerMetadata,
         auxServiceEnv, memDist, processorDescriptor, objectRegistry, ExecutionContext, memAvailable,
@@ -145,5 +145,4 @@ public class TezProcessorContextImpl extends TezTaskContextImpl implements Proce
     this.inputReadyTracker = null;
     LOG.debug("Cleared TezProcessorContextImpl related information");
   }
-
 }

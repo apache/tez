@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -74,7 +74,7 @@ public class TestFairCartesianProductEdgeManager {
                                TestData srcFailInvalid, TestData srcFailValid,
                                TestData inputError, TestData numDestInput,
                                TestData numSrcOutputTest, TestData numConsumerTest)
-    throws Exception {
+      throws Exception {
     when(mockContext.getSourceVertexName()).thenReturn(vName);
     when(mockContext.getSourceVertexNumTasks()).thenReturn(numTask);
     when(mockContext.getVertexGroupName()).thenReturn(groupName);
@@ -84,14 +84,14 @@ public class TestFairCartesianProductEdgeManager {
 
     if (cDMEInvalid != null) {
       cDME = edgeManager.routeCompositeDataMovementEventToDestination(cDMEInvalid.srcId,
-        cDMEInvalid.destId);
+          cDMEInvalid.destId);
       assertNull(cDME);
     }
 
     cDME = edgeManager.routeCompositeDataMovementEventToDestination(cDMEValid.srcId,
-      cDMEValid.destId);
+        cDMEValid.destId);
     assertNotNull(cDME);
-    CompositeEventRouteMetadata expectedCDME = (CompositeEventRouteMetadata)(cDMEValid.expected);
+    CompositeEventRouteMetadata expectedCDME = (CompositeEventRouteMetadata) (cDMEValid.expected);
     assertEquals(expectedCDME.getCount(), cDME.getCount());
     assertEquals(expectedCDME.getTarget(), cDME.getTarget());
     assertEquals(expectedCDME.getSource(), cDME.getSource());
@@ -99,26 +99,26 @@ public class TestFairCartesianProductEdgeManager {
     EventRouteMetadata dme;
     if (srcFailInvalid != null) {
       dme = edgeManager.routeInputSourceTaskFailedEventToDestination(srcFailInvalid.srcId,
-        srcFailInvalid.destId);
+          srcFailInvalid.destId);
       assertNull(dme);
     }
 
     dme = edgeManager.routeInputSourceTaskFailedEventToDestination(srcFailValid.srcId,
-      srcFailValid.destId);
+        srcFailValid.destId);
     assertNotNull(dme);
-    EventRouteMetadata expectedDME = (EventRouteMetadata)(srcFailValid.expected);
+    EventRouteMetadata expectedDME = (EventRouteMetadata) (srcFailValid.expected);
     assertEquals(expectedDME.getNumEvents(), dme.getNumEvents());
     assertArrayEquals(expectedDME.getTargetIndices(), dme.getTargetIndices());
 
     assertEquals(inputError.expected,
-      edgeManager.routeInputErrorEventToSource(inputError.destId, inputError.inputId));
+        edgeManager.routeInputErrorEventToSource(inputError.destId, inputError.inputId));
 
     assertEquals(numDestInput.expected,
-      edgeManager.getNumDestinationTaskPhysicalInputs(numDestInput.destId));
+        edgeManager.getNumDestinationTaskPhysicalInputs(numDestInput.destId));
     assertEquals(numSrcOutputTest.expected,
-      edgeManager.getNumSourceTaskPhysicalOutputs(numSrcOutputTest.srcId));
+        edgeManager.getNumSourceTaskPhysicalOutputs(numSrcOutputTest.srcId));
     assertEquals(numConsumerTest.expected,
-      edgeManager.getNumDestinationConsumerTasks(numConsumerTest.srcId));
+        edgeManager.getNumDestinationConsumerTasks(numConsumerTest.srcId));
   }
 
   /**
@@ -129,18 +129,18 @@ public class TestFairCartesianProductEdgeManager {
   public void testTwoWayAllVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1")
-      .addNumChunks(2).addNumChunks(3).setMaxParallelism(10).setNumPartitionsForFairCase(10);
+        .addNumChunks(2).addNumChunks(3).setMaxParallelism(10).setNumPartitionsForFairCase(10);
     CartesianProductConfigProto config = builder.build();
     testEdgeManager(config, "v0", 2, null, dataForRouting(1, 1, null),
-      dataForRouting(1, 3, CompositeEventRouteMetadata.create(10, 0, 0)),
-      dataForRouting(1, 1, null),
-      dataForRouting(1, 3, EventRouteMetadata.create(10, new int[]{0,1,2,3,4,5,6,7,8,9})),
-      dataForInputError(1, 0, 0), dataForDest(1, 10), dataForSrc(1, 10), dataForSrc(1, 3));
+        dataForRouting(1, 3, CompositeEventRouteMetadata.create(10, 0, 0)),
+        dataForRouting(1, 1, null),
+        dataForRouting(1, 3, EventRouteMetadata.create(10, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})),
+        dataForInputError(1, 0, 0), dataForDest(1, 10), dataForSrc(1, 10), dataForSrc(1, 3));
     testEdgeManager(config, "v1", 30, null, dataForRouting(1, 2, null),
-      dataForRouting(1, 0, CompositeEventRouteMetadata.create(10, 10, 0)),
-      dataForRouting(1, 2, null),
-      dataForRouting(1, 0, EventRouteMetadata.create(10, new int[]{10,11,12,13,14,15,16,17,18,19})),
-      dataForInputError(1,0,10), dataForDest(1, 100), dataForSrc(1, 10), dataForSrc(1, 2));
+        dataForRouting(1, 0, CompositeEventRouteMetadata.create(10, 10, 0)),
+        dataForRouting(1, 2, null),
+        dataForRouting(1, 0, EventRouteMetadata.create(10, new int[]{10, 11, 12, 13, 14, 15, 16, 17, 18, 19})),
+        dataForInputError(1, 0, 10), dataForDest(1, 100), dataForSrc(1, 10), dataForSrc(1, 2));
   }
 
   /**
@@ -152,24 +152,24 @@ public class TestFairCartesianProductEdgeManager {
   public void testThreeWayAllVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("v1").addSources("v2")
-      .addNumChunks(2).addNumChunks(3).addNumChunks(4)
-      .setMaxParallelism(12).setNumPartitionsForFairCase(12);
+        .addNumChunks(2).addNumChunks(3).addNumChunks(4)
+        .setMaxParallelism(12).setNumPartitionsForFairCase(12);
     CartesianProductConfigProto config = builder.build();
     testEdgeManager(config, "v0", 2, null, dataForRouting(1, 1, null),
-      dataForRouting(1, 12, CompositeEventRouteMetadata.create(12, 0, 0)),
-      dataForRouting(1, 1, null),
-      dataForRouting(1, 12, EventRouteMetadata.create(12, new int[]{0,1,2,3,4,5,6,7,8,9,10,11})),
-      dataForInputError(1, 0, 0), dataForDest(1, 12), dataForSrc(1, 12), dataForSrc(1, 12));
+        dataForRouting(1, 12, CompositeEventRouteMetadata.create(12, 0, 0)),
+        dataForRouting(1, 1, null),
+        dataForRouting(1, 12, EventRouteMetadata.create(12, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11})),
+        dataForInputError(1, 0, 0), dataForDest(1, 12), dataForSrc(1, 12), dataForSrc(1, 12));
     testEdgeManager(config, "v1", 30, null, dataForRouting(1, 4, null),
-      dataForRouting(1, 13, CompositeEventRouteMetadata.create(12, 12, 0)),
-      dataForRouting(1, 4, null),
-      dataForRouting(1, 13,
-        EventRouteMetadata.create(12, new int[]{12,13,14,15,16,17,18,19,20,21,22,23})),
-      dataForInputError(1, 0, 0), dataForDest(1, 120), dataForSrc(1, 12), dataForSrc(1, 8));
+        dataForRouting(1, 13, CompositeEventRouteMetadata.create(12, 12, 0)),
+        dataForRouting(1, 4, null),
+        dataForRouting(1, 13,
+            EventRouteMetadata.create(12, new int[]{12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23})),
+        dataForInputError(1, 0, 0), dataForDest(1, 120), dataForSrc(1, 12), dataForSrc(1, 8));
     testEdgeManager(config, "v2", 1, null,
-      null, dataForRouting(0, 13, CompositeEventRouteMetadata.create(3, 0, 3)),
-      null, dataForRouting(0, 13, EventRouteMetadata.create(3, new int[]{0,1,2})),
-      dataForInputError(1, 0, 0), dataForDest(1, 3), dataForSrc(0, 12), dataForSrc(0, 24));
+        null, dataForRouting(0, 13, CompositeEventRouteMetadata.create(3, 0, 3)),
+        null, dataForRouting(0, 13, EventRouteMetadata.create(3, new int[]{0, 1, 2})),
+        dataForInputError(1, 0, 0), dataForDest(1, 3), dataForSrc(0, 12), dataForSrc(0, 24));
   }
 
   /**
@@ -183,19 +183,19 @@ public class TestFairCartesianProductEdgeManager {
   public void testTwoWayVertexWithVertexGroup() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("v0").addSources("g0")
-      .addNumChunks(2).addNumChunks(3).setPositionInGroup(10).setNumPartitionsForFairCase(10)
-      .addNumTaskPerVertexInGroup(10).addNumTaskPerVertexInGroup(20).setPositionInGroup(0);
+        .addNumChunks(2).addNumChunks(3).setPositionInGroup(10).setNumPartitionsForFairCase(10)
+        .addNumTaskPerVertexInGroup(10).addNumTaskPerVertexInGroup(20).setPositionInGroup(0);
     testEdgeManager(builder.build(), "v1", 10, "g0", dataForRouting(0, 4, null),
-      dataForRouting(0, 3, CompositeEventRouteMetadata.create(10, 0, 0)),
-      dataForRouting(0, 4, null),
-      dataForRouting(0, 3, EventRouteMetadata.create(10, new int[]{0,1,2,3,4,5,6,7,8,9})),
-      dataForInputError(3, 0, 0), dataForDest(2, 34), dataForSrc(0, 10), dataForSrc(0, 2));
+        dataForRouting(0, 3, CompositeEventRouteMetadata.create(10, 0, 0)),
+        dataForRouting(0, 4, null),
+        dataForRouting(0, 3, EventRouteMetadata.create(10, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})),
+        dataForInputError(3, 0, 0), dataForDest(2, 34), dataForSrc(0, 10), dataForSrc(0, 2));
     builder.setPositionInGroup(1);
     testEdgeManager(builder.build(), "v2", 20, "g0", dataForRouting(1, 1, null),
-      dataForRouting(6, 1, CompositeEventRouteMetadata.create(4, 33, 6)),
-      dataForRouting(1, 1, null),
-      dataForRouting(6, 1, EventRouteMetadata.create(4, new int[]{33,34,35,36})),
-      dataForInputError(1, 33, 6), dataForDest(0, 66), dataForSrc(1, 10), dataForSrc(6, 4));
+        dataForRouting(6, 1, CompositeEventRouteMetadata.create(4, 33, 6)),
+        dataForRouting(1, 1, null),
+        dataForRouting(6, 1, EventRouteMetadata.create(4, new int[]{33, 34, 35, 36})),
+        dataForInputError(1, 33, 6), dataForDest(0, 66), dataForSrc(1, 10), dataForSrc(6, 4));
   }
 
   /**
@@ -210,19 +210,19 @@ public class TestFairCartesianProductEdgeManager {
   public void testTwoWayAllVertexGroup() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(false).addSources("g0").addSources("g1")
-      .addNumChunks(2).addNumChunks(3).setMaxParallelism(10).setNumPartitionsForFairCase(10)
-      .addNumTaskPerVertexInGroup(2).addNumTaskPerVertexInGroup(5).setPositionInGroup(0);
+        .addNumChunks(2).addNumChunks(3).setMaxParallelism(10).setNumPartitionsForFairCase(10)
+        .addNumTaskPerVertexInGroup(2).addNumTaskPerVertexInGroup(5).setPositionInGroup(0);
     testEdgeManager(builder.build(), "v0", 2, "g0", dataForRouting(1, 1, null),
-      dataForRouting(0, 1, CompositeEventRouteMetadata.create(10, 0, 0)),
-      dataForRouting(1, 1, null),
-      dataForRouting(0, 1, EventRouteMetadata.create(10, new int[]{0,1,2,3,4,5,6,7,8,9})),
-      dataForInputError(1, 0, 0), dataForDest(1, 10), dataForSrc(1, 10), dataForSrc(1, 3));
+        dataForRouting(0, 1, CompositeEventRouteMetadata.create(10, 0, 0)),
+        dataForRouting(1, 1, null),
+        dataForRouting(0, 1, EventRouteMetadata.create(10, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})),
+        dataForInputError(1, 0, 0), dataForDest(1, 10), dataForSrc(1, 10), dataForSrc(1, 3));
     builder.setPositionInGroup(1);
     testEdgeManager(builder.build(), "v1", 5, "g0", dataForRouting(3, 1, null),
-      dataForRouting(1, 1, CompositeEventRouteMetadata.create(10, 20, 0)),
-      dataForRouting(3, 1, null),
-      dataForRouting(1, 1, EventRouteMetadata.create(10, new int[]{20,21,22,23,24,25,26,27,28,29})),
-      dataForInputError(1, 15, 0), dataForDest(1, 25), dataForSrc(1, 10), dataForSrc(1, 3));
+        dataForRouting(1, 1, CompositeEventRouteMetadata.create(10, 20, 0)),
+        dataForRouting(3, 1, null),
+        dataForRouting(1, 1, EventRouteMetadata.create(10, new int[]{20, 21, 22, 23, 24, 25, 26, 27, 28, 29})),
+        dataForInputError(1, 15, 0), dataForDest(1, 25), dataForSrc(1, 10), dataForSrc(1, 3));
   }
 
   @Test(timeout = 5000)

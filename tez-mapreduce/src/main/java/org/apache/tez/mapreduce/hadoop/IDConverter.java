@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.hadoop;
 
@@ -36,14 +36,14 @@ public class IDConverter {
         Long.toString(dagId.getApplicationId().getClusterTimestamp()),
         dagId.getApplicationId().getId());
   }
-  
+
   public static TaskID toMRTaskId(TezTaskID taskid) {
     return new TaskID(
         toMRJobId(taskid.getDAGID()),
         taskid.getVertexID().getId() == 0 ? TaskType.MAP : TaskType.REDUCE,
         taskid.getId());
   }
-  
+
   public static TaskID toMRTaskIdForOutput(TezTaskID taskid) {
     return org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
         .createMockTaskAttemptIDFromTezTaskId(taskid, (taskid.getVertexID().getId() == 0));
@@ -55,7 +55,7 @@ public class IDConverter {
         toMRTaskId(taskAttemptId.getTaskID()),
         taskAttemptId.getId());
   }
-  
+
   // FIXME hardcoded assumption that one app is one dag
   public static TezDAGID fromMRJobId(
       org.apache.hadoop.mapreduce.JobID jobId) {
@@ -65,11 +65,11 @@ public class IDConverter {
 
   // FIXME hack alert converting objects with hard coded id
   public static TezTaskID
-      fromMRTaskId(org.apache.hadoop.mapreduce.TaskID taskid) {
+  fromMRTaskId(org.apache.hadoop.mapreduce.TaskID taskid) {
     return TezTaskID.getInstance(
         TezVertexID.getInstance(fromMRJobId(taskid.getJobID()),
-                (taskid.getTaskType() == TaskType.MAP ? 0 : 1)
-            ),
+            (taskid.getTaskType() == TaskType.MAP ? 0 : 1)
+        ),
         taskid.getId());
   }
 
@@ -79,5 +79,4 @@ public class IDConverter {
         fromMRTaskId(taskAttemptId.getTaskID()),
         taskAttemptId.getId());
   }
-  
 }

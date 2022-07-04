@@ -34,8 +34,8 @@ import com.google.common.collect.Lists;
 
 /**
  * A {@link SimpleProcessor} that provides Map Reduce specific post
- * processing by calling commit (if needed) on all {@link MROutput}s 
- * connected to this {@link Processor}. 
+ * processing by calling commit (if needed) on all {@link MROutput}s
+ * connected to this {@link Processor}.
  */
 @Public
 @Evolving

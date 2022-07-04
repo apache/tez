@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,7 +41,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
  * A {@link MergedLogicalInput} which merges multiple
  * {@link OrderedGroupedKVInput}s and returns a single view of these by merging
  * values which belong to the same key.
- * 
+ *
  * Combiners and Secondary Sort are not implemented, so there is no guarantee on
  * the order of values.
  */
@@ -84,7 +84,7 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
     private Object currentKey;
     private final MergedInputContext context;
 
-    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs, MergedInputContext context) 
+    public OrderedGroupedMergedKeyValuesReader(List<Input> inputs, MergedInputContext context)
         throws Exception {
       keyComparator = ((OrderedGroupedKVInput) inputs.get(0))
           .getInputKeyComparator();
@@ -163,7 +163,6 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       public void moveToNext() throws IOException {
         iterator.moveToNext();
       }
-
     }
 
     @SuppressWarnings("unchecked")
@@ -224,13 +223,12 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       public void remove() {
         throw new UnsupportedOperationException();
       }
-
     }
 
     /**
      * Comparator that compares KeyValuesReader on their current key
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private static class KVReaderComparator implements
         Comparator<KeyValuesReader> {
 
@@ -251,11 +249,12 @@ public class OrderedGroupedMergedKVInput extends MergedLogicalInput {
       }
     }
   }
+
   public float getProgress() throws ProgressFailedException, InterruptedException {
     float totalProgress = 0.0f;
-    for(Input input : getInputs()) {
-      totalProgress += ((OrderedGroupedKVInput)input).getProgress();
+    for (Input input : getInputs()) {
+      totalProgress += ((OrderedGroupedKVInput) input).getProgress();
     }
-    return (1.0f) * totalProgress/getInputs().size();
+    return (1.0f) * totalProgress / getInputs().size();
   }
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -88,7 +88,7 @@ public class UnionExample {
       Preconditions.checkArgument(getOutputs().containsKey("checker"));
       MRInput input = (MRInput) getInputs().values().iterator().next();
       KeyValueReader kvReader = input.getReader();
-      Output output =  getOutputs().get("checker");
+      Output output = getOutputs().get("checker");
       KeyValueWriter kvWriter = (KeyValueWriter) output.getWriter();
       MROutput parts = null;
       KeyValueWriter partsWriter = null;
@@ -107,7 +107,6 @@ public class UnionExample {
         }
       }
     }
-
   }
 
   public static class UnionProcessor extends SimpleMRProcessor {
@@ -160,14 +159,13 @@ public class UnionExample {
       }
       kvWriter.write("Union", new IntWritable(unionKv.size()));
     }
-
   }
 
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
-      Map<String, LocalResource> localResources, Path stagingDir,
-      String inputPath, String outputPath) throws IOException {
+                        Map<String, LocalResource> localResources, Path stagingDir,
+                        String inputPath, String outputPath) throws IOException {
     DAG dag = DAG.create("UnionExample");
-    
+
     int numMaps = -1;
     Configuration inputConf = new Configuration(tezConf);
     inputConf.setBoolean("mapred.mapper.new-api", false);
@@ -194,14 +192,13 @@ public class UnionExample {
     outputConf.set(FileOutputFormat.OUTDIR, outputPath);
     DataSinkDescriptor od = MROutput.createConfigBuilder(outputConf, null).build();
     checkerVertex.addDataSink("union", od);
-    
 
     Configuration allPartsConf = new Configuration(tezConf);
     DataSinkDescriptor od2 = MROutput.createConfigBuilder(allPartsConf,
         TextOutputFormat.class, outputPath + "-all-parts").build();
     checkerVertex.addDataSink("all-parts", od2);
 
-    Configuration partsConf = new Configuration(tezConf);    
+    Configuration partsConf = new Configuration(tezConf);
     DataSinkDescriptor od1 = MROutput.createConfigBuilder(partsConf,
         TextOutputFormat.class, outputPath + "-parts").build();
     VertexGroup unionVertex = dag.createVertexGroup("union", mapVertex1, mapVertex2);
@@ -221,7 +218,7 @@ public class UnionExample {
             GroupInputEdge.create(unionVertex, checkerVertex, edgeConf.createDefaultEdgeProperty(),
                 InputDescriptor.create(
                     ConcatenatedMergedKeyValuesInput.class.getName())));
-    return dag;  
+    return dag;
   }
 
   private static void printUsage() {
@@ -243,49 +240,48 @@ public class UnionExample {
     // staging dir
     FileSystem fs = FileSystem.get(tezConf);
     String stagingDirStr = Path.SEPARATOR + "user" + Path.SEPARATOR
-        + user + Path.SEPARATOR+ ".staging" + Path.SEPARATOR
-        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());    
+        + user + Path.SEPARATOR + ".staging" + Path.SEPARATOR
+        + Path.SEPARATOR + Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
-    
 
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
-    
+
     TezClient tezSession = TezClient.create("UnionExampleSession", tezConf);
     tezSession.start();
 
     DAGClient dagClient = null;
 
     try {
-        Path outputPathAsPath = new Path(outputPath);
+      Path outputPathAsPath = new Path(outputPath);
       FileSystem outputFs = outputPathAsPath.getFileSystem(tezConf);
       outputPathAsPath = outputFs.makeQualified(outputPathAsPath);
-        if (outputFs.exists(outputPathAsPath)) {
-          throw new FileAlreadyExistsException("Output directory "
-              + outputPath + " already exists");
-        }
-        
-        Map<String, LocalResource> localResources =
+      if (outputFs.exists(outputPathAsPath)) {
+        throw new FileAlreadyExistsException("Output directory "
+            + outputPath + " already exists");
+      }
+
+      Map<String, LocalResource> localResources =
           new TreeMap<String, LocalResource>();
-        
-        DAG dag = createDAG(fs, tezConf, localResources,
-            stagingDir, inputPath, outputPath);
 
-        tezSession.waitTillReady();
-        dagClient = tezSession.submitDAG(dag);
+      DAG dag = createDAG(fs, tezConf, localResources,
+          stagingDir, inputPath, outputPath);
 
-        // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
-        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-          System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
-          return false;
-        }
-        return true;
+      tezSession.waitTillReady();
+      dagClient = tezSession.submitDAG(dag);
+
+      // monitoring
+      DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
+      if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+        System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
+        return false;
+      }
+      return true;
     } finally {
       fs.delete(stagingDir, true);
       tezSession.stop();

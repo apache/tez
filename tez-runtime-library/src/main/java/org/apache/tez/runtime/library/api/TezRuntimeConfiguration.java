@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -65,7 +65,6 @@ public class TezRuntimeConfiguration {
   private static final List<String> allowedPrefixes = new ArrayList<String>();
   private static List<String> unmodifiableAllowedPrefixes;
 
-
   static {
     Configuration.addDeprecation("tez.runtime.sort.threads",
         TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
@@ -97,30 +96,25 @@ public class TezRuntimeConfiguration {
    */
   public static final String TEZ_RUNTIME_IO_FILE_BUFFER_SIZE = "io.file.buffer.size";
 
-
   @ConfigurationProperty(type = "integer")
   public static final String TEZ_RUNTIME_IO_SORT_FACTOR = TEZ_RUNTIME_PREFIX +
       "io.sort.factor";
   public static final int TEZ_RUNTIME_IO_SORT_FACTOR_DEFAULT = 100;
-
 
   @ConfigurationProperty(type = "float")
   public static final String TEZ_RUNTIME_SORT_SPILL_PERCENT = TEZ_RUNTIME_PREFIX +
       "sort.spill.percent";
   public static final float TEZ_RUNTIME_SORT_SPILL_PERCENT_DEFAULT = 0.8f;
 
-
   @ConfigurationProperty(type = "integer")
   public static final String TEZ_RUNTIME_IO_SORT_MB = TEZ_RUNTIME_PREFIX + "io.sort.mb";
   public static final int TEZ_RUNTIME_IO_SORT_MB_DEFAULT = 100;
-
 
   @ConfigurationProperty(type = "integer")
   public static final String TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES = TEZ_RUNTIME_PREFIX +
       "index.cache.memory.limit.bytes";
   public static final int TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT =
       1024 * 1024;
-
 
   // TODO Use the default value
   @ConfigurationProperty(type = "integer")
@@ -176,7 +170,7 @@ public class TezRuntimeConfiguration {
    * Integer value. Percentage of buffer to be filled before we spill to disk. Default value is 0,
    * which will spill for every buffer.
    */
-  @ConfigurationProperty(type="int")
+  @ConfigurationProperty(type = "int")
   public static final String TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT =
       TEZ_RUNTIME_PREFIX + "unordered-partitioned-kvwriter.buffer-merge-percent";
   public static final int TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT_DEFAULT =
@@ -346,7 +340,6 @@ public class TezRuntimeConfiguration {
   public static final boolean
       TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION_DEFAULT = true;
 
-
   @ConfigurationProperty(type = "integer")
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE =
       TEZ_RUNTIME_PREFIX +
@@ -471,7 +464,6 @@ public class TezRuntimeConfiguration {
       "task.input.post-merge.buffer.percent";
   public static final float TEZ_RUNTIME_INPUT_BUFFER_PERCENT_DEFAULT = 0.0f;
 
-
   @ConfigurationProperty
   public static final String TEZ_RUNTIME_GROUP_COMPARATOR_CLASS = TEZ_RUNTIME_PREFIX +
       "group.comparator.class";
@@ -509,13 +501,13 @@ public class TezRuntimeConfiguration {
 
   @Private
   public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED =
-          TEZ_RUNTIME_PREFIX + "transfer.data-via-events.enabled";
+      TEZ_RUNTIME_PREFIX + "transfer.data-via-events.enabled";
   @Private
   public static final boolean TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED_DEFAULT = true;
 
   @Private
   public static final String TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE =
-          TEZ_RUNTIME_PREFIX + "transfer.data-via-events.max-size";
+      TEZ_RUNTIME_PREFIX + "transfer.data-via-events.max-size";
   @Private
   public static final int TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE_DEFAULT = 512;
 
@@ -560,10 +552,9 @@ public class TezRuntimeConfiguration {
    * before sending the events in milliseconds. Set to -1 to not wait.
    */
   @ConfigurationProperty(type = "integer")
-  public static final String  TEZ_RUNTIME_SHUFFLE_BATCH_WAIT =
+  public static final String TEZ_RUNTIME_SHUFFLE_BATCH_WAIT =
       TEZ_RUNTIME_PREFIX + "shuffle.batch.wait";
   public static final int TEZ_RUNTIME_SHUFFLE_BATCH_WAIT_DEFAULT = -1;
-
 
   /**
    * Share data fetched between tasks running on the same host if applicable.
@@ -737,7 +728,7 @@ public class TezRuntimeConfiguration {
      * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
      * to be boolean type.
      */
-    DISABLED("false"),
+        DISABLED("false"),
 
     @Deprecated
     /**
@@ -746,7 +737,7 @@ public class TezRuntimeConfiguration {
      * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
      * to be boolean type.
      */
-    ENABLED("true"),
+        ENABLED("true"),
 
     /**
      * Don't report partition stats.
@@ -776,7 +767,7 @@ public class TezRuntimeConfiguration {
 
     public boolean isEnabled() {
       return !equals(ReportPartitionStats.DISABLED) &&
-              !equals(ReportPartitionStats.NONE);
+          !equals(ReportPartitionStats.NONE);
     }
 
     public boolean isPrecise() {

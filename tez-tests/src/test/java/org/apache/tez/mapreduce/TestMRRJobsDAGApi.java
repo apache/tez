@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -158,7 +158,7 @@ public class TestMRRJobsDAGApi {
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
-    
+
     if (mrrTezCluster == null) {
       mrrTezCluster = new MiniTezCluster(TestMRRJobsDAGApi.class.getName(),
           1, 1, 1);
@@ -169,7 +169,6 @@ public class TestMRRJobsDAGApi {
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
-
   }
 
   @AfterClass
@@ -184,7 +183,7 @@ public class TestMRRJobsDAGApi {
     }
     // TODO Add cleanup code.
   }
-  
+
   @Test(timeout = 60000)
   public void testSleepJob() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
@@ -224,7 +223,7 @@ public class TestMRRJobsDAGApi {
     assertTrue("Memory used by AM is supposed to be >0", dagStatus.getMemoryUsedByAM() > 0);
     assertTrue("Memory used by tasks is supposed to be >0", dagStatus.getMemoryUsedByTasks() > 0);
 
-    ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
+    ExampleDriver.printDAGStatus(dagClient, new String[]{"SleepVertex"}, true, true);
     tezSession.stop();
   }
 
@@ -264,7 +263,7 @@ public class TestMRRJobsDAGApi {
     assertNotNull(dagStatus.getDAGCounters());
     assertNotNull(dagStatus.getDAGCounters().getGroup(FileSystemCounter.class.getName()));
     assertNotNull(dagStatus.getDAGCounters().findCounter(TaskCounter.GC_TIME_MILLIS));
-    ExampleDriver.printDAGStatus(dagClient, new String[] { "SleepVertex" }, true, true);
+    ExampleDriver.printDAGStatus(dagClient, new String[]{"SleepVertex"}, true, true);
     tezSession.stop();
   }
 
@@ -328,7 +327,7 @@ public class TestMRRJobsDAGApi {
   // client.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmit() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(false, false, false, false);
 
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
@@ -339,7 +338,7 @@ public class TestMRRJobsDAGApi {
   // Submits a simple 5 stage sleep job using the DAG submit API. Then kills it.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmitAndKill() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(false, true, false, false);
 
     Assert.assertEquals(DAGStatus.State.KILLED, finalState);
@@ -350,7 +349,7 @@ public class TestMRRJobsDAGApi {
   // Submits a DAG to AM via RPC after AM has started
   @Test(timeout = 60000)
   public void testMRRSleepJobViaSession() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(true, false, false, false);
 
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, finalState);
@@ -417,9 +416,9 @@ public class TestMRRJobsDAGApi {
       if (appReport.getYarnApplicationState().equals(
           YarnApplicationState.FINISHED)
           || appReport.getYarnApplicationState().equals(
-              YarnApplicationState.FAILED)
+          YarnApplicationState.FAILED)
           || appReport.getYarnApplicationState().equals(
-              YarnApplicationState.KILLED)) {
+          YarnApplicationState.KILLED)) {
         break;
       }
     }
@@ -430,7 +429,6 @@ public class TestMRRJobsDAGApi {
     Assert.assertEquals(FinalApplicationStatus.SUCCEEDED,
         appReport.getFinalApplicationStatus());
   }
-
 
   @Test(timeout = 120000)
   public void testAMRelocalizationConflict() throws Exception {
@@ -458,7 +456,7 @@ public class TestMRRJobsDAGApi {
 
     try {
       testMRRSleepJobDagSubmitCore(true, false, false,
-        tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
+          tezSession, true, MRInputAMSplitGeneratorRelocalizationTest.class, additionalResources);
       Assert.fail("should have failed");
     } catch (Exception ex) {
       // expected
@@ -488,7 +486,7 @@ public class TestMRRJobsDAGApi {
   // Submits a DAG to AM via RPC after AM has started
   @Test(timeout = 120000)
   public void testMultipleMRRSleepJobViaSession() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     Path remoteStagingDir = remoteFs.makeQualified(new Path("/tmp", String
         .valueOf(new Random().nextInt(100000))));
     remoteFs.mkdirs(remoteStagingDir);
@@ -519,7 +517,7 @@ public class TestMRRJobsDAGApi {
   // Submits a simple 5 stage sleep job using tez session. Then kills it.
   @Test(timeout = 60000)
   public void testMRRSleepJobDagSubmitAndKillViaRPC() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     State finalState = testMRRSleepJobDagSubmitCore(true, true, false, false);
 
     Assert.assertEquals(DAGStatus.State.KILLED, finalState);
@@ -530,7 +528,7 @@ public class TestMRRJobsDAGApi {
   // Create and close a tez session without submitting a job
   @Test(timeout = 60000)
   public void testTezSessionShutdown() throws IOException,
-  InterruptedException, TezException, ClassNotFoundException, YarnException {
+      InterruptedException, TezException, ClassNotFoundException, YarnException {
     testMRRSleepJobDagSubmitCore(true, false, true, false);
   }
 
@@ -615,7 +613,7 @@ public class TestMRRJobsDAGApi {
     UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
     UserPayload stage2Payload = TezUtils.createUserPayloadFromConf(stage2Conf);
     UserPayload stage3Payload = TezUtils.createUserPayloadFromConf(stage3Conf);
-    
+
     DAG dag = DAG.create("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
 
     Class<? extends InputInitializer> inputInitializerClazz =
@@ -623,7 +621,6 @@ public class TestMRRJobsDAGApi {
             (initializerClass == null ? MRInputAMSplitGenerator.class : initializerClass)
             : null;
     LOG.info("Using initializer class: " + initializerClass);
-
 
     DataSourceDescriptor dsd;
     if (!genSplitsInAM) {
@@ -680,7 +677,7 @@ public class TestMRRJobsDAGApi {
     dag.addEdge(edge2);
 
     TezConfiguration tezConf = new TezConfiguration(
-            mrrTezCluster.getConfig());
+        mrrTezCluster.getConfig());
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
         remoteStagingDir.toString());
 
@@ -702,7 +699,7 @@ public class TestMRRJobsDAGApi {
     } else {
       tezSession = reUseTezSession;
     }
-    if(!dagViaRPC) {
+    if (!dagViaRPC) {
       // TODO Use utility method post TEZ-205 to figure out AM arguments etc.
       dagClient = tezSession.submitDAG(dag);
     }
@@ -712,7 +709,7 @@ public class TestMRRJobsDAGApi {
       yarnClient.init(mrrTezCluster.getConfig());
       yarnClient.start();
       boolean sentKillSession = false;
-      while(true) {
+      while (true) {
         Thread.sleep(500l);
         ApplicationReport appReport =
             yarnClient.getApplicationReport(tezSession.getAppMasterApplicationId());
@@ -744,7 +741,7 @@ public class TestMRRJobsDAGApi {
       return null;
     }
 
-    if(dagViaRPC) {
+    if (dagViaRPC) {
       LOG.info("Submitting dag to tez session with appId=" + tezSession.getAppMasterApplicationId()
           + " and Dag Name=" + dag.getName());
       if (additionalLocalResources != null) {
@@ -759,7 +756,7 @@ public class TestMRRJobsDAGApi {
       LOG.info("Waiting for job to complete. Sleeping for 500ms."
           + " Current state: " + dagStatus.getState());
       Thread.sleep(500l);
-      if(killDagWhileRunning
+      if (killDagWhileRunning
           && dagStatus.getState() == DAGStatus.State.RUNNING) {
         LOG.info("Killing running dag/session");
         if (dagViaRPC) {
@@ -777,7 +774,7 @@ public class TestMRRJobsDAGApi {
   }
 
   private static LocalResource createLocalResource(FileSystem fc, Path file,
-      LocalResourceType type, LocalResourceVisibility visibility)
+                                                   LocalResourceType type, LocalResourceVisibility visibility)
       throws IOException {
     FileStatus fstat = fc.getFileStatus(file);
     URL resourceURL = ConverterUtils.getYarnUrlFromPath(fc.resolvePath(fstat
@@ -788,7 +785,7 @@ public class TestMRRJobsDAGApi {
     return LocalResource.newInstance(resourceURL, type, visibility,
         resourceSize, resourceModificationTime);
   }
-  
+
   @Test(timeout = 60000)
   public void testVertexGroups() throws Exception {
     LOG.info("Running Group Test");
@@ -802,7 +799,7 @@ public class TestMRRJobsDAGApi {
     writer.write("efgh ");
     writer.close();
     out.close();
-    
+
     UnionExample job = new UnionExample();
     if (job.run(inPath.toString(), outPath.toString(), mrrTezCluster.getConfig())) {
       LOG.info("Success VertexGroups Test");
@@ -810,7 +807,7 @@ public class TestMRRJobsDAGApi {
       throw new TezUncheckedException("VertexGroups Test Failed");
     }
   }
-  
+
   @Test(timeout = 60000)
   public void testBroadcastAndOneToOne() throws Exception {
     LOG.info("Running BroadcastAndOneToOne Test");
@@ -825,6 +822,7 @@ public class TestMRRJobsDAGApi {
   // This class should not be used by more than one test in a single run, since
   // the path it writes to is not dynamic.
   private static String RELOCALIZATION_TEST_CLASS_NAME = "AMClassloadTestDummyClass";
+
   public static class MRInputAMSplitGeneratorRelocalizationTest extends MRInputAMSplitGenerator {
 
     public MRInputAMSplitGeneratorRelocalizationTest(
@@ -833,7 +831,7 @@ public class TestMRRJobsDAGApi {
     }
 
     @Override
-    public List<Event> initialize()  throws Exception {
+    public List<Event> initialize() throws Exception {
       MRInputUserPayloadProto userPayloadProto = MRInputHelpers
           .parseMRInputPayload(getContext().getInputUserPayload());
       Configuration conf = TezUtils.createConfFromByteString(userPayloadProto
@@ -852,7 +850,7 @@ public class TestMRRJobsDAGApi {
       return super.initialize();
     }
   }
-  
+
   private static void createTestJar(OutputStream outStream, String dummyClassName)
       throws URISyntaxException, IOException {
     JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -887,6 +885,7 @@ public class TestMRRJobsDAGApi {
 
   private static class SimpleJavaFileObjectImpl extends SimpleJavaFileObject {
     static final String code = "public class AMClassloadTestDummyClass {}";
+
     SimpleJavaFileObjectImpl(URI uri, Kind kind) {
       super(uri, kind);
     }

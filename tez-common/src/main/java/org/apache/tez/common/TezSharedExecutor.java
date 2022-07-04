@@ -242,7 +242,7 @@ public class TezSharedExecutor implements TezExecutors {
     @Override
     protected <T> ManagedFutureTask<T> newTaskFor(Runnable runnable, T value) {
       if (runnable instanceof ManagedFutureTask) {
-        return (ManagedFutureTask<T>)runnable;
+        return (ManagedFutureTask<T>) runnable;
       }
       return new ManagedFutureTask<T>(runnable, value);
     }

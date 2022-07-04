@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,7 +45,7 @@ public class DAGClientHandler {
 
   private DAGAppMaster dagAppMaster;
   private final AtomicLong lastHeartbeatTime;
-  
+
   public DAGClientHandler(DAGAppMaster dagAppMaster) {
     this.dagAppMaster = dagAppMaster;
     this.lastHeartbeatTime = new AtomicLong(dagAppMaster.getContext().getClock().getTime());
@@ -64,17 +64,17 @@ public class DAGClientHandler {
   }
 
   public DAGStatus getDAGStatus(String dagIdStr,
-      Set<StatusGetOpts> statusOptions) throws TezException {
+                                Set<StatusGetOpts> statusOptions) throws TezException {
     return getDAG(dagIdStr).getDAGStatus(statusOptions);
   }
 
   public DAGStatus getDAGStatus(String dagIdStr,
-      Set<StatusGetOpts> statusOptions, long timeout) throws TezException {
+                                Set<StatusGetOpts> statusOptions, long timeout) throws TezException {
     return getDAG(dagIdStr).getDAGStatus(statusOptions, timeout);
   }
 
   public VertexStatus getVertexStatus(String dagIdStr, String vertexName,
-      Set<StatusGetOpts> statusOptions) throws TezException {
+                                      Set<StatusGetOpts> statusOptions) throws TezException {
     VertexStatus status =
         getDAG(dagIdStr).getVertexStatus(vertexName, statusOptions);
     if (status == null) {
@@ -122,7 +122,7 @@ public class DAGClientHandler {
       throw new TezException(ie);
     }
     String message = callerUGI.toString();
-    if(null != Server.getRemoteAddress()) {
+    if (null != Server.getRemoteAddress()) {
       message += " at " + Server.getRemoteAddress();
     }
     return message;
@@ -137,7 +137,7 @@ public class DAGClientHandler {
   }
 
   public synchronized String submitDAG(DAGPlan dagPlan,
-      Map<String, LocalResource> additionalAmResources) throws TezException {
+                                       Map<String, LocalResource> additionalAmResources) throws TezException {
     return dagAppMaster.submitDAGToAppMaster(dagPlan, additionalAmResources);
   }
 
@@ -152,19 +152,19 @@ public class DAGClientHandler {
 
   public synchronized TezAppMasterStatus getTezAppMasterStatus() throws TezException {
     switch (dagAppMaster.getState()) {
-    case NEW:
-    case INITED:
-      return TezAppMasterStatus.INITIALIZING;
-    case IDLE:
-      return TezAppMasterStatus.READY;
-    case RECOVERING:
-    case RUNNING:
-      return TezAppMasterStatus.RUNNING;
-    case ERROR:
-    case FAILED:
-    case SUCCEEDED:
-    case KILLED:
-      return TezAppMasterStatus.SHUTDOWN;
+      case NEW:
+      case INITED:
+        return TezAppMasterStatus.INITIALIZING;
+      case IDLE:
+        return TezAppMasterStatus.READY;
+      case RECOVERING:
+      case RUNNING:
+        return TezAppMasterStatus.RUNNING;
+      case ERROR:
+      case FAILED:
+      case SUCCEEDED:
+      case KILLED:
+        return TezAppMasterStatus.SHUTDOWN;
     }
     return TezAppMasterStatus.INITIALIZING;
   }

@@ -18,8 +18,6 @@
 
 package org.apache.tez.common.counters;
 
-
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -154,8 +152,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
   public C findCounter(String counterName, boolean create) {
     try {
       return findCounter(valueOf(counterName));
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       if (create) throw new IllegalArgumentException(e);
       return null;
     }
@@ -177,6 +174,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
 
   /**
    * Abstract factory method for new framework counter
+   *
    * @param key for the enum value of a counter
    * @return a new counter for the key
    */
@@ -248,6 +246,7 @@ public abstract class FrameworkCounterGroup<T extends Enum<T>,
   public Iterator<C> iterator() {
     return new AbstractIterator<C>() {
       int i = 0;
+
       @Override
       protected C computeNext() {
         while (i < counters.length) {

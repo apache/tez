@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -48,11 +48,11 @@ public class TestCartesianProductVertexManager {
   private CartesianProductConfig config;
   private Map<String, EdgeProperty> edgePropertyMap;
   private EdgeProperty cpEdge = EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-    CartesianProductEdgeManager.class.getName()), null, null, null, null);
+      CartesianProductEdgeManager.class.getName()), null, null, null, null);
   private EdgeProperty customEdge = EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-    "OTHER_EDGE"), null, null, null, null);
+      "OTHER_EDGE"), null, null, null, null);
   private EdgeProperty broadcastEdge =
-    EdgeProperty.create(DataMovementType.BROADCAST, null, null, null, null);
+      EdgeProperty.create(DataMovementType.BROADCAST, null, null, null, null);
 
   @Before
   public void setup() {
@@ -79,7 +79,8 @@ public class TestCartesianProductVertexManager {
     try {
       vertexManager = new CartesianProductVertexManager(context);
       assertTrue(false);
-    } catch (Exception ignored){}
+    } catch (Exception ignored) {
+    }
   }
 
   @Test(timeout = 5000)
@@ -88,7 +89,7 @@ public class TestCartesianProductVertexManager {
     config = new CartesianProductConfig(new int[]{2, 3}, new String[]{"v0", "v1"}, null);
     vertexManager.initialize();
     assertTrue(vertexManager.getVertexManagerReal()
-      instanceof CartesianProductVertexManagerPartitioned);
+        instanceof CartesianProductVertexManagerPartitioned);
 
     // unpartitioned case
     List<String> sourceVertices = new ArrayList<>();
@@ -97,7 +98,7 @@ public class TestCartesianProductVertexManager {
     config = new CartesianProductConfig(sourceVertices);
     vertexManager.initialize();
     assertTrue(vertexManager.getVertexManagerReal()
-      instanceof FairCartesianProductVertexManager);
+        instanceof FairCartesianProductVertexManager);
   }
 
   @Test(timeout = 5000)
@@ -112,7 +113,8 @@ public class TestCartesianProductVertexManager {
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     // non-cartesian-product edge in dag but in config
     edgePropertyMap.put("v2", broadcastEdge);
@@ -120,20 +122,23 @@ public class TestCartesianProductVertexManager {
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     edgePropertyMap.put("v2", customEdge);
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     // edge in config but not in dag
     edgePropertyMap.remove("v2");
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   @Test(timeout = 5000)
@@ -151,7 +156,8 @@ public class TestCartesianProductVertexManager {
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
   }
 
   @Test(timeout = 5000)
@@ -162,7 +168,8 @@ public class TestCartesianProductVertexManager {
     try {
       vertexManager.initialize();
       assertTrue(false);
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     // broadcast edge should be allowed and other non-custom edge shouldn't be allowed
     for (DataMovementType type : DataMovementType.values()) {

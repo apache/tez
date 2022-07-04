@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,11 +41,10 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-
 public class TestInputReadyTracker {
 
   private static final long SLEEP_TIME = 200l;
-  
+
   @Test(timeout = 20000)
   public void testWithoutGrouping1() throws InterruptedException {
     InputReadyTracker inputReadyTracker = new InputReadyTracker();
@@ -64,7 +63,7 @@ public class TestInputReadyTracker {
     assertTrue(input1.isReady);
     assertFalse(input2.isReady);
     assertEquals(input1, readyInput);
-    
+
     startTime = System.nanoTime();
     setDelayedInputReady(input2);
     assertFalse(inputReadyTracker.waitForAllInputsReady(requestList, 0));
@@ -89,12 +88,12 @@ public class TestInputReadyTracker {
     List<Input> requestList;
     long startTime = 0l;
     long readyTime = 0l;
-    
+
     requestList = new ArrayList<Input>();
     requestList.add(input1);
     requestList.add(input2);
     requestList.add(input3);
-    
+
     startTime = System.nanoTime();
     setDelayedInputReady(input2);
     Input readyInput = inputReadyTracker.waitForAnyInputReady(requestList);
@@ -106,7 +105,7 @@ public class TestInputReadyTracker {
     assertTrue(readyTime >= startTime + SLEEP_TIME);
     assertFalse(input1.isReady);
     assertFalse(input3.isReady);
-    
+
     requestList = new ArrayList<Input>();
     requestList.add(input1);
     requestList.add(input3);
@@ -121,7 +120,7 @@ public class TestInputReadyTracker {
     assertTrue(readyTime >= startTime + SLEEP_TIME);
     assertTrue(input2.isReady);
     assertFalse(input3.isReady);
-    
+
     requestList = new ArrayList<Input>();
     requestList.add(input3);
     startTime = System.nanoTime();
@@ -145,16 +144,14 @@ public class TestInputReadyTracker {
 
     ImmediatelyReadyInputForTest input1 = new ImmediatelyReadyInputForTest(inputReadyTracker);
     ControlledReadyInputForTest input2 = new ControlledReadyInputForTest(inputReadyTracker);
-    
+
     ImmediatelyReadyInputForTest input3 = new ImmediatelyReadyInputForTest(inputReadyTracker);
     ControlledReadyInputForTest input4 = new ControlledReadyInputForTest(inputReadyTracker);
-    
 
-    
     List<Input> group1Inputs = new ArrayList<Input>();
     group1Inputs.add(input1);
     group1Inputs.add(input2);
-    
+
     List<Input> group2Inputs = new ArrayList<Input>();
     group2Inputs.add(input3);
     group2Inputs.add(input4);
@@ -185,12 +182,10 @@ public class TestInputReadyTracker {
     assertTrue(input1.isReady);
     assertFalse(input2.isReady);
     assertEquals(group1, readyInput);
-    
-    
+
     requestList = new ArrayList<Input>();
     requestList.add(group2);
-    
-    
+
     startTime = System.nanoTime();
     setDelayedInputReady(input4);
     inputReadyTracker.waitForAllInputsReady(requestList);
@@ -201,9 +196,8 @@ public class TestInputReadyTracker {
     assertTrue(input3.isReady);
     assertTrue(input4.isReady);
     assertTrue(readyTime >= startTime + SLEEP_TIME);
-    
   }
-  
+
   private long setDelayedInputReady(final ControlledReadyInputForTest input) {
     long startTime = System.nanoTime();
     new Thread() {
@@ -222,7 +216,7 @@ public class TestInputReadyTracker {
   private static class ImmediatelyReadyInputForTest extends AbstractLogicalInput {
 
     private volatile boolean isReady = false;
-    
+
     ImmediatelyReadyInputForTest(InputReadyTracker inputReadyTracker) {
       super(null, 0);
       isReady = true;
@@ -252,12 +246,12 @@ public class TestInputReadyTracker {
       return null;
     }
   }
-  
+
   private static class ControlledReadyInputForTest extends AbstractLogicalInput {
 
     private volatile boolean isReady = false;
     private InputReadyTracker inputReadyTracker;
-    
+
     ControlledReadyInputForTest(InputReadyTracker inputReadyTracker) {
       super(null, 0);
       this.inputReadyTracker = inputReadyTracker;
@@ -269,7 +263,7 @@ public class TestInputReadyTracker {
     }
 
     @Override
-    public void start() throws Exception {      
+    public void start() throws Exception {
     }
 
     @Override
@@ -286,7 +280,7 @@ public class TestInputReadyTracker {
       return null;
     }
 
-   // Used by the test to control when this input will be ready
+    // Used by the test to control when this input will be ready
     public void setInputIsReady() {
       isReady = true;
       inputReadyTracker.setInputIsReady(this);

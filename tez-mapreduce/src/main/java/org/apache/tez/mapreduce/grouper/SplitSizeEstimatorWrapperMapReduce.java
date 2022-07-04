@@ -29,7 +29,7 @@ public class SplitSizeEstimatorWrapperMapReduce implements SplitSizeEstimatorWra
   @Override
   public long getEstimatedSize(SplitContainer rawContainer) throws IOException,
       InterruptedException {
-    MapReduceSplitContainer splitContainer = (MapReduceSplitContainer)rawContainer;
+    MapReduceSplitContainer splitContainer = (MapReduceSplitContainer) rawContainer;
     return estimator.getEstimatedSize(splitContainer.getRawSplit());
   }
 }

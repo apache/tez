@@ -55,7 +55,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
   // C[] would need Array.newInstance which requires a Class<C> reference.
   // Just a few local casts probably worth not having to carry it around.
   private final Map<String, Object[]> map =
-    new ConcurrentSkipListMap<String, Object[]>();
+      new ConcurrentSkipListMap<String, Object[]>();
   private String displayName = StringInterner.weakIntern("File System Counters");
 
   private static final Joiner NAME_JOINER = Joiner.on('_');
@@ -133,8 +133,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
     if (counter instanceof FileSystemCounterGroup.FSCounter) {
       FSCounter c = (FSCounter) counter;
       ours = findCounter(c.scheme, c.key);
-    }
-    else {
+    } else {
       ours = findCounter(counter.getName());
     }
     ours.setValue(counter.getValue());
@@ -154,7 +153,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
       throw new IllegalArgumentException("bad fs counter name");
     }
     return new String[]{counterName.substring(0, schemeEnd),
-                        counterName.substring(schemeEnd + 1)};
+        counterName.substring(schemeEnd + 1)};
   }
 
   @Override
@@ -167,8 +166,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
     try {
       String[] pair = parseCounterName(counterName);
       return findCounter(pair[0], FileSystemCounter.valueOf(pair[1]));
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       if (create) throw new IllegalArgumentException(e);
       return null;
     }
@@ -188,8 +186,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
       counters = new Object[FileSystemCounter.values().length];
       map.put(canonicalScheme, counters);
       counters[ord] = newCounter(canonicalScheme, key);
-    }
-    else if (counters[ord] == null) {
+    } else if (counters[ord] == null) {
       counters[ord] = newCounter(canonicalScheme, key);
     }
     return (C) counters[ord];
@@ -200,16 +197,17 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
     String interned = schemes.putIfAbsent(fixed, fixed);
     if (schemes.size() > MAX_NUM_SCHEMES) {
       // mistakes or abuses
-      throw new IllegalArgumentException("too many schemes? "+ schemes.size() +
-                                         " when process scheme: "+ scheme);
+      throw new IllegalArgumentException("too many schemes? " + schemes.size() +
+          " when process scheme: " + scheme);
     }
     return interned == null ? fixed : interned;
   }
 
   /**
    * Abstract factory method to create a file system counter
+   *
    * @param scheme of the file system
-   * @param key the enum of the file system counter
+   * @param key    the enum of the file system counter
    * @return a new file system counter
    */
   protected abstract C newCounter(String scheme, FileSystemCounter key);
@@ -233,8 +231,8 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
     if (Objects.requireNonNull(other.getUnderlyingGroup(), "other group")
         instanceof FileSystemCounterGroup<?>) {
       for (TezCounter counter : other) {
-        FSCounter c = (FSCounter) ((TezCounter)counter).getUnderlyingCounter();
-        findCounter(c.scheme, c.key) .aggregate(counter);
+        FSCounter c = (FSCounter) ((TezCounter) counter).getUnderlyingCounter();
+        findCounter(c.scheme, c.key).aggregate(counter);
       }
     }
   }
@@ -251,7 +249,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
       WritableUtils.writeVInt(out, numSetCounters(entry.getValue()));
       for (Object counter : entry.getValue()) {
         if (counter == null) continue;
-        FSCounter c = (FSCounter) ((TezCounter)counter).getUnderlyingCounter();
+        FSCounter c = (FSCounter) ((TezCounter) counter).getUnderlyingCounter();
         WritableUtils.writeVInt(out, c.key.ordinal());  // key
         WritableUtils.writeVLong(out, c.getValue());    // value
       }
@@ -284,6 +282,7 @@ public abstract class FileSystemCounterGroup<C extends TezCounter>
       Iterator<Object[]> it = map.values().iterator();
       Object[] counters = it.hasNext() ? it.next() : null;
       int i = 0;
+
       @Override
       protected C computeNext() {
         while (counters != null) {

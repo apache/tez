@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -71,7 +71,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * Responsible for communication between tasks running in a Container and the ApplicationMaster.
  * Takes care of sending heartbeats (regular and OOB) to the AM - to send generated events, and to
  * retrieve events specific to this task.
- * 
+ *
  */
 public class TaskReporter implements TaskReporterInterface {
 
@@ -90,7 +90,7 @@ public class TaskReporter implements TaskReporterInterface {
   HeartbeatCallable currentCallable;
 
   public TaskReporter(TezTaskUmbilicalProtocol umbilical, long amPollInterval,
-      long sendCounterInterval, int maxEventsToGet, AtomicLong requestCounter, String containerIdStr) {
+                      long sendCounterInterval, int maxEventsToGet, AtomicLong requestCounter, String containerIdStr) {
     this.umbilical = umbilical;
     this.pollInterval = amPollInterval;
     this.sendCounterInterval = sendCounterInterval;
@@ -107,7 +107,7 @@ public class TaskReporter implements TaskReporterInterface {
    */
   @Override
   public synchronized void registerTask(RuntimeTask task,
-      ErrorReporter errorReporter) {
+                                        ErrorReporter errorReporter) {
     currentCallable = new HeartbeatCallable(task, umbilical, pollInterval, sendCounterInterval,
         maxEventsToGet, requestCounter, containerIdStr);
     ListenableFuture<Boolean> future = heartbeatExecutor.submit(currentCallable);
@@ -171,13 +171,13 @@ public class TaskReporter implements TaskReporterInterface {
     private AtomicInteger nonOobHeartbeatCounter = new AtomicInteger(0);
     private int nextHeartbeatNumToLog = 0;
     /*
-     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM. 
+     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM.
      */
     private int prevCounterSendHeartbeatNum = 0;
 
     public HeartbeatCallable(RuntimeTask task,
-        TezTaskUmbilicalProtocol umbilical, long amPollInterval, long sendCounterInterval,
-        int maxEventsToGet, AtomicLong requestCounter, String containerIdStr) {
+                             TezTaskUmbilicalProtocol umbilical, long amPollInterval, long sendCounterInterval,
+                             int maxEventsToGet, AtomicLong requestCounter, String containerIdStr) {
 
       this.pollInterval = amPollInterval;
       this.sendCounterInterval = sendCounterInterval;
@@ -361,7 +361,7 @@ public class TaskReporter implements TaskReporterInterface {
         return askedToDie.get();
       }
     }
-    
+
     @VisibleForTesting
     TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
       TezCounters counters = null;
@@ -461,11 +461,11 @@ public class TaskReporter implements TaskReporterInterface {
 
   @Override
   public synchronized boolean taskFailed(TezTaskAttemptID taskAttemptID,
-                                                  TaskFailureType taskFailureType,
-                                                  Throwable t, String diagnostics,
-                                                  EventMetaData srcMeta) throws IOException,
+                                         TaskFailureType taskFailureType,
+                                         Throwable t, String diagnostics,
+                                         EventMetaData srcMeta) throws IOException,
       TezException {
-    if(!isShuttingDown()) {
+    if (!isShuttingDown()) {
       return currentCallable.taskTerminated(taskAttemptID, false, taskFailureType, t, diagnostics, srcMeta);
     }
     return false;
@@ -474,7 +474,7 @@ public class TaskReporter implements TaskReporterInterface {
   @Override
   public boolean taskKilled(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
                             EventMetaData srcMeta) throws IOException, TezException {
-    if(!isShuttingDown()) {
+    if (!isShuttingDown()) {
       return currentCallable.taskTerminated(taskAttemptID, true, null, t, diagnostics, srcMeta);
     }
     return false;

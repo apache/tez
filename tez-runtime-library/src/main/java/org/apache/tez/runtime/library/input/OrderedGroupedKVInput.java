@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,7 +55,6 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.Shuffle;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
 import org.apache.tez.common.Preconditions;
-
 
 /**
  * {@link OrderedGroupedKVInput} in a {@link AbstractLogicalInput} which shuffles
@@ -116,7 +115,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     this.inputKeyCounter = getContext().getCounters().findCounter(TaskCounter.REDUCE_INPUT_GROUPS);
     this.inputValueCounter = getContext().getCounters().findCounter(
         TaskCounter.REDUCE_INPUT_RECORDS);
-     this.shuffledInputs = getContext().getCounters().findCounter(
+    this.shuffledInputs = getContext().getCounters().findCounter(
         TaskCounter.NUM_SHUFFLED_INPUTS);
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
 
@@ -183,7 +182,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     }
 
     TezRawKeyValueIterator localRawIter = localShuffleCopy.waitForInput();
-    synchronized(this) {
+    synchronized (this) {
       rawIter = localRawIter;
       createValuesIterator();
     }
@@ -197,14 +196,14 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     if (shuffle != null) {
       shuffle.shutdown();
     }
-    
+
     long dataSize = getContext().getCounters()
         .findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED).getValue();
     getContext().getStatisticsReporter().reportDataSize(dataSize);
     long inputRecords = getContext().getCounters()
         .findCounter(TaskCounter.REDUCE_INPUT_RECORDS).getValue();
     getContext().getStatisticsReporter().reportItemsProcessed(inputRecords);
-    
+
     return Collections.emptyList();
   }
 
@@ -259,7 +258,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     }
     @SuppressWarnings("rawtypes")
     ValuesIterator valuesIter = null;
-    synchronized(this) {
+    synchronized (this) {
       valuesIter = vIter;
     }
     return new OrderedGroupedKeyValuesReader(valuesIter, getContext());
@@ -272,7 +271,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
       synchronized (this) {
         return ((0.5f) * this.shuffledInputs.getValue() / totalInputs) +
             ((rawIter != null) ?
-             ((0.5f) * rawIter.getProgress().getProgress()) : 0.0f);
+                ((0.5f) * rawIter.getProgress().getProgress()) : 0.0f);
       }
     } else {
       return 0.0f;
@@ -298,7 +297,7 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     shuffleLocalRef.handleEvents(inputEvents);
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   protected synchronized void createValuesIterator()
       throws IOException {
     // Not used by ReduceProcessor
@@ -312,7 +311,6 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
 
     vIter = new ValuesIterator(rawIter, rawComparator, keyClass, valClass,
         conf, inputKeyCounter, inputValueCounter);
-
   }
 
   @SuppressWarnings("rawtypes")
@@ -347,8 +345,9 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
     public Iterable<Object> getCurrentValues() throws IOException {
       return valuesIter.getValues();
     }
-  };
+  }
 
+  ;
 
   private static final Set<String> confKeys = new HashSet<String>();
 
@@ -417,5 +416,4 @@ public class OrderedGroupedKVInput extends AbstractLogicalInput {
   public static Set<String> getConfigurationKeySet() {
     return Collections.unmodifiableSet(confKeys);
   }
-
 }

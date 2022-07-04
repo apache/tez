@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -83,7 +83,7 @@ public class FadvisedFileRegion extends DefaultFileRegion {
     }
 
     long written = 0;
-    if(this.shuffleTransferToAllowed) {
+    if (this.shuffleTransferToAllowed) {
       written = super.transferTo(target, position);
     } else {
       written = customShuffleTransfer(target, position);
@@ -140,10 +140,10 @@ public class FadvisedFileRegion extends DefaultFileRegion {
     int readSize;
     ByteBuffer byteBuffer = ByteBuffer.allocate(this.shuffleBufferSize);
 
-    while(trans > 0L &&
-        (readSize = fileChannel.read(byteBuffer, this.position+position)) > 0) {
+    while (trans > 0L &&
+        (readSize = fileChannel.read(byteBuffer, this.position + position)) > 0) {
       //adjust counters and buffer limit
-      if(readSize < trans) {
+      if (readSize < trans) {
         trans -= readSize;
         position += readSize;
         byteBuffer.flip();
@@ -151,14 +151,14 @@ public class FadvisedFileRegion extends DefaultFileRegion {
         //We can read more than we need if the actualCount is not multiple
         //of the byteBuffer size and file is big enough. In that case we cannot
         //use flip method but we need to set buffer limit manually to trans.
-        byteBuffer.limit((int)trans);
+        byteBuffer.limit((int) trans);
         byteBuffer.position(0);
         position += trans;
         trans = 0;
       }
 
       //write data to the target
-      while(byteBuffer.hasRemaining()) {
+      while (byteBuffer.hasRemaining()) {
         target.write(byteBuffer);
       }
 

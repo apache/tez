@@ -127,6 +127,7 @@ public class UnorderedPartitionedKVOutputConfig {
 
   /**
    * Get a UserPayload representation of the Configuration
+   *
    * @return a {@link org.apache.tez.dag.api.UserPayload} instance
    */
   public UserPayload toUserPayload() {
@@ -181,7 +182,7 @@ public class UnorderedPartitionedKVOutputConfig {
      */
     @InterfaceAudience.Private
     Builder(String keyClassName, String valueClassName, String partitionerClassName,
-                   Map<String, String> partitionerConf) {
+            Map<String, String> partitionerConf) {
       this();
       Objects.requireNonNull(keyClassName, "Key class name cannot be null");
       Objects.requireNonNull(valueClassName, "Value class name cannot be null");
@@ -315,7 +316,8 @@ public class UnorderedPartitionedKVOutputConfig {
         // Merging the confs for now. Change to be specific in the future.
         ConfigUtils.mergeConfsWithExclusions(this.conf, serializerConf,
             TezRuntimeConfiguration.getRuntimeConfigKeySet());
-      }      return this;
+      }
+      return this;
     }
 
     /**

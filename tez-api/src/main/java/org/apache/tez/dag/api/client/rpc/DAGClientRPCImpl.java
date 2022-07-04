@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,7 +73,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
   private UserGroupInformation ugi;
 
   public DAGClientRPCImpl(ApplicationId appId, String dagId,
-      TezConfiguration conf, @Nullable FrameworkClient frameworkClient, UserGroupInformation ugi) {
+                          TezConfiguration conf, @Nullable FrameworkClient frameworkClient, UserGroupInformation ugi) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
@@ -93,10 +93,9 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     return getDAGStatus(statusOptions, 0);
   }
 
-
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws IOException, TezException, ApplicationNotFoundException {
+                                long timeout) throws IOException, TezException, ApplicationNotFoundException {
     if (createAMProxyIfNeeded()) {
       try {
         DAGStatus dagStatus = getDAGStatusViaAM(statusOptions, timeout);
@@ -116,10 +115,10 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   @Override
   public VertexStatus getVertexStatus(String vertexName,
-      Set<StatusGetOpts> statusOptions)
+                                      Set<StatusGetOpts> statusOptions)
       throws IOException, TezException, ApplicationNotFoundException {
 
-    if(createAMProxyIfNeeded()) {
+    if (createAMProxyIfNeeded()) {
       try {
         return getVertexStatusViaAM(vertexName, statusOptions);
       } catch (TezException e) {
@@ -143,7 +142,6 @@ public class DAGClientRPCImpl extends DAGClientInternal {
   public String getSessionIdentifierString() {
     return appId.toString();
   }
-
 
   @Override
   public void tryKillDAG() throws TezException, IOException {
@@ -176,7 +174,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
   }
 
   void resetProxy(Exception e) {
-    if(LOG.isDebugEnabled()) {
+    if (LOG.isDebugEnabled()) {
       LOG.debug("Resetting AM proxy for app: " + appId + " dag:" + dagId +
           " due to exception :", e);
     }
@@ -188,17 +186,17 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     LOG.debug("GetDAGStatus via AM for app: {} dag:{}", appId, dagId);
     GetDAGStatusRequestProto.Builder requestProtoBuilder =
         GetDAGStatusRequestProto.newBuilder()
-          .setDagId(dagId).setTimeout(timeout);
+            .setDagId(dagId).setTimeout(timeout);
 
     if (statusOptions != null) {
       requestProtoBuilder.addAllStatusOptions(
-        DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
+          DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
     }
 
     try {
       return new DAGStatus(
-        proxy.getDAGStatus(null,
-          requestProtoBuilder.build()).getDagStatus(), DagStatusSource.AM);
+          proxy.getDAGStatus(null,
+              requestProtoBuilder.build()).getDagStatus(), DagStatusSource.AM);
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       // Should not reach here
@@ -207,7 +205,7 @@ public class DAGClientRPCImpl extends DAGClientInternal {
   }
 
   VertexStatus getVertexStatusViaAM(String vertexName,
-      Set<StatusGetOpts> statusOptions)
+                                    Set<StatusGetOpts> statusOptions)
       throws TezException, IOException {
     if (LOG.isDebugEnabled()) {
       LOG.debug("GetVertexStatus via AM for app: " + appId + " dag: " + dagId
@@ -215,18 +213,18 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     }
     GetVertexStatusRequestProto.Builder requestProtoBuilder =
         GetVertexStatusRequestProto.newBuilder()
-          .setDagId(dagId)
-          .setVertexName(vertexName);
+            .setDagId(dagId)
+            .setVertexName(vertexName);
 
     if (statusOptions != null) {
       requestProtoBuilder.addAllStatusOptions(
-        DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
+          DagTypeConverters.convertStatusGetOptsToProto(statusOptions));
     }
 
     try {
       return new VertexStatus(
-        proxy.getVertexStatus(null,
-          requestProtoBuilder.build()).getVertexStatus());
+          proxy.getVertexStatus(null,
+              requestProtoBuilder.build()).getVertexStatus());
     } catch (ServiceException e) {
       RPCUtil.unwrapAndThrowException(e);
       // Should not reach here
@@ -263,25 +261,25 @@ public class DAGClientRPCImpl extends DAGClientInternal {
 
   boolean createAMProxyIfNeeded() throws IOException, TezException,
       ApplicationNotFoundException {
-    if(proxy != null) {
+    if (proxy != null) {
       // if proxy exist optimistically use it assuming there is no retry
       return true;
     }
     appReport = null;
     appReport = getAppReport();
 
-    if(appReport == null) {
+    if (appReport == null) {
       return false;
     }
     YarnApplicationState appState = appReport.getYarnApplicationState();
-    if(appState != YarnApplicationState.RUNNING) {
+    if (appState != YarnApplicationState.RUNNING) {
       return false;
     }
 
     // YARN-808. Cannot ascertain if AM is ready until we connect to it.
     // workaround check the default string set by YARN
-    if(appReport.getHost() == null || appReport.getHost().equals("N/A") ||
-        appReport.getRpcPort() == 0){
+    if (appReport.getHost() == null || appReport.getHost().equals("N/A") ||
+        appReport.getRpcPort() == 0) {
       // attempt not running
       return false;
     }

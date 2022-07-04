@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,7 +59,7 @@ import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import com.google.common.annotations.VisibleForTesting;
 
 class FetcherOrderedGrouped extends CallableWithNdc<Void> {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGrouped.class);
 
   private static final AtomicInteger nextId = new AtomicInteger(0);
@@ -107,7 +107,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   volatile BaseHttpConnection httpConnection;
   private final boolean asyncHttp;
   private final boolean compositeFetch;
-
 
   // Initiative value is 0, which means it hasn't retried yet.
   private long retryStartTime = 0;
@@ -218,6 +217,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   private final Object cleanupLock = new Object();
+
   private void cleanupCurrentConnection(boolean disconnect) {
     // Synchronizing on cleanupLock to ensure we don't run into a parallel close
     // Can't synchronize on the main class itself since that would cause the
@@ -240,7 +240,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   /**
    * The crux of the matter...
-   * 
+   *
    * @param host {@link MapHost} from which we need to  
    *              shuffle available map-outputs.
    */
@@ -255,9 +255,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     if (srcAttempts.size() == 0) {
       return;
     }
-    if(LOG.isDebugEnabled()) {
+    if (LOG.isDebugEnabled()) {
       LOG.debug("Fetcher " + id + " going to fetch from " + host + " for: "
-        + srcAttempts + ", partition range: " + minPartition + "-" + maxPartition);
+          + srcAttempts + ", partition range: " + minPartition + "-" + maxPartition);
     }
     populateRemainingMap(srcAttempts);
     // Construct the url and connect
@@ -298,8 +298,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               LOG.debug("Not reporting connection re-establishment failure since fetcher is stopped");
               return;
             }
-            failedTasks = new InputAttemptFetchFailure[] {
-                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
+            failedTasks = new InputAttemptFetchFailure[]{
+                new InputAttemptFetchFailure(getNextRemainingAttempt())};
             break;
           }
         }
@@ -320,7 +320,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   private void invokeCopyFailedForFailedTasks(MapHost host,
-      InputAttemptFetchFailure[] failedTasks) {
+                                              InputAttemptFetchFailure[] failedTasks) {
     if (failedTasks != null && failedTasks.length > 0) {
       if (stopped) {
         if (LOG.isDebugEnabled()) {
@@ -433,7 +433,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   protected InputAttemptFetchFailure[] copyMapOutput(MapHost host, DataInputStream input,
-      InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException, IOException {
+                                                     InputAttemptIdentifier inputAttemptIdentifier) throws FetcherReadTimeoutException, IOException {
     MapOutput mapOutput = null;
     InputAttemptIdentifier srcAttemptId = null;
     long decompressedLength = 0;
@@ -461,11 +461,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                   InputAttemptIdentifier.PATH_PREFIX + ", partition: " + header.forReduce);
               if (header.mapId.startsWith(ShuffleHandlerError.DISK_ERROR_EXCEPTION.toString())) {
                 //this should be treated as local fetch failure while reporting later
-                return new InputAttemptFetchFailure[] {
-                    InputAttemptFetchFailure.fromDiskErrorAtSource(getNextRemainingAttempt()) };
+                return new InputAttemptFetchFailure[]{
+                    InputAttemptFetchFailure.fromDiskErrorAtSource(getNextRemainingAttempt())};
               }
-              return new InputAttemptFetchFailure[] {
-                  InputAttemptFetchFailure.fromAttempt(getNextRemainingAttempt()) };
+              return new InputAttemptFetchFailure[]{
+                  InputAttemptFetchFailure.fromAttempt(getNextRemainingAttempt())};
             } else {
               LOG.debug("Already shutdown. Ignoring invalid map id error");
               return EMPTY_ATTEMPT_ID_ARRAY;
@@ -488,8 +488,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             LOG.warn("Invalid map id ", e);
             // Don't know which one was bad, so consider this one bad and dont read
             // the remaining because we dont know where to start reading from. YARN-1773
-            return new InputAttemptFetchFailure[] {
-                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
+            return new InputAttemptFetchFailure[]{
+                new InputAttemptFetchFailure(getNextRemainingAttempt())};
           } else {
             if (LOG.isDebugEnabled()) {
               LOG.debug("Already shutdown. Ignoring invalid map id error. Exception: " +
@@ -509,8 +509,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               LOG.warn("Was expecting " + srcAttemptId + " but got null");
             }
             assert (srcAttemptId != null);
-            return new InputAttemptFetchFailure[] {
-                new InputAttemptFetchFailure(getNextRemainingAttempt()) };
+            return new InputAttemptFetchFailure[]{
+                new InputAttemptFetchFailure(getNextRemainingAttempt())};
           } else {
             LOG.debug("Already stopped. Ignoring verification failure.");
             return EMPTY_ATTEMPT_ID_ARRAY;
@@ -578,7 +578,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             endTime - startTime, mapOutput, false);
       }
       remaining.remove(inputAttemptIdentifier.toString());
-    } catch(IOException | InternalError ioe) {
+    } catch (IOException | InternalError ioe) {
       if (stopped) {
         if (LOG.isDebugEnabled()) {
           LOG.debug("Not reporting fetch failure for exception during data copy: ["
@@ -606,8 +606,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         if (srcAttemptId == null) {
           return InputAttemptFetchFailure.fromAttempts(remaining.values());
         } else {
-          return new InputAttemptFetchFailure[] {
-              new InputAttemptFetchFailure(srcAttemptId) };
+          return new InputAttemptFetchFailure[]{
+              new InputAttemptFetchFailure(srcAttemptId)};
         }
       }
       LOG.warn("Failed to shuffle output of " + srcAttemptId +
@@ -615,8 +615,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
       // Inform the shuffle-scheduler
       mapOutput.abort();
-      return new InputAttemptFetchFailure[] {
-          new InputAttemptFetchFailure(srcAttemptId) };
+      return new InputAttemptFetchFailure[]{
+          new InputAttemptFetchFailure(srcAttemptId)};
     }
     return null;
   }
@@ -651,7 +651,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       return false;
     }
   }
-  
+
   /**
    * Do some basic verification on the input received -- Being defensive
    * @param compressedLength
@@ -662,12 +662,12 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
    * @return true/false, based on if the verification succeeded or not
    */
   private boolean verifySanity(long compressedLength, long decompressedLength,
-      int forReduce, Map<String, InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
+                               int forReduce, Map<String, InputAttemptIdentifier> remaining, InputAttemptIdentifier srcAttemptId) {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(logIdentifier + " invalid lengths in map output header: id: " +
-          srcAttemptId + " len: " + compressedLength + ", decomp len: " + 
-               decompressedLength);
+          srcAttemptId + " len: " + compressedLength + ", decomp len: " +
+          decompressedLength);
       return false;
     }
 
@@ -682,7 +682,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (remaining.size() > 0) {
       return remaining.values().iterator().next();
@@ -702,7 +702,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       return;
     }
 
-    if(LOG.isDebugEnabled()) {
+    if (LOG.isDebugEnabled()) {
       LOG.debug("Fetcher " + id + " going to fetch (local disk) from " + host + " for: "
           + srcAttempts + ", partition range: " + minPartition + "-" + maxPartition);
     }
@@ -730,7 +730,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
             srcAttemptId = scheduler.getIdentifierForFetchedOutput(srcAttemptId.getPathComponent(), reduceId);
             Path filename = getShuffleInputFileName(srcAttemptId.getPathComponent(), null);
             TezIndexRecord indexRecord = getIndexRecord(srcAttemptId.getPathComponent(), reduceId);
-            if(!indexRecord.hasData()) {
+            if (!indexRecord.hasData()) {
               continue;
             }
 
@@ -753,7 +753,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
               LOG.debug("Ignoring fetch error during local disk copy since fetcher has already been stopped");
               return;
             }
-
           }
         }
         if (!hasFailures) {
@@ -763,7 +762,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     } finally {
       putBackRemainingMapOutputs(host);
     }
-
   }
 
   @VisibleForTesting
@@ -808,10 +806,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   }
 
   private String getPathForLocalDir(String suffix) {
-    if(ShuffleUtils.isTezShuffleHandler(conf)) {
+    if (ShuffleUtils.isTezShuffleHandler(conf)) {
       return Constants.DAG_PREFIX + dagId + Path.SEPARATOR + suffix;
     }
     return suffix;
   }
 }
-

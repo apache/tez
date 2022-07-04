@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag.impl;
 
@@ -35,8 +35,8 @@ import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
-  
-  private AtomicReference<ArrayList<EventRouteMetadata>> commonRouteMeta = 
+
+  private AtomicReference<ArrayList<EventRouteMetadata>> commonRouteMeta =
       new AtomicReference<ArrayList<EventRouteMetadata>>();
   private Object commonRouteMetaLock = new Object();
   private int[][] sourceIndices;
@@ -55,7 +55,7 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return getContext().getSourceVertexNumTasks();
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     int physicalOutputs = getContext().getDestinationVertexNumTasks();
@@ -73,7 +73,7 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
           int numSourceTasks = getContext().getSourceVertexNumTasks();
           ArrayList<EventRouteMetadata> localEventMeta = Lists
               .newArrayListWithCapacity(numSourceTasks);
-          for (int i=0; i<numSourceTasks; ++i) {
+          for (int i = 0; i < numSourceTasks; ++i) {
             localEventMeta.add(EventRouteMetadata.create(1, new int[]{i}, new int[]{0}));
           }
           Preconditions.checkState(commonRouteMeta.compareAndSet(null, localEventMeta));
@@ -88,20 +88,20 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
     // source indices derive from num dest tasks (==partitions)
     int numTargetTasks = getContext().getDestinationVertexNumTasks();
     sourceIndices = new int[numTargetTasks][];
-    for (int i=0; i<numTargetTasks; ++i) {
+    for (int i = 0; i < numTargetTasks; ++i) {
       sourceIndices[i] = new int[]{i};
     }
     // target indices derive from num src tasks
     int numSourceTasks = getContext().getSourceVertexNumTasks();
     targetIndices = new int[numSourceTasks][];
-    for (int i=0; i<numSourceTasks; ++i) {
+    for (int i = 0; i < numSourceTasks; ++i) {
       targetIndices[i] = new int[]{i};
     }
   }
-  
+
   @Override
   public void prepareForRouting() throws Exception {
-    createIndices();    
+    createIndices();
   }
 
   @Override
@@ -112,12 +112,12 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
     }
     return null;
   }
-  
+
   @Override
   public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
-    return CompositeEventRouteMetadata.create(1, targetIndices[sourceTaskIndex][0], 
+    return CompositeEventRouteMetadata.create(1, targetIndices[sourceTaskIndex][0],
         sourceIndices[destinationTaskIndex][0]);
   }
 
@@ -129,7 +129,7 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex, Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+                                                  int sourceTaskIndex, int sourceOutputIndex, Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     // the i-th source output goes to the i-th destination task
     // the n-th source task becomes the n-th physical input on the task
     destinationTaskAndInputIndices.put(sourceOutputIndex, Collections.singletonList(sourceTaskIndex));
@@ -137,15 +137,15 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
-    for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
+                                                           Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+    for (int i = 0; i < getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, Collections.singletonList(sourceTaskIndex));
     }
   }
 
   @Override
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex, int destinationFailedInputIndex) {
+                                          int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationFailedInputIndex;
   }
 
@@ -158,5 +158,4 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return getContext().getDestinationVertexNumTasks();
   }
-
 }

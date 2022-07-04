@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
 package org.apache.tez.test;
 
 import java.nio.ByteBuffer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -127,13 +128,13 @@ public class TestDAGRecovery2 {
   }
 
   @Before
-  public void setup()  throws Exception {
+  public void setup() throws Exception {
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
         .valueOf(new Random().nextInt(100000))));
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
     TezConfiguration tezConf = createSessionConfig(remoteStagingDir);
-    
+
     tezSession = TezClient.create("TestDAGRecovery2", tezConf);
     tezSession.start();
   }
@@ -172,7 +173,7 @@ public class TestDAGRecovery2 {
     Assert.assertEquals(finalState, dagStatus.getState());
   }
 
-  @Test(timeout=120000)
+  @Test(timeout = 120000)
   public void testFailingCommitter() throws Exception {
     DAG dag = SimpleVTestDAG.createDAG("FailingCommitterDAG", null);
     OutputDescriptor od =
@@ -186,7 +187,7 @@ public class TestDAGRecovery2 {
     runDAGAndVerify(dag, State.FAILED);
   }
 
-  @Test(timeout=120000)
+  @Test(timeout = 120000)
   public void testSessionDisableMultiAttempts() throws Exception {
     tezSession.stop();
     Path remoteStagingDir = remoteFs.makeQualified(new Path(TEST_ROOT_DIR, String
@@ -203,6 +204,4 @@ public class TestDAGRecovery2 {
     runDAGAndVerify(dag, State.FAILED, session);
     session.stop();
   }
-
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ public class SimpleExponentialSmoothing {
    * @param timeStamp the time stamp
    */
   SimpleExponentialSmoothing(final long ktConstant, final int skipCnt,
-      final long stagnatedWindow, final long timeStamp) {
+                             final long stagnatedWindow, final long timeStamp) {
     this.kMinimumReads = skipCnt;
     this.kStagnatedWindow = stagnatedWindow;
     this.timeConstant = ktConstant;
@@ -86,7 +86,7 @@ public class SimpleExponentialSmoothing {
      * @param currTimeStamp the curr time stamp
      */
     ForecastRecord(final double currForecast, final double currRawData,
-        final long currTimeStamp) {
+                   final long currTimeStamp) {
       this(0.0, currForecast, currRawData, currForecast, currTimeStamp, 0.0, 0);
     }
 
@@ -102,10 +102,10 @@ public class SimpleExponentialSmoothing {
      * @param index the index
      */
     ForecastRecord(final double alphaVal, final double currSample,
-        final double currRawData,
-        final double currForecast, final long currTimeStamp,
-        final double accError,
-        final long index) {
+                   final double currRawData,
+                   final double currForecast, final long currTimeStamp,
+                   final double accError,
+                   final long index) {
       this.timeStamp = currTimeStamp;
       this.alpha = alphaVal;
       this.sample = currSample;
@@ -116,12 +116,12 @@ public class SimpleExponentialSmoothing {
     }
 
     private ForecastRecord createForecastRecord(final double alphaVal,
-        final double currSample,
-        final double currRawData,
-        final double currForecast, final long currTimeStamp,
-        final double accError,
-        final long index,
-        final ForecastRecord prev) {
+                                                final double currSample,
+                                                final double currRawData,
+                                                final double currForecast, final long currTimeStamp,
+                                                final double accError,
+                                                final long index,
+                                                final ForecastRecord prev) {
       ForecastRecord forecastRec =
           new ForecastRecord(alphaVal, currSample, currRawData, currForecast,
               currTimeStamp, accError, index);
@@ -195,7 +195,7 @@ public class SimpleExponentialSmoothing {
    * @return the double
    */
   static double processRawData(final double oldRawData, final long oldTime,
-      final double newRawData, final long newTime) {
+                               final double newRawData, final long newTime) {
     double rate = (newRawData - oldRawData) / (newTime - oldTime);
     return rate;
   }
@@ -207,7 +207,7 @@ public class SimpleExponentialSmoothing {
    * @param currRawData the curr raw data
    */
   public void incorporateReading(final long timeStamp,
-      final double currRawData) {
+                                 final double currRawData) {
     ForecastRecord oldRec = forecastRefEntry.get();
     if (oldRec == null) {
       double oldForecast =
@@ -333,4 +333,3 @@ public class SimpleExponentialSmoothing {
     return res;
   }
 }
-

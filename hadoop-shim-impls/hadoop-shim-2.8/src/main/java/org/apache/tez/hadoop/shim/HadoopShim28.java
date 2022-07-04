@@ -53,7 +53,7 @@ public class HadoopShim28 extends HadoopShim {
 
   @Override
   public FinalApplicationStatus applyFinalApplicationStatusCorrection(FinalApplicationStatus orig,
-      boolean isSessionMode, boolean isError) {
+                                                                      boolean isSessionMode, boolean isError) {
     switch (orig) {
       case FAILED:
         // App is failed if dag failed in non-session mode or there was an error.

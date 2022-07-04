@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -80,7 +80,7 @@ public final class CodecUtils {
   }
 
   public static InputStream getDecompressedInputStreamWithBufferSize(CompressionCodec codec,
-      IFileInputStream checksumIn, Decompressor decompressor, int compressedLength)
+                                                                     IFileInputStream checksumIn, Decompressor decompressor, int compressedLength)
       throws IOException {
     String bufferSizeProp = getBufferSizeProperty(codec);
     CompressionInputStream in = null;
@@ -146,14 +146,14 @@ public final class CodecUtils {
   }
 
   public static CompressionInputStream createInputStream(CompressionCodec codec,
-      InputStream checksumIn, Decompressor decompressor) throws IOException {
+                                                         InputStream checksumIn, Decompressor decompressor) throws IOException {
     synchronized (((Configurable) codec).getConf()) {
       return codec.createInputStream(checksumIn, decompressor);
     }
   }
 
   public static CompressionOutputStream createOutputStream(CompressionCodec codec,
-      OutputStream checksumOut, Compressor compressor) throws IOException {
+                                                           OutputStream checksumOut, Compressor compressor) throws IOException {
     synchronized (((Configurable) codec).getConf()) {
       return codec.createOutputStream(checksumOut, compressor);
     }
@@ -165,21 +165,21 @@ public final class CodecUtils {
 
   public static String getBufferSizeProperty(String codecClassName) {
     switch (codecClassName) {
-    case "org.apache.hadoop.io.compress.DefaultCodec":
-    case "org.apache.hadoop.io.compress.BZip2Codec":
-    case "org.apache.hadoop.io.compress.GzipCodec":
-      return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
-    case "org.apache.hadoop.io.compress.SnappyCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
-    case "org.apache.hadoop.io.compress.ZStandardCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
-    case "org.apache.hadoop.io.compress.LzoCodec":
-    case "com.hadoop.compression.lzo.LzoCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
-    case "org.apache.hadoop.io.compress.Lz4Codec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
-    default:
-      return null;
+      case "org.apache.hadoop.io.compress.DefaultCodec":
+      case "org.apache.hadoop.io.compress.BZip2Codec":
+      case "org.apache.hadoop.io.compress.GzipCodec":
+        return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY;
+      case "org.apache.hadoop.io.compress.SnappyCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_KEY;
+      case "org.apache.hadoop.io.compress.ZStandardCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_KEY;
+      case "org.apache.hadoop.io.compress.LzoCodec":
+      case "com.hadoop.compression.lzo.LzoCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_KEY;
+      case "org.apache.hadoop.io.compress.Lz4Codec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_KEY;
+      default:
+        return null;
     }
   }
 
@@ -189,21 +189,21 @@ public final class CodecUtils {
 
   public static int getDefaultBufferSize(Configuration conf, String codecClassName) {
     switch (codecClassName) {
-    case "org.apache.hadoop.io.compress.DefaultCodec":
-    case "org.apache.hadoop.io.compress.BZip2Codec":
-    case "org.apache.hadoop.io.compress.GzipCodec":
-      return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
-    case "org.apache.hadoop.io.compress.SnappyCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_DEFAULT;
-    case "org.apache.hadoop.io.compress.ZStandardCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_DEFAULT;
-    case "org.apache.hadoop.io.compress.LzoCodec":
-    case "com.hadoop.compression.lzo.LzoCodec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_DEFAULT;
-    case "org.apache.hadoop.io.compress.Lz4Codec":
-      return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_DEFAULT;
-    default:
-      return DEFAULT_BUFFER_SIZE;
+      case "org.apache.hadoop.io.compress.DefaultCodec":
+      case "org.apache.hadoop.io.compress.BZip2Codec":
+      case "org.apache.hadoop.io.compress.GzipCodec":
+        return CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT;
+      case "org.apache.hadoop.io.compress.SnappyCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_SNAPPY_BUFFERSIZE_DEFAULT;
+      case "org.apache.hadoop.io.compress.ZStandardCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_ZSTD_BUFFER_SIZE_DEFAULT;
+      case "org.apache.hadoop.io.compress.LzoCodec":
+      case "com.hadoop.compression.lzo.LzoCodec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZO_BUFFERSIZE_DEFAULT;
+      case "org.apache.hadoop.io.compress.Lz4Codec":
+        return CommonConfigurationKeys.IO_COMPRESSION_CODEC_LZ4_BUFFERSIZE_DEFAULT;
+      default:
+        return DEFAULT_BUFFER_SIZE;
     }
   }
 }

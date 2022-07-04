@@ -26,5 +26,4 @@ public class TestContainerLauncherWrapper {
     PluginWrapperTestHelpers.testDelegation(ContainerLauncherWrapper.class, ContainerLauncher.class,
         Sets.newHashSet("getContainerLauncher", "dagComplete", "vertexComplete", "taskAttemptFailed"));
   }
-
 }

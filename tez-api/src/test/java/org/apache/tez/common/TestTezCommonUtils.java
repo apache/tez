@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,7 +49,8 @@ public class TestTezCommonUtils {
   private static final File LOCAL_STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestTezCommonUtils.class.getSimpleName()).getAbsoluteFile();
   private static String RESOLVED_STAGE_DIR;
-  private static Configuration conf = new Configuration();;
+  private static Configuration conf = new Configuration();
+  ;
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezCommonUtils.class.getName() + "-tmpDir";
   private static MiniDFSCluster dfsCluster = null;
@@ -248,27 +249,25 @@ public class TestTezCommonUtils {
   @Test(timeout = 5000)
   public void testStringTokenize() {
     String s = "foo:bar:xyz::too";
-    String[] expectedTokens = { "foo", "bar" , "xyz" , "too"};
+    String[] expectedTokens = {"foo", "bar", "xyz", "too"};
     String[] tokens = new String[4];
     TezCommonUtils.tokenizeString(s, ":").toArray(tokens);
     Assert.assertArrayEquals(expectedTokens, tokens);
   }
 
-
   @Test(timeout = 5000)
   public void testAddAdditionalLocalResources() {
     String lrName = "LR";
     Map<String, LocalResource> originalLrs;
-    originalLrs= Maps.newHashMap();
+    originalLrs = Maps.newHashMap();
     originalLrs.put(lrName, LocalResource.newInstance(
         URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-
     Map<String, LocalResource> additionalLrs;
 
     // Same path, same size.
-    originalLrs= Maps.newHashMap();
+    originalLrs = Maps.newHashMap();
     originalLrs.put(lrName, LocalResource.newInstance(
         URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
@@ -278,7 +277,7 @@ public class TestTezCommonUtils {
     TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
 
     // Same path, different size.
-    originalLrs= Maps.newHashMap();
+    originalLrs = Maps.newHashMap();
     originalLrs.put(lrName, LocalResource.newInstance(
         URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
@@ -293,7 +292,7 @@ public class TestTezCommonUtils {
     }
 
     // Different path, same size, diff timestamp
-    originalLrs= Maps.newHashMap();
+    originalLrs = Maps.newHashMap();
     originalLrs.put(lrName, LocalResource.newInstance(
         URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
@@ -303,7 +302,7 @@ public class TestTezCommonUtils {
     TezCommonUtils.addAdditionalLocalResources(additionalLrs, originalLrs, "");
 
     // Different path, different size
-    originalLrs= Maps.newHashMap();
+    originalLrs = Maps.newHashMap();
     originalLrs.put(lrName, LocalResource.newInstance(
         URL.newInstance("file", "localhost", 0, "/test"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
@@ -316,10 +315,9 @@ public class TestTezCommonUtils {
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains("Duplicate Resources found with different size"));
     }
-
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testAMClientHeartBeatTimeout() {
     TezConfiguration conf = new TezConfiguration(false);
 
@@ -363,8 +361,6 @@ public class TestTezCommonUtils {
     conf.setInt(TezConfiguration.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS, 2000);
     Assert.assertEquals(2000,
         TezCommonUtils.getAMClientHeartBeatPollIntervalMillis(conf, 20000, 5));
-
-
   }
 
   @Test
@@ -373,7 +369,7 @@ public class TestTezCommonUtils {
     // test default logging
     conf.set(TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG, " ");
     String value = TezCommonUtils.getSystemPropertiesToLog(conf);
-    for(String key: TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT) {
+    for (String key : TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT) {
       Assert.assertTrue(value.contains(key));
     }
 
@@ -389,16 +385,16 @@ public class TestTezCommonUtils {
     Assert.assertFalse(value.contains(version));
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testGetDAGSessionTimeout() {
     Configuration conf = new Configuration(false);
-    Assert.assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT*1000,
+    Assert.assertEquals(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT * 1000,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     // set to 1 month - * 1000 guaranteed to cross positive integer boundary
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS,
         24 * 60 * 60 * 30);
-    Assert.assertEquals(86400l*1000*30,
+    Assert.assertEquals(86400l * 1000 * 30,
         TezCommonUtils.getDAGSessionTimeout(conf));
 
     // set to negative val
@@ -410,9 +406,7 @@ public class TestTezCommonUtils {
     conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 0);
     Assert.assertEquals(1000,
         TezCommonUtils.getDAGSessionTimeout(conf));
-
   }
-
 
   @Test
   public void testMkDirForAM() throws IOException {

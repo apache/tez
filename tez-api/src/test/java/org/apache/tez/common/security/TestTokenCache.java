@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,7 +67,7 @@ public class TestTokenCache {
     try {
       Path TEST_ROOT_DIR = new Path("target");
       binaryTokenFile = FileSystem.getLocal(conf).makeQualified(
-        new Path(TEST_ROOT_DIR, "tokenFile")).toUri().getPath();
+          new Path(TEST_ROOT_DIR, "tokenFile")).toUri().getPath();
 
       MockFileSystem fs1 = createFileSystemForServiceName("service1");
       MockFileSystem fs2 = createFileSystemForServiceName("service2");
@@ -79,7 +79,6 @@ public class TestTokenCache {
       creds.addToken(token1.getService(), token1);
       creds.addToken(token2.getService(), token2);
       creds.writeTokenStorageFile(new Path(binaryTokenFile), conf);
-
 
       Credentials newCreds = new Credentials();
       TokenCache.mergeBinaryTokens(newCreds, conf, binaryTokenFile);
@@ -97,7 +96,7 @@ public class TestTokenCache {
     }
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testObtainTokensForFileSystems() throws Exception {
     Path[] paths = makePaths(100, "test://dir/file");
     Credentials creds = new Credentials();
@@ -130,6 +129,7 @@ public class TestTokenCache {
 
   public static class TestFileSystem extends FilterFileSystem {
     static final FileSystem fs = mock(FileSystem.class);
+
     static {
       try {
         when(fs.getUri()).thenReturn(new URI("test://dir"));
@@ -156,6 +156,7 @@ public class TestTokenCache {
     when(mockFs.getDelegationToken(any())).thenAnswer(
         new Answer<Token<?>>() {
           int unique = 0;
+
           @Override
           public Token<?> answer(InvocationOnMock invocation) throws Throwable {
             Token<?> token = new Token<TokenIdentifier>();
@@ -178,5 +179,4 @@ public class TestTokenCache {
       Assert.assertEquals(token, credsToken);
     }
   }
-
 }

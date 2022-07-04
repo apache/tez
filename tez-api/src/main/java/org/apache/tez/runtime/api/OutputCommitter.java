@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,7 +67,7 @@ public abstract class OutputCommitter {
    * master process. Based on user configuration, commit is called at the end of
    * the DAG execution for all outputs or immediately upon completion of all the
    * tasks that produced the output. This is guaranteed to only be called once.
-   * 
+   *
    * @throws java.lang.Exception
    */
   public abstract void commitOutput() throws Exception;
@@ -77,13 +77,13 @@ public abstract class OutputCommitter {
    * non-successful state. This is also called to abort a previously committed
    * output in the case of a post-commit failure. This is called from the
    * application master process. This may be called multiple times.
-   * 
+   *
    * @param finalState
    *          final run-state of the vertex
    * @throws java.lang.Exception
    */
   public abstract void abortOutput(VertexStatus.State finalState)
-    throws Exception;
+      throws Exception;
 
   /**
    * Whether the OutputCommitter supports recovery of output from a Task
@@ -100,7 +100,7 @@ public abstract class OutputCommitter {
    * @param previousDAGAttempt Previous DAG Attempt Number
    * @throws java.lang.Exception
    */
-  public void recoverTask(int taskIndex, int previousDAGAttempt)  throws Exception {
+  public void recoverTask(int taskIndex, int previousDAGAttempt) throws Exception {
   }
 
   /**
@@ -112,5 +112,4 @@ public abstract class OutputCommitter {
   public final OutputCommitterContext getContext() {
     return this.committerContext;
   }
-
 }

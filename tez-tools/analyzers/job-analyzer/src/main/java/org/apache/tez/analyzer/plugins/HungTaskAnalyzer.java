@@ -37,8 +37,8 @@ import java.util.Map;
  * Gives insights about hanging task attempts by providing details about last attempts of all tasks.
  */
 public class HungTaskAnalyzer extends TezAnalyzerBase implements Analyzer {
-  private final String[] headers = { "vertex", "task", " number_of_attempts", "last_attempt_id",
-      "last_attempt_status", "last_attempt_duration_ms", "last_attempt_node" };
+  private final String[] headers = {"vertex", "task", " number_of_attempts", "last_attempt_id",
+      "last_attempt_status", "last_attempt_duration_ms", "last_attempt_node"};
   private final CSVResult csvResult;
 
   private static final String HEADER_NUM_ATTEMPTS = "num_attempts";
@@ -77,7 +77,7 @@ public class HungTaskAnalyzer extends TezAnalyzerBase implements Analyzer {
 
           thisTaskData.put(HEADER_LAST_ATTEMPT_DURATION_MS,
               (attempt.getFinishTime() == 0 || attempt.getStartTime() == 0) ? "-1"
-                : Long.toString(attempt.getFinishTime() - attempt.getStartTime()));
+                  : Long.toString(attempt.getFinishTime() - attempt.getStartTime()));
         }
       }
       for (Map.Entry<String, Map<String, String>> task : taskData.entrySet()) {
@@ -96,15 +96,15 @@ public class HungTaskAnalyzer extends TezAnalyzerBase implements Analyzer {
         int attemptNumberOrder = Integer.valueOf(second[2]).compareTo(Integer.valueOf(first[2]));
 
         return vertexOrder == 0
-          ? (lastAttemptStatusOrder == 0 ? attemptNumberOrder : lastAttemptStatusOrder)
-          : vertexOrder;
+            ? (lastAttemptStatusOrder == 0 ? attemptNumberOrder : lastAttemptStatusOrder)
+            : vertexOrder;
       }
     });
   }
 
   private void addARecord(String vertexName, String taskId, String numAttempts,
-      String lastAttemptId, String lastAttemptStatus, String lastAttemptDuration,
-      String lastAttemptNode) {
+                          String lastAttemptId, String lastAttemptStatus, String lastAttemptDuration,
+                          String lastAttemptNode) {
     String[] record = new String[7];
     record[0] = vertexName;
     record[1] = taskId;

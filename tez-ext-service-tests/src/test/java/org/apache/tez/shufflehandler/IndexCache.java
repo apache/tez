@@ -34,8 +34,8 @@ class IndexCache {
   private AtomicInteger totalMemoryUsed = new AtomicInteger();
   private static final Logger LOG = LoggerFactory.getLogger(IndexCache.class);
 
-  private final ConcurrentHashMap<String,IndexInformation> cache =
-      new ConcurrentHashMap<String,IndexInformation>();
+  private final ConcurrentHashMap<String, IndexInformation> cache =
+      new ConcurrentHashMap<String, IndexInformation>();
 
   private final LinkedBlockingQueue<String> queue =
       new LinkedBlockingQueue<String>();
@@ -59,16 +59,17 @@ class IndexCache {
   /**
    * This method gets the index information for the given mapId and reduce.
    * It reads the index file into cache if it is not already present.
+   *
    * @param mapId
    * @param reduce
-   * @param fileName The file to read the index information from if it is not
-   *                 already present in the cache
+   * @param fileName           The file to read the index information from if it is not
+   *                           already present in the cache
    * @param expectedIndexOwner The expected owner of the index file
    * @return The Index Information
    * @throws IOException
    */
   public TezIndexRecord getIndexInformation(String mapId, int reduce,
-                                         Path fileName, String expectedIndexOwner)
+                                            Path fileName, String expectedIndexOwner)
       throws IOException {
 
     IndexInformation info = cache.get(mapId);
@@ -76,7 +77,7 @@ class IndexCache {
     if (info == null) {
       info = readIndexFileToCache(fileName, mapId, expectedIndexOwner);
     } else {
-      synchronized(info) {
+      synchronized (info) {
         while (isUnderConstruction(info)) {
           try {
             info.wait();
@@ -98,7 +99,7 @@ class IndexCache {
   }
 
   private boolean isUnderConstruction(IndexInformation info) {
-    synchronized(info) {
+    synchronized (info) {
       return (null == info.mapSpillRecord);
     }
   }
@@ -110,7 +111,7 @@ class IndexCache {
     IndexInformation info;
     IndexInformation newInd = new IndexInformation();
     if ((info = cache.putIfAbsent(mapId, newInd)) != null) {
-      synchronized(info) {
+      synchronized (info) {
         while (isUnderConstruction(info)) {
           try {
             info.wait();
@@ -122,7 +123,7 @@ class IndexCache {
       LOG.debug("IndexCache HIT: MapId " + mapId + " found");
       return info;
     }
-    LOG.debug("IndexCache MISS: MapId " + mapId + " not found") ;
+    LOG.debug("IndexCache MISS: MapId " + mapId + " not found");
     TezSpillRecord tmp = null;
     try {
       tmp = new TezSpillRecord(indexFileName, fs, expectedIndexOwner);
@@ -146,10 +147,11 @@ class IndexCache {
 
   /**
    * This method removes the map from the cache if index information for this
-   * map is loaded(size>0), index information entry in cache will not be 
-   * removed if it is in the loading phrase(size=0), this prevents corruption  
-   * of totalMemoryUsed. It should be called when a map output on this tracker 
+   * map is loaded(size>0), index information entry in cache will not be
+   * removed if it is in the loading phrase(size=0), this prevents corruption
+   * of totalMemoryUsed. It should be called when a map output on this tracker
    * is discarded.
+   *
    * @param mapId The taskID of this map.
    */
   public void removeMap(String mapId) {
@@ -171,6 +173,7 @@ class IndexCache {
   /**
    * This method checks if cache and totolMemoryUsed is consistent.
    * It is only used for unit test.
+   *
    * @return True if cache and totolMemoryUsed is consistent
    */
   boolean checkTotalMemoryUsed() {

@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -16,7 +16,6 @@
  */
 
 package org.apache.tez.runtime.api.impl;
-
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -50,11 +49,11 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
 
   public TaskSpec() {
   }
-  
+
   public static TaskSpec createBaseTaskSpec(String dagName, String vertexName,
-      int vertexParallelism, ProcessorDescriptor processorDescriptor,
-      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
-      @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
+                                            int vertexParallelism, ProcessorDescriptor processorDescriptor,
+                                            List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+                                            @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
     return new TaskSpec(dagName, vertexName, vertexParallelism, processorDescriptor, inputSpecList,
         outputSpecList, groupInputSpecList, taskConf);
   }
@@ -102,11 +101,11 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
   }
 
   public TaskSpec(TezTaskAttemptID taskAttemptID,
-      String dagName, String vertexName,
-      int vertexParallelism,
-      ProcessorDescriptor processorDescriptor,
-      List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
-      @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
+                  String dagName, String vertexName,
+                  int vertexParallelism,
+                  ProcessorDescriptor processorDescriptor,
+                  List<InputSpec> inputSpecList, List<OutputSpec> outputSpecList,
+                  @Nullable List<GroupInputSpec> groupInputSpecList, Configuration taskConf) {
     Objects.requireNonNull(taskAttemptID, "taskAttemptID is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(vertexName, "vertexName is null");
@@ -156,7 +155,7 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
   public List<OutputSpec> getOutputs() {
     return outputSpecList;
   }
-  
+
   public List<GroupInputSpec> getGroupInputs() {
     return groupInputSpecList;
   }
@@ -224,7 +223,7 @@ public class TaskSpec implements Writable, TaskAttemptIDAware {
     if (hasGroupInputs) {
       int numGroups = in.readInt();
       groupInputSpecList = Lists.newArrayListWithCapacity(numGroups);
-      for (int i=0; i<numGroups; ++i) {
+      for (int i = 0; i < numGroups; ++i) {
         GroupInputSpec group = new GroupInputSpec();
         group.readFields(in);
         groupInputSpecList.add(group);

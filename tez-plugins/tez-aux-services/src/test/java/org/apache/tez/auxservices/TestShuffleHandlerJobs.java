@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@
  */
 
 package org.apache.tez.auxservices;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -30,8 +31,10 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+
 import static org.apache.tez.test.TestTezJobs.generateOrderedWordCountInput;
 import static org.apache.tez.test.TestTezJobs.verifyOutput;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -56,6 +59,7 @@ public class TestShuffleHandlerJobs {
   private static FileSystem remoteFs;
   private static int NUM_NMS = 5;
   private static int NUM_DNS = 5;
+
   @BeforeClass
   public static void setup() throws IOException {
     try {
@@ -89,7 +93,6 @@ public class TestShuffleHandlerJobs {
       tezCluster.init(conf);
       tezCluster.start();
     }
-
   }
 
   @AfterClass
@@ -103,6 +106,7 @@ public class TestShuffleHandlerJobs {
       dfsCluster = null;
     }
   }
+
   @Test(timeout = 300000)
   public void testOrderedWordCount() throws Exception {
     String inputDirStr = "/tmp/owc-input/";
@@ -127,12 +131,12 @@ public class TestShuffleHandlerJobs {
     try {
       final OrderedWordCount job = new OrderedWordCount();
       Assert.assertTrue("OrderedWordCount failed", job.run(tezConf, new String[]{"-counter",
-              inputDirStr, outputDirStr, "10"}, tezSession)==0);
+          inputDirStr, outputDirStr, "10"}, tezSession) == 0);
       verifyOutput(outputDir, remoteFs);
       tezSession.stop();
       ClientRMService rmService = tezCluster.getResourceManager().getClientRMService();
       boolean isAppComplete = false;
-      while(!isAppComplete) {
+      while (!isAppComplete) {
         GetApplicationReportResponse resp = rmService.getApplicationReport(
             new GetApplicationReportRequest() {
               @Override
@@ -149,7 +153,7 @@ public class TestShuffleHandlerJobs {
         }
         Thread.sleep(100);
       }
-      for(int i = 0; i < NUM_NMS; i++) {
+      for (int i = 0; i < NUM_NMS; i++) {
         String appPath = tezCluster.getTestWorkDir() + "/" + this.getClass().getName()
             + "-localDir-nm-" + i + "_0/usercache/" + UserGroupInformation.getCurrentUser().getUserName()
             + "/appcache/" + job.getAppId();

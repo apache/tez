@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,27 +26,26 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 @Private
 public class TezConstants {
 
-
   public static final String TEZ_APPLICATION_MASTER_CLASS =
       "org.apache.tez.dag.app.DAGAppMaster";
-  
+
   /**
    * Command-line argument to be set when running the Tez AM in session mode.
    */
   public static final String TEZ_SESSION_MODE_CLI_OPTION = "session";
 
   public static final String TEZ_TAR_LR_NAME = "tezlib";
-  
+
   /*
    * Tez AM Service Authorization
    * These are the same as MR which allows Tez to run in secure
    * mode without configuring service ACLs
    */
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
+  public static final String
+      TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
       "security.job.task.protocol.acl";
-  public static final String   
-  TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
+  public static final String
+      TEZ_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
       "security.job.client.protocol.acl";
 
   public static final String TEZ_PB_BINARY_CONF_NAME = "tez-conf.pb";
@@ -66,8 +65,8 @@ public class TezConstants {
   public static final String TEZ_CONTAINER_LOG_PARAMS_SEPARATOR = ";";
 
   public static final String TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME =
-    TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
-  
+      TezConfiguration.TEZ_SESSION_PREFIX + "local-resources.pb";
+
   public static final String TEZ_APPLICATION_TYPE = "TEZ";
   /**
    * The service id for the NodeManager plugin used to share intermediate data
@@ -81,9 +80,8 @@ public class TezConstants {
   public static final String DAG_RECOVERY_SUMMARY_FILE_SUFFIX = "summary";
   public static final String DAG_RECOVERY_RECOVER_FILE_SUFFIX = ".recovery";
 
-
   // Configuration keys used internally and not set by the users
-  
+
   // These are session specific DAG ACL's. Currently here because these can only be specified
   // via code in the API.
   /**
@@ -128,5 +126,4 @@ public class TezConstants {
   public static final int TEZ_CONTAINER_SMALL_SLAB_BOUND_MB = 4096;
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB = 0.7;
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB = 0.8;
-
 }

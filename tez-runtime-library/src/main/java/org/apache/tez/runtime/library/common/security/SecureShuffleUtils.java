@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 package org.apache.tez.runtime.library.common.security;
-
 
 import java.io.IOException;
 import java.net.URL;
@@ -31,7 +30,7 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.tez.common.security.JobTokenSecretManager;
 
 /**
- * 
+ *
  * utilities for generating kyes, hashes and verifying them for shuffle
  *
  */
@@ -40,7 +39,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 public class SecureShuffleUtils {
   public static final String HTTP_HEADER_URL_HASH = "UrlHash";
   public static final String HTTP_HEADER_REPLY_URL_HASH = "ReplyHash";
-  
+
   /**
    * Base64 encoded hash of msg
    * @param msg
@@ -112,7 +111,7 @@ public class SecureShuffleUtils {
     byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), key);
 
-    if(res != true) {
+    if (res != true) {
       throw new IOException("Verification of the hashReply failed");
     }
   }
@@ -129,11 +128,11 @@ public class SecureShuffleUtils {
 
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), mgr);
 
-    if(res != true) {
+    if (res != true) {
       throw new IOException("Verification of the hashReply failed");
     }
   }
-  
+
   /**
    * Shuffle specific utils - build string for encoding from URL
    * @param url

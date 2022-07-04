@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -176,9 +176,9 @@ public class TestAMRecovery {
     tezConf.setBoolean(
         RecoveryService.TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED,
         true);
-    tezConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY,0);
+    tezConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY, 0);
     tezConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_ON_SOCKET_TIMEOUTS_KEY, 0);
-    tezConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_TIMEOUT_KEY,1000);
+    tezConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_TIMEOUT_KEY, 1000);
     tezSession = TezClient.create("TestDAGRecovery", tezConf);
     tezSession.start();
   }
@@ -288,7 +288,6 @@ public class TestAMRecovery {
     // finished in attempt 2
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 0).size());
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 1).size());
-
   }
 
   /**
@@ -320,7 +319,6 @@ public class TestAMRecovery {
     // finished in attempt 2
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 0).size());
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 1).size());
-
   }
 
   /**
@@ -352,7 +350,6 @@ public class TestAMRecovery {
     // finished in attempt 2
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 0).size());
     assertEquals(1, findTaskAttemptFinishedEvent(historyEvents2, 0, 1).size());
-
   }
 
   /**
@@ -406,7 +403,6 @@ public class TestAMRecovery {
         createDAG("HighMaxAttempt", FailOnAttemptVertexManager.class,
             DataMovementType.SCATTER_GATHER, false);
     runDAGAndVerify(dag, DAGStatus.State.SUCCEEDED);
-
   }
 
   TezCounters runDAGAndVerify(DAG dag, DAGStatus.State finalState) throws Exception {
@@ -431,7 +427,7 @@ public class TestAMRecovery {
    * @throws IOException
    */
   private DAG createDAG(String dagName, Class vertexManagerClass, DataMovementType dmType,
-      boolean failOnParitialCompleted) throws IOException {
+                        boolean failOnParitialCompleted) throws IOException {
     if (failOnParitialCompleted) {
       tezConf.set(FAIL_ON_PARTIAL_FINISHED, "true");
     } else {
@@ -481,7 +477,7 @@ public class TestAMRecovery {
         TezCommonUtils.getRecoveryPath(tezSystemStagingDir, tezConf);
     FileSystem fs = tezSystemStagingDir.getFileSystem(tezConf);
     List<HistoryEvent> historyEvents = new ArrayList<HistoryEvent>();
-    for (int i=1; i <= attemptNum; ++i) {
+    for (int i = 1; i <= attemptNum; ++i) {
       Path currentAttemptRecoveryDataDir =
           TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir, i);
       Path recoveryFilePath =
@@ -498,7 +494,7 @@ public class TestAMRecovery {
 
   private void printHistoryEvents(List<HistoryEvent> historyEvents, int attemptId) {
     LOG.info("RecoveryLogs from attempt:" + attemptId);
-    for(HistoryEvent historyEvent : historyEvents) {
+    for (HistoryEvent historyEvent : historyEvents) {
       LOG.info("Parsed event from recovery stream"
           + ", eventType=" + historyEvent.getEventType()
           + ", event=" + historyEvent);
@@ -530,7 +526,7 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
+      completedTaskNum++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
           if (completedTaskNum == 1) {
@@ -570,7 +566,7 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
+      completedTaskNum++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
           if (completedTaskNum == 1) {
@@ -611,7 +607,7 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt) {
       super.onSourceTaskCompleted(attempt);
-      completedTaskNum ++;
+      completedTaskNum++;
       if (getContext().getDAGAttemptNumber() == 1) {
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
           if (completedTaskNum == 1) {
@@ -627,7 +623,6 @@ public class TestAMRecovery {
     }
   }
 
-  
   /**
    * VertexManager which control schedule only one task when it is test case of partially-finished.
    *
@@ -657,13 +652,13 @@ public class TestAMRecovery {
         // only schedule one task if it is partiallyFinished case
         if (conf.getBoolean(FAIL_ON_PARTIAL_FINISHED, true)) {
           getContext().scheduleTasks(Lists.newArrayList(ScheduleTaskRequest.create(0, null)));
-          return ;
+          return;
         }
       }
       // schedule all tasks when it is not partiallyFinished
       int taskNum = getContext().getVertexNumTasks(getContext().getVertexName());
       List<ScheduleTaskRequest> taskWithLocationHints = new ArrayList<ScheduleTaskRequest>();
-      for (int i=0;i<taskNum;++i) {
+      for (int i = 0; i < taskNum; ++i) {
         taskWithLocationHints.add(ScheduleTaskRequest.create(i, null));
       }
       getContext().scheduleTasks(taskWithLocationHints);
@@ -672,19 +667,19 @@ public class TestAMRecovery {
     @Override
     public void onSourceTaskCompleted(TaskAttemptIdentifier attempt)
         throws Exception {
-      
+
     }
 
     @Override
     public void onVertexManagerEventReceived(VertexManagerEvent vmEvent)
         throws Exception {
-      
+
     }
 
     @Override
     public void onRootVertexInitialized(String inputName,
-        InputDescriptor inputDescriptor, List<Event> events) throws Exception {
-      
+                                        InputDescriptor inputDescriptor, List<Event> events) throws Exception {
+
     }
   }
 
@@ -763,5 +758,4 @@ public class TestAMRecovery {
       return ProcessorDescriptor.create(DoNothingProcessor.class.getName());
     }
   }
-
 }

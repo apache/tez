@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,8 +35,8 @@ import org.apache.hadoop.io.Writable;
  * Describes a given user code entity. Consists of the name of the class implementing
  * the user logic and a payload that can be used to configure an object instance of
  * that class. In addition some history information can be set for logging/debugging.
-  * <br>This is not supposed to be extended by users. Users are expected to use the derived
-  * classes for specific entities
+ * <br>This is not supposed to be extended by users. Users are expected to use the derived
+ * classes for specific entities
  */
 @Public
 @SuppressWarnings("unchecked")
@@ -137,7 +137,7 @@ public abstract class EntityDescriptor<T extends EntityDescriptor<T>> implements
     if (payloadLength != -1) {
       byte[] bb = new byte[payloadLength];
       in.readFully(bb);
-      int version =in.readInt();
+      int version = in.readInt();
       this.userPayload = DagTypeConverters.convertToTezUserPayload(ByteBuffer.wrap(bb), version);
     }
   }

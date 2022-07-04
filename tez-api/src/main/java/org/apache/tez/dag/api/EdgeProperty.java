@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,7 +33,6 @@ import org.apache.tez.common.Preconditions;
  */
 @Public
 public class EdgeProperty {
-
 
   /**
    * Defines the manner of data movement between source and destination tasks.
@@ -126,7 +125,6 @@ public class EdgeProperty {
     SOURCE_TASK_STARTED
   }
 
-
   final DataMovementType dataMovementType;
   final DataSourceType dataSourceType;
   final SchedulingType schedulingType;
@@ -177,8 +175,8 @@ public class EdgeProperty {
 
   @Private
   public static EdgeProperty create(EdgeManagerPluginDescriptor edgeManagerDescriptor,
-      DataMovementType dataMovementType, DataSourceType dataSourceType,
-      SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
+                                    DataMovementType dataMovementType, DataSourceType dataSourceType,
+                                    SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
     return new EdgeProperty(edgeManagerDescriptor, dataMovementType, dataSourceType,
         schedulingType, edgeSource, edgeDestination);
   }
@@ -193,7 +191,6 @@ public class EdgeProperty {
         DataMovementType.CUSTOM + " cannot be used with this constructor");
   }
 
-
   private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
                        DataSourceType dataSourceType,
                        SchedulingType schedulingType,
@@ -204,8 +201,8 @@ public class EdgeProperty {
   }
 
   private EdgeProperty(EdgeManagerPluginDescriptor edgeManagerDescriptor,
-      DataMovementType dataMovementType, DataSourceType dataSourceType,
-      SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
+                       DataMovementType dataMovementType, DataSourceType dataSourceType,
+                       SchedulingType schedulingType, OutputDescriptor edgeSource, InputDescriptor edgeDestination) {
     this.dataMovementType = dataMovementType;
     this.edgeManagerDescriptor = edgeManagerDescriptor;
     this.dataSourceType = dataSourceType;
@@ -268,5 +265,4 @@ public class EdgeProperty {
         + " >> " + (edgeManagerDescriptor == null ? "NullEdgeManager" : edgeManagerDescriptor.getClassName())
         + " }";
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -148,10 +148,10 @@ public class RecoveryService extends AbstractService {
         TEZ_TEST_RECOVERY_DRAIN_EVENTS_WHEN_STOPPED_DEFAULT);
 
     LOG.info("RecoveryService initialized with "
-      + "recoveryPath=" + recoveryPath
-      + ", bufferSize(bytes)=" + bufferSize
-      + ", flushInterval(s)=" + flushInterval
-      + ", maxUnflushedEvents=" + maxUnflushedEvents);
+        + "recoveryPath=" + recoveryPath
+        + ", bufferSize(bytes)=" + bufferSize
+        + ", flushInterval(s)=" + flushInterval
+        + ", maxUnflushedEvents=" + maxUnflushedEvents);
   }
 
   @Override
@@ -307,7 +307,7 @@ public class RecoveryService extends AbstractService {
       String dagName = dagSubmittedEvent.getDAGName();
       if (dagName != null
           && dagName.startsWith(
-              TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
+          TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX)) {
         // Skip recording pre-warm DAG events
         skippedDAGs.add(dagId);
         return;
@@ -403,9 +403,9 @@ public class RecoveryService extends AbstractService {
   }
 
   protected void handleSummaryEvent(TezDAGID dagID,
-      HistoryEventType eventType,
-      SummaryEvent summaryEvent) throws IOException {
-      LOG.debug("Handling summary event, dagID={}, eventType={}", dagID, eventType);
+                                    HistoryEventType eventType,
+                                    SummaryEvent summaryEvent) throws IOException {
+    LOG.debug("Handling summary event, dagID={}, eventType={}", dagID, eventType);
 
     if (summaryStream == null) {
       Path summaryPath = TezCommonUtils.getSummaryRecoveryPath(recoveryPath);
@@ -466,9 +466,8 @@ public class RecoveryService extends AbstractService {
       outputStreamMap.put(dagID, recoveryStream);
     }
 
-
     LOG.debug("Writing recovery event to output stream, dagId={}, eventType={}",
-      dagID, eventType);
+        dagID, eventType);
     ++unflushedEventsCount;
     recoveryStream.codedOutputStream.writeFixed32NoTag(event.getHistoryEvent().getEventType().ordinal());
     event.getHistoryEvent().toProtoStream(recoveryStream.codedOutputStream);
@@ -481,14 +480,14 @@ public class RecoveryService extends AbstractService {
   private void maybeFlush(RecoveryStream recoveryStream) throws IOException {
     long currentTime = appContext.getClock().getTime();
     boolean doFlush = false;
-    if (maxUnflushedEvents >=0
+    if (maxUnflushedEvents >= 0
         && unflushedEventsCount >= maxUnflushedEvents) {
-        LOG.debug("Max unflushed events count reached. Flushing recovery data, "
-            + "unflushedEventsCount={}, maxUnflushedEvents={}", unflushedEventsCount,
-            maxUnflushedEvents);
+      LOG.debug("Max unflushed events count reached. Flushing recovery data, "
+              + "unflushedEventsCount={}, maxUnflushedEvents={}", unflushedEventsCount,
+          maxUnflushedEvents);
       doFlush = true;
     } else if (flushInterval >= 0
-        && ((currentTime - lastFlushTime) >= (flushInterval*1000))) {
+        && ((currentTime - lastFlushTime) >= (flushInterval * 1000))) {
       LOG.debug("Flush interval time period elapsed. Flushing recovery data"
           + ", lastTimeSinceFLush=" + lastFlushTime
           + ", timeSinceLastFlush=" + (currentTime - lastFlushTime));
@@ -501,7 +500,7 @@ public class RecoveryService extends AbstractService {
   }
 
   private void doFlush(RecoveryStream recoveryStream,
-      long currentTime) throws IOException {
+                       long currentTime) throws IOException {
     recoveryStream.flush();
 
     if (LOG.isDebugEnabled()) {

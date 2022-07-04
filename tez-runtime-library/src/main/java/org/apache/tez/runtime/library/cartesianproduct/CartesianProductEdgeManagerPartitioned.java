@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,10 +53,10 @@ class CartesianProductEdgeManagerPartitioned extends CartesianProductEdgeManager
 
     if (config.hasFilterClassName()) {
       UserPayload userPayload = config.hasFilterUserPayload()
-        ? UserPayload.create(ByteBuffer.wrap(config.getFilterUserPayload().toByteArray())) : null;
+          ? UserPayload.create(ByteBuffer.wrap(config.getFilterUserPayload().toByteArray())) : null;
       try {
         filter = ReflectionUtils.createClazzInstance(config.getFilterClassName(),
-          new Class[]{UserPayload.class}, new UserPayload[]{userPayload});
+            new Class[]{UserPayload.class}, new UserPayload[]{userPayload});
       } catch (TezReflectionException e) {
         throw e;
       }
@@ -73,18 +73,18 @@ class CartesianProductEdgeManagerPartitioned extends CartesianProductEdgeManager
   public EventRouteMetadata routeDataMovementEventToDestination(int srcTaskId, int srcOutputId,
                                                                 int destTaskId) throws Exception {
     int partition = CartesianProductCombination.fromTaskId(numPartitions,
-      getIdealTaskId(destTaskId)).getCombination().get(positionId);
+        getIdealTaskId(destTaskId)).getCombination().get(positionId);
     return srcOutputId != partition ? null :
-      EventRouteMetadata.create(1, new int[]{srcTaskId});
+        EventRouteMetadata.create(1, new int[]{srcTaskId});
   }
 
   @Nullable
   @Override
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
-                                                                         int destTaskId)
-    throws Exception {
+                                                                                  int destTaskId)
+      throws Exception {
     int partition = CartesianProductCombination.fromTaskId(numPartitions,
-      getIdealTaskId(destTaskId)).getCombination().get(positionId);
+        getIdealTaskId(destTaskId)).getCombination().get(positionId);
     return CompositeEventRouteMetadata.create(1, srcTaskId, partition);
   }
 
@@ -92,7 +92,7 @@ class CartesianProductEdgeManagerPartitioned extends CartesianProductEdgeManager
   @Override
   public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(int srcTaskId,
                                                                          int destTaskId)
-    throws Exception {
+      throws Exception {
     return EventRouteMetadata.create(1, new int[]{srcTaskId});
   }
 
@@ -115,7 +115,7 @@ class CartesianProductEdgeManagerPartitioned extends CartesianProductEdgeManager
     List<Integer> idealTaskId = new ArrayList<>();
     Map<String, Integer> vertexPartitionMap = new HashMap<>();
     CartesianProductCombination combination =
-      new CartesianProductCombination(numPartitions);
+        new CartesianProductCombination(numPartitions);
     combination.firstTask();
     do {
       for (int i = 0; i < sources.size(); i++) {

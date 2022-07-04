@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,31 +77,30 @@ public class TezOutputContextImpl extends TezTaskContextImpl
     public synchronized void reportDataSize(long size) {
       // this is a concurrent map. Plus we are not adding/deleting entries
       runtimeTask.getTaskStatistics().getIOStatistics().get(destinationVertexName)
-      .setDataSize(size);
+          .setDataSize(size);
     }
 
     @Override
     public void reportItemsProcessed(long items) {
       // this is a concurrent map. Plus we are not adding/deleting entries
       runtimeTask.getTaskStatistics().getIOStatistics().get(destinationVertexName)
-      .setItemsProcessed(items);
+          .setItemsProcessed(items);
     }
-    
   }
 
   @Private
   public TezOutputContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      TezUmbilical tezUmbilical, String dagName,
-      String taskVertexName,
-      String destinationVertexName,
-      int vertexParallelism,
-      TezTaskAttemptID taskAttemptID, int outputIndex,
-      @Nullable UserPayload userPayload, LogicalIOProcessorRuntimeTask runtimeTask,
-      Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
-      ExecutionContext executionContext, long memAvailable, TezExecutors sharedExecutor) {
-    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
+                              TezUmbilical tezUmbilical, String dagName,
+                              String taskVertexName,
+                              String destinationVertexName,
+                              int vertexParallelism,
+                              TezTaskAttemptID taskAttemptID, int outputIndex,
+                              @Nullable UserPayload userPayload, LogicalIOProcessorRuntimeTask runtimeTask,
+                              Map<String, ByteBuffer> serviceConsumerMetadata,
+                              Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+                              OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
+                              ExecutionContext executionContext, long memAvailable, TezExecutors sharedExecutor) {
+    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID,
         wrapCounters(runtimeTask, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,
@@ -119,7 +118,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   }
 
   private static TezCounters wrapCounters(LogicalIOProcessorRuntimeTask runtimeTask, String taskVertexName,
-      String edgeVertexName, Configuration conf) {
+                                          String edgeVertexName, Configuration conf) {
     TezCounters tezCounters = runtimeTask.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
         TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
@@ -153,7 +152,6 @@ public class TezOutputContextImpl extends TezTaskContextImpl
   public String getDestinationVertexName() {
     return destinationVertexName;
   }
-
 
   @Override
   public String getInputOutputVertexNames() {

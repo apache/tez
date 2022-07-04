@@ -58,7 +58,6 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
     this.appHostName = appHostname;
     this.clientPort = clientPort;
     this.initialUserPayload = initialUserPayload;
-
   }
 
   // this may end up being called for a task+container pair that the app
@@ -117,7 +116,6 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   public UserPayload getInitialUserPayload() {
     return initialUserPayload;
   }
-
 
   @Override
   public String getAppTrackingUrl() {

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -121,7 +121,7 @@ public class TestATSHistoryLoggingService {
     atsHistoryLoggingService = null;
   }
 
-  @Test(timeout=20000)
+  @Test(timeout = 20000)
   public void testATSHistoryLoggingServiceShutdown() {
     atsHistoryLoggingService.start();
     TezDAGID tezDAGID = TezDAGID.getInstance(
@@ -145,10 +145,9 @@ public class TestATSHistoryLoggingService {
 
     Assert.assertTrue(atsEntitiesCounter >= 4);
     Assert.assertTrue(atsEntitiesCounter < 20);
-
   }
 
-  @Test(timeout=20000)
+  @Test(timeout = 20000)
   public void testATSEventBatching() {
     atsHistoryLoggingService.start();
     TezDAGID tezDAGID = TezDAGID.getInstance(
@@ -169,10 +168,10 @@ public class TestATSHistoryLoggingService {
         + ", timelineInvocations=" + atsInvokeCounter);
 
     Assert.assertTrue(atsEntitiesCounter > atsInvokeCounter);
-    Assert.assertEquals(atsEntitiesCounter/2, atsInvokeCounter);
+    Assert.assertEquals(atsEntitiesCounter / 2, atsInvokeCounter);
   }
 
-  @Test(timeout=20000)
+  @Test(timeout = 20000)
   public void testTimelineServiceDisable() throws Exception {
     atsHistoryLoggingService.start();
     ATSHistoryLoggingService atsHistoryLoggingService1;
@@ -181,46 +180,46 @@ public class TestATSHistoryLoggingService {
     atsHistoryLoggingService1.setAppContext(appContext);
     atsHistoryLoggingService1.timelineClient = mock(TimelineClient.class);
     when(atsHistoryLoggingService1.timelineClient.putEntities(any())).thenAnswer(
-      new Answer<Object>() {
-      @Override
-      public Object answer(InvocationOnMock invocation) throws Throwable {
-        ++atsInvokeCounter;
-        atsEntitiesCounter += invocation.getArguments().length;
-        try {
-          Thread.sleep(10l);
-        } catch (InterruptedException e) {
-          // do nothing
-        }
-        return null;
-      }
-    });
+        new Answer<Object>() {
+          @Override
+          public Object answer(InvocationOnMock invocation) throws Throwable {
+            ++atsInvokeCounter;
+            atsEntitiesCounter += invocation.getArguments().length;
+            try {
+              Thread.sleep(10l);
+            } catch (InterruptedException e) {
+              // do nothing
+            }
+            return null;
+          }
+        });
     conf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, false);
     conf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
-      ATSHistoryLoggingService.class.getName());
+        ATSHistoryLoggingService.class.getName());
     atsHistoryLoggingService1.init(conf);
     atsHistoryLoggingService1.start();
     TezDAGID tezDAGID = TezDAGID.getInstance(
-         ApplicationId.newInstance(100l, 1), 1);
+        ApplicationId.newInstance(100l, 1), 1);
     DAGHistoryEvent historyEvent = new DAGHistoryEvent(tezDAGID,
-    new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
+        new DAGStartedEvent(tezDAGID, 1001l, "user1", "dagName1"));
     for (int i = 0; i < 100; ++i) {
       atsHistoryLoggingService1.handle(historyEvent);
     }
 
     try {
-        Thread.sleep(20l);
+      Thread.sleep(20l);
     } catch (InterruptedException e) {
-        // Do nothing
+      // Do nothing
     }
     LOG.info("ATS entitiesSent=" + atsEntitiesCounter
-         + ", timelineInvocations=" + atsInvokeCounter);
+        + ", timelineInvocations=" + atsInvokeCounter);
     Assert.assertEquals(atsInvokeCounter, 0);
     Assert.assertEquals(atsEntitiesCounter, 0);
     Assert.assertNull(atsHistoryLoggingService1.timelineClient);
     atsHistoryLoggingService1.close();
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testNonSessionDomains() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenReturn(
@@ -239,13 +238,13 @@ public class TestATSHistoryLoggingService {
     }
     // No dag domain were created.
     verify(historyACLPolicyManager, times(0))
-            .setupSessionDAGACLs(any(), eq(appId), eq("0"), any());
+        .setupSessionDAGACLs(any(), eq(appId), eq("0"), any());
 
     // All calls made with session domain id.
     verify(historyACLPolicyManager, times(6)).updateTimelineEntityDomain(any(), eq("session-id"));
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testNonSessionDomainsFailed() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenThrow(new IOException());
@@ -269,7 +268,7 @@ public class TestATSHistoryLoggingService {
     Assert.assertEquals(0, atsEntitiesCounter);
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testNonSessionDomainsAclNull() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenReturn(null);
@@ -294,7 +293,7 @@ public class TestATSHistoryLoggingService {
     Assert.assertEquals(6, atsEntitiesCounter);
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSessionDomains() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenReturn(Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "test-domain"));
@@ -324,7 +323,7 @@ public class TestATSHistoryLoggingService {
     verify(historyACLPolicyManager, times(5)).updateTimelineEntityDomain(any(), eq("dag-domain"));
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSessionDomainsFailed() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenThrow(new IOException());
@@ -353,7 +352,7 @@ public class TestATSHistoryLoggingService {
     Assert.assertEquals(0, atsEntitiesCounter);
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSessionDomainsDagFailed() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenReturn(Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-domain"));
@@ -386,7 +385,7 @@ public class TestATSHistoryLoggingService {
     Assert.assertEquals(1, atsEntitiesCounter);
   }
 
-  @Test(timeout=10000)
+  @Test(timeout = 10000)
   public void testSessionDomainsAclNull() throws Exception {
     when(historyACLPolicyManager.setupSessionACLs(any(), any()))
         .thenReturn(null);
@@ -417,7 +416,7 @@ public class TestATSHistoryLoggingService {
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,
-      ATSHistoryLoggingService service) {
+                                                  ATSHistoryLoggingService service) {
     List<DAGHistoryEvent> historyEvents = new ArrayList<>();
 
     long time = System.currentTimeMillis();

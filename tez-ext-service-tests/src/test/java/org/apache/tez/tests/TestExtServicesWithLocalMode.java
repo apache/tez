@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 public class TestExtServicesWithLocalMode {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestExtServicesWithLocalMode.class);
-
 
   private static final String EXT_PUSH_ENTITY_NAME = "ExtServiceTestPush";
 
@@ -111,7 +110,6 @@ public class TestExtServicesWithLocalMode {
     localFs.delete(testRootDirPath, true);
   }
 
-
   @Test(timeout = 30000)
   public void test1() throws Exception {
 
@@ -135,7 +133,6 @@ public class TestExtServicesWithLocalMode {
     ServicePluginsDescriptor servicePluginsDescriptor = ServicePluginsDescriptor.create(true, false,
         taskSchedulerDescriptors, containerLauncherDescriptors, taskCommunicatorDescriptors);
 
-
     TezConfiguration tezConf = new TezConfiguration(confForJobs);
 
     TezClient tezClient = TezClient.newBuilder("test1", tezConf).setIsSession(true)
@@ -143,12 +140,10 @@ public class TestExtServicesWithLocalMode {
     try {
       tezClient.start();
 
-
       Path dataPath1 = new Path(SRC_DATA_DIR, "inPath1");
       Path dataPath2 = new Path(SRC_DATA_DIR, "inPath2");
 
       Path expectedResultPath = new Path(SRC_DATA_DIR, "expectedOutputPath");
-
 
       JoinDataGen dataGen = new JoinDataGen();
       String[] dataGenArgs = new String[]{
@@ -185,7 +180,6 @@ public class TestExtServicesWithLocalMode {
     } finally {
       tezClient.stop();
     }
-
   }
 
   private void runJoinValidate(TezClient tezClient, String name, int extExpectedCount,

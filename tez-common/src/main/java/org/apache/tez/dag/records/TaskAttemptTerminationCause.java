@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,7 @@ package org.apache.tez.dag.records;
 
 public enum TaskAttemptTerminationCause {
   UNKNOWN_ERROR, // The error cause is unknown. Usually means a gap in error propagation
-  
+
   TERMINATED_BY_CLIENT, // Killed by client command
   TERMINATED_AT_SHUTDOWN, // Killed due execution shutdown
   TERMINATED_AT_RECOVERY, // Killed in recovery, due to can not recover running task attempt
@@ -29,7 +29,7 @@ public enum TaskAttemptTerminationCause {
   TERMINATED_INEFFECTIVE_SPECULATION, // Killed speculative attempt because original succeeded
   TERMINATED_EFFECTIVE_SPECULATION, // Killed original attempt because speculation succeeded
   TERMINATED_ORPHANED, // Attempt is no longer needed by the task
-  
+
   APPLICATION_ERROR, // Failed due to application code error
   FRAMEWORK_ERROR, // Failed due to code error in Tez code
   INPUT_READ_ERROR, // Failed due to error in reading inputs
@@ -37,7 +37,7 @@ public enum TaskAttemptTerminationCause {
   OUTPUT_LOST, // Failed because attempts output were reported lost
   NO_PROGRESS, // Failed because no progress was being made
   TASK_HEARTBEAT_ERROR, // Failed because AM lost connection to the task
-  
+
   CONTAINER_LAUNCH_FAILED, // Failed to launch container
   CONTAINER_EXITED, // Container exited. Indicates gap in specific error propagation from the cluster
   CONTAINER_STOPPED, // Container stopped or released by Tez
@@ -48,5 +48,4 @@ public enum TaskAttemptTerminationCause {
   SERVICE_BUSY, // Service rejected the task
   INTERRUPTED_BY_SYSTEM, // Interrupted by the system. e.g. Pre-emption
   INTERRUPTED_BY_USER, // Interrupted by the user
-
 }

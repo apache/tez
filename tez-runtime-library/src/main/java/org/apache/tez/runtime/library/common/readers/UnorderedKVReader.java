@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,10 +47,10 @@ import org.apache.tez.runtime.library.common.shuffle.MemoryFetchedInput;
 public class UnorderedKVReader<K, V> extends KeyValueReader {
 
   private static final Logger LOG = LoggerFactory.getLogger(UnorderedKVReader.class);
-  
+
   private final ShuffleManager shuffleManager;
   private final CompressionCodec codec;
-  
+
   private final Class<K> keyClass;
   private final Class<V> valClass;
   private final Deserializer<K> keyDeserializer;
@@ -61,26 +61,25 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   private final boolean ifileReadAhead;
   private final int ifileReadAheadLength;
   private final int ifileBufferSize;
-  
+
   private final TezCounter inputRecordCounter;
   private final InputContext context;
-  
+
   private K key;
   private V value;
-  
+
   private FetchedInput currentFetchedInput;
   private IFile.Reader currentReader;
-  
+
   // TODO Remove this once per I/O counters are separated properly. Relying on
   // the counter at the moment will generate aggregate numbers. 
   private int numRecordsRead = 0;
   private final AtomicLong totalBytesRead = new AtomicLong(0);
   private final AtomicLong totalFileBytes = new AtomicLong(0);
 
-
   public UnorderedKVReader(ShuffleManager shuffleManager, Configuration conf,
-      CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
-      TezCounter inputRecordCounter, InputContext context)
+                           CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength, int ifileBufferSize,
+                           TezCounter inputRecordCounter, InputContext context)
       throws IOException {
     this.shuffleManager = shuffleManager;
     this.context = context;
@@ -105,16 +104,16 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
   }
 
   // TODO NEWTEZ Maybe add an interface to check whether next will block.
-  
+
   /**
    * Moves to the next key/values(s) pair
-   * 
+   *
    * @return true if another key/value(s) pair exists, false if there are no
    *         more.
    * @throws IOException
    *           if an error occurs
    */
-  @Override  
+  @Override
   public boolean next() throws IOException {
     if (readNextFromCurrentReader()) {
       inputRecordCounter.increment(1);
@@ -124,7 +123,7 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     } else {
       boolean nextInputExists = moveToNextInput();
       while (nextInputExists) {
-        if(readNextFromCurrentReader()) {
+        if (readNextFromCurrentReader()) {
           inputRecordCounter.increment(1);
           context.notifyProgress();
           numRecordsRead++;
@@ -137,7 +136,6 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       return false;
     }
   }
-
 
   @Override
   public Object getCurrentKey() throws IOException {
@@ -153,12 +151,13 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
     final int numInputs = shuffleManager.getNumInputs();
     if (totalFileBytes.get() > 0 && numInputs > 0) {
       return ((1.0f) * (totalBytesRead.get() + ((currentReader != null) ? currentReader.bytesRead :
-      0.0f)) /
+          0.0f)) /
           totalFileBytes.get()) * (shuffleManager.getNumCompletedInputsFloat() /
           (1.0f * numInputs));
     }
     return 0.0f;
   }
+
   /**
    * Tries reading the next key and value from the current reader.
    * @return true if the current reader has more records
@@ -179,11 +178,11 @@ public class UnorderedKVReader<K, V> extends KeyValueReader {
       return false;
     }
   }
-  
+
   /**
    * Moves to the next available input. This method may block if the input is not ready yet.
    * Also takes care of closing the previous input.
-   * 
+   *
    * @return true if the next input exists, false otherwise
    * @throws IOException
    */

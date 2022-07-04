@@ -42,7 +42,6 @@ import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class TezTestServiceTaskSchedulerService extends TaskScheduler {
 
   private static final Logger
@@ -66,7 +65,6 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
 
   // Per Executor Thread
   private final Resource resourcePerContainer;
-
 
   // Not registering with the RM. Assuming the main TezScheduler will always run (except local mode),
   // and take care of YARN registration.
@@ -122,7 +120,6 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
         ", executorsPerInstance=" + executorsPerInstance +
         ", resourcePerContainerInferred=" + resourcePerContainer +
         ", hosts=" + serviceHosts.toString());
-
   }
 
   @Override
@@ -168,7 +165,6 @@ public class TezTestServiceTaskSchedulerService extends TaskScheduler {
     runningTasks.put(task, container.getId());
     getContext().taskAllocated(task, clientCookie, container);
   }
-
 
   @Override
   public void allocateTask(Object task, Resource capability, ContainerId containerId,

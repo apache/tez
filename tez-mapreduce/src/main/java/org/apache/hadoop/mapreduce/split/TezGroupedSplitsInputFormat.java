@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,8 +47,8 @@ import org.apache.tez.common.Preconditions;
 @Public
 @Evolving
 public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
-  implements Configurable{
-  
+    implements Configurable {
+
   private static final Logger LOG = LoggerFactory.getLogger(TezGroupedSplitsInputFormat.class);
 
   InputFormat<K, V> wrappedInputFormat;
@@ -56,18 +56,18 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   Configuration conf;
   SplitSizeEstimator estimator;
   SplitLocationProvider locationProvider;
-  
+
   public TezGroupedSplitsInputFormat() {
-    
+
   }
-  
+
   public void setInputFormat(InputFormat<K, V> wrappedInputFormat) {
     this.wrappedInputFormat = wrappedInputFormat;
     if (LOG.isDebugEnabled()) {
       LOG.debug("wrappedInputFormat: " + wrappedInputFormat.getClass().getName());
     }
   }
-  
+
   public void setDesiredNumberOfSplits(int num) {
     Preconditions.checkArgument(num >= 0);
     this.desiredNumSplits = num;
@@ -97,7 +97,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
 
   @Override
   public RecordReader<K, V> createRecordReader(InputSplit split,
-      TaskAttemptContext context) throws IOException, InterruptedException {
+                                               TaskAttemptContext context) throws IOException, InterruptedException {
     TezGroupedSplit groupedSplit = (TezGroupedSplit) split;
     try {
       initInputFormatFromSplit(groupedSplit);
@@ -106,11 +106,11 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
     }
     return new TezGroupedSplitsRecordReader(groupedSplit, context);
   }
-  
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
   void initInputFormatFromSplit(TezGroupedSplit split) throws TezException {
     if (wrappedInputFormat == null) {
-      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>) 
+      Class<? extends InputFormat> clazz = (Class<? extends InputFormat>)
           getClassFromName(split.wrappedInputFormatName);
       try {
         wrappedInputFormat = org.apache.hadoop.util.ReflectionUtils.newInstance(clazz, conf);
@@ -119,27 +119,27 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       }
     }
   }
-  
+
   static Class<?> getClassFromName(String name) throws TezException {
     return ReflectionUtils.getClazz(name);
   }
-  
-  public class TezGroupedSplitsRecordReader  extends RecordReader<K, V> {
+
+  public class TezGroupedSplitsRecordReader extends RecordReader<K, V> {
 
     TezGroupedSplit groupedSplit;
     TaskAttemptContext context;
     int idx = 0;
     long progress;
     RecordReader<K, V> curReader;
-    
+
     public TezGroupedSplitsRecordReader(TezGroupedSplit split,
-        TaskAttemptContext context) throws IOException {
+                                        TaskAttemptContext context) throws IOException {
       this.groupedSplit = split;
       this.context = context;
     }
-    
+
     public void initialize(InputSplit split,
-        TaskAttemptContext context) throws IOException, InterruptedException {
+                           TaskAttemptContext context) throws IOException, InterruptedException {
       if (this.groupedSplit != split) {
         throw new TezUncheckedException("Splits dont match");
       }
@@ -148,7 +148,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
       }
       initNextRecordReader();
     }
-    
+
     public boolean nextKeyValue() throws IOException, InterruptedException {
       while ((curReader == null) || !curReader.nextKeyValue()) {
         // false return finishes. true return loops back for nextKeyValue()
@@ -162,25 +162,25 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
     public K getCurrentKey() throws IOException, InterruptedException {
       return curReader.getCurrentKey();
     }
-    
+
     public V getCurrentValue() throws IOException, InterruptedException {
       return curReader.getCurrentValue();
     }
-    
+
     public void close() throws IOException {
       if (curReader != null) {
         curReader.close();
         curReader = null;
       }
     }
-    
+
     protected boolean initNextRecordReader() throws IOException {
       if (curReader != null) {
         curReader.close();
         curReader = null;
         if (idx > 0) {
           try {
-            progress += groupedSplit.wrappedSplits.get(idx-1).getLength();
+            progress += groupedSplit.wrappedSplits.get(idx - 1).getLength();
           } catch (InterruptedException e) {
             throw new TezUncheckedException(e);
           }
@@ -199,12 +199,12 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
 
         curReader.initialize(groupedSplit.wrappedSplits.get(idx), context);
       } catch (Exception e) {
-        throw new RuntimeException (e);
+        throw new RuntimeException(e);
       }
       idx++;
       return true;
     }
-    
+
     /**
      * return progress based on the amount of data processed so far.
      */
@@ -215,7 +215,7 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
         subprogress = (long) (curReader.getProgress() * groupedSplit.wrappedSplits
             .get(idx - 1).getLength());
       }
-      return Math.min(1.0f,  (progress + subprogress)/(float)(groupedSplit.getLength()));
+      return Math.min(1.0f, (progress + subprogress) / (float) (groupedSplit.getLength()));
     }
   }
 
@@ -228,5 +228,4 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   public Configuration getConf() {
     return conf;
   }
-
 }

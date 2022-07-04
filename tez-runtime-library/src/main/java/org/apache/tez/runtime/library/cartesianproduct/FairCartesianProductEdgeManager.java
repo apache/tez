@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductCombination.fromTaskId;
 import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
-
 
 class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
   private int numPartition;
@@ -64,7 +63,7 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
       // initialize after reconfiguration
       this.numChunkPerSrc = Ints.toArray(config.getNumChunksList());
       grouper.init(getContext().getSourceVertexNumTasks() * numPartition,
-        numChunkPerSrc[positionInSrc]);
+          numChunkPerSrc[positionInSrc]);
       this.numTaskPerSrcVertexInGroup = Ints.toArray(config.getNumTaskPerVertexInGroupList());
       this.positionInGroup = config.getPositionInGroup();
 
@@ -90,7 +89,7 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
     int chunkId = fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionInSrc);
     if (grouper.isInGroup(itemId, chunkId)) {
       int idx = itemId - grouper.getFirstItemInGroup(chunkId) + getItemIdOffset(chunkId);
-      return EventRouteMetadata.create(1, new int[] {idx});
+      return EventRouteMetadata.create(1, new int[]{idx});
     }
     return null;
   }
@@ -99,17 +98,17 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
   @Override
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
                                                                                   int destTaskId)
-    throws Exception {
+      throws Exception {
     int chunkId = fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionInSrc);
     int firstItemInChunk = grouper.getFirstItemInGroup(chunkId);
     int lastItemInChunk = grouper.getLastItemInGroup(chunkId);
-    int firstItemInSrcTask =  srcTaskId * numPartition;
+    int firstItemInSrcTask = srcTaskId * numPartition;
     int lastItemInSrcTask = firstItemInSrcTask + numPartition - 1;
     if (!(lastItemInChunk < firstItemInSrcTask || firstItemInChunk > lastItemInSrcTask)) {
       int firstItem = Math.max(firstItemInChunk, firstItemInSrcTask);
       int lastItem = Math.min(lastItemInChunk, lastItemInSrcTask);
       return CompositeEventRouteMetadata.create(lastItem - firstItem + 1,
-        firstItem - firstItemInChunk + getItemIdOffset(chunkId), firstItem - firstItemInSrcTask);
+          firstItem - firstItemInChunk + getItemIdOffset(chunkId), firstItem - firstItemInSrcTask);
     }
     return null;
   }
@@ -123,7 +122,7 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
     int offset = 0;
     for (int i = 0; i < positionInGroup; i++) {
       grouperForComputeOffset.init(numTaskPerSrcVertexInGroup[i] * numPartition,
-        numChunkPerSrc[positionInSrc]);
+          numChunkPerSrc[positionInSrc]);
       offset += grouperForComputeOffset.getNumItemsInGroup(chunkId);
     }
     return offset;
@@ -133,7 +132,7 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
   @Override
   public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(int srcTaskId,
                                                                          int destTaskId)
-    throws Exception {
+      throws Exception {
     int chunkId = fromTaskId(numChunkPerSrc, destTaskId).getCombination().get(positionInSrc);
     int firstItemInChunk = grouper.getFirstItemInGroup(chunkId);
     int lastItemInChunk = grouper.getLastItemInGroup(chunkId);
@@ -168,7 +167,7 @@ class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     int numChunk = grouper.getGroupId(sourceTaskIndex * numPartition + numPartition - 1)
-      - grouper.getGroupId(sourceTaskIndex * numPartition) + 1;
+        - grouper.getGroupId(sourceTaskIndex * numPartition) + 1;
     return numDestConsumerPerChunk * numChunk;
   }
 }

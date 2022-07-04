@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ import javax.annotation.Nullable;
 
 public class RootInputVertexManager extends VertexManagerPlugin {
 
-  private static final Logger LOG = 
+  private static final Logger LOG =
       LoggerFactory.getLogger(RootInputVertexManager.class);
 
   /**
@@ -87,7 +87,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       "tez.root-input-vertex-manager.max-src-fraction";
   public static final float
       TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT = 0.75f;
-  
+
   private String configuredInputName;
 
   int totalNumSourceTasks = 0;
@@ -117,6 +117,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
     public String toString() {
       return "[index=" + index + "]";
     }
+
     public int getIndex() {
       return index;
     }
@@ -129,7 +130,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
     int numTasks;
 
     SourceVertexInfo(final EdgeProperty edgeProperty,
-       int totalTasksToSchedule) {
+                     int totalTasksToSchedule) {
       this.edgeProperty = edgeProperty;
       this.finishedTaskSet = new BitSet();
     }
@@ -144,7 +145,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
   }
 
   SourceVertexInfo createSourceVertexInfo(EdgeProperty edgeProperty,
-      int numTasks) {
+                                          int numTasks) {
     return new SourceVertexInfo(edgeProperty, numTasks);
   }
 
@@ -185,23 +186,23 @@ public class RootInputVertexManager extends VertexManagerPlugin {
   @Override
   public void onVertexStateUpdated(VertexStateUpdate stateUpdate) {
     Preconditions.checkArgument(stateUpdate.getVertexState() ==
-        VertexState.CONFIGURED,
+            VertexState.CONFIGURED,
         "Received incorrect state notification : "
-        + stateUpdate.getVertexState() + " for vertex: "
-        + stateUpdate.getVertexName() + " in vertex: "
-        + getContext().getVertexName());
+            + stateUpdate.getVertexState() + " for vertex: "
+            + stateUpdate.getVertexName() + " in vertex: "
+            + getContext().getVertexName());
 
     SourceVertexInfo vInfo = srcVertexInfo.get(stateUpdate.getVertexName());
-    if(vInfo != null) {
+    if (vInfo != null) {
       Preconditions.checkState(vInfo.vertexIsConfigured == false);
       vInfo.vertexIsConfigured = true;
       vInfo.numTasks = getContext().getVertexNumTasks(
           stateUpdate.getVertexName());
       totalNumSourceTasks += vInfo.numTasks;
       LOG.info("Received configured notification : {}" + " for vertex: {} in" +
-          " vertex: {}" + " numjourceTasks: {}",
-        stateUpdate.getVertexState(), stateUpdate.getVertexName(),
-        getContext().getVertexName(), totalNumSourceTasks);
+              " vertex: {}" + " numjourceTasks: {}",
+          stateUpdate.getVertexState(), stateUpdate.getVertexName(),
+          getContext().getVertexName(), totalNumSourceTasks);
       processPendingTasks();
     }
   }
@@ -215,7 +216,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
     if (srcInfo.vertexIsConfigured) {
       Preconditions.checkState(srcTaskId < srcInfo.numTasks,
           "Received completion for srcTaskId " + srcTaskId + " but Vertex: "
-          + srcVertexName + " has only " + srcInfo.numTasks + " tasks");
+              + srcVertexName + " has only " + srcInfo.numTasks + " tasks");
     }
     // handle duplicate events and count task completions from
     // all source vertices
@@ -241,20 +242,20 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       conf = TezUtils.createConfFromUserPayload(userPayload);
     } catch (IOException e) {
       throw new RuntimeException("Could not initialize RootInputVertexManager"
-        + " from provided user payload", e);
+          + " from provided user payload", e);
     }
     slowStartEnabled = conf.getBoolean(
-      TEZ_ROOT_INPUT_VERTEX_MANAGER_ENABLE_SLOW_START,
-      TEZ_ROOT_INPUT_VERTEX_MANAGER_ENABLE_SLOW_START_DEFAULT);
+        TEZ_ROOT_INPUT_VERTEX_MANAGER_ENABLE_SLOW_START,
+        TEZ_ROOT_INPUT_VERTEX_MANAGER_ENABLE_SLOW_START_DEFAULT);
 
-    if(slowStartEnabled) {
+    if (slowStartEnabled) {
       slowStartMinFraction = conf.getFloat(
-        TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION,
-        TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
+          TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION,
+          TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION_DEFAULT);
       slowStartMaxFraction = conf.getFloat(
-        TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION,
-        Math.max(slowStartMinFraction,
-            TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT));
+          TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION,
+          Math.max(slowStartMinFraction,
+              TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION_DEFAULT));
     } else {
       slowStartMinFraction = 0;
       slowStartMaxFraction = 0;
@@ -263,12 +264,11 @@ public class RootInputVertexManager extends VertexManagerPlugin {
         || slowStartMaxFraction < slowStartMinFraction) {
       throw new IllegalArgumentException(
           "Invalid values for slowStartMinFraction"
-          + "/slowStartMaxFraction. Min "
-          + "cannot be < 0, max cannot be > 1, and max cannot be < min."
-          + ", configuredMin=" + slowStartMinFraction
-          + ", configuredMax=" + slowStartMaxFraction);
+              + "/slowStartMaxFraction. Min "
+              + "cannot be < 0, max cannot be > 1, and max cannot be < min."
+              + ", configuredMin=" + slowStartMinFraction
+              + ", configuredMax=" + slowStartMaxFraction);
     }
-
 
     updatePendingTasks();
   }
@@ -279,7 +279,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
 
   @Override
   public void onRootVertexInitialized(String inputName, InputDescriptor inputDescriptor,
-      List<Event> events) {
+                                      List<Event> events) {
     List<InputDataInformationEvent> riEvents = Lists.newLinkedList();
     boolean dataInformationEventSeen = false;
     for (Event event : events) {
@@ -301,7 +301,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
             cEvent.getInputSpecUpdate() == null ? InputSpecUpdate
                 .getDefaultSinglePhysicalInputSpecUpdate() : cEvent.getInputSpecUpdate());
         getContext().reconfigureVertex(rootInputSpecUpdate, cEvent.getLocationHint(),
-              cEvent.getNumTasks());
+            cEvent.getNumTasks());
       }
       if (event instanceof InputUpdatePayloadEvent) {
         // No tasks should have been started yet. Checked by initial state check.
@@ -318,8 +318,8 @@ public class RootInputVertexManager extends VertexManagerPlugin {
                 + ", VertexName:" + getContext().getVertexName() + ", ConfiguredInput: "
                 + configuredInputName + ", CurrentInput: " + inputName);
         configuredInputName = inputName;
-        
-        InputDataInformationEvent rEvent = (InputDataInformationEvent)event;
+
+        InputDataInformationEvent rEvent = (InputDataInformationEvent) event;
         rEvent.setTargetIndex(rEvent.getSourceIndex()); // 1:1 routing
         riEvents.add(rEvent);
       }
@@ -438,8 +438,8 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       // numTasksToSchedule can be -ve if minFraction
       // is less than slowStartMinSrcCompletionFraction.
       LOG.info("Scheduling {} tasks for vertex: {} with totalTasks: {}. " +
-          "{} source tasks completed out of {}. " +
-          "MinSourceTaskCompletedFraction: {} min: {} max: {}",
+              "{} source tasks completed out of {}. " +
+              "MinSourceTaskCompletedFraction: {} min: {} max: {}",
           numTasksToSchedule, getContext().getVertexName(),
           totalTasksToSchedule, numSourceTasksCompleted,
           totalNumSourceTasks, minFraction,
@@ -468,7 +468,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
               slowStartMinFraction) / percentRange;
     } else {
       // min and max are equal. schedule 100% on reaching min
-      if(minSourceVertexCompletedTaskFraction <
+      if (minSourceVertexCompletedTaskFraction <
           slowStartMinFraction) {
         tasksFractionToSchedule = 0;
       }
@@ -479,7 +479,7 @@ public class RootInputVertexManager extends VertexManagerPlugin {
 
     // round up to avoid the corner case that single task cannot be scheduled
     // until src completed fraction reach max
-    return ((int)(Math.ceil(tasksFractionToSchedule * totalTasksToSchedule)) -
+    return ((int) (Math.ceil(tasksFractionToSchedule * totalTasksToSchedule)) -
         (totalTasksToSchedule - numPendingTasks));
   }
 
@@ -523,14 +523,14 @@ public class RootInputVertexManager extends VertexManagerPlugin {
     }
 
     public RootInputVertexManagerConfigBuilder
-        setSlowStartMinSrcCompletionFraction(float minFraction) {
+    setSlowStartMinSrcCompletionFraction(float minFraction) {
       conf.setFloat(TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION,
           minFraction);
       return this;
     }
 
     public RootInputVertexManagerConfigBuilder
-        setSlowStartMaxSrcCompletionFraction(float maxFraction) {
+    setSlowStartMaxSrcCompletionFraction(float maxFraction) {
       conf.setFloat(TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION,
           maxFraction);
       return this;
@@ -549,5 +549,4 @@ public class RootInputVertexManager extends VertexManagerPlugin {
       }
     }
   }
-
 }

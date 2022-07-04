@@ -23,12 +23,11 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * An abstract class which should be the base class for all implementations of LogicalOutput.
- *
+ * <p>
  * This class implements the framework facing as well as user facing methods which need to be
  * implemented by all LogicalOutputs.
- *
+ * <p>
  * This includes default implementations of a new method for convenience.
- *
  */
 @Public
 public abstract class AbstractLogicalOutput implements LogicalOutput, LogicalOutputFrameworkInterface {

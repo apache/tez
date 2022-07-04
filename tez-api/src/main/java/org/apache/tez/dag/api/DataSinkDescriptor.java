@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,7 @@ import com.google.common.collect.Sets;
 public class DataSinkDescriptor {
   private final OutputDescriptor outputDescriptor;
   private final OutputCommitterDescriptor committerDescriptor;
-  
+
   private final Credentials credentials;
   private final Collection<URI> urisForCredentials = Sets.newHashSet();
 
@@ -61,8 +61,8 @@ public class DataSinkDescriptor {
    */
   @Deprecated
   public DataSinkDescriptor(OutputDescriptor outputDescriptor,
-      @Nullable OutputCommitterDescriptor committerDescriptor,
-      @Nullable Credentials credentials) {
+                            @Nullable OutputCommitterDescriptor committerDescriptor,
+                            @Nullable Credentials credentials) {
     this.outputDescriptor = outputDescriptor;
     this.committerDescriptor = committerDescriptor;
     this.credentials = credentials;
@@ -86,11 +86,11 @@ public class DataSinkDescriptor {
    * @param credentials Credentials needs to access the data sink
    */
   public static DataSinkDescriptor create(OutputDescriptor outputDescriptor,
-      @Nullable OutputCommitterDescriptor committerDescriptor,
-      @Nullable Credentials credentials) {
+                                          @Nullable OutputCommitterDescriptor committerDescriptor,
+                                          @Nullable Credentials credentials) {
     return new DataSinkDescriptor(outputDescriptor, committerDescriptor, credentials);
   }
-  
+
   /**
    * Get the {@link OutputDescriptor} for this {@link DataSinkDescriptor}
    * @return {@link OutputDescriptor}
@@ -98,7 +98,7 @@ public class DataSinkDescriptor {
   public OutputDescriptor getOutputDescriptor() {
     return outputDescriptor;
   }
-  
+
   /**
    * Get the {@link OutputCommitterDescriptor} for this {@link DataSinkDescriptor}
    * @return {@link OutputCommitterDescriptor}
@@ -106,26 +106,26 @@ public class DataSinkDescriptor {
   public @Nullable OutputCommitterDescriptor getOutputCommitterDescriptor() {
     return committerDescriptor;
   }
-  
-  /** 
-  * This method can be used to specify a list of URIs for which Credentials
-  * need to be obtained so that the job can run. An incremental list of URIs
-  * can be provided by making multiple calls to the method.
-  * 
-  * Currently, @{link credentials} can only be fetched for HDFS and other
-  * {@link org.apache.hadoop.fs.FileSystem} implementations that support
-  * credentials.
-  * 
-  * @param uris
-  *          a list of {@link URI}s
-  * @return this
-  */
+
+  /**
+   * This method can be used to specify a list of URIs for which Credentials
+   * need to be obtained so that the job can run. An incremental list of URIs
+   * can be provided by making multiple calls to the method.
+   *
+   * Currently, @{link credentials} can only be fetched for HDFS and other
+   * {@link org.apache.hadoop.fs.FileSystem} implementations that support
+   * credentials.
+   *
+   * @param uris
+   *          a list of {@link URI}s
+   * @return this
+   */
   public synchronized DataSinkDescriptor addURIsForCredentials(Collection<URI> uris) {
     Objects.requireNonNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
   }
-  
+
   /**
    * Get the URIs for which credentials will be obtained
    * @return an unmodifiable list representing the URIs for which credentials
@@ -142,5 +142,4 @@ public class DataSinkDescriptor {
   public @Nullable Credentials getCredentials() {
     return credentials;
   }
-
 }

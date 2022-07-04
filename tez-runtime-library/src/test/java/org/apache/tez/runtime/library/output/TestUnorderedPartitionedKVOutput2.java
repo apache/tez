@@ -35,7 +35,6 @@ import org.junit.Test;
 // Tests which don't require parameterization
 public class TestUnorderedPartitionedKVOutput2 {
 
-
   @Test(timeout = 5000)
   public void testNonStartedOutput() throws Exception {
     OutputContext outputContext = OutputTestHelpers.createOutputContext();

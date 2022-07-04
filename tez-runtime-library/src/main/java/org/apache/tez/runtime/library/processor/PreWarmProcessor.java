@@ -28,7 +28,6 @@ import org.apache.tez.runtime.api.ProcessorContext;
  * If this is customized by the user then they need to make sure that
  * the custom class jar is localized for the prewarm vertex and other
  * vertices that need to take advantage of prewarming
- *
  */
 @Unstable
 @Public
@@ -43,14 +42,14 @@ public class PreWarmProcessor extends SimpleProcessor {
     preWarmTezCode();
     preWarmUserCode();
   }
-  
+
   /**
    * Pre-warm Tez code. Users can override this with an empty method
    * to not pre-warm Tez code if they want to.
    */
   protected void preWarmTezCode() {
     // Do nothing. Can potentially pre-warm Tez library components
-    
+
     // Currently, must sleep for some time so that container re-use
     // can be prevented from kicking in. This will allow sufficient 
     // time to obtain containers from YARN as long as those resources 
@@ -61,13 +60,12 @@ public class PreWarmProcessor extends SimpleProcessor {
       e.printStackTrace();
     }
   }
-  
+
   /**
-   * Pre-warm user code. Users can override this 
-   * to pre-warm their own code if they want to. 
+   * Pre-warm user code. Users can override this
+   * to pre-warm their own code if they want to.
    */
   protected void preWarmUserCode() {
     // Do nothing
   }
-
 }

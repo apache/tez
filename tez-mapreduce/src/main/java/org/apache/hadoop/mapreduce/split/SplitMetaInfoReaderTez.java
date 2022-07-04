@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,7 +49,7 @@ public class SplitMetaInfoReaderTez {
   public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;
 
   private static FSDataInputStream getFSDataIS(Configuration conf,
-      FileSystem fs) throws IOException {
+                                               FileSystem fs) throws IOException {
     long maxMetaInfoSize = conf.getLong(
         MRJobConfig.SPLIT_METAINFO_MAXSIZE,
         MRJobConfig.DEFAULT_SPLIT_METAINFO_MAXSIZE);
@@ -98,7 +98,7 @@ public class SplitMetaInfoReaderTez {
   // Forked from the MR variant so that the metaInfo file as well as the split
   // file can be read from local fs - relying on these files being localized.
   public static TaskSplitMetaInfo[] readSplitMetaInfo(Configuration conf,
-      FileSystem fs) throws IOException {
+                                                      FileSystem fs) throws IOException {
     FSDataInputStream in = null;
     try {
       in = getFSDataIS(conf, fs);
@@ -134,7 +134,7 @@ public class SplitMetaInfoReaderTez {
    * @throws IOException
    */
   public static TaskSplitMetaInfo getSplitMetaInfo(Configuration conf,
-      FileSystem fs, int index) throws IOException {
+                                                   FileSystem fs, int index) throws IOException {
     FSDataInputStream in = null;
     try {
       in = getFSDataIS(conf, fs);

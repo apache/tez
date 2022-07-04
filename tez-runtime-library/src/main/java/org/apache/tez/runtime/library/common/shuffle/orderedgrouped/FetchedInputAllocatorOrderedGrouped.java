@@ -24,9 +24,9 @@ public interface FetchedInputAllocatorOrderedGrouped {
 
   // TODO TEZ-912 Consolidate this with FetchedInputAllocator.
   public MapOutput reserve(InputAttemptIdentifier srcAttemptIdentifier,
-                                        long requestedSize,
-                                        long compressedLength,
-                                        int fetcherId) throws IOException;
+                           long requestedSize,
+                           long compressedLength,
+                           int fetcherId) throws IOException;
 
   void closeInMemoryFile(MapOutput mapOutput);
 

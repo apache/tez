@@ -46,11 +46,12 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
     this.taskCommName = taskCommName;
   }
 
-
   // TODO Post TEZ-2003. TEZ-2625. ContainerLaunchContext needs to be built here instead of being passed in.
   // Basic specifications need to be provided here
+
   /**
    * The {@link ContainerLauncherContext} for the container being launched
+   *
    * @return the container launch context for the launch request
    */
   public ContainerLaunchContext getContainerLaunchContext() {
@@ -60,6 +61,7 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
   /**
    * Get the name of the task communicator which will be used to communicate
    * with the task that will run in this container.
+   *
    * @return the task communicator to be used for this request
    */
   public String getTaskCommunicatorName() {
@@ -68,6 +70,7 @@ public class ContainerLaunchRequest extends ContainerLauncherOperationBase {
 
   /**
    * Get the name of the scheduler which allocated this container.
+   *
    * @return the scheduler name which provided the container
    */
   public String getSchedulerName() {

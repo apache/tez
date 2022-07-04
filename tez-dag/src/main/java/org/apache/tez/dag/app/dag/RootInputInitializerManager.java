@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -111,7 +111,7 @@ public class RootInputInitializerManager {
   }
 
   public void runInputInitializers(List<RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
-      inputs) throws TezException {
+                                       inputs) throws TezException {
     for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input : inputs) {
 
       InputInitializerContext context =
@@ -146,7 +146,7 @@ public class RootInputInitializerManager {
 
   @VisibleForTesting
   protected InputInitializer createInitializer(final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>
-      input, final InputInitializerContext context) throws TezException {
+                                                   input, final InputInitializerContext context) throws TezException {
     try {
       return dagUgi.doAs(new PrivilegedExceptionAction<InputInitializer>() {
         @Override
@@ -175,7 +175,7 @@ public class RootInputInitializerManager {
 
     for (TezEvent tezEvent : events) {
       Preconditions.checkState(tezEvent.getEvent() instanceof InputInitializerEvent);
-      InputInitializerEvent event = (InputInitializerEvent)tezEvent.getEvent();
+      InputInitializerEvent event = (InputInitializerEvent) tezEvent.getEvent();
       Preconditions.checkState(vertex.getName().equals(event.getTargetVertexName()),
           "Received event for incorrect vertex");
       Objects.requireNonNull(event.getTargetInputName(), "target input name must be set");
@@ -203,7 +203,6 @@ public class RootInputInitializerManager {
       } else {
         initializerWrapper.handleInputInitializerEvents(entry.getValue());
       }
-
     }
   }
 
@@ -212,6 +211,7 @@ public class RootInputInitializerManager {
       this.vertexName = vertexName;
       this.stateSet = stateSet;
     }
+
     private final String vertexName;
     private final Set<org.apache.tez.dag.api.event.VertexState> stateSet;
   }
@@ -261,7 +261,7 @@ public class RootInputInitializerManager {
     private final AppContext appContext;
 
     InputInitializerCallable(InitializerWrapper initializer, UserGroupInformation ugi,
-                                    AppContext appContext) {
+                             AppContext appContext) {
       this.initializerWrapper = initializer;
       this.ugi = ugi;
       this.appContext = appContext;
@@ -298,7 +298,7 @@ public class RootInputInitializerManager {
     private final TezVertexID vertexID;
 
     InputInitializerCallback(InitializerWrapper initializer,
-        EventHandler eventHandler, TezVertexID vertexID) {
+                             EventHandler eventHandler, TezVertexID vertexID) {
       this.initializer = initializer;
       this.eventHandler = eventHandler;
       this.vertexID = vertexID;
@@ -336,7 +336,6 @@ public class RootInputInitializerManager {
   @VisibleForTesting
   @InterfaceAudience.Private
   public static class InitializerWrapper implements VertexStateUpdateListener, TaskStateUpdateListener {
-
 
     private final RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input;
     private final InputInitializer initializer;
@@ -384,7 +383,7 @@ public class RootInputInitializerManager {
     }
 
     public void registerForVertexStateUpdates(String vertexName, Set<VertexState> stateSet) {
-      synchronized(notificationRegisteredVertices) {
+      synchronized (notificationRegisteredVertices) {
         notificationRegisteredVertices.add(vertexName);
       }
       stateChangeNotifier.registerForVertexUpdates(vertexName, stateSet, this);
@@ -395,7 +394,6 @@ public class RootInputInitializerManager {
         for (String vertexName : notificationRegisteredVertices) {
           stateChangeNotifier.unregisterForVertexUpdates(vertexName, this);
         }
-
       }
     }
 
@@ -414,7 +412,7 @@ public class RootInputInitializerManager {
         } catch (Exception e) {
           appContext.getEventHandler().handle(
               new VertexEventRootInputFailed(vertexId, input.getName(),
-                  new AMUserCodeException(Source.InputInitializer,e)));
+                  new AMUserCodeException(Source.InputInitializer, e)));
         }
       }
     }
@@ -522,7 +520,7 @@ public class RootInputInitializerManager {
         } catch (Exception e) {
           appContext.getEventHandler().handle(
               new VertexEventRootInputFailed(vertexId, input.getName(),
-                  new AMUserCodeException(Source.InputInitializer,e)));
+                  new AMUserCodeException(Source.InputInitializer, e)));
         }
       }
     }
@@ -533,5 +531,4 @@ public class RootInputInitializerManager {
       }
     }
   }
-
 }

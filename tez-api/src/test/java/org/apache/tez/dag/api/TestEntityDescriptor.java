@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.verify;
 public class TestEntityDescriptor {
 
   public void verifyResults(InputDescriptor entityDescriptor, InputDescriptor deserialized, UserPayload payload,
-                             String confVal) throws IOException {
+                            String confVal) throws IOException {
     Assert.assertEquals(entityDescriptor.getClassName(), deserialized.getClassName());
     // History text is not serialized when sending to tasks
     Assert.assertNull(deserialized.getHistoryText());
@@ -73,9 +73,9 @@ public class TestEntityDescriptor {
     verifyResults(entityDescriptor, deserialized, payload, confVal);
   }
 
-  @Test (timeout=3000)
+  @Test(timeout = 3000)
   public void testEntityDescriptorHadoopSerialization() throws IOException {
-     /* This tests the alternate serialization code path
+    /* This tests the alternate serialization code path
      * if the DataOutput is not DataOutputBuffer
      * AND, if it indeed is, with a read/write payload */
     Configuration conf = new Configuration(true);
@@ -86,15 +86,15 @@ public class TestEntityDescriptor {
     InputDescriptor deserialized = InputDescriptor.create("dummy");
     InputDescriptor entityDescriptor =
         InputDescriptor.create("inputClazz").setUserPayload(payload)
-                .setHistoryText("Bar123");
+            .setHistoryText("Bar123");
     InputDescriptor entityDescriptorLivingInFear = spy(entityDescriptor);
 
     testSingularWrite(entityDescriptorLivingInFear, deserialized, payload, confVal);
 
     /* make read-only payload */
-    payload =  UserPayload.create(payload.getPayload());
+    payload = UserPayload.create(payload.getPayload());
     entityDescriptor = InputDescriptor.create("inputClazz").setUserPayload(payload)
-                      .setHistoryText("Bar123");
+        .setHistoryText("Bar123");
     entityDescriptorLivingInFear = spy(entityDescriptor);
     testSegmentedWrite(entityDescriptorLivingInFear, deserialized, payload, confVal);
   }

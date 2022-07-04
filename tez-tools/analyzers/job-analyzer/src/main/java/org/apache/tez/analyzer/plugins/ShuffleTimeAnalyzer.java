@@ -35,14 +35,12 @@ import org.apache.tez.history.parser.datamodel.VertexInfo;
 import java.util.List;
 import java.util.Map;
 
-
 /**
  * Analyze the time taken by merge phase, shuffle phase, time taken to do realistic work etc in
  * tasks.
- *
+ * <p>
  * Just dump REDUCE_INPUT_GROUPS, REDUCE_INPUT_RECORDS, its ratio and SHUFFLE_BYTES for tasks
  * grouped by vertices. Provide time taken as well.  Just render it as a table for now.
- *
  */
 public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
@@ -58,17 +56,16 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
   private static final String MIN_SHUFFLE_RECORDS = "tez.shuffle-time-analyzer.shuffle.min.records";
   private static final long MIN_SHUFFLE_RECORDS_DEFAULT = 10000;
 
-  private static final String[] headers = { "vertexName", "taskAttemptId", "Node", "counterGroup",
+  private static final String[] headers = {"vertexName", "taskAttemptId", "Node", "counterGroup",
       "Comments", "REDUCE_INPUT_GROUPS", "REDUCE_INPUT_RECORDS", "ratio", "SHUFFLE_BYTES",
       "TotalTime", "Time_taken_to_receive_all_events", "MERGE_PHASE_TIME", "SHUFFLE_PHASE_TIME",
       "TimeTaken_For_Real_Task", "FIRST_EVENT_RECEIVED", "LAST_EVENT_RECEIVED",
-      "SHUFFLE_BYTES_DISK_DIRECT" };
+      "SHUFFLE_BYTES_DISK_DIRECT"};
 
   private final CSVResult csvResult = new CSVResult(headers);
 
   private final float realWorkDoneRatio;
   private final long minShuffleRecords;
-
 
   public ShuffleTimeAnalyzer(Configuration config) {
     super(config);
@@ -97,7 +94,7 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
           String counterGroupName = entry.getKey();
           long reduceInputGroupsVal = entry.getValue().getValue();
           long reduceInputRecordsVal = (reduceInputRecords.get(counterGroupName) != null) ?
-          reduceInputRecords.get(counterGroupName).getValue() : 0;
+              reduceInputRecords.get(counterGroupName).getValue() : 0;
 
           if (reduceInputRecordsVal <= 0) {
             continue;
@@ -152,7 +149,6 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
         }
       }
     }
-
   }
 
   /**
@@ -176,7 +172,7 @@ public class ShuffleTimeAnalyzer extends TezAnalyzerBase implements Analyzer {
   }
 
   private String getCounterValue(TaskCounter counter, String counterGroupName,
-      TaskAttemptInfo attemptInfo) {
+                                 TaskAttemptInfo attemptInfo) {
     Map<String, TezCounter> tezCounterMap = attemptInfo.getCounter(counter.toString());
     if (tezCounterMap != null) {
       for (Map.Entry<String, TezCounter> entry : tezCounterMap.entrySet()) {

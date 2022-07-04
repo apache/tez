@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,7 +36,6 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.tez.dag.api.TezConfiguration;
 
-
 /**
  * This class provides user facing APIs for transferring secrets from
  * the job client to the tasks.
@@ -46,21 +45,20 @@ import org.apache.tez.dag.api.TezConfiguration;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class TokenCache {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TokenCache.class);
 
-  
   /**
    * auxiliary method to get user's secret keys..
    * @param alias
    * @return secret key from the storage
    */
   public static byte[] getSecretKey(Credentials credentials, Text alias) {
-    if(credentials == null)
+    if (credentials == null)
       return null;
     return credentials.getSecretKey(alias);
   }
-  
+
   /**
    * Convenience method to obtain delegation tokens from namenodes 
    * corresponding to the paths passed.
@@ -70,7 +68,7 @@ public class TokenCache {
    * @throws IOException
    */
   public static void obtainTokensForFileSystems(Credentials credentials,
-      Path[] ps, Configuration conf) throws IOException {
+                                                Path[] ps, Configuration conf) throws IOException {
     if (!UserGroupInformation.isSecurityEnabled()) {
       return;
     }
@@ -78,11 +76,12 @@ public class TokenCache {
   }
 
   private static final int MAX_FS_OBJECTS = 10;
+
   static void obtainTokensForFileSystemsInternal(Credentials credentials,
-      Path[] ps, Configuration conf) throws IOException {
+                                                 Path[] ps, Configuration conf) throws IOException {
     Set<FileSystem> fsSet = new HashSet<FileSystem>();
     boolean limitExceeded = false;
-    for(Path p: ps) {
+    for (Path p : ps) {
       FileSystem fs = p.getFileSystem(conf);
       if (!limitExceeded && fsSet.size() == MAX_FS_OBJECTS) {
         LOG.warn("No of FileSystem objects exceeds {}, updating tokens for all paths. This can" +
@@ -104,10 +103,10 @@ public class TokenCache {
 
   static boolean isTokenRenewalExcluded(FileSystem fs, Configuration conf) {
     String[] nns =
-            conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
+        conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
     if (nns != null) {
       String host = fs.getUri().getHost();
-      for(int i = 0; i < nns.length; i++) {
+      for (int i = 0; i < nns.length; i++) {
         if (nns[i].equals(host)) {
           return true;
         }
@@ -124,8 +123,8 @@ public class TokenCache {
    * @param conf
    * @throws IOException
    */
-  static void obtainTokensForFileSystemsInternal(FileSystem fs, 
-      Credentials credentials, Configuration conf) throws IOException {
+  static void obtainTokensForFileSystemsInternal(FileSystem fs,
+                                                 Credentials credentials, Configuration conf) throws IOException {
     // TODO Change this to use YARN utilities once YARN-1664 is fixed.
     // RM skips renewing token with empty renewer
     String delegTokenRenewer = "";
@@ -133,15 +132,15 @@ public class TokenCache {
       delegTokenRenewer = Master.getMasterPrincipal(conf);
       if (delegTokenRenewer == null || delegTokenRenewer.length() == 0) {
         throw new IOException(
-                "Can't get Master Kerberos principal for use as renewer");
+            "Can't get Master Kerberos principal for use as renewer");
       }
     }
 
     final Token<?> tokens[] = fs.addDelegationTokens(delegTokenRenewer,
-                                                     credentials);
+        credentials);
     if (tokens != null) {
       for (Token<?> token : tokens) {
-        LOG.info("Got dt for " + fs.getUri() + "; "+token);
+        LOG.info("Got dt for " + fs.getUri() + "; " + token);
       }
     }
   }
@@ -153,12 +152,13 @@ public class TokenCache {
    * @param t
    */
   @InterfaceAudience.Private
-  public static void setSessionToken(Token<? extends TokenIdentifier> t, 
-      Credentials credentials) {
+  public static void setSessionToken(Token<? extends TokenIdentifier> t,
+                                     Credentials credentials) {
     credentials.addToken(SESSION_TOKEN, t);
   }
+
   /**
-   * 
+   *
    * @return session token
    */
   @SuppressWarnings("unchecked")
@@ -178,7 +178,7 @@ public class TokenCache {
    */
   @InterfaceAudience.Private
   public static void mergeBinaryTokens(Credentials creds,
-      Configuration conf, String tokenFilePath)
+                                       Configuration conf, String tokenFilePath)
       throws IOException {
     if (tokenFilePath == null || tokenFilePath.isEmpty()) {
       throw new RuntimeException("Invalid file path provided"
@@ -187,10 +187,9 @@ public class TokenCache {
     LOG.info("Merging additional tokens from binary file"
         + ", binaryFileName=" + tokenFilePath);
     Credentials binary = Credentials.readTokenStorageFile(
-        new Path("file:///" +  tokenFilePath), conf);
+        new Path("file:///" + tokenFilePath), conf);
 
     // supplement existing tokens with the tokens in the binary file
     creds.mergeAll(binary);
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,12 +68,12 @@ public class TestCartesianProductVertexManagerPartitioned {
   public void setup() throws TezReflectionException {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1")
-      .addNumPartitions(2).addNumPartitions(2);
+        .addNumPartitions(2).addNumPartitions(2);
     setupWithConfig(builder.build());
   }
 
   private void setupWithConfig(CartesianProductConfigProto config)
-    throws TezReflectionException {
+      throws TezReflectionException {
     MockitoAnnotations.openMocks(this);
     context = mock(VertexManagerPluginContext.class);
     when(context.getVertexName()).thenReturn("cp");
@@ -81,9 +81,9 @@ public class TestCartesianProductVertexManagerPartitioned {
     vertexManager = new CartesianProductVertexManagerPartitioned(context);
     Map<String, EdgeProperty> edgePropertyMap = new HashMap<>();
     edgePropertyMap.put("v0", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+        CartesianProductEdgeManager.class.getName()), null, null, null, null));
     edgePropertyMap.put("v1", EdgeProperty.create(EdgeManagerPluginDescriptor.create(
-      CartesianProductEdgeManager.class.getName()), null, null, null, null));
+        CartesianProductEdgeManager.class.getName()), null, null, null, null));
     edgePropertyMap.put("v2", EdgeProperty.create(BROADCAST, null, null, null, null));
     when(context.getInputVertexEdgeProperties()).thenReturn(edgePropertyMap);
     when(context.getVertexNumTasks(eq("v0"))).thenReturn(4);
@@ -95,22 +95,22 @@ public class TestCartesianProductVertexManagerPartitioned {
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 4; j++) {
         allCompletions.add(new TaskAttemptIdentifierImpl("dag", "v" + i,
-          TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
-            TezDAGID.getInstance("0", 0, 0), i), j), 0)));
+            TezTaskAttemptID.getInstance(TezTaskID.getInstance(TezVertexID.getInstance(
+                TezDAGID.getInstance("0", 0, 0), i), j), 0)));
       }
     }
   }
 
   private void testReconfigureVertexHelper(CartesianProductConfigProto config,
                                            int parallelism)
-    throws Exception {
+      throws Exception {
     setupWithConfig(config);
     ArgumentCaptor<Integer> parallelismCaptor = ArgumentCaptor.forClass(Integer.class);
 
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     verify(context, times(1)).reconfigureVertex(parallelismCaptor.capture(),
         isNull(), edgePropertiesCaptor.capture());
-    assertEquals((int)parallelismCaptor.getValue(), parallelism);
+    assertEquals((int) parallelismCaptor.getValue(), parallelism);
     assertNull(edgePropertiesCaptor.getValue());
   }
 
@@ -118,7 +118,7 @@ public class TestCartesianProductVertexManagerPartitioned {
   public void testReconfigureVertex() throws Exception {
     CartesianProductConfigProto.Builder builder = CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(true).addSources("v0").addSources("v1")
-      .addNumPartitions(5).addNumPartitions(5).setFilterClassName(TestFilter.class.getName());
+        .addNumPartitions(5).addNumPartitions(5).setFilterClassName(TestFilter.class.getName());
     testReconfigureVertexHelper(builder.build(), 10);
     builder.clearFilterClassName();
     testReconfigureVertexHelper(builder.build(), 25);
@@ -129,7 +129,6 @@ public class TestCartesianProductVertexManagerPartitioned {
     vertexManager.onVertexStarted(null);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
-
 
     vertexManager.onSourceTaskCompleted(allCompletions.get(0));
     vertexManager.onSourceTaskCompleted(allCompletions.get(1));
@@ -152,10 +151,10 @@ public class TestCartesianProductVertexManagerPartitioned {
 
     for (int i = 3; i < 6; i++) {
       vertexManager.onSourceTaskCompleted(allCompletions.get(i));
-      verify(context, times(i-1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
+      verify(context, times(i - 1)).scheduleTasks(scheduleTaskRequestCaptor.capture());
       scheduleTaskRequests = scheduleTaskRequestCaptor.getValue();
       assertEquals(1, scheduleTaskRequests.size());
-      assertEquals(i-2, scheduleTaskRequests.get(0).getTaskIndex());
+      assertEquals(i - 2, scheduleTaskRequests.get(0).getTaskIndex());
     }
 
     for (int i = 6; i < 8; i++) {

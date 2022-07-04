@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,7 +32,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 
 /**
  * Simple Test DAG with 3 vertices using TestProcessor/TestInput/TestOutput.
- * 
+ *
  * v1
  * |
  * v2
@@ -45,9 +45,9 @@ public class SimpleTestDAG3Vertices {
   public static String TEZ_SIMPLE_DAG_NUM_TASKS =
       "tez.simple-test-dag-3-vertices.num-tasks";
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
-  
-  public static DAG createDAG(String name, 
-      Configuration conf) throws Exception {
+
+  public static DAG createDAG(String name,
+                              Configuration conf) throws Exception {
     UserPayload payload = null;
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
     if (conf != null) {
@@ -72,7 +72,7 @@ public class SimpleTestDAG3Vertices {
             TestInput.getInputDesc(payload))));
     return dag;
   }
-  
+
   public static DAG createDAG(Configuration conf) throws Exception {
     return createDAG("SimpleTestDAG3Vertices", conf);
   }

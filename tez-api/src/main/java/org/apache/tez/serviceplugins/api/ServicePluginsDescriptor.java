@@ -57,9 +57,9 @@ public class ServicePluginsDescriptor {
    * Create a service plugin descriptor with the provided plugins. Regular containers will also be enabled
    * when using this method.
    *
-   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param taskSchedulerDescriptor      the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
-   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @param taskCommunicatorDescriptors  the task communicator plugin descriptors
    * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(TaskSchedulerDescriptor[] taskSchedulerDescriptor,
@@ -72,17 +72,17 @@ public class ServicePluginsDescriptor {
   /**
    * Create a service plugin descriptor with the provided plugins. Also allows specification of whether
    * in-AM execution is enabled. Container execution is enabled by default.
-   *
+   * <p>
    * Note on Uber mode: This is NOT fully supported at the moment. Tasks will be launched within the
    * AM process itself, controlled by {@link TezConfiguration#TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS}.
    * The AM will need to be sized correctly for the tasks. Memory allocation to the running task
    * cannot be controlled yet, and is the full AM heap for each task.
    * TODO: TEZ-2722
    *
-   * @param enableUber whether to enable execution in the AM or not
-   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param enableUber                   whether to enable execution in the AM or not
+   * @param taskSchedulerDescriptor      the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
-   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @param taskCommunicatorDescriptors  the task communicator plugin descriptors
    * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(boolean enableUber,
@@ -96,18 +96,18 @@ public class ServicePluginsDescriptor {
   /**
    * Create a service plugin descriptor with the provided plugins. Also allows specification of whether
    * container execution and in-AM execution will be enabled.
-   *
+   * <p>
    * Note on Uber mode: This is NOT fully supported at the moment. Tasks will be launched within the
    * AM process itself, controlled by {@link TezConfiguration#TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS}.
    * The AM will need to be sized correctly for the tasks. Memory allocation to the running task
    * cannot be controlled yet, and is the full AM heap for each task.
    * TODO: TEZ-2722
    *
-   * @param enableContainers whether to enable execution in containers
-   * @param enableUber whether to enable execution in the AM or not
-   * @param taskSchedulerDescriptor the task scheduler plugin descriptors
+   * @param enableContainers             whether to enable execution in containers
+   * @param enableUber                   whether to enable execution in the AM or not
+   * @param taskSchedulerDescriptor      the task scheduler plugin descriptors
    * @param containerLauncherDescriptors the container launcher plugin descriptors
-   * @param taskCommunicatorDescriptors the task communicator plugin descriptors
+   * @param taskCommunicatorDescriptors  the task communicator plugin descriptors
    * @return a {@link ServicePluginsDescriptor} instance
    */
   public static ServicePluginsDescriptor create(boolean enableContainers, boolean enableUber,
@@ -121,7 +121,7 @@ public class ServicePluginsDescriptor {
   /**
    * Create a service plugin descriptor which may have in-AM execution of tasks enabled. Container
    * execution is enabled by default
-   *
+   * <p>
    * Note on Uber mode: This is NOT fully supported at the moment. Tasks will be launched within the
    * AM process itself, controlled by {@link TezConfiguration#TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS}.
    * The AM will need to be sized correctly for the tasks. Memory allocation to the running task
@@ -134,7 +134,6 @@ public class ServicePluginsDescriptor {
   public static ServicePluginsDescriptor create(boolean enableUber) {
     return new ServicePluginsDescriptor(true, enableUber, null, null, null);
   }
-
 
   @InterfaceAudience.Private
   public boolean areContainersEnabled() {

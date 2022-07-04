@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.tez.runtime.task;
 
 import com.google.common.base.Preconditions;
@@ -52,17 +51,18 @@ public class TezTrapEventHandler implements EventHandler<TezTrapEvent> {
   private final TezUmbilical tezUmbilical;
 
   /**
-   * @param output context that will report the events.
+   * @param output    context that will report the events.
    * @param umbilical used to send the events to the AM.
    */
   TezTrapEventHandler(final OutputContext output,
-      final TezUmbilical umbilical) {
+                      final TezUmbilical umbilical) {
     this.outputContext = output;
     this.tezUmbilical = umbilical;
   }
 
   /**
    * Decide what to do with the events.
+   *
    * @param tezTrapEvent event holding the tez events.
    */
   @Override
@@ -70,21 +70,21 @@ public class TezTrapEventHandler implements EventHandler<TezTrapEvent> {
     Preconditions.checkArgument(tezTrapEvent.getTezEvents() != null);
     List<TezEvent> tezEvents = new ArrayList<TezEvent>(
         tezTrapEvent.getTezEvents().size());
-    for (TezEvent tezEvent: tezTrapEvent.getTezEvents()) {
+    for (TezEvent tezEvent : tezTrapEvent.getTezEvents()) {
       switch (tezEvent.getEventType()) {
-      case COMPOSITE_DATA_MOVEMENT_EVENT:
-      case DATA_MOVEMENT_EVENT:
-        String errorMsg = "Some events won't be sent to the AM because all"
-            + " the events should have been sent at this point. Most likely"
-            + " this would result in a bug. "
-            + " event:" + tezEvent.toString();
-        Throwable throwable = new Throwable(errorMsg);
-        LOG.error(errorMsg, throwable);
-        break;
-      default:
-        LOG.info("Event of type " + tezEvent.getEventType() + " will be sent"
-            + " to the AM after the task was closed ");
-        tezEvents.add(tezEvent);
+        case COMPOSITE_DATA_MOVEMENT_EVENT:
+        case DATA_MOVEMENT_EVENT:
+          String errorMsg = "Some events won't be sent to the AM because all"
+              + " the events should have been sent at this point. Most likely"
+              + " this would result in a bug. "
+              + " event:" + tezEvent.toString();
+          Throwable throwable = new Throwable(errorMsg);
+          LOG.error(errorMsg, throwable);
+          break;
+        default:
+          LOG.info("Event of type " + tezEvent.getEventType() + " will be sent"
+              + " to the AM after the task was closed ");
+          tezEvents.add(tezEvent);
       }
     }
     tezUmbilical.addEvents(tezEvents);

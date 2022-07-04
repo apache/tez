@@ -28,13 +28,11 @@ import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerResponseProto;
 
-
 public class TezTestServiceProtocolClientImpl implements TezTestServiceProtocolBlockingPB {
 
   private final Configuration conf;
   private final InetSocketAddress serverAddr;
   TezTestServiceProtocolBlockingPB proxy;
-
 
   public TezTestServiceProtocolClientImpl(Configuration conf, String hostname, int port) {
     this.conf = conf;
@@ -62,7 +60,6 @@ public class TezTestServiceProtocolClientImpl implements TezTestServiceProtocolB
       throw new ServiceException(e);
     }
   }
-
 
   public TezTestServiceProtocolBlockingPB getProxy() throws IOException {
     if (proxy == null) {

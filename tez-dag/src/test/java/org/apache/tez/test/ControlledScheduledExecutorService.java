@@ -39,7 +39,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** A scheduled executor service with timing that can be controlled for unit tests. */
+/**
+ * A scheduled executor service with timing that can be controlled for unit tests.
+ */
 public class ControlledScheduledExecutorService implements ScheduledExecutorService, MockClockListener {
   private final MockClock clock;
   private final PriorityQueue<ScheduledFutureTask<?>> queue = new PriorityQueue<>();
@@ -152,12 +154,12 @@ public class ControlledScheduledExecutorService implements ScheduledExecutorServ
 
   @Override
   public void onTimeUpdated(long newTime) {
-     ScheduledFutureTask<?> task = queue.peek();
-     while (task != null && task.timestamp <= newTime) {
-       task = queue.poll();
-       runTask(task);
-       task = queue.peek();
-     }
+    ScheduledFutureTask<?> task = queue.peek();
+    while (task != null && task.timestamp <= newTime) {
+      task = queue.poll();
+      runTask(task);
+      task = queue.peek();
+    }
   }
 
   private long now() {

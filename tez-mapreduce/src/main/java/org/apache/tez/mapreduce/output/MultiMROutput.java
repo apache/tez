@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,11 +18,11 @@
 
 package org.apache.tez.mapreduce.output;
 
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -80,7 +80,7 @@ public class MultiMROutput extends MROutput {
    * @return {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    */
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
-      Class<?> outputFormat, String outputPath, boolean useLazyOutputFormat) {
+                                                          Class<?> outputFormat, String outputPath, boolean useLazyOutputFormat) {
     return MROutput.createConfigBuilder(conf, outputFormat, outputPath, useLazyOutputFormat)
         .setOutputClassName(MultiMROutput.class.getName());
   }
@@ -104,7 +104,7 @@ public class MultiMROutput extends MROutput {
           throw new UnsupportedOperationException(
               "Write without basePath isn't supported.");
         }
-        if (basePath.length() > 0 && basePath.charAt(0) == '/' ) {
+        if (basePath.length() > 0 && basePath.charAt(0) == '/') {
           // The base path can't be absolute path starting with "/".
           // Otherwise, it will cause the task temporary files being
           // written outside the output committer's task work path.
@@ -118,7 +118,7 @@ public class MultiMROutput extends MROutput {
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOInterruptedException(
-                "Interrupted while writing next key-value",e);
+                "Interrupted while writing next key-value", e);
           }
         } else {
           getOldRecordWriter(basePath).write(key, value);
@@ -141,9 +141,9 @@ public class MultiMROutput extends MROutput {
     }
     try {
       if (useNewApi) {
-          for (RecordWriter writer : newRecordWriters.values()) {
-            writer.close(newApiTaskAttemptContext);
-          }
+        for (RecordWriter writer : newRecordWriters.values()) {
+          writer.close(newApiTaskAttemptContext);
+        }
       } else {
         for (org.apache.hadoop.mapred.RecordWriter writer :
             oldRecordWriters.values()) {
@@ -151,7 +151,7 @@ public class MultiMROutput extends MROutput {
         }
       }
     } catch (InterruptedException e) {
-        throw new IOException("Interrupted while closing record writer", e);
+      throw new IOException("Interrupted while closing record writer", e);
     }
   }
 
@@ -183,7 +183,7 @@ public class MultiMROutput extends MROutput {
 
   @SuppressWarnings("unchecked")
   private synchronized org.apache.hadoop.mapred.RecordWriter
-      getOldRecordWriter(String baseFileName) throws IOException {
+  getOldRecordWriter(String baseFileName) throws IOException {
 
     // look for record-writer in the cache
     org.apache.hadoop.mapred.RecordWriter writer =
@@ -191,10 +191,10 @@ public class MultiMROutput extends MROutput {
 
     // If not in cache, create a new one
     if (writer == null) {
-        FileSystem fs = FileSystem.get(jobConf);
-        String finalName = getOutputName(baseFileName);
-        writer = oldOutputFormat.getRecordWriter(fs, jobConf,
-            finalName, new MRReporter(getContext().getCounters()));
+      FileSystem fs = FileSystem.get(jobConf);
+      String finalName = getOutputName(baseFileName);
+      writer = oldOutputFormat.getRecordWriter(fs, jobConf,
+          finalName, new MRReporter(getContext().getCounters()));
       // add the record-writer to the cache
       oldRecordWriters.put(baseFileName, writer);
     }

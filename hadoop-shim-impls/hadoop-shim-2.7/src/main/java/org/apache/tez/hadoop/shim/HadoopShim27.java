@@ -48,5 +48,4 @@ public class HadoopShim27 extends HadoopShim {
     }
     return supportedTypes;
   }
-
 }

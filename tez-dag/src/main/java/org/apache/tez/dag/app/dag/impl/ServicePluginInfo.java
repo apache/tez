@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-
 public class ServicePluginInfo {
 
   private String containerLauncherName;

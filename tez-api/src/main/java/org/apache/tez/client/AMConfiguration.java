@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,7 +36,7 @@ class AMConfiguration {
   private LocalResource binaryConfLRsrc;
 
   AMConfiguration(TezConfiguration tezConf, Map<String, LocalResource> localResources,
-      Credentials credentials) {
+                  Credentials credentials) {
     this.tezConf = tezConf;
     if (localResources != null) {
       addAMLocalResources(localResources);
@@ -44,21 +44,20 @@ class AMConfiguration {
     if (credentials != null) {
       setCredentials(credentials);
     }
-
   }
 
   void addAMLocalResources(Map<String, LocalResource> localResources) {
     this.amLocalResources.putAll(localResources);
   }
-  
+
   void clearAMLocalResources() {
     this.amLocalResources.clear();
   }
-  
+
   void setCredentials(Credentials credentials) {
     this.credentials = credentials;
   }
-  
+
   void setTezConfiguration(TezConfiguration tezConf) {
     this.tezConf = tezConf;
   }
@@ -78,13 +77,12 @@ class AMConfiguration {
   Credentials getCredentials() {
     return credentials;
   }
-  
+
   void setBinaryConfLR(LocalResource binaryConfLRsrc) {
     this.binaryConfLRsrc = binaryConfLRsrc;
   }
-  
+
   LocalResource getBinaryConfLR() {
     return binaryConfLRsrc;
   }
-
 }

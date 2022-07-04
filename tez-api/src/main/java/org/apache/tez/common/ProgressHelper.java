@@ -19,14 +19,17 @@
 package org.apache.tez.common;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,7 +57,7 @@ public class ProgressHelper {
   }
 
   public ProgressHelper(Map<String, LogicalInput> inputsParam,
-      ProcessorContext context, String processorName) {
+                        ProcessorContext context, String processorName) {
     this.periodicMonitorTaskRef = new AtomicReference<>(null);
     this.inputs = inputsParam;
     this.processorContext = context;

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -61,7 +61,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final Map<String, LogicalInput> inputs;
   private volatile InputReadyTracker inputReadyTracker;
   private final InputStatisticsReporterImpl statsReporter;
-  
+
   class InputStatisticsReporterImpl implements InputStatisticsReporter {
 
     @Override
@@ -75,15 +75,14 @@ public class TezInputContextImpl extends TezTaskContextImpl
     public void reportItemsProcessed(long items) {
       // this is a concurrent map. Plus we are not adding/deleting entries
       runtimeTask.getTaskStatistics().getIOStatistics().get(sourceVertexName)
-          .setItemsProcessed(items);      
+          .setItemsProcessed(items);
     }
-    
   }
 
   @Private
   public TezInputContextImpl(Configuration conf, String[] workDirs,
                              int appAttemptNumber,
-                             TezUmbilical tezUmbilical, String dagName, 
+                             TezUmbilical tezUmbilical, String dagName,
                              String taskVertexName, String sourceVertexName,
                              int vertexParallelism, TezTaskAttemptID taskAttemptID,
                              int inputIndex, @Nullable UserPayload userPayload,
@@ -96,7 +95,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
                              TezExecutors sharedExecutor) {
     super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID, wrapCounters(runtimeTask,
-        taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
+            taskVertexName, sourceVertexName, conf), runtimeTask, tezUmbilical,
         serviceConsumerMetadata, auxServiceEnv, memDist, inputDescriptor,
         objectRegistry, ExecutionContext, memAvailable, sharedExecutor);
     Objects.requireNonNull(inputIndex, "inputIndex is null");
@@ -116,7 +115,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   }
 
   private static TezCounters wrapCounters(LogicalIOProcessorRuntimeTask task, String taskVertexName,
-      String edgeVertexName, Configuration conf) {
+                                          String edgeVertexName, Configuration conf) {
     TezCounters tezCounters = task.addAndGetTezCounter(edgeVertexName);
     if (conf.getBoolean(TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO,
         TezConfiguration.TEZ_TASK_GENERATE_COUNTERS_PER_IO_DEFAULT)) {
@@ -141,7 +140,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   public UserPayload getUserPayload() {
     return userPayload;
   }
-  
+
   @Override
   public int getInputIndex() {
     return inputIndex;

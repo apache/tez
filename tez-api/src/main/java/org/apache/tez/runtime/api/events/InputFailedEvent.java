@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@ import org.apache.tez.runtime.api.Event;
  * Users are not expected to send this event.
  */
 @Private
-public class InputFailedEvent extends Event{
+public class InputFailedEvent extends Event {
 
   /**
    * Index(i) of the i-th (physical) Input or Output that is meant to receive
@@ -40,11 +40,11 @@ public class InputFailedEvent extends Event{
    * Version number to indicate what attempt generated this Event
    */
   private int version;
-  
+
   @Private // for Writable
   public InputFailedEvent() {
   }
-  
+
   @Private
   private InputFailedEvent(int targetIndex, int version) {
     this.targetIndex = targetIndex;
@@ -55,15 +55,15 @@ public class InputFailedEvent extends Event{
   public static InputFailedEvent create(int targetIndex, int version) {
     return new InputFailedEvent(targetIndex, version);
   }
-  
+
   /**
    * Create a copy of the {@link InputFailedEvent} by adding a target input
    * index The index of the physical input to which this event should be routed
-   * 
+   *
    * @param targetIndex
    *          The index of the physical input to which this
    *          {@link InputFailedEvent} should be routed
-   * 
+   *
    * @return copy of the {@link InputFailedEvent} with the target input index
    *         added
    */

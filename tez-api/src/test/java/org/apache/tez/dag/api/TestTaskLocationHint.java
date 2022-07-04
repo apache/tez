@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,8 +24,8 @@ import org.junit.Test;
 import com.google.common.collect.Sets;
 
 public class TestTaskLocationHint {
-  
-  @Test (timeout = 5000)
+
+  @Test(timeout = 5000)
   public void testEquality() {
     TaskLocationHint t1 = TaskLocationHint.createTaskLocationHint("v1", 0);
     TaskLocationHint t2 = TaskLocationHint.createTaskLocationHint("v1", 0);
@@ -34,13 +34,13 @@ public class TestTaskLocationHint {
     TaskLocationHint t5 = TaskLocationHint.createTaskLocationHint(null, null);
     TaskLocationHint t6 = TaskLocationHint.createTaskLocationHint(null, null);
     TaskLocationHint t7 = TaskLocationHint.createTaskLocationHint(
-        Sets.newHashSet(new String[] {"n1", "n2"}), Sets.newHashSet(new String[] {"r1", "r2"}));
+        Sets.newHashSet(new String[]{"n1", "n2"}), Sets.newHashSet(new String[]{"r1", "r2"}));
     TaskLocationHint t8 = TaskLocationHint.createTaskLocationHint(
-        Sets.newHashSet(new String[] {"n1", "n2"}), Sets.newHashSet(new String[] {"r1", "r2"}));
+        Sets.newHashSet(new String[]{"n1", "n2"}), Sets.newHashSet(new String[]{"r1", "r2"}));
     TaskLocationHint t9 = TaskLocationHint.createTaskLocationHint(
-        Sets.newHashSet(new String[] {"n1", "n2"}), Sets.newHashSet(new String[] {"r1"}));
+        Sets.newHashSet(new String[]{"n1", "n2"}), Sets.newHashSet(new String[]{"r1"}));
     TaskLocationHint t10 = TaskLocationHint.createTaskLocationHint(
-        Sets.newHashSet(new String[] {"n1"}), Sets.newHashSet(new String[] {"r1", "r2"}));
+        Sets.newHashSet(new String[]{"n1"}), Sets.newHashSet(new String[]{"r1", "r2"}));
 
     Assert.assertEquals(t1, t2);
     Assert.assertEquals(t5, t6);

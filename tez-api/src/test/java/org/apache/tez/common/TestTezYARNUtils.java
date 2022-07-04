@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -112,7 +112,7 @@ public class TestTezYARNUtils {
     String value3 = environment.get("LD_LIBRARY_PATH");
     Assert.assertEquals("User env should append default env",
         Environment.PWD.$() + File.pathSeparator + "USER_PATH" + File.pathSeparator + "DEFAULT_PATH", value3);
-    }
+  }
 
   @Test(timeout = 5000)
   public void testTezLibUrisClasspath() {
@@ -130,7 +130,7 @@ public class TestTezYARNUtils {
     Map<String, String> environment = new HashMap<String, String>();
     environment.put("JAVA_HOME", "/path/jdk");
     String goodEnv = "a1=1,b_2=2,_c=3,d=4,e=,f_win=%JAVA_HOME%"
-      + ",g_nix=$JAVA_HOME";
+        + ",g_nix=$JAVA_HOME";
     appendToEnvFromInputString(environment, goodEnv, File.pathSeparator);
     assertEquals("1", environment.get("a1"));
     assertEquals("2", environment.get("b_2"));
@@ -152,7 +152,7 @@ public class TestTezYARNUtils {
     // Test "=" in the value part
     environment.clear();
     appendToEnvFromInputString(environment, "b1,e1==,e2=a1=a2,b2",
-      File.pathSeparator);
+        File.pathSeparator);
     assertEquals("=", environment.get("e1"));
     assertEquals("a1=a2", environment.get("e2"));
   }

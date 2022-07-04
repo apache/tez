@@ -96,7 +96,7 @@ public class TezTaskRunner2 {
   private final Lock oobSignalLock = new ReentrantLock();
   private final Condition oobSignalCondition = oobSignalLock.newCondition();
 
-  private volatile long taskKillStartTime  = 0;
+  private volatile long taskKillStartTime = 0;
   final Configuration taskConf;
 
   private final HadoopShim hadoopShim;
@@ -110,14 +110,14 @@ public class TezTaskRunner2 {
 
   @Deprecated
   public TezTaskRunner2(Configuration tezConf, UserGroupInformation ugi, String[] localDirs,
-      TaskSpec taskSpec, int appAttemptNumber,
-      Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> serviceProviderEnvMap,
-      Multimap<String, String> startedInputsMap,
-      TaskReporterInterface taskReporter, ExecutorService executor,
-      ObjectRegistry objectRegistry, String pid,
-      ExecutionContext executionContext, long memAvailable,
-      boolean updateSysCounters, HadoopShim hadoopShim) throws IOException {
+                        TaskSpec taskSpec, int appAttemptNumber,
+                        Map<String, ByteBuffer> serviceConsumerMetadata,
+                        Map<String, String> serviceProviderEnvMap,
+                        Multimap<String, String> startedInputsMap,
+                        TaskReporterInterface taskReporter, ExecutorService executor,
+                        ObjectRegistry objectRegistry, String pid,
+                        ExecutionContext executionContext, long memAvailable,
+                        boolean updateSysCounters, HadoopShim hadoopShim) throws IOException {
     this(tezConf, ugi, localDirs, taskSpec, appAttemptNumber, serviceConsumerMetadata,
         serviceProviderEnvMap, startedInputsMap, taskReporter, executor, objectRegistry,
         pid, executionContext, memAvailable, updateSysCounters, hadoopShim, null);
@@ -157,10 +157,10 @@ public class TezTaskRunner2 {
   /**
    * Throws an exception only when there was a communication error reported by
    * the TaskReporter.
-   *
+   * <p>
    * Otherwise, this takes care of all communication with the AM for a a running task - which
    * includes informing the AM about Failures and Success.
-   *
+   * <p>
    * If a kill request is made to the task, it will not communicate this information to
    * the AM - since a task KILL is an external event, and whoever invoked it should
    * be able to track it.
@@ -261,7 +261,6 @@ public class TezTaskRunner2 {
         default:
           LOG.error("Unexpected EndReason. File a bug");
           return logAndReturnEndResult(EndReason.TASK_ERROR, firstTaskFailureType, new RuntimeException("Unexpected EndReason"), stopContainerRequested.get());
-
       }
     } finally {
       // Clear the interrupted status of the blocking thread, in case it is set after the
@@ -312,6 +311,7 @@ public class TezTaskRunner2 {
 
   /**
    * Attempt to kill the running task, if it hasn't already completed for some other reason.
+   *
    * @return true if the task kill was honored, false otherwise
    */
   public boolean killTask() {
@@ -384,9 +384,7 @@ public class TezTaskRunner2 {
     public void signalKillSelf(TezTaskAttemptID taskAttemptID, Throwable t, String message,
                                EventMetaData sourceInfo) {
       signalTerminationInternal(taskAttemptID, EndReason.TASK_KILL_REQUEST, null, t, message, sourceInfo, true);
-
     }
-
 
     @Override
     public boolean canCommit(TezTaskAttemptID taskAttemptID) throws IOException {
@@ -404,7 +402,6 @@ public class TezTaskRunner2 {
         return false;
       }
     }
-
 
     @Override
     public void reportError(Throwable t) {
@@ -452,7 +449,6 @@ public class TezTaskRunner2 {
       }
     }
   }
-
 
   private void signalTerminationInternal(TezTaskAttemptID taskAttemptID, EndReason endReason,
                                          TaskFailureType taskFailureType, Throwable t, String message,
@@ -527,7 +523,6 @@ public class TezTaskRunner2 {
     return false;
   }
 
-
   private void registerFirstException(TaskFailureType taskFailureType, Throwable t, EventMetaData sourceInfo) {
     Preconditions.checkState(isRunningState());
     errorSeen.set(true);
@@ -535,7 +530,6 @@ public class TezTaskRunner2 {
     this.firstTaskFailureType = taskFailureType;
     this.exceptionSourceInfo = sourceInfo;
   }
-
 
   private String getTaskDiagnosticsString(Throwable t, String message, String typeString) {
     String diagnostics;

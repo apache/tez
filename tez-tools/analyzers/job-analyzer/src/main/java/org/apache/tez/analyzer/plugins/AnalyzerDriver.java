@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,7 +22,7 @@ import org.apache.hadoop.util.ProgramDriver;
 
 public class AnalyzerDriver {
 
-  public static void main(String argv[]){
+  public static void main(String argv[]) {
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
@@ -61,11 +61,10 @@ public class AnalyzerDriver {
       pgd.addClass("TaskHangAnalyzer", HungTaskAnalyzer.class,
           "Print all vertices/tasks and their last attempts with status/duration/node");
       exitCode = pgd.run(argv);
-    } catch(Throwable e){
+    } catch (Throwable e) {
       e.printStackTrace();
     }
 
     System.exit(exitCode);
   }
-
 }

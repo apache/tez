@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -257,7 +257,7 @@ public class TestHistoryEventProtoConverter {
   }
 
   private void assertCommon(HistoryEventProto proto, HistoryEventType type, long eventTime,
-      EntityTypes entityType, ApplicationAttemptId appAttemptId, String user, int numData) {
+                            EntityTypes entityType, ApplicationAttemptId appAttemptId, String user, int numData) {
     Assert.assertEquals(type.name(), proto.getEventType());
     Assert.assertEquals(eventTime, proto.getEventTime());
     // Assert.assertEquals(safeToString(appId), proto.getAppId());
@@ -265,19 +265,19 @@ public class TestHistoryEventProtoConverter {
     Assert.assertEquals(safeToString(user), proto.getUser());
     if (entityType != null) {
       switch (entityType) { // Intentional fallthrough.
-      case TEZ_TASK_ATTEMPT_ID:
-        Assert.assertEquals(tezTaskAttemptID.toString(), proto.getTaskAttemptId());
-      case TEZ_TASK_ID:
-        Assert.assertEquals(tezTaskID.toString(), proto.getTaskId());
-      case TEZ_VERTEX_ID:
-        Assert.assertEquals(tezVertexID.toString(), proto.getVertexId());
-      case TEZ_DAG_ID:
-        Assert.assertEquals(tezDAGID.toString(), proto.getDagId());
-      case TEZ_APPLICATION:
-        Assert.assertEquals(applicationId.toString(), proto.getAppId());
-        break;
-      default:
-        Assert.fail("Invalid type: " + entityType.name());
+        case TEZ_TASK_ATTEMPT_ID:
+          Assert.assertEquals(tezTaskAttemptID.toString(), proto.getTaskAttemptId());
+        case TEZ_TASK_ID:
+          Assert.assertEquals(tezTaskID.toString(), proto.getTaskId());
+        case TEZ_VERTEX_ID:
+          Assert.assertEquals(tezVertexID.toString(), proto.getVertexId());
+        case TEZ_DAG_ID:
+          Assert.assertEquals(tezDAGID.toString(), proto.getDagId());
+        case TEZ_APPLICATION:
+          Assert.assertEquals(applicationId.toString(), proto.getAppId());
+          break;
+        default:
+          Assert.fail("Invalid type: " + entityType.name());
       }
     }
     Assert.assertEquals(numData, proto.getEventDataCount());
@@ -661,7 +661,7 @@ public class TestHistoryEventProtoConverter {
         new HashMap<String, EdgeProperty>();
 
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
-        .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));
     VertexConfigurationDoneEvent event = new VertexConfigurationDoneEvent(vId, 0L, 1, null,
         edgeMgrs, null, true);

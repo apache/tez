@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.client;
 
@@ -70,11 +70,10 @@ import org.apache.hadoop.yarn.factory.providers.RecordFactoryProvider;
 public class NotRunningJob implements MRClientProtocol {
 
   private RecordFactory recordFactory =
-    RecordFactoryProvider.getRecordFactory(null);
+      RecordFactoryProvider.getRecordFactory(null);
 
   private final JobState jobState;
   private final ApplicationReport applicationReport;
-
 
   private ApplicationReport getUnknownApplicationReport() {
     ApplicationId unknownAppId = recordFactory
@@ -96,7 +95,7 @@ public class NotRunningJob implements MRClientProtocol {
 
   NotRunningJob(ApplicationReport applicationReport, JobState jobState) {
     this.applicationReport =
-        (applicationReport ==  null) ?
+        (applicationReport == null) ?
             getUnknownApplicationReport() : applicationReport;
     this.jobState = jobState;
   }
@@ -105,7 +104,7 @@ public class NotRunningJob implements MRClientProtocol {
   public FailTaskAttemptResponse failTaskAttempt(
       FailTaskAttemptRequest request) throws IOException {
     FailTaskAttemptResponse resp =
-      recordFactory.newRecordInstance(FailTaskAttemptResponse.class);
+        recordFactory.newRecordInstance(FailTaskAttemptResponse.class);
     return resp;
   }
 
@@ -113,7 +112,7 @@ public class NotRunningJob implements MRClientProtocol {
   public GetCountersResponse getCounters(GetCountersRequest request)
       throws IOException {
     GetCountersResponse resp =
-      recordFactory.newRecordInstance(GetCountersResponse.class);
+        recordFactory.newRecordInstance(GetCountersResponse.class);
     Counters counters = recordFactory.newRecordInstance(Counters.class);
     counters.addAllCounterGroups(new HashMap<String, CounterGroup>());
     resp.setCounters(counters);
@@ -124,7 +123,7 @@ public class NotRunningJob implements MRClientProtocol {
   public GetDiagnosticsResponse getDiagnostics(GetDiagnosticsRequest request)
       throws IOException {
     GetDiagnosticsResponse resp =
-      recordFactory.newRecordInstance(GetDiagnosticsResponse.class);
+        recordFactory.newRecordInstance(GetDiagnosticsResponse.class);
     resp.addDiagnostics("");
     return resp;
   }
@@ -133,7 +132,7 @@ public class NotRunningJob implements MRClientProtocol {
   public GetJobReportResponse getJobReport(GetJobReportRequest request)
       throws IOException {
     JobReport jobReport =
-      recordFactory.newRecordInstance(JobReport.class);
+        recordFactory.newRecordInstance(JobReport.class);
     jobReport.setJobId(request.getJobId());
     jobReport.setJobState(jobState);
     jobReport.setUser(applicationReport.getUser());
@@ -154,7 +153,7 @@ public class NotRunningJob implements MRClientProtocol {
       GetTaskAttemptCompletionEventsRequest request)
       throws IOException {
     GetTaskAttemptCompletionEventsResponse resp =
-      recordFactory.newRecordInstance(GetTaskAttemptCompletionEventsResponse.class);
+        recordFactory.newRecordInstance(GetTaskAttemptCompletionEventsResponse.class);
     resp.addAllCompletionEvents(new ArrayList<TaskAttemptCompletionEvent>());
     return resp;
   }
@@ -170,7 +169,7 @@ public class NotRunningJob implements MRClientProtocol {
   public GetTaskReportResponse getTaskReport(GetTaskReportRequest request)
       throws IOException {
     GetTaskReportResponse resp =
-      recordFactory.newRecordInstance(GetTaskReportResponse.class);
+        recordFactory.newRecordInstance(GetTaskReportResponse.class);
     TaskReport report = recordFactory.newRecordInstance(TaskReport.class);
     report.setTaskId(request.getTaskId());
     report.setTaskState(TaskState.NEW);
@@ -185,7 +184,7 @@ public class NotRunningJob implements MRClientProtocol {
   public GetTaskReportsResponse getTaskReports(GetTaskReportsRequest request)
       throws IOException {
     GetTaskReportsResponse resp =
-      recordFactory.newRecordInstance(GetTaskReportsResponse.class);
+        recordFactory.newRecordInstance(GetTaskReportsResponse.class);
     resp.addAllTaskReports(new ArrayList<TaskReport>());
     return resp;
   }
@@ -194,7 +193,7 @@ public class NotRunningJob implements MRClientProtocol {
   public KillJobResponse killJob(KillJobRequest request)
       throws IOException {
     KillJobResponse resp =
-      recordFactory.newRecordInstance(KillJobResponse.class);
+        recordFactory.newRecordInstance(KillJobResponse.class);
     return resp;
   }
 
@@ -202,7 +201,7 @@ public class NotRunningJob implements MRClientProtocol {
   public KillTaskResponse killTask(KillTaskRequest request)
       throws IOException {
     KillTaskResponse resp =
-      recordFactory.newRecordInstance(KillTaskResponse.class);
+        recordFactory.newRecordInstance(KillTaskResponse.class);
     return resp;
   }
 
@@ -210,7 +209,7 @@ public class NotRunningJob implements MRClientProtocol {
   public KillTaskAttemptResponse killTaskAttempt(
       KillTaskAttemptRequest request) throws IOException {
     KillTaskAttemptResponse resp =
-      recordFactory.newRecordInstance(KillTaskAttemptResponse.class);
+        recordFactory.newRecordInstance(KillTaskAttemptResponse.class);
     return resp;
   }
 

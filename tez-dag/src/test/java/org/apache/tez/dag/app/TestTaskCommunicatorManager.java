@@ -99,8 +99,6 @@ public class TestTaskCommunicatorManager {
     } catch (IllegalArgumentException e) {
 
     }
-
-
   }
 
   @Test(timeout = 5000)
@@ -132,7 +130,6 @@ public class TestTaskCommunicatorManager {
 
       assertEquals(customTaskCommName, tcm.getTaskCommName(0));
       assertEquals(bb, tcm.getTaskCommContext(0).getInitialUserPayload().getPayload());
-
     } finally {
       tcm.stop();
     }
@@ -222,7 +219,6 @@ public class TestTaskCommunicatorManager {
       verify(tcm.getTestTaskComm(1)).initialize();
       verify(tcm.getTestTaskComm(1)).start();
 
-
       ContainerId containerId1 = mock(ContainerId.class);
       tcm.registerRunningContainer(containerId1, 0);
       verify(tcm.getTestTaskComm(0)).registerRunningContainer(eq(containerId1), eq("host1"),
@@ -232,7 +228,6 @@ public class TestTaskCommunicatorManager {
       tcm.registerRunningContainer(containerId2, 1);
       verify(tcm.getTestTaskComm(1)).registerRunningContainer(eq(containerId2), eq("host1"),
           eq(3131));
-
     } finally {
       tcm.stop();
       verify(tcm.getTaskCommunicator(0).getTaskCommunicator()).shutdown();
@@ -260,7 +255,6 @@ public class TestTaskCommunicatorManager {
     List<NamedEntityDescriptor> list = new LinkedList<>();
     list.add(namedEntityDescriptor);
 
-
     TaskCommunicatorManager taskCommManager =
         new TaskCommunicatorManager(appContext, mock(TaskHeartbeatHandler.class),
             mock(ContainerHeartbeatHandler.class), list);
@@ -280,7 +274,6 @@ public class TestTaskCommunicatorManager {
           .contains(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE.name()));
       assertTrue(killEvent.getDiagnosticInfo().contains("[0:testTaskCommunicator]"));
 
-
       reset(eventHandler);
 
       taskCommManager.dagComplete(dag);
@@ -298,11 +291,9 @@ public class TestTaskCommunicatorManager {
       assertTrue(
           event.getDiagnosticInfo().contains(ServicePluginErrorDefaults.INCONSISTENT_STATE.name()));
       assertTrue(event.getDiagnosticInfo().contains("[0:testTaskCommunicator]"));
-
     } finally {
       taskCommManager.stop();
     }
-
   }
 
   @SuppressWarnings("unchecked")
@@ -347,7 +338,6 @@ public class TestTaskCommunicatorManager {
       assertTrue(event.getDiagnosticInfo().contains("DAG completion"));
       assertTrue(event.getDiagnosticInfo().contains(expectedId));
 
-
       when(appContext.getAllContainers().get(any()).getContainer().getNodeId())
           .thenReturn(mock(NodeId.class));
 
@@ -364,12 +354,9 @@ public class TestTaskCommunicatorManager {
           event.getError().getMessage().contains("TestException_" + "registerRunningContainer"));
       assertTrue(event.getDiagnosticInfo().contains("registering running Container"));
       assertTrue(event.getDiagnosticInfo().contains(expectedId));
-
-
     } finally {
       taskCommunicatorManager.stop();
     }
-
   }
 
   private static class ExceptionAnswer implements Answer {
@@ -402,7 +389,6 @@ public class TestTaskCommunicatorManager {
         new LinkedList<>();
     private static final List<String> taskCommNames = new LinkedList<>();
     private static final List<TaskCommunicator> testTaskComms = new LinkedList<>();
-
 
     public static void reset() {
       numTaskComms.set(0);
@@ -536,6 +522,7 @@ public class TestTaskCommunicatorManager {
 
   private static final String DAG_NAME = "dagName";
   private static final int DAG_INDEX = 1;
+
   public static class TaskCommForFailureTest extends TaskCommunicator {
 
     public TaskCommForFailureTest(

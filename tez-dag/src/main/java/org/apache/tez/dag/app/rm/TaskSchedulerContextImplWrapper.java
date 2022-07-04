@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   private TaskSchedulerContext real;
 
   private ExecutorService executorService;
-  
+
   /**
    * @param real the actual TaskSchedulerAppCallback
    * @param executorService the ExecutorService to be used to send these events.
@@ -72,7 +72,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
 
   @Override
   public void containerCompleted(Object taskLastAllocated,
-      ContainerStatus containerStatus) {
+                                 ContainerStatus containerStatus) {
     executorService.submit(new ContainerCompletedCallable(real,
         taskLastAllocated, containerStatus));
   }
@@ -95,7 +95,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
 
   @Override
   public void setApplicationRegistrationData(Resource maxContainerCapability,
-      Map<ApplicationAccessType, String> appAcls, ByteBuffer key, String queueName) {
+                                             Map<ApplicationAccessType, String> appAcls, ByteBuffer key, String queueName) {
     executorService.submit(new SetApplicationRegistrationDataCallable(real,
         maxContainerCapability, appAcls, key, queueName));
   }
@@ -116,7 +116,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
       throw new TezUncheckedException(e);
     }
   }
-  
+
   @Override
   public void preemptContainer(ContainerId containerId) {
     executorService.submit(new PreemptContainerCallable(real, containerId));
@@ -195,7 +195,6 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   // End of getters which do not need to go through a thread. Underlying implementation
   // does not use locks.
 
-
   static abstract class TaskSchedulerContextCallbackBase {
 
     protected TaskSchedulerContext app;
@@ -212,7 +211,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     private final Container container;
 
     public TaskAllocatedCallable(TaskSchedulerContext app, Object task,
-        Object appCookie, Container container) {
+                                 Object appCookie, Container container) {
       super(app);
       this.task = task;
       this.appCookie = appCookie;
@@ -233,7 +232,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     private final ContainerStatus containerStatus;
 
     public ContainerCompletedCallable(TaskSchedulerContext app,
-        Object taskLastAllocated, ContainerStatus containerStatus) {
+                                      Object taskLastAllocated, ContainerStatus containerStatus) {
       super(app);
       this.taskLastAllocated = taskLastAllocated;
       this.containerStatus = containerStatus;
@@ -251,7 +250,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     private final ContainerId containerId;
 
     public ContainerBeingReleasedCallable(TaskSchedulerContext app,
-        ContainerId containerId) {
+                                          ContainerId containerId) {
       super(app);
       this.containerId = containerId;
     }
@@ -268,7 +267,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     private final List<NodeReport> updatedNodes;
 
     public NodesUpdatedCallable(TaskSchedulerContext app,
-        List<NodeReport> updatedNodes) {
+                                List<NodeReport> updatedNodes) {
       super(app);
       this.updatedNodes = updatedNodes;
     }
@@ -303,10 +302,10 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     private final String queueName;
 
     public SetApplicationRegistrationDataCallable(TaskSchedulerContext app,
-        Resource maxContainerCapability,
-        Map<ApplicationAccessType, String> appAcls,
-        ByteBuffer key,
-        String queueName) {
+                                                  Resource maxContainerCapability,
+                                                  Map<ApplicationAccessType, String> appAcls,
+                                                  ByteBuffer key,
+                                                  String queueName) {
       super(app);
       this.maxContainerCapability = maxContainerCapability;
       this.appAcls = appAcls;
@@ -346,19 +345,19 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   static class PreemptContainerCallable extends TaskSchedulerContextCallbackBase
       implements Callable<Void> {
     private final ContainerId containerId;
-    
+
     public PreemptContainerCallable(TaskSchedulerContext app, ContainerId id) {
       super(app);
       this.containerId = id;
     }
-    
+
     @Override
     public Void call() throws Exception {
       app.preemptContainer(containerId);
       return null;
     }
   }
-  
+
   static class GetProgressCallable extends TaskSchedulerContextCallbackBase
       implements Callable<Float> {
 

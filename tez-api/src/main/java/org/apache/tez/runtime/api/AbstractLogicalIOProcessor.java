@@ -21,9 +21,8 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * Abstract representation of the interface {@link LogicalIOProcessor}.
- * Implements the base logic of some methods into this class and is expected 
+ * Implements the base logic of some methods into this class and is expected
  * to be the base class that is derived to implement the user {@link Processor}
- *
  */
 @Public
 public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor,
@@ -52,5 +51,4 @@ public abstract class AbstractLogicalIOProcessor implements LogicalIOProcessor,
   @Override
   public void abort() {
   }
-
 }

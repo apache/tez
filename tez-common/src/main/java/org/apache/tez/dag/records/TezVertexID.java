@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -90,14 +90,14 @@ public class TezVertexID extends TezID implements DAGIDAware {
     if (!super.equals(o))
       return false;
 
-    TezVertexID that = (TezVertexID)o;
+    TezVertexID that = (TezVertexID) o;
     return this.dagId.equals(that.dagId);
   }
 
   /**Compare TaskInProgressIds by first jobIds, then by tip numbers and type.*/
   @Override
   public int compareTo(TezID o) {
-    TezVertexID that = (TezVertexID)o;
+    TezVertexID that = (TezVertexID) o;
     return this.dagId.compareTo(that.dagId);
   }
 
@@ -113,7 +113,7 @@ public class TezVertexID extends TezID implements DAGIDAware {
     dagId = TezDAGID.readTezDAGID(in);
     super.readFields(in);
   }
-  
+
   public static TezVertexID readTezVertexID(DataInput in) throws IOException {
     TezDAGID dagID = TezDAGID.readTezDAGID(in);
     int vertexIdInt = TezID.readID(in);
@@ -153,8 +153,8 @@ public class TezVertexID extends TezID implements DAGIDAware {
       int dagId = Integer.parseInt(vertexIdStr.substring(pos3 + 1, pos4));
       int id = Integer.parseInt(vertexIdStr.substring(pos4 + 1));
       return TezVertexID.getInstance(
-              TezDAGID.getInstance(rmId, appId, dagId),
-              id);
+          TezDAGID.getInstance(rmId, appId, dagId),
+          id);
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -102,9 +102,9 @@ public class TimelineReaderFactory {
   }
 
   private static TimelineReaderStrategy getTimelineReaderStrategy(boolean isTokenDelegationSupported,
-                                                                    Configuration conf,
-                                                                    boolean useHttps,
-                                                                    int connTimeout) {
+                                                                  Configuration conf,
+                                                                  boolean useHttps,
+                                                                  int connTimeout) {
     TimelineReaderStrategy timelineReaderStrategy;
 
     if (isTokenDelegationSupported) {
@@ -133,6 +133,7 @@ public class TimelineReaderFactory {
 
   public interface TimelineReaderStrategy {
     Client getHttpClient() throws IOException;
+
     void close();
   }
 
@@ -227,14 +228,14 @@ public class TimelineReaderFactory {
       @Override
       public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
         try {
-          AuthenticatedURL authenticatedURL= ReflectionUtils.createClazzInstance(
-              DELEGATION_TOKEN_AUTHENTICATED_URL_CLAZZ_NAME, new Class[] {
-              delegationTokenAuthenticatorClazz,
-              ConnectionConfigurator.class
-          }, new Object[] {
-              authenticator,
-              connConfigurator
-          });
+          AuthenticatedURL authenticatedURL = ReflectionUtils.createClazzInstance(
+              DELEGATION_TOKEN_AUTHENTICATED_URL_CLAZZ_NAME, new Class[]{
+                  delegationTokenAuthenticatorClazz,
+                  ConnectionConfigurator.class
+              }, new Object[]{
+                  authenticator,
+                  connConfigurator
+              });
           return ReflectionUtils.invokeMethod(authenticatedURL,
               delegationTokenAuthenticateURLOpenConnectionMethod, url, token, doAsUser);
         } catch (Exception e) {
@@ -397,7 +398,6 @@ public class TimelineReaderFactory {
                 URL.class, delegationTokenAuthenticatedURLTokenClazz, String.class);
 
         isTokenDelegationClassesPresent = true;
-
       } catch (TezException e) {
         LOG.info("Could not find class required for token delegation, will fallback to pseudo auth");
       }

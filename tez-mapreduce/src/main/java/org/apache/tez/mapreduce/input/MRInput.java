@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -80,29 +80,42 @@ import com.google.common.collect.Lists;
  *
  * It is compatible with all standard Apache Hadoop MapReduce 
  * {@link InputFormat} implementations.
- * 
+ *
  * This class is not meant to be extended by external projects.
  */
 @Public
 public class MRInput extends MRInputBase {
 
-  @Private public static final String TEZ_MAPREDUCE_DAG_INDEX = "tez.mapreduce.dag.index";
-  @Private public static final String TEZ_MAPREDUCE_DAG_NAME = "tez.mapreduce.dag.name";
-  @Private public static final String TEZ_MAPREDUCE_VERTEX_INDEX = "tez.mapreduce.vertex.index";
-  @Private public static final String TEZ_MAPREDUCE_VERTEX_NAME = "tez.mapreduce.vertex.name";
-  @Private public static final String TEZ_MAPREDUCE_TASK_INDEX = "tez.mapreduce.task.index";
-  @Private public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_INDEX = "tez.mapreduce.task.attempt.index";
-  @Private public static final String TEZ_MAPREDUCE_INPUT_INDEX = "tez.mapreduce.input.index";
-  @Private public static final String TEZ_MAPREDUCE_INPUT_NAME = "tez.mapreduce.input.name";
-  @Private public static final String TEZ_MAPREDUCE_APPLICATION_ID = "tez.mapreduce.application.id";
-  @Private public static final String TEZ_MAPREDUCE_UNIQUE_IDENTIFIER = "tez.mapreduce.unique.identifier";
-  @Private public static final String TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER = "tez.mapreduce.dag.attempt.number";
-  @Private public static final String TEZ_MAPREDUCE_DAG_ID= "tez.mapreduce.dag.id";
-  @Private public static final String TEZ_MAPREDUCE_VERTEX_ID = "tez.mapreduce.vertex.id";
-  @Private public static final String TEZ_MAPREDUCE_TASK_ID = "tez.mapreduce.task.id";
-  @Private public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_ID = "tez.mapreduce.task.attempt.id";
-
-
+  @Private
+  public static final String TEZ_MAPREDUCE_DAG_INDEX = "tez.mapreduce.dag.index";
+  @Private
+  public static final String TEZ_MAPREDUCE_DAG_NAME = "tez.mapreduce.dag.name";
+  @Private
+  public static final String TEZ_MAPREDUCE_VERTEX_INDEX = "tez.mapreduce.vertex.index";
+  @Private
+  public static final String TEZ_MAPREDUCE_VERTEX_NAME = "tez.mapreduce.vertex.name";
+  @Private
+  public static final String TEZ_MAPREDUCE_TASK_INDEX = "tez.mapreduce.task.index";
+  @Private
+  public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_INDEX = "tez.mapreduce.task.attempt.index";
+  @Private
+  public static final String TEZ_MAPREDUCE_INPUT_INDEX = "tez.mapreduce.input.index";
+  @Private
+  public static final String TEZ_MAPREDUCE_INPUT_NAME = "tez.mapreduce.input.name";
+  @Private
+  public static final String TEZ_MAPREDUCE_APPLICATION_ID = "tez.mapreduce.application.id";
+  @Private
+  public static final String TEZ_MAPREDUCE_UNIQUE_IDENTIFIER = "tez.mapreduce.unique.identifier";
+  @Private
+  public static final String TEZ_MAPREDUCE_DAG_ATTEMPT_NUMBER = "tez.mapreduce.dag.attempt.number";
+  @Private
+  public static final String TEZ_MAPREDUCE_DAG_ID = "tez.mapreduce.dag.id";
+  @Private
+  public static final String TEZ_MAPREDUCE_VERTEX_ID = "tez.mapreduce.vertex.id";
+  @Private
+  public static final String TEZ_MAPREDUCE_TASK_ID = "tez.mapreduce.task.id";
+  @Private
+  public static final String TEZ_MAPREDUCE_TASK_ATTEMPT_ID = "tez.mapreduce.task.attempt.id";
 
   /**
    * Helper class to configure {@link MRInput}
@@ -155,16 +168,16 @@ public class MRInput extends MRInputBase {
         initializeInputPath();
       }
     }
-    
+
     MRInputConfigBuilder setInputClassName(String className) {
       this.inputClassName = className;
       return this;
     }
 
     private MRInputConfigBuilder setInputPaths(String inputPaths) {
-      if (!(org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) || 
+      if (!(org.apache.hadoop.mapred.FileInputFormat.class.isAssignableFrom(inputFormat) ||
           FileInputFormat.class.isAssignableFrom(inputFormat))) {
-        throw new TezUncheckedException("When setting inputPaths the inputFormat must be " + 
+        throw new TezUncheckedException("When setting inputPaths the inputFormat must be " +
             "assignable from either org.apache.hadoop.mapred.FileInputFormat or " +
             "org.apache.hadoop.mapreduce.lib.input.FileInputFormat. " +
             "Otherwise use the non-path configBuilder." +
@@ -273,7 +286,7 @@ public class MRInput extends MRInputBase {
         throw new TezUncheckedException(e);
       }
     }
-    
+
     private DataSourceDescriptor createDistributorDataSource() throws IOException {
       InputSplitInfo inputSplitInfo;
       setupBasicConf(conf);
@@ -331,7 +344,7 @@ public class MRInput extends MRInputBase {
     private DataSourceDescriptor createGeneratorDataSource() throws IOException {
       setupBasicConf(conf);
       MRHelpers.translateMRConfToTez(conf);
-      
+
       Collection<URI> uris = maybeGetURIsForCredentials();
 
       UserPayload payload = MRInputHelpersInternal.createMRInputPayload(
@@ -381,7 +394,6 @@ public class MRInput extends MRInputBase {
       }
       return null;
     }
-
   }
 
   /**
@@ -405,7 +417,7 @@ public class MRInput extends MRInputBase {
   }
 
   /**
-   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder} 
+   * Create an {@link org.apache.tez.mapreduce.input.MRInput.MRInputConfigBuilder}
    * for {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}
    * or {@link org.apache.hadoop.mapred.FileInputFormat} format based InputFormats.
    * <p/>
@@ -434,10 +446,10 @@ public class MRInput extends MRInputBase {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInput.class);
-  
+
   private final ReentrantLock rrLock = new ReentrantLock();
   private final Condition rrInited = rrLock.newCondition();
-  
+
   private volatile boolean eventReceived = false;
 
   private boolean readerCreated = false;
@@ -447,7 +459,7 @@ public class MRInput extends MRInputBase {
   protected TaskSplitIndex splitMetaInfo = new TaskSplitIndex();
 
   // Potential counters - #splits, #totalSize, #actualyBytesRead
-  
+
   @Private
   volatile boolean splitInfoViaEvents;
 
@@ -479,15 +491,15 @@ public class MRInput extends MRInputBase {
     // Primarily for visibility
     rrLock.lock();
     try {
-      
+
       if (splitInfoViaEvents) {
         if (useNewApi) {
           mrReader = new MRReaderMapReduce(jobConf, getContext().getCounters(), inputRecordCounter,
               getContext().getApplicationId().getClusterTimestamp(), getContext()
-                  .getTaskVertexIndex(), getContext().getApplicationId().getId(), getContext()
-                  .getTaskIndex(), getContext().getTaskAttemptNumber(), getContext());
+              .getTaskVertexIndex(), getContext().getApplicationId().getId(), getContext()
+              .getTaskIndex(), getContext().getTaskAttemptNumber(), getContext());
         } else {
-          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter, 
+          mrReader = new MRReaderMapred(jobConf, getContext().getCounters(), inputRecordCounter,
               getContext());
         }
       } else {
@@ -608,7 +620,7 @@ public class MRInput extends MRInputBase {
    * {@link MRInput} sets some additional parameters like split location when using
    * the new API. This methods returns the list of additional updates, and
    * should be used by Processors using the old MapReduce API with {@link MRInput}.
-   * 
+   *
    * @return the additional fields set by {@link MRInput}
    */
   public Configuration getConfigUpdates() {
@@ -641,7 +653,7 @@ public class MRInput extends MRInputBase {
       rrLock.unlock();
     }
   }
-  
+
   void checkAndAwaitRecordReaderInitialization() throws IOException {
     assert rrLock.getHoldCount() == 1;
     rrLock.lock();
@@ -668,7 +680,7 @@ public class MRInput extends MRInputBase {
       rrLock.unlock();
     }
   }
-  
+
   private void initFromEventInternal(InputDataInformationEvent initEvent) throws IOException {
     if (LOG.isDebugEnabled()) {
       LOG.debug(getContext().getInputOutputVertexNames() + " initializing RecordReader from event");
@@ -689,7 +701,6 @@ public class MRInput extends MRInputBase {
         LOG.debug(getContext().getInputOutputVertexNames() + " split Details -> SplitClass: " +
             split.getClass().getName() + ", NewSplit: " + split + ", length: " + splitLength);
       }
-
     } else {
       org.apache.hadoop.mapred.InputSplit split =
           MRInputUtils.getOldSplitDetailsFromEvent(splitProto, jobConf);
@@ -711,17 +722,16 @@ public class MRInput extends MRInputBase {
   private static class MRInputHelpersInternal extends MRInputHelpers {
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-        boolean isGrouped, boolean isSorted) throws IOException {
+                                                      boolean isGrouped, boolean isSorted) throws IOException {
       return MRInputHelpers.createMRInputPayload(conf, null, isGrouped,
           isSorted);
     }
 
     protected static UserPayload createMRInputPayload(Configuration conf,
-        MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
+                                                      MRRuntimeProtos.MRSplitsProto mrSplitsProto) throws
         IOException {
       return MRInputHelpers.createMRInputPayload(conf, mrSplitsProto, false,
           true);
     }
   }
-
 }

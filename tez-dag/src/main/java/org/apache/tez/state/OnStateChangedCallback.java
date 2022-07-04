@@ -18,7 +18,6 @@
 
 package org.apache.tez.state;
 
-
 public interface OnStateChangedCallback<STATE extends Enum<STATE>, OPERAND> {
   public void onStateChanged(OPERAND operand, STATE state);
 }

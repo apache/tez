@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -362,12 +362,12 @@ public class ATSImportTool extends Configured implements Tool {
         .withDescription("DagId that needs to be downloaded").hasArg().isRequired(true).create();
 
     Option downloadDirOption = OptionBuilder.withArgName(BASE_DOWNLOAD_DIR).withLongOpt
-        (BASE_DOWNLOAD_DIR)
+            (BASE_DOWNLOAD_DIR)
         .withDescription("Download directory where data needs to be downloaded").hasArg()
         .isRequired(true).create();
 
     Option atsAddressOption = OptionBuilder.withArgName(YARN_TIMELINE_SERVICE_ADDRESS).withLongOpt(
-        YARN_TIMELINE_SERVICE_ADDRESS)
+            YARN_TIMELINE_SERVICE_ADDRESS)
         .withDescription("Optional. ATS address (e.g http://clusterATSNode:8188)").hasArg()
         .isRequired(false)
         .create();

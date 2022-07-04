@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -117,7 +117,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
   private static final int NO_OF_VERTICES = 3;
 
   public static class TokenizerMapper
-       extends Mapper<Object, Text, Text, IntWritable>{
+      extends Mapper<Object, Text, Text, IntWritable> {
 
     private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();
@@ -130,12 +130,12 @@ public class TestOrderedWordCount extends Configured implements Tool {
             " Total Dag Payload sent through IPC : "
             + (conf.getInt(MAX_IPC_DATA_LENGTH, -1) + conf.getInt(EXCEED_IPC_DATA_LIMIT, 3)) + " MB," +
             " Each Vertex Processor payload : " +
-            ((conf.getInt(MAX_IPC_DATA_LENGTH, -1) + conf.getInt(EXCEED_IPC_DATA_LIMIT, 3))/NO_OF_VERTICES)+" MB");
+            ((conf.getInt(MAX_IPC_DATA_LENGTH, -1) + conf.getInt(EXCEED_IPC_DATA_LIMIT, 3)) / NO_OF_VERTICES) + " MB");
       }
     }
 
     public void map(Object key, Text value, Context context
-                    ) throws IOException, InterruptedException {
+    ) throws IOException, InterruptedException {
       StringTokenizer itr = new StringTokenizer(value.toString());
       while (itr.hasMoreTokens()) {
         word.set(itr.nextToken());
@@ -145,12 +145,12 @@ public class TestOrderedWordCount extends Configured implements Tool {
   }
 
   public static class IntSumReducer
-       extends Reducer<Text,IntWritable,IntWritable, Text> {
+      extends Reducer<Text, IntWritable, IntWritable, Text> {
     private IntWritable result = new IntWritable();
 
     public void reduce(Text key, Iterable<IntWritable> values,
                        Context context
-                       ) throws IOException, InterruptedException {
+    ) throws IOException, InterruptedException {
       int sum = 0;
       for (IntWritable val : values) {
         sum += val.get();
@@ -169,8 +169,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
       extends Reducer<IntWritable, Text, Text, IntWritable> {
 
     public void reduce(IntWritable key, Iterable<Text> values,
-        Context context
-        ) throws IOException, InterruptedException {
+                       Context context
+    ) throws IOException, InterruptedException {
       for (Text word : values) {
         context.write(word, key);
       }
@@ -181,13 +181,13 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
   @VisibleForTesting
   public DAG createDAG(FileSystem fs, Configuration conf,
-      Map<String, LocalResource> commonLocalResources, Path stagingDir,
-      int dagIndex, String inputPath, String outputPath,
-      boolean generateSplitsInClient,
-      boolean useMRSettings,
-      int intermediateNumReduceTasks,
-      int maxDataLengthThroughIPC,
-      int exceedDataLimit) throws Exception {
+                       Map<String, LocalResource> commonLocalResources, Path stagingDir,
+                       int dagIndex, String inputPath, String outputPath,
+                       boolean generateSplitsInClient,
+                       boolean useMRSettings,
+                       int intermediateNumReduceTasks,
+                       int maxDataLengthThroughIPC,
+                       int exceedDataLimit) throws Exception {
 
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.set(MRJobConfig.MAP_CLASS_ATTR,
@@ -268,7 +268,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     String iReduceStageHistoryText = TezUtils.convertToHistoryText("Intermediate Summation Vertex",
         iReduceStageConf);
     ProcessorDescriptor iReduceProcessorDescriptor = ProcessorDescriptor.create(
-        ReduceProcessor.class.getName())
+            ReduceProcessor.class.getName())
         .setUserPayload(TezUtils.createUserPayloadFromConf(copyiReduceStageConf))
         .setHistoryText(iReduceStageHistoryText);
 
@@ -295,7 +295,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     ProcessorDescriptor finalReduceProcessorDescriptor =
         ProcessorDescriptor.create(
-            ReduceProcessor.class.getName())
+                ReduceProcessor.class.getName())
             .setUserPayload(finalReducePayload)
             .setHistoryText(finalReduceStageHistoryText);
     if (!useMRSettings) {
@@ -322,7 +322,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     OrderedPartitionedKVEdgeConfig edgeConf1 = OrderedPartitionedKVEdgeConfig
         .newBuilder(Text.class.getName(), IntWritable.class.getName(),
             HashPartitioner.class.getName()).setFromConfiguration(iReduceStageConf)
-	    .configureInput().useLegacyInput().done().build();
+        .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         Edge.create(dag.getVertex("initialmap"), dag.getVertex("intermediate_reducer"),
             edgeConf1.createDefaultEdgeProperty()));
@@ -330,7 +330,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
     OrderedPartitionedKVEdgeConfig edgeConf2 = OrderedPartitionedKVEdgeConfig
         .newBuilder(IntWritable.class.getName(), Text.class.getName(),
             HashPartitioner.class.getName()).setFromConfiguration(finalReduceConf)
-            .configureInput().useLegacyInput().done().build();
+        .configureInput().useLegacyInput().done().build();
     dag.addEdge(
         Edge.create(dag.getVertex("intermediate_reducer"), dag.getVertex("finalreduce"),
             edgeConf2.createDefaultEdgeProperty()));
@@ -339,6 +339,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     return dag;
   }
+
   private void setMaxDataLengthConf(Configuration config, int maxDataLengthThroughIPC, int exceedDataLimit) {
     /**
      * if -Dtez.testorderedwordcount.ipc.maximum.data.length is set by user,
@@ -366,9 +367,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
         || conf.get(DAG_MODIFY_ACLS + suffix) != null) {
       accessControls = new DAGAccessControls(
           conf.get(DAG_VIEW_ACLS + suffix), conf.get(DAG_MODIFY_ACLS + suffix));
-
     } else if (conf.get(DAG_VIEW_ACLS) != null
-      || conf.get(DAG_MODIFY_ACLS) != null) {
+        || conf.get(DAG_MODIFY_ACLS) != null) {
       accessControls = new DAGAccessControls(
           conf.get(DAG_VIEW_ACLS), conf.get(DAG_MODIFY_ACLS));
     }
@@ -378,7 +378,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
     }
   }
 
-
   private static void printUsage() {
     String options = " [-generateSplitsInClient true/<false>]";
     System.err.println("Usage: testorderedwordcount <in> <out>" + options);
@@ -386,7 +385,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
         + " testorderedwordcount <in1> <out1> ... <inN> <outN>" + options);
     ToolRunner.printGenericCommandUsage(System.err);
   }
-
 
   @Override
   public int run(String[] args) throws Exception {
@@ -419,7 +417,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
       conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxDataLengthThroughIPC * 1024 * 1024);
     }
 
-    if (((otherArgs.length%2) != 0)
+    if (((otherArgs.length % 2) != 0)
         || (!useTezSession && otherArgs.length != 2)) {
       printUsage();
       return 2;
@@ -429,28 +427,28 @@ public class TestOrderedWordCount extends Configured implements Tool {
     List<String> outputPaths = new ArrayList<String>();
     TezConfiguration tezConf = new TezConfiguration(conf);
 
-    for (int i = 0; i < otherArgs.length; i+=2) {
+    for (int i = 0; i < otherArgs.length; i += 2) {
       FileSystem inputPathFs = new Path(otherArgs[i]).getFileSystem(tezConf);
       inputPaths.add(inputPathFs.makeQualified(new Path(otherArgs[i])).toString());
-      FileSystem outputPathFs = new Path(otherArgs[i+1]).getFileSystem(tezConf);
-      outputPaths.add(outputPathFs.makeQualified(new Path(otherArgs[i+1])).toString());
+      FileSystem outputPathFs = new Path(otherArgs[i + 1]).getFileSystem(tezConf);
+      outputPaths.add(outputPathFs.makeQualified(new Path(otherArgs[i + 1])).toString());
     }
 
     UserGroupInformation.setConfiguration(conf);
     HadoopShim hadoopShim = new HadoopShimsLoader(tezConf).getHadoopShim();
     TestOrderedWordCount instance = new TestOrderedWordCount();
 
-    String stagingDirStr =  conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
-            TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR + 
-            Long.toString(System.currentTimeMillis());
+    String stagingDirStr = conf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
+        TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR +
+        Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     FileSystem pathFs = stagingDir.getFileSystem(tezConf);
     pathFs.mkdirs(new Path(stagingDirStr));
 
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = pathFs.makeQualified(new Path(stagingDirStr));
-    
-    TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[] {stagingDir}, conf);
+
+    TokenCache.obtainTokensForNamenodes(instance.credentials, new Path[]{stagingDir}, conf);
     TezClientUtils.ensureStagingDirExists(tezConf, stagingDir);
 
     // No need to add jar containing this class as assumed to be part of
@@ -458,7 +456,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     // TEZ-674 Obtain tokens based on the Input / Output paths. For now assuming staging dir
     // is the same filesystem as the one used for Input/Output.
-    
+
     if (useTezSession) {
       LOG.info("Creating Tez Session");
       tezConf.setBoolean(TezConfiguration.TEZ_AM_SESSION_MODE, true);
@@ -474,8 +472,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
 
     DAGStatus dagStatus = null;
     DAGClient dagClient = null;
-    String[] vNames = { "initialmap", "intermediate_reducer",
-      "finalreduce" };
+    String[] vNames = {"initialmap", "intermediate_reducer",
+        "finalreduce"};
 
     Set<StatusGetOpts> statusGetOpts = EnumSet.of(StatusGetOpts.GET_COUNTERS);
     try {
@@ -484,7 +482,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             && interJobSleepTimeout > 0) {
           try {
             LOG.info("Sleeping between jobs, sleepInterval="
-                + (interJobSleepTimeout/1000));
+                + (interJobSleepTimeout / 1000));
             Thread.sleep(interJobSleepTimeout);
           } catch (InterruptedException e) {
             LOG.info("Main thread interrupted. Breaking out of job loop");
@@ -492,8 +490,8 @@ public class TestOrderedWordCount extends Configured implements Tool {
           }
         }
 
-        String inputPath = inputPaths.get(dagIndex-1);
-        String outputPath = outputPaths.get(dagIndex-1);
+        String inputPath = inputPaths.get(dagIndex - 1);
+        String outputPath = outputPaths.get(dagIndex - 1);
 
         Path outputPathAsPath = new Path(outputPath);
         FileSystem fs = outputPathAsPath.getFileSystem(conf);
@@ -508,16 +506,16 @@ public class TestOrderedWordCount extends Configured implements Tool {
             + ", outputPath=" + outputPath);
 
         Map<String, LocalResource> localResources =
-          new TreeMap<String, LocalResource>();
-        
+            new TreeMap<String, LocalResource>();
+
         DAG dag = instance.createDAG(fs, tezConf, localResources,
             stagingDir, dagIndex, inputPath, outputPath,
             generateSplitsInClient, useMRSettings, intermediateNumReduceTasks,
-            maxDataLengthThroughIPC,exceedDataLimit);
+            maxDataLengthThroughIPC, exceedDataLimit);
         String callerType = "TestOrderedWordCount";
         String callerId = tezSession.getAppMasterApplicationId() == null ?
-            ( "UnknownApp_" + System.currentTimeMillis() + dagIndex ) :
-            ( tezSession.getAppMasterApplicationId().toString() + "_" + dagIndex);
+            ("UnknownApp_" + System.currentTimeMillis() + dagIndex) :
+            (tezSession.getAppMasterApplicationId().toString() + "_" + dagIndex);
         dag.setCallerContext(CallerContext.create("Tez", callerId, callerType,
             "TestOrderedWordCount Job"));
 
@@ -537,7 +535,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
           preWarmVertex.addTaskLocalFiles(dag.getVertex("initialmap").getTaskLocalFiles());
           preWarmVertex.setTaskEnvironment(dag.getVertex("initialmap").getTaskEnvironment());
           preWarmVertex.setTaskLaunchCmdOpts(dag.getVertex("initialmap").getTaskLaunchCmdOpts());
-          
+
           tezSession.preWarm(preWarmVertex);
         }
 
@@ -568,7 +566,6 @@ public class TestOrderedWordCount extends Configured implements Tool {
           }
         }
 
-
         while (dagStatus.getState() != DAGStatus.State.SUCCEEDED &&
             dagStatus.getState() != DAGStatus.State.FAILED &&
             dagStatus.getState() != DAGStatus.State.KILLED &&
@@ -594,7 +591,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
             + "FinalState=" + dagStatus.getState());
         if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
           LOG.info("DAG " + dagIndex + " diagnostics: "
-            + dagStatus.getDiagnostics());
+              + dagStatus.getDiagnostics());
         }
       }
     } catch (Exception e) {
@@ -616,7 +613,7 @@ public class TestOrderedWordCount extends Configured implements Tool {
   }
 
   private static void waitForTezSessionReady(TezClient tezSession)
-    throws IOException, TezException, InterruptedException {
+      throws IOException, TezException, InterruptedException {
     tezSession.waitTillReady();
   }
 

@@ -72,7 +72,6 @@ public class TestMRInput {
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn(new JobConf(false)).when(inputContext).getContainerConfiguration();
 
-
     MRInput mrInput = new MRInput(inputContext, 0);
 
     mrInput.initialize();
@@ -124,13 +123,11 @@ public class TestMRInput {
     doReturn(TEST_ATTRIBUTES_UNIQUE_IDENTIFIER).when(inputContext).getUniqueIdentifier();
     doReturn(new Configuration(false)).when(inputContext).getContainerConfiguration();
 
-
     DataSourceDescriptor dsd = MRInput.createConfigBuilder(new Configuration(false),
         TestInputFormat.class).groupSplits(false).build();
 
     doReturn(dsd.getInputDescriptor().getUserPayload()).when(inputContext).getUserPayload();
     doReturn(new TezCounters()).when(inputContext).getCounters();
-
 
     MRInput mrInput = new MRInput(inputContext, 1);
     mrInput.initialize();

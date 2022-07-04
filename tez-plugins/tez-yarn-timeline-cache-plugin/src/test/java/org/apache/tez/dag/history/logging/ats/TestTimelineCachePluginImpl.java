@@ -46,7 +46,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
-
 public class TestTimelineCachePluginImpl {
 
   static ApplicationId appId1;
@@ -321,7 +320,6 @@ public class TestTimelineCachePluginImpl {
         new HashSet<String>()));
     Assert.assertNull(plugin.getTimelineEntityGroupId(EntityTypes.TEZ_TASK_ID.name(), null,
         new HashSet<NameValuePair>()));
-
   }
 
   @Test
@@ -377,7 +375,7 @@ public class TestTimelineCachePluginImpl {
     Assert.assertEquals("All groupIds not returned", 1, found);
   }
 
-  private Set<String> getGroupIds(TezDAGID dagId, int ... allNumDagsPerGroup) {
+  private Set<String> getGroupIds(TezDAGID dagId, int... allNumDagsPerGroup) {
     HashSet<String> groupIds = Sets.newHashSet(dagId.toString());
     for (int numDagsPerGroup : allNumDagsPerGroup) {
       groupIds.add(dagId.getGroupId(numDagsPerGroup));

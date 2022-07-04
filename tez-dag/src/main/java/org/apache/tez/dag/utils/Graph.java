@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -169,7 +169,7 @@ public class Graph {
 
   private static String wrapSafeString(String label) {
     if (label.indexOf(',') >= 0) {
-      if (label.length()>14) {
+      if (label.length() > 14) {
         label = label.replaceAll(",", ",\n");
       }
     }
@@ -194,7 +194,7 @@ public class Graph {
       sb.append(System.getProperty("line.separator"));
     }
     for (Graph g : subgraphs) {
-      String ginfo = g.generateGraphViz(indent+"  ");
+      String ginfo = g.generateGraphViz(indent + "  ");
       sb.append(ginfo);
       sb.append(System.getProperty("line.separator"));
     }
@@ -237,7 +237,7 @@ public class Graph {
   }
 
   public void save(String filePath) throws IOException {
-    try (FileOutputStream fout = new FileOutputStream(filePath)){
+    try (FileOutputStream fout = new FileOutputStream(filePath)) {
       fout.write(generateGraphViz().getBytes("UTF-8"));
       fout.close();
     }

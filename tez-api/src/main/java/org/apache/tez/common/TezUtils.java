@@ -55,7 +55,7 @@ public class TezUtils {
 
   /**
    * Allows changing the log level for task / AM logging. </p>
-   *
+   * <p>
    * Adds the JVM system properties necessary to configure
    * {@link org.apache.hadoop.yarn.ContainerLogAppender}.
    *
@@ -70,8 +70,7 @@ public class TezUtils {
   /**
    * Convert a Configuration to compressed ByteString using Protocol buffer
    *
-   * @param conf
-   *          : Configuration to be converted
+   * @param conf : Configuration to be converted
    * @return PB ByteString (compressed)
    * @throws java.io.IOException
    */
@@ -91,7 +90,6 @@ public class TezUtils {
 
   /**
    * Convert a Configuration to a {@link org.apache.tez.dag.api.UserPayload} </p>
-   *
    *
    * @param conf configuration to be converted
    * @return an instance of {@link org.apache.tez.dag.api.UserPayload}
@@ -117,7 +115,7 @@ public class TezUtils {
    */
   public static Configuration createConfFromByteString(ByteString byteString) throws IOException {
     Objects.requireNonNull(byteString, "ByteString must be specified");
-    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput());) {
+    try (SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput());) {
       DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       Configuration conf = new Configuration(false);
       readConfFromPB(confProto, conf);
@@ -132,7 +130,7 @@ public class TezUtils {
     Configuration configuration = new Configuration(baseConf);
     UserPayload payload = context.getUserPayload();
     ByteString byteString = ByteString.copyFrom(payload.getPayload());
-    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
+    try (SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
       DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       readConfFromPB(confProto, configuration);
       TezClassLoader.setupForConfiguration(configuration);
@@ -142,7 +140,7 @@ public class TezUtils {
 
   public static void addToConfFromByteString(Configuration configuration, ByteString byteString)
       throws IOException {
-    try(SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
+    try (SnappyInputStream uncompressIs = new SnappyInputStream(byteString.newInput())) {
       DAGProtos.ConfigurationProto confProto = createConfProto(uncompressIs);
       readConfFromPB(confProto, configuration);
       TezClassLoader.setupForConfiguration(configuration);
@@ -161,7 +159,6 @@ public class TezUtils {
   public static Configuration createConfFromUserPayload(UserPayload payload) throws IOException {
     return createConfFromByteString(ByteString.copyFrom(payload.getPayload()));
   }
-
 
   private static void writeConfInPB(OutputStream dos, Configuration conf) throws IOException {
     DAGProtos.ConfigurationProto.Builder confProtoBuilder = DAGProtos.ConfigurationProto.newBuilder();
@@ -191,7 +188,7 @@ public class TezUtils {
           Entry<String, String> entry = iter.next();
           String key = entry.getKey();
           String val = conf.get(entry.getKey());
-          if(val != null) {
+          if (val != null) {
             confJson.put(key, val);
           } else {
             LOG.debug("null value in Configuration after replacement for key={}. Skipping.", key);
@@ -209,14 +206,13 @@ public class TezUtils {
     return convertToHistoryText(null, conf);
   }
 
-
   /* Copy each Map.Entry with non-null value to DAGProtos.ConfigurationProto */
   public static void populateConfProtoFromEntries(Iterable<Map.Entry<String, String>> params,
-                                              DAGProtos.ConfigurationProto.Builder confBuilder) {
-    for(Map.Entry<String, String> entry : params) {
+                                                  DAGProtos.ConfigurationProto.Builder confBuilder) {
+    for (Map.Entry<String, String> entry : params) {
       String key = entry.getKey();
       String val = entry.getValue();
-      if(val != null) {
+      if (val != null) {
         DAGProtos.PlanKeyValuePair.Builder kvp = DAGProtos.PlanKeyValuePair.newBuilder();
         kvp.setKey(key);
         kvp.setValue(val);
@@ -226,5 +222,4 @@ public class TezUtils {
       }
     }
   }
-
 }

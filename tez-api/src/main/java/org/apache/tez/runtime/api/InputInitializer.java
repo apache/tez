@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,7 +57,7 @@ public abstract class InputInitializer {
    * processing the event being done via this method. The moment this method
    * returns a list of events, input initialization is considered to be
    * complete.
-   * 
+   *
    * @return a list of events which are eventually routed to a
    *         {@link org.apache.tez.dag.api.VertexManagerPlugin} for routing
    * @throws Exception
@@ -80,7 +80,7 @@ public abstract class InputInitializer {
   /**
    * Return ahe {@link org.apache.tez.runtime.api.InputInitializerContext}
    * for this specific instance of the Initializer.
-   * 
+   *
    * @return the {@link org.apache.tez.runtime.api.InputInitializerContext}
    *         for the initializer
    */

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ public class DrainDispatcher extends AsyncDispatcher {
     LOG.info("Registering " + eventType + " for " + handler.getClass());
     if (registeredHandler == null) {
       eventHandlers.put(eventType, handler);
-    } else if (!(registeredHandler instanceof MultiListenerHandler)){
+    } else if (!(registeredHandler instanceof MultiListenerHandler)) {
       /* for multiple listeners of an event add the multiple listener handler */
       MultiListenerHandler multiHandler = new MultiListenerHandler();
       multiHandler.addHandler(registeredHandler);
@@ -62,7 +62,7 @@ public class DrainDispatcher extends AsyncDispatcher {
     } else {
       /* already a multilistener, just add to it */
       MultiListenerHandler multiHandler
-        = (MultiListenerHandler) registeredHandler;
+          = (MultiListenerHandler) registeredHandler;
       multiHandler.addHandler(handler);
     }
   }

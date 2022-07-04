@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,7 @@ public class MemoryDistributor {
   private final int numTotalInputs;
   private final int numTotalOutputs;
   private final Configuration conf;
-  
+
   private AtomicInteger numInputsSeen = new AtomicInteger(0);
   private AtomicInteger numOutputsSeen = new AtomicInteger(0);
 
@@ -101,13 +101,11 @@ public class MemoryDistributor {
         + ", allocatorClassName=" + allocatorClassName);
   }
 
-
-  
   /**
    * Used by the Tez framework to request memory on behalf of user requests.
    */
   public void requestMemory(long requestSize, MemoryUpdateCallback callback,
-      TaskContext taskContext, EntityDescriptor<?> descriptor) {
+                            TaskContext taskContext, EntityDescriptor<?> descriptor) {
     registerRequest(requestSize, callback, taskContext, descriptor);
   }
 
@@ -161,8 +159,6 @@ public class MemoryDistributor {
     }
   }
 
-
-
   /**
    * Allow tests to set memory.
    * @param size
@@ -174,7 +170,7 @@ public class MemoryDistributor {
   }
 
   private long registerRequest(long requestSize, MemoryUpdateCallback callback,
-      TaskContext entityContext, EntityDescriptor<?> descriptor) {
+                               TaskContext entityContext, EntityDescriptor<?> descriptor) {
     Preconditions.checkArgument(requestSize >= 0);
     Objects.requireNonNull(callback);
     Objects.requireNonNull(entityContext);
@@ -184,24 +180,24 @@ public class MemoryDistributor {
           "A single entity can only make one call to request resources for now");
     }
 
-    RequestorInfo requestInfo = new RequestorInfo(entityContext,requestSize, callback, descriptor);
+    RequestorInfo requestInfo = new RequestorInfo(entityContext, requestSize, callback, descriptor);
     switch (requestInfo.getRequestContext().getComponentType()) {
-    case INPUT:
-      numInputsSeen.incrementAndGet();
-      Preconditions.checkState(numInputsSeen.get() <= numTotalInputs,
-          "Num Requesting Inputs higher than total # of inputs: " + numInputsSeen + ", "
-              + numTotalInputs);
-      break;
-    case OUTPUT:
-      numOutputsSeen.incrementAndGet();
-      Preconditions.checkState(numOutputsSeen.get() <= numTotalOutputs,
-          "Num Requesting Inputs higher than total # of outputs: " + numOutputsSeen + ", "
-              + numTotalOutputs);
-      break;
-    case PROCESSOR:
-      break;
-    default:
-      break;
+      case INPUT:
+        numInputsSeen.incrementAndGet();
+        Preconditions.checkState(numInputsSeen.get() <= numTotalInputs,
+            "Num Requesting Inputs higher than total # of inputs: " + numInputsSeen + ", "
+                + numTotalInputs);
+        break;
+      case OUTPUT:
+        numOutputsSeen.incrementAndGet();
+        Preconditions.checkState(numOutputsSeen.get() <= numTotalOutputs,
+            "Num Requesting Inputs higher than total # of outputs: " + numOutputsSeen + ", "
+                + numTotalOutputs);
+        break;
+      case PROCESSOR:
+        break;
+      default:
+        break;
     }
     requestList.add(requestInfo);
     return -1;
@@ -225,7 +221,6 @@ public class MemoryDistributor {
     }
   }
 
-
   private static class RequestorInfo {
 
     private static final Logger LOG = LoggerFactory.getLogger(RequestorInfo.class);
@@ -234,7 +229,7 @@ public class MemoryDistributor {
     private final InitialMemoryRequestContext requestContext;
 
     public RequestorInfo(TaskContext taskContext, long requestSize,
-        final MemoryUpdateCallback callback, EntityDescriptor<?> descriptor) {
+                         final MemoryUpdateCallback callback, EntityDescriptor<?> descriptor) {
       InitialMemoryRequestContext.ComponentType type;
       String componentVertexName;
       if (taskContext instanceof InputContext) {
@@ -264,7 +259,6 @@ public class MemoryDistributor {
     }
   }
 
-
   private void logInitialRequests(List<RequestorInfo> initialRequests) {
     if (initialRequests != null && !initialRequests.isEmpty()) {
       StringBuilder sb = new StringBuilder();
@@ -288,7 +282,7 @@ public class MemoryDistributor {
       Iterator<Long> allocatedIter = allocations.iterator();
       StringBuilder sb = new StringBuilder();
 
-      for (int i = 0 ; i < requestList.size() ; i++) {
+      for (int i = 0; i < requestList.size(); i++) {
         long allocated = allocatedIter.next();
         InitialMemoryRequestContext context = requestList.get(i).getRequestContext();
         sb.append("[");
@@ -304,5 +298,4 @@ public class MemoryDistributor {
       LOG.info("Allocations=" + sb.toString());
     }
   }
-
 }

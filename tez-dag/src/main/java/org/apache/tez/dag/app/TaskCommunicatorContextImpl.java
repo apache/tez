@@ -216,7 +216,7 @@ public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, Ver
   @Override
   public long getFirstAttemptStartTime(String vertexName, int taskIndex) {
     Objects.requireNonNull(vertexName, "VertexName must be specified");
-    Preconditions.checkArgument(taskIndex >=0, "TaskIndex must be > 0");
+    Preconditions.checkArgument(taskIndex >= 0, "TaskIndex must be > 0");
     DAG dag = getDag();
     Vertex vertex = dag.getVertex(vertexName);
     Task task = vertex.getTask(taskIndex);

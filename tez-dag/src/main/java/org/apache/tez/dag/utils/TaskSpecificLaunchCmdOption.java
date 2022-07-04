@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,7 +42,7 @@ public class TaskSpecificLaunchCmdOption {
 
   //To check any characters apart from "a-zA-Z_0-9 : ; , [] - space" anywhere in input.
   final static Pattern INVALID_TASK_NAME_REGEX = Pattern
-    .compile("[^(\\w\\s;:,\\[\\]\\-)]");
+      .compile("[^(\\w\\s;:,\\[\\]\\-)]");
 
   /**
    * Regex to validate the task ranges. Vertex name can only have [a-zA-Z_0-9], -, and
@@ -50,7 +50,7 @@ public class TaskSpecificLaunchCmdOption {
    * as task id separator.
    */
   final static Pattern TASKS_REGEX = Pattern
-    .compile("([\\w\\s\\-]+)\\[([\\d:,\\s]*)\\];?");
+      .compile("([\\w\\s\\-]+)\\[([\\d:,\\s]*)\\];?");
 
   //Range regex where ':' should always be prepended and appended with digit.
   final static Pattern RANGE_REGEX = Pattern.compile("(\\d+):(\\d+)");
@@ -84,7 +84,7 @@ public class TaskSpecificLaunchCmdOption {
    * @return tsLaunchCmdOpts
    */
   public String getTaskSpecificOption(String launchCmdOpts, String vertexName,
-      int taskIdx) {
+                                      int taskIdx) {
     if (this.tsLaunchCmdOpts != null) {
       launchCmdOpts = (launchCmdOpts == null) ? "" : launchCmdOpts;
       vertexName = vertexName.replaceAll(" ", "");
@@ -203,7 +203,7 @@ public class TaskSpecificLaunchCmdOption {
        * allowed.
        */
       if (task.endsWith(":") || task.startsWith(":")) {
-       //invalid range. e.g :20, 6: are not supported.
+        //invalid range. e.g :20, 6: are not supported.
         LOG.warn("Partial range is considered as an invalid option");
         return null;
       }

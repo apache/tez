@@ -31,7 +31,7 @@ public class SplitLocationProviderWrapperMapred implements SplitLocationProvider
   @Override
   public String[] getPreferredLocations(SplitContainer rawContainer) throws IOException,
       InterruptedException {
-    MapredSplitContainer splitContainer = (MapredSplitContainer)rawContainer;
+    MapredSplitContainer splitContainer = (MapredSplitContainer) rawContainer;
     return locationProvider.getLocations(splitContainer.getRawSplit());
   }
 }

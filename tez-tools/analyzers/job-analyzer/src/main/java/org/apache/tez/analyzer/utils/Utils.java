@@ -48,13 +48,13 @@ public class Utils {
   }
 
   public static void generateDAGVizFile(DagInfo dagInfo, String fileName,
-      @Nullable List<String> criticalVertices) throws IOException {
+                                        @Nullable List<String> criticalVertices) throws IOException {
     Graph graph = new Graph(sanitizeLabelForViz(dagInfo.getName()));
 
     for (VertexInfo v : dagInfo.getVertices()) {
       String nodeLabel = sanitizeLabelForViz(v.getVertexName())
           + "[" + getShortClassName(v.getProcessorClassName()
-          + ", tasks=" + v.getTasks().size() + ", time=" + v.getTimeTaken() +" ms]");
+          + ", tasks=" + v.getTasks().size() + ", time=" + v.getTimeTaken() + " ms]");
       Graph.Node n = graph.newNode(sanitizeLabelForViz(v.getVertexName()), nodeLabel);
 
       boolean criticalVertex = (criticalVertices != null) ? criticalVertices.contains(v
@@ -62,7 +62,6 @@ public class Utils {
       if (criticalVertex) {
         n.setColor("red");
       }
-
 
       for (AdditionalInputOutputDetails input : v.getAdditionalInputInfoList()) {
         Graph.Node inputNode = graph.getNode(sanitizeLabelForViz(v.getVertexName())
@@ -84,7 +83,6 @@ public class Utils {
             + " [outputClass=" + getShortClassName(output.getClazz())
             + ", committer=" + getShortClassName(output.getInitializer()) + "]");
       }
-
     }
 
     for (EdgeInfo e : dagInfo.getEdges()) {

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.input;
 
 import java.nio.ByteBuffer;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -249,7 +250,7 @@ public class TestMultiMRInput {
   }
 
   private void assertReaders(MultiMRInput input, LinkedHashMap<LongWritable, Text> data,
-      int expectedReaderCounts, long inputBytes) throws Exception {
+                             int expectedReaderCounts, long inputBytes) throws Exception {
     int readerCount = 0;
     int recordCount = 0;
     for (KeyValueReader reader : input.getKeyValueReaders()) {
@@ -267,7 +268,7 @@ public class TestMultiMRInput {
       try {
         reader.next(); //should throw exception
         fail();
-      } catch(IOException e) {
+      } catch (IOException e) {
         assertTrue(e.getMessage().contains("For usage, please refer to"));
       }
     }
@@ -317,7 +318,7 @@ public class TestMultiMRInput {
   }
 
   private LinkedHashMap<LongWritable, Text> createSplits(int splitCount, Path workDir,
-      Configuration conf, AtomicLong totalSize) throws Exception {
+                                                         Configuration conf, AtomicLong totalSize) throws Exception {
     LinkedHashMap<LongWritable, Text> data = new LinkedHashMap<LongWritable, Text>();
     for (int i = 0; i < splitCount; ++i) {
       int start = i * 10;
@@ -359,8 +360,8 @@ public class TestMultiMRInput {
   }
 
   public static LinkedHashMap<LongWritable, Text> createInputData(FileSystem fs, Path workDir,
-      Configuration job, String filename, long startKey, long numKeys, AtomicLong fileLength)
-          throws IOException {
+                                                                  Configuration job, String filename, long startKey, long numKeys, AtomicLong fileLength)
+      throws IOException {
     LinkedHashMap<LongWritable, Text> data = new LinkedHashMap<LongWritable, Text>();
     Path file = new Path(workDir, filename);
     LOG.info("Generating data at path: " + file);

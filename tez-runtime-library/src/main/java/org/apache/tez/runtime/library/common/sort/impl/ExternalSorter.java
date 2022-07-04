@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
@@ -84,7 +84,7 @@ public abstract class ExternalSorter {
   public void write(Object key, Iterable<Object> values) throws IOException {
     //TODO: Sorter classes should override this method later.
     Iterator<Object> it = values.iterator();
-    while(it.hasNext()) {
+    while (it.hasNext()) {
       write(key, it.next());
     }
   }
@@ -109,7 +109,7 @@ public abstract class ExternalSorter {
   protected final SerializationContext serializationContext;
   protected final Serializer keySerializer;
   protected final Serializer valSerializer;
-  
+
   protected final boolean ifileReadAhead;
   protected final int ifileReadAheadLength;
   protected final int ifileBufferSize;
@@ -156,7 +156,7 @@ public abstract class ExternalSorter {
   // additional spills. Compressed size - so may not represent the size in the
   // sort buffer)
   protected final TezCounter additionalSpillBytesWritten;
-  
+
   protected final TezCounter additionalSpillBytesRead;
   // Number of spills written & consumed by the same task to generate the final file
   protected final TezCounter numAdditionalSpills;
@@ -166,21 +166,21 @@ public abstract class ExternalSorter {
   final ReportPartitionStats reportPartitionStats;
 
   public ExternalSorter(OutputContext outputContext, Configuration conf, int numOutputs,
-      long initialMemoryAvailable) throws IOException {
+                        long initialMemoryAvailable) throws IOException {
     this.outputContext = outputContext;
     this.conf = conf;
     this.localFs = (RawLocalFileSystem) FileSystem.getLocal(conf).getRaw();
     this.partitions = numOutputs;
     reportPartitionStats = ReportPartitionStats.fromString(
         conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
-        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
+            TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
     partitionStats = reportPartitionStats.isEnabled() ?
         (new long[partitions]) : null;
 
     cleanup = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT,
         TezRuntimeConfiguration.TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT_DEFAULT);
 
-    rfs = ((LocalFileSystem)FileSystem.getLocal(this.conf)).getRaw();
+    rfs = ((LocalFileSystem) FileSystem.getLocal(this.conf)).getRaw();
 
     if (LOG.isDebugEnabled()) {
       LOG.debug(outputContext.getInputOutputVertexNames() + ": Initial Mem bytes : " +
@@ -237,7 +237,6 @@ public abstract class ExternalSorter {
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
-    
     // Task outputs
     mapOutputFile = TezRuntimeUtils.instantiateTaskOutputManager(conf, outputContext);
 
@@ -285,7 +284,7 @@ public abstract class ExternalSorter {
   }
 
   protected void runCombineProcessor(TezRawKeyValueIterator kvIter,
-      Writer writer) throws IOException {
+                                     Writer writer) throws IOException {
     try {
       outputContext.notifyProgress();
       combiner.combine(kvIter, writer);
@@ -325,9 +324,9 @@ public abstract class ExternalSorter {
   }
 
   public static long getInitialMemoryRequirement(Configuration conf, long maxAvailableTaskMemory) {
-    int initialMemRequestMb = 
+    int initialMemRequestMb =
         conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB,
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
     long reqBytes = ((long) initialMemRequestMb) << 20;
     //Higher bound checks are done in individual sorter implementations
@@ -365,8 +364,8 @@ public abstract class ExternalSorter {
     try {
       LOG.info("Deleting " + path);
       rfs.delete(path, true);
-    } catch(IOException ioe) {
-      LOG.warn("Error in deleting "  + path);
+    } catch (IOException ioe) {
+      LOG.warn("Error in deleting " + path);
     }
   }
 
@@ -374,7 +373,7 @@ public abstract class ExternalSorter {
     if (!cleanup) {
       return;
     }
-    for(Map.Entry<Integer, Path> entry : spillMap.entrySet()) {
+    for (Map.Entry<Integer, Path> entry : spillMap.entrySet()) {
       cleanup(entry.getValue());
     }
   }

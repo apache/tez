@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -221,9 +221,9 @@ public class TestHistoryEventJsonConversion {
             ApplicationId.newInstance(1l, 1), 1), 1);
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
-    
+
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
-        .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
+            .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));
     VertexConfigurationDoneEvent event = new VertexConfigurationDoneEvent(vId, 0L, 1, null,
         edgeMgrs, null, true);
@@ -253,8 +253,5 @@ public class TestHistoryEventJsonConversion {
         updatedEdgeMgr.getString(DAGUtils.DATA_MOVEMENT_TYPE_KEY));
     Assert.assertEquals("In", updatedEdgeMgr.getString(DAGUtils.EDGE_DESTINATION_CLASS_KEY));
     Assert.assertEquals("a.class", updatedEdgeMgr.getString(DAGUtils.EDGE_MANAGER_CLASS_KEY));
-
   }
-
-
 }

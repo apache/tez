@@ -93,11 +93,10 @@ public class TFileLoader extends FileInputLoadFunc implements LoadMetadata {
       PigFileInputFormat<Text, Text> {
     @Override
     public RecordReader<Text, Text> createRecordReader(InputSplit split,
-        TaskAttemptContext context) throws IOException,
+                                                       TaskAttemptContext context) throws IOException,
         InterruptedException {
       return new TFileRecordReader();
     }
-
   }
 
   @Override
@@ -142,5 +141,4 @@ public class TFileLoader extends FileInputLoadFunc implements LoadMetadata {
   public void setPartitionFilter(Expression plan) throws IOException {
     throw new UnsupportedOperationException("setPartitionFilter() not yet supported");
   }
-
 }

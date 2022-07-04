@@ -64,7 +64,8 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
 
   private BufferedReader currentValueReader;
 
-  @Override public void initialize(InputSplit split, TaskAttemptContext context)
+  @Override
+  public void initialize(InputSplit split, TaskAttemptContext context)
       throws IOException, InterruptedException {
     FileSplit fileSplit = (FileSplit) split;
     LOG.info("Initializing TFileRecordReader : " + fileSplit.getPath().toString());
@@ -98,7 +99,8 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     value.set((line == null) ? "" : line);
   }
 
-  @Override public boolean nextKeyValue() throws IOException, InterruptedException {
+  @Override
+  public boolean nextKeyValue() throws IOException, InterruptedException {
     if (currentValueReader != null) {
       //Still at the old entry reading line by line
       String line = currentValueReader.readLine();
@@ -114,26 +116,30 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     try {
       populateKV(scanner.entry());
       return true;
-    } catch(EOFException eofException) {
+    } catch (EOFException eofException) {
       key = null;
       value = null;
       return false;
     }
   }
 
-  @Override public Text getCurrentKey() throws IOException, InterruptedException {
+  @Override
+  public Text getCurrentKey() throws IOException, InterruptedException {
     return key;
   }
 
-  @Override public Text getCurrentValue() throws IOException, InterruptedException {
+  @Override
+  public Text getCurrentValue() throws IOException, InterruptedException {
     return value;
   }
 
-  @Override public float getProgress() throws IOException, InterruptedException {
+  @Override
+  public float getProgress() throws IOException, InterruptedException {
     return ((fin.getPos() - start) * 1.0f) / ((end - start) * 1.0f);
   }
 
-  @Override public void close() throws IOException {
+  @Override
+  public void close() throws IOException {
     IOUtils.closeQuietly(scanner);
     IOUtils.closeQuietly(reader);
     IOUtils.closeQuietly(fin);

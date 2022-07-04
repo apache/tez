@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.rm;
 
@@ -90,9 +90,9 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   static Resource createResource(long runtimeMemory, int core) {
     if (runtimeMemory < 0 || core < 0) {
       throw new IllegalArgumentException("Negative Memory or Core provided!"
-          + "mem: "+runtimeMemory+" core:"+core);
+          + "mem: " + runtimeMemory + " core:" + core);
     }
-    return Resource.newInstance(Ints.checkedCast(runtimeMemory/(1024*1024)), core);
+    return Resource.newInstance(Ints.checkedCast(runtimeMemory / (1024 * 1024)), core);
   }
 
   @Override
@@ -122,15 +122,15 @@ public class LocalTaskSchedulerService extends TaskScheduler {
 
   @Override
   public void allocateTask(Object task, Resource capability, String[] hosts,
-      String[] racks, Priority priority, Object containerSignature,
-      Object clientCookie) {
+                           String[] racks, Priority priority, Object containerSignature,
+                           Object clientCookie) {
     taskRequestHandler.addAllocateTaskRequest(task, capability, priority, clientCookie);
   }
 
   @Override
   public synchronized void allocateTask(Object task, Resource capability,
-      ContainerId containerId, Priority priority, Object containerSignature,
-      Object clientCookie) {
+                                        ContainerId containerId, Priority priority, Object containerSignature,
+                                        Object clientCookie) {
     // in local mode every task is already container level local
     taskRequestHandler.addAllocateTaskRequest(task, capability, priority, clientCookie);
   }
@@ -250,7 +250,6 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     public int hashCode() {
       return 7841 + (task != null ? task.hashCode() : 0);
     }
-
   }
 
   static class AllocateTaskRequest extends TaskRequest implements Comparable<AllocateTaskRequest> {
@@ -348,10 +347,10 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     final int MAX_TASKS;
 
     AsyncDelegateRequestHandler(LinkedBlockingQueue<SchedulerRequest> clientRequestQueue,
-        LocalContainerFactory localContainerFactory,
-        HashMap<Object, AllocatedTask> taskAllocations,
-        TaskSchedulerContext taskSchedulerContext,
-        Configuration conf) {
+                                LocalContainerFactory localContainerFactory,
+                                HashMap<Object, AllocatedTask> taskAllocations,
+                                TaskSchedulerContext taskSchedulerContext,
+                                Configuration conf) {
       this.clientRequestQueue = clientRequestQueue;
       this.localContainerFactory = localContainerFactory;
       this.taskAllocations = taskAllocations;
@@ -366,6 +365,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
         vertexDescendants = null;
       }
     }
+
     private void ensureVertexDescendants() {
       synchronized (descendantsLock) {
         if (vertexDescendants == null) {
@@ -384,7 +384,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     }
 
     public void addAllocateTaskRequest(Object task, Resource capability, Priority priority,
-        Object clientCookie) {
+                                       Object clientCookie) {
       try {
         int vertexIndex = taskSchedulerContext.getVertexIndexForTask(task);
         clientRequestQueue.put(new AllocateTaskRequest(task, vertexIndex, capability, priority, clientCookie));
@@ -432,18 +432,15 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       try {
         SchedulerRequest request = clientRequestQueue.take();
         if (request instanceof AllocateTaskRequest) {
-          taskRequestQueue.put((AllocateTaskRequest)request);
+          taskRequestQueue.put((AllocateTaskRequest) request);
           if (shouldPreempt()) {
             maybePreempt((AllocateTaskRequest) request);
           }
-        }
-        else if (request instanceof DeallocateTaskRequest) {
-          deallocateTask((DeallocateTaskRequest)request);
-        }
-        else if (request instanceof DeallocateContainerRequest) {
-          preemptTask((DeallocateContainerRequest)request);
-        }
-        else {
+        } else if (request instanceof DeallocateTaskRequest) {
+          deallocateTask((DeallocateTaskRequest) request);
+        } else if (request instanceof DeallocateContainerRequest) {
+          preemptTask((DeallocateContainerRequest) request);
+        } else {
           LOG.error("Unknown task request message: " + request);
         }
       } catch (InterruptedException e) {
@@ -460,7 +457,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
           Object task = entry.getKey();
           ensureVertexDescendants();
           if (vertexDescendants.get(request.vertexIndex).get(allocatedTask.request.vertexIndex)) {
-            LOG.info("Preempting task/container for task/priority:"  + task + "/" + container
+            LOG.info("Preempting task/container for task/priority:" + task + "/" + container
                 + " for " + request.task + "/" + priority);
             taskSchedulerContext.preemptContainer(allocatedTask.container.getId());
           }
@@ -484,8 +481,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       AllocatedTask allocatedTask = taskAllocations.remove(request.task);
       if (allocatedTask != null) {
         taskSchedulerContext.containerBeingReleased(allocatedTask.container.getId());
-      }
-      else {
+      } else {
         Iterator<AllocateTaskRequest> iter = taskRequestQueue.iterator();
         while (iter.hasNext()) {
           TaskRequest taskRequest = iter.next();

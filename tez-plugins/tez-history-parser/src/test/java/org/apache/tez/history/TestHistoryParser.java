@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -184,9 +184,7 @@ public class TestHistoryParser {
     tezConf.set(TezConfiguration.TEZ_HISTORY_LOGGING_SERVICE_CLASS,
         ATSHistoryLoggingService.class.getName());
     yarnTimelineAddress = miniTezCluster.getConfig().get(YarnConfiguration.TIMELINE_SERVICE_WEBAPP_ADDRESS);
-
   }
-
 
   /**
    * Run a word count example in mini cluster and check if it is possible to download
@@ -202,7 +200,7 @@ public class TestHistoryParser {
         WordCount.SumProcessor.class.getName(), "WordCount", true);
 
     //Export the data from ATS
-    String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
+    String[] args = {"--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress};
 
     int result = ATSImportTool.process(args);
     assertTrue(result == 0);
@@ -309,7 +307,7 @@ public class TestHistoryParser {
           for (TaskAttemptInfo attempt : attempts) {
             DataDependencyEvent item = attempt.getLastDataEvents().get(0);
             assertTrue(item.getTimestamp() > 0);
-            
+
             if (lastDataEventSourceTA == null) {
               lastDataEventSourceTA = item.getTaskAttemptId();
             } else {
@@ -350,20 +348,20 @@ public class TestHistoryParser {
   @Test
   public void testParserWithSuccessfulJob_InvalidATS() throws Exception {
     //Run basic word count example.
-    String dagId =  runWordCount(WordCount.TokenProcessor.class.getName(),
+    String dagId = runWordCount(WordCount.TokenProcessor.class.getName(),
         WordCount.SumProcessor.class.getName(), "WordCount-With-WrongATS-URL", true);
 
     //Export the data from ATS
     String atsAddress = "--atsAddress=http://atsHost:8188";
-    String[] args = { "--dagId=" + dagId,
+    String[] args = {"--dagId=" + dagId,
         "--downloadDir=" + DOWNLOAD_DIR,
         atsAddress
-      };
+    };
 
     try {
       int result = ATSImportTool.process(args);
       fail("Should have failed with processException");
-    } catch(ParseException e) {
+    } catch (ParseException e) {
       //expects exception
     }
   }
@@ -378,7 +376,7 @@ public class TestHistoryParser {
         .getName(), "WordCount-With-Exception", true);
 
     //Export the data from ATS
-    String[] args = { "--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress };
+    String[] args = {"--dagId=" + dagId, "--downloadDir=" + DOWNLOAD_DIR, "--yarnTimelineAddress=" + yarnTimelineAddress};
 
     int result = ATSImportTool.process(args);
     assertTrue(result == 0);
@@ -435,7 +433,6 @@ public class TestHistoryParser {
 
     //Verify if the processor exception is given in diagnostics
     assertTrue(dagInfo.getDiagnostics().contains("Failing this processor for some reason"));
-
   }
 
   /**
@@ -559,7 +556,7 @@ public class TestHistoryParser {
   }
 
   private void isTaskAttemptEqual(Collection<TaskAttemptInfo> info1,
-      Collection<TaskAttemptInfo> info2) {
+                                  Collection<TaskAttemptInfo> info2) {
     assertTrue("sizes should be the same", info1.size() == info1.size());
     Iterator<TaskAttemptInfo> it1 = info1.iterator();
     Iterator<TaskAttemptInfo> it2 = info2.iterator();
@@ -581,7 +578,6 @@ public class TestHistoryParser {
     //Verify counters
     isCountersSame(info1, info2);
   }
-
 
   /**
    * Create sample file for wordcount program
@@ -611,7 +607,7 @@ public class TestHistoryParser {
   }
 
   private void verifyCounter(Map<String, TezCounter> counterMap,
-      String counterGroupName, long expectedVal) {
+                             String counterGroupName, long expectedVal) {
     //Iterate through group-->tezCounter
     for (Map.Entry<String, TezCounter> entry : counterMap.entrySet()) {
       if (counterGroupName != null) {
@@ -643,7 +639,7 @@ public class TestHistoryParser {
   }
 
   private String runWordCount(String tokenizerProcessor, String summationProcessor,
-      String dagName, boolean withTimeline)
+                              String dagName, boolean withTimeline)
       throws Exception {
     //HDFS path
     Path outputLoc = new Path("/tmp/outPath_" + System.currentTimeMillis());

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,7 +59,7 @@ public class MRInputUtils {
     return MRInputHelpers.createNewFormatSplitFromUserPayload(
         splitProto, serializationFactory);
   }
-  
+
   @SuppressWarnings("unchecked")
   public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromDisk(
       TaskSplitIndex splitMetaInfo, JobConf jobConf, TezCounter splitBytesCounter)
@@ -97,7 +97,7 @@ public class MRInputUtils {
 
   @SuppressWarnings("unchecked")
   public static InputSplit getOldSplitDetailsFromDisk(TaskSplitIndex splitMetaInfo,
-      JobConf jobConf, TezCounter splitBytesCounter) throws IOException {
+                                                      JobConf jobConf, TezCounter splitBytesCounter) throws IOException {
     Path file = new Path(splitMetaInfo.getSplitLocation());
     FileSystem fs = FileSystem.getLocal(jobConf);
     file = fs.makeQualified(file);
@@ -127,7 +127,7 @@ public class MRInputUtils {
     inFile.close();
     return split;
   }
-  
+
   @Private
   public static InputSplit getOldSplitDetailsFromEvent(MRSplitProto splitProto, Configuration conf)
       throws IOException {

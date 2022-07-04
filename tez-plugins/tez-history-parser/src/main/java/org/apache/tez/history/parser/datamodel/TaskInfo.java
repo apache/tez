@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -85,16 +85,16 @@ public class TaskInfo extends BaseInfo {
           + "timestamps in DAG started/finished events");
 
       // Check if events TASK_STARTED, TASK_FINISHED can be made use of
-      for(Event event : eventList) {
+      for (Event event : eventList) {
         switch (HistoryEventType.valueOf(event.getType())) {
-        case TASK_STARTED:
-          sTime = event.getAbsoluteTime();
-          break;
-        case TASK_FINISHED:
-          eTime = event.getAbsoluteTime();
-          break;
-        default:
-          break;
+          case TASK_STARTED:
+            sTime = event.getAbsoluteTime();
+            break;
+          case TASK_FINISHED:
+            eTime = event.getAbsoluteTime();
+            break;
+          default:
+            break;
         }
       }
 
@@ -128,7 +128,7 @@ public class TaskInfo extends BaseInfo {
 
   @Override
   public final long getFinishTimeInterval() {
-    long taskFinishTime =  endTime - (vertexInfo.getDagInfo().getStartTime());
+    long taskFinishTime = endTime - (vertexInfo.getDagInfo().getStartTime());
     if (taskFinishTime < 0) {
       //probably vertex is not complete or failed in middle. get the last task attempt time
       for (TaskAttemptInfo attemptInfo : getTaskAttempts()) {
@@ -267,7 +267,8 @@ public class TaskInfo extends BaseInfo {
     }
 
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
-      @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
+      @Override
+      public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
         return (o1.getFinishTimeInterval() < o2.getFinishTimeInterval()) ? -1 :
             ((o1.getFinishTimeInterval() == o2.getFinishTimeInterval()) ?
                 0 : 1);
@@ -294,7 +295,8 @@ public class TaskInfo extends BaseInfo {
 
   private Ordering<TaskAttemptInfo> orderingOnTimeTaken() {
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
-      @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
+      @Override
+      public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
         return (o1.getTimeTaken() < o2.getTimeTaken()) ? -1 :
             ((o1.getTimeTaken() == o2.getTimeTaken()) ?
                 0 : 1);
@@ -304,7 +306,8 @@ public class TaskInfo extends BaseInfo {
 
   private Ordering<TaskAttemptInfo> orderingOnAttemptStartTime() {
     return Ordering.from(new Comparator<TaskAttemptInfo>() {
-      @Override public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
+      @Override
+      public int compare(TaskAttemptInfo o1, TaskAttemptInfo o2) {
         return (o1.getStartTimeInterval() < o2.getStartTimeInterval()) ? -1 :
             ((o1.getStartTimeInterval() == o2.getStartTimeInterval()) ? 0 : 1);
       }

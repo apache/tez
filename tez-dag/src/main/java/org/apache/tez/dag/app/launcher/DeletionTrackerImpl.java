@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,6 @@
  */
 
 package org.apache.tez.dag.app.launcher;
-
 
 import java.util.HashMap;
 import java.util.Map;
@@ -96,7 +95,7 @@ public class DeletionTrackerImpl extends DeletionTracker {
   @Override
   public void addNodeShufflePort(NodeId nodeId, int port) {
     if (port != TezRuntimeUtils.INVALID_PORT) {
-      if(nodeIdShufflePortMap.get(nodeId) == null) {
+      if (nodeIdShufflePortMap.get(nodeId) == null) {
         nodeIdShufflePortMap.put(nodeId, port);
       }
     }
@@ -127,7 +126,7 @@ public class DeletionTrackerImpl extends DeletionTracker {
       }
       if (shufflePort != null) {
         VertexDeleteRunnable vertexDeleteRunnable = new VertexDeleteRunnable(vertex, jobTokenSecretManager, nodeId,
-                shufflePort, vertexId, TezRuntimeUtils.getHttpConnectionParams(conf));
+            shufflePort, vertexId, TezRuntimeUtils.getHttpConnectionParams(conf));
         try {
           dagCleanupService.submit(vertexDeleteRunnable);
         } catch (RejectedExecutionException rejectedException) {

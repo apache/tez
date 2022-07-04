@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,8 +47,8 @@ import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUs
 public class CartesianProductConfig {
   private final boolean isPartitioned;
   private final String[] sources;
- // numPartition[i] means how many partitions sourceVertices[i] will generate
- // (not used in fair cartesian product)
+  // numPartition[i] means how many partitions sourceVertices[i] will generate
+  // (not used in fair cartesian product)
   private final int[] numPartitions;
   private final CartesianProductFilterDescriptor filterDescriptor;
 
@@ -59,7 +59,7 @@ public class CartesianProductConfig {
   public CartesianProductConfig(List<String> sources) {
     Preconditions.checkArgument(sources != null, "source list cannot be null");
     Preconditions.checkArgument(sources.size() > 1,
-      "there must be more than 1 source " + "67, currently only " + sources.size());
+        "there must be more than 1 source " + "67, currently only " + sources.size());
 
     this.isPartitioned = false;
     this.sources = sources.toArray(new String[sources.size()]);
@@ -84,7 +84,7 @@ public class CartesianProductConfig {
                                 CartesianProductFilterDescriptor filterDescriptor) {
     Preconditions.checkArgument(vertexPartitionMap != null, "vertex-partition map cannot be null");
     Preconditions.checkArgument(vertexPartitionMap.size() > 1,
-      "there must be more than 1 source vertices, currently only " + vertexPartitionMap.size());
+        "there must be more than 1 source vertices, currently only " + vertexPartitionMap.size());
 
     this.isPartitioned = true;
     this.numPartitions = new int[vertexPartitionMap.size()];
@@ -113,10 +113,10 @@ public class CartesianProductConfig {
     Preconditions.checkArgument(numPartitions != null, "partitions count array can't be null");
     Preconditions.checkArgument(sources != null, "source array can't be null");
     Preconditions.checkArgument(numPartitions.length == sources.length,
-      "partitions count array(length: " + numPartitions.length + ") and source array " +
-        "(length: " + sources.length + ") cannot have different length");
+        "partitions count array(length: " + numPartitions.length + ") and source array " +
+            "(length: " + sources.length + ") cannot have different length");
     Preconditions.checkArgument(sources.length > 1,
-      "there must be more than 1 source " + ", currently only " + sources.length);
+        "there must be more than 1 source " + ", currently only " + sources.length);
 
     this.isPartitioned = true;
     this.numPartitions = numPartitions;
@@ -144,14 +144,14 @@ public class CartesianProductConfig {
       boolean isUnpartitioned = true;
       for (int i = 0; i < numPartitions.length; i++) {
         Preconditions.checkArgument(this.numPartitions[i] > 0,
-          "Vertex " + sources[i] + "has negative (" + numPartitions[i] + ") partitions");
+            "Vertex " + sources[i] + "has negative (" + numPartitions[i] + ") partitions");
         isUnpartitioned = isUnpartitioned && numPartitions[i] == 1;
       }
       Preconditions.checkArgument(!isUnpartitioned,
-        "every source has 1 partition in a partitioned case");
+          "every source has 1 partition in a partitioned case");
     } else {
       Preconditions.checkArgument(this.numPartitions == null,
-        "partition counts should be null in fair cartesian product");
+          "partition counts should be null in fair cartesian product");
     }
   }
 
@@ -187,9 +187,9 @@ public class CartesianProductConfig {
 
   protected CartesianProductConfigProto toProto(TezConfiguration conf) {
     CartesianProductConfigProto.Builder builder =
-      CartesianProductConfigProto.newBuilder();
+        CartesianProductConfigProto.newBuilder();
     builder.setIsPartitioned(this.isPartitioned)
-      .addAllSources(Arrays.asList(sources));
+        .addAllSources(Arrays.asList(sources));
 
     if (isPartitioned) {
       builder.addAllNumPartitions(Ints.asList(numPartitions));
@@ -204,60 +204,60 @@ public class CartesianProductConfig {
 
     if (conf != null) {
       builder.setMinFraction(conf.getFloat(
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT));
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION,
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT));
       builder.setMaxFraction(conf.getFloat(
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT));
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION,
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT));
       builder.setMaxParallelism(conf.getInt(
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT));
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM,
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MAX_PARALLELISM_DEFAULT));
       builder.setMinOpsPerWorker(conf.getLong(
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT));
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER,
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_MIN_OPS_PER_WORKER_DEFAULT));
       builder.setEnableGrouping(conf.getBoolean(
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING,
-        CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT));
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING,
+          CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_ENABLE_GROUPING_DEFAULT));
       if (conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION) != null) {
         builder.setGroupingFraction(Float.parseFloat(
-          conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION)));
+            conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_GROUPING_FRACTION)));
         Preconditions.checkArgument(0 < builder.getGroupingFraction() &&
-          builder.getGroupingFraction() <= 1, "grouping fraction should be larger than 0 and less" +
-          " or equal to 1, current value: " + builder.getGroupingFraction());
+            builder.getGroupingFraction() <= 1, "grouping fraction should be larger than 0 and less" +
+            " or equal to 1, current value: " + builder.getGroupingFraction());
       }
       if (conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS) != null) {
         builder.setNumPartitionsForFairCase(Integer.parseInt(
-          conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS)));
+            conf.get(CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_NUM_PARTITIONS)));
         Preconditions.checkArgument(builder.getNumPartitionsForFairCase() > 0,
-          "Number of partitions for fair cartesian product should be positive integer");
+            "Number of partitions for fair cartesian product should be positive integer");
       }
     }
     Preconditions.checkArgument(builder.getMinFraction() <= builder.getMaxFraction(),
-      "min fraction(" + builder.getMinFraction() + ") should be less than max fraction(" +
-        builder.getMaxFraction() + ") in cartesian product slow start");
+        "min fraction(" + builder.getMinFraction() + ") should be less than max fraction(" +
+            builder.getMaxFraction() + ") in cartesian product slow start");
     Preconditions.checkArgument(builder.getMaxParallelism() > 0,
-      "max parallelism must be positive, currently is " + builder.getMaxParallelism());
+        "max parallelism must be positive, currently is " + builder.getMaxParallelism());
     Preconditions.checkArgument(builder.getMinOpsPerWorker() > 0,
-      "Min ops per worker must be positive, currently is " + builder.getMinOpsPerWorker());
+        "Min ops per worker must be positive, currently is " + builder.getMinOpsPerWorker());
 
     return builder.build();
   }
 
   protected static CartesianProductConfigProto userPayloadToProto(UserPayload payload)
-    throws InvalidProtocolBufferException {
+      throws InvalidProtocolBufferException {
     Preconditions.checkArgument(payload != null, "UserPayload is null");
     Preconditions.checkArgument(payload.getPayload() != null, "UserPayload carreis null payload");
     return
-      CartesianProductConfigProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
+        CartesianProductConfigProto.parseFrom(ByteString.copyFrom(payload.getPayload()));
   }
 
   protected static CartesianProductConfig fromUserPayload(UserPayload payload)
-    throws InvalidProtocolBufferException {
+      throws InvalidProtocolBufferException {
     return fromProto(userPayloadToProto(payload));
   }
 
   protected static CartesianProductConfig fromProto(
-    CartesianProductConfigProto proto) {
+      CartesianProductConfigProto proto) {
     if (!proto.getIsPartitioned()) {
       return new CartesianProductConfig(proto.getSourcesList());
     } else {
@@ -268,11 +268,11 @@ public class CartesianProductConfig {
         filterDescriptor = new CartesianProductFilterDescriptor(proto.getFilterClassName());
         if (proto.hasFilterUserPayload()) {
           filterDescriptor.setUserPayload(
-            UserPayload.create(ByteBuffer.wrap(proto.getFilterUserPayload().toByteArray())));
+              UserPayload.create(ByteBuffer.wrap(proto.getFilterUserPayload().toByteArray())));
         }
       }
       return new CartesianProductConfig(Ints.toArray(proto.getNumPartitionsList()),
-        sourceVertices, filterDescriptor);
+          sourceVertices, filterDescriptor);
     }
   }
 }

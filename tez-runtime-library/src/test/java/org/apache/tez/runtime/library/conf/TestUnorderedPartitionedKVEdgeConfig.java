@@ -39,7 +39,7 @@ import org.junit.Test;
 
 public class TestUnorderedPartitionedKVEdgeConfig {
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testNullParams() {
     try {
       UnorderedPartitionedKVEdgeConfig.newBuilder(null, "VALUE", "PARTITIONER");
@@ -63,7 +63,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     }
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testDefaultConfigsUsed() {
     UnorderedPartitionedKVEdgeConfig.Builder builder =
         UnorderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", "PARTITIONER");
@@ -96,7 +96,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         ("SerClass2,SerClass1"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     UnorderedPartitionedKVEdgeConfig.Builder builder =
@@ -120,7 +120,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void tetCommonConf() {
 
     Configuration fromConf = new Configuration(false);
@@ -201,7 +201,7 @@ public class TestUnorderedPartitionedKVEdgeConfig {
         TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testHistoryText() {
     UnorderedPartitionedKVEdgeConfig.Builder builder =
         UnorderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", "PARTITIONER");
@@ -223,7 +223,5 @@ public class TestUnorderedPartitionedKVEdgeConfig {
     EdgeProperty edgeProperty = builder.build().createDefaultCustomEdgeProperty(descriptor);
     checkHistoryText(edgeProperty.getEdgeDestination().getHistoryText());
     checkHistoryText(edgeProperty.getEdgeSource().getHistoryText());
-
   }
-
 }

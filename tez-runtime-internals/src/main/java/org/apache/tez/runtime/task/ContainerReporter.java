@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Responsible for communication between a running Container and the ApplicationMaster. The main
  * functionality is to poll for new tasks.
- * 
+ *
  */
 public class ContainerReporter extends CallableWithNdc<ContainerTask> {
 
@@ -45,7 +45,7 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
   private long nextGetTaskPrintTime;
 
   ContainerReporter(TezTaskUmbilicalProtocol umbilical, ContainerContext containerContext,
-      int getTaskMaxSleepTime) {
+                    int getTaskMaxSleepTime) {
     this.umbilical = umbilical;
     this.containerContext = containerContext;
     this.getTaskMaxSleepTime = getTaskMaxSleepTime;
@@ -70,7 +70,7 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
         + " TaskInfo: shouldDie: "
         + containerTask.shouldDie()
         + (containerTask.shouldDie() == true ? "" : ", currentTaskAttemptId: "
-            + containerTask.getTaskSpec().getTaskAttemptID()));
+        + containerTask.getTaskSpec().getTaskAttemptID()));
     return containerTask;
   }
 

@@ -117,7 +117,7 @@ public class HadoopShimsLoader {
         try {
           LOG.debug("Using Reflection to create HadoopShim from provider class="
               + overrideProviderClassStr);
-          Class<HadoopShimProvider> clazz = (Class<HadoopShimProvider>)Class.forName(
+          Class<HadoopShimProvider> clazz = (Class<HadoopShimProvider>) Class.forName(
               overrideProviderClassStr, true, Thread.currentThread().getContextClassLoader());
           selectedShimProvider = clazz.newInstance();
           selectedShim = selectedShimProvider.createHadoopShim(versionStr,
@@ -143,7 +143,6 @@ public class HadoopShimsLoader {
         + ", hadoopVersion=" + versionStr
         + ", majorVersion=" + version.majorVersion
         + ", minorVersion=" + version.minorVersion);
-
   }
 
   public HadoopShim getHadoopShim() {
@@ -181,5 +180,4 @@ public class HadoopShimsLoader {
       }
     }
   }
-
 }

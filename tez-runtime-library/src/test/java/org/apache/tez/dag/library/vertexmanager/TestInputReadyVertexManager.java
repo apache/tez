@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,18 +47,18 @@ import com.google.common.collect.Lists;
 
 @SuppressWarnings("unchecked")
 public class TestInputReadyVertexManager {
-  
+
   @Captor
   ArgumentCaptor<List<ScheduleTaskRequest>> requestCaptor;
-  
+
   @Before
   public void init() {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testBasicScatterGather() throws Exception {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -67,9 +67,9 @@ public class TestInputReadyVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     String mockManagedVertexId = "Vertex";
-    
+
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
@@ -95,10 +95,10 @@ public class TestInputReadyVertexManager {
     verify(mockContext, times(1)).scheduleTasks(requestCaptor.capture());
     Assert.assertEquals(2, requestCaptor.getValue().size());
   }
-  
-  @Test (timeout=5000)
+
+  @Test(timeout = 5000)
   public void testBasicOneToOne() throws Exception {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -107,16 +107,16 @@ public class TestInputReadyVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     String mockManagedVertexId = "Vertex";
-    
+
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
     mockInputVertices.put(mockSrcVertexId1, eProp1);
-    
+
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
     verify(mockContext, times(1)).vertexReconfigurationPlanned();
@@ -152,10 +152,10 @@ public class TestInputReadyVertexManager {
     Assert.assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
   }
-  
-  @Test (timeout=5000)
+
+  @Test(timeout = 5000)
   public void testDelayedConfigureOneToOne() throws Exception {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -164,16 +164,16 @@ public class TestInputReadyVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     String mockManagedVertexId = "Vertex";
-    
+
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(3);
     mockInputVertices.put(mockSrcVertexId1, eProp1);
-    
+
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
     manager.initialize();
     verify(mockContext, times(1)).vertexReconfigurationPlanned();
@@ -189,7 +189,7 @@ public class TestInputReadyVertexManager {
     // then source vertex configured. now we start
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     verify(mockContext, times(1)).doneReconfiguringVertex();
-    
+
     verify(mockContext, times(2)).scheduleTasks(requestCaptor.capture());
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 2));
@@ -202,9 +202,9 @@ public class TestInputReadyVertexManager {
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex());
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testComplex() throws Exception {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -227,7 +227,7 @@ public class TestInputReadyVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     String mockManagedVertexId = "Vertex";
     Container mockContainer2 = mock(Container.class);
     ContainerId mockCId2 = mock(ContainerId.class);
@@ -235,7 +235,7 @@ public class TestInputReadyVertexManager {
     Container mockContainer3 = mock(Container.class);
     ContainerId mockCId3 = mock(ContainerId.class);
     when(mockContainer3.getId()).thenReturn(mockCId3);
-    
+
     VertexManagerPluginContext mockContext = mock(VertexManagerPluginContext.class);
     when(mockContext.getInputVertexEdgeProperties()).thenReturn(mockInputVertices);
     when(mockContext.getVertexName()).thenReturn(mockManagedVertexId);
@@ -245,9 +245,9 @@ public class TestInputReadyVertexManager {
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     mockInputVertices.put(mockSrcVertexId2, eProp2);
     mockInputVertices.put(mockSrcVertexId3, eProp3);
-    
+
     List<TaskAttemptIdentifier> initialCompletions = Lists.newArrayList();
-    
+
     // 1-1 sources do not match managed tasks. setParallelism called to make them match
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(4);
     InputReadyVertexManager manager = new InputReadyVertexManager(mockContext);
@@ -259,7 +259,7 @@ public class TestInputReadyVertexManager {
     verify(mockContext, times(1)).reconfigureVertex(3, null, null);
     verify(mockContext, times(1)).doneReconfiguringVertex();
     manager.onVertexStarted(initialCompletions);
-    
+
     // 1-1 sources do not match
     when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(3);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(4);
@@ -275,9 +275,9 @@ public class TestInputReadyVertexManager {
       e.getMessage().contains("1-1 source vertices must have identical concurrency");
     }
     verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), any()); // not invoked
-    
+
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
-    
+
     initialCompletions.add(TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId1, 0));
     initialCompletions.add(TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId2, 0));
     manager = new InputReadyVertexManager(mockContext);
@@ -332,11 +332,10 @@ public class TestInputReadyVertexManager {
         .getTaskLocationHint().getAffinitizedTask().getVertexName());
     Assert.assertEquals(2, requestCaptor.getValue().get(0)
         .getTaskLocationHint().getAffinitizedTask().getTaskIndex()); // affinity to last completion
-    
+
     // no more starts
     manager.onSourceTaskCompleted(
         TestShuffleVertexManager.createTaskAttemptIdentifier(mockSrcVertexId3, 2));
     verify(mockContext, times(3)).scheduleTasks(anyList());
-    
   }
 }

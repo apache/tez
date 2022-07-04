@@ -119,7 +119,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
   }
 
   public AsyncHttpConnection(URL url, HttpConnectionParams connParams,
-      String logIdentifier, JobTokenSecretManager jobTokenSecretManager) throws IOException {
+                             String logIdentifier, JobTokenSecretManager jobTokenSecretManager) throws IOException {
     this.jobTokenSecretMgr = jobTokenSecretManager;
     this.httpConnParams = connParams;
     this.url = url;
@@ -169,7 +169,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
       if (response == null) {
         throw new IOException("Response is null");
       }
-    } catch(IOException e) {
+    } catch (IOException e) {
       throw e;
     }
 
@@ -222,6 +222,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     httpAsyncClient.close();
     httpAsyncClient = null;
   }
+
   /**
    * Cleanup the connection.
    *
@@ -237,5 +238,4 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     IOUtils.closeQuietly(pis);
     response = null;
   }
-
 }

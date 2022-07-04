@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,7 +32,7 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 
 /**
  * Simple Test DAG with 2 vertices using TestProcessor/TestInput/TestOutput.
- * 
+ *
  * v1
  * |
  * v2
@@ -43,9 +43,9 @@ public class SimpleTestDAG {
   public static String TEZ_SIMPLE_DAG_NUM_TASKS =
       "tez.simple-test-dag.num-tasks";
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
-  
-  public static DAG createDAG(String name, 
-      Configuration conf) throws Exception {
+
+  public static DAG createDAG(String name,
+                              Configuration conf) throws Exception {
     UserPayload payload = UserPayload.create(null);
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
     if (conf != null) {
@@ -63,7 +63,7 @@ public class SimpleTestDAG {
             TestInput.getInputDesc(payload))));
     return dag;
   }
-  
+
   public static DAG createDAG(Configuration conf) throws Exception {
     return createDAG("SimpleTestDAG", conf);
   }
@@ -81,7 +81,7 @@ public class SimpleTestDAG {
    * @return
    * @throws Exception
    */
-  public static DAG createDAGForVertexOrder(String name, Configuration conf) throws Exception{
+  public static DAG createDAGForVertexOrder(String name, Configuration conf) throws Exception {
     UserPayload payload = UserPayload.create(null);
     int taskCount = TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT;
     if (conf != null) {
@@ -99,47 +99,47 @@ public class SimpleTestDAG {
 
     // add vertex not in the topological order, since we are using this dag for testing vertex topological order
     dag.addVertex(v4)
-      .addVertex(v5)
-      .addVertex(v6)
-      .addVertex(v1)
-      .addVertex(v2)
-      .addVertex(v3)
-      .addEdge(Edge.create(v1, v3,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))))
-      .addEdge(Edge.create(v2, v3,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))))
-      .addEdge(Edge.create(v3, v4,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))))
-      .addEdge(Edge.create(v3, v5,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))))
-      .addEdge(Edge.create(v4, v6,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))))
-      .addEdge(Edge.create(v5, v6,
-          EdgeProperty.create(DataMovementType.SCATTER_GATHER,
-              DataSourceType.PERSISTED,
-              SchedulingType.SEQUENTIAL,
-              TestOutput.getOutputDesc(payload),
-              TestInput.getInputDesc(payload))));
+        .addVertex(v5)
+        .addVertex(v6)
+        .addVertex(v1)
+        .addVertex(v2)
+        .addVertex(v3)
+        .addEdge(Edge.create(v1, v3,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))))
+        .addEdge(Edge.create(v2, v3,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))))
+        .addEdge(Edge.create(v3, v4,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))))
+        .addEdge(Edge.create(v3, v5,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))))
+        .addEdge(Edge.create(v4, v6,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))))
+        .addEdge(Edge.create(v5, v6,
+            EdgeProperty.create(DataMovementType.SCATTER_GATHER,
+                DataSourceType.PERSISTED,
+                SchedulingType.SEQUENTIAL,
+                TestOutput.getOutputDesc(payload),
+                TestInput.getInputDesc(payload))));
 
     return dag;
   }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -139,7 +139,7 @@ public class AMWebController extends Controller {
      */
     String historyUrlBase = appContext.getAMConf().get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
     String origin = request().getHeader(ORIGIN);
-    if(origin == null) {
+    if (origin == null) {
       try {
         URL url = new URL(historyUrlBase);
         origin = url.getProtocol() + "://" + url.getAuthority();
@@ -259,7 +259,6 @@ public class AMWebController extends Controller {
     renderJSON(result);
   }
 
-
   Collection<Vertex> getVerticesByIdx(DAG dag, Collection<Integer> indexes) {
     Collection<Vertex> vertices = new ArrayList<Vertex>(indexes.size());
     final TezDAGID tezDAGID = dag.getID();
@@ -275,7 +274,7 @@ public class AMWebController extends Controller {
       }
     }
 
-    return  vertices;
+    return vertices;
   }
 
   int getQueryParamInt(String name) throws NumberFormatException {
@@ -319,7 +318,7 @@ public class AMWebController extends Controller {
     }
 
     Collection<ProgressInfo> progresses = new ArrayList<ProgressInfo>(vertices.size());
-    for(Vertex vertex : vertices) {
+    for (Vertex vertex : vertices) {
       progresses.add(new ProgressInfo(vertex.getVertexId().toString(),
           vertex.getCompletedTaskProgress()));
     }
@@ -418,7 +417,7 @@ public class AMWebController extends Controller {
       String counterGroup = token.substring(0, pos);
       Set<String> counters = Collections.<String>emptySet();
       if (pos < token.length() - 1) {
-        String counterNames = token.substring(pos+1, token.length());
+        String counterNames = token.substring(pos + 1, token.length());
         counters = Sets.newHashSet(
             Splitter.on(counterDelimiter).omitEmptyStrings()
                 .trimResults().split(counterNames));
@@ -428,12 +427,11 @@ public class AMWebController extends Controller {
     return counterList;
   }
 
-
   List<String> splitString(String str, String delimiter, Integer limit) {
     List<String> items = new ArrayList<String>();
 
     StringTokenizer tokenizer = new StringTokenizer(str, delimiter);
-    for(int count = 0; tokenizer.hasMoreElements() && count < limit; count ++) {
+    for (int count = 0; tokenizer.hasMoreElements() && count < limit; count++) {
       items.add(tokenizer.nextToken());
     }
 
@@ -491,7 +489,7 @@ public class AMWebController extends Controller {
         for (String valueStr : splitString(valuesStr, ",", limit)) {
           List<Integer> innerValues = new ArrayList<Integer>();
           String innerValueStrs[] = valueStr.split("_");
-          if(innerValueStrs.length == count) {
+          if (innerValueStrs.length == count) {
             for (String innerValueStr : innerValueStrs) {
               int value = Integer.parseInt(innerValueStr);
               innerValues.add(value);
@@ -544,7 +542,7 @@ public class AMWebController extends Controller {
   }
 
   Map<String, Map<String, Long>> constructCounterMapInfo(TezCounters counters,
-      Map<String, Set<String>> counterNames) {
+                                                         Map<String, Set<String>> counterNames) {
     if (counterNames == null || counterNames.isEmpty()) {
       return null;
     }
@@ -645,7 +643,7 @@ public class AMWebController extends Controller {
     }
 
     ArrayList<Map<String, Object>> verticesInfo = new ArrayList<Map<String, Object>>();
-    for(Vertex v : vertexList) {
+    for (Vertex v : vertexList) {
       verticesInfo.add(getVertexInfoMap(v, counterNames));
     }
 
@@ -672,54 +670,49 @@ public class AMWebController extends Controller {
     List<Task> tasks = new ArrayList<Task>();
 
     List<List<Integer>> taskIDs = getIDsFromRequest(WebUIService.TASK_ID, limit, 2);
-    if(taskIDs == null) {
+    if (taskIDs == null) {
       return null;
-    }
-    else if(!taskIDs.isEmpty()) {
+    } else if (!taskIDs.isEmpty()) {
       for (List<Integer> indexes : taskIDs) {
         Vertex vertex = getVertexFromIndex(dag, indexes.get(0));
-        if(vertex == null) {
+        if (vertex == null) {
           continue;
         }
         Task task = vertex.getTask(indexes.get(1));
-        if(task == null) {
+        if (task == null) {
           continue;
-        }
-        else {
+        } else {
           tasks.add(task);
         }
 
-        if(tasks.size() >= limit) {
+        if (tasks.size() >= limit) {
           break;
         }
       }
-    }
-    else {
+    } else {
       List<Integer> vertexIDs = getIntegersFromRequest(WebUIService.VERTEX_ID, limit);
-      if(vertexIDs == null) {
+      if (vertexIDs == null) {
         return null;
-      }
-      else if(!vertexIDs.isEmpty()) {
+      } else if (!vertexIDs.isEmpty()) {
         for (Integer vertexID : vertexIDs) {
           Vertex vertex = getVertexFromIndex(dag, vertexID);
-          if(vertex == null) {
+          if (vertex == null) {
             continue;
           }
           List<Task> vertexTasks = new ArrayList<Task>(vertex.getTasks().values());
           tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
 
-          if(tasks.size() >= limit) {
+          if (tasks.size() >= limit) {
             break;
           }
         }
-      }
-      else {
+      } else {
         Collection<Vertex> vertices = dag.getVertices().values();
         for (Vertex vertex : vertices) {
           List<Task> vertexTasks = new ArrayList<Task>(vertex.getTasks().values());
           tasks.addAll(vertexTasks.subList(0, Math.min(vertexTasks.size(), limit - tasks.size())));
 
-          if(tasks.size() >= limit) {
+          if (tasks.size() >= limit) {
             break;
           }
         }
@@ -751,14 +744,14 @@ public class AMWebController extends Controller {
     }
 
     List<Task> tasks = getRequestedTasks(dag, limit);
-    if(tasks == null) {
+    if (tasks == null) {
       return;
     }
 
     Map<String, Set<String>> counterNames = getCounterListFromRequest();
 
     ArrayList<Map<String, Object>> tasksInfo = new ArrayList<Map<String, Object>>();
-    for(Task t : tasks) {
+    for (Task t : tasks) {
       Map<String, Object> taskInfo = new HashMap<String, Object>();
       taskInfo.put("id", t.getTaskID().toString());
       taskInfo.put("progress", Float.toString(t.getProgress()));
@@ -779,7 +772,7 @@ public class AMWebController extends Controller {
     }
 
     renderJSON(ImmutableMap.of(
-      "tasks", tasksInfo
+        "tasks", tasksInfo
     ));
   }
 
@@ -795,30 +788,28 @@ public class AMWebController extends Controller {
     List<TaskAttempt> attempts = new ArrayList<TaskAttempt>();
 
     List<List<Integer>> attemptIDs = getIDsFromRequest(WebUIService.ATTEMPT_ID, limit, 3);
-    if(attemptIDs == null) {
+    if (attemptIDs == null) {
       return null;
-    }
-    else if(!attemptIDs.isEmpty()) {
+    } else if (!attemptIDs.isEmpty()) {
       for (List<Integer> indexes : attemptIDs) {
         Vertex vertex = getVertexFromIndex(dag, indexes.get(0));
-        if(vertex == null) {
+        if (vertex == null) {
           continue;
         }
         Task task = vertex.getTask(indexes.get(1));
-        if(task == null) {
+        if (task == null) {
           continue;
         }
 
         TaskAttempt attempt = task.
             getAttempt(TezTaskAttemptID.getInstance(task.getTaskID(), indexes.get(2)));
-        if(attempt == null) {
+        if (attempt == null) {
           continue;
-        }
-        else {
+        } else {
           attempts.add(attempt);
         }
 
-        if(attempts.size() >= limit) {
+        if (attempts.size() >= limit) {
           break;
         }
       }
@@ -849,14 +840,14 @@ public class AMWebController extends Controller {
     }
 
     List<TaskAttempt> attempts = getRequestedAttempts(dag, limit);
-    if(attempts == null) {
+    if (attempts == null) {
       return;
     }
 
     Map<String, Set<String>> counterNames = getCounterListFromRequest();
 
     ArrayList<Map<String, Object>> attemptsInfo = new ArrayList<Map<String, Object>>();
-    for(TaskAttempt a : attempts) {
+    for (TaskAttempt a : attempts) {
       Map<String, Object> attemptInfo = new HashMap<String, Object>();
       attemptInfo.put("id", a.getTaskAttemptID().toString());
       attemptInfo.put("progress", Float.toString(a.getProgress()));
@@ -888,7 +879,8 @@ public class AMWebController extends Controller {
     @Inject
     AppContext appContext;
     @Inject
-    @Named("TezUIHistoryURL") String historyUrl;
+    @Named("TezUIHistoryURL")
+    String historyUrl;
 
     @Override
     public void render() {
@@ -909,8 +901,8 @@ public class AMWebController extends Controller {
             "<a href='" + historyUrl + "'><b>here</b></a></p>"
         );
         pw.write("<script type='text/javascript'>setTimeout(function() { " +
-          "window.location.replace('" + historyUrl + "');" +
-          "}, 0); </script>");
+            "window.location.replace('" + historyUrl + "');" +
+            "}, 0); </script>");
       }
       pw.write("</body>");
       pw.write("</html>");

@@ -71,7 +71,6 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
   // - setApplicationRegistrationData may not be relevant to non YARN clusters
   // - getAppFinalStatus may not be relevant to non YARN clusters
 
-
   /**
    * Indicate to the framework that a container is being assigned to a task.
    *
@@ -83,7 +82,6 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
   void taskAllocated(Object task,
                      Object appCookie,
                      Container container);
-
 
   /**
    * Indicate to the framework that a container has completed. This is typically used by sources
@@ -104,7 +102,6 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
    * @param containerId the id of the container being released
    */
   void containerBeingReleased(ContainerId containerId);
-
 
   /**
    * Provide an update to the framework about the status of nodes available to this report
@@ -151,7 +148,6 @@ public interface TaskSchedulerContext extends ServicePluginContextBase {
    * @return the final Application status
    */
   AppFinalStatus getFinalAppStatus();
-
 
   // Getters
 

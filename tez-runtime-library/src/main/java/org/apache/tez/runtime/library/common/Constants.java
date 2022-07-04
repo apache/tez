@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -23,7 +23,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 public class Constants {
 
   // TODO NEWTEZ Check which of these constants are expecting specific pieces of information which are being removed - like taskAttemptId
-  
+
   public static final String TEZ = "tez";
   public static final String DAG_PREFIX = "dag_";
 
@@ -37,7 +37,7 @@ public class Constants {
   public static final long DEFAULT_COMBINE_RECORDS_BEFORE_PROGRESS = 10000;
 
   // TODO NEWTEZ Remove this constant once the old code is removed.
-  public static final String TEZ_RUNTIME_TASK_ATTEMPT_ID = 
+  public static final String TEZ_RUNTIME_TASK_ATTEMPT_ID =
       "tez.runtime.task.attempt.id";
 
   public static final String TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING =
@@ -47,7 +47,7 @@ public class Constants {
       ".index";
 
   public static final String TEZ_RUNTIME_TASK_INPUT_FILE_FORMAT_STRING =
-      "%s/task_%d.out"; 
+      "%s/task_%d.out";
 
   public static final String TEZ_RUNTIME_JOB_CREDENTIALS =
       "tez.runtime.job.credentials";
@@ -58,10 +58,9 @@ public class Constants {
   @Private
   public static final String TEZ_RUNTIME_TASK_MEMORY =
       "tez.runtime.task.memory";
-  
-  public static final String TEZ_RUNTIME_TASK_OUTPUT_DIR = "output";
-  
-  public static final String TEZ_RUNTIME_TASK_OUTPUT_MANAGER = 
-      "tez.runtime.task.local.output.manager";
 
+  public static final String TEZ_RUNTIME_TASK_OUTPUT_DIR = "output";
+
+  public static final String TEZ_RUNTIME_TASK_OUTPUT_MANAGER =
+      "tez.runtime.task.local.output.manager";
 }

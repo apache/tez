@@ -67,8 +67,6 @@ public class ContainerLauncherManager extends AbstractService
   private final AppContext appContext;
   private final boolean isIncompleteCtor;
 
-
-
   // Accepting conf to setup final parameters, if required.
   public ContainerLauncherManager(AppContext context,
                                   TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
@@ -85,7 +83,6 @@ public class ContainerLauncherManager extends AbstractService
     containerLauncherContexts = new ContainerLauncherContext[containerLauncherDescriptors.size()];
     containerLaunchers = new ContainerLauncherWrapper[containerLauncherDescriptors.size()];
     containerLauncherServiceWrappers = new ServicePluginLifecycleAbstractService[containerLauncherDescriptors.size()];
-
 
     for (int i = 0; i < containerLauncherDescriptors.size(); i++) {
       UserPayload userPayload = containerLauncherDescriptors.get(i).getUserPayload();
@@ -169,7 +166,7 @@ public class ContainerLauncherManager extends AbstractService
   @SuppressWarnings("unchecked")
   ContainerLauncher createCustomContainerLauncher(ContainerLauncherContext containerLauncherContext,
                                                   NamedEntityDescriptor containerLauncherDescriptor)
-                                                      throws TezException {
+      throws TezException {
     LOG.info("Creating container launcher {}:{} ", containerLauncherDescriptor.getEntityName(),
         containerLauncherDescriptor.getClassName());
     return ReflectionUtils.createClazzInstance(containerLauncherDescriptor.getClassName(),
@@ -179,27 +176,27 @@ public class ContainerLauncherManager extends AbstractService
 
   @Override
   public void serviceInit(Configuration conf) {
-    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+    for (int i = 0; i < containerLaunchers.length; i++) {
       containerLauncherServiceWrappers[i].init(conf);
     }
   }
 
   @Override
   public void serviceStart() {
-    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+    for (int i = 0; i < containerLaunchers.length; i++) {
       containerLauncherServiceWrappers[i].start();
     }
   }
 
   @Override
   public void serviceStop() {
-    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+    for (int i = 0; i < containerLaunchers.length; i++) {
       containerLauncherServiceWrappers[i].stop();
     }
   }
 
   public void dagComplete(TezDAGID dag, JobTokenSecretManager secretManager) {
-    for (int i = 0 ; i < containerLaunchers.length ; i++) {
+    for (int i = 0; i < containerLaunchers.length; i++) {
       containerLaunchers[i].dagComplete(dag, secretManager);
     }
   }
@@ -220,7 +217,6 @@ public class ContainerLauncherManager extends AbstractService
     // Nothing to do right now. Indicates that a new DAG has been submitted and
     // the context has updated information.
   }
-
 
   @Override
   public void handle(ContainerLauncherEvent event) {

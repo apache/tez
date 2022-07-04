@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,6 @@
  */
 
 package org.apache.tez.dag.library.vertexmanager;
-
 
 import com.google.protobuf.ByteString;
 import org.apache.hadoop.conf.Configuration;
@@ -63,7 +62,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class TestShuffleVertexManagerUtils {
   static long MB = 1024l * 1024l;
   TezVertexID vertexId = TezVertexID.fromString("vertex_1436907267600_195589_1_00");
@@ -117,12 +116,12 @@ public class TestShuffleVertexManagerUtils {
   }
 
   VertexManagerEvent getVertexManagerEvent(long[] sizes,
-      long inputSize, String vertexName) throws IOException {
+                                           long inputSize, String vertexName) throws IOException {
     return getVertexManagerEvent(sizes, inputSize, vertexName, false);
   }
 
   VertexManagerEvent getVertexManagerEvent(long[] partitionSizes,
-      long uncompressedTotalSize, String vertexName, boolean reportDetailedStats)
+                                           long uncompressedTotalSize, String vertexName, boolean reportDetailedStats)
       throws IOException {
     ByteBuffer payload;
     long totalSize = 0;
@@ -139,7 +138,7 @@ public class TestShuffleVertexManagerUtils {
       partitionStats.serialize(dout);
       ByteString
           partitionStatsBytes = TezCommonUtils.compressByteArrayToByteString(
-              dout.getData());
+          dout.getData());
       if (reportDetailedStats) {
         payload = VertexManagerEventPayloadProto.newBuilder()
             .setOutputSize(totalSize)
@@ -155,7 +154,6 @@ public class TestShuffleVertexManagerUtils {
             .build().toByteString()
             .asReadOnlyByteBuffer();
       }
-
     } else {
       payload = VertexManagerEventPayloadProto.newBuilder()
           .setOutputSize(totalSize)
@@ -219,7 +217,7 @@ public class TestShuffleVertexManagerUtils {
     if (min != null) {
       conf.setFloat(
           ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION,
-              min);
+          min);
     } else {
       conf.unset(
           ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MIN_SRC_FRACTION);
@@ -227,7 +225,7 @@ public class TestShuffleVertexManagerUtils {
     if (max != null) {
       conf.setFloat(
           ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION,
-              max);
+          max);
     } else {
       conf.unset(ShuffleVertexManager.TEZ_SHUFFLE_VERTEX_MANAGER_MAX_SRC_FRACTION);
     }
@@ -286,15 +284,17 @@ public class TestShuffleVertexManagerUtils {
 
   protected static class ScheduledTasksAnswer implements Answer<Object> {
     private List<Integer> scheduledTasks;
+
     public ScheduledTasksAnswer(List<Integer> scheduledTasks) {
       this.scheduledTasks = scheduledTasks;
     }
+
     @Override
     public Object answer(InvocationOnMock invocation) throws IOException {
       Object[] args = invocation.getArguments();
       scheduledTasks.clear();
       List<VertexManagerPluginContext.ScheduleTaskRequest> tasks =
-          (List<VertexManagerPluginContext.ScheduleTaskRequest>)args[0];
+          (List<VertexManagerPluginContext.ScheduleTaskRequest>) args[0];
       for (VertexManagerPluginContext.ScheduleTaskRequest task : tasks) {
         scheduledTasks.add(task.getTaskIndex());
       }
@@ -307,14 +307,15 @@ public class TestShuffleVertexManagerUtils {
     private VertexManagerPluginContext mockContext;
     private String mockManagedVertexId;
     private Map<String, EdgeManagerPlugin> newEdgeManagers;
+
     public reconfigVertexAnswer(VertexManagerPluginContext mockContext,
-        String mockManagedVertexId,
-        Map<String, EdgeManagerPlugin> newEdgeManagers) {
+                                String mockManagedVertexId,
+                                Map<String, EdgeManagerPlugin> newEdgeManagers) {
       this.mockContext = mockContext;
       this.mockManagedVertexId = mockManagedVertexId;
       this.newEdgeManagers = newEdgeManagers;
-
     }
+
     public Object answer(InvocationOnMock invocation) throws Exception {
       final int numTasks = ((Integer) invocation.getArguments()[0]).intValue();
       when(mockContext.getVertexNumTasks(mockManagedVertexId)).thenReturn(numTasks);
@@ -359,8 +360,8 @@ public class TestShuffleVertexManagerUtils {
         };
         if (newEdgeManagers != null) {
           EdgeManagerPlugin edgeManager = ReflectionUtils
-                  .createClazzInstance(pluginDesc.getClassName(),
-                          new Class[]{EdgeManagerPluginContext.class}, new Object[]{emContext});
+              .createClazzInstance(pluginDesc.getClassName(),
+                  new Class[]{EdgeManagerPluginContext.class}, new Object[]{emContext});
           edgeManager.initialize();
           newEdgeManagers.put(entry.getKey(), edgeManager);
         }

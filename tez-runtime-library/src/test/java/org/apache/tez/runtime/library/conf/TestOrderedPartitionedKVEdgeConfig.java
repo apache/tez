@@ -66,7 +66,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
     }
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testDefaultConfigsUsed() {
     OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER");
@@ -92,7 +92,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, ""));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testSpecificIOConfs() {
     // Ensures that Output and Input confs are not mixed.
     OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
@@ -115,7 +115,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
         inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_COMPRESS_CODEC, "DEFAULT"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void tetCommonConf() {
 
     Configuration fromConf = new Configuration(false);
@@ -183,10 +183,9 @@ public class TestOrderedPartitionedKVEdgeConfig {
 
     ReportPartitionStats partitionStats =
         ReportPartitionStats.fromString(outputConf.get(
-        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
-        TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
+            TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS,
+            TezRuntimeConfiguration.TEZ_RUNTIME_REPORT_PARTITION_STATS_DEFAULT));
     assertEquals(true, partitionStats.isEnabled());
-
 
     assertEquals(3, inputConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_FACTOR, 0));
     assertEquals(1111, inputConf.getInt(TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES, 0));
@@ -207,7 +206,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals("unfiltered1", inputConf.get("test.conf.unfiltered.1"));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testSetters() {
     Map<String, String> comparatorConf = Maps.newHashMap();
     comparatorConf.put("comparator.test.key", "comparatorValue");
@@ -248,7 +247,6 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT));
     assertNull(outputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT));
 
-
     assertEquals("KEY_COMPARATOR", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
     assertEquals("comparatorValue", inputConf.get("comparator.test.key"));
     assertEquals("KEY", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS, ""));
@@ -269,10 +267,9 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertEquals(0.44f,
         inputConf.getFloat(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT, 0.00f), 0.001f);
     assertNull(inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB));
-
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testSerialization() {
     OrderedPartitionedKVEdgeConfig.Builder builder = OrderedPartitionedKVEdgeConfig
         .newBuilder("KEY", "VALUE", "PARTITIONER")
@@ -307,7 +304,6 @@ public class TestOrderedPartitionedKVEdgeConfig {
     assertTrue(outputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
         ("serClass2,serClass1"));
 
-
     //verify comparator and serialization class
     assertEquals("SomeComparator1", inputConf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_COMPARATOR_CLASS));
     assertTrue(inputConf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY).trim().startsWith
@@ -329,7 +325,7 @@ public class TestOrderedPartitionedKVEdgeConfig {
         TezRuntimeConfiguration.TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT));
   }
 
-  @Test (timeout=2000)
+  @Test(timeout = 2000)
   public void testHistoryText() {
     OrderedPartitionedKVEdgeConfig.Builder builder =
         OrderedPartitionedKVEdgeConfig.newBuilder("KEY", "VALUE", "PARTITIONER");
@@ -351,6 +347,4 @@ public class TestOrderedPartitionedKVEdgeConfig {
     checkHistoryText(edgeProperty.getEdgeDestination().getHistoryText());
     checkHistoryText(edgeProperty.getEdgeSource().getHistoryText());
   }
-
-
 }

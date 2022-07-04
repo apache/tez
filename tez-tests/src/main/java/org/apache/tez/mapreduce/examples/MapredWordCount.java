@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -64,7 +64,7 @@ public class MapredWordCount extends Configured implements Tool {
    * (<b>word</b>, <b>1</b>).
    */
   public static class MapClass extends MapReduceBase
-    implements Mapper<LongWritable, Text, Text, IntWritable> {
+      implements Mapper<LongWritable, Text, Text, IntWritable> {
 
     private final static IntWritable one = new IntWritable(1);
     private Text word = new Text();
@@ -85,7 +85,7 @@ public class MapredWordCount extends Configured implements Tool {
    * A reducer class that just emits the sum of the input values.
    */
   public static class Reduce extends MapReduceBase
-    implements Reducer<Text, IntWritable, Text, IntWritable> {
+      implements Reducer<Text, IntWritable, Text, IntWritable> {
 
     public void reduce(Text key, Iterator<IntWritable> values,
                        OutputCollector<Text, IntWritable> output,
@@ -125,7 +125,7 @@ public class MapredWordCount extends Configured implements Tool {
     conf.setReducerClass(Reduce.class);
 
     List<String> other_args = new ArrayList<String>();
-    for(int i=0; i < args.length; ++i) {
+    for (int i = 0; i < args.length; ++i) {
       try {
         if ("-m".equals(args[i])) {
           conf.setNumMapTasks(Integer.parseInt(args[++i]));
@@ -138,7 +138,7 @@ public class MapredWordCount extends Configured implements Tool {
         LOG.error("Integer expected instead of " + args[i]);
         return printUsage();
       } catch (ArrayIndexOutOfBoundsException except) {
-        LOG.error("Required parameter missing from " + args[i-1]);
+        LOG.error("Required parameter missing from " + args[i - 1]);
         return printUsage();
       }
     }
@@ -157,8 +157,7 @@ public class MapredWordCount extends Configured implements Tool {
 
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(getTezDecoratedConfiguration(),
-      new MapredWordCount(), args);
+        new MapredWordCount(), args);
     System.exit(res);
   }
-
 }

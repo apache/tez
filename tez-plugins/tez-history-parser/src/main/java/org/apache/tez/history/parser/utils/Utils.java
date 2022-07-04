@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,7 +46,6 @@ public class Utils {
 
   private static final String LOG4J_CONFIGURATION = "log4j.configuration";
   private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Utils.class);
-
 
   /**
    * Parse tez counters from json
@@ -90,20 +89,20 @@ public class Utils {
   }
 
   private static void addCounter(CounterGroup group, String counterName, String displayName,
-      long counterValue) {
+                                 long counterValue) {
     try {
       TezCounter counter = group.findCounter(counterName, displayName);
       counter.setValue(counterValue);
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       LOG.debug("Error finding {} in {} with displayName {}", counterName, group, displayName);
     }
   }
-  
-  public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject) 
+
+  public static List<DataDependencyEvent> parseDataEventDependencyFromJSON(JSONObject jsonObject)
       throws JSONException {
     List<DataDependencyEvent> events = Lists.newArrayList();
     JSONArray fields = jsonObject.optJSONArray(Constants.LAST_DATA_EVENTS);
-    for (int i=0; i<fields.length(); i++) {
+    for (int i = 0; i < fields.length(); i++) {
       JSONObject eventMap = fields.getJSONObject(i);
       events.add(new DataDependencyEvent(
           StringInterner.intern(eventMap.optString(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())),
@@ -145,5 +144,4 @@ public class Utils {
       Logger.getRootLogger().setLevel(Level.INFO);
     }
   }
-
 }

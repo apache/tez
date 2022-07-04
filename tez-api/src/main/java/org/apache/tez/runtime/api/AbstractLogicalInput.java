@@ -24,10 +24,10 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 
 /**
  * An abstract class which should be the base class for all implementations of LogicalInput.
- *
+ * <p>
  * This class implements the framework facing as well as user facing methods which need to be
  * implemented by all LogicalInputs.
- *
+ * <p>
  * This includes default implementations of a new method for convenience.
  *
  * <code>Input</code> classes must provide a 2 argument public constructor for Tez to create the
@@ -36,7 +36,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  * setup the number of physical inputs that the logical input will see.
  * Tez will take care of initializing and closing the Input after a {@link Processor} completes. </p>
  * <p/>
- *
  */
 @Public
 public abstract class AbstractLogicalInput implements LogicalInput, LogicalInputFrameworkInterface {

@@ -121,7 +121,8 @@ public class TestUnorderedKVReader {
 
     ShuffleManager manager = mock(ShuffleManager.class);
     doAnswer(new Answer() {
-      @Override public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+      @Override
+      public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
         return (inputs.isEmpty()) ? null : inputs.remove();
       }
     }).when(manager).getNextInput();
@@ -164,7 +165,7 @@ public class TestUnorderedKVReader {
     try {
       boolean next = unorderedKVReader.next();
       fail();
-    } catch(IOException ioe) {
+    } catch (IOException ioe) {
       Assert.assertTrue(ioe.getMessage().contains("For usage, please refer to"));
     }
   }
@@ -188,5 +189,4 @@ public class TestUnorderedKVReader {
       // Expected exception. Any other should fail the test.
     }
   }
-
 }

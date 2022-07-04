@@ -41,7 +41,6 @@ import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import java.util.Collection;
 import java.util.List;
 
-
 /**
  * This will provide the set of nodes participated in the DAG in descending order of task execution
  * time.
@@ -52,10 +51,10 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
 
   private static final Log LOG = LogFactory.getLog(SlowNodeAnalyzer.class);
 
-  private static final String[] headers = { "nodeName", "noOfTasksExecuted", "noOfKilledTasks",
+  private static final String[] headers = {"nodeName", "noOfTasksExecuted", "noOfKilledTasks",
       "noOfFailedTasks", "avgSucceededTaskExecutionTime", "avgKilledTaskExecutionTime",
       "avgFailedTaskExecutionTime", "avgHDFSBytesRead", "avgHDFSBytesWritten",
-      "avgFileBytesRead", "avgFileBytesWritten", "avgGCTimeMillis", "avgCPUTimeMillis" };
+      "avgFileBytesRead", "avgFileBytesWritten", "avgGCTimeMillis", "avgCPUTimeMillis"};
 
   private final CSVResult csvResult = new CSVResult(headers);
 
@@ -99,17 +98,18 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
       record.add(getAvgCounter(taskAttemptInfos, TaskCounter.class
           .getName(), TaskCounter.GC_TIME_MILLIS.name()) + "");
       record.add(getAvgCounter(taskAttemptInfos, TaskCounter.class
-              .getName(), TaskCounter.CPU_MILLISECONDS.name()) + "");
+          .getName(), TaskCounter.CPU_MILLISECONDS.name()) + "");
 
-          csvResult.addRecord(record.toArray(new String[record.size()]));
+      csvResult.addRecord(record.toArray(new String[record.size()]));
     }
   }
 
   private Iterable<TaskAttemptInfo> getFilteredTaskAttempts(Collection<TaskAttemptInfo>
-      taskAttemptInfos, final TaskAttemptState status) {
+                                                                taskAttemptInfos, final TaskAttemptState status) {
     return Iterables.filter(taskAttemptInfos, new
         Predicate<TaskAttemptInfo>() {
-          @Override public boolean apply(TaskAttemptInfo input) {
+          @Override
+          public boolean apply(TaskAttemptInfo input) {
             return input.getStatus().equalsIgnoreCase(status.toString());
           }
         });
@@ -171,7 +171,7 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
     sb.append("This could be used to find out the set of nodes where the tasks are taking more "
         + "time on average.").append("\n");
     sb.append("This could be used to find out the set of nodes where the tasks are taking more "
-        + "time on average and to understand whether too many tasks got scheduled on a node.")
+            + "time on average and to understand whether too many tasks got scheduled on a node.")
         .append("\n");
     sb.append("One needs to combine the task execution time with other metrics like bytes "
         + "read/written etc to get better idea of bad nodes. In order to understand the slow "

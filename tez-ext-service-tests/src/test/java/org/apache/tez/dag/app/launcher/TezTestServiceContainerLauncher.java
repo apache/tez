@@ -51,7 +51,6 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
   private final ApplicationAttemptId appAttemptId;
   private final Configuration conf;
 
-
   // Configuration passed in here to set up final parameters
   public TezTestServiceContainerLauncher(ContainerLauncherContext containerLauncherContext) {
     super(containerLauncherContext);
@@ -145,6 +144,4 @@ public class TezTestServiceContainerLauncher extends ContainerLauncher {
   void sendContainerLaunchFailedMsg(ContainerId containerId, Throwable t) {
     getContext().containerLaunchFailed(containerId, t == null ? "" : t.getMessage());
   }
-
-
 }

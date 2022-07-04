@@ -51,7 +51,7 @@ public class JavaOptsChecker {
         continue;
       }
 
-      int val = ( matcher.group(2).equals("+") ? 1 : -1 );
+      int val = (matcher.group(2).equals("+") ? 1 : -1);
       if (gcOpts.contains(opt)) {
         val += 1;
       }
@@ -68,7 +68,7 @@ public class JavaOptsChecker {
       // which can be specified together.
       if (gcOpts.size() == 2) {
         if (gcOpts.contains("UseParNewGC")
-          && gcOpts.contains("UseConcMarkSweepGC")) {
+            && gcOpts.contains("UseConcMarkSweepGC")) {
           return;
         }
       }
@@ -78,7 +78,5 @@ public class JavaOptsChecker {
       throw new TezException("Invalid/conflicting GC options found,"
           + " cmdOpts=\"" + opts + "\"");
     }
-
   }
-
 }

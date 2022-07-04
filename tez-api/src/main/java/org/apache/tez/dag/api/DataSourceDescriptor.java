@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,7 +45,7 @@ import com.google.common.collect.Sets;
 public class DataSourceDescriptor {
   private final InputDescriptor inputDescriptor;
   private final InputInitializerDescriptor initializerDescriptor;
-  
+
   private final Credentials credentials;
   private final int numShards;
   private final VertexLocationHint locationHint;
@@ -128,13 +128,13 @@ public class DataSourceDescriptor {
   }
 
   /**
-   * Get the {@link InputDescriptor} for this {@link DataSourceDescriptor} 
+   * Get the {@link InputDescriptor} for this {@link DataSourceDescriptor}
    * @return {@link InputDescriptor}
    */
   public InputDescriptor getInputDescriptor() {
     return inputDescriptor;
   }
-  
+
   /**
    * Get the {@link InputInitializerDescriptor} for this {@link DataSourceDescriptor}
    * @return {@link InputInitializerDescriptor}
@@ -142,26 +142,26 @@ public class DataSourceDescriptor {
   public @Nullable InputInitializerDescriptor getInputInitializerDescriptor() {
     return initializerDescriptor;
   }
-  
-  /** 
-  * This method can be used to specify a list of URIs for which Credentials
-  * need to be obtained so that the job can run. An incremental list of URIs
-  * can be provided by making multiple calls to the method.
-  * 
-  * Currently, @{link credentials} can only be fetched for HDFS and other
-  * {@link org.apache.hadoop.fs.FileSystem} implementations that support
-  * credentials.
-  * 
-  * @param uris
-  *          a list of {@link URI}s
-  * @return this
-  */
+
+  /**
+   * This method can be used to specify a list of URIs for which Credentials
+   * need to be obtained so that the job can run. An incremental list of URIs
+   * can be provided by making multiple calls to the method.
+   *
+   * Currently, @{link credentials} can only be fetched for HDFS and other
+   * {@link org.apache.hadoop.fs.FileSystem} implementations that support
+   * credentials.
+   *
+   * @param uris
+   *          a list of {@link URI}s
+   * @return this
+   */
   public synchronized DataSourceDescriptor addURIsForCredentials(Collection<URI> uris) {
     Objects.requireNonNull(uris, "URIs cannot be null");
     urisForCredentials.addAll(uris);
     return this;
   }
-  
+
   /**
    * Get the URIs for which credentials will be obtained
    * @return an unmodifiable list representing the URIs for which credentials
@@ -170,7 +170,7 @@ public class DataSourceDescriptor {
   public Collection<URI> getURIsForCredentials() {
     return Collections.unmodifiableCollection(urisForCredentials);
   }
-  
+
   /**
    * Number of shards for this data source. If a vertex has only one
    * data source this the number of tasks in the vertex should be set to 
@@ -182,7 +182,7 @@ public class DataSourceDescriptor {
   public int getNumberOfShards() {
     return numShards;
   }
-  
+
   /**
    * Returns any credentials needed to access this data source.
    * Is null when this calculation happens on the AppMaster (default)
@@ -192,7 +192,7 @@ public class DataSourceDescriptor {
   public @Nullable Credentials getCredentials() {
     return credentials;
   }
-  
+
   /**
    * Get the location hints for the tasks in the vertex for this data source.
    * Is null when shard calculation happens on the AppMaster (default)
@@ -205,12 +205,10 @@ public class DataSourceDescriptor {
 
   /**
    * Get the list of additional local files which were specified during creation.
-   * @return  Map of additional local files or null if there are none
+   * @return Map of additional local files or null if there are none
    */
   @InterfaceAudience.Private
   public @Nullable Map<String, LocalResource> getAdditionalLocalFiles() {
     return additionalLocalFiles;
   }
-
-
 }

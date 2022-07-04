@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.api.client;
 
@@ -61,7 +61,6 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-
 
 @Private
 public class DAGClientTimelineImpl extends DAGClientInternal {
@@ -207,7 +206,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     return getDAGStatus(statusGetOpts);
   }
 
- @Override
+  @Override
   public void close() throws IOException {
     if (httpClient != null) {
       httpClient.destroy();
@@ -469,7 +468,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     try {
       Class<?> yarnConfiguration = Class.forName("org.apache.hadoop.yarn.conf.YarnConfiguration");
       final Method useHttps = yarnConfiguration.getMethod("useHttps", Configuration.class);
-      return (Boolean)useHttps.invoke(null, conf);
+      return (Boolean) useHttps.invoke(null, conf);
     } catch (ClassNotFoundException e) {
       throw new TezException(e);
     } catch (InvocationTargetException e) {
@@ -499,7 +498,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
         put("ERROR", DAGStatusStateProto.DAG_ERROR);
         put("TERMINATING", DAGStatusStateProto.DAG_TERMINATING);
         put("COMMITTING", DAGStatusStateProto.DAG_COMMITTING);
-  }});
+      }});
 
   private static final Map<String, VertexStatusStateProto> vertexStateProtoMap =
       Collections.unmodifiableMap(new HashMap<String, VertexStatusStateProto>() {{
@@ -516,10 +515,9 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
         put("COMMITTING", VertexStatusStateProto.VERTEX_COMMITTING);
       }});
 
-
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws IOException, TezException {
+                                long timeout) throws IOException, TezException {
     return getDAGStatus(statusOptions);
   }
 
@@ -527,5 +525,4 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
   public String getWebUIAddress() throws IOException, TezException {
     throw new TezException("DAGClientTimelineImpl.getWebUIAddress is not supported");
   }
-
 }

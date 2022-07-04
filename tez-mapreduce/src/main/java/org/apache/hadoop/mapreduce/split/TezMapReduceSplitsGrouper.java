@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -113,8 +113,8 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
    * @deprecated See equivalent in {@link TezSplitGrouper}
    */
   @Deprecated
-  public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION = 
-                                              TezSplitGrouper.TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION;
+  public static final String TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION =
+      TezSplitGrouper.TEZ_GROUPING_RACK_SPLIT_SIZE_REDUCTION;
   /**
    * @deprecated See equivalent in {@link TezSplitGrouper}
    */
@@ -132,10 +132,9 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
   @Deprecated
   public static final boolean TEZ_GROUPING_REPEATABLE_DEFAULT = TezSplitGrouper.TEZ_GROUPING_REPEATABLE_DEFAULT;
 
-
   public List<InputSplit> getGroupedSplits(Configuration conf,
-      List<InputSplit> originalSplits, int desiredNumSplits,
-      String wrappedInputFormatName) throws IOException, InterruptedException {
+                                           List<InputSplit> originalSplits, int desiredNumSplits,
+                                           String wrappedInputFormatName) throws IOException, InterruptedException {
     return getGroupedSplits(conf, originalSplits, desiredNumSplits,
         wrappedInputFormatName, null);
   }
@@ -163,7 +162,6 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
           }
         });
 
-
     return Lists.transform(super
             .getGroupedSplits(conf, originalSplitContainers, desiredNumSplits,
                 wrappedInputFormatName, estimator == null ? null :
@@ -184,7 +182,6 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
 
             return new TezGroupedSplit(underlyingSplits, input.getWrappedInputFormatName(),
                 input.getLocations(), input.getRack(), input.getLength());
-
           }
         });
   }

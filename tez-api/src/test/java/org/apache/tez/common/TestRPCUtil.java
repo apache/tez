@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,7 +32,7 @@ import com.google.protobuf.ServiceException;
 
 public class TestRPCUtil {
 
-  @Test (timeout=1000)
+  @Test(timeout = 1000)
   public void testUnknownExceptionUnwrapping() {
     Class<? extends Throwable> exception = TezException.class;
     String className = "UnknownException.class";
@@ -56,7 +56,6 @@ public class TestRPCUtil {
   public void testRemoteTezExceptionUnwrapping() {
     Class<? extends Throwable> exception = TezException.class;
     verifyRemoteExceptionUnwrapping(exception, exception.getName());
-
   }
 
   @Test
@@ -126,7 +125,7 @@ public class TestRPCUtil {
     Throwable t = null;
     try {
       RPCUtil.unwrapAndThrowException(se);
-    }  catch (Throwable thrown) {
+    } catch (Throwable thrown) {
       t = thrown;
     }
 
@@ -165,17 +164,14 @@ public class TestRPCUtil {
             .getMessage().contains(message));
   }
 
-
-  @Test (timeout=1000)
+  @Test(timeout = 1000)
   public void testRemoteNonIOExceptionUnwrapping() {
     Class<? extends Throwable> exception = TezException.class;
     verifyRemoteExceptionUnwrapping(exception, IOException.class.getName(), false);
   }
 
-
   private static class TezTestExceptionNoConstructor extends
       Exception {
     private static final long serialVersionUID = 1L;
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -75,7 +75,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-
 public class TestShuffleManager {
 
   private static final String FETCHER_HOST = "localhost";
@@ -100,7 +99,7 @@ public class TestShuffleManager {
    * partitions, wait for some time and then send DataMovementEvents for the
    * rest of the partitions. Then do the same thing for the next mapper.
    * Verify ShuffleManager is able to get all the events.
-  */
+   */
   @Test(timeout = 50000)
   public void testMultiplePartitions() throws Exception {
     final int numOfMappers = 3;
@@ -132,7 +131,6 @@ public class TestShuffleManager {
       handler.handleEvents(eventList);
 
       Thread.sleep(500);
-
 
       // Send the second batch of DataMovementEvents
       eventList.clear();
@@ -186,7 +184,7 @@ public class TestShuffleManager {
     return inputContext;
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testUseSharedExecutor() throws Exception {
     InputContext inputContext = createInputContext();
     createShuffleManager(inputContext, 2);
@@ -198,7 +196,7 @@ public class TestShuffleManager {
     verify(inputContext).createTezFrameworkExecutorService(anyInt(), anyString());
   }
 
-  @Test (timeout = 20000)
+  @Test(timeout = 20000)
   public void testProgressWithEmptyPendingHosts() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
@@ -207,7 +205,7 @@ public class TestShuffleManager {
       public void run() {
         try {
           shuffleManager.run();
-          } catch (Exception e) {
+        } catch (Exception e) {
           e.printStackTrace();
         }
       }
@@ -218,7 +216,7 @@ public class TestShuffleManager {
     verify(inputContext, atLeast(3)).notifyProgress();
   }
 
-  @Test (timeout = 200000)
+  @Test(timeout = 200000)
   public void testFetchFailed() throws Exception {
     InputContext inputContext = createInputContext();
     final ShuffleManager shuffleManager = spy(createShuffleManager(inputContext, 1));
@@ -248,7 +246,7 @@ public class TestShuffleManager {
     List<Event> capturedList = captor.getAllValues().get(0);
     Assert.assertEquals("Size was: " + capturedList.size(),
         capturedList.size(), 1);
-    InputReadErrorEvent inputEvent = (InputReadErrorEvent)capturedList.get(0);
+    InputReadErrorEvent inputEvent = (InputReadErrorEvent) capturedList.get(0);
     Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
         inputEvent.getNumFailures(), 1);
 
@@ -268,19 +266,18 @@ public class TestShuffleManager {
     capturedList = captor.getAllValues().get(1);
     Assert.assertEquals("Size was: " + capturedList.size(),
         capturedList.size(), 1);
-    inputEvent = (InputReadErrorEvent)capturedList.get(0);
+    inputEvent = (InputReadErrorEvent) capturedList.get(0);
     Assert.assertEquals("Number of failures was: " + inputEvent.getNumFailures(),
         inputEvent.getNumFailures(), 2);
-
 
     schedulerGetHostThread.interrupt();
   }
 
   private ShuffleManagerForTest createShuffleManager(
       InputContext inputContext, int expectedNumOfPhysicalInputs)
-          throws IOException {
+      throws IOException {
     Path outDirBase = new Path(".", "outDir");
-    String[] outDirs = new String[] { outDirBase.toString() };
+    String[] outDirs = new String[]{outDirBase.toString()};
     doReturn(outDirs).when(inputContext).getWorkDirs();
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS,
         inputContext.getWorkDirs());
@@ -315,9 +312,9 @@ public class TestShuffleManager {
 
   private static class ShuffleManagerForTest extends ShuffleManager {
     public ShuffleManagerForTest(InputContext inputContext, Configuration conf,
-        int numInputs, int bufferSize, boolean ifileReadAheadEnabled,
-        int ifileReadAheadLength, CompressionCodec codec,
-        FetchedInputAllocator inputAllocator) throws IOException {
+                                 int numInputs, int bufferSize, boolean ifileReadAheadEnabled,
+                                 int ifileReadAheadLength, CompressionCodec codec,
+                                 FetchedInputAllocator inputAllocator) throws IOException {
       super(inputContext, conf, numInputs, bufferSize, ifileReadAheadEnabled,
           ifileReadAheadLength, codec, inputAllocator);
     }
@@ -331,10 +328,10 @@ public class TestShuffleManager {
         doAnswer(new Answer<FetchResult>() {
           @Override
           public FetchResult answer(InvocationOnMock invocation) throws Throwable {
-            for(InputAttemptIdentifier input : fetcher.getSrcAttempts()) {
+            for (InputAttemptIdentifier input : fetcher.getSrcAttempts()) {
               ShuffleManagerForTest.this.fetchSucceeded(
                   fetcher.getHost(), input, new TestFetchedInput(input), 0, 0,
-                      0);
+                  0);
             }
             return mockFetcherResult;
           }

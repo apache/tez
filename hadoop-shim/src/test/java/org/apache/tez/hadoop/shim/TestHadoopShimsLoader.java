@@ -50,5 +50,4 @@ public class TestHadoopShimsLoader {
     HadoopShimsLoader loader = new HadoopShimsLoader(conf, true);
     HadoopShim shim = loader.getHadoopShim();
   }
-
 }

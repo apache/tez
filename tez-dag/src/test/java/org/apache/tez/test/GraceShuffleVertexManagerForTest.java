@@ -39,7 +39,7 @@ import java.util.Objects;
  * A shuffle vertex manager that will set the vertex's parallelism upon
  * completion of its single grandparent simulating a very simplified
  * version of PigGraceShuffleVertexManager for testing purposes.
- *
+ * <p>
  * This manager plugin should only be used for vertices that have a single
  * grandparent.
  */

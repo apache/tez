@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -99,8 +99,6 @@ public class DAGUtils {
   public static final String VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY = "edgeMergedInputs";
   public static final String VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY = "destinationVertexName";
 
-
-
   public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan) throws JSONException {
     JSONObject dagJson;
     try {
@@ -110,11 +108,11 @@ public class DAGUtils {
     }
     return dagJson;
   }
-  
+
   public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info) {
     return new JSONObject(convertDataEventDependecyInfoToATS(info));
   }
-  
+
   public static Map<String, Object> convertDataEventDependecyInfoToATS(List<DataEventDependencyInfo> info) {
     ArrayList<Object> infoList = new ArrayList<Object>();
     for (DataEventDependencyInfo event : info) {
@@ -127,7 +125,7 @@ public class DAGUtils {
       eventObj.put(ATSConstants.TIMESTAMP, event.getTimestamp());
       infoList.add(eventObj);
     }
-    Map<String,Object> object = new LinkedHashMap<String, Object>();
+    Map<String, Object> object = new LinkedHashMap<String, Object>();
     putInto(object, ATSConstants.LAST_DATA_EVENTS, infoList);
     return object;
   }
@@ -138,46 +136,45 @@ public class DAGUtils {
     return jsonObject;
   }
 
-  public static Map<String,Object> convertCountersToATSMap(TezCounters counters) {
+  public static Map<String, Object> convertCountersToATSMap(TezCounters counters) {
     Map<String, Object> object = new LinkedHashMap<String, Object>();
     if (counters == null) {
-        return object;
-      }
+      return object;
+    }
     ArrayList<Object> counterGroupsList = new ArrayList<Object>();
     for (CounterGroup group : counters) {
-        ArrayList<Object> counterList = new ArrayList<Object>();
-        for (TezCounter counter : group) {
-          if (counter.getValue() != 0) {
-            Map<String,Object> counterMap = new LinkedHashMap<String, Object>();
-            counterMap.put(ATSConstants.COUNTER_NAME, counter.getName());
-            if (!counter.getDisplayName().equals(counter.getName())) {
-              counterMap.put(ATSConstants.COUNTER_DISPLAY_NAME,
-                    counter.getDisplayName());
-            }
-            counterMap.put(ATSConstants.COUNTER_VALUE, counter.getValue());
-            if (counter instanceof AggregateTezCounter) {
-              counterMap.put(ATSConstants.COUNTER_INSTANCE_COUNT,
-                  ((AggregateTezCounter)counter).getCount());
-              counterMap.put(ATSConstants.COUNTER_MAX_VALUE,
-                    ((AggregateTezCounter)counter).getMax());
-              counterMap.put(ATSConstants.COUNTER_MIN_VALUE,
-                  ((AggregateTezCounter)counter).getMin());
-
-            }
-            counterList.add(counterMap);
+      ArrayList<Object> counterList = new ArrayList<Object>();
+      for (TezCounter counter : group) {
+        if (counter.getValue() != 0) {
+          Map<String, Object> counterMap = new LinkedHashMap<String, Object>();
+          counterMap.put(ATSConstants.COUNTER_NAME, counter.getName());
+          if (!counter.getDisplayName().equals(counter.getName())) {
+            counterMap.put(ATSConstants.COUNTER_DISPLAY_NAME,
+                counter.getDisplayName());
           }
-        }
-        if (!counterList.isEmpty()) {
-          Map<String,Object> counterGroupMap = new LinkedHashMap<String, Object>();
-          counterGroupMap.put(ATSConstants.COUNTER_GROUP_NAME, group.getName());
-          if (!group.getDisplayName().equals(group.getName())) {
-            counterGroupMap.put(ATSConstants.COUNTER_GROUP_DISPLAY_NAME,
-                group.getDisplayName());
+          counterMap.put(ATSConstants.COUNTER_VALUE, counter.getValue());
+          if (counter instanceof AggregateTezCounter) {
+            counterMap.put(ATSConstants.COUNTER_INSTANCE_COUNT,
+                ((AggregateTezCounter) counter).getCount());
+            counterMap.put(ATSConstants.COUNTER_MAX_VALUE,
+                ((AggregateTezCounter) counter).getMax());
+            counterMap.put(ATSConstants.COUNTER_MIN_VALUE,
+                ((AggregateTezCounter) counter).getMin());
           }
-          counterGroupMap.put(ATSConstants.COUNTERS, counterList);
-          counterGroupsList.add(counterGroupMap);
+          counterList.add(counterMap);
         }
       }
+      if (!counterList.isEmpty()) {
+        Map<String, Object> counterGroupMap = new LinkedHashMap<String, Object>();
+        counterGroupMap.put(ATSConstants.COUNTER_GROUP_NAME, group.getName());
+        if (!group.getDisplayName().equals(group.getName())) {
+          counterGroupMap.put(ATSConstants.COUNTER_GROUP_DISPLAY_NAME,
+              group.getDisplayName());
+        }
+        counterGroupMap.put(ATSConstants.COUNTERS, counterList);
+        counterGroupsList.add(counterGroupMap);
+      }
+    }
     putInto(object, ATSConstants.COUNTER_GROUPS, counterGroupsList);
     return object;
   }
@@ -199,7 +196,7 @@ public class DAGUtils {
   }
 
   public static Map<String, Object> convertDAGPlanToATSMap(final DAGPlan
-      dagPlan) throws IOException {
+                                                               dagPlan) throws IOException {
     final Inflater inflater = TezCommonUtils.newInflater();
     try {
       return convertDAGPlanToATSMap(dagPlan, inflater);
@@ -215,10 +212,10 @@ public class DAGUtils {
    * @return ATS MAP
    */
   private static Map<String, Object> convertDAGPlanToATSMap(DAGPlan dagPlan,
-      final Inflater inflater) {
+                                                            final Inflater inflater) {
     final String VERSION_KEY = "version";
     final int version = 2;
-    Map<String,Object> dagMap = new LinkedHashMap<String, Object>();
+    Map<String, Object> dagMap = new LinkedHashMap<String, Object>();
     dagMap.put(DAG_NAME_KEY, dagPlan.getName());
     if (dagPlan.hasDagInfo()) {
       dagMap.put(DAG_INFO_KEY, dagPlan.getDagInfo());
@@ -229,7 +226,7 @@ public class DAGUtils {
     dagMap.put(VERSION_KEY, version);
     ArrayList<Object> verticesList = new ArrayList<Object>();
     for (DAGProtos.VertexPlan vertexPlan : dagPlan.getVertexList()) {
-      Map<String,Object> vertexMap = new LinkedHashMap<String, Object>();
+      Map<String, Object> vertexMap = new LinkedHashMap<String, Object>();
       vertexMap.put(VERTEX_NAME_KEY, vertexPlan.getName());
       if (vertexPlan.hasProcessorDescriptor()) {
         vertexMap.put(PROCESSOR_CLASS_KEY,
@@ -252,7 +249,7 @@ public class DAGUtils {
       ArrayList<Object> inputsList = new ArrayList<Object>();
       for (DAGProtos.RootInputLeafOutputProto input :
           vertexPlan.getInputsList()) {
-        Map<String,Object> inputMap = new LinkedHashMap<String, Object>();
+        Map<String, Object> inputMap = new LinkedHashMap<String, Object>();
         inputMap.put(NAME_KEY, input.getName());
         inputMap.put(CLASS_KEY, input.getIODescriptor().getClassName());
         if (input.hasControllerDescriptor()) {
@@ -270,7 +267,7 @@ public class DAGUtils {
       ArrayList<Object> outputsList = new ArrayList<Object>();
       for (DAGProtos.RootInputLeafOutputProto output :
           vertexPlan.getOutputsList()) {
-        Map<String,Object> outputMap = new LinkedHashMap<String, Object>();
+        Map<String, Object> outputMap = new LinkedHashMap<String, Object>();
         outputMap.put(NAME_KEY, output.getName());
         outputMap.put(CLASS_KEY, output.getIODescriptor().getClassName());
         if (output.hasControllerDescriptor()) {
@@ -296,7 +293,7 @@ public class DAGUtils {
 
     ArrayList<Object> edgesList = new ArrayList<Object>();
     for (DAGProtos.EdgePlan edgePlan : dagPlan.getEdgeList()) {
-      Map<String,Object> edgeMap = new LinkedHashMap<String, Object>();
+      Map<String, Object> edgeMap = new LinkedHashMap<String, Object>();
       edgeMap.put(EDGE_ID_KEY, edgePlan.getId());
       edgeMap.put(INPUT_VERTEX_NAME_KEY, edgePlan.getInputVertexName());
       edgeMap.put(OUTPUT_VERTEX_NAME_KEY, edgePlan.getOutputVertexName());
@@ -325,9 +322,9 @@ public class DAGUtils {
     ArrayList<Object> vertexGroupsList = new ArrayList<Object>();
     for (DAGProtos.PlanVertexGroupInfo vertexGroupInfo :
         dagPlan.getVertexGroupsList()) {
-      Map<String,Object> groupMap = new LinkedHashMap<String, Object>();
+      Map<String, Object> groupMap = new LinkedHashMap<String, Object>();
       groupMap.put(VERTEX_GROUP_NAME_KEY, vertexGroupInfo.getGroupName());
-      if (vertexGroupInfo.getGroupMembersCount() > 0 ) {
+      if (vertexGroupInfo.getGroupMembersCount() > 0) {
         groupMap.put(VERTEX_GROUP_MEMBERS_KEY, vertexGroupInfo.getGroupMembersList());
       }
       if (vertexGroupInfo.getOutputsCount() > 0) {
@@ -338,11 +335,11 @@ public class DAGUtils {
         ArrayList<Object> edgeMergedInputs = new ArrayList<Object>();
         for (PlanGroupInputEdgeInfo edgeMergedInputInfo :
             vertexGroupInfo.getEdgeMergedInputsList()) {
-          Map<String,Object> edgeMergedInput = new LinkedHashMap<String, Object>();
+          Map<String, Object> edgeMergedInput = new LinkedHashMap<String, Object>();
           edgeMergedInput.put(VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY,
               edgeMergedInputInfo.getDestVertexName());
           if (edgeMergedInputInfo.hasMergedInput()
-            && edgeMergedInputInfo.getMergedInput().hasClassName()) {
+              && edgeMergedInputInfo.getMergedInput().hasClassName()) {
             edgeMergedInput.put(PROCESSOR_CLASS_KEY,
                 edgeMergedInputInfo.getMergedInput().getClassName());
             if (edgeMergedInputInfo.getMergedInput().hasHistoryText()) {
@@ -363,7 +360,7 @@ public class DAGUtils {
   }
 
   private static void putInto(Map<String, Object> map, String key,
-      ArrayList<Object> list) {
+                              ArrayList<Object> list) {
     if (list.isEmpty()) {
       return;
     }
@@ -385,9 +382,9 @@ public class DAGUtils {
     return jsonObject;
   }
 
-  public static Map<String,Object> convertVertexStatsToATSMap(
+  public static Map<String, Object> convertVertexStatsToATSMap(
       VertexStats vertexStats) {
-    Map<String,Object> vertexStatsMap = new LinkedHashMap<String, Object>();
+    Map<String, Object> vertexStatsMap = new LinkedHashMap<String, Object>();
     if (vertexStats == null) {
       return vertexStatsMap;
     }
@@ -441,7 +438,7 @@ public class DAGUtils {
     return jsonObject;
   }
 
-  public static Map<String,Object> convertServicePluginToATSMap(
+  public static Map<String, Object> convertServicePluginToATSMap(
       ServicePluginInfo servicePluginInfo) {
     Map<String, Object> servicePluginMap = new LinkedHashMap<String, Object>();
     if (servicePluginInfo == null) {
@@ -462,11 +459,10 @@ public class DAGUtils {
     return servicePluginMap;
   }
 
-
-  public static Map<String,Object> convertEdgeProperty(
+  public static Map<String, Object> convertEdgeProperty(
       EdgeProperty edge) {
     Map<String, Object> jsonDescriptor = new HashMap<String, Object>();
-    
+
     jsonDescriptor.put(DATA_MOVEMENT_TYPE_KEY,
         edge.getDataMovementType().name());
     jsonDescriptor.put(DATA_SOURCE_TYPE_KEY, edge.getDataSourceType().name());
@@ -492,8 +488,8 @@ public class DAGUtils {
     }
     return jsonDescriptor;
   }
-  
-  public static Map<String,Object> convertEdgeManagerPluginDescriptor(
+
+  public static Map<String, Object> convertEdgeManagerPluginDescriptor(
       EdgeManagerPluginDescriptor descriptor) {
     Map<String, Object> jsonDescriptor = new HashMap<String, Object>();
     jsonDescriptor.put(EDGE_MANAGER_CLASS_KEY, descriptor.getClassName());
@@ -521,6 +517,4 @@ public class DAGUtils {
     atsInfo.put(ATSConstants.REVISION, versionInfo.getRevision());
     return atsInfo;
   }
-
-
 }

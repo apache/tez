@@ -96,9 +96,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
   private final TezExecutors sharedExecutor;
   // TODO Support for removing queued containers, interrupting / killing specific containers - when preemption is supported
 
-
-
-
   public ContainerRunnerImpl(int numExecutors, String[] localDirsBase,
                              AtomicReference<InetSocketAddress> localAddress,
                              long totalMemoryAvailableBytes,
@@ -113,10 +110,9 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
         new ThreadFactoryBuilder().setNameFormat("ContainerExecutor %d").build());
     this.executorService = MoreExecutors.listeningDecorator(raw);
 
-
     // 80% of memory considered for accounted buffers. Rest for objects.
     // TODO Tune this based on the available size.
-    this.memoryPerExecutor = (long)(totalMemoryAvailableBytes * 0.8 / (float) numExecutors);
+    this.memoryPerExecutor = (long) (totalMemoryAvailableBytes * 0.8 / (float) numExecutors);
 
     LOG.info("ContainerRunnerImpl config: " +
         "memoryPerExecutorDerived=" + memoryPerExecutor +
@@ -159,6 +155,7 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
   /**
    * Submit a container which is ready for running.
    * The regular pull mechanism will be used to fetch work from the AM
+   *
    * @param request
    * @throws TezException
    */
@@ -184,7 +181,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     }
     LOG.info("Dirs for {} are {}", request.getContainerIdString(), Arrays.toString(localDirs));
 
-
     // Setup workingDir. This is otherwise setup as Environment.PWD
     // Used for re-localization, to add the user specified configuration (conf_pb_binary_stream)
     String workingDir = localDirs[0];
@@ -204,7 +200,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     // TODO Unregistering does not happen at the moment, since there's no signals on when an app completes.
     LOG.info("Registering request with the ShuffleHandler for containerId {}", request.getContainerIdString());
     ShuffleHandler.get().registerApplication(request.getApplicationIdString(), jobToken, request.getUser());
-
 
     ContainerRunnerCallable callable = new ContainerRunnerCallable(request, new Configuration(getConfig()),
         new ExecutionContextImpl(localAddress.get().getHostName()), env, localDirs,
@@ -274,7 +269,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     Futures.addCallback(future, new TaskRunnerCallback(request, callable), GuavaShim.directExecutor());
   }
 
-
   static class ContainerRunnerCallable implements Callable<ContainerExecutionResult> {
 
     private final RunContainerRequestProto request;
@@ -289,7 +283,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     private final long memoryAvailable;
     private volatile TezChild tezChild;
 
-
     ContainerRunnerCallable(RunContainerRequestProto request, Configuration conf,
                             ExecutionContext executionContext, Map<String, String> envMap,
                             String[] localDirs, String workingDir, Credentials credentials,
@@ -303,7 +296,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
       this.objectRegistry = new ObjectRegistryImpl();
       this.credentials = credentials;
       this.memoryAvailable = memoryAvailable;
-
     }
 
     @Override
@@ -326,7 +318,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
       return this.tezChild;
     }
   }
-
 
   final class ContainerRunnerCallback implements FutureCallback<ContainerExecutionResult> {
 
@@ -394,11 +385,10 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     private TezTaskUmbilicalProtocol umbilical;
     private final TezExecutors sharedExecutor;
 
-
     TaskRunnerCallable(SubmitWorkRequestProto request, Configuration conf,
-                             ExecutionContext executionContext, Map<String, String> envMap,
-                             String[] localDirs, String workingDir, Credentials credentials,
-                             long memoryAvailable, TezExecutors sharedExecutor) {
+                       ExecutionContext executionContext, Map<String, String> envMap,
+                       String[] localDirs, String workingDir, Credentials credentials,
+                       long memoryAvailable, TezExecutors sharedExecutor) {
       this.request = request;
       this.conf = conf;
       this.executionContext = executionContext;
@@ -502,14 +492,13 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
     }
   }
 
-
   final class TaskRunnerCallback implements FutureCallback<ContainerExecutionResult> {
 
     private final SubmitWorkRequestProto request;
     private final TaskRunnerCallable taskRunnerCallable;
 
     TaskRunnerCallback(SubmitWorkRequestProto request,
-                            TaskRunnerCallable containerRunnerCallable) {
+                       TaskRunnerCallable containerRunnerCallable) {
       this.request = request;
       this.taskRunnerCallable = containerRunnerCallable;
     }
@@ -548,7 +537,6 @@ public class ContainerRunnerImpl extends AbstractService implements ContainerRun
       taskRunnerCallable.shutdown();
     }
   }
-
 
   private void checkAndThrowExceptionForTests(SubmitWorkRequestProto request) throws TezException {
     if (!request.getTaskSpec().getDagName().equals(DAG_NAME_INSTRUMENTED_FAILURES)) {

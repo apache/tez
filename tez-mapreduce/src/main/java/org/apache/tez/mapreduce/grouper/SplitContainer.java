@@ -26,7 +26,6 @@ public abstract class SplitContainer {
 
   private boolean isProcessed = false;
 
-
   public abstract String[] getPreferredLocations() throws IOException, InterruptedException;
 
   public abstract long getLength() throws IOException, InterruptedException;

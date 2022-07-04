@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.api;
 
@@ -41,7 +41,7 @@ public abstract class EdgeManagerPlugin {
    * Create an instance of the EdgeManagerPlugin. Classes extending this to
    * create a EdgeManagerPlugin, must provide the same constructor so that Tez
    * can create an instance of the class at runtime.
-   * 
+   *
    * @param context
    *          the context within which this EdgeManagerPlugin will run. Includes
    *          information like configuration which the user may have specified
@@ -61,7 +61,7 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract void initialize() throws Exception;
-  
+
   /**
    * Get the number of physical inputs on the destination task
    * @param destinationTaskIndex Index of destination task for which number of 
@@ -79,14 +79,14 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Return the routing information to inform consumers about the source task
    * output that is now available. The return map has the routing information.
    * The event will be routed to every destination task index in the key of the
    * map. Every physical input in the value for that task key will receive the
    * input.
-   * 
+   *
    * @param event
    *          Data movement event that contains the output information
    * @param sourceTaskIndex
@@ -99,8 +99,8 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
+                                                           int sourceTaskIndex, int sourceOutputIndex,
+                                                           Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
 
   /**
    * Return the routing information to inform consumers about the failure of a
@@ -110,7 +110,7 @@ public abstract class EdgeManagerPlugin {
    * for that task key will receive the failure notification. This method will
    * be called once for every source task failure and information for all
    * affected destinations must be provided in that invocation.
-   * 
+   *
    * @param sourceTaskIndex
    *          Source task
    * @param destinationTaskAndInputIndices
@@ -118,7 +118,7 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
+                                                                    Map<Integer, List<Integer>> destinationTaskAndInputIndices) throws Exception;
 
   /**
    * Get the number of destination tasks that consume data from the source task
@@ -126,10 +126,10 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int getNumDestinationConsumerTasks(int sourceTaskIndex) throws Exception;
-  
+
   /**
    * Return the source task index to which to send the input error event
-   * 
+   *
    * @param event
    *          Input read error event. Has more information about the error
    * @param destinationTaskIndex
@@ -141,7 +141,7 @@ public abstract class EdgeManagerPlugin {
    * @throws Exception
    */
   public abstract int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex, int destinationFailedInputIndex) throws Exception;
+                                                   int destinationTaskIndex, int destinationFailedInputIndex) throws Exception;
 
   /**
    * Return the {@link org.apache.tez.dag.api.EdgeManagerPluginContext} for this specific instance of

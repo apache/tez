@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,16 +36,16 @@ import org.apache.tez.common.Preconditions;
 public class DiskFetchedInput extends FetchedInput {
 
   private static final Logger LOG = LoggerFactory.getLogger(DiskFetchedInput.class);
-  
+
   private final FileSystem localFS;
   private final Path tmpOutputPath;
   private final Path outputPath;
   private final long size;
 
   public DiskFetchedInput(long compressedSize,
-      InputAttemptIdentifier inputAttemptIdentifier,
-      FetchedInputCallback callbackHandler, Configuration conf,
-      LocalDirAllocator localDirAllocator, TezTaskOutputFiles filenameAllocator)
+                          InputAttemptIdentifier inputAttemptIdentifier,
+                          FetchedInputCallback callbackHandler, Configuration conf,
+                          LocalDirAllocator localDirAllocator, TezTaskOutputFiles filenameAllocator)
       throws IOException {
     super(inputAttemptIdentifier, callbackHandler);
 
@@ -85,7 +85,7 @@ public class DiskFetchedInput extends FetchedInput {
     }
     return this.tmpOutputPath;
   }
-  
+
   @Override
   public void commit() throws IOException {
     if (isState(State.PENDING)) {
@@ -104,7 +104,7 @@ public class DiskFetchedInput extends FetchedInput {
       notifyFetchFailure();
     }
   }
-  
+
   @Override
   public void free() {
     Preconditions.checkState(

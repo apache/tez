@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.library.vertexmanager;
 
@@ -59,7 +59,7 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     int numTasks = 0;
-    for(DestinationTaskInputsProperty entry: mapping.values()) {
+    for (DestinationTaskInputsProperty entry : mapping.values()) {
       if (entry.isSourceTaskInRange(sourceTaskIndex)) {
         numTasks++;
       }
@@ -87,7 +87,7 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public int routeInputErrorEventToSource(int destinationTaskIndex,
-      int destinationFailedInputIndex) {
+                                          int destinationFailedInputIndex) {
     return mapping.get(destinationTaskIndex).getSourceTaskIndex(
         destinationFailedInputIndex);
   }
@@ -122,8 +122,8 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public @Nullable CompositeEventRouteMetadata
-      routeCompositeDataMovementEventToDestination(int sourceTaskIndex,
-      int destinationTaskIndex) {
+  routeCompositeDataMovementEventToDestination(int sourceTaskIndex,
+                                               int destinationTaskIndex) {
     DestinationTaskInputsProperty property = mapping.get(destinationTaskIndex);
     int firstPhysicalInputIndex =
         property.getFirstPhysicalInputIndex(sourceTaskIndex);
@@ -150,4 +150,3 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
     }
   }
 }
-

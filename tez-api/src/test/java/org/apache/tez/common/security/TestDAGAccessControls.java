@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -42,8 +42,7 @@ public class TestDAGAccessControls {
     Assert.assertTrue(dagAccessControls.getGroupsWithModifyACLs().contains("g2"));
   }
 
-
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testMergeIntoAmAcls() {
     DAGAccessControls dagAccessControls = new DAGAccessControls("u1 g1", "u2 g2");
     Configuration conf = new Configuration(false);
@@ -129,8 +128,8 @@ public class TestDAGAccessControls {
       return;
     }
 
-    String [] parts1 = expected.split(" ");
-    String [] parts2 = obtained.split(" ");
+    String[] parts1 = expected.split(" ");
+    String[] parts2 = obtained.split(" ");
 
     Assert.assertEquals(parts1.length, parts2.length);
 

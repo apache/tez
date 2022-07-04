@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,7 +67,7 @@ public abstract class TezTaskOutput {
   /**
    * Create a local output file name. This method is meant to be used *only* if
    * the size of the file is not know up front.
-   * 
+   *
    * @return path the path to write to
    * @throws IOException
    */
@@ -110,7 +110,6 @@ public abstract class TezTaskOutput {
   public abstract Path getSpillFileForWrite(int spillNumber, long size)
       throws IOException;
 
-
   /**
    * Create a local output spill index file name.
    *
@@ -131,7 +130,7 @@ public abstract class TezTaskOutput {
    * @throws IOException
    */
   public abstract Path getInputFileForWrite(int srcIdentifier,
-      int spillNum, long size) throws IOException;
+                                            int spillNum, long size) throws IOException;
 
   /**
    * Construct a spill file name, given a spill number
@@ -141,5 +140,4 @@ public abstract class TezTaskOutput {
    * @return a spill file name independent of the unique identifier and local directories
    */
   public abstract String getSpillFileName(int srcId, int spillNum);
-
 }

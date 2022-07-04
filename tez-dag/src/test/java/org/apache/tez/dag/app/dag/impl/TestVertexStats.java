@@ -155,5 +155,4 @@ public class TestVertexStats {
     Assert.assertEquals(2, stats.shortestDurationTasks.size());
     Assert.assertEquals(2, stats.longestDurationTasks.size());
   }
-
 }

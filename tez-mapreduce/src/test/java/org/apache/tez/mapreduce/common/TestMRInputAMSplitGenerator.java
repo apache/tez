@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,12 +78,12 @@ public class TestMRInputAMSplitGenerator {
 
   @Test(timeout = 5000)
   public void testGroupSplitsEnabledSortSplitsDisabled()
-          throws Exception {
+      throws Exception {
     testGroupSplitsAndSortSplits(true, false);
   }
 
   private void testGroupSplitsAndSortSplits(boolean groupSplitsEnabled,
-      boolean sortSplitsEnabled) throws Exception {
+                                            boolean sortSplitsEnabled) throws Exception {
     Configuration conf = new Configuration();
     String[] splitLengths = new String[50];
     for (int i = 0; i < splitLengths.length; i++) {
@@ -91,7 +91,7 @@ public class TestMRInputAMSplitGenerator {
     }
     conf.setStrings(SPLITS_LENGTHS, splitLengths);
     DataSourceDescriptor dataSource = MRInput.createConfigBuilder(
-        conf, InputFormatForTest.class).
+            conf, InputFormatForTest.class).
         groupSplits(groupSplitsEnabled).sortSplits(sortSplitsEnabled).build();
     UserPayload userPayload = dataSource.getInputDescriptor().getUserPayload();
 
@@ -116,11 +116,11 @@ public class TestMRInputAMSplitGenerator {
       InputSplit is = MRInputUtils.getNewSplitDetailsFromEvent(
           eventProto, new Configuration());
       if (groupSplitsEnabled) {
-        numRawInputSplits += ((TezGroupedSplit)is).getGroupedSplits().size();
-        for (InputSplit inputSplit : ((TezGroupedSplit)is).getGroupedSplits()) {
+        numRawInputSplits += ((TezGroupedSplit) is).getGroupedSplits().size();
+        for (InputSplit inputSplit : ((TezGroupedSplit) is).getGroupedSplits()) {
           assertTrue(inputSplit instanceof InputSplitForTest);
         }
-        assertTrue(((TezGroupedSplit)is).getGroupedSplits().get(0)
+        assertTrue(((TezGroupedSplit) is).getGroupedSplits().get(0)
             instanceof InputSplitForTest);
       } else {
         numRawInputSplits++;
@@ -165,13 +165,13 @@ public class TestMRInputAMSplitGenerator {
 
         @Override
         public IntWritable getCurrentKey() throws IOException,
-                InterruptedException {
+            InterruptedException {
           return new IntWritable(0);
         }
 
         @Override
         public IntWritable getCurrentValue() throws IOException,
-                InterruptedException {
+            InterruptedException {
           return new IntWritable(0);
         }
 
@@ -223,6 +223,7 @@ public class TestMRInputAMSplitGenerator {
     public int getIdentifier() {
       return this.identifier;
     }
+
     public InputSplitForTest(int identifier, int length) {
       this.identifier = identifier;
       this.length = length;
@@ -247,7 +248,7 @@ public class TestMRInputAMSplitGenerator {
 
     @Override
     public String[] getLocations() throws IOException {
-      return new String[] {"localhost"};
+      return new String[]{"localhost"};
     }
   }
 }

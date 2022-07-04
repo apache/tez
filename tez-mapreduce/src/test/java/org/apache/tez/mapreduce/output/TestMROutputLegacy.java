@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,7 +50,7 @@ public class TestMROutputLegacy {
       TestMROutputLegacy.class.getName()).getAbsoluteFile();
 
   // simulate the behavior of translating MR to DAG using MR old API
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testOldAPI_MR() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
@@ -81,7 +81,7 @@ public class TestMROutputLegacy {
   }
 
   // simulate the behavior of translating MR to DAG using MR new API
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testNewAPI_MR() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();
@@ -113,7 +113,7 @@ public class TestMROutputLegacy {
   }
 
   // simulate the behavior of translating Mapper-only job to DAG using MR old API
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testOldAPI_MapperOnly() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     JobConf conf = new JobConf();
@@ -144,7 +144,7 @@ public class TestMROutputLegacy {
   }
 
   //simulate the behavior of translating mapper-only job to DAG using MR new API
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testNewAPI_MapperOnly() throws Exception {
     String outputPath = TEST_DIR.getAbsolutePath();
     Job job = Job.getInstance();

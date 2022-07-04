@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -95,9 +95,8 @@ import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 
 import org.apache.tez.common.Preconditions;
 
-
 public class TaskSchedulerManager extends AbstractService implements
-                                               EventHandler<AMSchedulerEvent> {
+    EventHandler<AMSchedulerEvent> {
   static final Logger LOG = LoggerFactory.getLogger(TaskSchedulerManager.class);
 
   static final String APPLICATION_ID_PLACEHOLDER = "__APPLICATION_ID__";
@@ -121,7 +120,7 @@ public class TaskSchedulerManager extends AbstractService implements
   private final WebUIService webUI;
   private final NamedEntityDescriptor[] taskSchedulerDescriptors;
   protected final TaskSchedulerWrapper[] taskSchedulers;
-  protected final ServicePluginLifecycleAbstractService []taskSchedulerServiceWrappers;
+  protected final ServicePluginLifecycleAbstractService[] taskSchedulerServiceWrappers;
 
   // Single executor service shared by all Schedulers for context callbacks
   @VisibleForTesting
@@ -138,7 +137,7 @@ public class TaskSchedulerManager extends AbstractService implements
   private final HadoopShim hadoopShim;
 
   BlockingQueue<AMSchedulerEvent> eventQueue
-                              = new LinkedBlockingQueue<AMSchedulerEvent>();
+      = new LinkedBlockingQueue<AMSchedulerEvent>();
 
   private final String yarnSchedulerClassName;
 
@@ -226,7 +225,7 @@ public class TaskSchedulerManager extends AbstractService implements
   public int getNumClusterNodes() {
     return cachedNodeCount;
   }
-  
+
   public Resource getAvailableResources(int schedulerId) {
     try {
       return taskSchedulers[schedulerId].getAvailableResources();
@@ -267,41 +266,41 @@ public class TaskSchedulerManager extends AbstractService implements
   public synchronized void handleEvent(AMSchedulerEvent sEvent) {
     LOG.debug("Processing the event {}", sEvent);
     switch (sEvent.getType()) {
-    case S_TA_LAUNCH_REQUEST:
-      handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
-      break;
-    case S_TA_STATE_UPDATED:
-      handleTAStateUpdated((AMSchedulerEventTAStateUpdated) sEvent);
-      break;
-    case S_TA_ENDED: // TaskAttempt considered complete.
-      AMSchedulerEventTAEnded event = (AMSchedulerEventTAEnded)sEvent;
-      switch(event.getState()) {
-      case FAILED:
-      case KILLED:
-        handleTAUnsuccessfulEnd(event);
+      case S_TA_LAUNCH_REQUEST:
+        handleTaLaunchRequest((AMSchedulerEventTALaunchRequest) sEvent);
         break;
-      case SUCCEEDED:
-        handleTASucceeded(event);
+      case S_TA_STATE_UPDATED:
+        handleTAStateUpdated((AMSchedulerEventTAStateUpdated) sEvent);
+        break;
+      case S_TA_ENDED: // TaskAttempt considered complete.
+        AMSchedulerEventTAEnded event = (AMSchedulerEventTAEnded) sEvent;
+        switch (event.getState()) {
+          case FAILED:
+          case KILLED:
+            handleTAUnsuccessfulEnd(event);
+            break;
+          case SUCCEEDED:
+            handleTASucceeded(event);
+            break;
+          default:
+            throw new TezUncheckedException("Unexpected TA_ENDED state: " + event.getState());
+        }
+        break;
+      case S_CONTAINER_DEALLOCATE:
+        handleContainerDeallocate((AMSchedulerEventDeallocateContainer) sEvent);
+        break;
+      case S_NODE_UNBLACKLISTED:
+        // fall through
+      case S_NODE_BLACKLISTED:
+        handleNodeBlacklistUpdate((AMSchedulerEventNodeBlacklistUpdate) sEvent);
+        break;
+      case S_NODE_UNHEALTHY:
+        break;
+      case S_NODE_HEALTHY:
+        // Consider changing this to work like BLACKLISTING.
         break;
       default:
-        throw new TezUncheckedException("Unexpected TA_ENDED state: " + event.getState());
-      }
-      break;
-    case S_CONTAINER_DEALLOCATE:
-      handleContainerDeallocate((AMSchedulerEventDeallocateContainer)sEvent);
-      break;
-    case S_NODE_UNBLACKLISTED:
-      // fall through
-    case S_NODE_BLACKLISTED:
-      handleNodeBlacklistUpdate((AMSchedulerEventNodeBlacklistUpdate)sEvent);
-      break;
-    case S_NODE_UNHEALTHY:
-      break;
-    case S_NODE_HEALTHY:
-      // Consider changing this to work like BLACKLISTING.
-      break;
-    default:
-      break;
+        break;
     }
   }
 
@@ -355,7 +354,7 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   private void handleContainerDeallocate(
-                                  AMSchedulerEventDeallocateContainer event) {
+      AMSchedulerEventDeallocateContainer event) {
     ContainerId containerId = event.getContainerId();
     // TODO what happens to the task that was connected to this container?
     // current assumption is that it will eventually call handleTaStopRequest
@@ -402,7 +401,7 @@ public class TaskSchedulerManager extends AbstractService implements
     // retroactive case
     ContainerId attemptContainerId = attempt.getAssignedContainerID();
 
-    if(!wasContainerAllocated) {
+    if (!wasContainerAllocated) {
       LOG.info("Task: " + attempt.getTaskAttemptID() +
           " has no container assignment in the scheduler");
       if (attemptContainerId != null) {
@@ -453,7 +452,7 @@ public class TaskSchedulerManager extends AbstractService implements
 
     try {
       wasContainerAllocated = taskSchedulers[event.getSchedulerId()].deallocateTask(attempt,
-        true, null, event.getDiagnostics());
+          true, null, event.getDiagnostics());
     } catch (Exception e) {
       String msg = "Error in TaskScheduler for handling Task De-allocation"
           + ", eventType=" + event.getType()
@@ -484,10 +483,10 @@ public class TaskSchedulerManager extends AbstractService implements
         Vertex vertex = appContext.getCurrentDAG().getVertex(taskAffinity.getVertexName());
         Objects.requireNonNull(vertex, "Invalid vertex in task based affinity " + taskAffinity
             + " for attempt: " + taskAttempt.getTaskAttemptID());
-        int taskIndex = taskAffinity.getTaskIndex(); 
-        Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(), 
-            "Invalid taskIndex in task based affinity " + taskAffinity 
-            + " for attempt: " + taskAttempt.getTaskAttemptID());
+        int taskIndex = taskAffinity.getTaskIndex();
+        Preconditions.checkState(taskIndex >= 0 && taskIndex < vertex.getTotalTasks(),
+            "Invalid taskIndex in task based affinity " + taskAffinity
+                + " for attempt: " + taskAttempt.getTaskAttemptID());
         TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
         if (affinityAttempt != null) {
           Objects.requireNonNull(affinityAttempt.getAssignedContainerID(),
@@ -592,8 +591,8 @@ public class TaskSchedulerManager extends AbstractService implements
                                         int schedulerId) throws TezException {
     LOG.info("Creating YARN TaskScheduler: {}", yarnSchedulerClassName);
     return ReflectionUtils.createClazzInstance(yarnSchedulerClassName,
-        new Class[] { TaskSchedulerContext.class },
-        new Object[] { taskSchedulerContext });
+        new Class[]{TaskSchedulerContext.class},
+        new Object[]{taskSchedulerContext});
   }
 
   @VisibleForTesting
@@ -638,7 +637,6 @@ public class TaskSchedulerManager extends AbstractService implements
     }
   }
 
-  
   @Override
   public synchronized void serviceStart() throws Exception {
     // clientService is null in case of LocalDAGAppMaster
@@ -652,7 +650,7 @@ public class TaskSchedulerManager extends AbstractService implements
     String trackingUrl = (webUI != null) ? webUI.getTrackingURL() : "";
     instantiateSchedulers(serviceAddr.getHostName(), serviceAddr.getPort(), trackingUrl, appContext);
 
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       taskSchedulerServiceWrappers[i].init(getConfig());
       taskSchedulerServiceWrappers[i].start();
       if (shouldUnregisterFlag.get()) {
@@ -675,7 +673,7 @@ public class TaskSchedulerManager extends AbstractService implements
             }
             event = TaskSchedulerManager.this.eventQueue.take();
           } catch (InterruptedException e) {
-            if(!stopEventHandling) {
+            if (!stopEventHandling) {
               LOG.warn("Continuing after interrupt : ", e);
             }
             continue;
@@ -697,12 +695,12 @@ public class TaskSchedulerManager extends AbstractService implements
     };
     this.eventHandlingThread.start();
   }
-  
+
   protected void notifyForTest() {
   }
 
   public void initiateStop() {
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       if (taskSchedulers[i] != null) {
         try {
           taskSchedulers[i].getTaskScheduler().initiateStop();
@@ -717,12 +715,12 @@ public class TaskSchedulerManager extends AbstractService implements
 
   @Override
   public void serviceStop() throws InterruptedException {
-    synchronized(this) {
+    synchronized (this) {
       this.stopEventHandling = true;
       if (eventHandlingThread != null)
         eventHandlingThread.interrupt();
     }
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       if (taskSchedulers[i] != null) {
         taskSchedulerServiceWrappers[i].stop();
       }
@@ -734,8 +732,8 @@ public class TaskSchedulerManager extends AbstractService implements
 
   // TaskSchedulerAppCallback methods with schedulerId, where relevant
   public synchronized void taskAllocated(int schedulerId, Object task,
-                                           Object appCookie,
-                                           Container container) {
+                                         Object appCookie,
+                                         Container container) {
     AMSchedulerEventTALaunchRequest event =
         (AMSchedulerEventTALaunchRequest) appCookie;
     ContainerId containerId = container.getId();
@@ -746,7 +744,6 @@ public class TaskSchedulerManager extends AbstractService implements
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), schedulerId, container.getId()));
     }
-
 
     TaskAttempt taskAttempt = event.getTaskAttempt();
     // TODO - perhaps check if the task still needs this container
@@ -765,7 +762,7 @@ public class TaskSchedulerManager extends AbstractService implements
     }
     sendEvent(new AMContainerEventAssignTA(containerId, taskAttempt.getTaskAttemptID(),
         event.getRemoteTaskSpec(), event.getContainerContext().getLocalResources(), event
-            .getContainerContext().getCredentials(), event.getPriority()));
+        .getContainerContext().getCredentials(), event.getPriority()));
   }
 
   public synchronized void containerCompleted(int schedulerId, Object task, ContainerStatus containerStatus) {
@@ -782,7 +779,7 @@ public class TaskSchedulerManager extends AbstractService implements
       } else if (exitStatus == ContainerExitStatus.DISKS_FAILED) {
         message = "Container disk failed. ";
         errCause = TaskAttemptTerminationCause.NODE_DISK_ERROR;
-      } else if (exitStatus != ContainerExitStatus.SUCCESS){
+      } else if (exitStatus != ContainerExitStatus.SUCCESS) {
         message = "Container failed, exitCode=" + exitStatus + ". ";
       }
       if (containerStatus.getDiagnostics() != null) {
@@ -819,7 +816,7 @@ public class TaskSchedulerManager extends AbstractService implements
   public synchronized void setApplicationRegistrationData(
       int schedulerId,
       Resource maxContainerCapability,
-      Map<ApplicationAccessType, String> appAcls, 
+      Map<ApplicationAccessType, String> appAcls,
       ByteBuffer clientAMSecretKey,
       String queueName) {
     this.appContext.getClusterInfo().setMaxContainerCapability(
@@ -855,7 +852,7 @@ public class TaskSchedulerManager extends AbstractService implements
       finishState = hadoopShim.applyFinalApplicationStatusCorrection(finishState,
           dagAppMaster.isSession(), appMasterState == DAGAppMasterState.ERROR);
       List<String> diagnostics = dagAppMaster.getDiagnostics();
-      if(diagnostics != null) {
+      if (diagnostics != null) {
         for (String s : diagnostics) {
           sb.append(s).append("\n");
         }
@@ -867,8 +864,6 @@ public class TaskSchedulerManager extends AbstractService implements
     // history url
     return new AppFinalStatus(finishState, sb.toString(), historyUrl);
   }
-
-
 
   // Not synchronized to avoid deadlocks from TaskScheduler callbacks.
   // TaskScheduler uses a separate thread for it's callbacks. Since this method
@@ -935,7 +930,7 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   public void dagCompleted() {
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       try {
         taskSchedulers[i].dagComplete();
       } catch (Exception e) {
@@ -987,7 +982,7 @@ public class TaskSchedulerManager extends AbstractService implements
   public void setShouldUnregisterFlag() {
     LOG.info("TaskScheduler notified that it should unregister from RM");
     this.shouldUnregisterFlag.set(true);
-    for (int i = 0 ; i < taskSchedulers.length ; i++) {
+    for (int i = 0; i < taskSchedulers.length; i++) {
       if (this.taskSchedulers[i] != null) {
         try {
           this.taskSchedulers[i].setShouldUnregister();
@@ -1045,7 +1040,7 @@ public class TaskSchedulerManager extends AbstractService implements
     String historyUrl = "";
 
     String historyUrlTemplate = config.get(TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE,
-            TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE_DEFAULT);
+        TezConfiguration.TEZ_AM_TEZ_UI_HISTORY_URL_TEMPLATE_DEFAULT);
     String historyUrlBase = config.get(TezConfiguration.TEZ_HISTORY_URL_BASE, "");
 
     if (!historyUrlTemplate.isEmpty() &&
@@ -1077,5 +1072,4 @@ public class TaskSchedulerManager extends AbstractService implements
   public String getTaskSchedulerClassName(int taskSchedulerIndex) {
     return taskSchedulers[taskSchedulerIndex].getTaskScheduler().getClass().getName();
   }
-
 }

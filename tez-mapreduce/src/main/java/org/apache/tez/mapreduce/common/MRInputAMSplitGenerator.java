@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ import org.apache.tez.util.StopWatch;
 public class MRInputAMSplitGenerator extends InputInitializer {
 
   private boolean sendSerializedEvents;
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MRInputAMSplitGenerator.class);
 
   public MRInputAMSplitGenerator(
@@ -81,7 +81,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     sw.reset().start();
     Configuration conf = new JobConf(getContext().getVertexConfiguration());
     TezUtils.addToConfFromByteString(conf, userPayloadProto.getConfigurationBytes());
-    
+
     sendSerializedEvents = conf.getBoolean(
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD,
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT);
@@ -101,9 +101,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
         TezSplitGrouper.TEZ_GROUPING_SPLIT_WAVES,
         TezSplitGrouper.TEZ_GROUPING_SPLIT_WAVES_DEFAULT);
 
-    int numTasks = (int)((totalResource*waves)/taskResource);
-
-
+    int numTasks = (int) ((totalResource * waves) / taskResource);
 
     boolean groupSplits = userPayloadProto.getGroupingEnabled();
     boolean sortSplits = userPayloadProto.getSortSplitsEnabled();
@@ -127,7 +125,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
 
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
         .getNumTasks() + 1);
-    
+
     InputConfigureVertexTasksEvent configureVertexEvent = InputConfigureVertexTasksEvent.create(
         inputSplitInfo.getNumTasks(),
         VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
@@ -160,7 +158,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
         }
       }
     }
-    
+
     return events;
   }
 
@@ -168,5 +166,4 @@ public class MRInputAMSplitGenerator extends InputInitializer {
   public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
     throw new UnsupportedOperationException("Not expecting to handle any events");
   }
-
 }

@@ -131,7 +131,7 @@ public class TestValuesIterator {
    * @throws IOException
    */
   public TestValuesIterator(String serializationClassName, Class<?> key, Class<?> val,
-      TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult)
+                            TestWithComparator comparator, TestWithComparator correctComparator, boolean testResult)
       throws IOException {
     this.comparator = getComparator(comparator);
     this.correctComparator =
@@ -223,7 +223,7 @@ public class TestValuesIterator {
     try {
       boolean hasNext = iterator.moveToNext();
       fail();
-    } catch(IOException e) {
+    } catch (IOException e) {
       assertTrue(e.getMessage().contains("Please check if you are invoking moveToNext()"));
     }
   }
@@ -253,12 +253,11 @@ public class TestValuesIterator {
         (TezCounter) new GenericCounter("inputValueCounter", "y4"));
   }
 
-
   /**
    * Tests whether data in valuesIterator matches with sorted input data set.
-   * 
+   * <p>
    * Returns a list of value counts for each key.
-   * 
+   *
    * @param valuesIterator
    * @return List
    * @throws IOException
@@ -274,7 +273,7 @@ public class TestValuesIterator {
     ListMultimap<Writable, Writable> sortedMap =
         new ImmutableListMultimap.Builder<Writable, Writable>()
             .orderKeysBy(this.correctComparator).putAll
-            (originalData).build();
+                (originalData).build();
 
     Set<Map.Entry<Writable, Writable>> oriKeySet = Sets.newSet();
     oriKeySet.addAll(sortedMap.entries());
@@ -314,7 +313,7 @@ public class TestValuesIterator {
       assertFalse(valuesIterator.moveToNext());
       getNextFromFinishedIterator(valuesIterator);
     } else {
-      while(valuesIterator.moveToNext()) {
+      while (valuesIterator.moveToNext()) {
         //iterate through all keys
       }
       getNextFromFinishedIterator(valuesIterator);
@@ -391,13 +390,13 @@ public class TestValuesIterator {
 
     //parameters for constructor
     parameters.add(new Object[]
-        { null, Text.class, Text.class, TestWithComparator.TEXT, null, true });
+        {null, Text.class, Text.class, TestWithComparator.TEXT, null, true});
     parameters.add(new Object[]
-        { null, LongWritable.class, Text.class, TestWithComparator.LONG, null, true });
+        {null, LongWritable.class, Text.class, TestWithComparator.LONG, null, true});
     parameters.add(new Object[]
-        { null, IntWritable.class, Text.class, TestWithComparator.INT, null, true });
+        {null, IntWritable.class, Text.class, TestWithComparator.INT, null, true});
     parameters.add(new Object[]
-        { null, BytesWritable.class, BytesWritable.class, TestWithComparator.BYTES, null, true });
+        {null, BytesWritable.class, BytesWritable.class, TestWithComparator.BYTES, null, true});
     parameters.add(new Object[]
         {
             TEZ_BYTES_SERIALIZATION, BytesWritable.class, BytesWritable.class,
@@ -433,20 +432,20 @@ public class TestValuesIterator {
 
   private RawComparator getComparator(TestWithComparator comparator) {
     switch (comparator) {
-    case LONG:
-      return new LongWritable.Comparator();
-    case INT:
-      return new IntWritable.Comparator();
-    case BYTES:
-      return new BytesWritable.Comparator();
-    case TEZ_BYTES:
-      return new TezBytesComparator();
-    case TEXT:
-      return new Text.Comparator();
-    case CUSTOM:
-      return new CustomKey.Comparator();
-    default:
-      return null;
+      case LONG:
+        return new LongWritable.Comparator();
+      case INT:
+        return new IntWritable.Comparator();
+      case BYTES:
+        return new BytesWritable.Comparator();
+      case TEZ_BYTES:
+        return new TezBytesComparator();
+      case TEXT:
+        return new Text.Comparator();
+      case CUSTOM:
+        return new CustomKey.Comparator();
+      default:
+        return null;
     }
   }
 
@@ -564,7 +563,6 @@ public class TestValuesIterator {
     return map;
   }
 
-
   private Writable createData(Class<?> c) {
     if (c.getName().equalsIgnoreCase(BytesWritable.class.getName())) {
       return new BytesWritable(new BigInteger(256, rnd).toString().getBytes());
@@ -586,7 +584,8 @@ public class TestValuesIterator {
   }
 
   private static class ProgressReporter implements Progressable {
-    @Override public void progress() {
+    @Override
+    public void progress() {
       //no impl
     }
   }

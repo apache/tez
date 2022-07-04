@@ -27,7 +27,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 
 @InterfaceAudience.Private
 public class Limits {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(Limits.class);
 
   private static final Configuration DEFAULT_CONFIGURATION = new TezConfiguration();
@@ -83,8 +83,8 @@ public class Limits {
       throw new LimitExceededException(firstViolation);
     }
     if (size > COUNTERS_MAX) {
-      firstViolation = new LimitExceededException("Too many counters: "+ size +
-                                                  " max="+ COUNTERS_MAX);
+      firstViolation = new LimitExceededException("Too many counters: " + size +
+          " max=" + COUNTERS_MAX);
       throw firstViolation;
     }
   }
@@ -99,8 +99,8 @@ public class Limits {
       throw new LimitExceededException(firstViolation);
     }
     if (size > GROUPS_MAX) {
-      firstViolation = new LimitExceededException("Too many counter groups: "+
-                                                  size +" max="+ GROUPS_MAX);
+      firstViolation = new LimitExceededException("Too many counter groups: " +
+          size + " max=" + GROUPS_MAX);
     }
   }
 
@@ -109,5 +109,4 @@ public class Limits {
   public synchronized static void reset() {
     conf = DEFAULT_CONFIGURATION;
   }
-
 }

@@ -52,7 +52,8 @@ public class GenericCounter extends AbstractCounter {
     this.value.set(value);
   }
 
-  @Override @Deprecated
+  @Override
+  @Deprecated
   public synchronized void setDisplayName(String displayName) {
     this.displayName = displayName;
   }
@@ -70,7 +71,7 @@ public class GenericCounter extends AbstractCounter {
   @Override
   public synchronized void write(DataOutput out) throws IOException {
     Text.writeString(out, name);
-    boolean distinctDisplayName = ! name.equals(displayName);
+    boolean distinctDisplayName = !name.equals(displayName);
     out.writeBoolean(distinctDisplayName);
     if (distinctDisplayName) {
       Text.writeString(out, displayName);

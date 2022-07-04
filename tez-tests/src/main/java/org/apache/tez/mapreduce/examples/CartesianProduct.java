@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -89,7 +89,7 @@ public class CartesianProduct extends TezExampleBase {
   private static final String VERTEX2 = "Vertex2";
   private static final String VERTEX3 = "Vertex3";
   private static final Logger LOG = LoggerFactory.getLogger(CartesianProduct.class);
-  private static final String[] sourceVertices = new String[] {VERTEX1, VERTEX2};
+  private static final String[] sourceVertices = new String[]{VERTEX1, VERTEX2};
 
   public static class TokenProcessor extends SimpleProcessor {
     public TokenProcessor(ProcessorContext context) {
@@ -105,7 +105,7 @@ public class CartesianProduct extends TezExampleBase {
       while (kvReader.next()) {
         Object key = kvReader.getCurrentKey();
         Object value = kvReader.getCurrentValue();
-        kvWriter.write(new Text((String)key), new IntWritable(1));
+        kvWriter.write(new Text((String) key), new IntWritable(1));
       }
     }
   }
@@ -124,11 +124,11 @@ public class CartesianProduct extends TezExampleBase {
       Set<Object> rightSet = new HashSet<>();
 
       while (kvReader1.next()) {
-        Text key = (Text)(kvReader1.getCurrentKey());
+        Text key = (Text) (kvReader1.getCurrentKey());
         leftSet.add(new Text(key));
       }
       while (kvReader2.next()) {
-        Text key = (Text)(kvReader2.getCurrentKey());
+        Text key = (Text) (kvReader2.getCurrentKey());
         rightSet.add(new Text(key));
       }
 
@@ -218,7 +218,7 @@ public class CartesianProduct extends TezExampleBase {
         public boolean next() throws IOException {
           if (i == -1) {
             for (int j = 0; j < numRecordPerSrc; j++) {
-              keys[j] = ""+j;
+              keys[j] = "" + j;
             }
           }
           i++;
@@ -324,9 +324,9 @@ public class CartesianProduct extends TezExampleBase {
   private DAG createDAG(TezConfiguration tezConf) throws IOException {
     InputDescriptor inputDescriptor = InputDescriptor.create(FakeInput.class.getName());
     InputInitializerDescriptor inputInitializerDescriptor =
-      InputInitializerDescriptor.create(FakeInputInitializer.class.getName());
+        InputInitializerDescriptor.create(FakeInputInitializer.class.getName());
     DataSourceDescriptor dataSourceDescriptor =
-      DataSourceDescriptor.create(inputDescriptor, inputInitializerDescriptor, null);
+        DataSourceDescriptor.create(inputDescriptor, inputInitializerDescriptor, null);
 
     Vertex v1 = Vertex.create(VERTEX1, ProcessorDescriptor.create(TokenProcessor.class.getName()));
     v1.addDataSource(INPUT, dataSourceDescriptor);
@@ -335,30 +335,30 @@ public class CartesianProduct extends TezExampleBase {
 
     OutputDescriptor outputDescriptor = OutputDescriptor.create(FakeOutput.class.getName());
     OutputCommitterDescriptor outputCommitterDescriptor =
-      OutputCommitterDescriptor.create(FakeOutputCommitter.class.getName());
+        OutputCommitterDescriptor.create(FakeOutputCommitter.class.getName());
     DataSinkDescriptor dataSinkDescriptor =
-      DataSinkDescriptor.create(outputDescriptor, outputCommitterDescriptor, null);
+        DataSinkDescriptor.create(outputDescriptor, outputCommitterDescriptor, null);
 
     CartesianProductConfig cartesianProductConfig =
-      new CartesianProductConfig(Arrays.asList(sourceVertices));
+        new CartesianProductConfig(Arrays.asList(sourceVertices));
     UserPayload userPayload = cartesianProductConfig.toUserPayload(tezConf);
 
     Vertex v3 = Vertex.create(VERTEX3, ProcessorDescriptor.create(JoinProcessor.class.getName()));
     v3.addDataSink(OUTPUT, dataSinkDescriptor);
     v3.setVertexManagerPlugin(
-      VertexManagerPluginDescriptor.create(CartesianProductVertexManager.class.getName())
-                                   .setUserPayload(userPayload));
+        VertexManagerPluginDescriptor.create(CartesianProductVertexManager.class.getName())
+            .setUserPayload(userPayload));
 
     EdgeManagerPluginDescriptor edgeManagerDescriptor =
-      EdgeManagerPluginDescriptor.create(CartesianProductEdgeManager.class.getName());
+        EdgeManagerPluginDescriptor.create(CartesianProductEdgeManager.class.getName());
     edgeManagerDescriptor.setUserPayload(userPayload);
     UnorderedPartitionedKVEdgeConfig edgeConf =
-      UnorderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName(),
-        RoundRobinPartitioner.class.getName()).build();
+        UnorderedPartitionedKVEdgeConfig.newBuilder(Text.class.getName(), IntWritable.class.getName(),
+            RoundRobinPartitioner.class.getName()).build();
     EdgeProperty edgeProperty = edgeConf.createDefaultCustomEdgeProperty(edgeManagerDescriptor);
 
     return DAG.create("CrossProduct").addVertex(v1).addVertex(v2).addVertex(v3)
-      .addEdge(Edge.create(v1, v3, edgeProperty)).addEdge(Edge.create(v2, v3, edgeProperty));
+        .addEdge(Edge.create(v1, v3, edgeProperty)).addEdge(Edge.create(v2, v3, edgeProperty));
   }
 
   @Override
@@ -371,7 +371,7 @@ public class CartesianProduct extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
     DAG dag = createDAG(tezConf);
     return runDag(dag, isCountersLog(), LOG);
   }
@@ -381,5 +381,3 @@ public class CartesianProduct extends TezExampleBase {
     System.exit(res);
   }
 }
-
-

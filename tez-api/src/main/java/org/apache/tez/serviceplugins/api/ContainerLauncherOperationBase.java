@@ -28,7 +28,6 @@ public class ContainerLauncherOperationBase {
   // - Get rid of YARN constructs.
   // - ContainerToken may not always be required
 
-
   private final NodeId nodeId;
   private final ContainerId containerId;
   private final Token containerToken;
@@ -43,6 +42,7 @@ public class ContainerLauncherOperationBase {
 
   /**
    * Get the node on which this container is to be launched
+   *
    * @return the node id for the container
    */
   public NodeId getNodeId() {
@@ -51,6 +51,7 @@ public class ContainerLauncherOperationBase {
 
   /**
    * Get the containerId for the container
+   *
    * @return the container id for the container opeartion
    */
   public ContainerId getContainerId() {
@@ -59,6 +60,7 @@ public class ContainerLauncherOperationBase {
 
   /**
    * Get the security token for the container. Primarily for YARN
+   *
    * @return the token for the container launch.
    */
   public Token getContainerToken() {

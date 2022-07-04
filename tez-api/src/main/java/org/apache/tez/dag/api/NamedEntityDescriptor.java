@@ -22,7 +22,7 @@ import java.util.Objects;
 import org.apache.hadoop.classification.InterfaceAudience;
 
 @SuppressWarnings("unchecked")
-public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends EntityDescriptor<NamedEntityDescriptor<T>>  {
+public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends EntityDescriptor<NamedEntityDescriptor<T>> {
   private final String entityName;
 
   @InterfaceAudience.Private

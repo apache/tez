@@ -126,7 +126,6 @@ public class TestTezLocalCacheManager {
       Assert.assertFalse(Files.exists(Paths.get("./file-one")));
       manager.localize();
       Assert.assertTrue(Files.exists(Paths.get("./file-one")));
-
     } finally {
       manager.cleanup();
       Assert.assertFalse(Files.exists(Paths.get("./file-one")));
@@ -145,7 +144,6 @@ public class TestTezLocalCacheManager {
       // file appears only at configured location
       Assert.assertFalse(Files.exists(Paths.get("./file-one")));
       Assert.assertTrue(Files.exists(Paths.get("./target/file-one")));
-
     } finally {
       manager.cleanup();
       Assert.assertFalse(Files.exists(Paths.get("./target/file-one")));

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -145,7 +145,7 @@ public class TestAMWebController {
         "X-Requested-With,Content-Type,Accept,Origin");
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void sendErrorResponseIfNoAccess() throws Exception {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -172,7 +172,7 @@ public class TestAMWebController {
   @Captor
   ArgumentCaptor<Map<String, AMWebController.ProgressInfo>> singleResultCaptor;
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testDagProgressResponse() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -198,7 +198,7 @@ public class TestAMWebController {
     Assert.assertEquals(66.0, progressInfo.getProgress(), 0.1);
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testVertexProgressResponse() {
     AMWebController amWebController = new AMWebController(mockRequestContext, mockAppContext,
         "TEST_HISTORY_URL");
@@ -229,7 +229,7 @@ public class TestAMWebController {
     Assert.assertEquals(66.0f, progressInfo.getProgress(), 0.1);
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testHasAccessWithAclsDisabled() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, false);
@@ -244,7 +244,7 @@ public class TestAMWebController {
     Assert.assertEquals(true, AMWebController._hasAccess(mockUser, mockAppContext));
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testHasAccess() {
     Configuration conf = new Configuration(false);
     conf.setBoolean(TezConfiguration.TEZ_AM_ACLS_ENABLED, true);
@@ -263,11 +263,10 @@ public class TestAMWebController {
     Assert.assertEquals(true, AMWebController._hasAccess(testUser, mockAppContext));
   }
 
-
   // AM Webservice Version 2
   //ArgumentCaptor<Map<String, Object>> returnResultCaptor;
   @Captor
-  ArgumentCaptor<Map<String,Object>> returnResultCaptor;
+  ArgumentCaptor<Map<String, Object>> returnResultCaptor;
 
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
@@ -276,7 +275,6 @@ public class TestAMWebController {
         "TEST_HISTORY_URL");
     AMWebController spy = spy(amWebController);
     DAG mockDAG = mock(DAG.class);
-
 
     doReturn(TezDAGID.fromString("dag_1422960590892_0007_42")).when(mockDAG).getID();
     doReturn(66.0f).when(mockDAG).getCompletedTaskProgress();
@@ -317,7 +315,6 @@ public class TestAMWebController {
     Assert.assertEquals("66.0", dagInfo.get("progress"));
     Assert.assertEquals("RUNNING", dagInfo.get("status"));
     Assert.assertNotNull(dagInfo.get("counters"));
-
   }
 
   @SuppressWarnings("unchecked")
@@ -443,7 +440,6 @@ public class TestAMWebController {
     return mockVertex;
   }
 
-
   private void verifySingleVertexResult(Vertex mockVertex2, Map<String, String> vertex2Result) {
     ProgressBuilder progress;
     Assert.assertEquals(mockVertex2.getVertexId().toString(), vertex2Result.get("id"));
@@ -479,9 +475,9 @@ public class TestAMWebController {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGetTasksInfoWithTaskIds() {
-    List <Task> tasks = createMockTasks();
-    List <Integer> vertexMinIds = Arrays.asList();
-    List <List <Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
+    List<Task> tasks = createMockTasks();
+    List<Integer> vertexMinIds = Arrays.asList();
+    List<List<Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
         Arrays.asList(0, 3),
         Arrays.asList(0, 1));
 
@@ -516,9 +512,9 @@ public class TestAMWebController {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGetTasksInfoGracefulTaskFetch() {
-    List <Task> tasks = createMockTasks();
-    List <Integer> vertexMinIds = Arrays.asList();
-    List <List <Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
+    List<Task> tasks = createMockTasks();
+    List<Integer> vertexMinIds = Arrays.asList();
+    List<List<Integer>> taskMinIds = Arrays.asList(Arrays.asList(0, 0),
         Arrays.asList(0, 6),
         Arrays.asList(0, 1));
 
@@ -540,9 +536,9 @@ public class TestAMWebController {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGetTasksInfoWithVertexId() {
-    List <Task> tasks = createMockTasks();
-    List <Integer> vertexMinIds = Arrays.asList(0);
-    List <List <Integer>> taskMinIds = Arrays.asList();
+    List<Task> tasks = createMockTasks();
+    List<Integer> vertexMinIds = Arrays.asList(0);
+    List<List<Integer>> taskMinIds = Arrays.asList();
 
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
@@ -573,9 +569,9 @@ public class TestAMWebController {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGetTasksInfoWithJustDAGId() {
-    List <Task> tasks = createMockTasks();
-    List <Integer> vertexMinIds = Arrays.asList();
-    List <List <Integer>> taskMinIds = Arrays.asList();
+    List<Task> tasks = createMockTasks();
+    List<Integer> vertexMinIds = Arrays.asList();
+    List<List<Integer>> taskMinIds = Arrays.asList();
 
     Map<String, Object> result = getTasksTestHelper(tasks, taskMinIds, vertexMinIds,
         AMWebController.MAX_QUERIED);
@@ -621,7 +617,7 @@ public class TestAMWebController {
     Collections.sort(list, new MapComparator(propertyName));
   }
 
-  Map<String, Object> getTasksTestHelper(List<Task> tasks, List <List <Integer>> taskMinIds,
+  Map<String, Object> getTasksTestHelper(List<Task> tasks, List<List<Integer>> taskMinIds,
                                          List<Integer> vertexMinIds, Integer limit) {
     //Creating mock DAG
     DAG mockDAG = mock(DAG.class);
@@ -639,7 +635,7 @@ public class TestAMWebController {
 
     //Creating mock tasks and attaching to mock vertex
     Map<TezTaskID, Task> taskMap = Maps.newHashMap();
-    for(Task task : tasks) {
+    for (Task task : tasks) {
       TezTaskID taskId = task.getTaskID();
       int taskIndex = taskId.getId();
       doReturn(task).when(mockVertex).getTask(taskIndex);
@@ -681,7 +677,7 @@ public class TestAMWebController {
     Task mockTask4 = createMockTask("task_1441301219877_0109_1_00_000003", TaskState.SUCCEEDED,
         .8f);
 
-    List <Task> tasks = Arrays.asList(mockTask1, mockTask2, mockTask3, mockTask4);
+    List<Task> tasks = Arrays.asList(mockTask1, mockTask2, mockTask3, mockTask4);
     return tasks;
   }
 
@@ -721,10 +717,10 @@ public class TestAMWebController {
   @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testGetAttemptsInfoWithIds() {
-    List <TaskAttempt> attempts = createMockAttempts();
-    List <Integer> vertexMinIds = Arrays.asList();
-    List <Integer> taskMinIds = Arrays.asList();
-    List <List <Integer>> attemptMinIds = Arrays.asList(Arrays.asList(0, 0, 0),
+    List<TaskAttempt> attempts = createMockAttempts();
+    List<Integer> vertexMinIds = Arrays.asList();
+    List<Integer> taskMinIds = Arrays.asList();
+    List<List<Integer>> attemptMinIds = Arrays.asList(Arrays.asList(0, 0, 0),
         Arrays.asList(0, 0, 1),
         Arrays.asList(0, 0, 2),
         Arrays.asList(0, 0, 3));
@@ -758,8 +754,8 @@ public class TestAMWebController {
     verifySingleAttemptResult(attempts.get(1), attemptsInfo.get(1));
   }
 
-  Map<String, Object> getAttemptsTestHelper(List<TaskAttempt> attempts, List <List <Integer>> attemptMinIds,
-                                         List<Integer> vertexMinIds, List<Integer> taskMinIds, Integer limit) {
+  Map<String, Object> getAttemptsTestHelper(List<TaskAttempt> attempts, List<List<Integer>> attemptMinIds,
+                                            List<Integer> vertexMinIds, List<Integer> taskMinIds, Integer limit) {
     //Creating mock DAG
     DAG mockDAG = mock(DAG.class);
     doReturn(TezDAGID.fromString("dag_1441301219877_0109_1")).when(mockDAG).getID();
@@ -786,7 +782,7 @@ public class TestAMWebController {
 
     //Creating mock tasks and attaching to mock vertex
     Map<TezTaskAttemptID, TaskAttempt> attemptsMap = Maps.newHashMap();
-    for(TaskAttempt attempt : attempts) {
+    for (TaskAttempt attempt : attempts) {
       TezTaskAttemptID attemptId = attempt.getTaskAttemptID();
       doReturn(attempt).when(mockTask).getAttempt(attemptId);
       attemptsMap.put(attemptId, attempt);
@@ -828,7 +824,7 @@ public class TestAMWebController {
     TaskAttempt mockAttempt4 = createMockAttempt("attempt_1441301219877_0109_1_00_000000_3", TaskAttemptState.SUCCEEDED,
         .8f);
 
-    List <TaskAttempt> attempts = Arrays.asList(mockAttempt1, mockAttempt2, mockAttempt3, mockAttempt4);
+    List<TaskAttempt> attempts = Arrays.asList(mockAttempt1, mockAttempt2, mockAttempt3, mockAttempt4);
     return attempts;
   }
 
@@ -862,5 +858,4 @@ public class TestAMWebController {
     Assert.assertEquals(mockTask.getState().toString(), taskResult.get("status"));
     Assert.assertEquals(Float.toString(mockTask.getProgress()), taskResult.get("progress"));
   }
-
 }

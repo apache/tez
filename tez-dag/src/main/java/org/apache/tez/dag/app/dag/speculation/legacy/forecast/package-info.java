@@ -17,4 +17,5 @@
  */
 @InterfaceAudience.Private
 package org.apache.tez.dag.app.dag.speculation.legacy.forecast;
+
 import org.apache.hadoop.classification.InterfaceAudience;

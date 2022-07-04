@@ -47,7 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestStateChangeNotifier {
-  
+
   // uses the thread based notification code path but effectively blocks update
   // events till listeners have been notified
   public static class StateChangeNotifierForTest extends StateChangeNotifier {
@@ -63,14 +63,14 @@ public class TestStateChangeNotifier {
       count.set(0);
       totalCount.set(0);
     }
-    
+
     @Override
     protected void processedEventFromQueue() {
       // addedEventToQueue runs in dispatcher thread while
       // processedEventFromQueue runs in state change notifier event handling thread.
       // It is not guaranteed that addedEventToQueue is invoked before processedEventFromQueue.
       // so sleep here until there's available events
-      while(count.get() <=0) {
+      while (count.get() <= 0) {
         try {
           Thread.sleep(10);
           LOG.info("sleep to wait for available events");
@@ -84,7 +84,7 @@ public class TestStateChangeNotifier {
         }
       }
     }
-    
+
     @Override
     protected void addedEventToQueue() {
       totalCount.incrementAndGet();
@@ -117,15 +117,15 @@ public class TestStateChangeNotifier {
     VertexStateUpdateListener mockListener12 = mock(VertexStateUpdateListener.class);
     VertexStateUpdateListener mockListener13 = mock(VertexStateUpdateListener.class);
     VertexStateUpdateListener mockListener14 = mock(VertexStateUpdateListener.class);
-      // Register for all states
+    // Register for all states
     tracker.registerForVertexUpdates(v1.getName(), null, mockListener11);
-      // Register for all states
+    // Register for all states
     tracker.registerForVertexUpdates(v1.getName(), EnumSet.allOf(
         VertexState.class), mockListener12);
-      // Register for specific state, event generated
+    // Register for specific state, event generated
     tracker.registerForVertexUpdates(v1.getName(), EnumSet.of(
         VertexState.RUNNING), mockListener13);
-      // Register for specific state, event not generated
+    // Register for specific state, event not generated
     tracker.registerForVertexUpdates(v1.getName(), EnumSet.of(
         VertexState.SUCCEEDED), mockListener14);
     ArgumentCaptor<VertexStateUpdate> argumentCaptor =

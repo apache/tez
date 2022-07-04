@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -108,7 +108,6 @@ public class TestDAG {
     }
     // it is possible to create vertex group with same member but different group name 
     dag.createVertexGroup("group_2", v1, v2);
-
   }
 
   @Test(timeout = 5000)
@@ -162,11 +161,11 @@ public class TestDAG {
 
     // set invalid AM level configuration
     try {
-      dag.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
+      dag.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true + "");
       Assert.fail();
     } catch (IllegalStateException e) {
       Assert.assertEquals("tez.am.mode.session is set at the scope of DAG,"
-          + " but it is only valid in the scope of AM",
+              + " but it is only valid in the scope of AM",
           e.getMessage());
     }
     // set valid DAG level configuration
@@ -183,11 +182,11 @@ public class TestDAG {
 
     // set invalid AM level configuration
     try {
-      v1.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true+"");
+      v1.setConf(TezConfiguration.TEZ_AM_SESSION_MODE, true + "");
       Assert.fail();
     } catch (IllegalStateException e) {
       Assert.assertEquals("tez.am.mode.session is set at the scope of VERTEX,"
-          + " but it is only valid in the scope of AM",
+              + " but it is only valid in the scope of AM",
           e.getMessage());
     }
 
@@ -197,7 +196,7 @@ public class TestDAG {
       Assert.fail("should fail due to invalid configuration set");
     } catch (IllegalStateException e) {
       Assert.assertEquals("tez.am.commit-all-outputs-on-dag-success is set at the scope of VERTEX,"
-          + " but it is only valid in the scope of DAG",
+              + " but it is only valid in the scope of DAG",
           e.getMessage());
     }
     // set valid Vertex level configuration
@@ -309,7 +308,7 @@ public class TestDAG {
 
     v1.addDataSink("output_1", dataSink);
     Vertex v2 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
-    VertexGroup vGroup = dag.createVertexGroup("group_1", v1,v2);
+    VertexGroup vGroup = dag.createVertexGroup("group_1", v1, v2);
     try {
       vGroup.addDataSink("output_1",
           DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null));
@@ -340,7 +339,6 @@ public class TestDAG {
     CallerContext callerContext = CallerContext.create("ctxt", "desc");
     Assert.assertTrue(callerContext.toString().contains("desc"));
     Assert.assertFalse(callerContext.contextAsSimpleString().contains("desc"));
-
   }
 
   @Test
@@ -359,8 +357,8 @@ public class TestDAG {
     TezConfiguration tezConf = new TezConfiguration();
     DAGPlan firstPlan = dag.createDag(tezConf, null, null, null, false);
     for (int i = 0; i < 3; ++i) {
-        DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
-        Assert.assertEquals(dagPlan, firstPlan);
+      DAGPlan dagPlan = dag.createDag(tezConf, null, null, null, false);
+      Assert.assertEquals(dagPlan, firstPlan);
     }
   }
 
@@ -397,7 +395,7 @@ public class TestDAG {
       Assert.fail("Expected illegal argument exception");
     } catch (IllegalArgumentException e) {
       Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
-            " is set to invalid value: invalid", e.getMessage());
+          " is set to invalid value: invalid", e.getMessage());
     }
 
     // Set value in dag, should override tez conf value.
@@ -419,7 +417,7 @@ public class TestDAG {
       Assert.fail("Expected illegal argument exception");
     } catch (IllegalArgumentException e) {
       Assert.assertEquals("Config: " + TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL +
-            " is set to invalid value: invalid", e.getMessage());
+          " is set to invalid value: invalid", e.getMessage());
     }
   }
 

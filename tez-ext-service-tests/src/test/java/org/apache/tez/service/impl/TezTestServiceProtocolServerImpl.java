@@ -48,7 +48,6 @@ public class TezTestServiceProtocolServerImpl extends AbstractService
   private RPC.Server server;
   private final AtomicReference<InetSocketAddress> bindAddress;
 
-
   public TezTestServiceProtocolServerImpl(ContainerRunner containerRunner,
                                           AtomicReference<InetSocketAddress> address) {
     super(TezTestServiceProtocolServerImpl.class.getSimpleName());
@@ -80,7 +79,6 @@ public class TezTestServiceProtocolServerImpl extends AbstractService
     }
     return SubmitWorkResponseProto.getDefaultInstance();
   }
-
 
   @Override
   public void serviceStart() {

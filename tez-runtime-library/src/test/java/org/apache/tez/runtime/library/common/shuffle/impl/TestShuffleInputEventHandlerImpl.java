@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -163,7 +163,7 @@ public class TestShuffleInputEventHandlerImpl {
     Event dme1 = createDataMovementEvent(0, taskIndex1, createEmptyPartitionByteString(0));
     int taskIndex2 = 2;
     Event dme2 = createDataMovementEvent(0, taskIndex2, null);
-    
+
     List<Event> eventList = new LinkedList<Event>();
     eventList.add(dme1);
     eventList.add(dme2);
@@ -175,7 +175,6 @@ public class TestShuffleInputEventHandlerImpl {
     verify(shuffleManager).addCompletedInputWithNoData(eq(expectedIdentifier1));
     verify(shuffleManager).addKnownInput(eq(HOST), eq(PORT), eq(expectedIdentifier2), eq(0));
   }
-
 
   private InputContext createInputContext() throws IOException {
     DataOutputBuffer port_dob = new DataOutputBuffer();
@@ -208,7 +207,7 @@ public class TestShuffleInputEventHandlerImpl {
 
   private ShuffleManager createShuffleManager(InputContext inputContext) throws IOException {
     Path outDirBase = new Path(".", "outDir");
-    String[] outDirs = new String[] { outDirBase.toString() };
+    String[] outDirs = new String[]{outDirBase.toString()};
     doReturn(outDirs).when(inputContext).getWorkDirs();
     conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, inputContext.getWorkDirs());
 
@@ -342,7 +341,7 @@ public class TestShuffleInputEventHandlerImpl {
   }
 
   private Event createDataMovementEvent(boolean addSpillDetails, int srcIdx, int targetIdx,
-      int spillId, boolean isLastSpill, BitSet emptyPartitions, int numPartitions, int attemptNum)
+                                        int spillId, boolean isLastSpill, BitSet emptyPartitions, int numPartitions, int attemptNum)
       throws IOException {
 
     DataMovementEventPayloadProto.Builder payloadBuilder = DataMovementEventPayloadProto
@@ -368,11 +367,11 @@ public class TestShuffleInputEventHandlerImpl {
     }
 
     ByteBuffer payload = payloadBuilder.build().toByteString().asReadOnlyByteBuffer();
-    return  DataMovementEvent.create(srcIdx, targetIdx, attemptNum, payload);
+    return DataMovementEvent.create(srcIdx, targetIdx, attemptNum, payload);
   }
-  
+
   private Event createDataMovementEvent(int srcIndex, int targetIndex,
-      ByteString emptyPartitionByteString) {
+                                        ByteString emptyPartitionByteString) {
     DataMovementEventPayloadProto.Builder builder = DataMovementEventPayloadProto.newBuilder();
     builder.setHost(HOST);
     builder.setPort(PORT);
@@ -392,8 +391,7 @@ public class TestShuffleInputEventHandlerImpl {
     }
     ByteString emptyPartitionsBytesString = TezCommonUtils.compressByteArrayToByteString(
         TezUtilsInternal
-        .toByteArray(bitSet));
+            .toByteArray(bitSet));
     return emptyPartitionsBytesString;
   }
-
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,7 +46,7 @@ import org.apache.tez.util.StringInterner;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandler {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerOrderedGrouped.class);
 
   private final ShuffleScheduler scheduler;
@@ -87,7 +87,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
   private void handleEvent(Event event) throws IOException {
     if (event instanceof DataMovementEvent) {
       numDmeEvents.incrementAndGet();
-      DataMovementEvent dmEvent = (DataMovementEvent)event;
+      DataMovementEvent dmEvent = (DataMovementEvent) event;
       DataMovementEventPayloadProto shufflePayload;
       try {
         shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(dmEvent.getUserPayload()));
@@ -106,7 +106,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
       processDataMovementEvent(dmEvent, shufflePayload, emptyPartitionsBitSet);
       scheduler.updateEventReceivedTime();
     } else if (event instanceof CompositeRoutedDataMovementEvent) {
-      CompositeRoutedDataMovementEvent crdme = (CompositeRoutedDataMovementEvent)event;
+      CompositeRoutedDataMovementEvent crdme = (CompositeRoutedDataMovementEvent) event;
       DataMovementEventPayloadProto shufflePayload;
       try {
         shufflePayload = DataMovementEventPayloadProto.parseFrom(ByteString.copyFrom(crdme.getUserPayload()));
@@ -157,7 +157,7 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
       try {
         if (emptyPartitionsBitSet.get(partitionId)) {
           LOG.debug("Source partition: {} did not generate any data. SrcAttempt: [{}]. Not fetching.",
-               partitionId, srcAttemptIdentifier);
+              partitionId, srcAttemptIdentifier);
           numDmeEventsNoData.getAndIncrement();
           scheduler.copySucceeded(srcAttemptIdentifier.expand(0), null, 0, 0, 0, null, true);
           return;
@@ -239,4 +239,3 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
     return srcAttemptIdentifier;
   }
 }
-

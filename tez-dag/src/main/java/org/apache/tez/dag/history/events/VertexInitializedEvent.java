@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -59,10 +59,10 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
   }
 
   public VertexInitializedEvent(TezVertexID vertexId,
-      String vertexName, long initRequestedTime, long initedTime,
-      int numTasks, String processorName,
-      Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs,
-      List<TezEvent> initGeneratedEvents, ServicePluginInfo servicePluginInfo) {
+                                String vertexName, long initRequestedTime, long initedTime,
+                                int numTasks, String processorName,
+                                Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> additionalInputs,
+                                List<TezEvent> initGeneratedEvents, ServicePluginInfo servicePluginInfo) {
     this.vertexName = vertexName;
     this.vertexID = vertexId;
     this.initRequestedTime = initRequestedTime;
@@ -92,9 +92,9 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
   public RecoveryProtos.VertexInitializedProto toProto() throws IOException {
     VertexInitializedProto.Builder builder = VertexInitializedProto.newBuilder();
     if (additionalInputs != null
-      && !additionalInputs.isEmpty()) {
+        && !additionalInputs.isEmpty()) {
       for (RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor> input :
-        additionalInputs.values()) {
+          additionalInputs.values()) {
         RootInputLeafOutputProto.Builder inputBuilder
             = RootInputLeafOutputProto.newBuilder();
         inputBuilder.setName(input.getName());
@@ -198,8 +198,8 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
     return numTasks;
   }
 
-  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>> 
-    getAdditionalInputs() {
+  public Map<String, RootInputLeafOutput<InputDescriptor, InputInitializerDescriptor>>
+  getAdditionalInputs() {
     return additionalInputs;
   }
 
@@ -218,5 +218,4 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
   public ServicePluginInfo getServicePluginInfo() {
     return servicePluginInfo;
   }
-
 }

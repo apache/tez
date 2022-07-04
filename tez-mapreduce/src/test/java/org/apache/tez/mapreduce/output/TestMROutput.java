@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -74,13 +74,12 @@ import org.junit.Test;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 
-
 public class TestMROutput {
 
   static File tmpDir;
 
   @BeforeClass
-  public static void setupClass () {
+  public static void setupClass() {
     tmpDir = Files.createTempDir();
     tmpDir.deleteOnExit();
   }
@@ -215,9 +214,9 @@ public class TestMROutput {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     DataSinkDescriptor dataSink = MROutput
-      .createConfigBuilder(conf, NewAPI_WorkOutputPathReadingOutputFormat.class,
-          tmpDir.getPath())
-      .build();
+        .createConfigBuilder(conf, NewAPI_WorkOutputPathReadingOutputFormat.class,
+            tmpDir.getPath())
+        .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
         new Configuration(false));
@@ -242,9 +241,9 @@ public class TestMROutput {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     DataSinkDescriptor dataSink = MROutput
-      .createConfigBuilder(conf, OldAPI_WorkOutputPathReadingOutputFormat.class,
-          tmpDir.getPath())
-      .build();
+        .createConfigBuilder(conf, OldAPI_WorkOutputPathReadingOutputFormat.class,
+            tmpDir.getPath())
+        .build();
 
     OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
         new Configuration(false));
@@ -273,7 +272,7 @@ public class TestMROutput {
     when(outputContext.getContainerConfiguration()).thenReturn(baseConf);
     return outputContext;
   }
-  
+
   public static LogicalIOProcessorRuntimeTask createLogicalTask(
       Configuration conf,
       TezUmbilical umbilical, String dagName,
@@ -283,7 +282,7 @@ public class TestMROutput {
     List<OutputSpec> outputSpecs = Lists.newLinkedList();
     outputSpecs.add(new OutputSpec("Null",
         MROutput.createConfigBuilder(conf, TestOutputFormat.class).build().getOutputDescriptor(), 1));
-    
+
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, 0, 0),
         dagName, vertexName, -1,
@@ -294,13 +293,13 @@ public class TestMROutput {
     FileSystem fs = FileSystem.getLocal(conf);
     Path workDir =
         new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-                 "TestMapOutput").makeQualified(fs.getUri(), fs.getWorkingDirectory());
+            "TestMapOutput").makeQualified(fs.getUri(), fs.getWorkingDirectory());
 
     return new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
         conf,
-        new String[] {workDir.toString()},
+        new String[]{workDir.toString()},
         umbilical,
         null,
         new HashMap<String, String>(),
@@ -330,13 +329,13 @@ public class TestMROutput {
     @Override
     public void abortTask(TaskAttemptContext taskContext) throws IOException {
     }
-    
   }
-  
+
   public static class TestOutputFormat extends OutputFormat<String, String> {
     public static class TestRecordWriter extends RecordWriter<String, String> {
       Writer writer;
       boolean doWrite;
+
       TestRecordWriter(boolean write) throws IOException {
         this.doWrite = write;
         if (doWrite) {
@@ -345,7 +344,7 @@ public class TestMROutput {
           writer = new BufferedWriter(new FileWriter(f));
         }
       }
-      
+
       @Override
       public void write(String key, String value) throws IOException, InterruptedException {
         if (doWrite) {
@@ -358,9 +357,8 @@ public class TestMROutput {
       public void close(TaskAttemptContext context) throws IOException, InterruptedException {
         writer.close();
       }
-      
     }
-    
+
     @Override
     public RecordWriter<String, String> getRecordWriter(TaskAttemptContext context)
         throws IOException, InterruptedException {
@@ -390,7 +388,7 @@ public class TestMROutput {
 
     @Override
     public org.apache.hadoop.mapred.RecordWriter<String, String> getRecordWriter(
-      FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
+        FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
       // check work output path is not null
       Path workOutputPath = org.apache.hadoop.mapred.FileOutputFormat.getWorkOutputPath(job);
       assertNotNull(workOutputPath);
@@ -427,11 +425,10 @@ public class TestMROutput {
     @Override
     public void run() throws Exception {
       KeyValueWriter writer = (KeyValueWriter) getOutputs().values().iterator().next().getWriter();
-      for (int i=0; i<1000000; ++i) {
+      for (int i = 0; i < 1000000; ++i) {
         writer.write("key", "value");
       }
     }
-
   }
 
   @Ignore

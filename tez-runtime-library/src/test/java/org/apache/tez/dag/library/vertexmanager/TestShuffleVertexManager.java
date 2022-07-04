@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings({ "unchecked", "rawtypes" })
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
 
   List<TaskAttemptIdentifier> emptyCompletions = null;
@@ -100,7 +100,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     // Ensure long overflow doesn't reduce mistakenly
     // Overflow can occur previously when output size * num tasks for a single vertex would over flow max long
     //
-    manager = createManager(conf, mockContext, true, (long)(Long.MAX_VALUE / 1.5), 1.0f, 1.0f);
+    manager = createManager(conf, mockContext, true, (long) (Long.MAX_VALUE / 1.5), 1.0f, 1.0f);
     manager.onVertexStarted(emptyCompletions);
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
@@ -130,7 +130,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     Assert.assertEquals(2, manager.numBipartiteSourceTasksCompleted);
     Assert.assertEquals(0L, manager.completedSourceTasksOutputSize);
     // First source 2 task completes
-    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
+    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1, mockSrcVertexId2);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 0));
     Assert.assertEquals(4, manager.pendingTasks.size());
@@ -138,7 +138,7 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     Assert.assertEquals(3, manager.numBipartiteSourceTasksCompleted);
     Assert.assertEquals(Long.MAX_VALUE >> 1, manager.completedSourceTasksOutputSize);
     // Second source 2 task completes
-    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1 , mockSrcVertexId2);
+    vmEvent = getVertexManagerEvent(null, Long.MAX_VALUE >> 1, mockSrcVertexId2);
     manager.onVertexManagerEventReceived(vmEvent);
     manager.onSourceTaskCompleted(createTaskAttemptIdentifier(mockSrcVertexId2, 1));
     // Auto-reduce is triggered
@@ -179,7 +179,6 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
         .setDesiredTaskInputSize(1000l)
         .setMinTaskParallelism(10).setSlowStartMaxSrcCompletionFraction(0.5f).build();
     when(mockContext.getUserPayload()).thenReturn(pluginDesc.getUserPayload());
-
 
     manager = ReflectionUtils.createClazzInstance(pluginDesc.getClassName(),
         new Class[]{VertexManagerPluginContext.class}, new Object[]{mockContext});
@@ -301,17 +300,16 @@ public class TestShuffleVertexManager extends TestShuffleVertexManagerUtils {
     Assert.assertTrue(scheduledTasks.get(2) == 1);
   }
 
-
   private static ShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context, Float min, Float max) {
+                                                    VertexManagerPluginContext context, Float min, Float max) {
     return createManager(conf, context, true, 1000l, min, max);
   }
 
   private static ShuffleVertexManager createManager(Configuration conf,
-      VertexManagerPluginContext context,
-      Boolean enableAutoParallelism, Long desiredTaskInputSize, Float min,
-      Float max) {
-    return (ShuffleVertexManager)TestShuffleVertexManagerBase.createManager(
+                                                    VertexManagerPluginContext context,
+                                                    Boolean enableAutoParallelism, Long desiredTaskInputSize, Float min,
+                                                    Float max) {
+    return (ShuffleVertexManager) TestShuffleVertexManagerBase.createManager(
         ShuffleVertexManager.class, conf, context,
         enableAutoParallelism, desiredTaskInputSize, min, max);
   }

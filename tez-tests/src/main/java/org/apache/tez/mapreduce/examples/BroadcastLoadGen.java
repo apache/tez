@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -69,7 +69,7 @@ public class BroadcastLoadGen extends TezExampleBase {
         UnorderedKVOutput output = (UnorderedKVOutput) out;
         KeyValueWriter kvWriter = output.getWriter();
         int approxNumInts = bytesToGenerate / 6;
-        for (int i = 0 ; i < approxNumInts ; i++) {
+        for (int i = 0; i < approxNumInts; i++) {
           kvWriter.write(NullWritable.get(), new IntWritable(random.nextInt()));
         }
       }
@@ -107,7 +107,7 @@ public class BroadcastLoadGen extends TezExampleBase {
     Vertex fetchVertex = Vertex.create("FetchVertex",
         ProcessorDescriptor.create(InputFetchProcessor.class.getName()), numFetcherTasks);
     UnorderedKVEdgeConfig edgeConf = UnorderedKVEdgeConfig.newBuilder(NullWritable.class
-    .getName(), IntWritable.class.getName()).setCompression(false, null, null).build();
+        .getName(), IntWritable.class.getName()).setCompression(false, null, null).build();
 
     DAG dag = DAG.create("BroadcastLoadGen");
     dag.addVertex(broadcastVertex).addVertex(fetchVertex).addEdge(

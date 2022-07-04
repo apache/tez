@@ -30,10 +30,9 @@ import org.apache.hadoop.classification.InterfaceAudience;
 
 /**
  * A default set of errors from ServicePlugins
- *
+ * <p>
  * Errors are marked as fatal or non-fatal for the Application.
  * Fatal errors cause the AM to go down.
- *
  */
 @InterfaceAudience.Public
 public enum ServicePluginErrorDefaults implements ServicePluginError {
@@ -43,7 +42,8 @@ public enum ServicePluginErrorDefaults implements ServicePluginError {
    */
   SERVICE_UNAVAILABLE(ErrorType.TEMPORARY),
 
-  /** Indicates that the service is in an inconsistent state.
+  /**
+   * Indicates that the service is in an inconsistent state.
    * This is a fatal error.
    */
   INCONSISTENT_STATE(ErrorType.PERMANENT),

@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ClassLoader to allow addition of new paths to classpath in the runtime.
- *
+ * <p>
  * It uses URLClassLoader with this class' classloader as parent classloader.
  * And hence first delegates the resource loading to parent and then to the URLs
  * added. The process must be setup to use by invoking setupTezClassLoader() which sets
@@ -45,7 +45,7 @@ public class TezClassLoader extends URLClassLoader {
   }
 
   private TezClassLoader() {
-    super(new URL[] {}, TezClassLoader.class.getClassLoader());
+    super(new URL[]{}, TezClassLoader.class.getClassLoader());
 
     LOG.info(
         "Created TezClassLoader with parent classloader: {}, thread: {}, system classloader: {}",

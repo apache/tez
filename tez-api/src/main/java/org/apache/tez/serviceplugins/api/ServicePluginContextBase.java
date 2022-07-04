@@ -33,6 +33,7 @@ public interface ServicePluginContextBase {
 
   /**
    * Get information on the currently executing dag
+   *
    * @return info on the currently running dag, or null if no dag is executing
    */
   @Nullable
@@ -42,8 +43,8 @@ public interface ServicePluginContextBase {
    * Report an error from the service. This results in the specific DAG being killed.
    *
    * @param servicePluginError the error category
-   * @param message      A diagnostic message associated with this error
-   * @param dagInfo      the affected dag
+   * @param message            A diagnostic message associated with this error
+   * @param dagInfo            the affected dag
    */
   void reportError(@Nonnull ServicePluginError servicePluginError, String message, DagInfo dagInfo);
 }

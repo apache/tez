@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
   private int totalNumSrcTasks = 0;
   private int lastScheduledTaskId = -1;
   private static final Logger LOG =
-    LoggerFactory.getLogger(CartesianProductVertexManagerPartitioned.class);
+      LoggerFactory.getLogger(CartesianProductVertexManagerPartitioned.class);
 
   public CartesianProductVertexManagerPartitioned(VertexManagerPluginContext context) {
     super(context);
@@ -71,16 +71,16 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
     this.sourceVertices = config.getSourcesList();
     this.numPartitions = Ints.toArray(config.getNumPartitionsList());
     this.minFraction = config.hasMinFraction() ? config.getMinFraction()
-      : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT;
+        : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MIN_FRACTION_DEFAULT;
     this.maxFraction = config.hasMaxFraction() ? config.getMaxFraction()
-      : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT;
+        : CartesianProductVertexManager.TEZ_CARTESIAN_PRODUCT_SLOW_START_MAX_FRACTION_DEFAULT;
 
     if (config.hasFilterClassName()) {
       UserPayload userPayload = config.hasFilterUserPayload()
-        ? UserPayload.create(ByteBuffer.wrap(config.getFilterUserPayload().toByteArray())) : null;
+          ? UserPayload.create(ByteBuffer.wrap(config.getFilterUserPayload().toByteArray())) : null;
       try {
         filter = ReflectionUtils.createClazzInstance(config.getFilterClassName(),
-          new Class[]{UserPayload.class}, new UserPayload[]{userPayload});
+            new Class[]{UserPayload.class}, new UserPayload[]{userPayload});
       } catch (TezReflectionException e) {
         LOG.error("Creating filter failed");
         throw e;
@@ -107,7 +107,7 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
 
   @Override
   public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions)
-    throws Exception {
+      throws Exception {
     vertexStarted = true;
     if (completions != null) {
       for (TaskAttemptIdentifier attempt : completions) {
@@ -119,7 +119,7 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
   }
 
   @Override
-  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws IOException{
+  public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws IOException {
     VertexState state = stateUpdate.getVertexState();
 
     if (state == VertexState.CONFIGURED) {
@@ -128,7 +128,7 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
       }
       numCPSrcNotInConfiguredState--;
       totalNumSrcTasks += getContext().getVertexNumTasks(stateUpdate.getVertexName());
-    } else if (state == VertexState.RUNNING){
+    } else if (state == VertexState.RUNNING) {
       numBroadcastSrcNotInRunningState--;
     }
     // try schedule because there may be no more vertex start and source completions
@@ -157,7 +157,7 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
     Map<String, Integer> vertexPartitionMap = new HashMap<>();
 
     CartesianProductCombination combination =
-      new CartesianProductCombination(numPartitions);
+        new CartesianProductCombination(numPartitions);
     combination.firstTask();
     do {
       for (int i = 0; i < sourceVertices.size(); i++) {
@@ -182,24 +182,24 @@ class CartesianProductVertexManagerPartitioned extends CartesianProductVertexMan
       return;
     }
     // determine the destination task with largest id to schedule
-    float percentFinishedSrcTask = numFinishedSrcTasks*1f/totalNumSrcTasks;
+    float percentFinishedSrcTask = numFinishedSrcTasks * 1f / totalNumSrcTasks;
     int numTaskToSchedule;
     if (percentFinishedSrcTask < minFraction) {
       numTaskToSchedule = 0;
     } else if (minFraction <= percentFinishedSrcTask &&
         percentFinishedSrcTask <= maxFraction) {
       numTaskToSchedule = (int) ((percentFinishedSrcTask - minFraction)
-        /(maxFraction - minFraction) * parallelism);
+          / (maxFraction - minFraction) * parallelism);
     } else {
       numTaskToSchedule = parallelism;
     }
     // schedule tasks if there are more we can schedule
-    if (numTaskToSchedule-1 > lastScheduledTaskId) {
+    if (numTaskToSchedule - 1 > lastScheduledTaskId) {
       List<ScheduleTaskRequest> scheduleTaskRequests = new ArrayList<>();
       for (int i = lastScheduledTaskId + 1; i < numTaskToSchedule; i++) {
         scheduleTaskRequests.add(ScheduleTaskRequest.create(i, null));
       }
-      lastScheduledTaskId = numTaskToSchedule-1;
+      lastScheduledTaskId = numTaskToSchedule - 1;
       getContext().scheduleTasks(scheduleTaskRequests);
     }
   }

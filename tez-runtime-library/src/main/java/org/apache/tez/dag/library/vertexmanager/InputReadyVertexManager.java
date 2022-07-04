@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -46,7 +46,7 @@ import com.google.common.collect.Maps;
 
 @Private
 public class InputReadyVertexManager extends VertexManagerPlugin {
-  private static final Logger LOG = 
+  private static final Logger LOG =
       LoggerFactory.getLogger(InputReadyVertexManager.class);
 
   Map<String, SourceVertexInfo> srcVertexInfo = Maps.newHashMap();
@@ -68,7 +68,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     int numTasks;
     int numFinishedTasks;
     Boolean taskIsFinished[];
-    
+
     SourceVertexInfo(int numTasks, EdgeProperty edgeProperty) {
       this.numTasks = numTasks;
       this.numFinishedTasks = 0;
@@ -76,7 +76,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       this.taskIsFinished = new Boolean[numTasks];
     }
   }
-  
+
   private void configure() {
     Preconditions.checkState(!configured.get(), "Vertex: " + getContext().getVertexName());
     int numManagedTasks = getContext().getVertexNumTasks(getContext().getVertexName());
@@ -92,42 +92,42 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       String srcVertex = entry.getKey();
       int numSrcTasks = getContext().getVertexNumTasks(srcVertex);
       switch (edgeProp.getDataMovementType()) {
-      case CUSTOM:
-        throw new TezUncheckedException("Cannot handle custom edge");
-      case ONE_TO_ONE:
-        numOneToOneEdges++;
-        if (oneToOneSrcTaskCount == 0) {
-          oneToOneSrcTaskCount = numSrcTasks;
-        } else if (oneToOneSrcTaskCount != numSrcTasks) {
+        case CUSTOM:
+          throw new TezUncheckedException("Cannot handle custom edge");
+        case ONE_TO_ONE:
+          numOneToOneEdges++;
+          if (oneToOneSrcTaskCount == 0) {
+            oneToOneSrcTaskCount = numSrcTasks;
+          } else if (oneToOneSrcTaskCount != numSrcTasks) {
+            throw new TezUncheckedException(
+                "All 1-1 source vertices must have identical concurrency");
+          }
+          break;
+        case SCATTER_GATHER:
+        case BROADCAST:
+          break;
+        default:
           throw new TezUncheckedException(
-              "All 1-1 source vertices must have identical concurrency");
-        }
-        break;
-      case SCATTER_GATHER:
-      case BROADCAST:
-        break;
-      default:
-        throw new TezUncheckedException(
-            "Unknown edge type: " + edgeProp.getDataMovementType());
+              "Unknown edge type: " + edgeProp.getDataMovementType());
       }
       srcVertexInfo.put(srcVertex, new SourceVertexInfo(numSrcTasks, edgeProp));
     }
-    
+
     if (numOneToOneEdges > 0) {
       Preconditions
           .checkState(oneToOneSrcTaskCount >= 0, "Vertex: " + getContext().getVertexName());
       if (oneToOneSrcTaskCount != numManagedTasks) {
         numManagedTasks = oneToOneSrcTaskCount;
         // must change parallelism to make them the same
-        LOG.info("Update parallelism of vertex: " + getContext().getVertexName() + 
+        LOG.info("Update parallelism of vertex: " + getContext().getVertexName() +
             " to " + oneToOneSrcTaskCount + " to match source 1-1 vertices.");
         getContext().reconfigureVertex(oneToOneSrcTaskCount, null, null);
       }
       oneToOneSrcTasksDoneCount = new int[oneToOneSrcTaskCount];
       oneToOneLocationHints = new TaskLocationHint[oneToOneSrcTaskCount];
     }
-    
-    Preconditions.checkState(numManagedTasks >=0, "Vertex: " + getContext().getVertexName());
+
+    Preconditions.checkState(numManagedTasks >= 0, "Vertex: " + getContext().getVertexName());
     taskIsStarted = new boolean[numManagedTasks];
 
     // allow scheduling
@@ -135,11 +135,11 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
     getContext().doneReconfiguringVertex();
     trySchedulingPendingCompletions();
   }
-  
+
   private boolean readyToSchedule() {
     return (configured.get() && started.get());
   }
-  
+
   private void trySchedulingPendingCompletions() {
     if (readyToSchedule() && !pendingCompletions.isEmpty()) {
       for (TaskAttemptIdentifier attempt : pendingCompletions) {
@@ -147,7 +147,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       }
     }
   }
-  
+
   @Override
   public void initialize() {
     // this will prevent vertex from starting until we notify we are done
@@ -161,7 +161,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       getContext().registerForVertexStateUpdates(entry, EnumSet.of(VertexState.CONFIGURED));
     }
   }
-  
+
   @Override
   public synchronized void onVertexStateUpdated(VertexStateUpdate stateUpdate) throws Exception {
     numConfiguredSources++;
@@ -183,7 +183,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
 
     // allow scheduling
     started.set(true);
-    
+
     trySchedulingPendingCompletions();
   }
 
@@ -205,9 +205,9 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
 
   @Override
   public synchronized void onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events) {
+                                                   InputDescriptor inputDescriptor, List<Event> events) {
   }
-  
+
   void handleSourceTaskFinished(String vertex, Integer taskId) {
     SourceVertexInfo srcInfo = srcVertexInfo.get(vertex);
     if (srcInfo.taskIsFinished[taskId.intValue()] == null) {
@@ -221,7 +221,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         oneToOneLocationHints[taskId.intValue()] = TaskLocationHint.createTaskLocationHint(vertex, taskId);
       }
     }
-    
+
     // custom edge needs to tell us which of our tasks its connected to
     // for now only-built in edges supported
     // Check if current source task's vertex is completed.
@@ -230,7 +230,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       // we depend on all tasks to finish. So nothing to do now.
       return;
     }
-    
+
     // currently finished vertex task may trigger us to schedule
     for (SourceVertexInfo vInfo : srcVertexInfo.values()) {
       if (vInfo.edgeProperty.getDataMovementType() != DataMovementType.ONE_TO_ONE) {
@@ -241,7 +241,7 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         }
       }
     }
-    
+
     // all source vertices will full dependencies are done
     List<ScheduleTaskRequest> tasksToStart = null;
     if (numOneToOneEdges == 0) {
@@ -249,14 +249,14 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
       int numTasks = taskIsStarted.length;
       LOG.info("Starting all " + numTasks + "tasks for vertex: " + getContext().getVertexName());
       tasksToStart = Lists.newArrayListWithCapacity(numTasks);
-      for (int i=0; i<numTasks; ++i) {
+      for (int i = 0; i < numTasks; ++i) {
         taskIsStarted[i] = true;
         tasksToStart.add(ScheduleTaskRequest.create(i, null));
       }
     } else {
       // start only the ready 1-1 tasks
       tasksToStart = Lists.newLinkedList();
-      for (int i=0; i<taskIsStarted.length; ++i) {
+      for (int i = 0; i < taskIsStarted.length; ++i) {
         if (!taskIsStarted[i] && oneToOneSrcTasksDoneCount[i] == numOneToOneEdges) {
           taskIsStarted[i] = true;
           TaskLocationHint locationHint = null;
@@ -270,11 +270,9 @@ public class InputReadyVertexManager extends VertexManagerPlugin {
         }
       }
     }
-    
+
     if (tasksToStart != null && !tasksToStart.isEmpty()) {
       getContext().scheduleTasks(tasksToStart);
     }
-    
   }
-
 }

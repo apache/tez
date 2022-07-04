@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -224,7 +224,7 @@ public class OrderedPartitionedKVEdgeConfig
      * @return this object for further chained method calls
      */
     public Builder setKeySerializationClass(String serializationClassName,
-        String comparatorClassName, @Nullable Map<String, String> serializerConf) {
+                                            String comparatorClassName, @Nullable Map<String, String> serializerConf) {
       outputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName, serializerConf);
       inputBuilder.setKeySerializationClass(serializationClassName, comparatorClassName, serializerConf);
       return this;
@@ -245,7 +245,6 @@ public class OrderedPartitionedKVEdgeConfig
       inputBuilder.setValueSerializationClass(serializationClassName, serializerConf);
       return this;
     }
-
 
     @Override
     public Builder setCompression(boolean enabled, @Nullable String compressionCodec,
@@ -313,6 +312,5 @@ public class OrderedPartitionedKVEdgeConfig
     public OrderedPartitionedKVEdgeConfig build() {
       return new OrderedPartitionedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());
     }
-
   }
 }

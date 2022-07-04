@@ -48,7 +48,6 @@ public class TestTaskErrorsUsingLocalMode {
   private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestTaskErrorsUsingLocalMode.class.getName()).getAbsoluteFile();
 
-
   @Test(timeout = 20000)
   public void testFatalErrorReported() throws IOException, TezException, InterruptedException {
 
@@ -121,7 +120,6 @@ public class TestTaskErrorsUsingLocalMode {
     }
   }
 
-
   private TezClient getTezClient(String name) throws IOException, TezException {
     TezConfiguration tezConf1 = new TezConfiguration();
     tezConf1.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
@@ -134,7 +132,6 @@ public class TestTaskErrorsUsingLocalMode {
     return tezClient1;
   }
 
-
   public static class FailingProcessor extends AbstractLogicalIOProcessor {
 
     private static final String FAIL_STRING_NON_FATAL = "non-fatal-fail";
@@ -146,7 +143,6 @@ public class TestTaskErrorsUsingLocalMode {
 
     private static volatile boolean shouldKill;
     private static volatile int killModeAttemptNumberToSucceed;
-
 
     static {
       reset();
@@ -216,5 +212,4 @@ public class TestTaskErrorsUsingLocalMode {
       }
     }
   }
-
 }

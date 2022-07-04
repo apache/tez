@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -44,11 +44,11 @@ public class MultiStageMRConfigUtil {
     return MRJobConfig.MRR_INTERMEDIATE_STAGE_PREFIX + intermediateStage + "."
         + originalPropertyName;
   }
- 
- //////////////////////////////////////////////////////////////////////////////
- //                  Methods based on Vertex Name                            //
- //////////////////////////////////////////////////////////////////////////////
-  
+
+  //////////////////////////////////////////////////////////////////////////////
+  //                  Methods based on Vertex Name                            //
+  //////////////////////////////////////////////////////////////////////////////
+
   private static final String INITIAL_MAP_VERTEX_NAME = "initialmap";
   private static final String FINAL_REDUCE_VERTEX_NAME = "finalreduce";
   private static final String INTERMEDIATE_TASK_VERTEX_NAME_PREFIX = "ivertex";
@@ -70,7 +70,7 @@ public class MultiStageMRConfigUtil {
 
   @Private
   static Configuration extractStageConf(Configuration baseConf,
-      String prefix) {
+                                        String prefix) {
     Configuration strippedConf = new Configuration(false);
     Configuration conf = new Configuration(false);
     Iterator<Entry<String, String>> confEntries = baseConf.iterator();

@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag.impl;
 
@@ -154,9 +154,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 /** Implementation of Job interface. Maintains the state machines of Job.
  * The read and write calls use ReadWriteLock for concurrency.
  */
-@SuppressWarnings({ "rawtypes", "unchecked" })
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
-  EventHandler<DAGEvent> {
+    EventHandler<DAGEvent> {
 
   private static final Logger LOG = LoggerFactory.getLogger(DAGImpl.class);
   private static final String LINE_SEPARATOR = System
@@ -221,7 +221,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final AtomicBoolean internalErrorTriggered = new AtomicBoolean(false);
 
   Map<String, LocalResource> localResources;
-  
+
   long startDAGCpuTime = 0;
   long startDAGGCTime = 0;
 
@@ -234,7 +234,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @VisibleForTesting
   Map<OutputKey, ListenableFuture<Void>> commitFutures
-    = new HashMap<OutputKey, ListenableFuture<Void>>();
+      = new HashMap<OutputKey, ListenableFuture<Void>>();
 
   private static final DiagnosticsUpdateTransition
       DIAGNOSTIC_UPDATE_TRANSITION = new DiagnosticsUpdateTransition();
@@ -243,211 +243,211 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private static final CounterUpdateTransition COUNTER_UPDATE_TRANSITION =
       new CounterUpdateTransition();
   private static final DAGSchedulerUpdateTransition
-          DAG_SCHEDULER_UPDATE_TRANSITION = new DAGSchedulerUpdateTransition();
+      DAG_SCHEDULER_UPDATE_TRANSITION = new DAGSchedulerUpdateTransition();
   private static final CommitCompletedTransition COMMIT_COMPLETED_TRANSITION =
       new CommitCompletedTransition();
 
   private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 
   protected static final
-    StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
-       stateMachineFactory
-     = new StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
-              (DAGState.NEW)
+  StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
+      stateMachineFactory
+      = new StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
+      (DAGState.NEW)
 
-          // Transitions from NEW state
-          .addTransition(DAGState.NEW, DAGState.NEW,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          // either recovered to FINISHED state or recovered to NEW to rerun the dag based on the recovery data
-          .addTransition(DAGState.NEW,
-              EnumSet.of(DAGState.NEW, DAGState.SUCCEEDED,
-                  DAGState.FAILED, DAGState.KILLED,
-                  DAGState.ERROR),
-              DAGEventType.DAG_RECOVER,
-              new RecoverTransition())
-          .addTransition(DAGState.NEW, DAGState.NEW,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition
-              (DAGState.NEW,
+      // Transitions from NEW state
+      .addTransition(DAGState.NEW, DAGState.NEW,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      // either recovered to FINISHED state or recovered to NEW to rerun the dag based on the recovery data
+      .addTransition(DAGState.NEW,
+          EnumSet.of(DAGState.NEW, DAGState.SUCCEEDED,
+              DAGState.FAILED, DAGState.KILLED,
+              DAGState.ERROR),
+          DAGEventType.DAG_RECOVER,
+          new RecoverTransition())
+      .addTransition(DAGState.NEW, DAGState.NEW,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition
+          (DAGState.NEW,
               EnumSet.of(DAGState.INITED, DAGState.FAILED),
               DAGEventType.DAG_INIT,
               new InitTransition())
-          .addTransition(DAGState.NEW, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
-              DAGEventType.DAG_TERMINATE,
-              new KillNewJobTransition())
-          .addTransition(DAGState.NEW, DAGState.ERROR,
-              DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
+      .addTransition(DAGState.NEW, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
+          DAGEventType.DAG_TERMINATE,
+          new KillNewJobTransition())
+      .addTransition(DAGState.NEW, DAGState.ERROR,
+          DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
 
-          // Transitions from INITED state
-          .addTransition(DAGState.INITED, DAGState.INITED,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.INITED, DAGState.INITED,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(DAGState.INITED, DAGState.RUNNING,
-              DAGEventType.DAG_START,
-              new StartTransition())
-          .addTransition(DAGState.INITED, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
-              DAGEventType.DAG_TERMINATE,
-              new KillInitedJobTransition())
-          .addTransition(DAGState.INITED, DAGState.ERROR,
-              DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
+      // Transitions from INITED state
+      .addTransition(DAGState.INITED, DAGState.INITED,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.INITED, DAGState.INITED,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(DAGState.INITED, DAGState.RUNNING,
+          DAGEventType.DAG_START,
+          new StartTransition())
+      .addTransition(DAGState.INITED, EnumSet.of(DAGState.KILLED, DAGState.FAILED),
+          DAGEventType.DAG_TERMINATE,
+          new KillInitedJobTransition())
+      .addTransition(DAGState.INITED, DAGState.ERROR,
+          DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
 
-          // Transitions from RUNNING state
-          .addTransition
-              (DAGState.RUNNING,
+      // Transitions from RUNNING state
+      .addTransition
+          (DAGState.RUNNING,
               EnumSet.of(DAGState.RUNNING, DAGState.COMMITTING,
-                  DAGState.SUCCEEDED, DAGState.TERMINATING,DAGState.FAILED),
+                  DAGState.SUCCEEDED, DAGState.TERMINATING, DAGState.FAILED),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
-          .addTransition(DAGState.RUNNING, EnumSet.of(DAGState.RUNNING, DAGState.TERMINATING),
-              DAGEventType.DAG_VERTEX_RERUNNING,
-              new VertexReRunningTransition())
-          .addTransition(DAGState.RUNNING, DAGState.TERMINATING,
-              DAGEventType.DAG_TERMINATE, new DAGKilledTransition())
-          .addTransition(DAGState.RUNNING, DAGState.RUNNING,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.RUNNING, DAGState.RUNNING,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(DAGState.RUNNING, DAGState.RUNNING,
-              DAGEventType.DAG_SCHEDULER_UPDATE,
-              DAG_SCHEDULER_UPDATE_TRANSITION)
-          .addTransition(
-              DAGState.RUNNING,
-              DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          .addTransition(DAGState.RUNNING,
-              EnumSet.of(DAGState.RUNNING, DAGState.TERMINATING),
-              DAGEventType.DAG_COMMIT_COMPLETED,
-              new CommitCompletedWhileRunning())
+      .addTransition(DAGState.RUNNING, EnumSet.of(DAGState.RUNNING, DAGState.TERMINATING),
+          DAGEventType.DAG_VERTEX_RERUNNING,
+          new VertexReRunningTransition())
+      .addTransition(DAGState.RUNNING, DAGState.TERMINATING,
+          DAGEventType.DAG_TERMINATE, new DAGKilledTransition())
+      .addTransition(DAGState.RUNNING, DAGState.RUNNING,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.RUNNING, DAGState.RUNNING,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(DAGState.RUNNING, DAGState.RUNNING,
+          DAGEventType.DAG_SCHEDULER_UPDATE,
+          DAG_SCHEDULER_UPDATE_TRANSITION)
+      .addTransition(
+          DAGState.RUNNING,
+          DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      .addTransition(DAGState.RUNNING,
+          EnumSet.of(DAGState.RUNNING, DAGState.TERMINATING),
+          DAGEventType.DAG_COMMIT_COMPLETED,
+          new CommitCompletedWhileRunning())
 
-          // Transitions from COMMITTING state.
-          .addTransition(DAGState.COMMITTING,
-              EnumSet.of(DAGState.COMMITTING, DAGState.TERMINATING, DAGState.FAILED, DAGState.SUCCEEDED),
-              DAGEventType.DAG_COMMIT_COMPLETED,
-              COMMIT_COMPLETED_TRANSITION)
-          .addTransition(DAGState.COMMITTING, DAGState.TERMINATING, 
-              DAGEventType.DAG_TERMINATE,
-              new DAGKilledWhileCommittingTransition())
-          .addTransition(
-              DAGState.COMMITTING,
-              DAGState.ERROR,
-              DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
-              DAGEventType.DAG_SCHEDULER_UPDATE,
-              DAG_SCHEDULER_UPDATE_TRANSITION)
-          .addTransition(DAGState.COMMITTING, DAGState.TERMINATING,
-              DAGEventType.DAG_VERTEX_RERUNNING,
-              new VertexRerunWhileCommitting())
-          .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      // Transitions from COMMITTING state.
+      .addTransition(DAGState.COMMITTING,
+          EnumSet.of(DAGState.COMMITTING, DAGState.TERMINATING, DAGState.FAILED, DAGState.SUCCEEDED),
+          DAGEventType.DAG_COMMIT_COMPLETED,
+          COMMIT_COMPLETED_TRANSITION)
+      .addTransition(DAGState.COMMITTING, DAGState.TERMINATING,
+          DAGEventType.DAG_TERMINATE,
+          new DAGKilledWhileCommittingTransition())
+      .addTransition(
+          DAGState.COMMITTING,
+          DAGState.ERROR,
+          DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
+          DAGEventType.DAG_SCHEDULER_UPDATE,
+          DAG_SCHEDULER_UPDATE_TRANSITION)
+      .addTransition(DAGState.COMMITTING, DAGState.TERMINATING,
+          DAGEventType.DAG_VERTEX_RERUNNING,
+          new VertexRerunWhileCommitting())
+      .addTransition(DAGState.COMMITTING, DAGState.COMMITTING,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
 
-          // Transitions from TERMINATING state.
-          .addTransition
-              (DAGState.TERMINATING,
+      // Transitions from TERMINATING state.
+      .addTransition
+          (DAGState.TERMINATING,
               EnumSet.of(DAGState.TERMINATING, DAGState.KILLED, DAGState.FAILED,
                   DAGState.ERROR),
               DAGEventType.DAG_VERTEX_COMPLETED,
               new VertexCompletedTransition())
-          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
+      .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(
+          DAGState.TERMINATING,
+          DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      .addTransition(
+          DAGState.TERMINATING,
+          EnumSet.of(DAGState.TERMINATING, DAGState.FAILED, DAGState.KILLED, DAGState.ERROR),
+          DAGEventType.DAG_COMMIT_COMPLETED,
+          COMMIT_COMPLETED_TRANSITION)
+
+      // Ignore-able events
+      .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
+          EnumSet.of(DAGEventType.DAG_TERMINATE,
+              DAGEventType.DAG_VERTEX_RERUNNING,
+              DAGEventType.DAG_SCHEDULER_UPDATE))
+
+      // Transitions from SUCCEEDED state
+      .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(
+          DAGState.SUCCEEDED,
+          DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      // Ignore-able events
+      .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
+          EnumSet.of(DAGEventType.DAG_TERMINATE,
+              DAGEventType.DAG_SCHEDULER_UPDATE,
+              DAGEventType.DAG_VERTEX_COMPLETED))
+
+      // Transitions from FAILED state
+      .addTransition(DAGState.FAILED, DAGState.FAILED,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.FAILED, DAGState.FAILED,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(
+          DAGState.FAILED,
+          DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      // Ignore-able events
+      .addTransition(DAGState.FAILED, DAGState.FAILED,
+          EnumSet.of(DAGEventType.DAG_TERMINATE,
+              DAGEventType.DAG_START,
+              DAGEventType.DAG_VERTEX_RERUNNING,
+              DAGEventType.DAG_SCHEDULER_UPDATE,
+              DAGEventType.DAG_VERTEX_COMPLETED))
+
+      // Transitions from KILLED state
+      .addTransition(DAGState.KILLED, DAGState.KILLED,
+          DAGEventType.DAG_DIAGNOSTIC_UPDATE,
+          DIAGNOSTIC_UPDATE_TRANSITION)
+      .addTransition(DAGState.KILLED, DAGState.KILLED,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      .addTransition(
+          DAGState.KILLED,
+          DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
+          INTERNAL_ERROR_TRANSITION)
+      // Ignore-able events
+      .addTransition(DAGState.KILLED, DAGState.KILLED,
+          EnumSet.of(DAGEventType.DAG_TERMINATE,
+              DAGEventType.DAG_START,
+              DAGEventType.DAG_VERTEX_RERUNNING,
+              DAGEventType.DAG_SCHEDULER_UPDATE,
+              DAGEventType.DAG_VERTEX_COMPLETED))
+
+      // No transitions from INTERNAL_ERROR state. Ignore all.
+      .addTransition(
+          DAGState.ERROR,
+          DAGState.ERROR,
+          EnumSet.of(
+              DAGEventType.DAG_TERMINATE,
+              DAGEventType.DAG_INIT,
+              DAGEventType.DAG_START,
+              DAGEventType.DAG_VERTEX_COMPLETED,
+              DAGEventType.DAG_VERTEX_RERUNNING,
+              DAGEventType.DAG_SCHEDULER_UPDATE,
               DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(
-              DAGState.TERMINATING,
-              DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          .addTransition(
-              DAGState.TERMINATING,
-              EnumSet.of(DAGState.TERMINATING, DAGState.FAILED, DAGState.KILLED, DAGState.ERROR),
-              DAGEventType.DAG_COMMIT_COMPLETED,
-              COMMIT_COMPLETED_TRANSITION)
-
-              // Ignore-able events
-          .addTransition(DAGState.TERMINATING, DAGState.TERMINATING,
-              EnumSet.of(DAGEventType.DAG_TERMINATE,
-                         DAGEventType.DAG_VERTEX_RERUNNING,
-                         DAGEventType.DAG_SCHEDULER_UPDATE))
-
-          // Transitions from SUCCEEDED state
-          .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(
-              DAGState.SUCCEEDED,
-              DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          // Ignore-able events
-          .addTransition(DAGState.SUCCEEDED, DAGState.SUCCEEDED,
-              EnumSet.of(DAGEventType.DAG_TERMINATE,
-                  DAGEventType.DAG_SCHEDULER_UPDATE,
-                  DAGEventType.DAG_VERTEX_COMPLETED))
-
-          // Transitions from FAILED state
-          .addTransition(DAGState.FAILED, DAGState.FAILED,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.FAILED, DAGState.FAILED,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(
-              DAGState.FAILED,
-              DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          // Ignore-able events
-          .addTransition(DAGState.FAILED, DAGState.FAILED,
-              EnumSet.of(DAGEventType.DAG_TERMINATE,
-                  DAGEventType.DAG_START,
-                  DAGEventType.DAG_VERTEX_RERUNNING,
-                  DAGEventType.DAG_SCHEDULER_UPDATE,
-                  DAGEventType.DAG_VERTEX_COMPLETED))
-
-          // Transitions from KILLED state
-          .addTransition(DAGState.KILLED, DAGState.KILLED,
-              DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-              DIAGNOSTIC_UPDATE_TRANSITION)
-          .addTransition(DAGState.KILLED, DAGState.KILLED,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          .addTransition(
-              DAGState.KILLED,
-              DAGState.ERROR, DAGEventType.INTERNAL_ERROR,
-              INTERNAL_ERROR_TRANSITION)
-          // Ignore-able events
-          .addTransition(DAGState.KILLED, DAGState.KILLED,
-              EnumSet.of(DAGEventType.DAG_TERMINATE,
-                  DAGEventType.DAG_START,
-                  DAGEventType.DAG_VERTEX_RERUNNING,
-                  DAGEventType.DAG_SCHEDULER_UPDATE,
-                  DAGEventType.DAG_VERTEX_COMPLETED))
-
-          // No transitions from INTERNAL_ERROR state. Ignore all.
-          .addTransition(
-              DAGState.ERROR,
-              DAGState.ERROR,
-              EnumSet.of(
-                  DAGEventType.DAG_TERMINATE,
-                  DAGEventType.DAG_INIT,
-                  DAGEventType.DAG_START,
-                  DAGEventType.DAG_VERTEX_COMPLETED,
-                  DAGEventType.DAG_VERTEX_RERUNNING,
-                  DAGEventType.DAG_SCHEDULER_UPDATE,
-                  DAGEventType.DAG_DIAGNOSTIC_UPDATE,
-                  DAGEventType.INTERNAL_ERROR,
-                  DAGEventType.DAG_COUNTER_UPDATE))
-          .addTransition(DAGState.ERROR, DAGState.ERROR,
-              DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
-          // create the topology tables
-          .installTopology();
+              DAGEventType.INTERNAL_ERROR,
+              DAGEventType.DAG_COUNTER_UPDATE))
+      .addTransition(DAGState.ERROR, DAGState.ERROR,
+          DAGEventType.DAG_COUNTER_UPDATE, COUNTER_UPDATE_TRANSITION)
+      // create the topology tables
+      .installTopology();
 
   private final StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl> stateMachine;
 
@@ -505,17 +505,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
   }
 
-
   public DAGImpl(TezDAGID dagId,
-      Configuration amConf,
-      DAGPlan jobPlan,
-      EventHandler eventHandler,
-      TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
-      Credentials dagCredentials,
-      Clock clock,
-      String appUserName,
-      TaskHeartbeatHandler thh,
-      AppContext appContext) {
+                 Configuration amConf,
+                 DAGPlan jobPlan,
+                 EventHandler eventHandler,
+                 TaskCommunicatorManagerInterface taskCommunicatorManagerInterface,
+                 Credentials dagCredentials,
+                 Clock clock,
+                 String appUserName,
+                 TaskHeartbeatHandler thh,
+                 AppContext appContext) {
     this.dagId = dagId;
     this.jobPlan = jobPlan;
     this.dagConf = new Configuration(amConf);
@@ -566,7 +565,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } else {
       defaultExecutionContext = null;
     }
-    
+
     this.taskSpecificLaunchCmdOption = new TaskSpecificLaunchCmdOption(dagConf);
     // This "this leak" is okay because the retained pointer is in an
     //  instance variable.
@@ -594,18 +593,18 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       implements OnStateChangedCallback<DAGState, DAGImpl> {
     @Override
     public void onStateChanged(DAGImpl dag, DAGState dagState) {
-      switch(dagState) {
-      case RUNNING:
-        dag.runningStatusYetToBeConsumed.set(true);
-        break;
-      case SUCCEEDED:
-      case FAILED:
-      case KILLED:
-      case ERROR:
-        dag.isFinalState.set(true);
-        break;
-      default:
-        break;
+      switch (dagState) {
+        case RUNNING:
+          dag.runningStatusYetToBeConsumed.set(true);
+          break;
+        case SUCCEEDED:
+        case FAILED:
+        case KILLED:
+        case ERROR:
+          dag.isFinalState.set(true);
+          break;
+        default:
+          break;
       }
       dag.dagStatusLock.lock();
       try {
@@ -624,7 +623,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public TezDAGID getID() {
     return dagId;
   }
-  
+
   @Override
   public Map<String, LocalResource> getLocalResources() {
     return localResources;
@@ -728,7 +727,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       TezCounters counters = new TezCounters();
       counters.incrAllCounters(dagCounters);
       return aggrTaskCounters(counters, vertices.values());
-
     } finally {
       readLock.unlock();
     }
@@ -742,7 +740,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     try {
       // FIXME a better lightweight approach for counters is needed
       if (fullCounters == null && cachedCounters != null
-          && ((cachedCountersTimestamp+10000) > System.currentTimeMillis())) {
+          && ((cachedCountersTimestamp + 10000) > System.currentTimeMillis())) {
         LOG.info("Asked for counters"
             + ", cachedCountersTimestamp=" + cachedCountersTimestamp
             + ", currentTime=" + System.currentTimeMillis());
@@ -760,7 +758,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       TezCounters counters = new TezCounters();
       counters.incrAllCounters(dagCounters);
       return aggrTaskCounters(counters, vertices.values());
-
     } finally {
       readLock.unlock();
     }
@@ -881,7 +878,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           return 0.0f;
         }
       }
-      return ((float)completedTasks/totalTasks);
+      return ((float) completedTasks / totalTasks);
     } finally {
       this.readLock.unlock();
     }
@@ -918,7 +915,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     int totalRejectedTaskAttemptCount = 0;
     readLock.lock();
     try {
-      for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
+      for (Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
         ProgressBuilder progress = entry.getValue().getVertexProgress();
         status.addVertexProgress(entry.getKey(), progress);
         totalTaskCount += progress.getTotalTaskCount();
@@ -1004,7 +1001,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     int totalRejectedTaskAttemptCount = 0;
     readLock.lock();
     try {
-      for(Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
+      for (Map.Entry<String, Vertex> entry : vertexMap.entrySet()) {
         ProgressBuilder progress = entry.getValue().getVertexProgress();
         totalTaskCount += progress.getTotalTaskCount();
         totalSucceededTaskCount += progress.getSucceededTaskCount();
@@ -1032,14 +1029,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   @Override
   public VertexStatusBuilder getVertexStatus(String vertexName,
-      Set<StatusGetOpts> statusOptions) {
+                                             Set<StatusGetOpts> statusOptions) {
     Vertex vertex = vertexMap.get(vertexName);
-    if(vertex == null) {
+    if (vertex == null) {
       return null;
     }
     return vertex.getVertexStatus(statusOptions);
   }
-  
+
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
     return (TaskAttemptImpl) getVertex(taId.getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
@@ -1161,7 +1158,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         appContext.getHadoopShim().clearHadoopCallerContext();
       }
     }
-    
+
     if (!commitEvents.isEmpty()) {
       try {
         LOG.info("Start writing dag commit event, " + getID());
@@ -1172,7 +1169,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         trySetTerminationCause(DAGTerminationCause.RECOVERY_FAILURE);
         return finished(DAGState.FAILED);
       }
-      for (Map.Entry<OutputKey,CallableEvent> entry : commitEvents.entrySet()) {
+      for (Map.Entry<OutputKey, CallableEvent> entry : commitEvents.entrySet()) {
         ListenableFuture<Void> commitFuture = appContext.getExecService().submit(entry.getValue());
         Futures.addCallback(commitFuture, entry.getValue().getCallback(), GuavaShim.directExecutor());
         commitFutures.put(entry.getKey(), commitFuture);
@@ -1190,14 +1187,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private void abortOutputs() {
     if (this.aborted.getAndSet(true)) {
       LOG.info("Ignoring multiple output abort");
-      return ;
+      return;
     }
     // come here because dag failed or
     // dag succeeded and all or none semantics were on and a commit failed.
     // Some output may be aborted multiple times if it is shared output.
     // It should be OK for it to be aborted multiple times.
     for (Vertex vertex : vertices.values()) {
-      ((VertexImpl)vertex).abortVertex(VertexStatus.State.FAILED);
+      ((VertexImpl) vertex).abortVertex(VertexStatus.State.FAILED);
     }
   }
 
@@ -1215,7 +1212,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       writeLock.lock();
       DAGState oldState = getInternalState();
       try {
-         getStateMachine().doTransition(event.getType(), event);
+        getStateMachine().doTransition(event.getType(), event);
       } catch (InvalidStateTransitonException e) {
         String message = "Invalid event " + event.getType() + " on Dag " + this.dagId
             + " at currentState=" + oldState;
@@ -1237,11 +1234,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       //notify the eventhandler of state change
       if (oldState != getInternalState()) {
         LOG.info(dagId + " transitioned from " + oldState + " to "
-                 + getInternalState() + " due to event " + event.getType());
+            + getInternalState() + " due to event " + event.getType());
       }
-    }
-
-    finally {
+    } finally {
       writeLock.unlock();
     }
   }
@@ -1250,7 +1245,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public DAGState getInternalState() {
     readLock.lock();
     try {
-     return getStateMachine().getCurrentState();
+      return getStateMachine().getCurrentState();
     } finally {
       readLock.unlock();
     }
@@ -1344,7 +1339,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         + ", numFailedVertices=" + dag.numFailedVertices
         + ", numKilledVertices=" + dag.numKilledVertices
         + ", numVertices=" + dag.numVertices
-        + ", commitInProgress=" + dag.commitFutures.size() 
+        + ", commitInProgress=" + dag.commitFutures.size()
         + ", terminationCause=" + dag.terminationCause);
 
     // log in case of accounting error.
@@ -1352,12 +1347,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       LOG.error("vertex completion accounting issue: numCompletedVertices > numVertices"
           + ", numCompletedVertices=" + dag.numCompletedVertices
           + ", numVertices=" + dag.numVertices
-          );
+      );
     }
 
     if (dag.numCompletedVertices == dag.numVertices) {
       //Only succeed if vertices complete successfully and no terminationCause is registered.
-      if(dag.numSuccessfulVertices == dag.numVertices && dag.isCommittable()) {
+      if (dag.numSuccessfulVertices == dag.numVertices && dag.isCommittable()) {
         if (dag.commitAllOutputsOnSuccess && !dag.committed.getAndSet(true)) {
           // start dag commit if there's any commit or just finish dag if no commit
           return dag.commitOrFinish();
@@ -1396,7 +1391,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         + ", numFailedVertices=" + dag.numFailedVertices
         + ", numKilledVertices=" + dag.numKilledVertices
         + ", numVertices=" + dag.numVertices
-        + ", commitInProgress=" + dag.commitFutures.size() 
+        + ", commitInProgress=" + dag.commitFutures.size()
         + ", terminationCause=" + dag.terminationCause);
 
     // continue the commits if DAG#isCommittable return true, otherwise go to TERMINATING or finish dag.
@@ -1424,7 +1419,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   private static DAGState finishWithTerminationCause(DAGImpl dag) {
     Preconditions.checkArgument(dag.getTerminationCause() != null, "TerminationCause is not set.");
-    String diagnosticMsg =  "DAG did not succeed due to " + dag.terminationCause
+    String diagnosticMsg = "DAG did not succeed due to " + dag.terminationCause
         + ". failedVertices:" + dag.numFailedVertices
         + " killedVertices:" + dag.numKilledVertices;
     LOG.info(diagnosticMsg);
@@ -1440,7 +1435,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     dagCounters.findCounter(DAGCounter.AM_CPU_MILLISECONDS).setValue(totalDAGCpuTime);
     dagCounters.findCounter(DAGCounter.AM_GC_TIME_MILLIS).setValue(totalDAGGCTime);
   }
-  
+
   private DAGState finished(DAGState finalState) {
     boolean dagError = false;
     try {
@@ -1513,7 +1508,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     } finally {
       readLock.unlock();
     }
-
   }
 
   @Override
@@ -1543,7 +1537,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * @return true if setting the value succeeded.
    */
   boolean trySetTerminationCause(DAGTerminationCause trigger) {
-    if(terminationCause == null){
+    if (terminationCause == null) {
       terminationCause = trigger;
       return true;
     }
@@ -1558,7 +1552,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       readLock.unlock();
     }
   }
-
 
   DAGState initializeDAG() {
     commitAllOutputsOnSuccess = dagConf.getBoolean(
@@ -1590,7 +1583,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     // create the vertices`
-    for (int i=0; i < numVertices; ++i) {
+    for (int i = 0; i < numVertices; ++i) {
       String vertexName = getJobPlan().getVertex(i).getName();
       VertexImpl v = createVertex(this, vertexName, i);
       addVertex(v);
@@ -1602,7 +1595,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         // TODO TEZ-2003 (post) TEZ-2624 Ideally, this should be per source.
         if (v.getTaskResource().compareTo(appContext.getClusterInfo().getMaxContainerCapability()) > 0) {
           String msg = "Vertex's TaskResource is beyond the cluster container capability," +
-              "Vertex=" + v.getLogIdentifier() +", Requested TaskResource=" + v.getTaskResource()
+              "Vertex=" + v.getLogIdentifier() + ", Requested TaskResource=" + v.getTaskResource()
               + ", Cluster MaxContainerCapability=" + appContext.getClusterInfo().getMaxContainerCapability();
           LOG.error(msg);
           addDiagnostic(msg);
@@ -1622,7 +1615,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       finished(DAGState.FAILED);
       return DAGState.FAILED;
     }
-    Map<String,EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(getJobPlan().getEdgeList());
+    Map<String, EdgePlan> edgePlans = DagTypeConverters.createEdgePlanMapFromDAGPlan(getJobPlan().getEdgeList());
 
     // setup the dag
     for (Vertex v : vertices.values()) {
@@ -1719,8 +1712,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     String dagSchedulerClassName = dag.dagConf.get(TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS,
         TezConfiguration.TEZ_AM_DAG_SCHEDULER_CLASS_DEFAULT);
     LOG.info("Using DAG Scheduler: " + dagSchedulerClassName);
-    dag.dagScheduler = ReflectionUtils.createClazzInstance(dagSchedulerClassName, new Class<?>[] {
-        DAG.class, EventHandler.class}, new Object[] {dag, dag.eventHandler});
+    dag.dagScheduler = ReflectionUtils.createClazzInstance(dagSchedulerClassName, new Class<?>[]{
+        DAG.class, EventHandler.class}, new Object[]{dag, dag.eventHandler});
     for (Vertex v : dag.vertices.values()) {
       dag.dagScheduler.addVertexConcurrencyLimit(v.getVertexId(), v.getMaxTaskConcurrency());
     }
@@ -1753,7 +1746,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     Map<Vertex, Edge> outVertices =
         new HashMap<Vertex, Edge>();
 
-    for(String inEdgeId : vertexPlan.getInEdgeIdList()){
+    for (String inEdgeId : vertexPlan.getInEdgeIdList()) {
       EdgePlan edgePlan = edgePlans.get(inEdgeId);
       Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());
       Edge edge = dag.edges.get(inEdgeId);
@@ -1762,7 +1755,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       inVertices.put(inVertex, edge);
     }
 
-    for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
+    for (String outEdgeId : vertexPlan.getOutEdgeIdList()) {
       EdgePlan edgePlan = edgePlans.get(outEdgeId);
       Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());
       Edge edge = dag.edges.get(outEdgeId);
@@ -1777,7 +1770,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
         TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0 && ShuffleUtils.isTezShuffleHandler(dag.dagConf);
     if (cleanupShuffleDataAtVertexLevel) {
       int deletionHeight = dag.dagConf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
-              TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT);
+          TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT);
       ((VertexImpl) vertex).initShuffleDeletionContext(deletionHeight);
     }
   }
@@ -1802,30 +1795,30 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     @Override
     public DAGState transition(DAGImpl dag, DAGEvent dagEvent) {
-      DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent)dagEvent;
+      DAGEventRecoverEvent recoverEvent = (DAGEventRecoverEvent) dagEvent;
       // With desired state, represents the case that DAG is completed
       if (recoverEvent.hasDesiredState()) {
         VertexState vertexDesiredState = null;
         switch (recoverEvent.getDesiredState()) {
-        case SUCCEEDED:
-          vertexDesiredState = VertexState.SUCCEEDED;
-          break;
-        case FAILED:
-          vertexDesiredState = VertexState.FAILED;
-          break;
-        case KILLED:
-          vertexDesiredState = VertexState.KILLED;
-          break;
-        case ERROR:
-          vertexDesiredState = VertexState.ERROR;
-          break;
-        default:
-          String msg = "Invalid desired state of DAG"
-              + ", dagName=" + dag.getName()
-              + ", state=" + recoverEvent.getDesiredState();
-          LOG.warn(msg);
-          dag.addDiagnostic(msg);
-          return dag.finished(DAGState.ERROR);
+          case SUCCEEDED:
+            vertexDesiredState = VertexState.SUCCEEDED;
+            break;
+          case FAILED:
+            vertexDesiredState = VertexState.FAILED;
+            break;
+          case KILLED:
+            vertexDesiredState = VertexState.KILLED;
+            break;
+          case ERROR:
+            vertexDesiredState = VertexState.ERROR;
+            break;
+          default:
+            String msg = "Invalid desired state of DAG"
+                + ", dagName=" + dag.getName()
+                + ", state=" + recoverEvent.getDesiredState();
+            LOG.warn(msg);
+            dag.addDiagnostic(msg);
+            return dag.finished(DAGState.ERROR);
         }
         // Initialize dag synchronously to generate the vertices and recover its vertices to the desired state.
         dag.initializeDAG();
@@ -1879,14 +1872,11 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       //dag.metrics.endPreparingJob(dag);
       dag.logJobHistoryInitedEvent();
       return DAGState.INITED;
-
-
     }
-
   } // end of InitTransition
 
   public static class StartTransition
-  implements SingleArcTransition<DAGImpl, DAGEvent> {
+      implements SingleArcTransition<DAGImpl, DAGEvent> {
     /**
      * This transition executes in the event-dispatcher thread, though it's
      * triggered in MRAppMaster's startJobs() method.
@@ -1901,7 +1891,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       DAGEventStartDag startEvent = (DAGEventStartDag) event;
       List<URL> additionalUrlsForClasspath = startEvent.getAdditionalUrlsForClasspath();
       if (additionalUrlsForClasspath != null) {
-        LOG.info("Added additional resources : [" + additionalUrlsForClasspath  + "] to classpath");
+        LOG.info("Added additional resources : [" + additionalUrlsForClasspath + "] to classpath");
         RelocalizationUtils.addUrlsToClassPath(additionalUrlsForClasspath);
       }
       // TODO Metrics
@@ -1915,6 +1905,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
   // use LinkedHashMap to ensure the vertex order (TEZ-1065)
   LinkedHashMap<String, Vertex> vertexMap = new LinkedHashMap<String, Vertex>();
+
   void addVertex(Vertex v) {
     vertices.put(v.getVertexId(), v);
     vertexMap.put(v.getName(), v);
@@ -1951,13 +1942,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * The vertex-kill messages are only sent once.
    */
   void enactKill(DAGTerminationCause dagTerminationCause,
-      VertexTerminationCause vertexTerminationCause) {
+                 VertexTerminationCause vertexTerminationCause) {
 
-    if(trySetTerminationCause(dagTerminationCause)){
+    if (trySetTerminationCause(dagTerminationCause)) {
       for (Vertex v : vertices.values()) {
         eventHandler.handle(
             new VertexEventTermination(v.getVertexId(), vertexTerminationCause)
-            );
+        );
       }
     }
   }
@@ -1983,7 +1974,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dag.addDiagnostics(event);
       return dag.finished(event.getTerminationCause().getFinishedState());
     }
-
   }
 
   private static class KillInitedJobTransition implements
@@ -1998,7 +1988,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dag.addDiagnostics(event);
       return dag.finished(event.getTerminationCause().getFinishedState());
     }
-
   }
 
   private static class DAGKilledTransition
@@ -2017,12 +2006,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       // TODO Metrics
       //job.metrics.endRunningJob(job);
     }
-
-
   }
 
   private static class DAGKilledWhileCommittingTransition
-    implements SingleArcTransition<DAGImpl, DAGEvent> {
+      implements SingleArcTransition<DAGImpl, DAGEvent> {
 
     @Override
     public void transition(DAGImpl dag, DAGEvent dagEvent) {
@@ -2064,15 +2051,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       job.numCompletedVertices++;
       if (vertexEvent.getVertexState() == VertexState.SUCCEEDED) {
         forceTransitionToKillWait = !(job.vertexSucceeded(vertex));
-      }
-      else if (vertexEvent.getVertexState() == VertexState.FAILED) {
+      } else if (vertexEvent.getVertexState() == VertexState.FAILED) {
         job.enactKill(
             DAGTerminationCause.VERTEX_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
         job.cancelCommits();
         job.vertexFailed(vertex);
         forceTransitionToKillWait = true;
-      }
-      else if (vertexEvent.getVertexState() == VertexState.KILLED) {
+      } else if (vertexEvent.getVertexState() == VertexState.KILLED) {
         job.vertexKilled(vertex);
         job.cancelCommits();
         forceTransitionToKillWait = true;
@@ -2089,15 +2074,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
       // if the job has not finished but a failure/kill occurred, then force the transition to KILL_WAIT.
       DAGState state = checkVerticesForCompletion(job);
-      if(state == DAGState.RUNNING && forceTransitionToKillWait){
+      if (state == DAGState.RUNNING && forceTransitionToKillWait) {
         job.cancelCommits();
         return DAGState.TERMINATING;
-      }
-      else {
+      } else {
         return state;
       }
     }
-
   }
 
   private Collection<TezVertexID> getVertexIds(Collection<String> vertexNames) {
@@ -2109,7 +2092,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
 
   private static class VertexReRunningTransition implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
+      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
     public DAGState transition(DAGImpl job, DAGEvent event) {
@@ -2160,14 +2143,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             for (String vertexName : groupInfo.groupMembers) {
               VertexRecoveryData vertexRecoveryData =
                   recoveryData.getVertexRecoveryData(getVertex(vertexName).getVertexId());
-              Preconditions.checkArgument(vertexRecoveryData != null,"Vertex Group has been committed"
+              Preconditions.checkArgument(vertexRecoveryData != null, "Vertex Group has been committed"
                   + ", but no VertexRecoveryData found for its vertex " + vertexName);
               VertexFinishedEvent vertexFinishedEvent = vertexRecoveryData.getVertexFinishedEvent();
-              Preconditions.checkArgument(vertexFinishedEvent!= null,"Vertex Group has been committed"
+              Preconditions.checkArgument(vertexFinishedEvent != null, "Vertex Group has been committed"
                   + ", but no VertexFinishedEvent found in its vertex " + vertexName);
               Preconditions.checkArgument(vertexFinishedEvent.getState() == VertexState.SUCCEEDED,
                   "Vertex Group has been committed, but unexpected vertex state of its vertex "
-                  + vertexName + ", vertexstate=" + vertexFinishedEvent.getState());
+                      + vertexName + ", vertexstate=" + vertexFinishedEvent.getState());
             }
             continue;
           }
@@ -2192,7 +2175,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
                   LOG.info("Committing output: " + outputName);
                   commitOutput(committer);
                   return null;
-                };
+                }
+
+                ;
               };
               ListenableFuture<Void> groupCommitFuture = appContext.getExecService().submit(groupCommitCallableEvent);
               Futures.addCallback(groupCommitFuture, groupCommitCallableEvent.getCallback(),
@@ -2215,8 +2200,8 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     reRunningVertices.add(vertex.getVertexId());
     numSuccessfulVertices--;
     addDiagnostic("Vertex re-running"
-      + ", vertexName=" + vertex.getName()
-      + ", vertexId=" + vertex.getVertexId());
+        + ", vertexName=" + vertex.getName()
+        + ", vertexId=" + vertex.getVertexId());
 
     if (!commitAllOutputsOnSuccess) {
       // partial output may already have been in committing or committed. fail if so
@@ -2261,9 +2246,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private void vertexKilled(Vertex vertex) {
     numKilledVertices++;
     addDiagnostic("Vertex killed"
-      + ", vertexName=" + vertex.getName()
-      + ", vertexId=" + vertex.getVertexId()
-      + ", diagnostics=" + vertex.getDiagnostics());
+        + ", vertexName=" + vertex.getName()
+        + ", vertexId=" + vertex.getVertexId()
+        + ", diagnostics=" + vertex.getDiagnostics());
     // TODO: Metrics
     //job.metrics.killedTask(task);
   }
@@ -2289,17 +2274,17 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       for (DAGEventCounterUpdate.CounterIncrementalUpdate ci : jce
           .getCounterUpdates()) {
         job.dagCounters.findCounter(ci.getCounterKey()).increment(
-          ci.getIncrementValue());
+            ci.getIncrementValue());
       }
     }
   }
 
   private static class DAGSchedulerUpdateTransition implements
-    SingleArcTransition<DAGImpl, DAGEvent> {
+      SingleArcTransition<DAGImpl, DAGEvent> {
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
       DAGEventSchedulerUpdate sEvent = (DAGEventSchedulerUpdate) event;
-      switch(sEvent.getUpdateType()) {
+      switch (sEvent.getUpdateType()) {
         case TA_SCHEDULE:
           dag.dagScheduler.scheduleTask(sEvent);
           break;
@@ -2308,32 +2293,31 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
           break;
         default:
           throw new TezUncheckedException("Unknown DAGEventSchedulerUpdate:"
-                                  + sEvent.getUpdateType());
+              + sEvent.getUpdateType());
       }
     }
   }
 
   private static class CommitCompletedWhileRunning implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState>{
+      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
     public DAGState transition(DAGImpl dag, DAGEvent event) {
-      DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted)event;
+      DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted) event;
       if (dag.commitCompleted(commitCompletedEvent)) {
         return DAGState.RUNNING;
       } else {
         return DAGState.TERMINATING;
       }
     }
-    
   }
 
   private static class CommitCompletedTransition implements
-    MultipleArcTransition<DAGImpl, DAGEvent, DAGState>{
+      MultipleArcTransition<DAGImpl, DAGEvent, DAGState> {
 
     @Override
     public DAGState transition(DAGImpl dag, DAGEvent event) {
-      DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted)event;
+      DAGEventCommitCompleted commitCompletedEvent = (DAGEventCommitCompleted) event;
       dag.commitCompleted(commitCompletedEvent);
       return checkCommitsForCompletion(dag);
     }
@@ -2348,7 +2332,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (commitCompletedEvent.isSucceeded()) {
       LOG.info("Commit succeeded for output:" + commitCompletedEvent.getOutputKey());
       OutputKey outputKey = commitCompletedEvent.getOutputKey();
-      if (outputKey.isVertexGroupOutput){
+      if (outputKey.isVertexGroupOutput) {
         VertexGroupInfo vertexGroup = vertexGroups.get(outputKey.getEntityName());
         vertexGroup.successfulCommits++;
         if (vertexGroup.isCommitted()) {
@@ -2379,21 +2363,20 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       enactKill(DAGTerminationCause.COMMIT_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
       cancelCommits();
     }
-    if (recoveryFailed){
+    if (recoveryFailed) {
       enactKill(DAGTerminationCause.RECOVERY_FAILURE, VertexTerminationCause.OTHER_VERTEX_FAILURE);
       cancelCommits();
     }
     return !commitFailed && !recoveryFailed;
   }
 
-
   private static class VertexRerunWhileCommitting implements
-    SingleArcTransition<DAGImpl, DAGEvent> {
+      SingleArcTransition<DAGImpl, DAGEvent> {
 
     @Override
     public void transition(DAGImpl dag, DAGEvent event) {
       LOG.info("Vertex rerun while dag it is COMMITTING");
-      DAGEventVertexReRunning rerunEvent = (DAGEventVertexReRunning)event;
+      DAGEventVertexReRunning rerunEvent = (DAGEventVertexReRunning) event;
       Vertex vertex = dag.getVertex(rerunEvent.getVertexId());
       dag.reRunningVertices.add(vertex.getVertexId());
       dag.numSuccessfulVertices--;
@@ -2404,7 +2387,6 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       dag.cancelCommits();
       dag.enactKill(DAGTerminationCause.VERTEX_RERUN_IN_COMMITTING, VertexTerminationCause.VERTEX_RERUN_IN_COMMITTING);
     }
-
   }
 
   // TODO TEZ-2250 go to TERMINATING to wait for all vertices and commits completed
@@ -2420,7 +2402,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       }
 
       LOG.info(dag.getID() + " terminating due to internal error. "
-          + (diagnostics == null? "" : " Error=" + diagnostics));
+          + (diagnostics == null ? "" : " Error=" + diagnostics));
       // terminate all vertices
       dag.enactKill(DAGTerminationCause.INTERNAL_ERROR, VertexTerminationCause.INTERNAL_ERROR);
       dag.setFinishTime();

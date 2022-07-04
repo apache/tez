@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +26,7 @@ import org.apache.tez.runtime.api.Reader;
 
 /**
  * A key/value(s) pair based {@link Reader}.
- * 
+ *
  * Example usage
  * <code>
  * while (kvReader.next()) {
@@ -45,7 +45,7 @@ public abstract class KeyValuesReader extends Reader {
 
   /**
    * Moves to the next key/values(s) pair
-   * 
+   *
    * @return true if another key/value(s) pair exists, false if there are no more.
    * @throws IOException
    *           if an error occurs
@@ -53,13 +53,12 @@ public abstract class KeyValuesReader extends Reader {
    */
   public abstract boolean next() throws IOException;
 
-  
   /**
    * Returns the current key
    * @return the current key
    */
   public abstract Object getCurrentKey() throws IOException;
-  
+
   /**
    * Returns an Iterable view of the values associated with the current key
    * @return an Iterable view of the values associated with the current key

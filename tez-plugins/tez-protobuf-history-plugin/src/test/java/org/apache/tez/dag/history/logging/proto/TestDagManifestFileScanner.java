@@ -53,7 +53,7 @@ public class TestDagManifestFileScanner {
     manifestLogger = loggers.getManifestEventsLogger();
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testNormal() throws Exception {
     clock.setTime(0); // 0th day.
     createManifestEvents(0, 8);
@@ -91,7 +91,8 @@ public class TestDagManifestFileScanner {
   }
 
   private Path deleteFilePath = null;
-  @Test(timeout=5000)
+
+  @Test(timeout = 5000)
   public void testError() throws Exception {
     clock.setTime(0); // 0th day.
     createManifestEvents(0, 4);

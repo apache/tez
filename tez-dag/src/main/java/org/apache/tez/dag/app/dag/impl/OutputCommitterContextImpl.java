@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,11 +37,11 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
-      int dagAttemptNumber,
-      String dagName,
-      String vertexName,
-      RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
-      int vertexIdx) {
+                                    int dagAttemptNumber,
+                                    String dagName,
+                                    String vertexName,
+                                    RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
+                                    int vertexIdx) {
     Objects.requireNonNull(applicationId, "applicationId is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(vertexName, "vertexName is null");
@@ -83,7 +83,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   public UserPayload getOutputUserPayload() {
     return output.getIODescriptor().getUserPayload();
   }
-  
+
   @Override
   public UserPayload getUserPayload() {
     return output.getControllerDescriptor().getUserPayload();
@@ -93,5 +93,4 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   public int getVertexIndex() {
     return vertexIdx;
   }
-
 }

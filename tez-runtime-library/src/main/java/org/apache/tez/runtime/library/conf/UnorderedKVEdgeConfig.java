@@ -38,7 +38,7 @@ import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
 /**
  * Configure payloads for the UnorderedKVOutput and UnorderedKVInput pair </p>
- *
+ * <p>
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
@@ -53,12 +53,12 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
       UnorderedKVInputConfig inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
-
   }
 
   /**
    * Create a builder to configure the relevant Input and Output
-   * @param keyClassName the key class name
+   *
+   * @param keyClassName   the key class name
    * @param valueClassName the value class name
    * @return a builder to configure the edge
    */
@@ -260,6 +260,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
     /**
      * Configure the specific output
+     *
      * @return a builder to configure the output
      */
     public UnorderedKVOutputConfig.SpecificBuilder<Builder> configureOutput() {
@@ -268,6 +269,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
     /**
      * Configure the specific input
+     *
      * @return a builder to configure the input
      */
     public UnorderedKVInputConfig.SpecificBuilder<Builder> configureInput() {
@@ -276,11 +278,11 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
     /**
      * Build and return an instance of the configuration
+     *
      * @return an instance of the acatual configuration
      */
     public UnorderedKVEdgeConfig build() {
       return new UnorderedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());
     }
-
   }
 }

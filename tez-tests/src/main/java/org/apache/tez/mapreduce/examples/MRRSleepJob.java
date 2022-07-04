@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.mapreduce.examples;
 
@@ -101,10 +101,10 @@ public class MRRSleepJob extends Configured implements Tool {
 
   public static final String MAP_SLEEP_COUNT = "mrr.sleepjob.map.sleep.count";
   public static final String REDUCE_SLEEP_COUNT =
-    "mrr.sleepjob.reduce.sleep.count";
+      "mrr.sleepjob.reduce.sleep.count";
   public static final String MAP_SLEEP_TIME = "mrr.sleepjob.map.sleep.time";
   public static final String REDUCE_SLEEP_TIME =
-    "mrr.sleepjob.reduce.sleep.time";
+      "mrr.sleepjob.reduce.sleep.time";
   public static final String IREDUCE_SLEEP_COUNT =
       "mrr.sleepjob.ireduce.sleep.count";
   public static final String IREDUCE_SLEEP_TIME =
@@ -128,26 +128,29 @@ public class MRRSleepJob extends Configured implements Tool {
   }
 
   public static class EmptySplit extends InputSplit implements Writable {
-    public void write(DataOutput out) throws IOException { }
-    public void readFields(DataInput in) throws IOException { }
-    public long getLength() { return 0L; }
-    public String[] getLocations() { return new String[0]; }
+    public void write(DataOutput out) throws IOException {}
+
+    public void readFields(DataInput in) throws IOException {}
+
+    public long getLength() {return 0L;}
+
+    public String[] getLocations() {return new String[0];}
   }
 
   public static class SleepInputFormat
-      extends InputFormat<IntWritable,IntWritable> {
+      extends InputFormat<IntWritable, IntWritable> {
 
     public List<InputSplit> getSplits(JobContext jobContext) {
       List<InputSplit> ret = new ArrayList<InputSplit>();
       int numSplits = jobContext.getConfiguration().
-                        getInt(MRJobConfig.NUM_MAPS, 1);
+          getInt(MRJobConfig.NUM_MAPS, 1);
       for (int i = 0; i < numSplits; ++i) {
         ret.add(new EmptySplit());
       }
       return ret;
     }
 
-    public RecordReader<IntWritable,IntWritable> createRecordReader(
+    public RecordReader<IntWritable, IntWritable> createRecordReader(
         InputSplit ignored, TaskAttemptContext taskContext)
         throws IOException {
       Configuration conf = taskContext.getConfiguration();
@@ -159,15 +162,15 @@ public class MRRSleepJob extends Configured implements Tool {
 
       int totalIReduces = conf.getInt(IREDUCE_STAGES_COUNT, 1);
 
-      int reduceTasks = totalIReduces == 0?
+      int reduceTasks = totalIReduces == 0 ?
           taskContext.getNumReduceTasks() :
-            conf.getInt(IREDUCE_TASKS_COUNT, 1);
-      int sleepCount = totalIReduces == 0?
-          conf.getInt(REDUCE_SLEEP_COUNT,1) :
-            conf.getInt(IREDUCE_SLEEP_COUNT,1);
+          conf.getInt(IREDUCE_TASKS_COUNT, 1);
+      int sleepCount = totalIReduces == 0 ?
+          conf.getInt(REDUCE_SLEEP_COUNT, 1) :
+          conf.getInt(IREDUCE_SLEEP_COUNT, 1);
       final int emitPerMapTask = sleepCount * reduceTasks;
 
-      return new RecordReader<IntWritable,IntWritable>() {
+      return new RecordReader<IntWritable, IntWritable>() {
         private int records = 0;
         private int emitCount = 0;
         private IntWritable key = null;
@@ -192,11 +195,15 @@ public class MRRSleepJob extends Configured implements Tool {
           value.set(emit);
           return records++ < count;
         }
-        public IntWritable getCurrentKey() { return key; }
-        public IntWritable getCurrentValue() { return value; }
-        public void close() throws IOException { }
+
+        public IntWritable getCurrentKey() {return key;}
+
+        public IntWritable getCurrentValue() {return value;}
+
+        public void close() throws IOException {}
+
         public float getProgress() throws IOException {
-          return count == 0 ? 100 : records / ((float)count);
+          return count == 0 ? 100 : records / ((float) count);
         }
       };
     }
@@ -213,19 +220,19 @@ public class MRRSleepJob extends Configured implements Tool {
     private boolean finalAttempt = false;
 
     protected void setup(Context context)
-      throws IOException, InterruptedException {
+        throws IOException, InterruptedException {
       Configuration conf = context.getConfiguration();
       this.mapSleepCount =
-        conf.getInt(MAP_SLEEP_COUNT, mapSleepCount);
+          conf.getInt(MAP_SLEEP_COUNT, mapSleepCount);
       this.mapSleepDuration = mapSleepCount == 0 ? 0 :
-        conf.getLong(MAP_SLEEP_TIME , 100) / mapSleepCount;
+          conf.getLong(MAP_SLEEP_TIME, 100) / mapSleepCount;
       vertexName = conf.get(
           org.apache.tez.mapreduce.hadoop.MRJobConfig.VERTEX_NAME);
 
       TaskAttemptID taId = context.getTaskAttemptID();
 
       String[] taskIds = conf.getStrings(MAP_ERROR_TASK_IDS);
-      if (taId.getId()+1 >= context.getMaxMapAttempts()) {
+      if (taId.getId() + 1 >= context.getMaxMapAttempts()) {
         finalAttempt = true;
       }
       boolean found = false;
@@ -252,7 +259,7 @@ public class MRRSleepJob extends Configured implements Tool {
     }
 
     public void map(IntWritable key, IntWritable value, Context context
-               ) throws IOException, InterruptedException {
+    ) throws IOException, InterruptedException {
       //it is expected that every map processes mapSleepCount number of records.
       try {
         LOG.info("Reading in " + vertexName
@@ -266,16 +273,15 @@ public class MRRSleepJob extends Configured implements Tool {
             + ", sleepLeft="
             + (mapSleepDuration * (mapSleepCount - count)));
         context.setStatus("Sleeping... (" +
-          (mapSleepDuration * (mapSleepCount - count)) + ") ms left");
+            (mapSleepDuration * (mapSleepCount - count)) + ") ms left");
         if ((mapSleepCount - count) > 0) {
           Thread.sleep(mapSleepDuration);
         }
         if (throwError || throwFatal) {
           throw new IOException("Throwing a simulated error from map");
         }
-      }
-      catch (InterruptedException ex) {
-        throw (IOException)new IOException(
+      } catch (InterruptedException ex) {
+        throw (IOException) new IOException(
             "Interrupted while sleeping").initCause(ex);
       }
       ++count;
@@ -285,14 +291,14 @@ public class MRRSleepJob extends Configured implements Tool {
       for (int i = 0; i < value.get(); ++i) {
         LOG.info("Writing in " + vertexName
             + " taskid " + context.getTaskAttemptID().getTaskID().getId()
-            + " key " + (k+i) + " value 1");
+            + " key " + (k + i) + " value 1");
         context.write(new IntWritable(k + i), new IntWritable(1));
       }
     }
   }
 
   public static class ISleepReducer
-  extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
+      extends Reducer<IntWritable, IntWritable, IntWritable, IntWritable> {
     private long iReduceSleepDuration = 100;
     private int iReduceSleepCount = 1;
     private int count = 0;
@@ -304,14 +310,14 @@ public class MRRSleepJob extends Configured implements Tool {
       this.iReduceSleepCount =
           conf.getInt(IREDUCE_SLEEP_COUNT, iReduceSleepCount);
       this.iReduceSleepDuration = iReduceSleepCount == 0 ? 0 :
-        conf.getLong(IREDUCE_SLEEP_TIME , 100) / iReduceSleepCount;
+          conf.getLong(IREDUCE_SLEEP_TIME, 100) / iReduceSleepCount;
       vertexName = conf.get(
           org.apache.tez.mapreduce.hadoop.MRJobConfig.VERTEX_NAME);
     }
 
     public void reduce(IntWritable key, Iterable<IntWritable> values,
-        Context context)
-            throws IOException, InterruptedException {
+                       Context context)
+        throws IOException, InterruptedException {
       try {
         LOG.info("Reading in " + vertexName
             + " taskid " + context.getTaskAttemptID().getTaskID().getId()
@@ -325,13 +331,12 @@ public class MRRSleepJob extends Configured implements Tool {
             + ", sleepLeft="
             + (iReduceSleepDuration * (iReduceSleepCount - count)));
         context.setStatus("Sleeping... (" +
-          (iReduceSleepDuration * (iReduceSleepCount - count)) + ") ms left");
+            (iReduceSleepDuration * (iReduceSleepCount - count)) + ") ms left");
         if ((iReduceSleepCount - count) > 0) {
           Thread.sleep(iReduceSleepDuration);
         }
-      }
-      catch (InterruptedException ex) {
-        throw (IOException)new IOException(
+      } catch (InterruptedException ex) {
+        throw (IOException) new IOException(
             "Interrupted while sleeping").initCause(ex);
       }
       ++count;
@@ -342,7 +347,7 @@ public class MRRSleepJob extends Configured implements Tool {
         for (int i = 0; i < value.get(); ++i) {
           LOG.info("Writing in " + vertexName
               + " taskid " + context.getTaskAttemptID().getTaskID().getId()
-              + " key " + (k+i) + " value 1");
+              + " key " + (k + i) + " value 1");
           context.write(new IntWritable(k + i), new IntWritable(1));
         }
       }
@@ -357,19 +362,19 @@ public class MRRSleepJob extends Configured implements Tool {
     private String vertexName;
 
     protected void setup(Context context)
-      throws IOException, InterruptedException {
+        throws IOException, InterruptedException {
       Configuration conf = context.getConfiguration();
       this.reduceSleepCount =
-        conf.getInt(REDUCE_SLEEP_COUNT, reduceSleepCount);
+          conf.getInt(REDUCE_SLEEP_COUNT, reduceSleepCount);
       this.reduceSleepDuration = reduceSleepCount == 0 ? 0 :
-        conf.getLong(REDUCE_SLEEP_TIME , 100) / reduceSleepCount;
+          conf.getLong(REDUCE_SLEEP_TIME, 100) / reduceSleepCount;
       vertexName = conf.get(
           org.apache.tez.mapreduce.hadoop.MRJobConfig.VERTEX_NAME);
     }
 
     public void reduce(IntWritable key, Iterable<IntWritable> values,
                        Context context)
-      throws IOException {
+        throws IOException {
       try {
         LOG.info("Reading in " + vertexName
             + " taskid " + context.getTaskAttemptID().getTaskID().getId()
@@ -386,10 +391,9 @@ public class MRRSleepJob extends Configured implements Tool {
         if ((reduceSleepCount - count) > 0) {
           Thread.sleep(reduceSleepDuration);
         }
-      }
-      catch (InterruptedException ex) {
-        throw (IOException)new IOException(
-          "Interrupted while sleeping").initCause(ex);
+      } catch (InterruptedException ex) {
+        throw (IOException) new IOException(
+            "Interrupted while sleeping").initCause(ex);
       }
       count++;
     }
@@ -399,17 +403,16 @@ public class MRRSleepJob extends Configured implements Tool {
     int res = ToolRunner.run(new Configuration(), new MRRSleepJob(), args);
     System.exit(res);
   }
-  
+
   private Credentials credentials = new Credentials();
 
   public DAG createDAG(Configuration conf, Path stagingDir,
-      int numMapper, int numReducer, int iReduceStagesCount,
-      int numIReducer, long mapSleepTime, int mapSleepCount,
-      long reduceSleepTime, int reduceSleepCount,
-      long iReduceSleepTime, int iReduceSleepCount, boolean writeSplitsToDFS,
-      boolean generateSplitsInAM)
+                       int numMapper, int numReducer, int iReduceStagesCount,
+                       int numIReducer, long mapSleepTime, int mapSleepCount,
+                       long reduceSleepTime, int reduceSleepCount,
+                       long iReduceSleepTime, int iReduceSleepCount, boolean writeSplitsToDFS,
+                       boolean generateSplitsInAM)
       throws IOException, YarnException {
-
 
     Configuration mapStageConf = new JobConf(conf);
     mapStageConf.setInt(MRJobConfig.NUM_MAPS, numMapper);
@@ -449,9 +452,8 @@ public class MRRSleepJob extends Configured implements Tool {
         iReduceStageConf.set(MRJobConfig.PARTITIONER_CLASS_ATTR,
             MRRSleepJobPartitioner.class.getName());
 
-
         MRHelpers.translateMRConfToTez(iReduceStageConf, false);
-        intermediateReduceStageConfs[i-1] = iReduceStageConf;
+        intermediateReduceStageConfs[i - 1] = iReduceStageConf;
       }
     }
 
@@ -496,9 +498,9 @@ public class MRRSleepJob extends Configured implements Tool {
 
     DAG dag = DAG.create("MRRSleepJob");
     String jarPath = ClassUtil.findContainingJar(getClass());
-    if (jarPath == null)  {
-        throw new TezUncheckedException("Could not find any jar containing"
-            + " MRRSleepJob.class in the classpath");
+    if (jarPath == null) {
+      throw new TezUncheckedException("Could not find any jar containing"
+          + " MRRSleepJob.class in the classpath");
     }
 
     FileSystem stagingFs = stagingDir.getFileSystem(conf);
@@ -506,7 +508,7 @@ public class MRRSleepJob extends Configured implements Tool {
     stagingFs.copyFromLocalFile(new Path(jarPath), remoteJarPath);
     FileStatus jarFileStatus = stagingFs.getFileStatus(remoteJarPath);
 
-    TokenCache.obtainTokensForNamenodes(this.credentials, new Path[] { remoteJarPath },
+    TokenCache.obtainTokensForNamenodes(this.credentials, new Path[]{remoteJarPath},
         mapStageConf);
 
     Map<String, LocalResource> commonLocalResources =
@@ -521,7 +523,6 @@ public class MRRSleepJob extends Configured implements Tool {
 
     List<Vertex> vertices = new ArrayList<Vertex>();
 
-    
     UserPayload mapUserPayload = TezUtils.createUserPayloadFromConf(mapStageConf);
     int numTasks = generateSplitsInAM ? -1 : numMapper;
 
@@ -531,7 +532,7 @@ public class MRRSleepJob extends Configured implements Tool {
     MRHelpers.updateEnvBasedOnMRTaskEnv(mapStageConf, reduceEnv, false);
 
     Vertex mapVertex = Vertex.create("map", ProcessorDescriptor.create(
-        MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks,
+            MapProcessor.class.getName()).setUserPayload(mapUserPayload), numTasks,
         MRHelpers.getResourceForMRMapper(mapStageConf));
     mapVertex.addTaskLocalFiles(commonLocalResources)
         .addDataSource("MRInput", dataSource)
@@ -539,7 +540,7 @@ public class MRRSleepJob extends Configured implements Tool {
     vertices.add(mapVertex);
 
     if (iReduceStagesCount > 0
-        && numIReducer > 0) {      
+        && numIReducer > 0) {
       for (int i = 0; i < iReduceStagesCount; ++i) {
         Configuration iconf =
             intermediateReduceStageConfs[i];
@@ -559,7 +560,7 @@ public class MRRSleepJob extends Configured implements Tool {
     if (numReducer > 0) {
       UserPayload reducePayload = TezUtils.createUserPayloadFromConf(finalReduceConf);
       finalReduceVertex = Vertex.create("reduce", ProcessorDescriptor.create(
-          ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer,
+              ReduceProcessor.class.getName()).setUserPayload(reducePayload), numReducer,
           MRHelpers.getResourceForMRReducer(finalReduceConf));
       finalReduceVertex.addTaskLocalFiles(commonLocalResources)
           .addDataSink("MROutput", MROutputLegacy.createConfigBuilder(
@@ -573,15 +574,14 @@ public class MRRSleepJob extends Configured implements Tool {
           MROutputLegacy.createConfigBuilder(mapStageConf, NullOutputFormat.class).build());
     }
 
-
     for (int i = 0; i < vertices.size(); ++i) {
       dag.addVertex(vertices.get(i));
       if (i != 0) {
         Map<String, String> partitionerConf = Maps.newHashMap();
         partitionerConf.put(
             MRJobConfig.PARTITIONER_CLASS_ATTR, MRRSleepJobPartitioner.class.getName());
-        Configuration edgeConfiguration = ((i+1) == vertices.size()) ?
-            finalReduceConf : intermediateReduceStageConfs[i-1];
+        Configuration edgeConfiguration = ((i + 1) == vertices.size()) ?
+            finalReduceConf : intermediateReduceStageConfs[i - 1];
         OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
             .newBuilder(IntWritable.class.getName(), IntWritable.class.getName(),
                 HashPartitioner.class.getName(), partitionerConf).configureInput().useLegacyInput()
@@ -596,10 +596,10 @@ public class MRRSleepJob extends Configured implements Tool {
 
   @VisibleForTesting
   public Job createJob(int numMapper, int numReducer, int iReduceStagesCount,
-      int numIReducer, long mapSleepTime, int mapSleepCount,
-      long reduceSleepTime, int reduceSleepCount,
-      long iReduceSleepTime, int iReduceSleepCount)
-          throws IOException {
+                       int numIReducer, long mapSleepTime, int mapSleepCount,
+                       long reduceSleepTime, int reduceSleepCount,
+                       long iReduceSleepTime, int iReduceSleepCount)
+      throws IOException {
     Configuration conf = getConf();
     conf.setLong(MAP_SLEEP_TIME, mapSleepTime);
     conf.setLong(REDUCE_SLEEP_TIME, reduceSleepTime);
@@ -655,7 +655,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
   public int run(String[] args) throws Exception {
 
-    if(args.length < 1) {
+    if (args.length < 1) {
       System.err.println("MRRSleepJob [-m numMapper] [-r numReducer]" +
           " [-ir numIntermediateReducer]" +
           " [-irs numIntermediateReducerStages]" +
@@ -671,7 +671,7 @@ public class MRRSleepJob extends Configured implements Tool {
 
     int numMapper = 1, numReducer = 1, numIReducer = 1;
     long mapSleepTime = 100, reduceSleepTime = 100, recSleepTime = 100,
-        iReduceSleepTime=1;
+        iReduceSleepTime = 1;
     int mapSleepCount = 1, reduceSleepCount = 1, iReduceSleepCount = 1;
     int iReduceStagesCount = 1;
     boolean writeSplitsToDfs = false;
@@ -680,40 +680,30 @@ public class MRRSleepJob extends Configured implements Tool {
     boolean isSession = false;
     int numDags = 1;
 
-    for(int i=0; i < args.length; i++ ) {
-      if(args[i].equals("-m")) {
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].equals("-m")) {
         numMapper = Integer.parseInt(args[++i]);
-      }
-      else if(args[i].equals("-r")) {
+      } else if (args[i].equals("-r")) {
         numReducer = Integer.parseInt(args[++i]);
-      }
-      else if(args[i].equals("-ir")) {
+      } else if (args[i].equals("-ir")) {
         numIReducer = Integer.parseInt(args[++i]);
-      }
-      else if(args[i].equals("-mt")) {
+      } else if (args[i].equals("-mt")) {
         mapSleepTime = Long.parseLong(args[++i]);
-      }
-      else if(args[i].equals("-rt")) {
+      } else if (args[i].equals("-rt")) {
         reduceSleepTime = Long.parseLong(args[++i]);
-      }
-      else if(args[i].equals("-irt")) {
+      } else if (args[i].equals("-irt")) {
         iReduceSleepTime = Long.parseLong(args[++i]);
-      }
-      else if(args[i].equals("-irs")) {
+      } else if (args[i].equals("-irs")) {
         iReduceStagesCount = Integer.parseInt(args[++i]);
-      }
-      else if (args[i].equals("-recordt")) {
+      } else if (args[i].equals("-recordt")) {
         recSleepTime = Long.parseLong(args[++i]);
-      }
-      else if (args[i].equals("-generateSplitsInAM")) {
+      } else if (args[i].equals("-generateSplitsInAM")) {
         if (splitsOptionFound) {
           throw new RuntimeException("Cannot use both -generateSplitsInAm and -writeSplitsToDfs together");
         }
         splitsOptionFound = true;
         generateSplitsInAM = Boolean.parseBoolean(args[++i]);
-        
-      }
-      else if (args[i].equals("-writeSplitsToDfs")) {
+      } else if (args[i].equals("-writeSplitsToDfs")) {
         if (splitsOptionFound) {
           throw new RuntimeException("Cannot use both -generateSplitsInAm and -writeSplitsToDfs together");
         }
@@ -734,9 +724,9 @@ public class MRRSleepJob extends Configured implements Tool {
     }
 
     // sleep for *SleepTime duration in Task by recSleepTime per record
-    mapSleepCount = (int)Math.ceil(mapSleepTime / ((double)recSleepTime));
-    reduceSleepCount = (int)Math.ceil(reduceSleepTime / ((double)recSleepTime));
-    iReduceSleepCount = (int)Math.ceil(iReduceSleepTime / ((double)recSleepTime));
+    mapSleepCount = (int) Math.ceil(mapSleepTime / ((double) recSleepTime));
+    reduceSleepCount = (int) Math.ceil(reduceSleepTime / ((double) recSleepTime));
+    iReduceSleepCount = (int) Math.ceil(iReduceSleepTime / ((double) recSleepTime));
 
     TezConfiguration conf = new TezConfiguration(getConf());
 
@@ -771,5 +761,4 @@ public class MRRSleepJob extends Configured implements Tool {
     }
     return 0;
   }
-
 }

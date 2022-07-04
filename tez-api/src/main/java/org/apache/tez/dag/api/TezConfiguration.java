@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -41,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-
 
 /**
  * Defines the configurations for Tez. These configurations are typically specified in
@@ -87,7 +87,6 @@ public class TezConfiguration extends Configuration {
         TezConfiguration.TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT);
 
     setupConfigurationScope(TezConfiguration.class);
-
   }
 
   static void setupConfigurationScope(Class<?> clazz) {
@@ -175,7 +174,7 @@ public class TezConfiguration extends Configuration {
    * to all task credentials.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_CREDENTIALS_MERGE = TEZ_AM_PREFIX
       + "credentials-merge";
   public static boolean TEZ_AM_CREDENTIALS_MERGE_DEFAULT = true;
@@ -214,7 +213,7 @@ public class TezConfiguration extends Configuration {
    * mode is recommended. If session mode is enabled then container reuse is recommended.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_SESSION_MODE = TEZ_AM_PREFIX + "mode.session";
   public static final boolean TEZ_AM_SESSION_MODE_DEFAULT = false;
 
@@ -295,7 +294,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC =
       TEZ_AM_PREFIX + "max.allowed.time-sec.for-read-error";
   public static final int TEZ_AM_MAX_ALLOWED_TIME_FOR_TASK_READ_ERROR_SEC_DEFAULT = 300;
@@ -313,7 +312,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION =
       TEZ_AM_PREFIX + "max.allowed.downstream.host.failures.fraction";
   public static final double TEZ_AM_MAX_ALLOWED_DOWNSTREAM_HOST_FAILURES_FRACTION_DEFAULT = 0.2;
@@ -327,7 +326,7 @@ public class TezConfiguration extends Configuration {
    * this value must be appropriately chosen. Defaults to the safe choice of true.
    */
   @ConfigurationScope(Scope.DAG)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS =
       TEZ_AM_PREFIX + "commit-all-outputs-on-dag-success";
   public static final boolean TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS_DEFAULT = true;
@@ -361,7 +360,7 @@ public class TezConfiguration extends Configuration {
    * */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX +  "launch.cmd-opts";
+  public static final String TEZ_AM_LAUNCH_CMD_OPTS = TEZ_AM_PREFIX + "launch.cmd-opts";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_JDK8_DEFAULT =
       "-XX:+PrintGCDetails -verbose:gc -XX:+PrintGCTimeStamps -XX:+UseNUMA -XX:+UseParallelGC";
   public static final String TEZ_AM_LAUNCH_CMD_OPTS_JDK9_DEFAULT =
@@ -420,14 +419,14 @@ public class TezConfiguration extends Configuration {
    * smaller than 4GB and use 0.8 for larger container.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="float")
+  @ConfigurationProperty(type = "float")
   public static final String TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION =
       TEZ_PREFIX + "container.max.java.heap.fraction";
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT = 0.8;
 
   private static final String NATIVE_LIB_PARAM_DEFAULT = Shell.WINDOWS ?
-    "PATH=%PATH%;%HADOOP_COMMON_HOME%\\bin":
-    "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_HOME/lib/native/";
+      "PATH=%PATH%;%HADOOP_COMMON_HOME%\\bin" :
+      "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_COMMON_HOME/lib/native/";
 
   /**
    * String value. Env settings will be merged with {@link #TEZ_AM_LAUNCH_ENV}
@@ -468,7 +467,6 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_CONCURRENT_EDGE_TRIGGER_TYPE_DEFAULT =
       ConcurrentEdgeTriggerType.SOURCE_VERTEX_CONFIGURED.name();
 
-
   /**
    * String value. Env settings will be merged with {@link #TEZ_TASK_LAUNCH_ENV}
    * during the launch of the task process. This property will typically be configured to
@@ -498,7 +496,7 @@ public class TezConfiguration extends Configuration {
 
   @Private
   @ConfigurationScope(Scope.DAG)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION = TEZ_PREFIX +
       "cancel.delegation.tokens.on.completion";
   public static final boolean TEZ_CANCEL_DELEGATION_TOKENS_ON_COMPLETION_DEFAULT = true;
@@ -515,7 +513,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_TASK_LISTENER_THREAD_COUNT =
       TEZ_AM_PREFIX + "task.listener.thread-count";
   public static final int TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT = 30;
@@ -528,7 +526,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_COUNTERS_MAX = TEZ_PREFIX + "counters.max";
   public static final int TEZ_COUNTERS_MAX_DEFAULT = 1200;
 
@@ -539,7 +537,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_COUNTERS_MAX_GROUPS = TEZ_PREFIX + "counters.max.groups";
   public static final int TEZ_COUNTERS_MAX_GROUPS_DEFAULT = 500;
 
@@ -550,7 +548,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH =
       TEZ_PREFIX + "counters.counter-name.max-length";
   public static final int TEZ_COUNTERS_COUNTER_NAME_MAX_LENGTH_DEFAULT = 64;
@@ -562,7 +560,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH =
       TEZ_PREFIX + "counters.group-name.max-length";
   public static final int TEZ_COUNTERS_GROUP_NAME_MAX_LENGTH_DEFAULT = 256;
@@ -573,7 +571,7 @@ public class TezConfiguration extends Configuration {
    * when some tasks are running slower due bad/slow machines
    */
   @ConfigurationScope(Scope.VERTEX)  // TODO Verify the vertex speculation, TEZ-1788
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_SPECULATION_ENABLED = TEZ_AM_PREFIX + "speculation.enabled";
   public static final boolean TEZ_AM_SPECULATION_ENABLED_DEFAULT = false;
 
@@ -583,9 +581,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="float")
+  @ConfigurationProperty(type = "float")
   public static final String TEZ_AM_LEGACY_SPECULATIVE_SLOWTASK_THRESHOLD =
-                                     TEZ_AM_PREFIX + "legacy.speculative.slowtask.threshold";
+      TEZ_AM_PREFIX + "legacy.speculative.slowtask.threshold";
 
   /**
    * Long value. Specifies the timeout after which tasks on a single task vertex must be speculated.
@@ -593,9 +591,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT =
-                                     TEZ_AM_PREFIX + "legacy.speculative.single.task.vertex.timeout";
+      TEZ_AM_PREFIX + "legacy.speculative.single.task.vertex.timeout";
   public static final long TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT_DEFAULT = -1;
 
   @Private
@@ -608,9 +606,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE =
-          TEZ_AM_PREFIX + "soonest.retry.after.no.speculate";
+      TEZ_AM_PREFIX + "soonest.retry.after.no.speculate";
   public static final long TEZ_AM_SOONEST_RETRY_AFTER_NO_SPECULATE_DEFAULT = 1000L * 1L;
 
   /**
@@ -619,9 +617,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="long")
-  public static final String TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE=
-          TEZ_AM_PREFIX + "soonest.retry.after.speculate";
+  @ConfigurationProperty(type = "long")
+  public static final String TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE =
+      TEZ_AM_PREFIX + "soonest.retry.after.speculate";
   public static final long TEZ_AM_SOONEST_RETRY_AFTER_SPECULATE_DEFAULT = 1000L * 15L;
 
   /** The class that should be used for speculative execution calculations. */
@@ -640,7 +638,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_LAMBDA_MS =
       TEZ_ESTIMATOR_PREFIX + "exponential.lambda.ms";
   public static final long TEZ_AM_ESTIMATOR_EXPONENTIAL_LAMBDA_MS_DEFAULT =
@@ -652,7 +650,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_STAGNATED_MS =
       TEZ_ESTIMATOR_PREFIX + "exponential.stagnated.ms";
   public static final long TEZ_AM_ESTIMATOR_EXPONENTIAL_STAGNATED_MS_DEFAULT =
@@ -665,7 +663,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_ESTIMATOR_EXPONENTIAL_SKIP_INITIALS =
       TEZ_ESTIMATOR_PREFIX + "exponential.skip.initials";
   public static final int TEZ_AM_ESTIMATOR_EXPONENTIAL_SKIP_INITIALS_DEFAULT = 24;
@@ -675,9 +673,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="double")
+  @ConfigurationProperty(type = "double")
   public static final String TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE =
-          TEZ_AM_PREFIX + "proportion.running.tasks.speculatable";
+      TEZ_AM_PREFIX + "proportion.running.tasks.speculatable";
   public static final double TEZ_AM_PROPORTION_RUNNING_TASKS_SPECULATABLE_DEFAULT = 0.1;
 
   /**
@@ -685,9 +683,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="double")
+  @ConfigurationProperty(type = "double")
   public static final String TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE =
-          TEZ_AM_PREFIX + "proportion.total.tasks.speculatable";
+      TEZ_AM_PREFIX + "proportion.total.tasks.speculatable";
   public static final double TEZ_AM_PROPORTION_TOTAL_TASKS_SPECULATABLE_DEFAULT = 0.01;
 
   /**
@@ -695,9 +693,9 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS =
-          TEZ_AM_PREFIX + "minimum.allowed.speculative.tasks";
+      TEZ_AM_PREFIX + "minimum.allowed.speculative.tasks";
   public static final int TEZ_AM_MINIMUM_ALLOWED_SPECULATIVE_TASKS_DEFAULT = 10;
 
   /**
@@ -705,19 +703,18 @@ public class TezConfiguration extends Configuration {
    * master. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT =
-    TEZ_AM_PREFIX + "containerlauncher.thread-count-limit";
+      TEZ_AM_PREFIX + "containerlauncher.thread-count-limit";
 
   public static final int TEZ_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT_DEFAULT =
-    500;
-
+      500;
 
   /**
    * Int value. Specifies the number of task failures on a node before the node is considered faulty.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_MAX_TASK_FAILURES_PER_NODE = TEZ_AM_PREFIX
       + "maxtaskfailures.per.node";
   public static final int TEZ_AM_MAX_TASK_FAILURES_PER_NODE_DEFAULT = 10;
@@ -729,7 +726,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_MAX_APP_ATTEMPTS = TEZ_AM_PREFIX +
       "max.app.attempts";
   public static final int TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT = 2;
@@ -739,7 +736,7 @@ public class TezConfiguration extends Configuration {
    * Setting <=0 implies no limit
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY =
       TEZ_AM_PREFIX + "vertex.max-task-concurrency";
   public static final int TEZ_AM_VERTEX_MAX_TASK_CONCURRENCY_DEFAULT = -1;
@@ -749,7 +746,7 @@ public class TezConfiguration extends Configuration {
    * This does not count killed attempts. Task failure results in DAG failure.
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_TASK_MAX_FAILED_ATTEMPTS =
       TEZ_AM_PREFIX + "task.max.failed.attempts";
   public static final int TEZ_AM_TASK_MAX_FAILED_ATTEMPTS_DEFAULT = 4;
@@ -769,27 +766,27 @@ public class TezConfiguration extends Configuration {
    * failures gets higher priority
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY =
       TEZ_AM_PREFIX + "task.reschedule.higher.priority";
-  public static final boolean TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT=true;
+  public static final boolean TEZ_AM_TASK_RESCHEDULE_HIGHER_PRIORITY_DEFAULT = true;
 
   /**
    * Boolean value. Specifies whether a re-scheduled attempt of a task, caused by previous
    * failure get relaxed locality
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY =
       TEZ_AM_PREFIX + "task.reschedule.relaxed.locality";
-  public static final boolean TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT=true;
+  public static final boolean TEZ_AM_TASK_RESCHEDULE_RELAXED_LOCALITY_DEFAULT = true;
 
   /**
    * Boolean value. Enabled blacklisting of nodes of nodes that are considered faulty. These nodes
    * will not be used to execute tasks.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_NODE_BLACKLISTING_ENABLED = TEZ_AM_PREFIX
       + "node-blacklisting.enabled";
   public static final boolean TEZ_AM_NODE_BLACKLISTING_ENABLED_DEFAULT = true;
@@ -800,7 +797,7 @@ public class TezConfiguration extends Configuration {
    * temporary surges in failures (e.g. due to network outages).
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD = TEZ_AM_PREFIX
       + "node-blacklisting.ignore-threshold-node-percent";
   public static final int TEZ_AM_NODE_BLACKLISTING_IGNORE_THRESHOLD_DEFAULT = 33;
@@ -812,15 +809,15 @@ public class TezConfiguration extends Configuration {
    * errors from downstream tasks.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS =
       TEZ_AM_PREFIX + "node-unhealthy-reschedule-tasks";
   public static final boolean
-    TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT = false;
+      TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT = false;
 
   /** Int value. Number of threads to handle client RPC requests. Expert level setting.*/
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_CLIENT_THREAD_COUNT =
       TEZ_AM_PREFIX + "client.am.thread-count";
   public static final int TEZ_AM_CLIENT_THREAD_COUNT_DEFAULT = 2;
@@ -864,21 +861,21 @@ public class TezConfiguration extends Configuration {
 
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_RESOURCE_MEMORY_MB = TEZ_AM_PREFIX
       + "resource.memory.mb";
   public static final int TEZ_AM_RESOURCE_MEMORY_MB_DEFAULT = 1024;
 
   /** Int value. The number of virtual cores to be used by the app master */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_RESOURCE_CPU_VCORES = TEZ_AM_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_AM_RESOURCE_CPU_VCORES_DEFAULT = 1;
 
   /** Boolean value. Instructs AM to delete Dag directory upon completion */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_DAG_CLEANUP_ON_COMPLETION = TEZ_AM_PREFIX
       + "dag.cleanup.on.completion";
   public static final boolean TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT = false;
@@ -894,7 +891,7 @@ public class TezConfiguration extends Configuration {
    * when Reduce 3 completes all the shuffle data of Map1 will be deleted and so on for other vertex.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_VERTEX_CLEANUP_HEIGHT = TEZ_AM_PREFIX
       + "vertex.cleanup.height";
   public static final int TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT = 0;
@@ -903,9 +900,9 @@ public class TezConfiguration extends Configuration {
    * Boolean value. Instructs AM to delete intermediate attempt data for failed task attempts.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE = TEZ_AM_PREFIX
-          + "task.attempt.cleanup.on.failure";
+      + "task.attempt.cleanup.on.failure";
   public static final boolean TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT = false;
 
   /**
@@ -913,7 +910,7 @@ public class TezConfiguration extends Configuration {
    * Vertex directories and failed task attempts directories on nodes.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_DAG_CLEANUP_THREAD_COUNT_LIMIT =
       TEZ_AM_PREFIX + "dag.deletion.thread-count-limit";
 
@@ -923,9 +920,9 @@ public class TezConfiguration extends Configuration {
    * Int value. Upper limit on the number of threads used by app context (vertex management and input init events).
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT =
-          TEZ_AM_PREFIX + "dag.appcontext.thread-count-limit";
+      TEZ_AM_PREFIX + "dag.appcontext.thread-count-limit";
 
   public static final int TEZ_AM_DAG_APPCONTEXT_THREAD_COUNT_LIMIT_DEFAULT = 10;
 
@@ -933,7 +930,7 @@ public class TezConfiguration extends Configuration {
    * all vertices. Setting it to the same value for all tasks is helpful for container reuse and
    * thus good for performance typically. */
   @ConfigurationScope(Scope.DAG)  // TODO vertex level
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_RESOURCE_MEMORY_MB = TEZ_TASK_PREFIX
       + "resource.memory.mb";
   public static final int TEZ_TASK_RESOURCE_MEMORY_MB_DEFAULT = 1024;
@@ -942,7 +939,7 @@ public class TezConfiguration extends Configuration {
    * Int value. The number of virtual cores to be used by tasks.
    */
   @ConfigurationScope(Scope.DAG)  // TODO vertex level
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_RESOURCE_CPU_VCORES = TEZ_TASK_PREFIX
       + "resource.cpu.vcores";
   public static final int TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT = 1;
@@ -953,7 +950,7 @@ public class TezConfiguration extends Configuration {
    * help in scaling up. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX = TEZ_AM_PREFIX
       + "am-rm.heartbeat.interval-ms.max";
   public static final int TEZ_AM_RM_HEARTBEAT_INTERVAL_MS_MAX_DEFAULT = 1000;
@@ -964,7 +961,7 @@ public class TezConfiguration extends Configuration {
    * number of concurrent tasks. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX = TEZ_TASK_PREFIX
       + "get-task.sleep.interval-ms.max";
   public static final int TEZ_TASK_GET_TASK_SLEEP_INTERVAL_MS_MAX_DEFAULT = 200;
@@ -975,7 +972,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_INTERVAL_MS_DEFAULT = 100;
@@ -986,7 +983,7 @@ public class TezConfiguration extends Configuration {
    * counters. Improves AM scalability. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS = TEZ_TASK_PREFIX
       + "am.heartbeat.counter.interval-ms.max";
   public static final int TEZ_TASK_AM_HEARTBEAT_COUNTER_INTERVAL_MS_DEFAULT =
@@ -997,7 +994,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT = TEZ_TASK_PREFIX
       + "max-events-per-heartbeat";
   public static final int TEZ_TASK_MAX_EVENTS_PER_HEARTBEAT_DEFAULT = 500;
@@ -1008,7 +1005,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_TASK_MAX_EVENT_BACKLOG = TEZ_TASK_PREFIX +
       "max-event-backlog";
   public static final int TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT = 10000;
@@ -1019,7 +1016,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_TASK_INITIALIZE_PROCESSOR_FIRST = TEZ_TASK_PREFIX +
       "initialize-processor-first";
   public static final boolean TEZ_TASK_INITIALIZE_PROCESSOR_FIRST_DEFAULT = false;
@@ -1030,7 +1027,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY = TEZ_TASK_PREFIX +
       "initialize-processor-io-serially";
   public static final boolean TEZ_TASK_INITIALIZE_PROCESSOR_IO_SERIALLY_DEFAULT = false;
@@ -1046,7 +1043,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty
   public static final String TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS = TEZ_TASK_PREFIX +
-    "progress.stuck.interval-ms";
+      "progress.stuck.interval-ms";
   public static final long TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT = -1;
 
   /**
@@ -1057,7 +1054,7 @@ public class TezConfiguration extends Configuration {
   @Unstable
   @Private
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_TASK_GENERATE_COUNTERS_PER_IO = TEZ_TASK_PREFIX
       + "generate.counters.per.io";
   @Private
@@ -1069,7 +1066,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TASK_HEARTBEAT_TIMEOUT_MS = TEZ_TASK_PREFIX + "timeout-ms";
 
   public static final int TASK_HEARTBEAT_TIMEOUT_MS_DEFAULT = 5 * 60 * 1000;
@@ -1079,7 +1076,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TASK_HEARTBEAT_TIMEOUT_CHECK_MS = TEZ_TASK_PREFIX + "heartbeat.timeout.check-ms";
 
   public static final int TASK_HEARTBEAT_TIMEOUT_CHECK_MS_DEFAULT = 30 * 1000;
@@ -1091,7 +1088,7 @@ public class TezConfiguration extends Configuration {
   @Private
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_TASK_SCALE_MEMORY_ENABLED = TEZ_TASK_PREFIX
       + "scale.memory.enabled";
   @Private
@@ -1117,7 +1114,7 @@ public class TezConfiguration extends Configuration {
   @Private
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="double")
+  @ConfigurationProperty(type = "double")
   public static final String TEZ_TASK_SCALE_MEMORY_RESERVE_FRACTION = TEZ_TASK_PREFIX
       + "scale.memory.reserve-fraction";
   @Private
@@ -1130,7 +1127,7 @@ public class TezConfiguration extends Configuration {
   @Private
   @Unstable
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="float")
+  @ConfigurationProperty(type = "float")
   public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_PER_IO =
       TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.per-io";
 
@@ -1140,7 +1137,7 @@ public class TezConfiguration extends Configuration {
    * Max cumulative total reservation for additional IOs.
    */
   @ConfigurationScope(Scope.VERTEX)
-  @ConfigurationProperty(type="float")
+  @ConfigurationProperty(type = "float")
   public static final String TEZ_TASK_SCALE_MEMORY_ADDITIONAL_RESERVATION_FRACTION_MAX =
       TEZ_TASK_PREFIX + "scale.memory.additional-reservation.fraction.max";
   /*
@@ -1195,13 +1192,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS =
       TEZ_TASK_PREFIX + "resource.calculator.process-tree.class";
 
-
   /**
    * Boolean value. Configuration to specify whether container should be reused across tasks.
    * This improves performance by not incurring recurring launch overheads.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_CONTAINER_REUSE_ENABLED = TEZ_AM_PREFIX
       + "container.reuse.enabled";
   public static final boolean TEZ_AM_CONTAINER_REUSE_ENABLED_DEFAULT = true;
@@ -1211,7 +1207,7 @@ public class TezConfiguration extends Configuration {
    * enabled.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED =
       TEZ_AM_PREFIX + "container.reuse.rack-fallback.enabled";
   public static final boolean
@@ -1223,7 +1219,7 @@ public class TezConfiguration extends Configuration {
    * volume being read from the primary data sources.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED =
       TEZ_AM_PREFIX + "container.reuse.non-local-fallback.enabled";
   public static final boolean
@@ -1237,7 +1233,7 @@ public class TezConfiguration extends Configuration {
    * be released.  Active only if container reuse is enabled.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED =
       TEZ_AM_PREFIX + "container.reuse.new-containers.enabled";
   public static final boolean
@@ -1248,23 +1244,23 @@ public class TezConfiguration extends Configuration {
    * of locality. NODE -> RACK -> NON_LOCAL. Delay scheduling parameter. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String
       TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS =
       TEZ_AM_PREFIX + "container.reuse.locality.delay-allocation-millis";
   public static final long
-    TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250l;
+      TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT = 250l;
 
   /**
    * Int value. The minimum amount of time to hold on to a container that is idle. Only active when
    * reuse is enabled. Set to -1 to never release idle containers (not recommended).
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS =
-    TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
+      TEZ_AM_PREFIX + "container.idle.release-timeout-min.millis";
   public static final long
-    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000l;
+      TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT = 5000l;
 
   /**
    * Int value. The maximum amount of time to hold on to a container if no task can be
@@ -1277,11 +1273,11 @@ public class TezConfiguration extends Configuration {
    * creates a graceful reduction in the amount of idle resources held
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS =
       TEZ_AM_PREFIX + "container.idle.release-timeout-max.millis";
   public static final long
-    TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000l;
+      TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS_DEFAULT = 10000l;
 
   /**
    * Int value. The minimum number of containers that will be held in session mode. Not active in
@@ -1289,7 +1285,7 @@ public class TezConfiguration extends Configuration {
    * of containers to provide fast response times for the next DAG.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_SESSION_MIN_HELD_CONTAINERS =
       TEZ_AM_PREFIX + "session.min.held-containers";
   public static final int TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT = 0;
@@ -1313,7 +1309,7 @@ public class TezConfiguration extends Configuration {
    * setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_PREEMPTION_PERCENTAGE =
       TEZ_AM_PREFIX + "preemption.percentage";
   public static final int TEZ_AM_PREEMPTION_PERCENTAGE_DEFAULT = 10;
@@ -1324,7 +1320,7 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.VERTEX)
   public static final String TEZ_VERTEX_FAILURES_MAXPERCENT =
-          "tez.vertex.failures.maxpercent";
+      "tez.vertex.failures.maxpercent";
   public static final float TEZ_VERTEX_FAILURES_MAXPERCENT_DEFAULT = 0.0f;
   /**
    * Int value. The number of RM heartbeats to wait after preempting running tasks before preempting
@@ -1332,7 +1328,7 @@ public class TezConfiguration extends Configuration {
    * RM can act on the released resources and assign new ones to us. Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS =
       TEZ_AM_PREFIX + "preemption.heartbeats-between-preemptions";
   public static final int TEZ_AM_PREEMPTION_HEARTBEATS_BETWEEN_PREEMPTIONS_DEFAULT = 3;
@@ -1344,10 +1340,10 @@ public class TezConfiguration extends Configuration {
    * a deadline on such wait to prevent indefinite job hangs.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS =
       TEZ_AM_PREFIX + "preemption.max.wait-time-ms";
-  public static final int TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT = 60*1000; // 60s
+  public static final int TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT = 60 * 1000; // 60s
 
   /**
    * String value to a file path.
@@ -1410,7 +1406,7 @@ public class TezConfiguration extends Configuration {
    */
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_IGNORE_LIB_URIS = TEZ_PREFIX + "ignore.lib.uris";
 
   /**
@@ -1420,7 +1416,7 @@ public class TezConfiguration extends Configuration {
    * tez-deployment which contains the hadoop libraries.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_USE_CLUSTER_HADOOP_LIBS = TEZ_PREFIX + "use.cluster.hadoop-libs";
   public static final boolean TEZ_USE_CLUSTER_HADOOP_LIBS_DEFAULT = false;
 
@@ -1430,7 +1426,7 @@ public class TezConfiguration extends Configuration {
    * classpath.
    */
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_USER_CLASSPATH_FIRST = TEZ_PREFIX + "user.classpath.first";
   public static final boolean TEZ_USER_CLASSPATH_FIRST_DEFAULT = true;
 
@@ -1455,7 +1451,7 @@ public class TezConfiguration extends Configuration {
   @Private
   @Unstable
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_CLASSPATH_ADD_HADOOP_CONF = TEZ_PREFIX +
       "classpath.add-hadoop-conf";
   public static final boolean TEZ_CLASSPATH_ADD_HADOOP_CONF_DEFAULT = false;
@@ -1475,7 +1471,7 @@ public class TezConfiguration extends Configuration {
    * applicable. Otherwise increase the timeout (set to -1 for infinity. Not recommended)
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_SESSION_CLIENT_TIMEOUT_SECS =
       TEZ_SESSION_PREFIX + "client.timeout.secs";
   public static final int TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT =
@@ -1487,7 +1483,7 @@ public class TezConfiguration extends Configuration {
    * allow the AM to hang around forever in idle mode.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS =
       TEZ_SESSION_PREFIX + "am.dag.submit.timeout.secs";
   public static final int TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS_DEFAULT =
@@ -1519,7 +1515,7 @@ public class TezConfiguration extends Configuration {
    * Boolean value. Generate debug artifacts like DAG plan in text format.
    */
   @ConfigurationScope(Scope.DAG)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_GENERATE_DEBUG_ARTIFACTS =
       TEZ_PREFIX + "generate.debug.artifacts";
   public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = false;
@@ -1636,7 +1632,7 @@ public class TezConfiguration extends Configuration {
   @Private
   @Unstable
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP =
       TEZ_PREFIX + "history.logging.timeline.num-dags-per-group";
   public static final int TEZ_HISTORY_LOGGING_TIMELINE_NUM_DAGS_PER_GROUP_DEFAULT = 1;
@@ -1656,7 +1652,7 @@ public class TezConfiguration extends Configuration {
    * logging gets disabled. The job continues to run after this.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS =
       TEZ_PREFIX + "simple.history.max.errors";
   public static final int TEZ_SIMPLE_HISTORY_LOGGING_MAX_ERRORS_DEFAULT = 10;
@@ -1677,7 +1673,7 @@ public class TezConfiguration extends Configuration {
    * content and metadata.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS =
       TEZ_PREFIX + "history.logging.proto-sync-window-secs";
   public static final long TEZ_HISTORY_LOGGING_PROTO_SYNC_WINDOWN_SECS_DEFAULT = 60L;
@@ -1686,11 +1682,10 @@ public class TezConfiguration extends Configuration {
    * Int value. Maximum queue size for proto history event logger.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE =
       TEZ_PREFIX + "history.logging.queue.size";
   public static final int TEZ_HISTORY_LOGGING_PROTO_QUEUE_SIZE_DEFAULT = 100000;
-
 
   /**
    * Boolean value. Set this to true, if the underlying file system does not support flush (Ex: s3).
@@ -1698,7 +1693,7 @@ public class TezConfiguration extends Configuration {
    * of the events are written into another file.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START =
       TEZ_PREFIX + "history.logging.split-dag-start";
   public static final boolean TEZ_HISTORY_LOGGING_PROTO_SPLIT_DAG_START_DEFAULT = false;
@@ -1709,7 +1704,7 @@ public class TezConfiguration extends Configuration {
    * content and metadata.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_HISTORY_LOGGING_PROTO_DOAS =
       TEZ_PREFIX + "history.logging.proto-doas";
   public static final boolean TEZ_HISTORY_LOGGING_PROTO_DOAS_DEFAULT = false;
@@ -1719,7 +1714,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS =
       TEZ_PREFIX + "yarn.ats.event.flush.timeout.millis";
   public static final long YARN_ATS_EVENT_FLUSH_TIMEOUT_MILLIS_DEFAULT =
@@ -1730,7 +1725,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String YARN_ATS_MAX_EVENTS_PER_BATCH =
       TEZ_PREFIX + "yarn.ats.max.events.per.batch";
   public static final int YARN_ATS_MAX_EVENTS_PER_BATCH_DEFAULT = 5;
@@ -1747,19 +1742,18 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "am.ui.history.url.scheme.check.enabled";
   public static final boolean TEZ_AM_UI_HISTORY_URL_SCHEME_CHECK_ENABLED_DEFAULT = true;
 
-
   /**
    * Int value. Time, in milliseconds, to wait for an event before sending a batch to ATS.
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String YARN_ATS_MAX_POLLING_TIME_PER_EVENT = TEZ_PREFIX
       + "yarn.ats.max.polling.time.per.event.millis";
   public static final int YARN_ATS_MAX_POLLING_TIME_PER_EVENT_DEFAULT = 10;
 
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String YARN_ATS_ACL_DOMAINS_AUTO_CREATE = TEZ_PREFIX
       + "yarn.ats.acl.domains.auto-create";
   public static final boolean YARN_ATS_ACL_DOMAINS_AUTO_CREATE_DEFAULT = true;
@@ -1776,7 +1770,7 @@ public class TezConfiguration extends Configuration {
    * incomplete DAGs from the previous instance of the app master.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String DAG_RECOVERY_ENABLED =
       TEZ_PREFIX + "dag.recovery.enabled";
   public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = true;
@@ -1786,7 +1780,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String DAG_RECOVERY_FILE_IO_BUFFER_SIZE =
       TEZ_PREFIX + "dag.recovery.io.buffer.size";
   public static final int DAG_RECOVERY_FILE_IO_BUFFER_SIZE_DEFAULT = 8192;
@@ -1795,7 +1789,7 @@ public class TezConfiguration extends Configuration {
    * Int value. Number of recovery events to buffer before flushing them to the recovery log.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String DAG_RECOVERY_MAX_UNFLUSHED_EVENTS =
       TEZ_PREFIX + "dag.recovery.max.unflushed.events";
   public static final int DAG_RECOVERY_MAX_UNFLUSHED_EVENTS_DEFAULT = 100;
@@ -1804,7 +1798,7 @@ public class TezConfiguration extends Configuration {
    * Int value. Interval, in seconds, between flushing recovery data to the recovery log.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String DAG_RECOVERY_FLUSH_INTERVAL_SECS =
       TEZ_PREFIX + "dag.recovery.flush.interval.secs";
   public static final int DAG_RECOVERY_FLUSH_INTERVAL_SECS_DEFAULT = 30;
@@ -1814,18 +1808,18 @@ public class TezConfiguration extends Configuration {
    *  the app master. Primarily used for debugging.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_LOCAL_MODE =
-    TEZ_PREFIX + "local.mode";
+      TEZ_PREFIX + "local.mode";
 
   public static final boolean TEZ_LOCAL_MODE_DEFAULT = false;
 
   /**
-  * Boolean value. Enable local mode execution in Tez without using network for communicating with
-  * DAGAppMaster. This option only makes sense when {@link #TEZ_LOCAL_MODE} is true. When
-  * TEZ_LOCAL_MODE_WITHOUT_NETWORK is turned on, LocalClient will call DAGAppMaster's methods
-  * directly.
-  */
+   * Boolean value. Enable local mode execution in Tez without using network for communicating with
+   * DAGAppMaster. This option only makes sense when {@link #TEZ_LOCAL_MODE} is true. When
+   * TEZ_LOCAL_MODE_WITHOUT_NETWORK is turned on, LocalClient will call DAGAppMaster's methods
+   * directly.
+   */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type = "boolean")
   public static final String TEZ_LOCAL_MODE_WITHOUT_NETWORK =
@@ -1847,9 +1841,9 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_INLINE_TASK_EXECUTION_ENABLED =
-    TEZ_AM_PREFIX + "inline.task.execution.enabled";
+      TEZ_AM_PREFIX + "inline.task.execution.enabled";
 
   /**
    *  Tez AM Inline Mode flag. Not valid till Tez-684 get checked-in
@@ -1862,9 +1856,9 @@ public class TezConfiguration extends Configuration {
    * The maximium number of tasks running in parallel within the app master process.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS =
-    TEZ_AM_PREFIX + "inline.task.execution.max-tasks";
+      TEZ_AM_PREFIX + "inline.task.execution.max-tasks";
 
   public static final int TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT = 1;
 
@@ -1888,7 +1882,7 @@ public class TezConfiguration extends Configuration {
    * Boolean value. Configuration to enable/disable ACL checks.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_ACLS_ENABLED = TEZ_AM_PREFIX + "acls.enabled";
   public static final boolean TEZ_AM_ACLS_ENABLED_DEFAULT = true;
 
@@ -1920,7 +1914,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_DISABLE_CLIENT_VERSION_CHECK = TEZ_AM_PREFIX
       + "disable.client-version-check";
   public static final boolean TEZ_AM_DISABLE_CLIENT_VERSION_CHECK_DEFAULT = false;
@@ -1931,7 +1925,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS = TEZ_PREFIX
       + "allow.disabled.timeline-domains";
   public static final boolean TEZ_AM_ALLOW_DISABLED_TIMELINE_DOMAINS_DEFAULT = false;
@@ -1975,7 +1969,7 @@ public class TezConfiguration extends Configuration {
    * updates for running application.
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_WEBSERVICE_ENABLE = TEZ_AM_PREFIX
       + "tez-ui.webservice.enable";
   public static final boolean TEZ_AM_WEBSERVICE_ENABLE_DEFAULT = true;
@@ -1986,7 +1980,7 @@ public class TezConfiguration extends Configuration {
    * For example 50000-50050,50100-50200
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_AM_WEBSERVICE_PORT_RANGE = TEZ_AM_PREFIX
       + "tez-ui.webservice.port-range";
 
@@ -2015,7 +2009,7 @@ public class TezConfiguration extends Configuration {
    * Status Poll interval in Milliseconds used when getting DAG status with timeout.
    */
   @ConfigurationScope(Scope.DAG)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_DAG_STATUS_POLLINTERVAL_MS = TEZ_PREFIX
       + "dag.status.pollinterval-ms";
   public static final long TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT = 500;
@@ -2026,7 +2020,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.TEST)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS =
       TEZ_PREFIX + "test.minicluster.app.wait.on.shutdown.secs";
   public static final long TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS_DEFAULT = 30;
@@ -2037,7 +2031,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS = TEZ_PREFIX
       + "client.dag.status.cache.timeout-secs";
   // Default timeout is 60 seconds.
@@ -2050,11 +2044,11 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS =
       TEZ_PREFIX + "client.diagnostics.wait.timeout-ms";
   @Private
-  public static final long TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS_DEFAULT = 3*1000;
+  public static final long TEZ_CLIENT_DIAGNOSTICS_WAIT_TIMEOUT_MS_DEFAULT = 3 * 1000;
 
   /**
    * String value.
@@ -2074,7 +2068,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED =
       TEZ_PREFIX + "java.opts.checker.enabled";
   public static final boolean TEZ_CLIENT_JAVA_OPTS_CHECKER_ENABLED_DEFAULT = true;
@@ -2085,7 +2079,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="long")
+  @ConfigurationProperty(type = "long")
   public static final String TEZ_CLIENT_HARD_KILL_TIMEOUT_MS = TEZ_PREFIX + "client.timeout-ms";
   public static final long TEZ_CLIENT_HARD_KILL_TIMEOUT_MS_DEFAULT = 30 * 1000L;
 
@@ -2095,7 +2089,7 @@ public class TezConfiguration extends Configuration {
    * Expert level setting.
    */
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type = "boolean")
   public static final String TEZ_CLIENT_ASYNCHRONOUS_STOP = TEZ_PREFIX + "client.asynchronous-stop";
   public static final boolean TEZ_CLIENT_ASYNCHRONOUS_STOP_DEFAULT = true;
 
@@ -2105,7 +2099,7 @@ public class TezConfiguration extends Configuration {
    */
   @Private
   @ConfigurationScope(Scope.CLIENT)
-  @ConfigurationProperty(type="int")
+  @ConfigurationProperty(type = "int")
   public static final String TEZ_IPC_PAYLOAD_RESERVED_BYTES = TEZ_PREFIX + "ipc.payload.reserved.bytes";
   public static final int TEZ_IPC_PAYLOAD_RESERVED_BYTES_DEFAULT = 5 * 1024 * 1024;
 
@@ -2140,16 +2134,16 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "am.ats.v15.override.summary-types";
   public static final boolean TEZ_AM_ATS_V15_OVERRIDE_SUMMARY_TYPES_DEFAULT = true;
 
-   /**
-    * Integer value in milliseconds. Default value is 5000 milliseconds.
-    * The time for which the AM waits after the final DAG completes or when shutdown is invoked
-    * before completing shutdown. This allows a client to retrieve any required info directly from
-    * the AM on completion of a DAG.
-    */
-   @Private
-   @ConfigurationScope(Scope.AM)
-   public static final String TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS =
-       TEZ_AM_PREFIX + "sleep.time.before.exit.millis";
+  /**
+   * Integer value in milliseconds. Default value is 5000 milliseconds.
+   * The time for which the AM waits after the final DAG completes or when shutdown is invoked
+   * before completing shutdown. This allows a client to retrieve any required info directly from
+   * the AM on completion of a DAG.
+   */
+  @Private
+  @ConfigurationScope(Scope.AM)
+  public static final String TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS =
+      TEZ_AM_PREFIX + "sleep.time.before.exit.millis";
 
   /**
    * String value. Determines what JVM properties will be logged for debugging purposes
@@ -2157,13 +2151,13 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG  =
+  public static final String TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG =
       TEZ_PREFIX + "tez.jvm.system-properties-to-log";
   public static final List<String> TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT =
       Collections.unmodifiableList(Arrays.asList(
-          "os.name","os.version","java.home","java.runtime.version",
-          "java.vendor","java.version","java.vm.name","java.class.path",
-          "java.io.tmpdir","user.dir","user.name"));
+          "os.name", "os.version", "java.home", "java.runtime.version",
+          "java.vendor", "java.version", "java.vm.name", "java.class.path",
+          "java.io.tmpdir", "user.dir", "user.name"));
 
   /**
    * Int value. Time interval (in seconds). If the Tez AM does not receive a heartbeat from the
@@ -2177,11 +2171,10 @@ public class TezConfiguration extends Configuration {
    * {@link #TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS}
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="integer")
+  @ConfigurationProperty(type = "integer")
   public static final String TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS =
       TEZ_PREFIX + "am.client.heartbeat.timeout.secs";
   public static final int TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_DEFAULT = -1;
-
 
   @Private
   @ConfigurationScope(Scope.AM)
@@ -2227,5 +2220,4 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.VERTEX)
   @ConfigurationProperty
   public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
-
 }

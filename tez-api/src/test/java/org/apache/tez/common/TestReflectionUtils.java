@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,6 +39,7 @@ public class TestReflectionUtils {
   public static class ParameterizedConstructorClass {
     final String first;
     final int second;
+
     public ParameterizedConstructorClass(String first, int second) {
       this.first = first;
       this.second = second;
@@ -46,10 +47,9 @@ public class TestReflectionUtils {
   }
 
   @Test(timeout = 5000)
-  public void testConstructorWithParameters() throws TezReflectionException
-  {
-    Class<?>[] parameterTypes = new Class[] { String.class, Integer.TYPE };
-    Object[] parameters = new Object[] { new String("test"), 1 };
+  public void testConstructorWithParameters() throws TezReflectionException {
+    Class<?>[] parameterTypes = new Class[]{String.class, Integer.TYPE};
+    Object[] parameters = new Object[]{new String("test"), 1};
     ParameterizedConstructorClass instance = ReflectionUtils.createClazzInstance(
         ParameterizedConstructorClass.class.getName(), parameterTypes, parameters);
     assertEquals("Class not constructed with first parameter correctly", instance.first, "test");

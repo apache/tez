@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.dag.impl;
 
@@ -38,44 +38,44 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public void initialize() {
   }
-  
+
   @Override
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return getContext().getSourceVertexNumTasks();
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     return 1;
   }
-  
+
   @Override
   public void routeDataMovementEventToDestination(DataMovementEvent event,
-      int sourceTaskIndex, int sourceOutputIndex, 
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+                                                  int sourceTaskIndex, int sourceOutputIndex,
+                                                  Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     List<Integer> inputIndices = Collections.singletonList(sourceTaskIndex);
     // for each task make the i-th source task as the i-th physical input
-    for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
+    for (int i = 0; i < getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, inputIndices);
     }
   }
-  
+
   @Override
   public void prepareForRouting() throws Exception {
     int numSourceTasks = getContext().getSourceVertexNumTasks();
     commonRouteMeta = new EventRouteMetadata[numSourceTasks];
-    for (int i=0; i<numSourceTasks; ++i) {
+    for (int i = 0; i < numSourceTasks; ++i) {
       commonRouteMeta[i] = EventRouteMetadata.create(1, new int[]{i}, new int[]{0});
     }
   }
-  
+
   @Override
   public EventRouteMetadata routeDataMovementEventToDestination(
       int sourceTaskIndex, int sourceOutputIndex, int destinationTaskIndex)
       throws Exception {
     return commonRouteMeta[sourceTaskIndex];
   }
-  
+
   @Override
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
@@ -91,10 +91,10 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
+                                                           Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
     List<Integer> inputIndices = Collections.singletonList(sourceTaskIndex);
     // for each task make the i-th source task as the i-th physical input
-    for (int i=0; i<getContext().getDestinationVertexNumTasks(); ++i) {
+    for (int i = 0; i < getContext().getDestinationVertexNumTasks(); ++i) {
       destinationTaskAndInputIndices.put(i, inputIndices);
     }
   }
@@ -107,13 +107,12 @@ public class BroadcastEdgeManager extends EdgeManagerPluginOnDemand {
 
   @Override
   public int routeInputErrorEventToSource(InputReadErrorEvent event,
-      int destinationTaskIndex, int destinationFailedInputIndex) {
+                                          int destinationTaskIndex, int destinationFailedInputIndex) {
     return destinationFailedInputIndex;
   }
-  
+
   @Override
   public int getNumDestinationConsumerTasks(int sourceTaskIndex) {
     return getContext().getDestinationVertexNumTasks();
   }
-
 }

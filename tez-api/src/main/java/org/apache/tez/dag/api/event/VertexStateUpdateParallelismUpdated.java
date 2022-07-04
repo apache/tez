@@ -25,6 +25,7 @@ public class VertexStateUpdateParallelismUpdated extends VertexStateUpdate {
 
   private final int parallelism;
   private final int previousParallelism;
+
   public VertexStateUpdateParallelismUpdated(String vertexName,
                                              int updatedParallelism, int previousParallelism) {
     super(vertexName, VertexState.PARALLELISM_UPDATED);
@@ -34,6 +35,7 @@ public class VertexStateUpdateParallelismUpdated extends VertexStateUpdate {
 
   /**
    * Returns the new parallelism for the vertex
+   *
    * @return the new parallelism
    */
   public int getParallelism() {
@@ -42,6 +44,7 @@ public class VertexStateUpdateParallelismUpdated extends VertexStateUpdate {
 
   /**
    * Returns the previous value of the parallelism
+   *
    * @return the previous parallelism
    */
   public int getPreviousParallelism() {

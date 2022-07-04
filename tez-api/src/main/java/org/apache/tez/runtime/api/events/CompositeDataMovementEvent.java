@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,14 +29,14 @@ import org.apache.tez.runtime.api.Event;
 /**
  * A convenience class to specify multiple DataMovementEvents which share the
  * same payload. A contiguous range of srcIndices can be specified.
- * 
+ *
  * This event will NOT be seen by downstream Inputs - instead they will see
  * {@link DataMovementEvent}s which are generated based on the range specified
  * in this event.
- * 
+ *
  * This event should be used by an output which has the same payload for all of
  * the Physical Outputs that it generates.
- * 
+ *
  */
 @Public
 public class CompositeDataMovementEvent extends Event {
@@ -67,12 +67,12 @@ public class CompositeDataMovementEvent extends Event {
                                                   ByteBuffer userPayload) {
     return new CompositeDataMovementEvent(srcIndexStart, count, userPayload);
   }
-  
+
   /**
    * Expand the {@link CompositeDataMovementEvent} into a routable
    * {@link DataMovementEvent} by providing the source output index and the
    * target input index.
-   * 
+   *
    * @param sourceIndex
    *          The index of the physical output represented by the
    *          {@link DataMovementEvent}
@@ -111,11 +111,11 @@ public class CompositeDataMovementEvent extends Event {
   public Iterable<DataMovementEvent> getEvents() {
 
     return new Iterable<DataMovementEvent>() {
-      
+
       @Override
       public Iterator<DataMovementEvent> iterator() {
         return new Iterator<DataMovementEvent>() {
-          
+
           int currentPos = sourceIndexStart;
 
           @Override
@@ -144,5 +144,4 @@ public class CompositeDataMovementEvent extends Event {
   public CompositeRoutedDataMovementEvent expandRouted(CompositeEventRouteMetadata routeMeta) {
     return CompositeRoutedDataMovementEvent.create(routeMeta.getSource(), routeMeta.getTarget(), routeMeta.getCount(), version, userPayload);
   }
-
 }

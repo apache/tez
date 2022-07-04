@@ -163,7 +163,6 @@ public class TestLocalMode {
     dagClient1.close();
     tezClient1.stop();
 
-
     TezConfiguration tezConf2 = createConf();
     DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, false);
@@ -240,7 +239,6 @@ public class TestLocalMode {
     public void run(Map<String, LogicalInput> inputs, Map<String, LogicalOutput> outputs) throws
         Exception {
       throw new TezException("FailingProcessor");
-
     }
   }
 
@@ -249,13 +247,13 @@ public class TestLocalMode {
         processorName).setUserPayload(
         new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
     return dag;
-
   }
-  @Test(timeout=30000)
+
+  @Test(timeout = 30000)
   public void testMultiDAGsOnSession() throws IOException, TezException, InterruptedException {
     int dags = 2;//two dags will be submitted to session
     String[] inputPaths = new String[dags];
-    String[] outputPaths =  new String[dags];
+    String[] outputPaths = new String[dags];
     DAGClient[] dagClients = new DAGClient[dags];
 
     TezConfiguration tezConf = createConf();
@@ -264,7 +262,7 @@ public class TestLocalMode {
 
     //create inputs and outputs
     FileSystem fs = FileSystem.get(tezConf);
-    for(int i = 0; i < dags; i++) {
+    for (int i = 0; i < dags; i++) {
       inputPaths[i] = new Path(STAGING_DIR.getAbsolutePath(), "in-" + i).toString();
       createInputFile(fs, inputPaths[i]);
       outputPaths[i] = new Path(STAGING_DIR.getAbsolutePath(), "out-" + i).toString();
@@ -272,7 +270,7 @@ public class TestLocalMode {
 
     //start testing
     try {
-      for (int i=0; i<inputPaths.length; ++i) {
+      for (int i = 0; i < inputPaths.length; ++i) {
         DAG dag = OrderedWordCount.createDAG(tezConf, inputPaths[i], outputPaths[i], 1,
             false, false, ("DAG-Iteration-" + i)); // the names of the DAGs must be unique in a session
 
@@ -287,8 +285,8 @@ public class TestLocalMode {
               + dagStatus.getDiagnostics());
         }
         //verify all dags sharing the same execution context
-        if(i>0) {
-          assertTrue(dagClients[i-1].getExecutionContext().equals(dagClients[i].getExecutionContext()));
+        if (i > 0) {
+          assertTrue(dagClients[i - 1].getExecutionContext().equals(dagClients[i].getExecutionContext()));
         }
       }
     } finally {

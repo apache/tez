@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,7 +52,7 @@ public class HtmlWriter extends Writer {
 
       out.println("<head>");
       out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\" />");
-      out.println("<title>"+ config.configName +"</title>");
+      out.println("<title>" + config.configName + "</title>");
 //      out.println("<link rel='stylesheet' type='text/css' href=' " + config.getStyleSheet() + "'/>");
       out.println("</head>");
 
@@ -103,7 +103,7 @@ public class HtmlWriter extends Writer {
       out.println("<div id=\"wrapper\">");
       out.println("<div id=\"container\">");
 
-      out.println("<h1>"+ config.configName +"</h1>");
+      out.println("<h1>" + config.configName + "</h1>");
       out.println("<hr />");
 
       out.println("<table>");
@@ -138,9 +138,9 @@ public class HtmlWriter extends Writer {
         // Re-enable after adding values
         // out.println("<td>" + configProperty.validValues + "</td>");
 
-        out.println("<td class=\"" + (configProperty.isPrivate? "td_private_true" : "td_private_false") + "\">" + configProperty.isPrivate + "</td>");
-        out.println("<td class=\"" + (configProperty.isEvolving? "td_evolve_true" : "td_evolve_false") + "\">" + configProperty.isEvolving + "</td>");
-        out.println("<td class=\"" + (configProperty.isUnstable? "td_unstable_true" : "td_unstable_false") + "\">" + configProperty.isUnstable + "</td>");
+        out.println("<td class=\"" + (configProperty.isPrivate ? "td_private_true" : "td_private_false") + "\">" + configProperty.isPrivate + "</td>");
+        out.println("<td class=\"" + (configProperty.isEvolving ? "td_evolve_true" : "td_evolve_false") + "\">" + configProperty.isEvolving + "</td>");
+        out.println("<td class=\"" + (configProperty.isUnstable ? "td_unstable_true" : "td_unstable_false") + "\">" + configProperty.isUnstable + "</td>");
         out.println("</tr>");
       }
 
@@ -150,12 +150,10 @@ public class HtmlWriter extends Writer {
       out.println("</div>");
       out.println("</body>");
       out.println("</html>");
-
     } finally {
       if (out != null) {
         out.close();
       }
     }
   }
-
 }

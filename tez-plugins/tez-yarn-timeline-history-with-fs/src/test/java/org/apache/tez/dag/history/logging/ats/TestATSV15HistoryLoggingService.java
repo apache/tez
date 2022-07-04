@@ -78,11 +78,11 @@ public class TestATSV15HistoryLoggingService {
   private TimelineClient timelineClient;
   Map<TimelineEntityGroupId, List<TimelineEntity>> entityLog;
   final TimelineEntityGroupId DEFAULT_GROUP_ID =
-    TimelineEntityGroupId.newInstance(ApplicationId.newInstance(0, -1), "");
+      TimelineEntityGroupId.newInstance(ApplicationId.newInstance(0, -1), "");
 
   private AppContext appContext;
 
-  @Test(timeout=2000)
+  @Test(timeout = 2000)
   public void testDAGGroupingDefault() throws Exception {
     ATSV15HistoryLoggingService service = createService(-1);
 
@@ -111,7 +111,7 @@ public class TestATSV15HistoryLoggingService {
     service.stop();
   }
 
-  @Test(timeout=2000)
+  @Test(timeout = 2000)
   public void testDAGGroupingDisabled() throws Exception {
     ATSV15HistoryLoggingService service = createService(1);
     service.start();
@@ -139,7 +139,7 @@ public class TestATSV15HistoryLoggingService {
     service.stop();
   }
 
-  @Test(timeout=2000)
+  @Test(timeout = 2000)
   public void testDAGGroupingGroupingEnabled() throws Exception {
     int numDagsPerGroup = 100;
     ATSV15HistoryLoggingService service = createService(numDagsPerGroup);
@@ -149,7 +149,7 @@ public class TestATSV15HistoryLoggingService {
     for (DAGHistoryEvent event : makeHistoryEvents(dagId1, service)) {
       service.handle(event);
     }
-    TezDAGID dagId2 = TezDAGID.getInstance(appId, numDagsPerGroup );
+    TezDAGID dagId2 = TezDAGID.getInstance(appId, numDagsPerGroup);
     for (DAGHistoryEvent event : makeHistoryEvents(dagId2, service)) {
       service.handle(event);
     }
@@ -201,14 +201,14 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenReturn(Collections.singletonMap(
-        TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenReturn(Collections.singletonMap(
+            TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
 
     service.start();
 
     verify(historyACLPolicyManager, times(1))
-        .setupSessionACLs((Configuration)any(), eq(appId));
+        .setupSessionACLs((Configuration) any(), eq(appId));
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -220,7 +220,7 @@ public class TestATSV15HistoryLoggingService {
     }
     // No dag domain were created.
     verify(historyACLPolicyManager, times(0))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // All calls made with session domain id.
     // NOTE: Expect 6 invocations for 5 history events because DAG_SUBMITTED becomes two separate timeline events.
@@ -237,12 +237,12 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenThrow(new IOException());
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenThrow(new IOException());
 
     service.start();
 
-    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration)any(), eq(appId));
+    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration) any(), eq(appId));
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -254,10 +254,10 @@ public class TestATSV15HistoryLoggingService {
     }
     // No dag domain were created.
     verify(historyACLPolicyManager, times(0))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // History logging is disabled.
-    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String)any());
+    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String) any());
     assertEquals(0, entityLog.size());
 
     service.stop();
@@ -270,12 +270,12 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenReturn(null);
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenReturn(null);
 
     service.start();
 
-    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration)any(), eq(appId));
+    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration) any(), eq(appId));
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -287,10 +287,10 @@ public class TestATSV15HistoryLoggingService {
     }
     // No dag domain were created.
     verify(historyACLPolicyManager, times(0))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // No domain updates but history logging happened.
-    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String)any());
+    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String) any());
     assertTrue(entityLog.size() > 0);
 
     service.stop();
@@ -305,20 +305,20 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenReturn(Collections.singletonMap(
-        TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenReturn(Collections.singletonMap(
+            TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
 
     service.start();
 
     // Verify that the session domain was created.
-    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration)any(), eq(appId));
+    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration) any(), eq(appId));
 
     // Mock dag domain creation.
     when(historyACLPolicyManager.setupSessionDAGACLs(
-        (Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any()))
-    .thenReturn(
-        Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, "dag-id"));
+        (Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any()))
+        .thenReturn(
+            Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, "dag-id"));
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -330,7 +330,7 @@ public class TestATSV15HistoryLoggingService {
     }
     // Verify dag domain was created.
     verify(historyACLPolicyManager, times(1))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // calls were made with correct domain ids.
     verify(historyACLPolicyManager, times(1)).updateTimelineEntityDomain(any(), eq("session-id"));
@@ -348,19 +348,19 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenThrow(new IOException());
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenThrow(new IOException());
 
     service.start();
 
     // Verify that the session domain was created.
-    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration)any(), eq(appId));
+    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration) any(), eq(appId));
 
     // Mock dag domain creation.
     when(historyACLPolicyManager.setupSessionDAGACLs(
-        (Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any()))
-    .thenReturn(
-        Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, "dag-id"));
+        (Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any()))
+        .thenReturn(
+            Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_DAG_DOMAIN_ID, "dag-id"));
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -372,10 +372,10 @@ public class TestATSV15HistoryLoggingService {
     }
     // No dag creation was done.
     verify(historyACLPolicyManager, times(0))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // No history logging calls were done
-    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String)any());
+    verify(historyACLPolicyManager, times(0)).updateTimelineEntityDomain(any(), (String) any());
     assertEquals(0, entityLog.size());
 
     service.stop();
@@ -390,19 +390,19 @@ public class TestATSV15HistoryLoggingService {
     HistoryACLPolicyManager historyACLPolicyManager = mock(HistoryACLPolicyManager.class);
     service.historyACLPolicyManager = historyACLPolicyManager;
 
-    when(historyACLPolicyManager.setupSessionACLs((Configuration)any(), eq(appId)))
-    .thenReturn(
-        Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
+    when(historyACLPolicyManager.setupSessionACLs((Configuration) any(), eq(appId)))
+        .thenReturn(
+            Collections.singletonMap(TezConfiguration.YARN_ATS_ACL_SESSION_DOMAIN_ID, "session-id"));
 
     service.start();
 
     // Verify that the session domain creation was called.
-    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration)any(), eq(appId));
+    verify(historyACLPolicyManager, times(1)).setupSessionACLs((Configuration) any(), eq(appId));
 
     // Mock dag domain creation.
     when(historyACLPolicyManager.setupSessionDAGACLs(
-        (Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any()))
-    .thenThrow(new IOException());
+        (Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any()))
+        .thenThrow(new IOException());
 
     // Send the event and wait for completion.
     TezDAGID dagId1 = TezDAGID.getInstance(appId, 0);
@@ -414,7 +414,7 @@ public class TestATSV15HistoryLoggingService {
     }
     // Verify dag domain creation was called.
     verify(historyACLPolicyManager, times(1))
-      .setupSessionDAGACLs((Configuration)any(), eq(appId), eq("0"), (DAGAccessControls)any());
+        .setupSessionDAGACLs((Configuration) any(), eq(appId), eq("0"), (DAGAccessControls) any());
 
     // AM events sent, dag events are not sent.
     verify(historyACLPolicyManager, times(1)).updateTimelineEntityDomain(any(), eq("session-id"));
@@ -428,7 +428,8 @@ public class TestATSV15HistoryLoggingService {
     ATSV15HistoryLoggingService service = new ATSV15HistoryLoggingService();
     appContext = mock(AppContext.class);
     when(appContext.getApplicationID()).thenReturn(appId);
-    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {});
+    when(appContext.getHadoopShim()).thenReturn(new HadoopShim() {
+    });
     service.setAppContext(appContext);
 
     Configuration conf = new Configuration(false);

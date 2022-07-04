@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,11 +43,11 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
   public void initialize() throws Exception {
     Preconditions.checkArgument(getContext().getUserPayload() != null);
     CartesianProductConfigProto config = CartesianProductConfigProto.parseFrom(
-      ByteString.copyFrom(getContext().getUserPayload().getPayload()));
+        ByteString.copyFrom(getContext().getUserPayload().getPayload()));
     // no need to check config because config comes from VM and is already checked by VM
     edgeManagerReal = config.getIsPartitioned()
-      ? new CartesianProductEdgeManagerPartitioned(getContext())
-      : new FairCartesianProductEdgeManager(getContext());
+        ? new CartesianProductEdgeManagerPartitioned(getContext())
+        : new FairCartesianProductEdgeManager(getContext());
     edgeManagerReal.initialize(config);
   }
 
@@ -71,7 +71,7 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
   public EventRouteMetadata routeDataMovementEventToDestination(int srcTaskId,
                                                                 int srcOutputId,
                                                                 int destTaskId)
-    throws Exception {
+      throws Exception {
     return edgeManagerReal.routeDataMovementEventToDestination(srcTaskId, srcOutputId, destTaskId);
   }
 
@@ -79,7 +79,7 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(int srcTaskId,
                                                                                   int destTaskId)
-    throws Exception {
+      throws Exception {
     return edgeManagerReal.routeCompositeDataMovementEventToDestination(srcTaskId, destTaskId);
   }
 
@@ -87,7 +87,7 @@ public class CartesianProductEdgeManager extends EdgeManagerPluginOnDemand {
   @Override
   public EventRouteMetadata routeInputSourceTaskFailedEventToDestination(int srcTaskId,
                                                                          int destTaskId)
-    throws Exception {
+      throws Exception {
     return edgeManagerReal.routeInputSourceTaskFailedEventToDestination(srcTaskId, destTaskId);
   }
 

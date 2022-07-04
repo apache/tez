@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@ package org.apache.tez.mapreduce.examples;
 import java.io.IOException;
 
 import java.nio.ByteBuffer;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -107,10 +108,10 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
       boolean doLocalityCheck = getContext().getUserPayload().getPayload().get(0) > 0 ? true : false;
       int broadcastSum = getContext().getUserPayload().getPayload().get(1);
       int expectedSum = broadcastSum + getContext().getTaskIndex();
-      System.out.println("Index: " + getContext().getTaskIndex() + 
+      System.out.println("Index: " + getContext().getTaskIndex() +
           " sum: " + sum + " expectedSum: " + expectedSum + " broadcastSum: " + broadcastSum);
-      Preconditions.checkState((sum == expectedSum), "Sum = " + sum);      
-      
+      Preconditions.checkState((sum == expectedSum), "Sum = " + sum);
+
       if (doLocalityCheck) {
         ObjectRegistry objectRegistry = getContext().getObjectRegistry();
         String index = (String) objectRegistry.get(String.valueOf(getContext().getTaskIndex()));
@@ -122,11 +123,10 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
         }
       }
     }
-
   }
 
   private DAG createDAG(FileSystem fs, TezConfiguration tezConf,
-      Path stagingDir, boolean doLocalityCheck) throws IOException, YarnException {
+                        Path stagingDir, boolean doLocalityCheck) throws IOException, YarnException {
 
     int numBroadcastTasks = 2;
     int numOneToOneTasks = 3;
@@ -149,7 +149,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
     Vertex broadcastVertex = Vertex.create("Broadcast", ProcessorDescriptor.create(
         InputProcessor.class.getName()), numBroadcastTasks);
-    
+
     Vertex inputVertex = Vertex.create("Input", ProcessorDescriptor.create(
         InputProcessor.class.getName()).setUserPayload(procPayload), numOneToOneTasks);
 
@@ -174,7 +174,7 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
                 edgeConf.createDefaultBroadcastEdgeProperty()));
     return dag;
   }
-  
+
   public boolean run(Configuration conf, boolean doLocalityCheck) throws Exception {
     System.out.println("Running BroadcastAndOneToOneExample");
     // conf and UGI
@@ -191,11 +191,11 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     FileSystem fs = FileSystem.get(tezConf);
     String stagingDirStr = tezConf.get(TezConfiguration.TEZ_AM_STAGING_DIR,
         TezConfiguration.TEZ_AM_STAGING_DIR_DEFAULT) + Path.SEPARATOR +
-        "BroadcastAndOneToOneExample" +  Path.SEPARATOR + Long.toString(System.currentTimeMillis());
+        "BroadcastAndOneToOneExample" + Path.SEPARATOR + Long.toString(System.currentTimeMillis());
     Path stagingDir = new Path(stagingDirStr);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, stagingDirStr);
     stagingDir = fs.makeQualified(stagingDir);
-    
+
     // No need to add jar containing this class as assumed to be part of
     // the tez jars.
 
@@ -209,24 +209,24 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     DAGClient dagClient = null;
 
     try {
-        DAG dag = createDAG(fs, tezConf, stagingDir, doLocalityCheck);
+      DAG dag = createDAG(fs, tezConf, stagingDir, doLocalityCheck);
 
-        tezSession.waitTillReady();
-        dagClient = tezSession.submitDAG(dag);
+      tezSession.waitTillReady();
+      dagClient = tezSession.submitDAG(dag);
 
-        // monitoring
-        DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
-        if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
-          System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
-          return false;
-        }
-        return true;
+      // monitoring
+      DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(null);
+      if (dagStatus.getState() != DAGStatus.State.SUCCEEDED) {
+        System.out.println("DAG diagnostics: " + dagStatus.getDiagnostics());
+        return false;
+      }
+      return true;
     } finally {
       fs.delete(stagingDir, true);
       tezSession.stop();
     }
   }
-  
+
   @Override
   public int run(String[] args) throws Exception {
     boolean doLocalityCheck = true;
@@ -252,12 +252,12 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
     boolean status = run(getConf(), doLocalityCheck);
     return status ? 0 : 1;
   }
-  
+
   private static void printUsage() {
     System.err.println("broadcastAndOneToOneExample " + skipLocalityCheck);
     ToolRunner.printGenericCommandUsage(System.err);
   }
-  
+
   static String skipLocalityCheck = "-skipLocalityCheck";
 
   public static void main(String[] args) throws Exception {

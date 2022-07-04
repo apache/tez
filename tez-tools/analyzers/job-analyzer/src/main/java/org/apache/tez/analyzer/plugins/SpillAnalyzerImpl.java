@@ -35,7 +35,6 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import java.util.List;
 import java.util.Map;
 
-
 /**
  * Find out tasks which have more than 1 spill (ADDITIONAL_SPILL_COUNT).
  * <p/>
@@ -43,11 +42,11 @@ import java.util.Map;
  */
 public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
 
-  private static final String[] headers = { "vertexName", "taskAttemptId",
+  private static final String[] headers = {"vertexName", "taskAttemptId",
       "Node", "counterGroupName",
       "spillCount", "taskDuration",
       "OUTPUT_BYTES", "OUTPUT_RECORDS",
-      "SPILLED_RECORDS", "Recommendation" };
+      "SPILLED_RECORDS", "Recommendation"};
 
   private final CSVResult csvResult;
 

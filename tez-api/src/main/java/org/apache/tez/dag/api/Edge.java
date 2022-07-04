@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  * @link {@link EdgeProperty} defines the relationship between them. The producer
  * vertex provides input to the edge and the consumer vertex reads output from the 
  * edge.
- * 
+ *
  */
 @Public
 public class Edge {
@@ -41,8 +41,6 @@ public class Edge {
     this.outputVertex = outputVertex;
     this.edgeProperty = edgeProperty;
   }
-
-
 
   /**
    * Creates an edge between the specified vertices.
@@ -70,7 +68,7 @@ public class Edge {
 
   /**
    * The @link {@link Vertex} that reads output from the edge
-   * @return {@link Vertex} 
+   * @return {@link Vertex}
    */
   public Vertex getOutputVertex() {
     return outputVertex;
@@ -83,7 +81,7 @@ public class Edge {
   public EdgeProperty getEdgeProperty() {
     return edgeProperty;
   }
-  
+
   /*
    * Used to identify the edge in the configuration
    */
@@ -92,7 +90,7 @@ public class Edge {
     // ensure it is unique.
     return String.valueOf(System.identityHashCode(this));
   }
- 
+
   @Override
   public String toString() {
     return inputVertex + " -> " + outputVertex + " (" + edgeProperty + ")";

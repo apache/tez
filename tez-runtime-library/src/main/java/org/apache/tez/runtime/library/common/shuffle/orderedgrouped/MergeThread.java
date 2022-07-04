@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 abstract class MergeThread<T> extends Thread {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MergeThread.class);
 
   private volatile boolean inProgress = false;
@@ -38,14 +38,14 @@ abstract class MergeThread<T> extends Thread {
   private final int mergeFactor;
 
   private Thread shuffleSchedulerThread;
-  
+
   public MergeThread(MergeManager manager, int mergeFactor,
                      ExceptionReporter reporter) {
     this.manager = manager;
     this.mergeFactor = mergeFactor;
     this.reporter = reporter;
   }
-  
+
   public synchronized void close() throws InterruptedException {
     closed = true;
     if (!Thread.currentThread().isInterrupted()) {
@@ -69,18 +69,18 @@ abstract class MergeThread<T> extends Thread {
   public synchronized boolean isInProgress() {
     return inProgress;
   }
-  
+
   public synchronized void startMerge(Set<T> inputs) {
     if (!closed) {
       this.inputs.clear();
       inProgress = true;
-      Iterator<T> iter=inputs.iterator();
+      Iterator<T> iter = inputs.iterator();
       for (int ctr = 0; iter.hasNext() && ctr < mergeFactor; ++ctr) {
         this.inputs.add(iter.next());
         iter.remove();
       }
-      LOG.info(getName() + ": Starting merge with " + this.inputs.size() + 
-               " segments, while ignoring " + inputs.size() + " segments");
+      LOG.info(getName() + ": Starting merge with " + this.inputs.size() +
+          " segments, while ignoring " + inputs.size() + " segments");
       notifyAll();
     }
   }
@@ -115,21 +115,21 @@ abstract class MergeThread<T> extends Thread {
         // Meant to handle a shutdown of the entire fetch/merge process
         Thread.currentThread().interrupt();
         return;
-      } catch(Throwable t) {
+      } catch (Throwable t) {
         reporter.reportException(t);
         return;
       } finally {
         synchronized (this) {
           // Clear inputs
           inputs.clear();
-          inProgress = false;        
+          inProgress = false;
           notifyAll();
         }
       }
     }
   }
 
-  public abstract void merge(List<T> inputs) 
+  public abstract void merge(List<T> inputs)
       throws IOException, InterruptedException;
 
   public abstract void cleanup(List<T> inputs, boolean deleteData)

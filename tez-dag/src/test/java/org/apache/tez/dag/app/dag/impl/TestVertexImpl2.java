@@ -87,7 +87,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "DEBUG" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 0 ; i < testInfo.numTasks ; i++) {
+    for (int i = 0; i < testInfo.numTasks; i++) {
       ContainerContext containerContext = vertexWrapper
           .vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
@@ -121,7 +121,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "DEBUG" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 0 ; i < testInfo.numTasks ; i++) {
+    for (int i = 0; i < testInfo.numTasks; i++) {
       ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
       assertTrue(javaOpts.contains(testInfo.initialJavaOpts));
@@ -161,7 +161,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "INFO" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 3 ; i < testInfo.numTasks ; i++) {
+    for (int i = 3; i < testInfo.numTasks; i++) {
       ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
@@ -186,7 +186,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "DEBUG" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 0 ; i < 3 ; i++) {
+    for (int i = 0; i < 3; i++) {
       ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
@@ -227,7 +227,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "WARN" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 3 ; i < testInfo.numTasks ; i++) {
+    for (int i = 3; i < testInfo.numTasks; i++) {
       ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
@@ -252,7 +252,7 @@ public class TestVertexImpl2 {
     expectedCommands.add("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=" + "DEBUG" + "," +
         TezConstants.TEZ_CONTAINER_LOGGER_NAME);
 
-    for (int i = 0 ; i < 3 ; i++) {
+    for (int i = 0; i < 3; i++) {
       ContainerContext containerContext = vertexWrapper.vertex.getContainerContext(i);
       String javaOpts = containerContext.getJavaOpts();
 
@@ -341,7 +341,6 @@ public class TestVertexImpl2 {
     assertEquals(1, vertexWrapper.vertex.containerLauncherIdentifier);
     assertEquals(1, vertexWrapper.vertex.taskCommunicatorIdentifier);
   }
-
 
   private static class ExecutionContextTestInfoHolder {
 
@@ -540,7 +539,6 @@ public class TestVertexImpl2 {
         Assert.assertEquals("bar2", vertex.vertexOnlyConf.get("foo1"));
         Assert.assertEquals("bar", vertex.vertexOnlyConf.get("foo"));
       }
-
     }
 
     VertexWrapper(VertexPlan vertexPlan, Configuration conf) {

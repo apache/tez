@@ -14,7 +14,6 @@
 
 package org.apache.tez.dag.app;
 
-
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -56,7 +55,6 @@ public class TezTestServiceCommunicator extends AbstractService {
     executor.shutdownNow();
   }
 
-
   public void runContainer(RunContainerRequestProto request, String host, int port,
                            final ExecuteRequestCallback<RunContainerResponseProto> callback) {
     ListenableFuture<RunContainerResponseProto> future = executor.submit(new RunContainerCallable(request, host, port));
@@ -71,7 +69,6 @@ public class TezTestServiceCommunicator extends AbstractService {
         callback.indicateError(t);
       }
     }, GuavaShim.directExecutor());
-
   }
 
   public void submitWork(SubmitWorkRequestProto request, String host, int port,
@@ -88,9 +85,7 @@ public class TezTestServiceCommunicator extends AbstractService {
         callback.indicateError(t);
       }
     }, GuavaShim.directExecutor());
-
   }
-
 
   private class RunContainerCallable implements Callable<RunContainerResponseProto> {
 
@@ -100,7 +95,7 @@ public class TezTestServiceCommunicator extends AbstractService {
 
     private RunContainerCallable(RunContainerRequestProto request, String hostname, int port) {
       this.hostname = hostname;
-          this.port = port;
+      this.port = port;
       this.request = request;
     }
 
@@ -129,6 +124,7 @@ public class TezTestServiceCommunicator extends AbstractService {
 
   public interface ExecuteRequestCallback<T extends Message> {
     void setResponse(T response);
+
     void indicateError(Throwable t);
   }
 

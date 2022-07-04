@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -97,7 +97,7 @@ public class HashJoinExample extends TezExampleBase {
 
   @Override
   protected int runJob(String[] args, TezConfiguration tezConf,
-      TezClient tezClient) throws Exception {
+                       TezClient tezClient) throws Exception {
 
     boolean doBroadcast =
         args.length == 5 && args[4].equals(broadcastOption) ? true : false;
@@ -140,7 +140,7 @@ public class HashJoinExample extends TezExampleBase {
   }
 
   private DAG createDag(TezConfiguration tezConf, Path streamPath,
-      Path hashPath, Path outPath, int numPartitions, boolean doBroadcast)
+                        Path hashPath, Path outPath, int numPartitions, boolean doBroadcast)
       throws IOException {
     DAG dag = DAG.create("HashJoinExample" + (doBroadcast ? "-WithBroadcast" : ""));
 
@@ -152,7 +152,7 @@ public class HashJoinExample extends TezExampleBase {
      */
     Vertex hashFileVertex =
         Vertex.create(hashSide,
-            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+                ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
             .addDataSource(
                 inputFile,
                 MRInput
@@ -169,7 +169,7 @@ public class HashJoinExample extends TezExampleBase {
      */
     Vertex streamFileVertex =
         Vertex.create(streamingSide,
-            ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
+                ProcessorDescriptor.create(ForwardingProcessor.class.getName()))
             .addDataSource(
                 inputFile,
                 MRInput

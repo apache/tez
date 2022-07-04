@@ -86,10 +86,10 @@ import java.util.concurrent.TimeUnit;
  * A YARN task scheduler that is aware of the dependencies between vertices
  * in the DAG and takes them into account when deciding how to schedule
  * and preempt tasks.
- *
+ * <p>
  * This scheduler makes the assumption that vertex IDs start at 0 and are
  * densely allocated (i.e.: there are no "gaps" in the vertex ID space).
-  */
+ */
 public class DagAwareYarnTaskScheduler extends TaskScheduler
     implements AMRMClientAsync.CallbackHandler {
   private static final Logger LOG = LoggerFactory.getLogger(DagAwareYarnTaskScheduler.class);
@@ -113,11 +113,15 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @GuardedBy("this")
   private final Map<Object, HeldContainer> taskAssignments = new HashMap<>();
 
-  /** A mapping from the vertex ID to the set of containers assigned to tasks for that vertex */
+  /**
+   * A mapping from the vertex ID to the set of containers assigned to tasks for that vertex
+   */
   @GuardedBy("this")
   private final Map<Integer, Set<HeldContainer>> vertexAssignments = new HashMap<>();
 
-  /** If vertex N has at least one task assigned to a container then the corresponding bit at index N is set */
+  /**
+   * If vertex N has at least one task assigned to a container then the corresponding bit at index N is set
+   */
   @GuardedBy("this")
   private final BitSet assignedVertices = new BitSet();
 
@@ -185,21 +189,21 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED,
         TezConfiguration.TEZ_AM_CONTAINER_REUSE_RACK_FALLBACK_ENABLED_DEFAULT);
     reuseNonLocal = conf
-      .getBoolean(
-        TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED,
-        TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT);
+        .getBoolean(
+            TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED,
+            TezConfiguration.TEZ_AM_CONTAINER_REUSE_NON_LOCAL_FALLBACK_ENABLED_DEFAULT);
     Preconditions.checkArgument(
-      ((!reuseRackLocal && !reuseNonLocal) || (reuseRackLocal)),
-      "Re-use Rack-Local cannot be disabled if Re-use Non-Local has been"
-      + " enabled");
+        ((!reuseRackLocal && !reuseNonLocal) || (reuseRackLocal)),
+        "Re-use Rack-Local cannot be disabled if Re-use Non-Local has been"
+            + " enabled");
 
     reuseNewContainers = shouldReuseContainers && conf.getBoolean(
         TezConfiguration.TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED,
         TezConfiguration.TEZ_AM_CONTAINER_REUSE_NEW_CONTAINERS_ENABLED_DEFAULT);
 
     localitySchedulingDelay = conf.getLong(
-      TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS,
-      TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT);
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS,
+        TezConfiguration.TEZ_AM_CONTAINER_REUSE_LOCALITY_DELAY_ALLOCATION_MILLIS_DEFAULT);
     Preconditions.checkArgument(localitySchedulingDelay >= 0,
         "Locality Scheduling delay should be >=0");
 
@@ -207,7 +211,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS,
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS_DEFAULT);
     Preconditions.checkArgument(idleContainerTimeoutMin >= 0 || idleContainerTimeoutMin == -1,
-      "Idle container release min timeout should be either -1 or >=0");
+        "Idle container release min timeout should be either -1 or >=0");
 
     idleContainerTimeoutMax = conf.getLong(
         TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS,
@@ -215,7 +219,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     Preconditions.checkArgument(
         idleContainerTimeoutMax >= 0 && idleContainerTimeoutMax >= idleContainerTimeoutMin,
         "Idle container release max timeout should be >=0 and >= " +
-        TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS);
+            TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MIN_MILLIS);
 
     sessionNumMinHeldContainers = conf.getInt(TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS,
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS_DEFAULT);
@@ -235,19 +239,19 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
     preemptionMaxWaitTime = conf.getInt(TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS,
         TezConfiguration.TEZ_AM_PREEMPTION_MAX_WAIT_TIME_MS_DEFAULT);
-    Preconditions.checkArgument(preemptionMaxWaitTime >=0, "Preemption max wait time must be >=0");
+    Preconditions.checkArgument(preemptionMaxWaitTime >= 0, "Preemption max wait time must be >=0");
 
     LOG.info("scheduler initialized with maxRMHeartbeatInterval:" + heartbeatIntervalMax +
-            " reuseEnabled:" + shouldReuseContainers +
-            " reuseRack:" + reuseRackLocal +
-            " reuseAny:" + reuseNonLocal +
-            " localityDelay:" + localitySchedulingDelay +
-            " preemptPercentage:" + preemptionPercentage +
-            " preemptMaxWaitTime:" + preemptionMaxWaitTime +
-            " numHeartbeatsBetweenPreemptions:" + numHeartbeatsBetweenPreemptions +
-            " idleContainerMinTimeout:" + idleContainerTimeoutMin +
-            " idleContainerMaxTimeout:" + idleContainerTimeoutMax +
-            " sessionMinHeldContainers:" + sessionNumMinHeldContainers);
+        " reuseEnabled:" + shouldReuseContainers +
+        " reuseRack:" + reuseRackLocal +
+        " reuseAny:" + reuseNonLocal +
+        " localityDelay:" + localitySchedulingDelay +
+        " preemptPercentage:" + preemptionPercentage +
+        " preemptMaxWaitTime:" + preemptionMaxWaitTime +
+        " numHeartbeatsBetweenPreemptions:" + numHeartbeatsBetweenPreemptions +
+        " idleContainerMinTimeout:" + idleContainerTimeoutMin +
+        " idleContainerMaxTimeout:" + idleContainerTimeoutMax +
+        " sessionMinHeldContainers:" + sessionNumMinHeldContainers);
   }
 
   @Override
@@ -314,13 +318,13 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     }
     synchronized (this) {
       if (shouldUnregister && !hasUnregistered) {
-          TaskSchedulerContext.AppFinalStatus status = getContext().getFinalAppStatus();
-          LOG.info("Unregistering from RM, exitStatus={} exitMessage={} trackingURL={}",
-              status.exitStatus, status.exitMessage, status.postCompletionTrackingUrl);
-          client.unregisterApplicationMaster(status.exitStatus,
-              status.exitMessage,
-              status.postCompletionTrackingUrl);
-          hasUnregistered = true;
+        TaskSchedulerContext.AppFinalStatus status = getContext().getFinalAppStatus();
+        LOG.info("Unregistering from RM, exitStatus={} exitMessage={} trackingURL={}",
+            status.exitStatus, status.exitMessage, status.postCompletionTrackingUrl);
+        client.unregisterApplicationMaster(status.exitStatus,
+            status.exitMessage,
+            status.postCompletionTrackingUrl);
+        hasUnregistered = true;
       }
     }
     client.stop();
@@ -341,7 +345,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   }
 
   private synchronized List<Assignment> assignNewContainers(List<Container> newContainers,
-      AMState appState, boolean isSession) {
+                                                            AMState appState, boolean isSession) {
     // try to assign the containers as node-local
     List<Assignment> assignments = new ArrayList<>(newContainers.size());
     List<HeldContainer> unassigned = new ArrayList<>(newContainers.size());
@@ -384,14 +388,14 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   /**
    * Try to assign a newly acquired container to a task of the same priority.
    *
-   * @param hc the container to assign
-   * @param location the locality to consider for assignment
+   * @param hc          the container to assign
+   * @param location    the locality to consider for assignment
    * @param assignments list to update if container is assigned
-   * @param unassigned list to update if container is not assigned
+   * @param unassigned  list to update if container is not assigned
    */
   @GuardedBy("this")
   private void tryAssignNewContainer(HeldContainer hc, String location,
-      List<Assignment> assignments, List<HeldContainer> unassigned) {
+                                     List<Assignment> assignments, List<HeldContainer> unassigned) {
     List<? extends Collection<TaskRequest>> results = client.getMatchingRequests(hc.getPriority(),
         location, hc.getCapability());
     if (!results.isEmpty()) {
@@ -414,38 +418,38 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @GuardedBy("this")
   @Nullable
   private TaskRequest tryAssignReuseContainer(HeldContainer hc,
-      AMState appState, boolean isSession) {
+                                              AMState appState, boolean isSession) {
     if (stopRequested) {
       return null;
     }
 
     TaskRequest assignedRequest = null;
     switch (appState) {
-    case IDLE:
-      handleReuseContainerWhenIdle(hc, isSession);
-      break;
-    case RUNNING_APP:
-      if (requestTracker.isEmpty()) {
-        // treat no requests as if app is idle
+      case IDLE:
         handleReuseContainerWhenIdle(hc, isSession);
-      } else {
-        assignedRequest = tryAssignReuseContainerAppRunning(hc);
-        if (assignedRequest == null) {
-          if (hc.atMaxMatchLevel()) {
-            LOG.info("Releasing idle container {} due to pending requests", hc.getId());
-            releaseContainer(hc);
-          } else {
-            hc.scheduleForReuse(localitySchedulingDelay);
+        break;
+      case RUNNING_APP:
+        if (requestTracker.isEmpty()) {
+          // treat no requests as if app is idle
+          handleReuseContainerWhenIdle(hc, isSession);
+        } else {
+          assignedRequest = tryAssignReuseContainerAppRunning(hc);
+          if (assignedRequest == null) {
+            if (hc.atMaxMatchLevel()) {
+              LOG.info("Releasing idle container {} due to pending requests", hc.getId());
+              releaseContainer(hc);
+            } else {
+              hc.scheduleForReuse(localitySchedulingDelay);
+            }
           }
         }
-      }
-      break;
-    case COMPLETED:
-      LOG.info("Releasing container {} because app has completed", hc.getId());
-      releaseContainer(hc);
-      break;
-    default:
-      throw new IllegalStateException("Unexpected app state " + appState);
+        break;
+      case COMPLETED:
+        LOG.info("Releasing container {} because app has completed", hc.getId());
+        releaseContainer(hc);
+        break;
+      default:
+        throw new IllegalStateException("Unexpected app state " + appState);
     }
 
     return assignedRequest;
@@ -485,7 +489,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       return assignedRequest;
     }
 
-    for (Entry<Priority,RequestPriorityStats> entry : requestTracker.getStatsEntries()) {
+    for (Entry<Priority, RequestPriorityStats> entry : requestTracker.getStatsEntries()) {
       Priority priority = entry.getKey();
       RequestPriorityStats stats = entry.getValue();
       if (!stats.allowedVertices.intersects(stats.vertices)) {
@@ -533,7 +537,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @GuardedBy("this")
   @Nullable
   private TaskRequest tryAssignReuseContainerForPriority(HeldContainer hc, String matchLocation,
-      Priority priority, BitSet allowedVertices) {
+                                                         Priority priority, BitSet allowedVertices) {
     List<? extends Collection<TaskRequest>> results = client.getMatchingRequests(priority, matchLocation, hc.getCapability());
     if (results.isEmpty()) {
       return null;
@@ -571,7 +575,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    * Inform the app about a task assignment.  This should not be called with
    * any locks held.
    *
-   * @param request the corresponding task request
+   * @param request   the corresponding task request
    * @param container the container assigned to the task
    */
   private void informAppAboutAssignment(TaskRequest request, Container container) {
@@ -600,7 +604,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private void computeSessionContainers() {
     Map<String, MutableInt> rackHeldNumber = new HashMap<>();
     Map<String, List<HeldContainer>> nodeHeldContainers = new HashMap<>();
-    for(HeldContainer heldContainer : heldContainers.values()) {
+    for (HeldContainer heldContainer : heldContainers.values()) {
       if (heldContainer.getSignature() == null) {
         // skip containers that have not been launched as there is no process to reuse
         continue;
@@ -634,7 +638,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         Entry<String, MutableInt> entry = iter.next();
         MutableInt rackCount = entry.getValue();
         rackCount.decrement();
-        if (rackCount.intValue() >=0) {
+        if (rackCount.intValue() >= 0) {
           containerCount++;
           rackToHoldNumber.get(entry.getKey()).increment();
         } else {
@@ -810,7 +814,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public void allocateTask(Object task, Resource capability, String[] hosts, String[] racks,
-      Priority priority, Object containerSignature, Object clientCookie) {
+                           Priority priority, Object containerSignature, Object clientCookie) {
     int vertexIndex = getContext().getVertexIndexForTask(task);
     TaskRequest request = new TaskRequest(task, vertexIndex, capability, hosts, racks,
         priority, containerSignature, clientCookie);
@@ -819,7 +823,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public void allocateTask(Object task, Resource capability, ContainerId containerId,
-      Priority priority, Object containerSignature, Object clientCookie) {
+                           Priority priority, Object containerSignature, Object clientCookie) {
     String[] hosts = null;
     synchronized (this) {
       HeldContainer held = heldContainers.get(containerId);
@@ -844,7 +848,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public boolean deallocateTask(Object task, boolean taskSucceeded,
-      TaskAttemptEndReason endReason, String diagnostics) {
+                                TaskAttemptEndReason endReason, String diagnostics) {
     ContainerId releasedLaunchedContainer = null;
     AMState appState = getContext().getAMState();
     boolean isSession = getContext().isSession();
@@ -1084,7 +1088,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @GuardedBy("this")
   @Nullable
   private HeldContainer tryAssignTaskToIdleContainer(TaskRequest request,
-      List<String> locations, EnumSet<HeldContainerState> eligibleStates) {
+                                                     List<String> locations, EnumSet<HeldContainerState> eligibleStates) {
     if (locations != null && !locations.isEmpty()) {
       for (String location : locations) {
         HeldContainer hc = tryAssignTaskToIdleContainer(request, location, eligibleStates);
@@ -1099,7 +1103,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @GuardedBy("this")
   @Nullable
   private HeldContainer tryAssignTaskToIdleContainer(TaskRequest request,
-      String location, EnumSet<HeldContainerState> eligibleStates) {
+                                                     String location, EnumSet<HeldContainerState> eligibleStates) {
     Set<HeldContainer> containers = idleTracker.getByLocation(location);
     HeldContainer bestMatch = null;
     if (containers != null && !containers.isEmpty()) {
@@ -1267,12 +1271,12 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     final ContainerId affinityContainerId;
 
     TaskRequest(Object task, int vertexIndex, Resource capability, String[] hosts, String[] racks,
-        Priority priority, Object signature, Object cookie) {
-      this(task, vertexIndex, capability, hosts, racks, priority, signature, cookie,  null);
+                Priority priority, Object signature, Object cookie) {
+      this(task, vertexIndex, capability, hosts, racks, priority, signature, cookie, null);
     }
 
     TaskRequest(Object task, int vertexIndex, Resource capability, String[] hosts, String[] racks,
-        Priority priority, Object signature, Object cookie, ContainerId affinityContainerId) {
+                Priority priority, Object signature, Object cookie, ContainerId affinityContainerId) {
       super(capability, hosts, racks, priority);
       this.task = task;
       this.vertexIndex = vertexIndex;
@@ -1343,11 +1347,15 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     HeldContainerState state = HeldContainerState.MATCHING_LOCAL;
 
-    /** The Future received when scheduling an idle container for re-allocation at a later time. */
+    /**
+     * The Future received when scheduling an idle container for re-allocation at a later time.
+     */
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     Future<Void> future = null;
 
-    /** The collection of task requests that have specified this container as a scheduling affinity. */
+    /**
+     * The collection of task requests that have specified this container as a scheduling affinity.
+     */
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     Collection<TaskRequest> affinities = null;
 
@@ -1358,15 +1366,21 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     TaskRequest assignedRequest = null;
 
-    /** The task request corresponding to the last task that was assigned to this container. */
+    /**
+     * The task request corresponding to the last task that was assigned to this container.
+     */
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     TaskRequest lastRequest = null;
 
-    /** The timestamp when the idle container will expire. 0 if the container is not idle. */
+    /**
+     * The timestamp when the idle container will expire. 0 if the container is not idle.
+     */
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     long idleExpirationTimestamp = 0;
 
-    /** The timestamp when this container was assigned. 0 if the container is not assigned. */
+    /**
+     * The timestamp when this container was assigned. 0 if the container is not assigned.
+     */
     @GuardedBy("DagAwareYarnTaskScheduler.this")
     long assignmentTimestamp = 0;
 
@@ -1490,46 +1504,46 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
     String getMatchingLocation() {
       switch (state) {
-      case MATCHING_LOCAL:
-        return getHost();
-      case MATCHING_RACK:
-        return getRack();
-      case MATCHING_ANY:
-        return ResourceRequest.ANY;
-      default:
-        throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
+        case MATCHING_LOCAL:
+          return getHost();
+        case MATCHING_RACK:
+          return getRack();
+        case MATCHING_ANY:
+          return ResourceRequest.ANY;
+        default:
+          throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
       }
     }
 
     void moveToNextMatchingLevel() {
       switch (state) {
-      case MATCHING_LOCAL:
-        if (reuseRackLocal) {
-          state = HeldContainerState.MATCHING_RACK;
-        }
-        break;
-      case MATCHING_RACK:
-        if (reuseNonLocal) {
-          state = HeldContainerState.MATCHING_ANY;
-        }
-        break;
-      case MATCHING_ANY:
-        break;
-      default:
-        throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
+        case MATCHING_LOCAL:
+          if (reuseRackLocal) {
+            state = HeldContainerState.MATCHING_RACK;
+          }
+          break;
+        case MATCHING_RACK:
+          if (reuseNonLocal) {
+            state = HeldContainerState.MATCHING_ANY;
+          }
+          break;
+        case MATCHING_ANY:
+          break;
+        default:
+          throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
       }
     }
 
     boolean atMaxMatchLevel() {
       switch (state) {
-      case MATCHING_LOCAL:
-        return !reuseRackLocal;
-      case MATCHING_RACK:
-        return !reuseNonLocal;
-      case MATCHING_ANY:
-        return true;
-      default:
-        throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
+        case MATCHING_LOCAL:
+          return !reuseRackLocal;
+        case MATCHING_RACK:
+          return !reuseNonLocal;
+        case MATCHING_ANY:
+          return true;
+        default:
+          throw new IllegalStateException("Container " + getId() + " trying to match in state " + state);
       }
     }
 
@@ -1543,7 +1557,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       if (idleExpirationTimestamp == 0) {
         if (idleContainerTimeoutMin > 0) {
           idleExpirationTimestamp = now + (idleContainerTimeoutMin == idleContainerTimeoutMax ? idleContainerTimeoutMin
-            : ThreadLocalRandom.current().nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax));
+              : ThreadLocalRandom.current().nextLong(idleContainerTimeoutMin, idleContainerTimeoutMax));
         } else {
           idleExpirationTimestamp = Long.MAX_VALUE;
         }
@@ -1647,7 +1661,9 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    */
   private class RequestTracker {
     private final Map<Object, TaskRequest> requests = new HashMap<>();
-    /** request map ordered by priority with highest priority first */
+    /**
+     * request map ordered by priority with highest priority first
+     */
     private final NavigableMap<Priority, RequestPriorityStats> priorityStats =
         new TreeMap<>(Collections.reverseOrder());
     private Priority highestPriority = null;
@@ -1687,7 +1703,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
     private RequestPriorityStats addStatsForPriority(Priority priority) {
       BitSet allowedVerts = new BitSet(vertexDescendants.size());
-      Entry<Priority,RequestPriorityStats> lowerEntry = priorityStats.lowerEntry(priority);
+      Entry<Priority, RequestPriorityStats> lowerEntry = priorityStats.lowerEntry(priority);
       if (lowerEntry != null) {
         // initialize the allowed vertices BitSet using the information derived
         // from the next higher priority entry
@@ -1793,26 +1809,26 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
     /**
      * Add a new vertex to a RequestPriorityStats.
-     *
+     * <p>
      * Adding a vertex to the request stats requires updating the stats descendants bitmask to include the descendants
      * of the new vertex and also updating the allowedVertices bitmask for all lower priority requests to prevent any
      * task request from a descendant vertex in the DAG from being allocated. This avoids assigning allocations to
      * lower priority requests when a higher priority request of an ancestor is still pending, but it allows lower
      * priority requests to be satisfied if higher priority requests are not ancestors. This is particularly useful
      * for DAGs that have independent trees of vertices or significant, parallel branches within a tree.
-     *
+     * <p>
      * Requests are blocked by taking the specified vertex's full descendant vertex bitmask in vertexDescendants and
      * clearing those bits for all lower priority requests. For the following example DAG where each vertex index
      * corresponds to its letter position (i.e.: A=0, B=1, C=2, etc.)
-     *
-     *       A
-     *       |
-     *   C---B----E
-     *   |        |
-     *   D        F
-     *            |
-     *          G---H
-     *
+     * <p>
+     * A
+     * |
+     * C---B----E
+     * |        |
+     * D        F
+     * |
+     * G---H
+     * <p>
      * Vertices F, G, and H are descendants of E but all other vertices are not. The vertexDescendants bitmask for
      * vertex E is therefore 11100000b or 0xE0. When the first vertex E task request arrives we need to disallow
      * requests for all descendants of E. That is accomplished by iterating through the request stats for all lower
@@ -1834,13 +1850,13 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
     /**
      * Removes a vertex from a RequestPriorityStats.
-     *
+     * <p>
      * Removing a vertex is more expensive than adding a vertex. The stats contain bitmasks which only store on/off
      * values rather than reference counts. Therefore we must rebuild the descendants bitmasks from the remaining
      * vertices in the request stats. Once the new descendants mask is computed we then need to rebuild the
      * allowedVertices BitSet for all lower priority request stats in case the removal of this vertex unblocks lower
      * priority requests of a descendant vertex.
-     *
+     * <p>
      * Rebuilding allowedVertices for the lower priorities involves starting with the allowedVertices mask at the
      * current priority then masking off the descendants at each priority level encountered, accumulating the results.
      * Any descendants of a level will be blocked at all lower levels. See the addVertexToRequestStats documentation
@@ -1937,11 +1953,17 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
    * Tracks statistics on vertices that are requesting tasks at a particular priority
    */
   private static class RequestPriorityStats {
-    /** Map from vertex ID to number of task requests for that vertex */
+    /**
+     * Map from vertex ID to number of task requests for that vertex
+     */
     final Map<Integer, MutableInt> vertexTaskCount = new HashMap<>();
-    /** BitSet of vertices that have oustanding requests at this priority */
+    /**
+     * BitSet of vertices that have oustanding requests at this priority
+     */
     final BitSet vertices;
-    /** BitSet of vertices that are descendants of this vertex */
+    /**
+     * BitSet of vertices that are descendants of this vertex
+     */
     final BitSet descendants;
     /**
      * BitSet of vertices that are allowed to be scheduled at this priority
@@ -2018,6 +2040,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   private interface ResourceCalculator {
     boolean anyAvailable(Resource rsrc);
+
     void deductFrom(Resource total, Resource toSubtract);
   }
 
@@ -2073,7 +2096,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         try {
           ((Future<?>) r).get();
         } catch (ExecutionException ee) {
-          LOG.warn("Execution exception when running task in {}",  Thread.currentThread().getName());
+          LOG.warn("Execution exception when running task in {}", Thread.currentThread().getName());
           t = ee.getCause();
         } catch (InterruptedException ie) {
           LOG.warn("Thread ({}) interrupted: ", Thread.currentThread(), ie);

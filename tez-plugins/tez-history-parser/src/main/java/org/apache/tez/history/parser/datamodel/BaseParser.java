@@ -38,13 +38,11 @@ public abstract class BaseParser {
   protected final List<TaskInfo> taskList;
   protected final List<TaskAttemptInfo> attemptList;
 
-
   public BaseParser() {
     vertexList = Lists.newLinkedList();
     taskList = Lists.newLinkedList();
     attemptList = Lists.newLinkedList();
   }
-
 
   protected boolean checkFiles(List<File> files) {
     if (files.isEmpty()) {
@@ -57,7 +55,6 @@ public abstract class BaseParser {
     }
     return true;
   }
-
 
   protected void addRawDataToDagInfo() {
     dagInfo.addMeta("vertices", vertexList);
@@ -104,7 +101,6 @@ public abstract class BaseParser {
       }
     }
 
-
     //Set reference time for all events
     for (VertexInfo vertexInfo : dagInfo.getVertices()) {
       setReferenceTime(vertexInfo.getEvents(), dagInfo.getStartTimeInterval());
@@ -128,7 +124,8 @@ public abstract class BaseParser {
    */
   private void setReferenceTime(List<Event> eventList, final long referenceTime) {
     Iterables.all(eventList, new Predicate<Event>() {
-      @Override public boolean apply(Event input) {
+      @Override
+      public boolean apply(Event input) {
         input.setReferenceTime(referenceTime);
         return false;
       }

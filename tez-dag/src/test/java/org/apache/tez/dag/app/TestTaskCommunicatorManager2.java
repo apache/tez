@@ -204,7 +204,6 @@ public class TestTaskCommunicatorManager2 {
     wrapper.registerRunningContainer(containerId2);
     wrapper.registerTaskAttempt(containerId2, amContainerTask2);
 
-
     // non-fatal
     wrapper.getTaskCommunicatorManager()
         .taskFailed(taskSpec1.getTaskAttemptID(), TaskFailureType.NON_FATAL,
@@ -278,7 +277,6 @@ public class TestTaskCommunicatorManager2 {
               TezConstants.getTezYarnServicePluginName(), null).setUserPayload(userPayload)));
     }
 
-
     TaskCommunicatorManager getTaskCommunicatorManager() {
       return taskCommunicatorManager;
     }
@@ -303,13 +301,11 @@ public class TestTaskCommunicatorManager2 {
       return taskSpec;
     }
 
-
     @SuppressWarnings("deprecation")
     private ContainerId createContainerId(int id) {
       ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
       ContainerId containerId = ContainerId.newInstance(appAttemptId, id);
       return containerId;
     }
-
   }
 }

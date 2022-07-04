@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -233,16 +233,16 @@ public class TestRootInputVertexManager {
         VertexState.CONFIGURED));
 
     Assert.assertEquals(3, manager.pendingTasks.size());
-    Assert.assertEquals(numTasks*2, manager.totalNumSourceTasks);
+    Assert.assertEquals(numTasks * 2, manager.totalNumSourceTasks);
     Assert.assertEquals(0, manager.numSourceTasksCompleted);
     float completedTasksThreshold = 0.975f * numTasks;
     // Finish all tasks before exceeding the threshold
-    for (String mockSrcVertex : new String[] { mockSrcVertexId1,
-        mockSrcVertexId2 }) {
+    for (String mockSrcVertex : new String[]{mockSrcVertexId1,
+        mockSrcVertexId2}) {
       for (int i = 0; i < mockContext.getVertexNumTasks(mockSrcVertex); ++i) {
         // complete 0th tasks outside the loop
         manager.onSourceTaskCompleted(createTaskAttemptIdentifier(
-            mockSrcVertex, i+1));
+            mockSrcVertex, i + 1));
         if ((i + 2) >= completedTasksThreshold) {
           // stop before completing more than min/max source tasks
           break;
@@ -520,18 +520,17 @@ public class TestRootInputVertexManager {
     manager = createRootInputVertexManager(conf, mockContext, 0.1f, 0.1f);
     Assert.assertEquals(0, manager.numSourceTasksCompleted);
     manager.onVertexStarted(Collections.singletonList(
-      createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
+        createTaskAttemptIdentifier(mockSrcVertexId1, 0)));
     Assert.assertEquals(1, manager.numSourceTasksCompleted);
   }
 
-
   static RootInputVertexManager createRootInputVertexManager(
       Configuration conf, VertexManagerPluginContext context, Float min,
-        Float max) {
+      Float max) {
     if (min != null) {
       conf.setFloat(
           TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION,
-              min);
+          min);
     } else {
       conf.unset(
           TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION);
@@ -539,11 +538,11 @@ public class TestRootInputVertexManager {
     if (max != null) {
       conf.setFloat(
           TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION,
-              max);
+          max);
     } else {
       conf.unset(TEZ_ROOT_INPUT_VERTEX_MANAGER_MAX_SRC_FRACTION);
     }
-    if(max != null || min != null) {
+    if (max != null || min != null) {
       conf.setBoolean(TEZ_ROOT_INPUT_VERTEX_MANAGER_ENABLE_SLOW_START,
           true);
     }
@@ -561,16 +560,18 @@ public class TestRootInputVertexManager {
 
   protected static class ScheduledTasksAnswer implements Answer<Object> {
     private List<Integer> scheduledTasks;
+
     public ScheduledTasksAnswer(List<Integer> scheduledTasks) {
       this.scheduledTasks = scheduledTasks;
     }
+
     @Override
     public Object answer(InvocationOnMock invocation) throws IOException {
       Object[] args = invocation.getArguments();
       scheduledTasks.clear();
       @SuppressWarnings("unchecked")
       List<VertexManagerPluginContext.ScheduleTaskRequest> tasks =
-          (List<VertexManagerPluginContext.ScheduleTaskRequest>)args[0];
+          (List<VertexManagerPluginContext.ScheduleTaskRequest>) args[0];
       for (VertexManagerPluginContext.ScheduleTaskRequest task : tasks) {
         scheduledTasks.add(task.getTaskIndex());
       }
@@ -579,7 +580,7 @@ public class TestRootInputVertexManager {
   }
 
   public static TaskAttemptIdentifier createTaskAttemptIdentifier(String vName,
-      int tId) {
+                                                                  int tId) {
     VertexIdentifier mockVertex = mock(VertexIdentifier.class);
     when(mockVertex.getName()).thenReturn(vName);
     TaskIdentifier mockTask = mock(TaskIdentifier.class);
@@ -590,5 +591,4 @@ public class TestRootInputVertexManager {
     when(mockAttempt.getTaskIdentifier()).thenReturn(mockTask);
     return mockAttempt;
   }
-
 }

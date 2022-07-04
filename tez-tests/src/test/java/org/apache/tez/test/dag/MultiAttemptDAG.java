@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -125,7 +125,7 @@ public class MultiAttemptDAG {
           LOG.info("Scheduling tasks for vertex=" + getContext().getVertexName());
           int numTasks = getContext().getVertexNumTasks(getContext().getVertexName());
           List<ScheduleTaskRequest> scheduledTasks = Lists.newArrayListWithCapacity(numTasks);
-          for (int i=0; i<numTasks; ++i) {
+          for (int i = 0; i < numTasks; ++i) {
             scheduledTasks.add(ScheduleTaskRequest.create(i, null));
           }
           getContext().scheduleTasks(scheduledTasks);
@@ -149,11 +149,11 @@ public class MultiAttemptDAG {
 
     @Override
     public void onRootVertexInitialized(String inputName,
-        InputDescriptor inputDescriptor, List<Event> events) {
+                                        InputDescriptor inputDescriptor, List<Event> events) {
       List<InputDataInformationEvent> inputInfoEvents = new ArrayList<InputDataInformationEvent>();
-      for (Event event: events) {
+      for (Event event : events) {
         if (event instanceof InputDataInformationEvent) {
-          inputInfoEvents.add((InputDataInformationEvent)event);
+          inputInfoEvents.add((InputDataInformationEvent) event);
         }
       }
       getContext().addRootInputEvents(inputName, inputInfoEvents);
@@ -342,11 +342,8 @@ public class MultiAttemptDAG {
     }
   }
 
-
-
-
   public static DAG createDAG(String name,
-      Configuration conf) throws Exception {
+                              Configuration conf) throws Exception {
     UserPayload payload = UserPayload.create(null);
     int taskCount = MULTI_ATTEMPT_DAG_VERTEX_NUM_TASKS_DEFAULT;
     if (conf != null) {
@@ -360,13 +357,13 @@ public class MultiAttemptDAG {
 
     // Make each vertex manager fail on appropriate attempt
     v1.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
-        FailOnAttemptVertexManagerPlugin.class.getName())
+            FailOnAttemptVertexManagerPlugin.class.getName())
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("1").getBytes()))));
     v2.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
-        FailOnAttemptVertexManagerPlugin.class.getName())
+            FailOnAttemptVertexManagerPlugin.class.getName())
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("2").getBytes()))));
     v3.setVertexManagerPlugin(VertexManagerPluginDescriptor.create(
-        FailOnAttemptVertexManagerPlugin.class.getName())
+            FailOnAttemptVertexManagerPlugin.class.getName())
         .setUserPayload(UserPayload.create(ByteBuffer.wrap(new String("3").getBytes()))));
     dag.addVertex(v1).addVertex(v2).addVertex(v3);
     dag.addEdge(Edge.create(v1, v2,
@@ -387,5 +384,4 @@ public class MultiAttemptDAG {
   public static DAG createDAG(Configuration conf) throws Exception {
     return createDAG("SimpleVTestDAG", conf);
   }
-
 }

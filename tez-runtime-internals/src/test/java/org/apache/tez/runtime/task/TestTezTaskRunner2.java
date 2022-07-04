@@ -35,10 +35,9 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class TestTezTaskRunner2 {
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testTaskConfUsage() throws Exception {
     Configuration conf = new Configuration(false);
     conf.set("global", "global1");
@@ -62,6 +61,4 @@ public class TestTezTaskRunner2 {
     Assert.assertEquals("task1", taskRunner2.task.getTaskConf().get("task"));
     sharedExecutor.shutdownNow();
   }
-
-
 }

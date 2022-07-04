@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.library.vertexmanager;
 
@@ -55,7 +55,6 @@ import org.apache.tez.runtime.api.TaskIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
 
-
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -79,7 +78,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   static long MB = 1024l * 1024l;
 
   private static final Logger LOG =
-     LoggerFactory.getLogger(ShuffleVertexManagerBase.class);
+      LoggerFactory.getLogger(ShuffleVertexManagerBase.class);
 
   ComputeRoutingAction computeRoutingAction = ComputeRoutingAction.WAIT;
 
@@ -135,7 +134,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     EdgeManagerPluginDescriptor newDescriptor;
 
     SourceVertexInfo(final EdgeProperty edgeProperty,
-       int totalTasksToSchedule) {
+                     int totalTasksToSchedule) {
       this.edgeProperty = edgeProperty;
       this.finishedTaskSet = new BitSet();
       this.statsInMB = new int[totalTasksToSchedule];
@@ -151,16 +150,16 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
     BigInteger getExpectedStatsAtIndex(int index) {
       return (numVMEventsReceived == 0) ?
-         BigInteger.ZERO :
-         BigInteger.valueOf(statsInMB[index]).
-           multiply(BigInteger.valueOf(numTasks)).
-           divide(BigInteger.valueOf(numVMEventsReceived)).
-           multiply(BigInteger.valueOf(MB));
+          BigInteger.ZERO :
+          BigInteger.valueOf(statsInMB[index]).
+              multiply(BigInteger.valueOf(numTasks)).
+              divide(BigInteger.valueOf(numVMEventsReceived)).
+              multiply(BigInteger.valueOf(MB));
     }
   }
 
   SourceVertexInfo createSourceVertexInfo(EdgeProperty edgeProperty,
-      int numTasks) {
+                                          int numTasks) {
     return new SourceVertexInfo(edgeProperty, numTasks);
   }
 
@@ -175,12 +174,15 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     public String toString() {
       return "[index=" + index + ", inputStats=" + inputStats + "]";
     }
+
     public int getIndex() {
       return index;
     }
+
     public int getInputStats() {
       return inputStats;
     }
+
     // return true if stat is set.
     public boolean setInputStats(int inputStats) {
       if (inputStats > 0 && this.inputStats != inputStats) {
@@ -197,7 +199,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     final private VertexLocationHint locationHint;
 
     public ReconfigVertexParams(final int finalParallelism,
-        final VertexLocationHint locationHint) {
+                                final VertexLocationHint locationHint) {
       this.finalParallelism = finalParallelism;
       this.locationHint = locationHint;
     }
@@ -205,6 +207,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     public int getFinalParallelism() {
       return finalParallelism;
     }
+
     public VertexLocationHint getLocationHint() {
       return locationHint;
     }
@@ -219,7 +222,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   public synchronized void onVertexStarted(List<TaskAttemptIdentifier> completions) {
     // examine edges after vertex started because until then these may not have been defined
     Map<String, EdgeProperty> inputs = getContext().getInputVertexEdgeProperties();
-    for(Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
+    for (Map.Entry<String, EdgeProperty> entry : inputs.entrySet()) {
       srcVertexInfo.put(entry.getKey(), createSourceVertexInfo(entry.getValue(),
           getContext().getVertexNumTasks(getContext().getVertexName())));
       // TODO what if derived class has already called this
@@ -246,7 +249,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     pendingVMEvents.clear();
 
     LOG.info("OnVertexStarted vertex: {} with {} source tasks and {} pending" +
-        " tasks", getContext().getVertexName(), totalNumBipartiteSourceTasks,
+            " tasks", getContext().getVertexName(), totalNumBipartiteSourceTasks,
         totalTasksToSchedule);
 
     if (completions != null) {
@@ -260,7 +263,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   }
 
   protected void onVertexStartedCheck() {
-    if(bipartiteSources == 0) {
+    if (bipartiteSources == 0) {
       throw new TezUncheckedException("At least 1 bipartite source should exist");
     }
   }
@@ -273,7 +276,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     if (srcInfo.vertexIsConfigured) {
       Preconditions.checkState(srcTaskId < srcInfo.numTasks,
           "Received completion for srcTaskId " + srcTaskId + " but Vertex: " + srcVertexName +
-          " has only " + srcInfo.numTasks + " tasks");
+              " has only " + srcInfo.numTasks + " tasks");
     }
     //handle duplicate events and count task completions from all source vertices
     BitSet completedSourceTasks = srcInfo.finishedTaskSet;
@@ -290,7 +293,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   @VisibleForTesting
   void parsePartitionStats(SourceVertexInfo srcInfo,
-      RoaringBitmap partitionStats) {
+                           RoaringBitmap partitionStats) {
     Preconditions.checkState(srcInfo.statsInMB != null,
         "Stats should be initialized");
     Iterator<Integer> it = partitionStats.iterator();
@@ -308,8 +311,8 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
   }
 
   void parseDetailedPartitionStats(SourceVertexInfo srcInfo,
-      List<Integer> partitionStats) {
-    for (int i=0; i<partitionStats.size(); i++) {
+                                   List<Integer> partitionStats) {
+    for (int i = 0; i < partitionStats.size(); i++) {
       srcInfo.statsInMB[i] += partitionStats.get(i);
     }
   }
@@ -363,7 +366,6 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
           partitionStats.deserialize(new DataInputStream(bin));
 
           parsePartitionStats(srcInfo, partitionStats);
-
         } catch (IOException e) {
           throw new TezUncheckedException(e);
         }
@@ -379,11 +381,11 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("For attempt: {} received info of output size: {}"
-                      + " vertex numEventsReceived: {} vertex output size: {}"
-                      + " total numEventsReceived: {} total output size: {}",
-              vmEvent.getProducerAttemptIdentifier(), sourceTaskOutputSize,
-              srcInfo.numVMEventsReceived, srcInfo.outputSize,
-              numVertexManagerEventsReceived, completedSourceTasksOutputSize);
+              + " vertex numEventsReceived: {} vertex output size: {}"
+              + " total numEventsReceived: {} total output size: {}",
+          vmEvent.getProducerAttemptIdentifier(), sourceTaskOutputSize,
+          srcInfo.numVMEventsReceived, srcInfo.outputSize,
+          numVertexManagerEventsReceived, completedSourceTasksOutputSize);
     }
   }
 
@@ -412,13 +414,13 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
       // Wait when there aren't enough completed tasks
       return ComputeRoutingAction.WAIT;
     } else if (numVertexManagerEventsReceived == 0 &&
-      totalNumBipartiteSourceTasks > 0) {
+        totalNumBipartiteSourceTasks > 0) {
       // When source tasks don't have output data,
       // there will be no VME.
       return ComputeRoutingAction.SKIP;
     } else if (
         completedSourceTasksOutputSize < config.getDesiredTaskInputDataSize()
-        && (minSourceVertexCompletedTaskFraction < config.getMaxFraction())) {
+            && (minSourceVertexCompletedTaskFraction < config.getMaxFraction())) {
       /**
        * When overall completed output size is not even equal to
        * desiredTaskInputSize, we can wait for some more data to be available to
@@ -427,16 +429,16 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
        * honored strictly in this case.
        */
       LOG.info("Defer scheduling tasks; vertex = {}"
-          + ", totalNumBipartiteSourceTasks = {}"
-          + ", completedSourceTasksOutputSize = {}"
-          + ", numVertexManagerEventsReceived = {}"
-          + ", numBipartiteSourceTasksCompleted = {}"
-          + ", minSourceVertexCompletedTaskFraction = {}",
+              + ", totalNumBipartiteSourceTasks = {}"
+              + ", completedSourceTasksOutputSize = {}"
+              + ", numVertexManagerEventsReceived = {}"
+              + ", numBipartiteSourceTasksCompleted = {}"
+              + ", minSourceVertexCompletedTaskFraction = {}",
           getContext().getVertexName(), totalNumBipartiteSourceTasks,
           completedSourceTasksOutputSize, numVertexManagerEventsReceived,
           numBipartiteSourceTasksCompleted,
           minSourceVertexCompletedTaskFraction);
-       return ComputeRoutingAction.WAIT;
+      return ComputeRoutingAction.WAIT;
     } else {
       return ComputeRoutingAction.COMPUTE;
     }
@@ -463,7 +465,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   int getCurrentlyKnownStatsAtIndex(int index) {
     int stats = 0;
-    for(SourceVertexInfo entry : getAllSourceVertexInfo()) {
+    for (SourceVertexInfo entry : getAllSourceVertexInfo()) {
       stats += entry.statsInMB[index];
     }
     return stats;
@@ -471,7 +473,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   long getExpectedStatsAtIndex(int index) {
     BigInteger stats = BigInteger.ZERO;
-    for(SourceVertexInfo entry : getAllSourceVertexInfo()) {
+    for (SourceVertexInfo entry : getAllSourceVertexInfo()) {
       stats = stats.add(entry.getExpectedStatsAtIndex(index));
     }
     if (stats.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
@@ -523,7 +525,6 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
    * End of functions related to how new parallelism is determined.
    */
 
-
   /**
    * Subclass might return null or empty list to indicate no tasks
    * to schedule at this point.
@@ -554,12 +555,12 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   Iterable<Map.Entry<String, SourceVertexInfo>> getBipartiteInfo() {
     return Iterables.filter(srcVertexInfo.entrySet(),
-        new Predicate<Map.Entry<String,SourceVertexInfo>>() {
-      public boolean apply(Map.Entry<String, SourceVertexInfo> input) {
-        return (input.getValue().edgeProperty.getDataMovementType() ==
-            DataMovementType.SCATTER_GATHER);
-      }
-    });
+        new Predicate<Map.Entry<String, SourceVertexInfo>>() {
+          public boolean apply(Map.Entry<String, SourceVertexInfo> input) {
+            return (input.getValue().edgeProperty.getDataMovementType() ==
+                DataMovementType.SCATTER_GATHER);
+          }
+        });
   }
 
   /**
@@ -568,7 +569,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
    * @return boolean
    */
   private boolean canScheduleTasks() {
-    for(Map.Entry<String, SourceVertexInfo> entry : srcVertexInfo.entrySet()) {
+    for (Map.Entry<String, SourceVertexInfo> entry : srcVertexInfo.entrySet()) {
       // need to check for vertex configured because until that we dont know
       // if numTask s== 0 is valid
       if (!entry.getValue().vertexIsConfigured) { // isConfigured
@@ -590,8 +591,8 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
       // numTasksToSchedule can be -ve if minFraction
       // is less than slowStartMinSrcCompletionFraction.
       LOG.info("Scheduling {} tasks for vertex: {} with totalTasks: {}. " +
-          "{} source tasks completed out of {}. " +
-          "MinSourceTaskCompletedFraction: {} min: {} max: {}",
+              "{} source tasks completed out of {}. " +
+              "MinSourceTaskCompletedFraction: {} min: {} max: {}",
           numTasksToSchedule, getContext().getVertexName(),
           totalTasksToSchedule, numBipartiteSourceTasksCompleted,
           totalNumBipartiteSourceTasks, minFraction,
@@ -620,7 +621,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
               config.getMinFraction()) / percentRange;
     } else {
       // min and max are equal. schedule 100% on reaching min
-      if(minSourceVertexCompletedTaskFraction <
+      if (minSourceVertexCompletedTaskFraction <
           config.getMinFraction()) {
         tasksFractionToSchedule = 0;
       }
@@ -631,7 +632,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
     // round up to avoid the corner case that single task cannot be scheduled
     // until src completed fraction reach max
-    return ((int)(Math.ceil(tasksFractionToSchedule * totalTasksToSchedule)) -
+    return ((int) (Math.ceil(tasksFractionToSchedule * totalTasksToSchedule)) -
         (totalTasksToSchedule - numPendingTasks));
   }
 
@@ -656,7 +657,6 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     }
     return minSourceVertexCompletedTaskFraction;
   }
-
 
   private boolean preconditionsSatisfied() {
     if (!onVertexStartedDone.get()) {
@@ -695,7 +695,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     // as specified by the user. If/When we move to some other method of
     // calculating parallelism or change parallelism while tasks are already
     // running then we can create other parameters to trigger this calculation.
-    if(config.isAutoParallelismEnabled()) {
+    if (config.isAutoParallelismEnabled()) {
       if (!determineParallelismAndApply()) {
         //try to determine parallelism later when more info is available.
         return;
@@ -710,9 +710,10 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     final private long desiredTaskInputDataSize;
     final private float slowStartMinFraction;
     final private float slowStartMaxFraction;
+
     public ShuffleVertexManagerBaseConfig(final boolean enableAutoParallelism,
-        final long desiredTaskInputDataSize, final float slowStartMinFraction,
-        final float slowStartMaxFraction) {
+                                          final long desiredTaskInputDataSize, final float slowStartMinFraction,
+                                          final float slowStartMaxFraction) {
       if (slowStartMinFraction < 0 || slowStartMaxFraction > 1
           || slowStartMaxFraction < slowStartMinFraction) {
         throw new IllegalArgumentException(
@@ -736,12 +737,15 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     public boolean isAutoParallelismEnabled() {
       return this.enableAutoParallelism;
     }
+
     public long getDesiredTaskInputDataSize() {
       return this.desiredTaskInputDataSize;
     }
+
     public float getMinFraction() {
       return this.slowStartMinFraction;
     }
+
     public float getMaxFraction() {
       return this.slowStartMaxFraction;
     }
@@ -780,7 +784,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
       totalNumBipartiteSourceTasks += vInfo.numTasks;
     }
     LOG.info("Received configured notification : {}" + " for vertex: {} in" +
-        " vertex: {}" + " numBipartiteSourceTasks: {}",
+            " vertex: {}" + " numBipartiteSourceTasks: {}",
         stateUpdate.getVertexState(), stateUpdate.getVertexName(),
         getContext().getVertexName(), totalNumBipartiteSourceTasks);
     processPendingTasks(null);
@@ -812,7 +816,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
 
   @Override
   public synchronized void onRootVertexInitialized(String inputName,
-      InputDescriptor inputDescriptor, List<Event> events) {
+                                                   InputDescriptor inputDescriptor, List<Event> events) {
     // Not allowing this for now. Nothing to do.
   }
 
@@ -820,7 +824,7 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     Map<String, EdgeProperty> edgeProperties =
         new HashMap<String, EdgeProperty>(bipartiteSources);
     Iterable<Map.Entry<String, SourceVertexInfo>> bipartiteItr = getBipartiteInfo();
-    for(Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
+    for (Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
       String vertex = entry.getKey();
       EdgeProperty oldEdgeProp = entry.getValue().edgeProperty;
       EdgeProperty newEdgeProp = EdgeProperty.create(entry.getValue().newDescriptor,

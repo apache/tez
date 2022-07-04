@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app;
 
@@ -43,7 +43,6 @@ import org.apache.tez.hadoop.shim.HadoopShim;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-
 /**
  * Context interface for sharing information across components in Tez DAG
  */
@@ -57,9 +56,9 @@ public interface AppContext {
   ApplicationId getApplicationID();
 
   TezDAGID getCurrentDAGID();
-  
+
   long getCumulativeCPUTime();
-  
+
   long getCumulativeGCTime();
 
   ApplicationAttemptId getApplicationAttemptId();
@@ -127,15 +126,21 @@ public interface AppContext {
   Credentials getAppCredentials();
 
   public Integer getTaskCommunicatorIdentifier(String name);
+
   public Integer getTaskScheduerIdentifier(String name);
+
   public Integer getContainerLauncherIdentifier(String name);
 
   public String getTaskCommunicatorName(int taskCommId);
+
   public String getTaskSchedulerName(int schedulerId);
+
   public String getContainerLauncherName(int launcherId);
 
   public String getTaskCommunicatorClassName(int taskCommId);
+
   public String getTaskSchedulerClassName(int schedulerId);
+
   public String getContainerLauncherClassName(int launcherId);
 
   public HadoopShim getHadoopShim();

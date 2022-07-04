@@ -27,16 +27,15 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 /**
  * Represents the Tez framework part of an {@link org.apache.tez.runtime.api.Output}.
  * <p/>
- *
+ * <p>
  * This interface has methods which are used by the Tez framework to control the Output.
  * <p/>
- *
+ * <p>
  * During initialization, Outputs must specify an initial memory requirement via
  * {@link OutputContext}.requestInitialMemory
  * <p/>
- * 
+ * <p>
  * Users are expected to derive from {@link AbstractLogicalOutput}
- *
  */
 @Public
 public interface OutputFrameworkInterface {
@@ -45,8 +44,7 @@ public interface OutputFrameworkInterface {
    * Initializes the <code>Output</code>
    *
    * @return list of events that were generated during initialization
-   * @throws Exception
-   *           if an error occurs
+   * @throws Exception if an error occurs
    */
   public List<Event> initialize() throws Exception;
 
@@ -54,8 +52,7 @@ public interface OutputFrameworkInterface {
    * Handles user and system generated {@link Event}s, which typically carry
    * information such as a downstream vertex being ready to consume input.
    *
-   * @param outputEvents
-   *          the list of {@link Event}s
+   * @param outputEvents the list of {@link Event}s
    */
   public void handleEvents(List<Event> outputEvents);
 
@@ -63,8 +60,7 @@ public interface OutputFrameworkInterface {
    * Closes the <code>Output</code>
    *
    * @return list of events that were generated during close
-   * @throws Exception
-   *           if an error occurs
+   * @throws Exception if an error occurs
    */
   public List<Event> close() throws Exception;
 }

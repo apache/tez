@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -41,33 +41,33 @@ public class TezYARNUtils {
   public static final String ENV_NAME_REGEX = "[A-Za-z_][A-Za-z0-9_]*";
 
   private static final Pattern VAR_SUBBER =
-    Pattern.compile(Shell.getEnvironmentVariableRegex());
+      Pattern.compile(Shell.getEnvironmentVariableRegex());
   private static final Pattern VARVAL_SPLITTER = Pattern.compile(
-    "(?<=^|,)"                            // preceded by ',' or line begin
-      + '(' + ENV_NAME_REGEX + ')'      // var group
-      + '='
-      + "([^,]*)"                             // val group
+      "(?<=^|,)"                            // preceded by ',' or line begin
+          + '(' + ENV_NAME_REGEX + ')'      // var group
+          + '='
+          + "([^,]*)"                             // val group
   );
 
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
     boolean userClassesTakesPrecedence =
-      conf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST,
-          TezConfiguration.TEZ_USER_CLASSPATH_FIRST_DEFAULT);
+        conf.getBoolean(TezConfiguration.TEZ_USER_CLASSPATH_FIRST,
+            TezConfiguration.TEZ_USER_CLASSPATH_FIRST_DEFAULT);
     if (userClassesTakesPrecedence) {
       addUserSpecifiedClasspath(classpathBuilder, conf);
     }
 
-    String [] tezLibUrisClassPath = conf.getStrings(TezConfiguration.TEZ_LIB_URIS_CLASSPATH);
+    String[] tezLibUrisClassPath = conf.getStrings(TezConfiguration.TEZ_LIB_URIS_CLASSPATH);
 
-    if(!conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false) &&
-       tezLibUrisClassPath != null && tezLibUrisClassPath.length != 0) {
-      for(String c : tezLibUrisClassPath) {
+    if (!conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false) &&
+        tezLibUrisClassPath != null && tezLibUrisClassPath.length != 0) {
+      for (String c : tezLibUrisClassPath) {
         classpathBuilder.append(c.trim())
-        .append(File.pathSeparator);
+            .append(File.pathSeparator);
       }
     } else {
-      if(conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)) {
+      if (conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)) {
         LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" +
             TezConfiguration.TEZ_IGNORE_LIB_URIS + "' is set to true ");
       }
@@ -116,7 +116,7 @@ public class TezYARNUtils {
   }
 
   private static void addUserSpecifiedClasspath(StringBuilder classpathBuilder,
-      Configuration conf) {
+                                                Configuration conf) {
     // Add any additional user-specified classpath
     String additionalClasspath = conf.get(TezConfiguration.TEZ_CLUSTER_ADDITIONAL_CLASSPATH_PREFIX);
     if (additionalClasspath != null && !additionalClasspath.trim().isEmpty()) {
@@ -132,7 +132,7 @@ public class TezYARNUtils {
   }
 
   public static void appendToEnvFromInputString(Map<String, String> env,
-      String envString, String classPathSeparator) {
+                                                String envString, String classPathSeparator) {
     if (envString != null && envString.length() > 0) {
       Matcher varValMatcher = VARVAL_SPLITTER.matcher(envString);
       while (varValMatcher.find()) {
@@ -157,14 +157,14 @@ public class TezYARNUtils {
       }
     }
   }
-  
+
   public static void setEnvIfAbsentFromInputString(Map<String, String> env,
-      String envString) {
+                                                   String envString) {
     if (envString != null && envString.length() > 0) {
       String childEnvs[] = envString.split(",");
       for (String cEnv : childEnvs) {
         String[] parts = cEnv.split("="); // split on '='
-        Matcher m = VAR_SUBBER .matcher(parts[1]);
+        Matcher m = VAR_SUBBER.matcher(parts[1]);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
           String var = m.group(1);
@@ -184,7 +184,7 @@ public class TezYARNUtils {
       }
     }
   }
-  
+
   public static void addToEnvironment(
       Map<String, String> environment,
       String variable, String value, String classPathSeparator) {
@@ -194,7 +194,7 @@ public class TezYARNUtils {
     } else {
       val = val + classPathSeparator + value;
     }
-    environment.put(StringInterner.weakIntern(variable), 
+    environment.put(StringInterner.weakIntern(variable),
         StringInterner.weakIntern(val));
   }
 
@@ -204,8 +204,8 @@ public class TezYARNUtils {
     }
   }
 
-  public static void setupDefaultEnv(Map<String, String> env, Configuration conf,  String userEnvKey, String userEnvDefault,
-      String clusterDefaultEnvKey, String clusterDefaultEnvDefault, boolean usingArchive) {
+  public static void setupDefaultEnv(Map<String, String> env, Configuration conf, String userEnvKey, String userEnvDefault,
+                                     String clusterDefaultEnvKey, String clusterDefaultEnvDefault, boolean usingArchive) {
     // Setup the CLASSPATH in environment
     // i.e. add { Hadoop jars, job jar, CWD } to classpath.
     String classpath = getFrameworkClasspath(conf, usingArchive);
@@ -228,5 +228,4 @@ public class TezYARNUtils {
   public static void replaceInEnv(Map<String, String> env, String key, String value) {
     env.put(StringInterner.weakIntern(key), StringInterner.weakIntern(value));
   }
-
 }

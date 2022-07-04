@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -99,7 +99,7 @@ public class MROutput extends AbstractLogicalOutput {
     boolean doCommit = true;
 
     private MROutputConfigBuilder(Configuration conf,
-        Class<?> outputFormatParam, boolean useLazyOutputFormat) {
+                                  Class<?> outputFormatParam, boolean useLazyOutputFormat) {
       this.conf = conf;
       if (outputFormatParam != null) {
         outputFormatProvided = true;
@@ -127,9 +127,9 @@ public class MROutput extends AbstractLogicalOutput {
         } else {
           throw new TezUncheckedException(
               "outputFormat must be assignable from either " +
-              "org.apache.hadoop.mapred.OutputFormat or " +
-              "org.apache.hadoop.mapreduce.OutputFormat" +
-              " Given: " + outputFormatParam.getName());
+                  "org.apache.hadoop.mapred.OutputFormat or " +
+                  "org.apache.hadoop.mapreduce.OutputFormat" +
+                  " Given: " + outputFormatParam.getName());
         }
       } else {
         outputFormatProvided = false;
@@ -147,7 +147,7 @@ public class MROutput extends AbstractLogicalOutput {
             this.outputFormat = conf.getClassByName(outputClass);
             Preconditions.checkState(org.apache.hadoop.mapreduce.OutputFormat.class
                 .isAssignableFrom(this.outputFormat), "outputFormat must be assignable from "
-                    + "org.apache.hadoop.mapreduce.OutputFormat");
+                + "org.apache.hadoop.mapreduce.OutputFormat");
           } else {
             String outputClass = conf.get("mapred.output.format.class");
             if (StringUtils.isEmpty(outputClass)) {
@@ -156,7 +156,7 @@ public class MROutput extends AbstractLogicalOutput {
             this.outputFormat = conf.getClassByName(outputClass);
             Preconditions.checkState(org.apache.hadoop.mapred.OutputFormat.class
                 .isAssignableFrom(this.outputFormat), "outputFormat must be assignable from "
-                    + "org.apache.hadoop.mapred.OutputFormat");
+                + "org.apache.hadoop.mapred.OutputFormat");
           }
         } catch (ClassNotFoundException e) {
           throw new TezUncheckedException(e);
@@ -168,14 +168,14 @@ public class MROutput extends AbstractLogicalOutput {
     private MROutputConfigBuilder setOutputPath(String outputPath) {
       boolean passNewLazyOutputFormatCheck =
           (LazyOutputFormat.class.isAssignableFrom(outputFormat)) &&
-          org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.
-              isAssignableFrom(conf.getClass(
-                  MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
+              org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.
+                  isAssignableFrom(conf.getClass(
+                      MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
       boolean passOldLazyOutputFormatCheck =
           (org.apache.hadoop.mapred.lib.LazyOutputFormat.class.
               isAssignableFrom(outputFormat)) &&
-          FileOutputFormat.class.isAssignableFrom(conf.getClass(
-              MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
+              FileOutputFormat.class.isAssignableFrom(conf.getClass(
+                  MRJobConfig.LAZY_OUTPUTFORMAT_OUTPUTFORMAT, null));
 
       if (!(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.class.
           isAssignableFrom(outputFormat) ||
@@ -200,7 +200,7 @@ public class MROutput extends AbstractLogicalOutput {
         outputPath = conf.get(org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.OUTDIR);
       }
     }
-    
+
     /**
      * Create the {@link DataSinkDescriptor}
      * @return {@link DataSinkDescriptor}
@@ -243,7 +243,7 @@ public class MROutput extends AbstractLogicalOutput {
       }
       return ds;
     }
-    
+
     /**
      * Get the credentials for the output from its {@link FileSystem}s
      * Use the method to turn this off when not using a {@link FileSystem}
@@ -255,7 +255,7 @@ public class MROutput extends AbstractLogicalOutput {
       getCredentialsForSinkFilesystem = value;
       return this;
     }
-    
+
     /**
      * Disable commit operations for the output (default: true)
      * If the value is set to false then no {@link org.apache.tez.runtime.api.OutputCommitter} will
@@ -315,7 +315,7 @@ public class MROutput extends AbstractLogicalOutput {
   }
 
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
-      @Nullable Class<?> outputFormat, boolean useLazyOutputFormat) {
+                                                          @Nullable Class<?> outputFormat, boolean useLazyOutputFormat) {
     return new MROutputConfigBuilder(conf, outputFormat, useLazyOutputFormat);
   }
 
@@ -337,13 +337,13 @@ public class MROutput extends AbstractLogicalOutput {
    * @return {@link org.apache.tez.mapreduce.output.MROutput.MROutputConfigBuilder}
    */
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
-      @Nullable Class<?> outputFormat, @Nullable String outputPath) {
+                                                          @Nullable Class<?> outputFormat, @Nullable String outputPath) {
     return createConfigBuilder(conf, outputFormat, outputPath, false);
   }
 
   public static MROutputConfigBuilder createConfigBuilder(Configuration conf,
-      @Nullable Class<?> outputFormat, @Nullable String outputPath,
-      boolean useLazyOutputFormat) {
+                                                          @Nullable Class<?> outputFormat, @Nullable String outputPath,
+                                                          boolean useLazyOutputFormat) {
     MROutputConfigBuilder configurer = createConfigBuilder(conf, outputFormat, useLazyOutputFormat);
     if (outputPath != null) {
       configurer.setOutputPath(outputPath);
@@ -355,7 +355,7 @@ public class MROutput extends AbstractLogicalOutput {
 
   private final NumberFormat taskNumberFormat = NumberFormat.getInstance();
   private final NumberFormat nonTaskNumberFormat = NumberFormat.getInstance();
-  
+
   protected JobConf jobConf;
   boolean useNewApi;
   protected AtomicBoolean flushed = new AtomicBoolean(false);
@@ -421,9 +421,9 @@ public class MROutput extends AbstractLogicalOutput {
     jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
     jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);
     jobConf.setInt(JobContext.TASK_PARTITION,
-      taskAttemptId.getTaskID().getId());
+        taskAttemptId.getTaskID().getId());
     jobConf.set(JobContext.ID, taskAttemptId.getJobID().toString());
-    
+
     String outputFormatClassName;
 
     outputRecordCounter = getContext().getCounters().findCounter(
@@ -529,8 +529,8 @@ public class MROutput extends AbstractLogicalOutput {
   protected String getOutputFileNamePrefix() {
     String prefix = jobConf.get(MRJobConfig.MROUTPUT_FILE_NAME_PREFIX);
     if (prefix == null) {
-      prefix = "part-v" + 
-          nonTaskNumberFormat.format(getContext().getTaskVertexIndex()) +  
+      prefix = "part-v" +
+          nonTaskNumberFormat.format(getContext().getTaskVertexIndex()) +
           "-o" + nonTaskNumberFormat.format(getContext().getOutputIndex());
     }
     return prefix;
@@ -557,7 +557,7 @@ public class MROutput extends AbstractLogicalOutput {
             newRecordWriter.write(key, value);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IOInterruptedException("Interrupted while writing next key-value",e);
+            throw new IOInterruptedException("Interrupted while writing next key-value", e);
           }
         } else {
           oldRecordWriter.write(key, value);
@@ -583,7 +583,7 @@ public class MROutput extends AbstractLogicalOutput {
 
     return null;
   }
-  
+
   /**
    * Call this in the processor before finishing to ensure outputs that 
    * outputs have been flushed. Must be called before commit.
@@ -619,7 +619,6 @@ public class MROutput extends AbstractLogicalOutput {
     }
   }
 
-
   /**
    * MROutput expects that a Processor call abort in case of any error
    * ( including an error during commit ) prior to the Processor's completion
@@ -633,5 +632,4 @@ public class MROutput extends AbstractLogicalOutput {
       committer.abortTask(oldApiTaskAttemptContext);
     }
   }
-
 }

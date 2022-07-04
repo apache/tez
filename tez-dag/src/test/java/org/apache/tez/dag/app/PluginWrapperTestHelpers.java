@@ -29,7 +29,6 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class PluginWrapperTestHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(PluginWrapperTestHelpers.class);
@@ -70,8 +69,6 @@ public class PluginWrapperTestHelpers {
         }
       }
     }
-
-
   }
 
   public static Object[] constructMethodArgs(Method method) throws IllegalAccessException,

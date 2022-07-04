@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -26,9 +26,9 @@ public class AMNodeEventTaskAttemptEnded extends AMNodeEvent {
   private final boolean failed;
   private final ContainerId containerId;
   private final TezTaskAttemptID taskAttemptId;
-  
+
   public AMNodeEventTaskAttemptEnded(NodeId nodeId, int sourceId, ContainerId containerId,
-      TezTaskAttemptID taskAttemptId, boolean failed) {
+                                     TezTaskAttemptID taskAttemptId, boolean failed) {
     super(nodeId, sourceId, AMNodeEventType.N_TA_ENDED);
     this.failed = failed;
     this.containerId = containerId;
@@ -38,15 +38,15 @@ public class AMNodeEventTaskAttemptEnded extends AMNodeEvent {
   public boolean failed() {
     return failed;
   }
-  
+
   public boolean killed() {
     return !failed;
   }
-  
+
   public ContainerId getContainerId() {
     return this.containerId;
   }
-  
+
   public TezTaskAttemptID getTaskAttemptId() {
     return this.taskAttemptId;
   }

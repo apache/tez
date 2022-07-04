@@ -171,7 +171,6 @@ public class SSLFactory implements ConnectionConfigurator {
     return keystoresFactory;
   }
 
-
   /**
    * Returns a configured SSLSocketFactory.
    *
@@ -199,8 +198,6 @@ public class SSLFactory implements ConnectionConfigurator {
     }
     return hostnameVerifier;
   }
-
-
 
   /**
    * If the given {@link HttpURLConnection} is an {@link HttpsURLConnection}

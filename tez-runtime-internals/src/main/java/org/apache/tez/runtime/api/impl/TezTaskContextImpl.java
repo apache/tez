@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,8 +17,6 @@
  */
 
 package org.apache.tez.runtime.api.impl;
-
-
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -75,12 +73,12 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
 
   @Private
   public TezTaskContextImpl(Configuration conf, String[] workDirs, int appAttemptNumber,
-      String dagName, String taskVertexName, int vertexParallelism, 
-      TezTaskAttemptID taskAttemptID, TezCounters counters, LogicalIOProcessorRuntimeTask runtimeTask,
-      TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
-      Map<String, String> auxServiceEnv, MemoryDistributor memDist,
-      EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
-      ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
+                            String dagName, String taskVertexName, int vertexParallelism,
+                            TezTaskAttemptID taskAttemptID, TezCounters counters, LogicalIOProcessorRuntimeTask runtimeTask,
+                            TezUmbilical tezUmbilical, Map<String, ByteBuffer> serviceConsumerMetadata,
+                            Map<String, String> auxServiceEnv, MemoryDistributor memDist,
+                            EntityDescriptor<?> descriptor, ObjectRegistry objectRegistry,
+                            ExecutionContext ExecutionContext, long memAvailable, TezExecutors sharedExecutor) {
     Objects.requireNonNull(conf, "conf is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(taskVertexName, "taskVertexName is null");
@@ -180,7 +178,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public String getUniqueIdentifier() {
     return uniqueIdentifier;
   }
-  
+
   @Override
   public ObjectRegistry getObjectRegistry() {
     return objectRegistry;
@@ -190,7 +188,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public final void notifyProgress() {
     runtimeTask.notifyProgressInvocation();
   }
-  
+
   @Override
   public ByteBuffer getServiceConsumerMetaData(String serviceName) {
     return (ByteBuffer) serviceConsumerMetadata.get(serviceName)
@@ -214,7 +212,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
       callbackHandler = new MemoryUpdateCallback() {
         @Override
         public void memoryAssigned(long assignedSize) {
-          
+
         }
       };
     }
@@ -225,7 +223,7 @@ public abstract class TezTaskContextImpl implements TaskContext, Closeable {
   public long getTotalMemoryAvailableToTask() {
     return memAvailable;
   }
-  
+
   protected void signalFatalError(Throwable t, String message, EventMetaData sourceInfo) {
     signalFailure(TaskFailureType.NON_FATAL, t, message, sourceInfo);
   }

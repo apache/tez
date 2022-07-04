@@ -96,7 +96,6 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
       if (vertexID != null) {
         return createTimelineEntityGroupIds(vertexID.getDAGID());
       }
-
     } else if (entityType.equals(EntityTypes.TEZ_TASK_ID.name())) {
       TezTaskID taskID = TezTaskID.fromString(entityId);
       if (taskID != null) {
@@ -124,8 +123,8 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
 
   @Override
   public Set<TimelineEntityGroupId> getTimelineEntityGroupId(String entityType,
-      NameValuePair primaryFilter,
-      Collection<NameValuePair> secondaryFilters) {
+                                                             NameValuePair primaryFilter,
+                                                             Collection<NameValuePair> secondaryFilters) {
     if (!knownEntityTypes.contains(entityType)
         || primaryFilter == null
         || !knownEntityTypes.contains(primaryFilter.getName())
@@ -145,7 +144,7 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
 
   @Override
   public Set<TimelineEntityGroupId> getTimelineEntityGroupId(String entityType,
-      SortedSet<String> entityIds, Set<String> eventTypes) {
+                                                             SortedSet<String> entityIds, Set<String> eventTypes) {
     if (!knownEntityTypes.contains(entityType)
         || summaryEntityTypes.contains(entityType)
         || entityIds == null || entityIds.isEmpty()) {
@@ -180,7 +179,7 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
     }
 
     // Add the older values from config.
-    int [] usedNumGroups = conf.getInts(TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_CACHE_PLUGIN_OLD_NUM_DAGS_PER_GROUP);
+    int[] usedNumGroups = conf.getInts(TezConfiguration.TEZ_HISTORY_LOGGING_TIMELINE_CACHE_PLUGIN_OLD_NUM_DAGS_PER_GROUP);
     if (usedNumGroups != null) {
       for (int i = 0; i < usedNumGroups.length; ++i) {
         allNumDagsPerGroup.add(usedNumGroups[i]);
@@ -199,5 +198,4 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
   public Configuration getConf() {
     return conf;
   }
-
 }

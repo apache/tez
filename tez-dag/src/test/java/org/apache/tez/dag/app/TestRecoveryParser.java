@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -164,7 +164,7 @@ public class TestRecoveryParser {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
 
     DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
@@ -180,11 +180,11 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGInitializedEvent(dagID, 1L, "user", dagPlan.getName(), null)));
     // only for testing, DAGCommitStartedEvent is not supposed to happen at this time.
-    rService.handle(new DAGHistoryEvent(dagID,new DAGCommitStartedEvent(dagID, System.currentTimeMillis())));
+    rService.handle(new DAGHistoryEvent(dagID, new DAGCommitStartedEvent(dagID, System.currentTimeMillis())));
     rService.stop();
 
     // write data in attempt_2
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/2"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/2"));
     rService = new RecoveryService(appContext);
     rService.init(conf);
     rService.start();
@@ -204,13 +204,13 @@ public class TestRecoveryParser {
   }
 
   // skipAllOtherEvents due to dag finished
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testSkipAllOtherEvents_2() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
 
     DAGPlan dagPlan = TestDAGImpl.createTestDAGPlan();
@@ -232,12 +232,12 @@ public class TestRecoveryParser {
     rService.stop();
 
     // write data in attempt_2
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/2"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/2"));
     rService = new RecoveryService(appContext);
     rService.init(conf);
     rService.start();
     rService.handle(new DAGHistoryEvent(dagID,
-       new DAGStartedEvent(dagID, 1L, "user", "dag1")));
+        new DAGStartedEvent(dagID, 1L, "user", "dag1")));
     rService.stop();
 
     DAGRecoveryData dagData = parser.parseRecoveryData();
@@ -257,7 +257,7 @@ public class TestRecoveryParser {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appId);
@@ -278,7 +278,7 @@ public class TestRecoveryParser {
     rService.stop();
 
     // write data in attempt_2
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/2"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/2"));
     rService = new RecoveryService(appContext);
     rService.init(conf);
     rService.start();
@@ -303,7 +303,7 @@ public class TestRecoveryParser {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
 
     // write data in attempt_1
@@ -332,12 +332,12 @@ public class TestRecoveryParser {
     }
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testRecoverableSummary_DAGInCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
 
@@ -362,14 +362,14 @@ public class TestRecoveryParser {
     assertTrue(dagData.nonRecoverable);
     assertTrue(dagData.reason.contains("DAG Commit was in progress"));
   }
-  
-  @Test(timeout=5000)
+
+  @Test(timeout = 5000)
   public void testRecoverableSummary_DAGFinishCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
 
@@ -400,12 +400,12 @@ public class TestRecoveryParser {
     assertTrue(dagData.isCompleted);
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testRecoverableSummary_VertexInCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
 
@@ -431,12 +431,12 @@ public class TestRecoveryParser {
     assertTrue(dagData.reason.contains("Vertex Commit was in progress"));
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testRecoverableSummary_VertexFinishCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -458,8 +458,8 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new VertexCommitStartedEvent(vertexId, 0L)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexFinishedEvent(vertexId, "v1", 10, 0L, 0L, 
-            0L, 0L, 0L, VertexState.SUCCEEDED, 
+        new VertexFinishedEvent(vertexId, "v1", 10, 0L, 0L,
+            0L, 0L, 0L, VertexState.SUCCEEDED,
             "", null, null, null, null)));
     rService.stop();
 
@@ -468,12 +468,12 @@ public class TestRecoveryParser {
     assertFalse(dagData.nonRecoverable);
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testRecoverableSummary_VertexGroupInCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -492,7 +492,7 @@ public class TestRecoveryParser {
             null, "user", new Configuration(), null, null)));
     // It should be fine to skip other events, just for testing.
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexGroupCommitStartedEvent(dagID, "group_1", 
+        new VertexGroupCommitStartedEvent(dagID, "group_1",
             Lists.newArrayList(TezVertexID.getInstance(dagID, 0), TezVertexID.getInstance(dagID, 1)), 0L)));
     rService.stop();
 
@@ -501,13 +501,13 @@ public class TestRecoveryParser {
     assertTrue(dagData.nonRecoverable);
     assertTrue(dagData.reason.contains("Vertex Group Commit was in progress"));
   }
-  
-  @Test(timeout=5000)
+
+  @Test(timeout = 5000)
   public void testRecoverableSummary_VertexGroupFinishCommitting() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -528,34 +528,34 @@ public class TestRecoveryParser {
     TezVertexID v0 = TezVertexID.getInstance(dagID, 0);
     TezVertexID v1 = TezVertexID.getInstance(dagID, 1);
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexGroupCommitStartedEvent(dagID, "group_1", 
+        new VertexGroupCommitStartedEvent(dagID, "group_1",
             Lists.newArrayList(v0, v1), 0L)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexGroupCommitFinishedEvent(dagID, "group_1", 
+        new VertexGroupCommitFinishedEvent(dagID, "group_1",
             Lists.newArrayList(v0, v1), 0L)));
     // also write VertexFinishedEvent, otherwise it is still non-recoverable
     // when checking with non-summary event
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexFinishedEvent(v0, "v1", 10, 0L, 0L, 
-            0L, 0L, 0L, VertexState.SUCCEEDED, 
+        new VertexFinishedEvent(v0, "v1", 10, 0L, 0L,
+            0L, 0L, 0L, VertexState.SUCCEEDED,
             "", null, null, null, null)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexFinishedEvent(v1, "v1", 10, 0L, 0L, 
-            0L, 0L, 0L, VertexState.SUCCEEDED, 
+        new VertexFinishedEvent(v1, "v1", 10, 0L, 0L,
+            0L, 0L, 0L, VertexState.SUCCEEDED,
             "", null, null, null, null)));
     rService.stop();
-    
+
     DAGRecoveryData dagData = parser.parseRecoveryData();
     assertEquals(dagID, dagData.recoveredDagID);
     assertFalse(dagData.nonRecoverable);
   }
-  
-  @Test(timeout=5000)
+
+  @Test(timeout = 5000)
   public void testRecoverableNonSummary1() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -578,8 +578,8 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new VertexCommitStartedEvent(vertexId, 0L)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexFinishedEvent(vertexId, "v1", 10, 0L, 0L, 
-            0L, 0L, 0L, VertexState.SUCCEEDED, 
+        new VertexFinishedEvent(vertexId, "v1", 10, 0L, 0L,
+            0L, 0L, 0L, VertexState.SUCCEEDED,
             "", null, null, null, null)));
     rService.stop();
 
@@ -587,13 +587,13 @@ public class TestRecoveryParser {
     assertTrue(dagData.nonRecoverable);
     assertTrue(dagData.reason.contains("Vertex has been committed, but its full recovery events are not seen"));
   }
-  
-  @Test(timeout=5000)
+
+  @Test(timeout = 5000)
   public void testRecoverableNonSummary2() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
 
@@ -612,25 +612,25 @@ public class TestRecoveryParser {
     // It should be fine to skip other events, just for testing.
     TezVertexID vertexId = TezVertexID.getInstance(dagID, 0);
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexGroupCommitStartedEvent(dagID, "group_1", 
+        new VertexGroupCommitStartedEvent(dagID, "group_1",
             Lists.newArrayList(TezVertexID.getInstance(dagID, 0), TezVertexID.getInstance(dagID, 1)), 0L)));
     rService.handle(new DAGHistoryEvent(dagID,
-        new VertexGroupCommitFinishedEvent(dagID, "group_1", 
+        new VertexGroupCommitFinishedEvent(dagID, "group_1",
             Lists.newArrayList(TezVertexID.getInstance(dagID, 0), TezVertexID.getInstance(dagID, 1)), 0L)));
     rService.stop();
 
     DAGRecoveryData dagData = parser.parseRecoveryData();
     assertTrue(dagData.nonRecoverable);
     assertTrue(dagData.reason.contains("Vertex has been committed as member of vertex group"
-              + ", but its full recovery events are not seen"));
+        + ", but its full recovery events are not seen"));
   }
 
-  @Test(timeout=20000)
+  @Test(timeout = 20000)
   public void testRecoveryLargeEventData() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -680,7 +680,7 @@ public class TestRecoveryParser {
     VertexConfigurationDoneEvent vertexConfigurationDoneEvent = new VertexConfigurationDoneEvent(
         v0Id, 0, 100000, vertexLocationHint, null, null, false);
     // Verify large protobuf message
-    assertTrue(vertexConfigurationDoneEvent.toProto().getSerializedSize() > PROTOBUF_DEFAULT_SIZE_LIMIT );
+    assertTrue(vertexConfigurationDoneEvent.toProto().getSerializedSize() > PROTOBUF_DEFAULT_SIZE_LIMIT);
     rService.handle(new DAGHistoryEvent(dagID, vertexConfigurationDoneEvent));
     rService.stop();
 
@@ -694,13 +694,13 @@ public class TestRecoveryParser {
     assertEquals(parsedVertexLocationHint.getTaskLocationHints().size(), 100000);
   }
 
-  @Test(timeout=5000)
+  @Test(timeout = 5000)
   public void testRecoveryData() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     TezDAGID dagID = TezDAGID.getInstance(appId, 1);
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
     AppContext appContext = mock(AppContext.class);
-    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath+"/1"));
+    when(appContext.getCurrentRecoveryDir()).thenReturn(new Path(recoveryPath + "/1"));
     when(appContext.getClock()).thenReturn(new SystemClock());
     when(mockDAGImpl.getID()).thenReturn(dagID);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
@@ -717,23 +717,23 @@ public class TestRecoveryParser {
     rService.handle(new DAGHistoryEvent(dagID,
         new DAGSubmittedEvent(dagID, 1L, dagPlan, ApplicationAttemptId.newInstance(appId, 1),
             null, "user", new Configuration(), null, null)));
-    DAGInitializedEvent dagInitedEvent = new DAGInitializedEvent(dagID, 100L, 
+    DAGInitializedEvent dagInitedEvent = new DAGInitializedEvent(dagID, 100L,
         "user", "dagName", null);
     DAGStartedEvent dagStartedEvent = new DAGStartedEvent(dagID, 0L, "user", "dagName");
     rService.handle(new DAGHistoryEvent(dagID, dagInitedEvent));
     rService.handle(new DAGHistoryEvent(dagID, dagStartedEvent));
-    
+
     // 3 vertices of this dag: v0, v1, v2
     TezVertexID v0Id = TezVertexID.getInstance(dagID, 0);
     TezVertexID v1Id = TezVertexID.getInstance(dagID, 1);
     TezVertexID v2Id = TezVertexID.getInstance(dagID, 2);
     // v0 VertexInitializedEvent
-    VertexInitializedEvent v0InitedEvent =  new VertexInitializedEvent(
+    VertexInitializedEvent v0InitedEvent = new VertexInitializedEvent(
         v0Id, "v0", 200L, 400L, 2, null, null, null, null);
     rService.handle(new DAGHistoryEvent(dagID, v0InitedEvent));
     // v1 VertexFinishedEvent(KILLED)
-    VertexFinishedEvent v1FinishedEvent = new VertexFinishedEvent(v1Id, "v1", 2, 300L, 400L, 
-        500L, 600L, 700L, VertexState.KILLED, 
+    VertexFinishedEvent v1FinishedEvent = new VertexFinishedEvent(v1Id, "v1", 2, 300L, 400L,
+        500L, 600L, 700L, VertexState.KILLED,
         "", null, null, null, null);
     rService.handle(new DAGHistoryEvent(dagID, v1FinishedEvent));
     // v2 VertexInitializedEvent -> VertexStartedEvent
@@ -768,17 +768,17 @@ public class TestRecoveryParser {
     NodeId nodeId = NodeId.newInstance("localhost", 9999);
     TezTaskAttemptID ta0t0v2Id = TezTaskAttemptID.getInstance(t0v2Id, 0);
     TaskAttemptStartedEvent ta0t0v2StartedEvent = new TaskAttemptStartedEvent(
-        ta0t0v2Id, "v1", 0L, containerId, 
+        ta0t0v2Id, "v1", 0L, containerId,
         nodeId, "", "", "");
     rService.handle(new DAGHistoryEvent(dagID, ta0t0v2StartedEvent));
     // attempts under t2v2
     TezTaskAttemptID ta0t2v2Id = TezTaskAttemptID.getInstance(t2v2Id, 0);
     TaskAttemptStartedEvent ta0t2v2StartedEvent = new TaskAttemptStartedEvent(
-        ta0t2v2Id, "v1", 500L, containerId, 
+        ta0t2v2Id, "v1", 500L, containerId,
         nodeId, "", "", "");
     rService.handle(new DAGHistoryEvent(dagID, ta0t2v2StartedEvent));
     TaskAttemptFinishedEvent ta0t2v2FinishedEvent = new TaskAttemptFinishedEvent(
-        ta0t2v2Id, "v1", 500L, 600L, 
+        ta0t2v2Id, "v1", 500L, 600L,
         TaskAttemptState.SUCCEEDED, null, null, "", null,
         null, null, 0L, null, 0L, null, null, null, null, null);
     rService.handle(new DAGHistoryEvent(dagID, ta0t2v2FinishedEvent));
@@ -830,7 +830,7 @@ public class TestRecoveryParser {
 
   // Simulate the behavior that summary event is written 
   // but non-summary is not written to hdfs
-  public static class MockRecoveryService extends RecoveryService{
+  public static class MockRecoveryService extends RecoveryService {
 
     public MockRecoveryService(AppContext appContext) {
       super(appContext);

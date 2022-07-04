@@ -77,51 +77,51 @@ public class HistoryEventProtoConverter {
   public HistoryEventProto convert(HistoryEvent historyEvent) {
     validateEvent(historyEvent);
     switch (historyEvent.getEventType()) {
-    case APP_LAUNCHED:
-      return convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
-    case AM_LAUNCHED:
-      return convertAMLaunchedEvent((AMLaunchedEvent) historyEvent);
-    case AM_STARTED:
-      return convertAMStartedEvent((AMStartedEvent) historyEvent);
-    case CONTAINER_LAUNCHED:
-      return convertContainerLaunchedEvent((ContainerLaunchedEvent) historyEvent);
-    case CONTAINER_STOPPED:
-      return convertContainerStoppedEvent((ContainerStoppedEvent) historyEvent);
-    case DAG_SUBMITTED:
-      return convertDAGSubmittedEvent((DAGSubmittedEvent) historyEvent);
-    case DAG_INITIALIZED:
-      return convertDAGInitializedEvent((DAGInitializedEvent) historyEvent);
-    case DAG_STARTED:
-      return convertDAGStartedEvent((DAGStartedEvent) historyEvent);
-    case DAG_FINISHED:
-      return convertDAGFinishedEvent((DAGFinishedEvent) historyEvent);
-    case VERTEX_INITIALIZED:
-      return convertVertexInitializedEvent((VertexInitializedEvent) historyEvent);
-    case VERTEX_STARTED:
-      return convertVertexStartedEvent((VertexStartedEvent) historyEvent);
-    case VERTEX_FINISHED:
-      return convertVertexFinishedEvent((VertexFinishedEvent) historyEvent);
-    case TASK_STARTED:
-      return convertTaskStartedEvent((TaskStartedEvent) historyEvent);
-    case TASK_FINISHED:
-      return convertTaskFinishedEvent((TaskFinishedEvent) historyEvent);
-    case TASK_ATTEMPT_STARTED:
-      return convertTaskAttemptStartedEvent((TaskAttemptStartedEvent) historyEvent);
-    case TASK_ATTEMPT_FINISHED:
-      return convertTaskAttemptFinishedEvent((TaskAttemptFinishedEvent) historyEvent);
-    case VERTEX_CONFIGURE_DONE:
-      return convertVertexReconfigureDoneEvent((VertexConfigurationDoneEvent) historyEvent);
-    case DAG_RECOVERED:
-      return convertDAGRecoveredEvent((DAGRecoveredEvent) historyEvent);
-    case VERTEX_COMMIT_STARTED:
-    case VERTEX_GROUP_COMMIT_STARTED:
-    case VERTEX_GROUP_COMMIT_FINISHED:
-    case DAG_COMMIT_STARTED:
-    case DAG_KILL_REQUEST:
-      throw new UnsupportedOperationException("Invalid Event, does not support history, eventType="
-          + historyEvent.getEventType());
-      // Do not add default, if a new event type is added, we'll get a warning for the
-      // switch.
+      case APP_LAUNCHED:
+        return convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
+      case AM_LAUNCHED:
+        return convertAMLaunchedEvent((AMLaunchedEvent) historyEvent);
+      case AM_STARTED:
+        return convertAMStartedEvent((AMStartedEvent) historyEvent);
+      case CONTAINER_LAUNCHED:
+        return convertContainerLaunchedEvent((ContainerLaunchedEvent) historyEvent);
+      case CONTAINER_STOPPED:
+        return convertContainerStoppedEvent((ContainerStoppedEvent) historyEvent);
+      case DAG_SUBMITTED:
+        return convertDAGSubmittedEvent((DAGSubmittedEvent) historyEvent);
+      case DAG_INITIALIZED:
+        return convertDAGInitializedEvent((DAGInitializedEvent) historyEvent);
+      case DAG_STARTED:
+        return convertDAGStartedEvent((DAGStartedEvent) historyEvent);
+      case DAG_FINISHED:
+        return convertDAGFinishedEvent((DAGFinishedEvent) historyEvent);
+      case VERTEX_INITIALIZED:
+        return convertVertexInitializedEvent((VertexInitializedEvent) historyEvent);
+      case VERTEX_STARTED:
+        return convertVertexStartedEvent((VertexStartedEvent) historyEvent);
+      case VERTEX_FINISHED:
+        return convertVertexFinishedEvent((VertexFinishedEvent) historyEvent);
+      case TASK_STARTED:
+        return convertTaskStartedEvent((TaskStartedEvent) historyEvent);
+      case TASK_FINISHED:
+        return convertTaskFinishedEvent((TaskFinishedEvent) historyEvent);
+      case TASK_ATTEMPT_STARTED:
+        return convertTaskAttemptStartedEvent((TaskAttemptStartedEvent) historyEvent);
+      case TASK_ATTEMPT_FINISHED:
+        return convertTaskAttemptFinishedEvent((TaskAttemptFinishedEvent) historyEvent);
+      case VERTEX_CONFIGURE_DONE:
+        return convertVertexReconfigureDoneEvent((VertexConfigurationDoneEvent) historyEvent);
+      case DAG_RECOVERED:
+        return convertDAGRecoveredEvent((DAGRecoveredEvent) historyEvent);
+      case VERTEX_COMMIT_STARTED:
+      case VERTEX_GROUP_COMMIT_STARTED:
+      case VERTEX_GROUP_COMMIT_FINISHED:
+      case DAG_COMMIT_STARTED:
+      case DAG_KILL_REQUEST:
+        throw new UnsupportedOperationException("Invalid Event, does not support history, eventType="
+            + historyEvent.getEventType());
+        // Do not add default, if a new event type is added, we'll get a warning for the
+        // switch.
     }
     throw new UnsupportedOperationException(
         "Unhandled Event, eventType=" + historyEvent.getEventType());
@@ -135,8 +135,8 @@ public class HistoryEventProtoConverter {
   }
 
   private HistoryEventProto.Builder makeBuilderForEvent(HistoryEvent event, long time,
-      TezDAGID dagId, ApplicationId appId, ApplicationAttemptId appAttemptId, TezVertexID vertexId,
-      TezTaskID taskId, TezTaskAttemptID taskAttemptId, String user) {
+                                                        TezDAGID dagId, ApplicationId appId, ApplicationAttemptId appAttemptId, TezVertexID vertexId,
+                                                        TezTaskID taskId, TezTaskAttemptID taskAttemptId, String user) {
     HistoryEventProto.Builder builder = HistoryEventProto.newBuilder();
     builder.setEventType(event.getEventType().name());
     builder.setEventTime(time);
@@ -185,7 +185,7 @@ public class HistoryEventProtoConverter {
   }
 
   private void addEventData(HistoryEventProto.Builder builder, String key,
-      Map<String, Object> value) {
+                            Map<String, Object> value) {
     try {
       builder.addEventData(
           KVPair.newBuilder().setKey(key).setValue(mapper.writeValueAsString(value)));
@@ -198,8 +198,8 @@ public class HistoryEventProtoConverter {
     HistoryEventProto.Builder builder = makeBuilderForEvent(event, event.getLaunchTime(), null,
         event.getApplicationId(), null, null, null, null, event.getUser());
     // This is ok as long as we do not modify the underlying map.
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    Map<String, Object> confMap = (Map)DAGUtils.convertConfigurationToATSMap(event.getConf());
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    Map<String, Object> confMap = (Map) DAGUtils.convertConfigurationToATSMap(event.getConf());
     addEventData(builder, ATSConstants.CONFIG, confMap);
     if (event.getVersion() != null) {
       addEventData(builder, ATSConstants.TEZ_VERSION,

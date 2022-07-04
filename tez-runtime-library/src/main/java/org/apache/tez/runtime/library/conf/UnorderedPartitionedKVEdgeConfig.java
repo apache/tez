@@ -38,7 +38,7 @@ import org.apache.tez.runtime.library.output.UnorderedPartitionedKVOutput;
 
 /**
  * Configure payloads for the UnorderedPartitionedKVOutput and UnorderedKVInput pair </p>
- *
+ * <p>
  * Values will be picked up from tez-site if not specified, otherwise defaults from
  * {@link org.apache.tez.runtime.library.api.TezRuntimeConfiguration} will be used.
  */
@@ -55,7 +55,6 @@ public class UnorderedPartitionedKVEdgeConfig
       UnorderedKVInputConfig inputConfiguration) {
     this.outputConf = outputConfiguration;
     this.inputConf = inputConfiguration;
-
   }
 
   /**
@@ -273,6 +272,7 @@ public class UnorderedPartitionedKVEdgeConfig
 
     /**
      * Configure the specific input
+     *
      * @return a builder to configure the input
      */
     public UnorderedKVInputConfig.SpecificBuilder<Builder> configureInput() {
@@ -281,11 +281,11 @@ public class UnorderedPartitionedKVEdgeConfig
 
     /**
      * Build and return an instance of the configuration
+     *
      * @return an instance of the acatual configuration
      */
     public UnorderedPartitionedKVEdgeConfig build() {
       return new UnorderedPartitionedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());
     }
-
   }
 }

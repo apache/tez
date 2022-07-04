@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,12 +55,12 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
   // Public for Writable serialization. Verify if this is actually required.
   public TezTaskAttemptID() {
   }
-  
+
   /**
    * Constructs a TaskAttemptID object from given {@link TezTaskID}.  
    * @param taskID TaskID that this task belongs to  
    * @param id the task attempt number
-   * @throws  NullPointerException if {@code taskID} is {@code null}
+   * @throws NullPointerException if {@code taskID} is {@code null}
    */
   public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {
     Objects.requireNonNull(taskID);
@@ -77,16 +77,16 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
   public TezTaskID getTaskID() {
     return taskId;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (!super.equals(o))
       return false;
 
-    TezTaskAttemptID that = (TezTaskAttemptID)o;
+    TezTaskAttemptID that = (TezTaskAttemptID) o;
     return this.taskId.equals(that.taskId);
   }
-  
+
   /**
    * Add the unique string to the StringBuilder
    * @param builder the builder to append ot
@@ -97,27 +97,27 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     builder.append(SEPARATOR);
     return builder.append(id);
   }
-  
+
   @Override
   public int hashCode() {
     return taskId.hashCode() * 539501 + id;
   }
-  
+
   /**Compare TaskIds by first tipIds, then by task numbers. */
   @Override
   public int compareTo(TezID o) {
-    TezTaskAttemptID that = (TezTaskAttemptID)o;
+    TezTaskAttemptID that = (TezTaskAttemptID) o;
     int tipComp = this.taskId.compareTo(that.taskId);
-    if(tipComp == 0) {
+    if (tipComp == 0) {
       return this.id - that.id;
-    }
-    else return tipComp;
+    } else return tipComp;
   }
+
   @Override
-  public String toString() { 
+  public String toString() {
     return appendTo(new StringBuilder(ATTEMPT)).toString();
   }
-  
+
   @Override
   // Can't do much about this instance if used via the RPC layer. Any downstream
   // users can however avoid using this method.
@@ -125,7 +125,7 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     taskId = TezTaskID.readTezTaskID(in);
     super.readFields(in);
   }
-  
+
   public static TezTaskAttemptID readTezTaskAttemptID(DataInput in) throws IOException {
     TezTaskID taskID = TezTaskID.readTezTaskID(in);
     int attemptIdInt = TezID.readID(in);
@@ -163,5 +163,4 @@ public class TezTaskAttemptID extends TezID implements TaskIDAware {
     }
     return null;
   }
-
 }

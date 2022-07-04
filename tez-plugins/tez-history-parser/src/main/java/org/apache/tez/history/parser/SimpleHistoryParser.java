@@ -69,9 +69,13 @@ public class SimpleHistoryParser extends BaseParser {
 
   protected interface JSONObjectSource {
     boolean hasNext() throws IOException;
+
     JSONObject next() throws JSONException;
+
     void close();
-  };
+  }
+
+  ;
 
   /**
    * Get in-memory representation of DagInfo
@@ -105,7 +109,7 @@ public class SimpleHistoryParser extends BaseParser {
   }
 
   private void populateOtherInfo(JSONObject source, String entityName,
-      Map<String, JSONObject> destMap) throws JSONException {
+                                 Map<String, JSONObject> destMap) throws JSONException {
     JSONObject destinationJson = destMap.get(entityName);
     JSONObject destOtherInfo = destinationJson.getJSONObject(Constants.OTHER_INFO);
     populateOtherInfo(source, destOtherInfo);
@@ -153,7 +157,7 @@ public class SimpleHistoryParser extends BaseParser {
   }
 
   protected void postProcessMaps(Map<String, JSONObject> vertexJsonMap,
-      Map<String, JSONObject> taskJsonMap, Map<String, JSONObject> attemptJsonMap)
+                                 Map<String, JSONObject> taskJsonMap, Map<String, JSONObject> attemptJsonMap)
       throws JSONException {
     for (JSONObject jsonObject : vertexJsonMap.values()) {
       VertexInfo vertexInfo = VertexInfo.create(jsonObject);
@@ -214,8 +218,8 @@ public class SimpleHistoryParser extends BaseParser {
   }
 
   protected void readEventsFromSource(String dagId, JSONObjectSource source,
-      Map<String, JSONObject> vertexJsonMap, Map<String, JSONObject> taskJsonMap,
-      Map<String, JSONObject> attemptJsonMap) throws JSONException, TezException, IOException{
+                                      Map<String, JSONObject> vertexJsonMap, Map<String, JSONObject> taskJsonMap,
+                                      Map<String, JSONObject> attemptJsonMap) throws JSONException, TezException, IOException {
     JSONObject dagJson = null;
     TezDAGID tezDAGID = TezDAGID.fromString(dagId);
     String userName = null;
@@ -226,87 +230,87 @@ public class SimpleHistoryParser extends BaseParser {
       String entity = jsonObject.getString(Constants.ENTITY);
       String entityType = jsonObject.getString(Constants.ENTITY_TYPE);
       switch (entityType) {
-      case Constants.TEZ_DAG_ID:
-        if (!dagId.equals(entity)) {
-          LOG.warn(dagId + " is not matching with " + entity);
-          continue;
-        }
-        // Club all DAG related information together (DAG_INIT, DAG_FINISH etc). Each of them
-        // would have a set of entities in otherinfo (e.g vertex mapping, dagPlan, start/finish
-        // time etc).
-        if (dagJson == null) {
-          dagJson = jsonObject;
-        } else {
-          if (dagJson.optJSONObject(ATSConstants.OTHER_INFO).optJSONObject(ATSConstants.DAG_PLAN) == null) {
-            // if DAG_PLAN is not filled already, let's try to fetch it from other
-            dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN,
-                jsonObject.getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
+        case Constants.TEZ_DAG_ID:
+          if (!dagId.equals(entity)) {
+            LOG.warn(dagId + " is not matching with " + entity);
+            continue;
           }
-          mergeSubJSONArray(jsonObject, dagJson, Constants.EVENTS);
-        }
-        JSONArray relatedEntities = dagJson.optJSONArray(Constants
-            .RELATED_ENTITIES);
-        //UserName is present in related entities
-        // {"entity":"userXYZ","entitytype":"user"}
-        if (relatedEntities != null) {
-          for (int i = 0; i < relatedEntities.length(); i++) {
-            JSONObject subEntity = relatedEntities.getJSONObject(i);
-            String subEntityType = subEntity.optString(Constants.ENTITY_TYPE);
-            if (subEntityType != null && subEntityType.equals(Constants.USER)) {
-              userName = subEntity.getString(Constants.ENTITY);
-              break;
+          // Club all DAG related information together (DAG_INIT, DAG_FINISH etc). Each of them
+          // would have a set of entities in otherinfo (e.g vertex mapping, dagPlan, start/finish
+          // time etc).
+          if (dagJson == null) {
+            dagJson = jsonObject;
+          } else {
+            if (dagJson.optJSONObject(ATSConstants.OTHER_INFO).optJSONObject(ATSConstants.DAG_PLAN) == null) {
+              // if DAG_PLAN is not filled already, let's try to fetch it from other
+              dagJson.getJSONObject(ATSConstants.OTHER_INFO).put(ATSConstants.DAG_PLAN,
+                  jsonObject.getJSONObject(ATSConstants.OTHER_INFO).getJSONObject(ATSConstants.DAG_PLAN));
+            }
+            mergeSubJSONArray(jsonObject, dagJson, Constants.EVENTS);
+          }
+          JSONArray relatedEntities = dagJson.optJSONArray(Constants
+              .RELATED_ENTITIES);
+          //UserName is present in related entities
+          // {"entity":"userXYZ","entitytype":"user"}
+          if (relatedEntities != null) {
+            for (int i = 0; i < relatedEntities.length(); i++) {
+              JSONObject subEntity = relatedEntities.getJSONObject(i);
+              String subEntityType = subEntity.optString(Constants.ENTITY_TYPE);
+              if (subEntityType != null && subEntityType.equals(Constants.USER)) {
+                userName = subEntity.getString(Constants.ENTITY);
+                break;
+              }
             }
           }
-        }
-        populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO),
-            dagJson.getJSONObject(Constants.OTHER_INFO));
-        break;
-      case Constants.TEZ_VERTEX_ID:
-        String vertexName = entity;
-        TezVertexID tezVertexID = TezVertexID.fromString(vertexName);
-        if (!tezDAGID.equals(tezVertexID.getDAGID())) {
-          LOG.warn("{} does not belong to {} ('{}' != '{}')}", vertexName, tezDAGID, tezDAGID, tezVertexID.getDAGID());
-          continue;
-        }
-        if (!vertexJsonMap.containsKey(vertexName)) {
-          vertexJsonMap.put(vertexName, jsonObject);
-        } else {
-          mergeSubJSONArray(jsonObject, vertexJsonMap.get(vertexName), Constants.EVENTS);
-        }
-        populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), vertexName, vertexJsonMap);
-        break;
-      case Constants.TEZ_TASK_ID:
-        String taskName = entity;
-        TezTaskID tezTaskID = TezTaskID.fromString(taskName);
-        if (!tezDAGID.equals(tezTaskID.getDAGID())) {
-          LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskName, tezDAGID, tezDAGID,
-              tezTaskID.getDAGID());
-          continue;
-        }
-        if (!taskJsonMap.containsKey(taskName)) {
-          taskJsonMap.put(taskName, jsonObject);
-        } else {
-          mergeSubJSONArray(jsonObject, taskJsonMap.get(taskName), Constants.EVENTS);
-        }
-        populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskName, taskJsonMap);
-        break;
-      case Constants.TEZ_TASK_ATTEMPT_ID:
-        String taskAttemptName = entity;
-        TezTaskAttemptID tezAttemptId = TezTaskAttemptID.fromString(taskAttemptName);
-        if (!tezDAGID.equals(tezAttemptId.getDAGID())) {
-          LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskAttemptName, tezDAGID, tezDAGID,
-              tezAttemptId.getDAGID());
-          continue;
-        }
-        if (!attemptJsonMap.containsKey(taskAttemptName)) {
-          attemptJsonMap.put(taskAttemptName, jsonObject);
-        } else {
-          mergeSubJSONArray(jsonObject, attemptJsonMap.get(taskAttemptName), Constants.EVENTS);
-        }
-        populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskAttemptName, attemptJsonMap);
-        break;
-      default:
-        break;
+          populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO),
+              dagJson.getJSONObject(Constants.OTHER_INFO));
+          break;
+        case Constants.TEZ_VERTEX_ID:
+          String vertexName = entity;
+          TezVertexID tezVertexID = TezVertexID.fromString(vertexName);
+          if (!tezDAGID.equals(tezVertexID.getDAGID())) {
+            LOG.warn("{} does not belong to {} ('{}' != '{}')}", vertexName, tezDAGID, tezDAGID, tezVertexID.getDAGID());
+            continue;
+          }
+          if (!vertexJsonMap.containsKey(vertexName)) {
+            vertexJsonMap.put(vertexName, jsonObject);
+          } else {
+            mergeSubJSONArray(jsonObject, vertexJsonMap.get(vertexName), Constants.EVENTS);
+          }
+          populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), vertexName, vertexJsonMap);
+          break;
+        case Constants.TEZ_TASK_ID:
+          String taskName = entity;
+          TezTaskID tezTaskID = TezTaskID.fromString(taskName);
+          if (!tezDAGID.equals(tezTaskID.getDAGID())) {
+            LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskName, tezDAGID, tezDAGID,
+                tezTaskID.getDAGID());
+            continue;
+          }
+          if (!taskJsonMap.containsKey(taskName)) {
+            taskJsonMap.put(taskName, jsonObject);
+          } else {
+            mergeSubJSONArray(jsonObject, taskJsonMap.get(taskName), Constants.EVENTS);
+          }
+          populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskName, taskJsonMap);
+          break;
+        case Constants.TEZ_TASK_ATTEMPT_ID:
+          String taskAttemptName = entity;
+          TezTaskAttemptID tezAttemptId = TezTaskAttemptID.fromString(taskAttemptName);
+          if (!tezDAGID.equals(tezAttemptId.getDAGID())) {
+            LOG.warn("{} does not belong to {} ('{}' != '{}')}", taskAttemptName, tezDAGID, tezDAGID,
+                tezAttemptId.getDAGID());
+            continue;
+          }
+          if (!attemptJsonMap.containsKey(taskAttemptName)) {
+            attemptJsonMap.put(taskAttemptName, jsonObject);
+          } else {
+            mergeSubJSONArray(jsonObject, attemptJsonMap.get(taskAttemptName), Constants.EVENTS);
+          }
+          populateOtherInfo(jsonObject.optJSONObject(Constants.OTHER_INFO), taskAttemptName, attemptJsonMap);
+          break;
+        default:
+          break;
       }
     }
     source.close();

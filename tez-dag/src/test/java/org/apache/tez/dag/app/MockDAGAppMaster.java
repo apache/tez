@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app;
 
@@ -85,7 +85,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public class MockDAGAppMaster extends DAGAppMaster {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MockDAGAppMaster.class);
   MockContainerLauncher containerLauncher;
   private final AtomicBoolean launcherGoFlag;
@@ -100,25 +100,27 @@ public class MockDAGAppMaster extends DAGAppMaster {
   boolean doSleep = true;
   int handlerConcurrency = 1;
   int numConcurrentContainers = 1;
-  
+
   ThreadMXBean threadMxBean = ManagementFactory.getThreadMXBean();
   AtomicLong heartbeatCpu = new AtomicLong(0);
   AtomicLong heartbeatTime = new AtomicLong(0);
   AtomicLong numHearbeats = new AtomicLong(0);
-  
+
   public static interface StatisticsDelegate {
     public TaskStatistics getStatistics(TaskSpec taskSpec);
   }
+
   public static interface CountersDelegate {
     public TezCounters getCounters(TaskSpec taskSpec);
   }
-  
+
   public static interface EventsDelegate {
     public void getEvents(TaskSpec taskSpec, List<TezEvent> events, long time);
   }
-  
+
   public static interface ContainerDelegate {
     public void stop(ContainerStopRequest event);
+
     public void launch(ContainerLaunchRequest event);
   }
 
@@ -131,20 +133,20 @@ public class MockDAGAppMaster extends DAGAppMaster {
     BlockingQueue<ContainerLauncherEvent> eventQueue = new LinkedBlockingQueue<ContainerLauncherEvent>();
     Thread eventHandlingThread;
     ListeningExecutorService executorService;
-    
+
     Map<ContainerId, ContainerData> containers = Maps.newConcurrentMap();
     ArrayBlockingQueue<Worker> workers;
     TaskCommunicatorManager taskCommunicatorManager;
     TezTaskCommunicatorImpl taskCommunicator;
-    
+
     AtomicBoolean startScheduling = new AtomicBoolean(true);
     AtomicBoolean goFlag;
     boolean updateProgress = true;
 
     LinkedBlockingQueue<ContainerData> containersToProcess = new LinkedBlockingQueue<ContainerData>();
-    
+
     Map<TezTaskID, Integer> preemptedTasks = Maps.newConcurrentMap();
-    
+
     Map<TezTaskAttemptID, Integer> tasksWithStatusUpdates = Maps.newConcurrentMap();
 
     public MockContainerLauncher(AtomicBoolean goFlag,
@@ -152,7 +154,6 @@ public class MockDAGAppMaster extends DAGAppMaster {
       super(containerLauncherContext);
       this.goFlag = goFlag;
     }
-
 
     public class ContainerData {
       ContainerId cId;
@@ -166,17 +167,17 @@ public class MockDAGAppMaster extends DAGAppMaster {
       boolean completed;
       String cIdStr;
       AtomicBoolean remove = new AtomicBoolean(false);
-      
+
       public ContainerData(ContainerId cId, ContainerLaunchContext context) {
         this.cId = cId;
         this.cIdStr = cId.toString();
         this.launchContext = context;
       }
-      
+
       void remove() {
         remove.set(true);
       }
-      
+
       void clear() {
         taId = null;
         vName = null;
@@ -190,7 +191,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
         remove.set(false);
       }
     }
-    
+
     @Override
     public void start() throws Exception {
       taskCommunicatorManager = (TaskCommunicatorManager) getTaskCommunicatorManager();
@@ -201,9 +202,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
           new ThreadFactoryBuilder().setDaemon(true).setNameFormat("MockLauncherExecutionThread [%d]")
               .build());
       this.executorService = MoreExecutors.listeningDecorator(rawExecutor);
-      int numWorkers = numConcurrentContainers*2; // handle races that cause extra
+      int numWorkers = numConcurrentContainers * 2; // handle races that cause extra
       workers = new ArrayBlockingQueue<Worker>(numWorkers);
-      for (int i=0; i<numWorkers; ++i) {
+      for (int i = 0; i < numWorkers; ++i) {
         workers.add(new Worker());
       }
     }
@@ -218,7 +219,6 @@ public class MockDAGAppMaster extends DAGAppMaster {
         executorService.shutdownNow();
       }
     }
-
 
     @Override
     public void launchContainer(ContainerLaunchRequest launchRequest) {
@@ -244,11 +244,11 @@ public class MockDAGAppMaster extends DAGAppMaster {
         }
       }
     }
-    
+
     public void startScheduling(boolean value) {
       startScheduling.set(value);
     }
-    
+
     public void updateProgress(boolean value) {
       this.updateProgress = value;
     }
@@ -256,21 +256,21 @@ public class MockDAGAppMaster extends DAGAppMaster {
     public Map<ContainerId, ContainerData> getContainers() {
       return containers;
     }
-    
+
     public void preemptContainerForTask(TezTaskID tId, int uptoVersion) {
       preemptedTasks.put(tId, uptoVersion);
     }
-    
+
     public void preemptContainer(ContainerData cData) {
       getTaskSchedulerManager().containerCompleted(0, null,
           ContainerStatus.newInstance(cData.cId, null, "Preempted", ContainerExitStatus.PREEMPTED));
       cData.clear();
     }
-    
+
     public void setStatusUpdatesForTask(TezTaskAttemptID tId, int numUpdates) {
       tasksWithStatusUpdates.put(tId, numUpdates);
     }
-    
+
     void stop(ContainerStopRequest event) {
       // remove from simulated container list
       containers.remove(event.getContainerId());
@@ -291,20 +291,20 @@ public class MockDAGAppMaster extends DAGAppMaster {
       }
       getContext().containerLaunched(event.getContainerId());
     }
-    
+
     public void waitTillContainersLaunched() throws InterruptedException {
       while (containers.isEmpty()) {
         Thread.sleep(50);
       }
     }
-    
+
     void incrementTime(long inc) {
       Clock clock = MockDAGAppMaster.this.getContext().getClock();
       if (clock instanceof MockClock) {
         ((MockClock) clock).incrementTime(inc);
       }
     }
-    
+
     @Override
     public void run() {
       Thread.currentThread().setName("MockLauncher");
@@ -336,7 +336,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
         LOG.warn("Exception in mock container launcher thread", ie);
       }
     }
-    
+
     private void doHeartbeat(TezHeartbeatRequest request, ContainerData cData) throws Exception {
       long startTime = System.nanoTime();
       long startCpuTime = threadMxBean.getCurrentThreadCpuTime();
@@ -349,13 +349,13 @@ public class MockDAGAppMaster extends DAGAppMaster {
         if (!response.getEvents().isEmpty()) {
           long stopTime = System.nanoTime();
           long stopCpuTime = threadMxBean.getCurrentThreadCpuTime();
-          heartbeatTime.addAndGet((stopTime-startTime)/1000);
-          heartbeatCpu.addAndGet((stopCpuTime-startCpuTime)/1000);
+          heartbeatTime.addAndGet((stopTime - startTime) / 1000);
+          heartbeatCpu.addAndGet((stopCpuTime - startCpuTime) / 1000);
           numHearbeats.incrementAndGet();
         }
       }
     }
-        
+
     class Worker implements Callable<Void> {
       class WorkerCallback implements FutureCallback<Void> {
         @Override
@@ -378,15 +378,15 @@ public class MockDAGAppMaster extends DAGAppMaster {
 
       volatile ContainerData cData;
       WorkerCallback callback = new WorkerCallback();
-      
+
       WorkerCallback getCallback() {
         return callback;
       }
-      
+
       void setContainerData(ContainerData cData) {
         this.cData = cData;
       }
-      
+
       @Override
       public Void call() throws Exception {
         try {
@@ -411,13 +411,13 @@ public class MockDAGAppMaster extends DAGAppMaster {
             if (cData.numUpdates == 0 || // do at least one update
                 updatesToMake != null && cData.numUpdates < updatesToMake) {
               List<TezEvent> events = Lists.newArrayListWithCapacity(
-                                      cData.taskSpec.getOutputs().size() + 1);
+                  cData.taskSpec.getOutputs().size() + 1);
               if (cData.numUpdates == 0 && eventsDelegate != null) {
                 eventsDelegate.getEvents(cData.taskSpec, events, MockDAGAppMaster.this.getContext().getClock().getTime());
               }
               TezCounters counters = null;
               if (countersDelegate != null) {
-                 counters = countersDelegate.getCounters(cData.taskSpec);
+                counters = countersDelegate.getCounters(cData.taskSpec);
               }
               TaskStatistics stats = null;
               if (statsDelegate != null) {
@@ -425,10 +425,10 @@ public class MockDAGAppMaster extends DAGAppMaster {
               }
               cData.numUpdates++;
               float maxUpdates = (updatesToMake != null) ? updatesToMake.intValue() : 1;
-              float progress = updateProgress ? cData.numUpdates/maxUpdates : 0f;
-              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats, false), 
+              float progress = updateProgress ? cData.numUpdates / maxUpdates : 0f;
+              events.add(new TezEvent(new TaskStatusUpdateEvent(counters, progress, stats, false),
                   new EventMetaData(
-                  EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
+                      EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   MockDAGAppMaster.this.getContext().getClock().getTime()));
               TezHeartbeatRequest request = new TezHeartbeatRequest(cData.numUpdates, events,
                   cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 50000, 0);
@@ -440,7 +440,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
               cData.completed = true;
               List<TezEvent> events = Collections.singletonList(new TezEvent(
                   new TaskAttemptCompletedEvent(), new EventMetaData(
-                      EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
+                  EventProducerConsumerType.SYSTEM, cData.vName, "", cData.taId),
                   MockDAGAppMaster.this.getContext().getClock().getTime()));
               TezHeartbeatRequest request = new TezHeartbeatRequest(++cData.numUpdates, events,
                   cData.nextPreRoutedFromEventId, cData.cIdStr, cData.taId, cData.nextFromEventId, 10000, 0);
@@ -455,10 +455,9 @@ public class MockDAGAppMaster extends DAGAppMaster {
         }
         return null;
       }
-      
     }
   }
-  
+
   public class MockHistoryEventHandler extends HistoryEventHandler {
 
     public MockHistoryEventHandler(AppContext context) {
@@ -489,16 +488,15 @@ public class MockDAGAppMaster extends DAGAppMaster {
       return shutdownInvoked.get() > 0 ||
           shutdownInvokedWithoutDelay.get() > 0;
     }
-
   }
 
   public MockDAGAppMaster(ApplicationAttemptId applicationAttemptId, ContainerId containerId,
-      String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
-      boolean isSession, String workingDirectory, String[] localDirs, String[] logDirs,
-      AtomicBoolean launcherGoFlag, boolean initFailFlag, boolean startFailFlag,
-      Credentials credentials, String jobUserName, int handlerConcurrency, int numConcurrentContainers) {
+                          String nmHost, int nmPort, int nmHttpPort, Clock clock, long appSubmitTime,
+                          boolean isSession, String workingDirectory, String[] localDirs, String[] logDirs,
+                          AtomicBoolean launcherGoFlag, boolean initFailFlag, boolean startFailFlag,
+                          Credentials credentials, String jobUserName, int handlerConcurrency, int numConcurrentContainers) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
-        isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(),
+        isSession, workingDirectory, localDirs, logDirs, new TezApiVersionInfo().getVersion(),
         credentials, jobUserName, null);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.launcherGoFlag = launcherGoFlag;
@@ -541,7 +539,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
   public MockDAGAppMasterShutdownHandler getShutdownHandler() {
     return (MockDAGAppMasterShutdownHandler) this.shutdownHandler;
   }
-  
+
   public void clearStats() {
     heartbeatCpu.set(0);
     heartbeatTime.set(0);

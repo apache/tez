@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,7 +73,7 @@ public class TezCommonUtils {
    * function makes sure if the staging directory exists. If not, it creates the
    * directory with permission <code>TEZ_AM_DIR_PERMISSION</code>.
    * </p>
-   * 
+   *
    * @param conf
    *          TEZ configuration
    * @return Fully qualified staging directory
@@ -103,7 +103,7 @@ public class TezCommonUtils {
    * sub-directory (<code>TEZ_SYSTEM_SUB_DIR</code>/<APP_ID>) under the base
    * staging directory, often provided by user.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -134,7 +134,7 @@ public class TezCommonUtils {
    * its temporary files under this sub-directory. The function normally doesn't
    * creates any sub-directory under the base staging directory.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -154,7 +154,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store binary configuration
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to configuration
@@ -168,7 +168,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store local resources/session jars
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the session jars
@@ -182,7 +182,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store binary plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the plan in binary
@@ -196,7 +196,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store text plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param strAppId
@@ -207,7 +207,7 @@ public class TezCommonUtils {
    */
   @Private
   public static Path getTezTextPlanStagingPath(Path tezSysStagingPath, String strAppId,
-      String dagPBName) {
+                                               String dagPBName) {
     String fileName = strAppId + "-" + dagPBName + "-" + TezConstants.TEZ_PB_PLAN_TEXT_NAME;
     return new Path(tezSysStagingPath, fileName);
   }
@@ -216,7 +216,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store recovery information
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param conf
@@ -237,7 +237,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store app attempt specific recovery details
    * </p>
-   * 
+   *
    * @param recoveryPath
    *          TEZ recovery directory used for Tez internals
    * @param attemptID
@@ -253,7 +253,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store DAG specific recovery info
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          :TEZ system level staging directory used for Tez internals
    * @param dagID
@@ -269,7 +269,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store summary info for recovery
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          TEZ system level staging directory used for Tez internals
    * @return Summary event path used in recovery
@@ -283,7 +283,7 @@ public class TezCommonUtils {
    * <p>
    * Create a directory with predefined directory permission
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param dir
@@ -295,8 +295,8 @@ public class TezCommonUtils {
     fs.mkdirs(dir, perm);
     if (!fs.getFileStatus(dir).getPermission().equals(perm)) {
       LOG.warn("Directory " + dir.toString() + " created with unexpected permissions : "
-            + fs.getFileStatus(dir).getPermission() + ". Fixing permissions to correct value : "
-            + perm.toString());
+          + fs.getFileStatus(dir).getPermission() + ". Fixing permissions to correct value : "
+          + perm.toString());
       fs.setPermission(dir, perm);
     }
   }
@@ -306,7 +306,7 @@ public class TezCommonUtils {
    * Create a file with <code>TEZ_AM_FILE_PERMISSION</code> permission and
    * returns OutputStream
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param filePath
@@ -317,9 +317,9 @@ public class TezCommonUtils {
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
   }
-  
+
   public static void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs,
-      Map<String, LocalResource> originalLRs, String logContext) {
+                                                 Map<String, LocalResource> originalLRs, String logContext) {
     // TODO TEZ-1798. Handle contents of Tez archives for duplicate LocalResource checks
     if (additionalLrs != null && !additionalLrs.isEmpty()) {
       StringBuilder sb = new StringBuilder();
@@ -503,7 +503,7 @@ public class TezCommonUtils {
   }
 
   public static String getSystemPropertiesToLog(Configuration conf) {
-    Collection <String> keys = conf.getTrimmedStringCollection(
+    Collection<String> keys = conf.getTrimmedStringCollection(
         TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG);
     if (keys.isEmpty()) {
       keys = TezConfiguration.TEZ_JVM_SYSTEM_PROPERTIES_TO_LOG_DEFAULT;
@@ -556,7 +556,7 @@ public class TezCommonUtils {
           pollInterval);
     }
     return Math.max(TezConstants.TEZ_AM_CLIENT_HEARTBEAT_POLL_INTERVAL_MILLIS_MINIMUM,
-        heartbeatIntervalMillis/buckets);
+        heartbeatIntervalMillis / buckets);
   }
 
   public static long getDAGSessionTimeout(Configuration conf) {
@@ -576,7 +576,7 @@ public class TezCommonUtils {
   public static int getJavaVersion() {
     String javaVersionString = System.getProperty("java.version");
     return javaVersionString.split("\\.")[0].equals("1")
-      ? Integer.parseInt(javaVersionString.split("\\.")[1]) // "1.8" -> 8
-      : Integer.parseInt(javaVersionString.split("\\.")[0]); // "9.x" -> 9, "11.x" -> 11
+        ? Integer.parseInt(javaVersionString.split("\\.")[1]) // "1.8" -> 8
+        : Integer.parseInt(javaVersionString.split("\\.")[0]); // "9.x" -> 9, "11.x" -> 11
   }
 }

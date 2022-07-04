@@ -21,7 +21,6 @@ package org.apache.tez.analyzer;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
-
 public interface Analyzer {
 
   /**

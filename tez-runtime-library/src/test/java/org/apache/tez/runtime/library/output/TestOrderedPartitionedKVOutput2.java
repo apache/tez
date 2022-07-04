@@ -89,7 +89,7 @@ public class TestOrderedPartitionedKVOutput2 {
         .getEmptyPartitions());
     BitSet emptyPartionsBitSet = TezUtilsInternal.fromByteArray(emptyPartitions);
     assertEquals(numPartitions, emptyPartionsBitSet.cardinality());
-    for (int i = 0 ; i < numPartitions ; i++) {
+    for (int i = 0; i < numPartitions; i++) {
       assertTrue(emptyPartionsBitSet.get(i));
     }
   }

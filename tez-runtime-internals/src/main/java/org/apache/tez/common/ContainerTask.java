@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -41,7 +41,7 @@ public class ContainerTask implements Writable {
   }
 
   public ContainerTask(TaskSpec taskSpec, boolean shouldDie,
-      Map<String, TezLocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
+                       Map<String, TezLocalResource> additionalResources, Credentials credentials, boolean credentialsChanged) {
     this.taskSpec = taskSpec;
     this.shouldDie = shouldDie;
     this.additionalResources = additionalResources;
@@ -56,15 +56,15 @@ public class ContainerTask implements Writable {
   public boolean shouldDie() {
     return shouldDie;
   }
-  
+
   public Map<String, TezLocalResource> getAdditionalResources() {
     return this.additionalResources;
   }
-  
+
   public Credentials getCredentials() {
     return this.credentials;
   }
-  
+
   public boolean haveCredentialsChanged() {
     return this.credentialsChanged;
   }
@@ -107,7 +107,7 @@ public class ContainerTask implements Writable {
     int numAdditionalResources = in.readInt();
     additionalResources = Maps.newHashMap();
     if (numAdditionalResources != -1) {
-      for (int i = 0 ; i < numAdditionalResources ; i++) {
+      for (int i = 0; i < numAdditionalResources; i++) {
         String resourceName = in.readUTF();
         TezLocalResource localResource = new TezLocalResource();
         localResource.readFields(in);
@@ -146,9 +146,8 @@ public class ContainerTask implements Writable {
       sb.append("none");
     } else {
       sb.append("#tokens=").append(credentials.numberOfTokens())
-      .append(", #secretKeys: ").append(credentials.numberOfSecretKeys());
+          .append(", #secretKeys: ").append(credentials.numberOfSecretKeys());
     }
     return sb.toString();
   }
-
 }

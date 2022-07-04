@@ -99,7 +99,6 @@ public class TestOrderedGroupedMergedKVInputConfig {
 
     OrderedGroupedKVInputConfig configuration = builder.build();
 
-
     OrderedGroupedKVInputConfig rebuilt = new OrderedGroupedKVInputConfig();
     rebuilt.fromUserPayload(configuration.toUserPayload());
 

@@ -31,6 +31,7 @@ public abstract class HadoopShim {
 
   /**
    * Set up Hadoop Caller Context
+   *
    * @param context Context to be set
    */
   public void setHadoopCallerContext(String context) {
@@ -49,6 +50,7 @@ public abstract class HadoopShim {
 
   /**
    * Extract supported Resource types from the RM's response when the AM registers
+   *
    * @param response ApplicationMasterResponse from RM after registering
    * @return Set of Resource types that are supported
    */
@@ -57,7 +59,7 @@ public abstract class HadoopShim {
   }
 
   public FinalApplicationStatus applyFinalApplicationStatusCorrection(FinalApplicationStatus orig,
-      boolean isSessionMode, boolean isError) {
+                                                                      boolean isSessionMode, boolean isError) {
     return orig;
   }
 }

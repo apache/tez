@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 package org.apache.tez.mapreduce.processor.map;
-
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -68,30 +67,27 @@ import org.junit.Test;
 
 @SuppressWarnings("deprecation")
 public class TestMapProcessor {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(TestMapProcessor.class);
-  
+
   private static JobConf defaultConf = new JobConf();
-  private static FileSystem localFs = null; 
+  private static FileSystem localFs = null;
   private static Path workDir = null;
   static float progressUpdate = 0.0f;
+
   static {
     try {
       defaultConf.set("fs.defaultFS", "file:///");
       localFs = FileSystem.getLocal(defaultConf);
       workDir =
           new Path(new Path(System.getProperty("test.build.data", "/tmp")),
-                   "TestMapProcessor").makeQualified(localFs);
+              "TestMapProcessor").makeQualified(localFs);
       LOG.info("Using workDir: " + workDir);
       MapUtils.configureLocalDirs(defaultConf, workDir.toString());
     } catch (IOException e) {
       throw new RuntimeException("init failure", e);
     }
   }
-  
-
-
-  
 
   public void setUpJobConf(JobConf job) {
     job.set(TezRuntimeFrameworkConfigs.LOCAL_DIRS, workDir.toString());
@@ -110,7 +106,7 @@ public class TestMapProcessor {
     Path attemptOutput = new Path(new Path(Constants.TEZ_RUNTIME_TASK_OUTPUT_DIR, outputContext.getUniqueIdentifier()),
         Constants.TEZ_RUNTIME_TASK_OUTPUT_FILENAME_STRING);
     Path mapOutputFile = lDirAlloc.getLocalPathToRead(attemptOutput.toString(), jobConf);
-    return  mapOutputFile;
+    return mapOutputFile;
   }
 
   @Before
@@ -118,7 +114,7 @@ public class TestMapProcessor {
   public void cleanup() throws Exception {
     localFs.delete(workDir, true);
   }
-  
+
   @Test(timeout = 5000)
   public void testMapProcessor() throws Exception {
     String dagName = "mrdag0";
@@ -133,10 +129,9 @@ public class TestMapProcessor {
 
     jobConf.set(MRFrameworkConfigs.TASK_LOCAL_RESOURCE_DIR, new Path(workDir,
         "localized-resources").toUri().toString());
-    
+
     Path mapInput = new Path(workDir, "map0");
-    
-    
+
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 10);
 
     InputSpec mapInputSpec = new InputSpec("NullSrcVertex",
@@ -146,7 +141,7 @@ public class TestMapProcessor {
                     .setConfigurationBytes(TezUtils.createByteStringFromConf(jobConf)).build()
                     .toByteArray()))),
         1);
-    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex", 
+    OutputSpec mapOutputSpec = new OutputSpec("NullDestVertex",
         OutputDescriptor.create(OrderedPartitionedKVOutput.class.getName())
             .setUserPayload(TezUtils.createUserPayloadFromConf(jobConf)), 1);
 
@@ -165,8 +160,7 @@ public class TestMapProcessor {
     TezTaskOutput mapOutputs = new TezTaskOutputFiles(
         jobConf, outputContext.getUniqueIdentifier(),
         outputContext.getDagIdentifier());
-    
-    
+
     // TODO NEWTEZ FIXME OutputCommitter verification
 //    MRTask mrTask = (MRTask)t.getProcessor();
 //    Assert.assertEquals(TezNullOutputCommitter.class.getName(), mrTask
@@ -187,7 +181,7 @@ public class TestMapProcessor {
       key.readFields(keyBuf);
       value.readFields(valueBuf);
       if (prev != Long.MIN_VALUE) {
-        assert(prev <= key.get());
+        assert (prev <= key.get());
         prev = key.get();
       }
       LOG.info("key = " + key.get() + "; value = " + value);
@@ -211,7 +205,6 @@ public class TestMapProcessor {
         "localized-resources").toUri().toString());
 
     Path mapInput = new Path(workDir, "map0");
-
 
     MapUtils.generateInputSplit(localFs, workDir, jobConf, mapInput, 100000);
 
@@ -239,7 +232,7 @@ public class TestMapProcessor {
       @Override
       public void run() {
         float prog = task.getProgress();
-        if(prog > 0.0f && prog < 1.0f)
+        if (prog > 0.0f && prog < 1.0f)
           progressUpdate = prog;
       }
     });

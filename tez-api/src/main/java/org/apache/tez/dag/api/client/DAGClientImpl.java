@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -83,7 +83,7 @@ public class DAGClientImpl extends DAGClient {
   private boolean cleanupFrameworkClient;
 
   public DAGClientImpl(ApplicationId appId, String dagId, TezConfiguration conf,
-      @Nullable FrameworkClient frameworkClient, UserGroupInformation ugi) {
+                       @Nullable FrameworkClient frameworkClient, UserGroupInformation ugi) {
     this.appId = appId;
     this.dagId = dagId;
     this.conf = conf;
@@ -107,7 +107,7 @@ public class DAGClientImpl extends DAGClient {
     statusPollInterval = conf.getLong(
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS,
         TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT);
-    if(statusPollInterval < 0) {
+    if (statusPollInterval < 0) {
       LOG.error("DAG Status poll interval cannot be negative and setting to default value.");
       statusPollInterval = TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT;
     }
@@ -150,7 +150,7 @@ public class DAGClientImpl extends DAGClient {
 
   @Override
   public DAGStatus getDAGStatus(@Nullable Set<StatusGetOpts> statusOptions,
-      final long timeout) throws TezException, IOException {
+                                final long timeout) throws TezException, IOException {
 
     Preconditions.checkArgument(timeout >= -1, "Timeout must be >= -1");
     // Short circuit a timeout of 0.
@@ -192,7 +192,7 @@ public class DAGClientImpl extends DAGClient {
           } else {
             // From the RM. Fall through to the Sleep.
           }
-        } else if(dagStatus.getState() == DAGStatus.State.SUCCEEDED
+        } else if (dagStatus.getState() == DAGStatus.State.SUCCEEDED
             || dagStatus.getState() == DAGStatus.State.FAILED
             || dagStatus.getState() == DAGStatus.State.KILLED
             || dagStatus.getState() == DAGStatus.State.ERROR) {
@@ -234,7 +234,7 @@ public class DAGClientImpl extends DAGClient {
   }
 
   protected DAGStatus getDAGStatusInternal(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws TezException, IOException {
+                                           long timeout) throws TezException, IOException {
 
     if (!dagCompleted) {
       // fetch from AM. on Error and while DAG is still not completed (could not reach AM, AM got
@@ -394,7 +394,7 @@ public class DAGClientImpl extends DAGClient {
    * @throws IOException
    */
   private DAGStatus getDAGStatusViaAM(@Nullable Set<StatusGetOpts> statusOptions,
-      long timeout) throws IOException {
+                                      long timeout) throws IOException {
     DAGStatus dagStatus = null;
     try {
       dagStatus = realClient.getDAGStatus(statusOptions, timeout);
@@ -462,7 +462,7 @@ public class DAGClientImpl extends DAGClient {
       throw new TezException(e);
     }
 
-    if(appReport == null) {
+    if (appReport == null) {
       throw new TezException("Unknown/Invalid appId: " + appId);
     }
 
@@ -486,7 +486,7 @@ public class DAGClientImpl extends DAGClient {
         dagState = DAGProtos.DAGStatusStateProto.DAG_KILLED;
         break;
       case FINISHED:
-        switch(appReport.getFinalApplicationStatus()) {
+        switch (appReport.getFinalApplicationStatus()) {
           case UNDEFINED:
           case FAILED:
             dagState = DAGProtos.DAGStatusStateProto.DAG_FAILED;
@@ -514,7 +514,7 @@ public class DAGClientImpl extends DAGClient {
     if (appReport.getFinalApplicationStatus() == FinalApplicationStatus.FAILED
         || appReport.getFinalApplicationStatus() == FinalApplicationStatus.KILLED) {
       long startTime = System.currentTimeMillis();
-      while((appReport.getDiagnostics() == null
+      while ((appReport.getDiagnostics() == null
           || appReport.getDiagnostics().isEmpty())
           && (System.currentTimeMillis() - startTime) < diagnoticsWaitTimeout) {
         try {
@@ -598,7 +598,7 @@ public class DAGClientImpl extends DAGClient {
       dagProgress = getProgress(progress);
       boolean progressChanged = dagProgress > prevDagProgress;
       long currentTimeMillis = System.currentTimeMillis();
-      long timeSinceLastPrintStatus =  currentTimeMillis - lastPrintStatusTimeMillis;
+      long timeSinceLastPrintStatus = currentTimeMillis - lastPrintStatusTimeMillis;
       boolean printIntervalExpired = timeSinceLastPrintStatus > PRINT_STATUS_INTERVAL_MILLIS;
       if (progressChanged || printIntervalExpired) {
         lastPrintStatusTimeMillis = currentTimeMillis;

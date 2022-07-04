@@ -54,7 +54,6 @@ public class MapredSplitContainer extends SplitContainer {
     MapredSplitContainer that = (MapredSplitContainer) o;
 
     return !(inputSplit != null ? !inputSplit.equals(that.inputSplit) : that.inputSplit != null);
-
   }
 
   @Override

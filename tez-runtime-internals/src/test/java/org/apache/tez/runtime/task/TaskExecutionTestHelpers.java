@@ -443,7 +443,6 @@ public class TaskExecutionTestHelpers {
       } finally {
         umbilicalLock.unlock();
       }
-
     }
 
     public void verifyTaskSuccessEvent() {

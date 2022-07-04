@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,24 +77,26 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.junit.Assert;
 import org.junit.Test;
+
 /**
- * 
+ *
  */
 public class TestTezClientUtils {
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezClientUtils.class.getName() + "-tmpDir";
   private static final File STAGING_DIR = new File(System.getProperty("test.build.data", "target"),
       TestTezClientUtils.class.getName()).getAbsoluteFile();
+
   /**
-   * 
+   *
    */
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezJarLocalResourcesNotDefined() throws Exception {
 
     TezConfiguration conf = new TezConfiguration(false);
     Credentials credentials = new Credentials();
     try {
-      Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+      Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
       TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
       Assert.fail("Expected TezUncheckedException");
     } catch (TezUncheckedException e) {
@@ -102,7 +104,7 @@ public class TestTezClientUtils {
     }
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezJarLocalResourcesDefinedButEmpty() throws Exception {
     File emptyDir = new File(TEST_ROOT_DIR, "emptyDir");
     emptyDir.deleteOnExit();
@@ -111,7 +113,7 @@ public class TestTezClientUtils {
     conf.set(TezConfiguration.TEZ_LIB_URIS, emptyDir.toURI().toURL().toString());
     Credentials credentials = new Credentials();
     try {
-      Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+      Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
       TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
       Assert.fail("Expected TezUncheckedException");
     } catch (TezUncheckedException e) {
@@ -120,15 +122,15 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    */
-  @Test(expected=FileNotFoundException.class, timeout=5000)
+  @Test(expected = FileNotFoundException.class, timeout = 5000)
   public void validateSetTezJarLocalResourcesDefinedNonExistingDirectory() throws Exception {
 
     TezConfiguration conf = new TezConfiguration();
     conf.set(TezConfiguration.TEZ_LIB_URIS, "file:///foo");
     Credentials credentials = new Credentials();
-    Map<String,LocalResource> resources = new HashMap<String, LocalResource>();
+    Map<String, LocalResource> resources = new HashMap<String, LocalResource>();
     TezClientUtils.setupTezJarsLocalResources(conf, credentials, resources);
   }
 
@@ -152,7 +154,7 @@ public class TestTezClientUtils {
     return urls;
   }
 
-  @Test (timeout=20000)
+  @Test(timeout = 20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectory() throws Exception {
     List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
@@ -176,7 +178,7 @@ public class TestTezClientUtils {
         String[] firList = file.list();
         for (String fileNme : firList) {
           File innerFile = new File(file, fileNme);
-          if (!innerFile.isDirectory()){
+          if (!innerFile.isDirectory()) {
             assertTrue(resourceNames.contains(innerFile.getName()));
             assertedDir = true;
           }
@@ -192,10 +194,10 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    * @throws Exception
    */
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnored() throws Exception {
     List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
@@ -213,10 +215,10 @@ public class TestTezClientUtils {
   }
 
   /**
-   * 
+   *
    * @throws Exception
    */
-  @Test (timeout=20000)
+  @Test(timeout = 20000)
   public void validateSetTezJarLocalResourcesDefinedExistingDirectoryIgnoredSetToFalse() throws Exception {
     List<URL> cp = getDirAndFileURL();
     StringBuffer buffer = new StringBuffer();
@@ -233,11 +235,10 @@ public class TestTezClientUtils {
     assertFalse(localizedMap.isEmpty());
   }
 
-
-    /**
+  /**
    *
    */
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testTezDefaultFS() throws Exception {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     StringBuilder tezLibUris = new StringBuilder();
@@ -264,10 +265,10 @@ public class TestTezClientUtils {
     Assert.assertTrue(localFs.delete(topDir, true));
   }
 
-    /**
+  /**
    *
    */
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezJarLocalResourcesMultipleTarballs() throws Exception {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     StringBuilder tezLibUris = new StringBuilder();
@@ -299,16 +300,15 @@ public class TestTezClientUtils {
     Assert.assertFalse(resourceNames.contains("f1.tar.gz"));
     Assert.assertFalse(resourceNames.contains("f2.tar.gz"));
 
-
     Assert.assertTrue(localFs.delete(tarFile1, true));
     Assert.assertTrue(localFs.delete(tarFile2, true));
     Assert.assertTrue(localFs.delete(topDir, true));
   }
 
-    /**
+  /**
    *
    */
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezJarLocalResourcesMixTarballAndJar() throws Exception {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     StringBuilder tezLibUris = new StringBuilder();
@@ -374,7 +374,7 @@ public class TestTezClientUtils {
     assertEquals(testpriority, appcontext.getPriority().getPriority());
   }
 
-  @Test(timeout=1000)
+  @Test(timeout = 1000)
   // when tez config property for app priority not set,
   // tez should not set app priority and let YARN deal with it.
   public void testSetApplicationPriority() {
@@ -386,7 +386,7 @@ public class TestTezClientUtils {
     assertNull(appContext.getPriority());
   }
 
-  @Test(timeout=1000)
+  @Test(timeout = 1000)
   public void testSetApplicationTags() {
     TezConfiguration conf = new TezConfiguration(false);
     conf.set(TezConfiguration.TEZ_APPLICATION_TAGS, "foo,bar");
@@ -395,7 +395,7 @@ public class TestTezClientUtils {
         .newRecord(ApplicationSubmissionContext.class);
     Collection<String> tagsFromConf =
         amconfig.getTezConfiguration().getTrimmedStringCollection(
-        TezConfiguration.TEZ_APPLICATION_TAGS);
+            TezConfiguration.TEZ_APPLICATION_TAGS);
     appContext.setApplicationTags(new HashSet<String>(tagsFromConf));
     assertTrue(appContext.getApplicationTags().contains("foo"));
     assertTrue(appContext.getApplicationTags().contains("bar"));
@@ -533,8 +533,8 @@ public class TestTezClientUtils {
     String amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     assertEquals(tmpOpts + " "
-        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
-        + amCommandOpts,
+            + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
+            + amCommandOpts,
         amOptsConstructed);
 
     // Test2: Setup cluster-default command opts explicitly
@@ -544,7 +544,6 @@ public class TestTezClientUtils {
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
-
 
     // Test3: Don't setup Xmx explicitly
     final double factor = 0.8;
@@ -615,8 +614,7 @@ public class TestTezClientUtils {
             "]", taskOptsConstructed.startsWith(expected));
   }
 
-
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testDefaultMemoryJavaOpts() {
     final double factor = 0.8;
     String origJavaOpts = "-Xmx";
@@ -671,7 +669,7 @@ public class TestTezClientUtils {
     Assert.assertTrue(javaOpts.contains("-Xmx4000m"));
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void testDefaultLoggingJavaOpts() {
     String origJavaOpts = null;
     String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
@@ -693,9 +691,9 @@ public class TestTezClientUtils {
     Assert.assertTrue(javaOpts.contains("-DtestProperty=value"));
   }
 
-  @Test (timeout = 5000)
+  @Test(timeout = 5000)
   public void testConfSerializationForAm() {
-    Configuration conf =new Configuration(false);
+    Configuration conf = new Configuration(false);
     String val1 = "fixedProperty";
     String val2 = "parametrizedProperty/${user.name}";
     String expVal2 = "parametrizedProperty/" + System.getProperty("user.name");
@@ -789,7 +787,6 @@ public class TestTezClientUtils {
       TezClientUtils.setupTezJarsLocalResources(tezConf, new Credentials(), lrMap);
       Assert.assertEquals(LocalResourceVisibility.PRIVATE,
           lrMap.get(TezConstants.TEZ_TAR_LR_NAME).getVisibility());
-
     } finally {
       if (topLevelDir != null) {
         remoteFs.delete(topLevelDir, true);
@@ -828,7 +825,7 @@ public class TestTezClientUtils {
     return fs.makeQualified(f1);
   }
 
-  @Test (timeout=5000)
+  @Test(timeout = 5000)
   public void validateSetTezAuxLocalResourcesWithFilesAndFolders() throws Exception {
     FileSystem localFs = FileSystem.getLocal(new Configuration());
     List<String> resources = new ArrayList<String>();
@@ -902,7 +899,6 @@ public class TestTezClientUtils {
     Assert.assertEquals(opts,
         TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT
             + " " + taskOpts + " " + vOpts);
-
   }
 
   @Test(timeout = 5000)
@@ -928,7 +924,6 @@ public class TestTezClientUtils {
     opts = TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vOpts, conf);
 
     Assert.assertEquals(opts, adminOpts + " " + taskOpts + " " + vOpts);
-
   }
 
   @Test

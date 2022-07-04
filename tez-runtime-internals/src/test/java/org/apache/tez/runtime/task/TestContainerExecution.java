@@ -52,7 +52,6 @@ public class TestContainerExecution {
 
       getTaskFuture.get();
       assertEquals(1, umbilical.getTaskInvocations);
-
     } finally {
       executor.shutdownNow();
     }

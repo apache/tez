@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.tez.dag.app.launcher;
 
@@ -68,7 +68,6 @@ import org.apache.tez.dag.api.TezUncheckedException;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-
 // TODO See what part of this lifecycle and state management can be simplified.
 // Ideally, no state - only sendStart / sendStop.
 
@@ -83,7 +82,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
   static final Logger LOG = LoggerFactory.getLogger(TezContainerLauncherImpl.class);
 
   private final ConcurrentHashMap<ContainerId, Container> containers =
-    new ConcurrentHashMap<>();
+      new ConcurrentHashMap<>();
   protected ThreadPoolExecutor launcherPool;
   protected static final int INITIAL_POOL_SIZE = 10;
   private final int limitOnPoolSize;
@@ -100,11 +99,11 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
   private Container getContainer(ContainerOp event) {
     ContainerId id = event.getBaseOperation().getContainerId();
     Container c = containers.get(id);
-    if(c == null) {
+    if (c == null) {
       c = new Container(id,
           event.getBaseOperation().getNodeId().toString(), event.getBaseOperation().getContainerToken());
       Container old = containers.putIfAbsent(id, c);
-      if(old != null) {
+      if (old != null) {
         c = old;
       }
     }
@@ -113,11 +112,10 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
 
   private void removeContainerIfDone(ContainerId id) {
     Container c = containers.get(id);
-    if(c != null && c.isCompletelyDone()) {
+    if (c != null && c.isCompletelyDone()) {
       containers.remove(id);
     }
   }
-
 
   private static enum ContainerState {
     PREP, FAILED, RUNNING, DONE, KILLED_BEFORE_LAUNCH
@@ -131,7 +129,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
     private Token containerToken;
 
     public Container(ContainerId containerID,
-        String containerMgrAddress, Token containerToken) {
+                     String containerMgrAddress, Token containerToken) {
       this.state = ContainerState.PREP;
       this.containerMgrAddress = containerMgrAddress;
       this.containerID = containerID;
@@ -145,7 +143,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
     @SuppressWarnings("unchecked")
     public synchronized void launch(ContainerLaunchRequest event) {
       LOG.info("Launching " + event.getContainerId());
-      if(this.state == ContainerState.KILLED_BEFORE_LAUNCH) {
+      if (this.state == ContainerState.KILLED_BEFORE_LAUNCH) {
         state = ContainerState.DONE;
         sendContainerLaunchFailedMsg(event.getContainerId(),
             "Container was killed before it was launched");
@@ -160,11 +158,11 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
 
         // Construct the actual Container
         ContainerLaunchContext containerLaunchContext =
-          event.getContainerLaunchContext();
+            event.getContainerLaunchContext();
 
         // Now launch the actual container
         StartContainerRequest startRequest = Records
-          .newRecord(StartContainerRequest.class);
+            .newRecord(StartContainerRequest.class);
         startRequest.setContainerToken(event.getContainerToken());
         startRequest.setContainerLaunchContext(containerLaunchContext);
 
@@ -216,10 +214,10 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
     @SuppressWarnings("unchecked")
     public synchronized void kill() {
 
-      if(isCompletelyDone()) {
+      if (isCompletelyDone()) {
         return;
       }
-      if(this.state == ContainerState.PREP) {
+      if (this.state == ContainerState.PREP) {
         this.state = ContainerState.KILLED_BEFORE_LAUNCH;
       } else {
         LOG.info("Stopping " + containerID);
@@ -229,22 +227,22 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
           proxy = getCMProxy(this.containerID, this.containerMgrAddress,
               this.containerToken);
 
-            // kill the remote container if already launched
-            StopContainersRequest stopRequest = Records
+          // kill the remote container if already launched
+          StopContainersRequest stopRequest = Records
               .newRecord(StopContainersRequest.class);
-            stopRequest.setContainerIds(Collections.singletonList(containerID));
+          stopRequest.setContainerIds(Collections.singletonList(containerID));
 
-            proxy.getContainerManagementProtocol().stopContainers(stopRequest);
+          proxy.getContainerManagementProtocol().stopContainers(stopRequest);
 
-            // If stopContainer returns without an error, assuming the stop made
-            // it over to the NodeManager.
+          // If stopContainer returns without an error, assuming the stop made
+          // it over to the NodeManager.
           getContext().containerStopRequested(containerID);
         } catch (Throwable t) {
 
           // ignore the cleanup failure
           String message = "cleanup failed for container "
-            + this.containerID + " : "
-            + ExceptionUtils.getStackTrace(t);
+              + this.containerID + " : "
+              + ExceptionUtils.getStackTrace(t);
           getContext().containerStopFailed(containerID, message);
           LOG.warn(message);
           this.state = ContainerState.DONE;
@@ -298,7 +296,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
           try {
             event = eventQueue.take();
           } catch (InterruptedException e) {
-            if(!serviceStopped.get()) {
+            if (!serviceStopped.get()) {
               LOG.error("Returning, interrupted : " + e);
             }
             return;
@@ -342,8 +340,8 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
         conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
             TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
     vertexDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
-            conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
-                    TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
+        conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+            TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
     failedTaskAttemptDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
         conf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
             TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
@@ -358,7 +356,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
 
   @Override
   public void shutdown() {
-    if(!serviceStopped.compareAndSet(false, true)) {
+    if (!serviceStopped.compareAndSet(false, true)) {
       LOG.info("Ignoring multiple stops");
       return;
     }
@@ -401,7 +399,7 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
       LOG.debug("Processing ContainerOperation {}", event);
 
       Container c = getContainer(event);
-      switch(event.getOpType()) {
+      switch (event.getOpType()) {
         case LAUNCH_REQUEST:
           ContainerLaunchRequest launchRequest = event.getLaunchRequest();
           c.launch(launchRequest);
@@ -428,11 +426,10 @@ public class TezContainerLauncherImpl extends DagContainerLauncher {
 
   @SuppressWarnings("unchecked")
   void sendContainerLaunchFailedMsg(ContainerId containerId,
-      String message) {
+                                    String message) {
     LOG.error(message);
     getContext().containerLaunchFailed(containerId, message);
   }
-
 
   @Override
   public void launchContainer(ContainerLaunchRequest launchRequest) {

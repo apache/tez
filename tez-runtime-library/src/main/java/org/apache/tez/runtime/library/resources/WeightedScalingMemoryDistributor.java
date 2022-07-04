@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -77,7 +77,9 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   public enum RequestType {
     PARTITIONED_UNSORTED_OUTPUT, UNSORTED_INPUT, UNSORTED_OUTPUT, SORTED_OUTPUT,
     SORTED_MERGED_INPUT, PROCESSOR, OTHER
-  };
+  }
+
+  ;
 
   private EnumMap<RequestType, Integer> typeScaleMap = Maps.newEnumMap(RequestType.class);
 
@@ -89,7 +91,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
 
   @Override
   public Iterable<Long> assignMemory(long availableForAllocation, int numTotalInputs,
-      int numTotalOutputs, Iterable<InitialMemoryRequestContext> initialRequests) {
+                                     int numTotalOutputs, Iterable<InitialMemoryRequestContext> initialRequests) {
 
     // Read in configuration
     populateTypeScaleMap();
@@ -180,22 +182,22 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   private void adjustAllocationsForNonConcurrent(List<Long> allocations,
-      List<Request> requests, int numInputsScaled, long totalInputAllocated,
-      int numOutputsScaled, long totalOutputAllocated) {
+                                                 List<Request> requests, int numInputsScaled, long totalInputAllocated,
+                                                 int numOutputsScaled, long totalOutputAllocated) {
     boolean inputsEnabled = conf.getBoolean(
         TezConfiguration.TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED,
         TezConfiguration.TEZ_TASK_SCALE_MEMORY_NON_CONCURRENT_INPUTS_ENABLED_DEFAULT);
     LOG.info("Adjusting scaled allocations for I/O non-concurrent."
-        + " numInputsScaled: {} InputAllocated: {} numOutputsScaled: {} outputAllocated: {} inputsEnabled: {}",
+            + " numInputsScaled: {} InputAllocated: {} numOutputsScaled: {} outputAllocated: {} inputsEnabled: {}",
         numInputsScaled, totalInputAllocated, numOutputsScaled, totalOutputAllocated, inputsEnabled);
     for (int i = 0; i < requests.size(); i++) {
       Request request = requests.get(i);
       long additional = 0;
       if (request.componentType == ComponentType.INPUT && inputsEnabled) {
-        double share = request.requestWeight / (double)numInputsScaled;
+        double share = request.requestWeight / (double) numInputsScaled;
         additional = (long) (totalOutputAllocated * share);
       } else if (request.componentType == ComponentType.OUTPUT) {
-        double share = request.requestWeight / (double)numOutputsScaled;
+        double share = request.requestWeight / (double) numOutputsScaled;
         additional = (long) (totalInputAllocated * share);
       }
       if (additional > 0) {
@@ -319,7 +321,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
   }
 
   public static String[] generateWeightStrings(int unsortedPartitioned, int unsorted,
-      int broadcastIn, int sortedOut, int scatterGatherShuffleIn, int proc, int other) {
+                                               int broadcastIn, int sortedOut, int scatterGatherShuffleIn, int proc, int other) {
     String[] weights = new String[RequestType.values().length];
     weights[0] = RequestType.PARTITIONED_UNSORTED_OUTPUT.name() + ":" + unsortedPartitioned;
     weights[1] = RequestType.UNSORTED_OUTPUT.name() + ":" + unsorted;
@@ -343,7 +345,7 @@ public class WeightedScalingMemoryDistributor implements InitialMemoryAllocator 
 
   private static class Request {
     Request(String componentClassname, ComponentType componentType, long requestSize,
-        RequestType requestType, int requestWeight) {
+            RequestType requestType, int requestWeight) {
       this.componentClassname = componentClassname;
       this.componentType = componentType;
       this.requestSize = requestSize;

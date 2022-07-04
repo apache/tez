@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,7 +43,7 @@ public interface ProcessorContext extends TaskContext {
 
   /**
    * Set the overall progress of this Task Attempt.
-   * This automatically results in invocation of {@link ProcessorContext#notifyProgress()} 
+   * This automatically results in invocation of {@link ProcessorContext#notifyProgress()}
    * and so invoking that separately is not required.
    * @param progress Progress in the range from [0.0 - 1.0f]
    */
@@ -68,15 +68,15 @@ public interface ProcessorContext extends TaskContext {
   /**
    * Blocking call which returns when any of the specified Inputs is ready for
    * consumption.
-   * 
+   *
    * There can be multiple parallel invocations of this function - where each
    * invocation blocks on the Inputs that it specifies.
-   * 
+   *
    * If multiple Inputs are ready, any one of them may be returned by this
    * method - including an Input which may have been returned in a previous
    * call. If invoking this method multiple times, it's recommended to remove
    * previously completed Inputs from the invocation list.
-   * 
+   *
    * @param inputs
    *          the list of Inputs to monitor
    * @return the Input which is ready for consumption
@@ -110,10 +110,10 @@ public interface ProcessorContext extends TaskContext {
   /**
    * Blocking call which returns only after all of the specified Inputs are
    * ready for consumption.
-   * 
+   *
    * There can be multiple parallel invocations of this function - where each
    * invocation blocks on the Inputs that it specifies.
-   * 
+   *
    * @param inputs
    *          the list of Inputs to monitor
    * @throws InterruptedException

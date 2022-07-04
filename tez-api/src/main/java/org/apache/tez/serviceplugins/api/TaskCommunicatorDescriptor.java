@@ -22,7 +22,6 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 @InterfaceStability.Unstable
 public class TaskCommunicatorDescriptor extends NamedEntityDescriptor<TaskCommunicatorDescriptor> {
 
-
   private TaskCommunicatorDescriptor(String taskCommName, String taskCommClassname) {
     super(taskCommName, taskCommClassname);
   }

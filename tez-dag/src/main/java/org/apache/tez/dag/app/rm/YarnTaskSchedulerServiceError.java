@@ -29,5 +29,4 @@ public enum YarnTaskSchedulerServiceError implements ServicePluginError {
   public ErrorType getErrorType() {
     return ErrorType.PERMANENT;
   }
-
 }
