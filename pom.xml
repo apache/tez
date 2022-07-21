@@ -1036,13 +1036,13 @@
             </goals>
             <configuration>
               <rules>
-                <restrictImports>
+                <RestrictImports>
                   <includeTestCode>true</includeTestCode>
                   <reason>Use Fasterxml Jackson 2 dependency in place of org.codehaus Jackson 1</reason>
                   <bannedImports>
                     <bannedImport>org.codehaus.jackson.**</bannedImport>
                   </bannedImports>
-                </restrictImports>
+                </RestrictImports>
               </rules>
             </configuration>
           </execution>
