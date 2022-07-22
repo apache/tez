@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.records.TaskIDAware;
@@ -116,7 +117,7 @@ public class TaskFinishedEvent implements HistoryEvent, TaskIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    TaskFinishedProto proto = inputStream.readMessage(TaskFinishedProto.PARSER, null);
+    TaskFinishedProto proto = inputStream.readMessage(TaskFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

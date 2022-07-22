@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.records.DAGIDAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +135,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, null);
+    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

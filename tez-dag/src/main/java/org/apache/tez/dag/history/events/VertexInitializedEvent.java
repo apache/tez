@@ -25,6 +25,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -158,7 +159,8 @@ public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexInitializedProto proto = inputStream.readMessage(VertexInitializedProto.PARSER, null);
+    VertexInitializedProto proto =
+        inputStream.readMessage(VertexInitializedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

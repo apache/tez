@@ -9,7 +9,7 @@ Requirements:
 * JDK 1.8+
 * Maven 3.1 or later
 * Findbugs 2.0.2 or later (if running findbugs)
-* ProtocolBuffer 2.5.0
+* ProtocolBuffer 3.21.1
 * Internet connection for first build (to fetch all dependencies)
 * Hadoop version should be 2.7.0 or higher.
 

@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.app.dag.impl.ServicePluginInfo;
 import org.apache.tez.dag.records.VertexIDAware;
 import org.slf4j.Logger;
@@ -131,7 +132,8 @@ public class VertexFinishedEvent implements HistoryEvent, SummaryEvent, VertexID
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexFinishedProto proto = inputStream.readMessage(VertexFinishedProto.PARSER, null);
+    VertexFinishedProto proto =
+        inputStream.readMessage(VertexFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }

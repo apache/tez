@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -98,7 +99,8 @@ public class TaskAttemptStartedEvent implements HistoryEvent, TaskAttemptIDAware
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    TaskAttemptStartedProto proto = inputStream.readMessage(TaskAttemptStartedProto.PARSER, null);
+    TaskAttemptStartedProto proto =
+        inputStream.readMessage(TaskAttemptStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
