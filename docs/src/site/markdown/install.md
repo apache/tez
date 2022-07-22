@@ -36,7 +36,9 @@ or higher.
     -   This assumes that you have already installed JDK8 or later and Maven 3 or later.
     -   Tez also requires Protocol Buffers 2.5.0, including the protoc-compiler.
         *   This can be downloaded from https://github.com/google/protobuf/tags/.
-        *   On Mac OS X with the homebrew package manager `brew install protobuf250`
+        *   On Mac OS X with the homebrew package manager `brew install protobuf@2.5`. 
+            Note that `protoc` needs to be on your path e.g. 
+            `echo 'export PATH="/usr/local/opt/protobuf@2.5/bin:$PATH"' >> /Users/${user}/.bash_profile`
         *   For rpm-based linux systems, the yum repos may not have the 2.5.0 version.
             `rpm.pbone.net` has the protobuf-2.5.0 and protobuf-compiler-2.5.0 packages.
     -   If you prefer to run the unit tests, remove skipTests from the
