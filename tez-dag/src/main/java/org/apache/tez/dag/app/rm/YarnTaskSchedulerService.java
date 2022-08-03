@@ -254,7 +254,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   @Override
   public Resource getAvailableResources() {
-    return amRmClient.getAvailableResources();
+    Resource resource = amRmClient.getAvailableResources();
+    return resource == null ? Resource.newInstance(0, 0) : resource;
   }
 
   @Override
@@ -1166,7 +1167,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     ContainerId[] preemptedContainers = null;
     int numPendingRequestsToService = 0;
     synchronized (this) {
-      Resource freeResources = amRmClient.getAvailableResources();
+      Resource freeResources = this.getAvailableResources();
       if (LOG.isDebugEnabled()) {
         LOG.debug(constructPreemptionPeriodicLog(freeResources));
       } else {
