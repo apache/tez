@@ -161,6 +161,19 @@ class TestTaskSchedulerHelpers {
       this.defaultPayload = defaultPayload;
     }
 
+    public TaskSchedulerManagerForTest(AppContext appContext,
+                                       EventHandler eventHandler,
+                                       TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
+                                       ContainerSignatureMatcher containerSignatureMatcher,
+                                       UserPayload defaultPayload,
+                                       List<NamedEntityDescriptor> descriptors) {
+      super(appContext, null, eventHandler, containerSignatureMatcher, null, descriptors,
+          false, new HadoopShimsLoader(appContext.getAMConf()).getHadoopShim());
+      this.amrmClientAsync = amrmClientAsync;
+      this.containerSignatureMatcher = containerSignatureMatcher;
+      this.defaultPayload = defaultPayload;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void instantiateSchedulers(String host, int port, String trackingUrl,
@@ -223,6 +236,10 @@ class TestTaskSchedulerHelpers {
       }
       fail("Expected Event: " + eventClass.getName() + " not sent");
       return null;
+    }
+
+    public int getEventSize() {
+      return this.events.size();
     }
   }
 
