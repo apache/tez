@@ -861,10 +861,8 @@ public class TestTaskSchedulerManager {
     UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(tezConf);
 
     // Parse plugins
-    List<NamedEntityDescriptor> tsDescriptors;
-    BiMap<String, Integer> tsMap;
-    tsDescriptors = Lists.newLinkedList();
-    tsMap = HashBiMap.create();
+    List<NamedEntityDescriptor> tsDescriptors = Lists.newLinkedList();
+    BiMap<String, Integer> tsMap = HashBiMap.create();
     DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, Lists.newLinkedList(), HashBiMap.create(), Lists.newLinkedList(),
         HashBiMap.create(), null, false, defaultPayload);
 
