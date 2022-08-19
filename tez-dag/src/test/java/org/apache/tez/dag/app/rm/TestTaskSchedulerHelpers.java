@@ -161,7 +161,7 @@ class TestTaskSchedulerHelpers {
       this.defaultPayload = defaultPayload;
     }
 
-    public TaskSchedulerManagerForTest(AppContext appContext,
+    TaskSchedulerManagerForTest(AppContext appContext,
                                        EventHandler eventHandler,
                                        TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync,
                                        ContainerSignatureMatcher containerSignatureMatcher,

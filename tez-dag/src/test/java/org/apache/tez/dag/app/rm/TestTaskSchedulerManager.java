@@ -903,7 +903,9 @@ public class TestTaskSchedulerManager {
     // Send error to schedule, then expect DAGAppMasterEventSchedulingServiceError event.
     YarnTaskSchedulerService scheduler = ((YarnTaskSchedulerService) taskSchedulerManager.getTaskScheduler(0));
     scheduler.onError(new Exception("Trigger by unit test"));
-    waitFor(() -> { return eventHandler.getEventSize() > 0;}, 1000, 5000);
+    waitFor(() -> {
+      return eventHandler.getEventSize() > 0;
+    }, 1000, 5000);
     eventHandler.verifyInvocation(DAGAppMasterEventSchedulingServiceError.class);
   }
 
