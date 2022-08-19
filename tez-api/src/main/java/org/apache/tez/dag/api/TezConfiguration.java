@@ -2228,4 +2228,13 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
 
+  /**
+   * Long value. Specifies the timeout when waiting all initializers to be finished.
+   * Default time unit is: ms. Set to a negative number to disable .
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_AM_INITIALIZE_WAIT_INITIALIZERS_FINISH_TIMEOUT =
+          TEZ_AM_PREFIX + "initialize.wait.initializers.timeout";
+  public static final long TEZ_AM_INITIALIZE_WAIT_INITIALIZERS_FINISH_TIMEOUT_DEFAULT = -1;
 }
