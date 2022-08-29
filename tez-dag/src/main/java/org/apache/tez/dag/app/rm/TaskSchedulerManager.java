@@ -908,7 +908,8 @@ public class TaskSchedulerManager extends AbstractService implements
       LOG.info("Error reported by scheduler {} - {}",
           Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext) + ": " +
               diagnostics);
-      if (taskSchedulerDescriptors[taskSchedulerIndex].getClassName().equals(yarnSchedulerClassName)) {
+      if (taskSchedulerDescriptors[taskSchedulerIndex].getEntityName()
+          .equals(TezConstants.getTezYarnServicePluginName())) {
         LOG.warn(
             "Reporting a SchedulerServiceError to the DAGAppMaster since the error" +
                 " was reported by the YARN task scheduler");
@@ -1074,6 +1075,11 @@ public class TaskSchedulerManager extends AbstractService implements
 
   public String getTaskSchedulerClassName(int taskSchedulerIndex) {
     return taskSchedulers[taskSchedulerIndex].getTaskScheduler().getClass().getName();
+  }
+
+  @VisibleForTesting
+  public TaskScheduler getTaskScheduler(int taskSchedulerIndex) {
+    return taskSchedulers[taskSchedulerIndex].getTaskScheduler();
   }
 
 }
