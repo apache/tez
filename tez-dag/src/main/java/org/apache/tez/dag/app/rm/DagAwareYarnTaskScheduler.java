@@ -780,7 +780,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public Resource getAvailableResources() {
-    return client.getAvailableResources();
+    Resource resource = client.getAvailableResources();
+    return resource == null ? Resource.newInstance(0, 0) : resource;
   }
 
   @Override
