@@ -2623,7 +2623,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @VisibleForTesting
-  static void parseAllPlugins(
+  public static void parseAllPlugins(
       List<NamedEntityDescriptor> taskSchedulerDescriptors, BiMap<String, Integer> taskSchedulerPluginMap,
       List<NamedEntityDescriptor> containerLauncherDescriptors, BiMap<String, Integer> containerLauncherPluginMap,
       List<NamedEntityDescriptor> taskCommDescriptors, BiMap<String, Integer> taskCommPluginMap,
