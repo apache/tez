@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -131,6 +132,8 @@ public class TestLocalMode {
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
 
     dagClient1.close();
     tezClient1.stop();
@@ -142,6 +145,8 @@ public class TestLocalMode {
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
     dagClient2.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient2.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient2.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     assertFalse(dagClient1.getExecutionContext().equals(dagClient2.getExecutionContext()));
     dagClient2.close();
     tezClient2.stop();
@@ -159,7 +164,8 @@ public class TestLocalMode {
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     dagClient1.close();
     tezClient1.stop();
 
@@ -171,6 +177,8 @@ public class TestLocalMode {
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
     dagClient2.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient2.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient2.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     assertFalse(dagClient1.getExecutionContext().equals(dagClient2.getExecutionContext()));
     dagClient2.close();
     tezClient2.stop();
@@ -189,7 +197,8 @@ public class TestLocalMode {
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     // Sleep for more time than is required for the DAG to complete.
     Thread.sleep((long) (TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT * 1.5));
 
@@ -210,7 +219,8 @@ public class TestLocalMode {
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.FAILED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.FAILED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     // Sleep for more time than is required for the DAG to complete.
     Thread.sleep((long) (TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT * 1.5));
 
@@ -245,12 +255,11 @@ public class TestLocalMode {
   }
 
   private DAG createSimpleDAG(String dagName, String processorName) {
-    DAG dag = DAG.create(dagName).addVertex(Vertex.create("Sleep", ProcessorDescriptor.create(
-        processorName).setUserPayload(
-        new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
+    DAG dag = DAG.create(dagName).addVertex(Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor
+        .create(processorName).setUserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
     return dag;
-
   }
+
   @Test(timeout=30000)
   public void testMultiDAGsOnSession() throws IOException, TezException, InterruptedException {
     int dags = 2;//two dags will be submitted to session

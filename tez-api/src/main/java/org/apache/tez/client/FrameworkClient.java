@@ -145,7 +145,7 @@ public abstract class FrameworkClient {
         + ", applicationId=" + sessionAppId
         + ", dagId=" + dagId
         + ", dagName=" + dag.getName());
-    return new DAGClientImpl(sessionAppId, dagId, tezConf, this, ugi);
+    return getDAGClient(sessionAppId, dagId, tezConf, ugi);
   }
 
   protected DAGClientAMProtocolBlockingPB waitForProxy(long clientTimeout, Configuration conf,
@@ -185,5 +185,10 @@ public abstract class FrameworkClient {
   protected DAGClientAMProtocolBlockingPB getProxy(Configuration conf, ApplicationId sessionAppId,
       UserGroupInformation ugi) throws TezException, IOException {
     return TezClientUtils.getAMProxy(this, conf, sessionAppId, ugi);
+  }
+
+  public DAGClient getDAGClient(ApplicationId appId, String dagId, TezConfiguration tezConf,
+      UserGroupInformation ugi) {
+    return new DAGClientImpl(appId, dagId, tezConf, this, ugi);
   }
 }

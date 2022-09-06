@@ -296,9 +296,13 @@ public class DAGClientImpl extends DAGClient {
   }
 
   @Override
-  public VertexStatus getVertexStatus(String vertexName, Set<StatusGetOpts> statusOptions) throws
-      IOException, TezException {
+  public VertexStatus getVertexStatus(String vertexName, Set<StatusGetOpts> statusOptions)
+      throws IOException, TezException {
+    return getVertexStatusInternal(statusOptions, vertexName);
+  }
 
+  protected VertexStatus getVertexStatusInternal(Set<StatusGetOpts> statusOptions, String vertexName)
+      throws IOException, TezException {
     if (!dagCompleted) {
       VertexStatus vertexStatus = getVertexStatusViaAM(vertexName, statusOptions);
 
