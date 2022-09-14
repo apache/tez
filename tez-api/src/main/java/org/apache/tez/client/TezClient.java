@@ -76,7 +76,6 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolBlockingPB;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
-import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -1117,15 +1116,7 @@ public class TezClient {
   @Private
   static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
       FrameworkClient frameworkClient, UserGroupInformation ugi) throws IOException, TezException {
-    return new DAGClientImpl(appId, getDefaultTezDAGID(appId), tezConf, frameworkClient, ugi);
-  }
-
-  @Private // Used only for MapReduce compatibility code
-  static DAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf,
-      FrameworkClient frameworkClient) throws IOException, TezException {
-    UserGroupInformation ugi =
-        UserGroupInformation.createRemoteUser(UserGroupInformation.getCurrentUser().getUserName());
-    return getDAGClient(appId, tezConf, frameworkClient, ugi);
+    return frameworkClient.getDAGClient(appId, getDefaultTezDAGID(appId), tezConf, ugi);
   }
 
   // DO NOT CHANGE THIS. This code is replicated from TezDAGID.java

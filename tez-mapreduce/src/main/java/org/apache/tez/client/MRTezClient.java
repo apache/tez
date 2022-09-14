@@ -31,7 +31,6 @@ import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.MRDAGClient;
 
 @InterfaceAudience.Private
 public class MRTezClient extends TezClient {
@@ -45,10 +44,5 @@ public class MRTezClient extends TezClient {
   public DAGClient submitDAGApplication(ApplicationId appId, org.apache.tez.dag.api.DAG dag)
       throws TezException, IOException {
     return super.submitDAGApplication(appId, dag);
-  }
-
-  public static MRDAGClient getDAGClient(ApplicationId appId, TezConfiguration tezConf, FrameworkClient frameworkClient)
-      throws IOException, TezException {
-    return new MRDAGClient(TezClient.getDAGClient(appId, tezConf, frameworkClient));
   }
 }

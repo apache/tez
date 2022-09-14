@@ -60,6 +60,7 @@ import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.client.DAGClientImplLocal;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.app.AppContext;
@@ -426,20 +427,32 @@ public class LocalClient extends FrameworkClient {
     }
 
     String dagId = dagAppMaster.submitDAGToAppMaster(request.getDAGPlan(), additionalResources);
+    return getDAGClient(sessionAppId, dagId, tezConf, ugi);
+  }
 
+  @Override
+  public DAGClient getDAGClient(ApplicationId appId, String dagId, TezConfiguration tezConf,
+      UserGroupInformation ugi) {
     return isLocalWithoutNetwork
-      ? new DAGClientImplLocal(sessionAppId, dagId, tezConf, this,
-          ugi, new BiFunction<Set<StatusGetOpts>, Long, DAGStatus>() {
-            @Override
-            public DAGStatus apply(Set<StatusGetOpts> statusOpts, Long timeout) {
-              try {
-                return clientHandler.getDAGStatus(dagId, statusOpts, timeout);
-              } catch (TezException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-      : new DAGClientImpl(sessionAppId, dagId, tezConf, this, ugi);
+      ? new DAGClientImplLocal(appId, dagId, tezConf, this, ugi, new BiFunction<Set<StatusGetOpts>, Long, DAGStatus>() {
+        @Override
+        public DAGStatus apply(Set<StatusGetOpts> statusOpts, Long timeout) {
+          try {
+            return clientHandler.getDAGStatus(dagId, statusOpts, timeout);
+          } catch (TezException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }, new BiFunction<Set<StatusGetOpts>, String, VertexStatus>() {
+        @Override
+        public VertexStatus apply(Set<StatusGetOpts> statusOpts, String vertexName) {
+          try {
+            return clientHandler.getVertexStatus(dagId, vertexName, statusOpts);
+          } catch (TezException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }) : new DAGClientImpl(appId, dagId, tezConf, this, ugi);
   }
 
   @Override
