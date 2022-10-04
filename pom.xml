@@ -63,7 +63,7 @@
     <pig.version>0.13.0</pig.version>
     <jersey.version>1.19</jersey.version>
     <slf4j.version>1.7.36</slf4j.version>
-    <protobuf.version>3.21.1</protobuf.version>
+    <protobuf.version>3.21.7</protobuf.version>
     <roaringbitmap.version>0.7.45</roaringbitmap.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
