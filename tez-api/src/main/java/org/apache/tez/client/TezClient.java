@@ -695,8 +695,8 @@ public class TezClient {
             + ", max IPC message size= " + amConfig.getTezConfiguration().getInt(
             CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH_DEFAULT));
         request.writeTo(fsDataOutputStream);
-        request = requestBuilder.clear().setSerializedRequestPath(fs.resolvePath(dagPlanPath).toString()).build();
       }
+      request = requestBuilder.clear().setSerializedRequestPath(fs.resolvePath(dagPlanPath).toString()).build();
     }
 
     return frameworkClient.submitDag(dag, request, clientName, sessionAppId, clientTimeout,
