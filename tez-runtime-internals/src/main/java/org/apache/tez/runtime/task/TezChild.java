@@ -74,6 +74,7 @@ import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.apache.tez.util.LoggingUtils;
+
 import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -252,10 +253,10 @@ public class TezChild {
         TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
 
         LoggingUtils.initLoggingContext(mdcContext, copy,
-            attemptId.getTaskID().getVertexID().getDAGId().toString(), attemptId.toString());
+            attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       } else {
         LoggingUtils.initLoggingContext(mdcContext, defaultConf,
-            attemptId.getTaskID().getVertexID().getDAGId().toString(), attemptId.toString());
+            attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       }
 
       TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
