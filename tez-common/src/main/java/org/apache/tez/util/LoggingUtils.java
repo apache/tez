@@ -30,7 +30,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggingUtils {
+public final class LoggingUtils {
   private static final Logger LOG = LoggerFactory.getLogger(LoggingUtils.class);
 
   private LoggingUtils() {}

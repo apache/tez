@@ -293,9 +293,9 @@ public class TezConfiguration extends Configuration {
    * tez.mdc.custom.keys=queryId,otherKey
    * tez.mdc.custom.keys.values.from=awesome.sql.app.query.id,awesome.sql.app.other.key
    *
-   * So MDC will contain key->value pairs as:
-   * queryId  -> conf.get("awesome.sql.app.query.id")
-   * otherKey -> conf.get("awesome.sql.app.other.key")
+   * So MDC will contain key -{@literal >} value pairs as:
+   * queryId  -{@literal >} conf.get("awesome.sql.app.query.id")
+   * otherKey -{@literal >} conf.get("awesome.sql.app.other.key")
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
