@@ -53,8 +53,8 @@ public final class LoggingUtils {
       return;
     }
 
-    String[] mdcKeysValuesFrom = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_VALUES_FROM,
-        TezConfiguration.TEZ_MDC_CUSTOM_KEYS_VALUES_FROM_DEFAULT);
+    String[] mdcKeysValuesFrom = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS,
+        TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS_DEFAULT);
     LOG.info("MDC_LOGGING: setting up MDC keys: keys: {} / conf: {}", Arrays.asList(mdcKeys),
         Arrays.asList(mdcKeysValuesFrom));
 

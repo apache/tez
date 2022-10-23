@@ -278,7 +278,7 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Comma separated list of keys, which can used for defining keys in MDC. The corresponding values
-   * will be read from Configuration, see tez.mdc.custom.keys.values.from for further details.
+   * will be read from Configuration, see tez.mdc.custom.keys.conf.props for further details.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
@@ -288,10 +288,10 @@ public class TezConfiguration extends Configuration {
   /**
    * Comma separated list of Configuration keys. Tez will try to fill MDC with key value pairs in a
    * way that a key will be the nth item in tez.mdc.custom.keys and the value will be the value from
-   * a Configuration object pointed by the nth key of tez.mdc.custom.keys.values.from like below:
+   * a Configuration object pointed by the nth key of tez.mdc.custom.keys.conf.props like below:
    *
    * tez.mdc.custom.keys=queryId,otherKey
-   * tez.mdc.custom.keys.values.from=awesome.sql.app.query.id,awesome.sql.app.other.key
+   * tez.mdc.custom.keys.conf.props=awesome.sql.app.query.id,awesome.sql.app.other.key
    *
    * So MDC will contain key -{@literal >} value pairs as:
    * queryId  -{@literal >} conf.get("awesome.sql.app.query.id")
@@ -299,8 +299,8 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
-  public static final String TEZ_MDC_CUSTOM_KEYS_VALUES_FROM = TEZ_MDC_CUSTOM_KEYS + ".values.from";
-  public static final String TEZ_MDC_CUSTOM_KEYS_VALUES_FROM_DEFAULT = "";
+  public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS = TEZ_MDC_CUSTOM_KEYS + ".conf.props";
+  public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS_DEFAULT = "";
 
   /**
    * double value. Represents ratio of unique failed outputs / number of consumer

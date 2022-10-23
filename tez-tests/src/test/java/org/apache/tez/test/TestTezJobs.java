@@ -180,7 +180,7 @@ public class TestTezJobs {
     patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK,
         "%d{ISO8601} [%p] [%t (queryId=%X{queryId} dag=%X{dagId} task=%X{taskAttemptId})] |%c{2}|: %m%n");
     patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "queryId");
-    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_VALUES_FROM, "hive.query.id");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS, "hive.query.id");
     patternConfig.set("hive.query.id", "hello-upstream-application-12345");
 
     hashJoinExample.setConf(patternConfig);
