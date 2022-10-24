@@ -266,7 +266,7 @@ public class LocalClient extends FrameworkClient {
             if (dagAMState.equals(DAGAppMasterState.NEW)) {
               LOG.info("DAGAppMaster is not started wait for 100ms...");
             } else if (dagAMState.equals(DAGAppMasterState.INITED)) {
-              LOG.info("DAGAppMaster is not startetd wait for 100ms...");
+              LOG.info("DAGAppMaster is not started wait for 100ms...");
             } else if (dagAMState.equals(DAGAppMasterState.ERROR)) {
               throw new TezException("DAGAppMaster got an error during initialization");
             } else if (dagAMState.equals(DAGAppMasterState.KILLED)) {
