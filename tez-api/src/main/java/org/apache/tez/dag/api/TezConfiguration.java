@@ -277,6 +277,11 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_LOG_PATTERN_LAYOUT_TASK = TEZ_TASK_PREFIX + "log.pattern.layout";
 
   /**
+   * Set pattern to empty string to turn the custom log pattern feature off.
+   */
+  public static final String TEZ_LOG_PATTERN_LAYOUT_DEFAULT = "";
+
+  /**
    * Comma separated list of keys, which can used for defining keys in MDC. The corresponding values
    * will be read from Configuration, see tez.mdc.custom.keys.conf.props for further details.
    */

@@ -49,7 +49,7 @@ public final class LoggingUtils {
     String[] mdcKeys = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS,
         TezConfiguration.TEZ_MDC_CUSTOM_KEYS_DEFAULT);
 
-    if (mdcKeys.length == 0) {
+    if (mdcKeys == null || mdcKeys.length == 0) {
       return;
     }
 
@@ -80,11 +80,15 @@ public final class LoggingUtils {
   }
 
   public static String getPatternForAM(Configuration conf) {
-    return conf.get(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM, null);
+    String pattern =
+        conf.get(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+    return pattern.isEmpty() ? null : pattern;
   }
 
   public static String getPatternForTask(Configuration conf) {
-    return conf.get(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK, null);
+    String pattern =
+        conf.get(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+    return pattern.isEmpty() ? null : pattern;
   }
 
   /**

@@ -183,6 +183,30 @@ public class TestTezJobs {
     patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS, "hive.query.id");
     patternConfig.set("hive.query.id", "hello-upstream-application-12345");
 
+    //1. feature is on
+    //[main (queryId=hello-upstream-application-12345 dag=dag_1666683231618_0001_1)] |app.DAGAppMaster|
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //2. feature is on, but custom keys are empty: expecting empty queryId with the same format
+    //[main (queryId= dag=dag_1666683231618_0002_1)] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "");
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //3. feature is on, custom keys are defined but corresponding value is null in config:
+    //expecting empty queryId with the same format
+    //[main (queryId= dag=dag_1666683231618_0003_1)] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "queryId");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS, "hive.query.id.null");
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //4. feature is off: expecting to have properly formatted log lines with original log4j config (not empty string)
+    //[main] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+
     hashJoinExample.setConf(patternConfig);
     runHashJoinExample(hashJoinExample);
   }
