@@ -112,6 +112,7 @@ import org.apache.hadoop.yarn.util.Clock;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.hadoop.yarn.util.SystemClock;
+import org.apache.log4j.helpers.ThreadLocalMap;
 import org.apache.tez.common.AsyncDispatcher;
 import org.apache.tez.common.AsyncDispatcherConcurrent;
 import org.apache.tez.common.GcTimeUpdater;
@@ -184,6 +185,7 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
+import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
@@ -336,6 +338,7 @@ public class DAGAppMaster extends AbstractService {
   // must be LinkedHashMap to preserve order of service addition
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
+  private ThreadLocalMap mdcContext;
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
@@ -343,6 +346,7 @@ public class DAGAppMaster extends AbstractService {
       String [] localDirs, String[] logDirs, String clientVersion,
       Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
     super(DAGAppMaster.class.getName());
+    this.mdcContext = LoggingUtils.setupLog4j();
     this.clock = clock;
     this.startTime = clock.getTime();
     this.appSubmitTime = appSubmitTime;
@@ -690,7 +694,7 @@ public class DAGAppMaster extends AbstractService {
   private void handleInternalError(String errDiagnosticsPrefix, String errDiagDagEvent) {
     state = DAGAppMasterState.ERROR;
     if (currentDAG != null) {
-      _updateLoggers(currentDAG, "_post");
+      updateLoggers(currentDAG, "_post");
       LOG.info(errDiagnosticsPrefix + ". Aborting dag: " + currentDAG.getID());
       // Inform the current DAG about the error
       sendEvent(new DAGEventInternalError(currentDAG.getID(), errDiagDagEvent));
@@ -760,7 +764,7 @@ public class DAGAppMaster extends AbstractService {
       if (!isSession) {
         LOG.info("Not a session, AM will unregister as DAG has completed");
         this.taskSchedulerManager.setShouldUnregisterFlag();
-        _updateLoggers(currentDAG, "_post");
+        updateLoggers(currentDAG, "_post");
         setStateOnDAGCompletion();
         LOG.info("Shutting down on completion of dag:" + finishEvt.getDAGId());
         shutdownHandler.shutdown();
@@ -768,7 +772,7 @@ public class DAGAppMaster extends AbstractService {
         LOG.info("DAG completed, dagId=" + finishEvt.getDAGId() + ", dagState="
             + finishEvt.getDAGState());
         lastDAGCompletionTime = clock.getTime();
-        _updateLoggers(currentDAG, "_post");
+        updateLoggers(currentDAG, "_post");
         if (this.historyEventHandler.hasRecoveryFailed()) {
           String recoveryErrorMsg = "Recovery had a fatal error, shutting down session after" +
               " DAG completion";
@@ -879,9 +883,10 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private void _updateLoggers(DAG dag, String appender) {
+  private void updateLoggers(DAG dag, String appender) {
     try {
-      TezUtilsInternal.updateLoggers(dag.getID().toString() + appender);
+      TezUtilsInternal.updateLoggers(dag.getConf(), dag.getID().toString() + appender,
+          LoggingUtils.getPatternForAM(dag.getConf()));
     } catch (FileNotFoundException e) {
       LOG.warn("Unable to update the logger. Continue with the old logger", e );
     }
@@ -2007,7 +2012,7 @@ public class DAGAppMaster extends AbstractService {
             + ", state=" + (recoveredDAGData.dagState == null ? "null" :
                 recoveredDAGData.dagState)
             + ", failureReason=" + recoveredDAGData.reason);
-        _updateLoggers(recoveredDAGData.recoveredDAG, "");
+        updateLoggers(recoveredDAGData.recoveredDAG, "");
         if (recoveredDAGData.nonRecoverable) {
           addDiagnostic("DAG " + recoveredDAGData.recoveredDagID + " can not be recovered due to "
               + recoveredDAGData.reason);
@@ -2042,7 +2047,7 @@ public class DAGAppMaster extends AbstractService {
         }
       } else {
         LOG.info("Found DAG to recover, dagId=" + recoveredDAGData.recoveredDAG.getID());
-        _updateLoggers(recoveredDAGData.recoveredDAG, "");
+        updateLoggers(recoveredDAGData.recoveredDAG, "");
         DAGRecoveredEvent dagRecoveredEvent = new DAGRecoveredEvent(this.appAttemptID,
             recoveredDAGData.recoveredDAG.getID(), recoveredDAGData.recoveredDAG.getName(),
             recoveredDAGData.recoveredDAG.getUserName(), this.clock.getTime(), this.containerLogs);
@@ -2467,7 +2472,9 @@ public class DAGAppMaster extends AbstractService {
 
     // /////////////////// Create the job itself.
     final DAG newDAG = createDAG(dagPlan);
-    _updateLoggers(newDAG, "");
+    LoggingUtils.initLoggingContext(mdcContext, newDAG.getConf(), newDAG.getID().toString(), null);
+
+    updateLoggers(newDAG, "");
     if (LOG.isDebugEnabled()) {
       LOG.debug("Running a DAG with " + dagPlan.getVertexCount()
           + " vertices ");
