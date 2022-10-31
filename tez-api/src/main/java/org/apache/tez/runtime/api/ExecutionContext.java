@@ -28,5 +28,5 @@ public interface ExecutionContext {
    * Get the hostname on which the JVM is running.
    * @return the hostname
    */
-  public String getHostName();
+  String getHostName();
 }
