@@ -80,7 +80,7 @@ public class TestOutput extends AbstractLogicalOutput {
   @Override
   public List<Event> close() throws Exception {
     LOG.info("Sending data movement event with value: " + output);
-    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);
     ByteBuffer result = ByteBuffer.allocate(4).putInt(output);
     result.flip();
     List<Event> events = Lists.newArrayListWithCapacity(getNumPhysicalOutputs());

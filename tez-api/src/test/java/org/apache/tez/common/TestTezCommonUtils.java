@@ -49,7 +49,7 @@ public class TestTezCommonUtils {
   private static final File LOCAL_STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestTezCommonUtils.class.getSimpleName()).getAbsoluteFile();
   private static String RESOLVED_STAGE_DIR;
-  private static Configuration conf = new Configuration();;
+  private static Configuration conf = new Configuration();
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezCommonUtils.class.getName() + "-tmpDir";
   private static MiniDFSCluster dfsCluster = null;

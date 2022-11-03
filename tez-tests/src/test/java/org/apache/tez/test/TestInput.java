@@ -393,7 +393,7 @@ public class TestInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> close() throws Exception {
-    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);
     return null;
   }
 
