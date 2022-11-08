@@ -106,7 +106,12 @@
       <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version.hadoop}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
