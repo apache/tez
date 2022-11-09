@@ -699,7 +699,7 @@ public class TezMerger {
       int s1 = key1.getPosition();
       int l1 = key1.getLength();
       int s2 = key2.getPosition();
-      int l2 = key2.getLength();;
+      int l2 = key2.getLength();
 
       return comparator.compare(key1.getData(), s1, l1, key2.getData(), s2, l2) < 0;
     }

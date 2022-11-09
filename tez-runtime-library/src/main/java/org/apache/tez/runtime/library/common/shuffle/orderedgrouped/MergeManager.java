@@ -322,7 +322,7 @@ public class MergeManager implements FetchedInputAllocatorOrderedGrouped {
     if (this.memToMemMerger != null) {
       memToMemMerger.setParentThread(shuffleSchedulerThread);
     }
-    this.inMemoryMerger.setParentThread(shuffleSchedulerThread);;
+    this.inMemoryMerger.setParentThread(shuffleSchedulerThread);
     this.onDiskMerger.setParentThread(shuffleSchedulerThread);
   }
 

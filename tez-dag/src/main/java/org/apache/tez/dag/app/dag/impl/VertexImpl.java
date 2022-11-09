@@ -681,7 +681,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         .registerStateEnteredCallback(VertexState.RUNNING,
             STATE_CHANGED_CALLBACK)
         .registerStateEnteredCallback(VertexState.INITIALIZING,
-            STATE_CHANGED_CALLBACK);;
+            STATE_CHANGED_CALLBACK);
   }
 
   private final StateMachineTez<VertexState, VertexEventType, VertexEvent, VertexImpl> stateMachine;
@@ -3886,7 +3886,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     } else {
       String diag = "Commit failed for output:" + commitCompletedEvent.getOutputName()
           + ", vertexId=" + logIdentifier + ", "
-          + ExceptionUtils.getStackTrace(commitCompletedEvent.getException());;
+          + ExceptionUtils.getStackTrace(commitCompletedEvent.getException());
       LOG.info(diag);
       addDiagnostic(diag);
       trySetTerminationCause(VertexTerminationCause.COMMIT_FAILURE);
@@ -4398,7 +4398,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
         addIO(vertex.getName());
       }
     } finally {
-      writeLock.unlock();;
+      writeLock.unlock();
     }
   }
 
