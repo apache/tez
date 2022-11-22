@@ -33,6 +33,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -602,6 +604,9 @@ public class ShuffleHandler extends AuxiliaryService {
         ChannelPipeline pipeline = ch.pipeline();
         if (sslFactory != null) {
           pipeline.addLast("ssl", new SslHandler(sslFactory.createSSLEngine()));
+        }
+        if (LOG.isDebugEnabled()) {
+          pipeline.addLast("loggingHandler", new LoggingHandler(LogLevel.DEBUG));
         }
         pipeline.addLast("decoder", new HttpRequestDecoder());
         pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
