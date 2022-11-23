@@ -42,7 +42,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 import com.google.common.base.Strings;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
@@ -114,6 +113,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.hash.Funnels;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import com.google.common.io.ByteStreams;
 
 @Private
 public class TezClientUtils {
@@ -1123,28 +1127,28 @@ public class TezClientUtils {
     }
   }
 
+  public static byte[] getLocalSha(Path path, Configuration conf)
+      throws IOException {
+    HashFunction hf = Hashing.sha384();
+    Hasher hasher = hf.newHasher();
 
-  public static byte[] getLocalSha(Path path, Configuration conf) throws IOException {
-    InputStream is = null;
-    try {
-      is = FileSystem.getLocal(conf).open(path);
-      return DigestUtils.sha384(is);
-    } finally {
-      if (is != null) {
-        is.close();
-      }
+    try (InputStream is = FileSystem.getLocal(conf).open(path)) {
+      ByteStreams.copy(is, Funnels.asOutputStream(hasher));
     }
+
+    return hasher.hash().asBytes();
   }
 
-  public static byte[] getResourceSha(URI uri, Configuration conf) throws IOException {
-    InputStream is = null;
-    try {
-      is = FileSystem.get(uri, conf).open(new Path(uri));
-      return DigestUtils.sha384(is);
-    } finally {
-      if (is != null) {
-        is.close();
-      }
+  public static byte[] getResourceSha(URI uri, Configuration conf)
+      throws IOException {
+    HashFunction hf = Hashing.sha384();
+    Hasher hasher = hf.newHasher();
+
+    try (InputStream is = FileSystem.getLocal(conf).open(new Path(uri))) {
+      ByteStreams.copy(is, Funnels.asOutputStream(hasher));
     }
+
+    return hasher.hash().asBytes();
   }
+
 }
