@@ -27,7 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
  * Configuration parameters which are internal to the Inputs and Outputs which exist in the Runtime
  */
 @Private
-public class TezRuntimeFrameworkConfigs {
+public final class TezRuntimeFrameworkConfigs {
 
   private static final String TEZ_RUNTIME_FRAMEWORK_PREFIX = "tez.runtime.framework.";
 
@@ -41,4 +41,6 @@ public class TezRuntimeFrameworkConfigs {
   public static final String TEZ_RUNTIME_METRICS_SESSION_ID = TEZ_RUNTIME_FRAMEWORK_PREFIX +
       "metrics.session.id";
   public static final String TEZ_RUNTIME_METRICS_SESSION_ID_DEFAULT = "";
+
+  private TezRuntimeFrameworkConfigs() {}
 }

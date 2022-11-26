@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
@@ -67,9 +67,11 @@ import org.slf4j.LoggerFactory;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 
 @Private
-public class TezUtilsInternal {
+public final class TezUtilsInternal {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtilsInternal.class);
+
+  private TezUtilsInternal() {}
 
   public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
       IOException {
@@ -88,7 +90,7 @@ public class TezUtilsInternal {
     }
   }
 
-  public static byte[] compressBytes(byte[] inBytes) throws IOException {
+  public static byte[] compressBytes(byte[] inBytes) {
     StopWatch sw = new StopWatch().start();
     byte[] compressed = compressBytesInflateDeflate(inBytes);
     sw.stop();
@@ -120,8 +122,7 @@ public class TezUtilsInternal {
       int count = deflater.deflate(buffer);
       bos.write(buffer, 0, count);
     }
-    byte[] output = bos.toByteArray();
-    return output;
+    return bos.toByteArray();
   }
 
   private static byte[] uncompressBytesInflateDeflate(byte[] inBytes) throws IOException {
@@ -138,8 +139,7 @@ public class TezUtilsInternal {
       }
       bos.write(buffer, 0, count);
     }
-    byte[] output = bos.toByteArray();
-    return output;
+    return bos.toByteArray();
   }
 
   private static final Pattern pattern = Pattern.compile("\\W");
@@ -154,8 +154,7 @@ public class TezUtilsInternal {
 
   private static String sanitizeString(String srcString) {
     Matcher matcher = pattern.matcher(srcString);
-    String res = matcher.replaceAll("_");
-    return res; // Number starts allowed rightnow
+    return matcher.replaceAll("_"); // Number starts allowed rightnow
   }
 
   public static void updateLoggers(Configuration configuration, String addend, String patternString)
@@ -168,15 +167,14 @@ public class TezUtilsInternal {
     if (appender != null) {
       if (appender instanceof TezContainerLogAppender) {
         TezContainerLogAppender claAppender = (TezContainerLogAppender) appender;
-        claAppender
-            .setLogFileName(constructLogFileName(TezConstants.TEZ_CONTAINER_LOG_FILE_NAME, addend));
+        claAppender.setLogFileName(constructLogFileName(
+                addend));
 
         // there was a configured pattern
         if (patternString != null) {
           PatternLayout layout = (PatternLayout) claAppender.getLayout();
           layout.setConversionPattern(patternString);
         }
-
         claAppender.activateOptions();
       } else {
         LOG.warn("Appender is a " + appender.getClass() + "; require an instance of "
@@ -188,11 +186,11 @@ public class TezUtilsInternal {
     }
   }
 
-  private static String constructLogFileName(String base, String addend) {
+  private static String constructLogFileName(String addend) {
     if (addend == null || addend.isEmpty()) {
-      return base;
+      return TezConstants.TEZ_CONTAINER_LOG_FILE_NAME;
     } else {
-      return base + "_" + addend;
+      return TezConstants.TEZ_CONTAINER_LOG_FILE_NAME + "_" + addend;
     }
   }
 
@@ -225,7 +223,6 @@ public class TezUtilsInternal {
   /**
    * Convert DAGPlan to text. Skip sensitive informations like credentials.
    *
-   * @param dagPlan
    * @return a string representation of the dag plan with sensitive information removed
    */
   public static String convertDagPlanToString(DAGProtos.DAGPlan dagPlan) throws IOException {
@@ -238,7 +235,7 @@ public class TezUtilsInternal {
             DagTypeConverters.convertByteStringToCredentials(dagPlan.getCredentialsBinary());
         TextFormat.printField(entry.getKey(),
             ByteString.copyFrom(TezCommonUtils.getCredentialsInfo(credentials,"dag").getBytes(
-                Charset.forName("UTF-8"))), sb);
+                    StandardCharsets.UTF_8)), sb);
       }
     }
     return sb.toString();
@@ -266,8 +263,6 @@ public class TezUtilsInternal {
         return TaskAttemptTerminationCause.NODE_FAILED;
       case CONTAINER_EXITED:
         return TaskAttemptTerminationCause.CONTAINER_EXITED;
-      case OTHER:
-        return TaskAttemptTerminationCause.UNKNOWN_ERROR;
       default:
         return TaskAttemptTerminationCause.UNKNOWN_ERROR;
     }

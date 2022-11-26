@@ -29,11 +29,13 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 @Private
 @Unstable
-public class Master {
+public final class Master {
 
   public enum State {
-    INITIALIZING, RUNNING;
+    INITIALIZING, RUNNING
   }
+
+  private Master() {}
 
   public static String getMasterUserName(Configuration conf) {
     return conf.get(YarnConfiguration.RM_PRINCIPAL);

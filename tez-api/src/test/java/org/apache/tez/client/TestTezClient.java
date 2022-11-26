@@ -522,7 +522,7 @@ public class TestTezClient {
       assertTrue("Time taken is not as expected",
           (endTime - startTime) > timeout);
       verify(spyClient, times(0)).submitDAG(any());
-      Assert.assertTrue("Unexpected Exception message",
+      Assert.assertTrue("Unexpected Exception message: " + te.getMessage(),
           te.getMessage().contains("Tez AM not ready"));
 
     }

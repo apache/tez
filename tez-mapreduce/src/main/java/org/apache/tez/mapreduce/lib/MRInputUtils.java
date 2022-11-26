@@ -43,14 +43,15 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
  * Helper methods for InputFormat based Inputs. Private to Tez.
  */
 @Private
-public class MRInputUtils {
+public final class MRInputUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRInputUtils.class);
 
+  private MRInputUtils() {}
+
   public static TaskSplitMetaInfo getSplits(Configuration conf, int index) throws IOException {
-    TaskSplitMetaInfo taskSplitMInfo = SplitMetaInfoReaderTez
+    return SplitMetaInfoReaderTez
         .getSplitMetaInfo(conf, FileSystem.getLocal(conf), index);
-    return taskSplitMInfo;
   }
 
   public static org.apache.hadoop.mapreduce.InputSplit getNewSplitDetailsFromEvent(
@@ -78,12 +79,10 @@ public class MRInputUtils {
     try {
       cls = (Class<org.apache.hadoop.mapreduce.InputSplit>) jobConf.getClassByName(className);
     } catch (ClassNotFoundException ce) {
-      IOException wrap = new IOException("Split class " + className + " not found");
-      wrap.initCause(ce);
-      throw wrap;
+      throw new IOException("Split class " + className + " not found", ce);
     }
     SerializationFactory factory = new SerializationFactory(jobConf);
-    Deserializer<org.apache.hadoop.mapreduce.InputSplit> deserializer = (Deserializer<org.apache.hadoop.mapreduce.InputSplit>) factory
+    Deserializer<org.apache.hadoop.mapreduce.InputSplit> deserializer = factory
         .getDeserializer(cls);
     deserializer.open(inFile);
     org.apache.hadoop.mapreduce.InputSplit split = deserializer.deserialize(null);
@@ -111,12 +110,10 @@ public class MRInputUtils {
     try {
       cls = (Class<org.apache.hadoop.mapred.InputSplit>) jobConf.getClassByName(className);
     } catch (ClassNotFoundException ce) {
-      IOException wrap = new IOException("Split class " + className + " not found");
-      wrap.initCause(ce);
-      throw wrap;
+      throw new IOException("Split class " + className + " not found", ce);
     }
     SerializationFactory factory = new SerializationFactory(jobConf);
-    Deserializer<org.apache.hadoop.mapred.InputSplit> deserializer = (Deserializer<org.apache.hadoop.mapred.InputSplit>) factory
+    Deserializer<org.apache.hadoop.mapred.InputSplit> deserializer = factory
         .getDeserializer(cls);
     deserializer.open(inFile);
     org.apache.hadoop.mapred.InputSplit split = deserializer.deserialize(null);

@@ -38,11 +38,13 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
  * v2
  *
  */
-public class SimpleTestDAG {
+public final class SimpleTestDAG {
   static Resource defaultResource = Resource.newInstance(100, 0);
   public static String TEZ_SIMPLE_DAG_NUM_TASKS =
       "tez.simple-test-dag.num-tasks";
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
+
+  private SimpleTestDAG() {}
   
   public static DAG createDAG(String name, 
       Configuration conf) throws Exception {
@@ -76,10 +78,6 @@ public class SimpleTestDAG {
    *  v4  v5
    *   \  /
    *    v6
-   * @param name
-   * @param conf
-   * @return
-   * @throws Exception
    */
   public static DAG createDAGForVertexOrder(String name, Configuration conf) throws Exception{
     UserPayload payload = UserPayload.create(null);

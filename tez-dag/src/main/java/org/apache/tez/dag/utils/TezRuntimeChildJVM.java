@@ -28,10 +28,12 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.tez.runtime.task.TezChild;
 
-public class TezRuntimeChildJVM {
+public final class TezRuntimeChildJVM {
+
+  private TezRuntimeChildJVM() {}
 
     // FIXME
-  public static enum LogName {
+  public enum LogName {
     /** Log on the stdout of the task. */
     STDOUT ("stdout"),
 
@@ -47,9 +49,9 @@ public class TezRuntimeChildJVM {
     /** Log the debug script's stdout  */
     DEBUGOUT ("debugout");
 
-    private String prefix;
+    private final String prefix;
 
-    private LogName(String prefix) {
+    LogName(String prefix) {
       this.prefix = prefix;
     }
 
@@ -71,7 +73,7 @@ public class TezRuntimeChildJVM {
       int applicationAttemptNumber,
       String javaOpts) {
 
-    Vector<String> vargs = new Vector<String>(9);
+    Vector<String> vargs = new Vector<>(9);
 
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
 
@@ -101,7 +103,7 @@ public class TezRuntimeChildJVM {
     for (CharSequence str : vargs) {
       mergedCommand.append(str).append(" ");
     }
-    Vector<String> vargsFinal = new Vector<String>(1);
+    Vector<String> vargsFinal = new Vector<>(1);
     vargsFinal.add(mergedCommand.toString());
     return vargsFinal;
   }

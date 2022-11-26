@@ -18,29 +18,17 @@
 
 package org.apache.tez.examples;
 
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.EnumSet;
-import java.util.Set;
-
 import org.apache.hadoop.util.ProgramDriver;
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.client.DAGClient;
-import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.client.Progress;
-import org.apache.tez.dag.api.client.StatusGetOpts;
-import org.apache.tez.dag.api.client.VertexStatus;
 
 /**
  * A description of an example program based on its class and a
  * human-readable description.
  */
-public class ExampleDriver {
+public final class ExampleDriver {
 
-  private static final DecimalFormat formatter = new DecimalFormat("###.##%");
+  private ExampleDriver() {}
 
-  public static void main(String argv[]){
+  public static void main(String[] argv){
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {

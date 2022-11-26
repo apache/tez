@@ -61,13 +61,15 @@ import org.apache.tez.runtime.library.utils.LocalProgress;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 @SuppressWarnings({"unchecked", "rawtypes"})
-public class TezMerger {
+public final class TezMerger {
   private static final Logger LOG = LoggerFactory.getLogger(TezMerger.class);
 
   
   // Local directories
-  private static LocalDirAllocator lDirAlloc = 
+  private static final LocalDirAllocator L_DIR_ALLOC =
     new LocalDirAllocator(TezRuntimeFrameworkConfigs.LOCAL_DIRS);
+
+  private TezMerger() {}
 
   public static
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
@@ -110,7 +112,7 @@ public class TezMerger {
                  mergePhase);
   }
 
-  public static <K extends Object, V extends Object>
+  public static <K, V>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
                             SerializationContext serializationContext,
                             List<Segment> segments,
@@ -144,7 +146,7 @@ public class TezMerger {
             readsCounter, writesCounter, bytesReadCounter, mergePhase);
   }
 
-  public static <K extends Object, V extends Object>
+  public static <K, V>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
       SerializationContext serializationContext,
       CompressionCodec codec,
@@ -167,7 +169,7 @@ public class TezMerger {
             mergePhase);
   }
 
-  public static <K extends Object, V extends Object>
+  public static <K, V>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
                             SerializationContext serializationContext,
                             CompressionCodec codec,
@@ -189,7 +191,7 @@ public class TezMerger {
                                              mergePhase);
   }
 
-  public static <K extends Object, V extends Object>
+  public static <K, V>
   TezRawKeyValueIterator merge(Configuration conf, FileSystem fs,
                           SerializationContext serializationContext,
                           CompressionCodec codec,
@@ -211,7 +213,7 @@ public class TezMerger {
                                              mergePhase);
 }
 
-  public static <K extends Object, V extends Object>
+  public static <K, V>
   void writeFile(TezRawKeyValueIterator records, Writer writer,
       Progressable progressable, long recordsBeforeProgress)
       throws IOException, InterruptedException {
@@ -228,7 +230,7 @@ public class TezMerger {
       if (((recordCtr++) % recordsBeforeProgress) == 0) {
         progressable.progress();
         if (Thread.currentThread().isInterrupted()) {
-          /**
+          /*
            * Takes care DefaultSorter.mergeParts, MergeManager's merger threads,
            * PipelinedSorter's flush(). This is not expensive check as it is carried out every
            * 10000 records or so.
@@ -250,7 +252,7 @@ public class TezMerger {
     private int position;
     private int length;
 
-    public KeyValueBuffer(byte buf[], int position, int length) {
+    KeyValueBuffer(byte[] buf, int position, int length) {
       reset(buf, position, length);
     }
 
@@ -279,7 +281,7 @@ public class TezMerger {
     static final byte[] EMPTY_BYTES = new byte[0];
     Reader reader = null;
     final KeyValueBuffer key = new KeyValueBuffer(EMPTY_BYTES, 0, 0);
-    TezCounter mapOutputsCounter = null;
+    private TezCounter mapOutputsCounter;
 
     public Segment(Reader reader, TezCounter mapOutputsCounter) {
       this.reader = reader;
@@ -358,15 +360,17 @@ public class TezMerger {
   @InterfaceStability.Unstable
   public static class DiskSegment extends Segment {
 
-    FileSystem fs = null;
-    Path file = null;
-    boolean preserve = false; // Signifies whether the segment should be kept after a merge is complete. Checked in the close method.
-    CompressionCodec codec = null;
-    long segmentOffset = 0;
-    long segmentLength = -1;
+    private FileSystem fs;
+    private Path file;
+
+    // Signifies whether the segment should be kept after a merge is complete. Checked in the close method.
+    private boolean preserve;
+    private CompressionCodec codec;
+    private long segmentOffset;
+    private long segmentLength;
     boolean ifileReadAhead;
     int ifileReadAheadLength;
-    int bufferSize = -1;
+    private int bufferSize;
 
     public DiskSegment(FileSystem fs, Path file,
         CompressionCodec codec, boolean ifileReadAhead,
@@ -389,7 +393,7 @@ public class TezMerger {
                    long segmentOffset, long segmentLength,
                    CompressionCodec codec, boolean ifileReadAhead,
                    int ifileReadAheadLength,  int bufferSize, 
-                   boolean preserve) throws IOException {
+                   boolean preserve) {
       this(fs, file, segmentOffset, segmentLength, codec, ifileReadAhead,
           ifileReadAheadLength, bufferSize, preserve, null);
     }
@@ -397,8 +401,7 @@ public class TezMerger {
     public DiskSegment(FileSystem fs, Path file,
         long segmentOffset, long segmentLength, CompressionCodec codec,
         boolean ifileReadAhead, int ifileReadAheadLength, int bufferSize,
-        boolean preserve, TezCounter mergedMapOutputsCounter)
-    throws IOException {
+        boolean preserve, TezCounter mergedMapOutputsCounter) {
       super(null, mergedMapOutputsCounter);
       this.fs = fs;
       this.file = file;
@@ -460,7 +463,7 @@ public class TezMerger {
   }
 
   @VisibleForTesting
-  static class MergeQueue<K extends Object, V extends Object>
+  static class MergeQueue<K, V>
   extends PriorityQueue<Segment> implements TezRawKeyValueIterator {
     final Configuration conf;
     final FileSystem fs;
@@ -471,7 +474,7 @@ public class TezMerger {
     static final int ifileBufferSize = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT;
     static final long recordsBeforeProgress = TezRuntimeConfiguration.TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT;
     
-    List<Segment> segments = new ArrayList<Segment>();
+    private List<Segment> segments = new ArrayList<>();
     
     final RawComparator comparator;
 
@@ -537,7 +540,7 @@ public class TezMerger {
       }
       
       // Sort segments on file-lengths
-      Collections.sort(segments, segmentComparator); 
+      segments.sort(segmentComparator);
     }
     
     public MergeQueue(Configuration conf, FileSystem fs,
@@ -566,7 +569,7 @@ public class TezMerger {
       this.reporter = reporter;
       this.considerFinalMergeForProgress = considerFinalMergeForProgress;
       if (sortSegments) {
-        Collections.sort(segments, segmentComparator);
+        segments.sort(segmentComparator);
       }
       this.checkForSameKeys = checkForSameKeys;
       this.codec = codec;
@@ -596,7 +599,7 @@ public class TezMerger {
       long startPos = reader.getPosition();
       if (checkForSameKeys) {
         if (hasNext == null) {
-          /**
+          /*
            * hasNext can be null during first iteration & prevKey is initialized here.
            * In cases of NO_KEY/NEW_KEY, we readjust the queue later. If new segment/file is found
            * during this process, we need to compare keys for RLE across segment boundaries.
@@ -606,7 +609,7 @@ public class TezMerger {
         } else {
           //indicates a key has been read already
           if (hasNext != KeyState.SAME_KEY) {
-            /**
+            /*
              * Store previous key before reading next for later key comparisons.
              * If all keys in a segment are unique, it would always hit this code path and key copies
              * are wasteful in such condition, as these comparisons are mainly done for RLE.
@@ -635,9 +638,6 @@ public class TezMerger {
     /**
      * Check if the previous key is same as the next top segment's key.
      * This would be useful to compute whether same key is spread across multiple segments.
-     *
-     * @param current
-     * @throws IOException
      */
     void compareKeyWithNextTopKey(Segment current) throws IOException {
       Segment nextTop = top();
@@ -759,7 +759,7 @@ public class TezMerger {
           factor += inMem;
         }
         List<Segment> segmentsToMerge =
-          new ArrayList<Segment>();
+                new ArrayList<>();
         int segmentsConsidered = 0;
         int numSegmentsToConsider = factor;
         long startBytes = 0; // starting bytes of segments of this merge
@@ -816,8 +816,8 @@ public class TezMerger {
             // the 3rd phase of reduce task.
             totalBytesProcessed = 0;
             totalBytes = 0;
-            for (int i = 0; i < segmentsToMerge.size(); i++) {
-              totalBytes += segmentsToMerge.get(i).getLength();
+            for (Segment segment : segmentsToMerge) {
+              totalBytes += segment.getLength();
             }
           }
           if (totalBytes != 0) //being paranoid
@@ -860,7 +860,7 @@ public class TezMerger {
           Path tmpFilename = 
             new Path(tmpDir, "intermediate").suffix("." + passNo);
 
-          Path outputFile =  lDirAlloc.getLocalPathForWrite(
+          Path outputFile =  L_DIR_ALLOC.getLocalPathForWrite(
                                               tmpFilename.toString(),
                                               approxOutputSize, conf);
 
@@ -933,7 +933,7 @@ public class TezMerger {
      */
     private List<Segment> getSegmentDescriptors(int numDescriptors) {
       if (numDescriptors > segments.size()) {
-        List<Segment> subList = new ArrayList<Segment>(segments);
+        List<Segment> subList = new ArrayList<>(segments);
         segments.clear();
         return subList;
       }

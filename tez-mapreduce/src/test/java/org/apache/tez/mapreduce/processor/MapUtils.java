@@ -71,9 +71,11 @@ import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import com.google.common.collect.HashMultimap;
 
 
-public class MapUtils {
+public final class MapUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(MapUtils.class);
+
+  private MapUtils() {}
   
   public static void configureLocalDirs(Configuration conf, String localDir)
       throws IOException {
@@ -101,7 +103,7 @@ public class MapUtils {
       // JOB_LOCAL_DIR doesn't exist on this host -- Create it.
       workDir = lDirAlloc.getLocalPathForWrite("work", conf);
       FileSystem lfs = FileSystem.getLocal(conf).getRaw();
-      boolean madeDir = false;
+      boolean madeDir;
       try {
         madeDir = lfs.mkdirs(workDir);
       } catch (FileAlreadyExistsException e) {
@@ -127,8 +129,8 @@ public class MapUtils {
     LOG.info("Generating data at path: " + file);
     // create a file with length entries
     @SuppressWarnings("deprecation")
-    SequenceFile.Writer writer = 
-        SequenceFile.createWriter(fs, job, file, 
+    SequenceFile.Writer writer =
+        SequenceFile.createWriter(fs, job, file,
             LongWritable.class, Text.class);
     try {
       Random r = new Random(System.currentTimeMillis());
@@ -144,8 +146,8 @@ public class MapUtils {
       writer.close();
     }
     
-    SequenceFileInputFormat<LongWritable, Text> format = 
-        new SequenceFileInputFormat<LongWritable, Text>();
+    SequenceFileInputFormat<LongWritable, Text> format =
+            new SequenceFileInputFormat<>();
     InputSplit[] splits = format.getSplits(job, 1);
     System.err.println("#split = " + splits.length + " ; " +
         "#locs = " + splits[0].getLocations().length + "; " +
@@ -175,7 +177,7 @@ public class MapUtils {
 
     String[] locations = split.getLocations();
 
-    SplitMetaInfo info = null;
+    SplitMetaInfo info;
     info = new JobSplit.SplitMetaInfo(locations, offset, split.getLength());
 
     Path jobSplitMetaInfoFile = new Path(
@@ -209,7 +211,7 @@ public class MapUtils {
         MapProcessor.class.getName()).setUserPayload(
         TezUtils.createUserPayloadFromConf(jobConf));
     
-    Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>();
+    Token<JobTokenIdentifier> shuffleToken = new Token<>();
 
     TaskSpec taskSpec = new TaskSpec(
         TezTestUtils.getMockTaskAttemptId(0, 0, mapId, 0),
@@ -218,18 +220,18 @@ public class MapUtils {
         inputSpecs,
         outputSpecs, null, null);
 
-    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<String, ByteBuffer>();
+    Map<String, ByteBuffer> serviceConsumerMetadata = new HashMap<>();
     String auxiliaryService = jobConf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
     serviceConsumerMetadata.put(auxiliaryService,
         ShuffleUtils.convertJobTokenToBytes(shuffleToken));
-    Map<String, String> envMap = new HashMap<String, String>();
+    Map<String, String> envMap = new HashMap<>();
     ByteBuffer shufflePortBb = ByteBuffer.allocate(4).putInt(0, 8000);
     AuxiliaryServiceHelper
         .setServiceDataIntoEnv(auxiliaryService, shufflePortBb,
             envMap);
 
-    LogicalIOProcessorRuntimeTask task = new LogicalIOProcessorRuntimeTask(
+    return new LogicalIOProcessorRuntimeTask(
         taskSpec,
         0,
         jobConf,
@@ -237,8 +239,7 @@ public class MapUtils {
         umbilical,
         serviceConsumerMetadata,
         envMap,
-        HashMultimap.<String, String>create(), null, "", new ExecutionContextImpl("localhost"),
+        HashMultimap.create(), null, "", new ExecutionContextImpl("localhost"),
         Runtime.getRuntime().maxMemory(), true, new DefaultHadoopShim(), sharedExecutor);
-    return task;
   }
 }

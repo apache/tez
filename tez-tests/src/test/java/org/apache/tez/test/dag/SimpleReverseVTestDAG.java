@@ -40,11 +40,13 @@ import org.apache.tez.test.TestProcessor;
  *  v2     v3
  *
  */
-public class SimpleReverseVTestDAG {
+public final class SimpleReverseVTestDAG {
   static Resource defaultResource = Resource.newInstance(100, 0);
   public static String TEZ_SIMPLE_REVERSE_V_DAG_NUM_TASKS =
       "tez.simple-reverse-v-test-dag.num-tasks";
   public static int TEZ_SIMPLE_REVERSE_V_DAG_NUM_TASKS_DEFAULT = 2;
+
+  private SimpleReverseVTestDAG() {}
   
   public static DAG createDAG(String name, 
       Configuration conf) throws Exception {

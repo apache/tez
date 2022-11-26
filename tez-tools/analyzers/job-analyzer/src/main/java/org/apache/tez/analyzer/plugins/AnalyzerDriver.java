@@ -20,7 +20,9 @@ package org.apache.tez.analyzer.plugins;
 
 import org.apache.hadoop.util.ProgramDriver;
 
-public class AnalyzerDriver {
+public final class AnalyzerDriver {
+
+  private AnalyzerDriver() {}
 
   public static void main(String argv[]){
     int exitCode = -1;

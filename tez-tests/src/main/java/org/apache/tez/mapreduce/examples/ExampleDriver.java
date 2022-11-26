@@ -38,11 +38,13 @@ import org.apache.tez.mapreduce.hadoop.MRConfig;
  * A description of an example program based on its class and a
  * human-readable description.
  */
-public class ExampleDriver {
+public final class ExampleDriver {
 
   private static final DecimalFormat formatter = new DecimalFormat("###.##%");
 
-  public static void main(String argv[]){
+  private ExampleDriver() {}
+
+  public static void main(String[] argv){
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {
@@ -110,9 +112,9 @@ public class ExampleDriver {
     DAGStatus dagStatus = dagClient.getDAGStatus(
       (displayDAGCounters ? opts : null));
     Progress progress = dagStatus.getDAGProgress();
-    double vProgressFloat = 0.0f;
+    double vProgressFloat;
     if (progress != null) {
-      System.out.println("");
+      System.out.println();
       System.out.println("DAG: State: "
           + dagStatus.getState()
           + " Progress: "

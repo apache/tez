@@ -51,14 +51,16 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-public class HistoryEventJsonConversion {
+public final class HistoryEventJsonConversion {
+
+  private HistoryEventJsonConversion() {}
 
   public static JSONObject convertToJson(HistoryEvent historyEvent) throws JSONException {
     if (!historyEvent.isHistoryEvent()) {
       throw new UnsupportedOperationException("Invalid Event, does not support history"
           + ", eventType=" + historyEvent.getEventType());
     }
-    JSONObject jsonObject = null;
+    JSONObject jsonObject;
     switch (historyEvent.getEventType()) {
       case APP_LAUNCHED:
         jsonObject = convertAppLaunchedEvent((AppLaunchedEvent) historyEvent);
@@ -402,7 +404,7 @@ public class HistoryEventJsonConversion {
     JSONObject otherInfo = new JSONObject();
 
     if (event.getVertexNameIDMap() != null) {
-      Map<String, String> nameIdStrMap = new TreeMap<String, String>();
+      Map<String, String> nameIdStrMap = new TreeMap<>();
       for (Entry<String, TezVertexID> entry : event.getVertexNameIDMap().entrySet()) {
         nameIdStrMap.put(entry.getKey(), entry.getValue().toString());
       }
