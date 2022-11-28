@@ -797,10 +797,6 @@ public final class TezClientUtils {
       vConfigOpts = taskDefaultOpts + " ";
     }
     String defaultTaskCmdOpts = TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT;
-    if (vOpts != null && !vOpts.isEmpty()) {
-      // Only use defaults if nothing is specified by the user
-      defaultTaskCmdOpts = "";
-    }
 
     vConfigOpts = vConfigOpts + conf.get(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS,
         defaultTaskCmdOpts);
