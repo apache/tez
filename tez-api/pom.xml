@@ -115,6 +115,10 @@
       <artifactId>bcprov-jdk15on</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
