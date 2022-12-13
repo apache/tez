@@ -40,7 +40,6 @@
     "ember-cli-htmlbars": "1.0.2",
     "ember-cli-htmlbars-inline-precompile": "0.3.1",
     "ember-cli-inject-live-reload": "1.4.0",
-    "ember-cli-jquery-ui": "0.0.20",
     "ember-cli-less": "1.5.3",
     "ember-cli-moment-shim": "0.7.3",
     "ember-cli-mousewheel": "0.1.5",

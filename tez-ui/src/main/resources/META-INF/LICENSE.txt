@@ -221,7 +221,7 @@ The Apache TEZ tez-ui bundles the following files under the MIT License:
  - ember-load-initializers v0.1.7 (https://github.com/ember-cli/ember-load-initializers) - Copyright (c) 2014 ember-cli Contributors
  - bootstrap v3.3.6 (http://getbootstrap.com) - Copyright (c) 2011-2014 Twitter, Inc
  - jquery v2.1.4 (http://jquery.org) - Copyright 2005, 2014 jQuery Foundation and other contributors
- - jquery-ui v1.11.4 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
+ - jquery-ui v1.13.2 (http://jqueryui.com/) - Copyright 2014 jQuery Foundation and other contributors
  - jquery-mousewheel v3.1.13 (https://github.com/jquery/jquery-mousewheel) - Copyright 2006, 2014 jQuery Foundation and other contributors, https://jquery.org/
  - CodeMirror 5.11.0 (https://codemirror.net/) - Copyright (C) 2015 by Marijn Haverbeke <marijnh@gmail.com> and others
  - file-saver v1.3.4 (https://github.com/eligrey/FileSaver.js) - Authored by Eli Grey

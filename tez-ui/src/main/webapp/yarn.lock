@@ -1479,13 +1479,6 @@ ember-cli-htmlbars-inline-precompile@0.3.1:
     ember-cli-babel "^5.1.3"
     ember-cli-htmlbars "^1.0.0"
 
-ember-cli-htmlbars@0.7.6:
-  version "0.7.6"
-  resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-0.7.6.tgz#07e068eea68133d7e2fa6b505d87673f4bce145f"
-  dependencies:
-    broccoli-filter "^0.1.6"
-    ember-cli-version-checker "^1.0.2"
-
 ember-cli-htmlbars@1.0.2, ember-cli-htmlbars@^1.0.0, ember-cli-htmlbars@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/ember-cli-htmlbars/-/ember-cli-htmlbars-1.0.2.tgz#53b3e503ed3aaccb8c23592f292bc2e10ae467a1"
@@ -1502,13 +1495,6 @@ ember-cli-inject-live-reload@1.4.0:
 ember-cli-is-package-missing@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/ember-cli-is-package-missing/-/ember-cli-is-package-missing-1.0.0.tgz#6e6184cafb92635dd93ca6c946b104292d4e3390"
-
-ember-cli-jquery-ui@0.0.20:
-  version "0.0.20"
-  resolved "https://registry.yarnpkg.com/ember-cli-jquery-ui/-/ember-cli-jquery-ui-0.0.20.tgz#c9949a18c5dc3c650ad9ab6bd8ac107cddf15a40"
-  dependencies:
-    ember-cli-babel "^5.0.0"
-    ember-cli-htmlbars "0.7.6"
 
 ember-cli-less@1.5.3, ember-cli-less@^1.4.0:
   version "1.5.3"
