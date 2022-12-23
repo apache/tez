@@ -18,7 +18,7 @@
 
 ## YARN Timeline Background
 
-Initial support for [YARN Timeline](http://hadoop.apache.org/docs/r2.4.0/hadoop-yarn/hadoop-yarn-site/TimelineServer.html) was introduced in Apache Hadoop 2.4.0. Support for ACLs in Timeline was introduced in Apache Hadoop 2.6.0. Support for Timeline was introduced in Tez in 0.5.x ( with some experimental support in 0.4.x ). However, Tez ACLs integration with Timeline is only available from Tez 0.6.0 onwards.
+Initial support for [YARN Timeline](https://hadoop.apache.org/docs/r2.4.0/hadoop-yarn/hadoop-yarn-site/TimelineServer.html) was introduced in Apache Hadoop 2.4.0. Support for ACLs in Timeline was introduced in Apache Hadoop 2.6.0. Support for Timeline was introduced in Tez in 0.5.x ( with some experimental support in 0.4.x ). However, Tez ACLs integration with Timeline is only available from Tez 0.6.0 onwards.
 
 ## How Tez Uses YARN Timeline
 

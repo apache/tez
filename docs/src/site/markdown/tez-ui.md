@@ -128,7 +128,7 @@ yarn-site.xml
 ...
 ```
 
-__For more detailed information (setup, configuration, deployment), please refer to the [Apache Hadoop Documentation on the Application Timeline Server](http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/TimelineServer.html)__
+__For more detailed information (setup, configuration, deployment), please refer to the [Apache Hadoop Documentation on the Application Timeline Server](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/TimelineServer.html)__
 
 __For general information on the compatibility matrix of the Tez UI with YARN TimelineServer, please refer to the [Tez - Timeline Server Guide](tez_yarn_timeline.html)__
 

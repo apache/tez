@@ -35,9 +35,9 @@ the following:
 5.  The addresses of pages from where you followed a link to our site.
 
 Part of this information is gathered using a tracking cookie set by the
-[Google Analytics](http://www.google.com/analytics/) service and handled
+[Google Analytics](https://www.google.com/analytics/) service and handled
 by Google as described in their [privacy
-policy](http://www.google.com/privacy.html). See your browser
+policy](https://www.google.com/privacy.html). See your browser
 documentation for instructions on how to disable the cookie if you
 prefer not to share this data with Google.
 
