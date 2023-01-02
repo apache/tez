@@ -21,7 +21,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <name>Tez</name>
     <description>Tez is an application framework which allows for a complex directed-acyclic-graph of tasks for processing data and is built atop Apache Hadoop YARN.</description>
-    <url>http://tez.apache.org/</url>
+    <url>https://tez.apache.org/</url>
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -35,14 +35,14 @@
     <licenses>
       <license>
         <name>Apache 2</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         <distribution>repo</distribution>
       </license>
     </licenses>
 
     <issueManagement>
         <system>Jira</system>
-        <url>http://issues.apache.org/jira/browse/TEZ</url>
+        <url>https://issues.apache.org/jira/browse/TEZ</url>
     </issueManagement>
 
     <mailingLists>
@@ -53,7 +53,7 @@
             <unsubscribe>mailto:user-unsubscribe@tez.apache.org
             </unsubscribe>
             <post>mailto:user@tez.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/tez-user/</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/tez-user/</archive>
         </mailingList>
         <mailingList>
             <name>Development list</name>
@@ -62,7 +62,7 @@
             <unsubscribe>mailto:dev-unsubscribe@tez.apache.org
             </unsubscribe>
             <post>mailto:dev@tez.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/tez-dev/</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/tez-dev/</archive>
         </mailingList>
         <mailingList>
             <name>Commit list</name>
@@ -71,7 +71,7 @@
             <unsubscribe>mailto:commits-unsubscribe@tez.apache.org
             </unsubscribe>
             <post>mailto:commits@tez.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/tez-commits/</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/tez-commits/</archive>
         </mailingList>
         <mailingList>
             <name>JIRA Issues list</name>
@@ -80,7 +80,7 @@
             <unsubscribe>mailto:issues-unsubscribe@tez.apache.org
             </unsubscribe>
             <post>mailto:issues@tez.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/tez-issues/</archive>
+            <archive>https://mail-archives.apache.org/mod_mbox/tez-issues/</archive>
         </mailingList>
     </mailingLists>
 
@@ -440,7 +440,7 @@
 
     <organization>
         <name>Apache Software Foundation</name>
-        <url>http://www.apache.org/</url>
+        <url>https://www.apache.org/</url>
     </organization>
 
     <build>

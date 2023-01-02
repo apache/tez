@@ -42,7 +42,7 @@
     <src>./images/ApacheTezLogo_lowres.png</src>
     <width>25%</width>
     <height>25%</height>
-    <href>http://tez.apache.org/</href>
+    <href>https://tez.apache.org/</href>
   </bannerLeft>
 
   <bannerRight>
@@ -94,13 +94,13 @@
     </head>
 
     <breadcrumbs>
-      <item name="Apache TEZ&#174;" href="http://tez.apache.org/"/>
+      <item name="Apache TEZ&#174;" href="https://tez.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Getting Started">
       <item name="Overview" href="index.html"/>
       <item name="Talks and Meetup Recordings" href="talks.html"/>
-      <item name="Project License" href="http://www.apache.org/licenses/LICENSE-2.0.txt"/>
+      <item name="Project License" href="https://www.apache.org/licenses/LICENSE-2.0.txt"/>
     </menu>
 
     <menu name="Documentation">
@@ -116,12 +116,12 @@
       <item name="Issue Tracking" href="issue-tracking.html"/>
       <item name="Project Team" href="team-list.html"/>
       <item name="Project By-Laws" href="by-laws.html"/>
-      <item name="User Meetup Group" href="http://www.meetup.com/Apache-Tez-User-Group"/>
+      <item name="User Meetup Group" href="https://www.meetup.com/Apache-Tez-User-Group"/>
       <item name="Tez Wiki" href="https://cwiki.apache.org/confluence/display/TEZ"/>
     </menu>
 
     <menu name="Download Apache TEZ&#174; Releases">
-      <item name="0.4.1-incubating" href="http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
+      <item name="0.4.1-incubating" href="https://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/"/>
       <item name="0.5.4" href="./releases/apache-tez-0-5-4.html"/>
       <item name="0.6.2" href="./releases/apache-tez-0-6-2.html"/>
       <item name="0.7.1" href="./releases/apache-tez-0-7-1.html"/>
@@ -142,10 +142,10 @@
     </menu>
 
     <menu name="ASF">
-      <item name="License" href="http://www.apache.org/licenses/" />
-      <item name="Donate" href="http://www.apache.org/foundation/sponsorship.html" />
-      <item name="Thanks" href="http://www.apache.org/foundation/thanks.html" />
-      <item name="Security" href="http://www.apache.org/security/" />
+      <item name="License" href="https://www.apache.org/licenses/" />
+      <item name="Donate" href="https://www.apache.org/foundation/sponsorship.html" />
+      <item name="Thanks" href="https://www.apache.org/foundation/thanks.html" />
+      <item name="Security" href="https://www.apache.org/security/" />
     </menu>
 
     <footer>
