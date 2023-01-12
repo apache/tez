@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.MeasuredDataInputStream;
 import org.apache.tez.common.CallableWithNdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -388,7 +389,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   protected void setupConnectionInternal(MapHost host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
-    input = httpConnection.getInputStream();
+    input = new MeasuredDataInputStream(httpConnection.getInputStream());
     httpConnection.validate();
   }
 
