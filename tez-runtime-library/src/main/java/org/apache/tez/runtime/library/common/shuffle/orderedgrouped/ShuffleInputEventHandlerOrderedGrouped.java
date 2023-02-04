@@ -30,7 +30,6 @@ import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -46,7 +45,7 @@ import org.apache.tez.util.StringInterner;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandler {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleInputEventHandlerOrderedGrouped.class);
 
   private final ShuffleScheduler scheduler;

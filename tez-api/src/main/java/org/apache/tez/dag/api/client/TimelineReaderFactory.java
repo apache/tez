@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  *  create a httpclient, configured for the appropriate runtime.
  *
  *  on hadoop 2.6+ the factory returns TimelineReaderTokenAuthenticatedStrategy, which supports
- *  kerberos based auth (secure cluster) or psuedo auth (un-secure cluster).
+ *  kerberos based auth (secure cluster) or pseudo auth (un-secure cluster).
  *
  *  on hadoop 2.4 where the token delegation auth is not supported, TimelineReaderPseudoAuthenticatedStrategy
  *  is used which supports only unsecure timeline.

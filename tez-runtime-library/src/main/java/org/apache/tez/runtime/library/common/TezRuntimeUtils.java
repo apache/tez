@@ -86,9 +86,9 @@ public final class TezRuntimeUtils {
     } catch (ClassNotFoundException e) {
       throw new IOException("Unable to load combiner class: " + className);
     }
-    
+
     Combiner combiner;
-    
+
     Constructor<? extends Combiner> ctor;
     try {
       ctor = clazz.getConstructor(TaskContext.class);
@@ -99,7 +99,7 @@ public final class TezRuntimeUtils {
     }
     return combiner;
   }
-  
+
   @SuppressWarnings("unchecked")
   public static Partitioner instantiatePartitioner(Configuration conf)
       throws IOException {
@@ -171,7 +171,7 @@ public final class TezRuntimeUtils {
   }
 
   public static URL constructBaseURIForShuffleHandlerVertexComplete(
-       String host, int port, String appId, int dagIdentifier, String vertexIndentifier, boolean sslShuffle)
+       String host, int port, String appId, int dagIdentifier, String vertexIdentifier, boolean sslShuffle)
        throws MalformedURLException {
     String httpProtocol = (sslShuffle) ? "https://" : "http://";
     StringBuilder sb = new StringBuilder(httpProtocol);
@@ -185,7 +185,7 @@ public final class TezRuntimeUtils {
     sb.append("&dag=");
     sb.append(dagIdentifier);
     sb.append("&vertex=");
-    sb.append(vertexIndentifier);
+    sb.append(vertexIdentifier);
     return new URL(sb.toString());
   }
 

@@ -80,9 +80,9 @@ public interface TaskContext {
    * @return Vertex Name
    */
   public String getTaskVertexName();
-  
+
   /**
-   * Get the index of this task's vertex in the set of vertices in the DAG. This 
+   * Get the index of this task's vertex in the set of vertices in the DAG. This
    * is consistent and valid across all tasks/vertices in the same DAG.
    * @return index
    */
@@ -119,24 +119,24 @@ public interface TaskContext {
   /**
    * Returns an identifier which is unique to the specific Input, Processor or
    * Output
-   * 
+   *
    * @return a unique identifier
    */
   public String getUniqueIdentifier();
-  
+
   /**
-   * Returns a shared {@link ObjectRegistry} to hold user objects in memory 
-   * between tasks. 
+   * Returns a shared {@link ObjectRegistry} to hold user objects in memory
+   * between tasks.
    * @return {@link ObjectRegistry}
    */
   public ObjectRegistry getObjectRegistry();
-  
+
   /**
-   * Notifies the framework that progress is being made by this component. 
+   * Notifies the framework that progress is being made by this component.
    * This is used to identify hung components that are not making progress.
    * Must be called periodically until processing has completed for this component.
-   * Care must be taken to call this when real progress has been made. Simply 
-   * calling this continuously from a thread without regard to real work may prevent 
+   * Care must be taken to call this when real progress has been made. Simply
+   * calling this continuously from a thread without regard to real work may prevent
    * identification of hung components and delay/stall job completion.
    */
   public void notifyProgress();
@@ -198,34 +198,34 @@ public interface TaskContext {
    */
   @Nullable
   public ByteBuffer getServiceProviderMetaData(String serviceName);
-  
+
   /**
    * Request a specific amount of memory during initialization
    * (initialize(..*Context)) The requester is notified of allocation via the
    * provided callback handler.
-   * 
+   *
    * Currently, (post TEZ-668) the caller will be informed about the available
    * memory after initialization (I/P/O initialize(...)), and before the
    * start/run invocation. There will be no other invocations on the callback.
-   * 
+   *
    * This method can be called only once by any component. Calling it multiple
    * times from within the same component will result in an error.
-   * 
+   *
    * Each Input / Output must request memory. For Inputs / Outputs which do not
    * have a specific ask, a null callback handler can be specified with a
    * request size of 0.
-   * 
+   *
    * @param size
    *          request size in bytes.
    * @param callbackHandler
    *          the callback handler to be invoked once memory is assigned
    */
   public void requestInitialMemory(long size, MemoryUpdateCallback callbackHandler);
-  
+
   /**
    * Gets the total memory available to all components of the running task. This
    * values will always be constant, and does not factor in any allocations.
-   * 
+   *
    * @return the total available memory for all components of the task
    */
   public long getTotalMemoryAvailableToTask();
@@ -248,8 +248,8 @@ public interface TaskContext {
    * might not be guaranteed. The service returned works with tez framework, currently it provides
    * thread reuse across tasks.
    * Note: This is an unstable api, and is not recommended to be used by external users. Please wait
-   * until API and code is stablized by use in Tez processors, input and outputs.
-   * @param parallelism The expected parallelism for for this ExecutorService.
+   * until API and code is stabilized by use in Tez processors, input and outputs.
+   * @param parallelism The expected parallelism for this ExecutorService.
    * @param threadNameFormat The thread name format, format will be given one parameter, threadId.
    * @return An ExecutorService instance.
    */

@@ -71,7 +71,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * Responsible for communication between tasks running in a Container and the ApplicationMaster.
  * Takes care of sending heartbeats (regular and OOB) to the AM - to send generated events, and to
  * retrieve events specific to this task.
- * 
+ *
  */
 public class TaskReporter implements TaskReporterInterface {
 
@@ -171,7 +171,7 @@ public class TaskReporter implements TaskReporterInterface {
     private AtomicInteger nonOobHeartbeatCounter = new AtomicInteger(0);
     private int nextHeartbeatNumToLog = 0;
     /*
-     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM. 
+     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM.
      */
     private int prevCounterSendHeartbeatNum = 0;
 
@@ -361,7 +361,7 @@ public class TaskReporter implements TaskReporterInterface {
         return askedToDie.get();
       }
     }
-    
+
     @VisibleForTesting
     TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
       TezCounters counters = null;
@@ -472,10 +472,10 @@ public class TaskReporter implements TaskReporterInterface {
   }
 
   @Override
-  public boolean taskKilled(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
+  public boolean taskKilled(TezTaskAttemptID taskAttemptId, Throwable t, String diagnostics,
                             EventMetaData srcMeta) throws IOException, TezException {
     if(!isShuttingDown()) {
-      return currentCallable.taskTerminated(taskAttemptID, true, null, t, diagnostics, srcMeta);
+      return currentCallable.taskTerminated(taskAttemptId, true, null, t, diagnostics, srcMeta);
     }
     return false;
   }

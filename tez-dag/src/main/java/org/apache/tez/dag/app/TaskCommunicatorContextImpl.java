@@ -50,7 +50,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 @InterfaceAudience.Private
 public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, VertexStateUpdateListener {
 
-  // TODO TEZ-2003 (post) TEZ-2669 Propagate errors baack to the AM with proper error reporting
+  // TODO TEZ-2003 (post) TEZ-2669 Propagate errors back to the AM with proper error reporting
 
   private final AppContext context;
   private final TaskCommunicatorManager taskCommunicatorManager;

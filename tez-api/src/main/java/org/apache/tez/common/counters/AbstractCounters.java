@@ -401,7 +401,7 @@ public abstract class AbstractCounters<C extends TezCounter,
 
   /**
    * Get the "writeAllCounters" option
-   * @return true of all counters would serialized
+   * @return true if all counters would be serialized
    */
   @InterfaceAudience.Private
   public boolean getWriteAllCounters() {

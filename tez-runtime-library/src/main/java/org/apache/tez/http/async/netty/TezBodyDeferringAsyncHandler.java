@@ -156,7 +156,7 @@ class TezBodyDeferringAsyncHandler implements AsyncHandler<Response> {
   }
 
   /**
-   * This method -- unlike Future<Reponse>.get() -- will block only as long,
+   * This method -- unlike Future<Response>.get() -- will block only as long,
    * as headers arrive. This is useful for large transfers, to examine headers
    * ASAP, and defer body streaming to it's fine destination and prevent
    * unneeded bandwidth consumption. The response here will contain the very

@@ -396,13 +396,13 @@ class ShuffleScheduler {
 
     this.maxFailedUniqueFetches = Math.min(numberOfInputs, 5);
     referee.start();
-    this.maxFetchFailuresBeforeReporting = 
+    this.maxFetchFailuresBeforeReporting =
         conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT_DEFAULT);
-    this.reportReadErrorImmediately = 
+    this.reportReadErrorImmediately =
         conf.getBoolean(
-            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR_DEFAULT);
     this.verifyDiskChecksum = conf.getBoolean(
         TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM,
@@ -415,7 +415,7 @@ class ShuffleScheduler {
     this.maxTaskOutputAtOnce = Math.max(1, Math.min(75, conf.getInt(
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE,
             TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE_DEFAULT)));
-    
+
     this.skippedInputCounter = inputContext.getCounters().findCounter(TaskCounter.NUM_SKIPPED_INPUTS);
     this.firstEventReceived = inputContext.getCounters().findCounter(TaskCounter.FIRST_EVENT_RECEIVED);
     this.lastEventReceived = inputContext.getCounters().findCounter(TaskCounter.LAST_EVENT_RECEIVED);
@@ -689,7 +689,7 @@ class ShuffleScheduler {
       LOG.warn("Duplicate fetch of input no longer needs to be fetched: "
           + srcAttemptIdentifier);
       // free the resource - specially memory
-      
+
       // If the src does not generate data, output will be null.
       if (output != null) {
         output.abort();
@@ -801,7 +801,7 @@ class ShuffleScheduler {
     penalizeHost(host, failures);
   }
 
-  private boolean isAbortLimitExceeedFor(InputAttemptIdentifier srcAttempt) {
+  private boolean isAbortLimitExceededFor(InputAttemptIdentifier srcAttempt) {
     int attemptFailures = getFailureCount(srcAttempt);
     if (attemptFailures >= abortFailureLimit) {
       // This task has seen too many fetch failures - report it as failed. The
@@ -1010,7 +1010,7 @@ class ShuffleScheduler {
 
   boolean isShuffleHealthy(InputAttemptFetchFailure fetchFailure) {
     InputAttemptIdentifier srcAttempt = fetchFailure.getInputAttemptIdentifier();
-    if (isAbortLimitExceeedFor(srcAttempt)) {
+    if (isAbortLimitExceededFor(srcAttempt)) {
       return false;
     }
 
@@ -1021,7 +1021,7 @@ class ShuffleScheduler {
 
     String logContext = "srcAttempt=" + srcAttempt.toString();
     boolean fetcherHealthy = isFetcherHealthy(logContext);
-    
+
     // check if the reducer has progressed enough
     boolean reducerProgressedEnough =
       (((float)doneMaps / numInputs)
@@ -1031,7 +1031,7 @@ class ShuffleScheduler {
     // duration for which the reducer is stalled
     int stallDuration =
       (int)(System.currentTimeMillis() - lastProgressTime);
-    
+
     // duration for which the reducer ran with progress
     int shuffleProgressDuration =
       (int)(lastProgressTime - startTime);
@@ -1095,7 +1095,7 @@ class ShuffleScheduler {
       notifyAll();
     }
   }
-  
+
   public void obsoleteInput(InputAttemptIdentifier srcAttempt) {
     // The incoming srcAttempt does not contain a path component.
     LOG.info(srcNameTrimmed + ": " + "Adding obsolete input: " + srcAttempt);
@@ -1122,7 +1122,7 @@ class ShuffleScheduler {
       obsoleteInputs.add(srcAttempt);
     }
   }
-  
+
   public synchronized void putBackKnownMapOutput(MapHost host,
                                                  InputAttemptIdentifier srcAttempt) {
     host.addKnownMap(srcAttempt);
@@ -1300,7 +1300,7 @@ class ShuffleScheduler {
   static class Penalty implements Delayed {
     MapHost host;
     private long endTime;
-    
+
     Penalty(MapHost host, long delay) {
       this.host = host;
       this.endTime = System.currentTimeMillis() + delay;
@@ -1315,7 +1315,7 @@ class ShuffleScheduler {
       long other = ((Penalty) o).endTime;
       return endTime == other ? 0 : (endTime < other ? -1 : 1);
     }
-    
+
   }
 
   /**
@@ -1349,7 +1349,7 @@ class ShuffleScheduler {
       }
     }
   }
-  
+
 
   void setInputFinished(int inputIndex) {
     synchronized(finishedMaps) {

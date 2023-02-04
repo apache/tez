@@ -59,7 +59,7 @@ import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import com.google.common.annotations.VisibleForTesting;
 
 class FetcherOrderedGrouped extends CallableWithNdc<Void> {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGrouped.class);
 
   private static final AtomicInteger nextId = new AtomicInteger(0);
@@ -240,8 +240,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   /**
    * The crux of the matter...
-   * 
-   * @param host {@link MapHost} from which we need to  
+   *
+   * @param host {@link MapHost} from which we need to
    *              shuffle available map-outputs.
    */
   @VisibleForTesting
@@ -272,7 +272,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
       // Loop through available map-outputs and fetch them
       // On any error, faildTasks is not null and we exit
-      // after putting back the remaining maps to the 
+      // after putting back the remaining maps to the
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptFetchFailure[] failedTasks = null;
 
@@ -280,7 +280,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         InputAttemptIdentifier inputAttemptIdentifier =
             remaining.entrySet().iterator().next().getValue();
         // fail immediately after first failure because we dont know how much to
-        // skip for this error in the input stream. So we cannot move on to the 
+        // skip for this error in the input stream. So we cannot move on to the
         // remaining outputs. YARN-1773. Will get to them in the next retry.
         try {
           failedTasks = copyMapOutput(host, input, inputAttemptIdentifier);
@@ -486,8 +486,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           if (!stopped) {
             badIdErrs.increment(1);
             LOG.warn("Invalid map id ", e);
-            // Don't know which one was bad, so consider this one bad and dont read
-            // the remaining because we dont know where to start reading from. YARN-1773
+            // Don't know which one was bad, so consider this one bad and don't read
+            // the remaining because we don't know where to start reading from. YARN-1773
             return new InputAttemptFetchFailure[] {
                 new InputAttemptFetchFailure(getNextRemainingAttempt()) };
           } else {
@@ -651,7 +651,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       return false;
     }
   }
-  
+
   /**
    * Do some basic verification on the input received -- Being defensive
    * @param compressedLength
@@ -666,7 +666,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(logIdentifier + " invalid lengths in map output header: id: " +
-          srcAttemptId + " len: " + compressedLength + ", decomp len: " + 
+          srcAttemptId + " len: " + compressedLength + ", decomp len: " +
                decompressedLength);
       return false;
     }
@@ -682,7 +682,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (remaining.size() > 0) {
       return remaining.values().iterator().next();

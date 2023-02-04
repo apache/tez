@@ -98,7 +98,7 @@ public final class TezRuntimeChildJVM {
     vargs.add("2>" + getTaskLogFile(LogName.STDERR));
 
     // TODO Is this StringBuilder really required ? YARN already accepts a list of commands.
-    // Final commmand
+    // Final command
     StringBuilder mergedCommand = new StringBuilder();
     for (CharSequence str : vargs) {
       mergedCommand.append(str).append(" ");

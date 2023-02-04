@@ -41,7 +41,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
   // - Report taskSuccess via a method instead of the heartbeat
   // - Add methods to signal container / task state changes
   // - Maybe add book-keeping as a helper library, instead of each impl tracking container to task etc.
-  // - Handling of containres / tasks which no longer exist in the system (formalized interface instead of a shouldDie notification)
+  // - Handling of containers / tasks which no longer exist in the system (formalized interface instead of a shouldDie notification)
 
 
   /**
@@ -75,7 +75,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
    * This method must be invoked periodically to receive updates for a running task
    *
    * @param request the update from the running task.
-   * @return the response that is requried by the task.
+   * @return the response that is required by the task.
    * @throws IOException
    * @throws TezException
    */
@@ -176,7 +176,7 @@ public interface TaskCommunicatorContext extends ServicePluginContextBase {
 
   /**
    * Get an identifier for the executing context of the DAG.
-   * @return a String identifier for the exeucting context.
+   * @return a String identifier for the executing context.
    */
   String getCurrentAppIdentifier();
 
