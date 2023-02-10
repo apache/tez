@@ -24,7 +24,7 @@
 #
 ###############
 
-FROM ubuntu:focal AS tezbase
+FROM ubuntu:jammy AS tezbase
 
 WORKDIR /root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
