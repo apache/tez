@@ -42,6 +42,7 @@ ENV DEBCONF_TERSE true
 RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     apt-transport-https \
     apt-utils \
+    bzip2 \
     ca-certificates \
     curl \
     dirmngr \
