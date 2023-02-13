@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.util.RackResolver;
@@ -102,6 +103,20 @@ public abstract class TezSplitGrouper {
   public static final String TEZ_GROUPING_NODE_LOCAL_ONLY = "tez.grouping.node.local.only";
   public static final boolean TEZ_GROUPING_NODE_LOCAL_ONLY_DEFAULT = false;
 
+  /**
+   * Number of threads used to initialize the grouped splits, to asynchronously open the readers.
+   */
+  public static final String TEZ_GROUPING_SPLIT_INIT_THREADS = "tez.grouping.split.init.threads";
+  public static final int TEZ_GROUPING_SPLIT_INIT_THREADS_DEFAULT = 4;
+
+  /**
+   * Number of record readers to asynchronously and proactively init.
+   * In order for upstream apps to use this feature, the objects created in the
+   * upstream apps as part TezGroupedSplitsRecordReader call should be thread safe.
+   */
+  @InterfaceStability.Unstable
+  public static final String TEZ_GROUPING_SPLIT_INIT_RECORDREADERS = "tez.grouping.split.init.recordreaders";
+  public static final int TEZ_GROUPING_SPLIT_INIT_RECORDREADERS_DEFAULT = 1;
 
   static class LocationHolder {
     List<SplitContainer> splits;
