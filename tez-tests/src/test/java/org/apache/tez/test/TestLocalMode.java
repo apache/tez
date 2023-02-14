@@ -64,7 +64,7 @@ public class TestLocalMode {
 
   /**
    * In order to be able to safely get VertexStatus from a running DAG,
-   * the DAG needs to run for a certain amount of time, see TEZ-4475
+   * the DAG needs to run for a certain amount of time, see TEZ-4475 for details.
    */
   private static final int SLEEP_PROCESSOR_TIME_TO_SLEEP_MS = 500;
 
