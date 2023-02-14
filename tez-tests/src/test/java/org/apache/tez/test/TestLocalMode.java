@@ -62,6 +62,12 @@ import static org.junit.Assert.*;
 @RunWith(Parameterized.class)
 public class TestLocalMode {
 
+  /**
+   * In order to be able to safely get VertexStatus from a running DAG,
+   * the DAG needs to run for a certain amount of time, see TEZ-4475 for details.
+   */
+  private static final int SLEEP_PROCESSOR_TIME_TO_SLEEP_MS = 500;
+
   private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestLocalMode.class.getName());
 
@@ -255,8 +261,9 @@ public class TestLocalMode {
   }
 
   private DAG createSimpleDAG(String dagName, String processorName) {
-    DAG dag = DAG.create(dagName).addVertex(Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor
-        .create(processorName).setUserPayload(new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
+    DAG dag = DAG.create(dagName).addVertex(
+        Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor.create(processorName).setUserPayload(
+            new SleepProcessor.SleepProcessorConfig(SLEEP_PROCESSOR_TIME_TO_SLEEP_MS).toUserPayload()), 1));
     return dag;
   }
 
