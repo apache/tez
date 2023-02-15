@@ -155,7 +155,7 @@ public class TestEdge {
     } catch (IllegalArgumentException e) {
       e.printStackTrace();
       Assert.assertTrue(e.getMessage()
-          .contains("ScatteGather edge manager must have destination vertex task parallelism specified"));
+          .contains("ScatterGather edge manager must have destination vertex task parallelism specified"));
     }
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(0);
     manager.getNumSourceTaskPhysicalOutputs(0);
