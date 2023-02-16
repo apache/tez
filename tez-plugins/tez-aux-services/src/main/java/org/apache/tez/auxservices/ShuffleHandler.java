@@ -313,6 +313,10 @@ public class ShuffleHandler extends AuxiliaryService {
       int waitCount = this.reduceContext.getMapsToWait().decrementAndGet();
       if (waitCount == 0) {
         LOG.debug("Finished with all map outputs");
+        /*
+         * LastHttpContent.EMPTY_LAST_CONTENT can only be written when there are no remaining maps to send,
+         * this is the only time we can finish the HTTP response.
+         */
         ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         metrics.operationComplete(future);
         // Let the idle timer handler close keep-alive connections
