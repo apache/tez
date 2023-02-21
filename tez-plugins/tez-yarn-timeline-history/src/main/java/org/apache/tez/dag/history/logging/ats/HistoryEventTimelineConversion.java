@@ -60,7 +60,9 @@ import org.apache.tez.dag.records.TezVertexID;
 
 import com.google.common.collect.Lists;
 
-public class HistoryEventTimelineConversion {
+public final class HistoryEventTimelineConversion {
+
+  private HistoryEventTimelineConversion() {}
 
   private static void validateEvent(HistoryEvent event) {
     if (!event.isHistoryEvent()) {

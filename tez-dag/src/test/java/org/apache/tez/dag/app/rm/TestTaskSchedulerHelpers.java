@@ -18,8 +18,7 @@
 
 package org.apache.tez.dag.app.rm;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -76,7 +75,9 @@ import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 
-class TestTaskSchedulerHelpers {
+final class TestTaskSchedulerHelpers {
+
+  private TestTaskSchedulerHelpers() {}
 
   // Mocking AMRMClientImpl to make use of getMatchingRequest
   static class AMRMClientForTest extends AMRMClientImpl<CookieContainerRequest> {
@@ -143,9 +144,8 @@ class TestTaskSchedulerHelpers {
   static class TaskSchedulerManagerForTest extends
       TaskSchedulerManager {
 
-    private TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync;
-    private ContainerSignatureMatcher containerSignatureMatcher;
-    private UserPayload defaultPayload;
+    private final TezAMRMClientAsync<CookieContainerRequest> amrmClientAsync;
+    private final UserPayload defaultPayload;
 
     @SuppressWarnings("rawtypes")
     public TaskSchedulerManagerForTest(AppContext appContext,
@@ -157,7 +157,6 @@ class TestTaskSchedulerHelpers {
           Lists.newArrayList(new NamedEntityDescriptor("FakeScheduler", null)),
           false, new HadoopShimsLoader(appContext.getAMConf()).getHadoopShim());
       this.amrmClientAsync = amrmClientAsync;
-      this.containerSignatureMatcher = containerSignatureMatcher;
       this.defaultPayload = defaultPayload;
     }
 
@@ -170,7 +169,6 @@ class TestTaskSchedulerHelpers {
       super(appContext, null, eventHandler, containerSignatureMatcher, null, descriptors,
           false, new HadoopShimsLoader(appContext.getAMConf()).getHadoopShim());
       this.amrmClientAsync = amrmClientAsync;
-      this.containerSignatureMatcher = containerSignatureMatcher;
       this.defaultPayload = defaultPayload;
     }
 
@@ -212,7 +210,7 @@ class TestTaskSchedulerHelpers {
   @SuppressWarnings("rawtypes")
   static class CapturingEventHandler implements EventHandler {
 
-    private Queue<Event> events = new ConcurrentLinkedQueue<Event>();
+    private final Queue<Event> events = new ConcurrentLinkedQueue<Event>();
 
     public void handle(Event event) {
       events.add(event);
@@ -224,7 +222,7 @@ class TestTaskSchedulerHelpers {
 
     public void verifyNoInvocations(Class<? extends Event> eventClass) {
       for (Event e : events) {
-        assertFalse(e.getClass().getName().equals(eventClass.getName()));
+        assertNotEquals(e.getClass().getName(), eventClass.getName());
       }
     }
 
@@ -262,8 +260,8 @@ class TestTaskSchedulerHelpers {
   static class TaskSchedulerContextDrainable implements TaskSchedulerContext {
     int completedEvents;
     int invocations;
-    private TaskSchedulerContext real;
-    private CountingExecutorService countingExecutorService;
+    private final TaskSchedulerContext real;
+    private final CountingExecutorService countingExecutorService;
     final AtomicInteger count = new AtomicInteger(0);
     
     public TaskSchedulerContextDrainable(TaskSchedulerContextImplWrapper real) {
@@ -441,10 +439,7 @@ class TestTaskSchedulerHelpers {
 
     @Override
     public boolean isExactMatch(Object cs1, Object cs2) {
-      if (cs1 == cs2 && cs1 != null) {
-        return true;
-      }
-      return false;
+      return cs1 == cs2 && cs1 != null;
     }
 
     @Override

@@ -90,7 +90,9 @@ import com.google.protobuf.ByteString.Output;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 @Private
-public class DagTypeConverters {
+public final class DagTypeConverters {
+
+  private DagTypeConverters() {}
 
   public static PlanLocalResourceVisibility convertToDAGPlan(LocalResourceVisibility visibility){
     switch(visibility){

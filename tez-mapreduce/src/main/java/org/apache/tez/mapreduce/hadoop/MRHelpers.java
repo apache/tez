@@ -45,10 +45,11 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
  */
 @Public
 @Evolving
-public class MRHelpers {
+public final class MRHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(MRHelpers.class);
 
+  private MRHelpers() {}
 
   /**
    * Translate MapReduce configuration keys to the equivalent Tez keys in the provided
@@ -105,7 +106,7 @@ public class MRHelpers {
   }
 
   private static void convertVertexConfToTez(Configuration vertexConf, boolean preferTez) {
-    setStageKeysFromBaseConf(vertexConf, vertexConf, "unknown");
+    setStageKeysFromBaseConf(vertexConf, vertexConf);
     processDirectConversion(vertexConf, preferTez);
     setupMRComponents(vertexConf);
   }
@@ -136,7 +137,7 @@ public class MRHelpers {
    * require translation to tez keys.
    */
   private static void setStageKeysFromBaseConf(Configuration conf,
-                                               Configuration baseConf, String stage) {
+                                               Configuration baseConf) {
     // Don't clobber explicit tez config.
     JobConf jobConf = null;
     if (conf.get(TezRuntimeConfiguration.TEZ_RUNTIME_KEY_CLASS) == null) {
@@ -151,7 +152,7 @@ public class MRHelpers {
 
         if (LOG.isDebugEnabled()) {
           LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_KEY_CLASS
-              + " for stage: " + stage
+              + " for stage: unknown"
               + " based on job level configuration. Value: "
               + conf.get(MRJobConfig.MAP_OUTPUT_KEY_CLASS));
         }
@@ -168,7 +169,7 @@ public class MRHelpers {
             .getMapOutputValueClass().getName());
         if (LOG.isDebugEnabled()) {
           LOG.debug("Setting " + MRJobConfig.MAP_OUTPUT_VALUE_CLASS
-              + " for stage: " + stage
+              + " for stage: unknown"
               + " based on job level configuration. Value: "
               + conf.get(MRJobConfig.MAP_OUTPUT_VALUE_CLASS));
         }
@@ -223,7 +224,7 @@ public class MRHelpers {
 
   private static String getLog4jCmdLineProperties(Configuration conf,
       boolean isMap) {
-    Vector<String> logProps = new Vector<String>(4);
+    Vector<String> logProps = new Vector<>(4);
     TezUtils.addLog4jSystemProperties(getChildLogLevel(conf, isMap), logProps);
     StringBuilder sb = new StringBuilder();
     for (String str : logProps) {

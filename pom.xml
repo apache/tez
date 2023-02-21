@@ -65,6 +65,7 @@
     <slf4j.version>1.7.36</slf4j.version>
     <protobuf.version>3.21.1</protobuf.version>
     <roaringbitmap.version>0.7.45</roaringbitmap.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
@@ -282,7 +283,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.11</version>
+        <version>1.13</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -758,7 +759,13 @@
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
-        <version>1.65</version>
+        <version>${bouncycastle.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>${bouncycastle.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>

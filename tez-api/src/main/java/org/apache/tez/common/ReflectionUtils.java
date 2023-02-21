@@ -29,9 +29,11 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.TezReflectionException;
 
 @Private
-public class ReflectionUtils {
+public final class ReflectionUtils {
 
-  private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<String, Class<?>>();
+  private static final Map<String, Class<?>> CLAZZ_CACHE = new ConcurrentHashMap<>();
+
+  private ReflectionUtils() {}
 
   @Private
   public static Class<?> getClazz(String className) throws TezReflectionException {

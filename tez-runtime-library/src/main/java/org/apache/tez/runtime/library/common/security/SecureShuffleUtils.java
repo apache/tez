@@ -37,13 +37,14 @@ import org.apache.tez.common.security.JobTokenSecretManager;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class SecureShuffleUtils {
+public final class SecureShuffleUtils {
   public static final String HTTP_HEADER_URL_HASH = "UrlHash";
   public static final String HTTP_HEADER_REPLY_URL_HASH = "ReplyHash";
+
+  private SecureShuffleUtils() {}
   
   /**
    * Base64 encoded hash of msg
-   * @param msg
    */
   public static String generateHash(byte[] msg, SecretKey key) {
     return new String(Base64.encodeBase64(generateByteHash(msg, key)), Charsets.UTF_8);
@@ -51,7 +52,7 @@ public class SecureShuffleUtils {
 
   /**
    * calculate hash of msg
-   * @param msg
+   *
    * @return byte array containing computed hash of message
    */
   private static byte[] generateByteHash(byte[] msg, SecretKey key) {
@@ -63,9 +64,6 @@ public class SecureShuffleUtils {
    * This is only meant to be used when a process needs to verify against multiple different keys
    * (ShuffleHandler for instance)
    *
-   * @param hash
-   * @param msg
-   * @param key
    * @return true when hashes match; false otherwise
    */
   private static boolean verifyHash(byte[] hash, byte[] msg, SecretKey key) {
@@ -75,9 +73,7 @@ public class SecureShuffleUtils {
 
   /**
    * verify that hash equals to HMacHash(msg)
-   * @param hash
-   * @param msg
-   * @param mgr JobTokenSecretManager
+   *
    * @return true when hashes match; false otherwise
    */
   private static boolean verifyHash(byte[] hash, byte[] msg, JobTokenSecretManager mgr) {
@@ -87,14 +83,10 @@ public class SecureShuffleUtils {
 
   /**
    * Aux util to calculate hash of a String
-   * @param enc_str
-   * @param mgr JobTokenSecretManager
-   * @return Base64 encodedHash
-   * @throws IOException
+   *
    */
-  public static String hashFromString(String enc_str, JobTokenSecretManager mgr)
-      throws IOException {
-    return new String(Base64.encodeBase64(mgr.computeHash(enc_str.getBytes(Charsets.UTF_8))), Charsets.UTF_8);
+  public static String hashFromString(String encStr, JobTokenSecretManager mgr) {
+    return new String(Base64.encodeBase64(mgr.computeHash(encStr.getBytes(Charsets.UTF_8))), Charsets.UTF_8);
   }
 
   /**
@@ -106,13 +98,12 @@ public class SecureShuffleUtils {
    * @param base64Hash base64 encoded hash
    * @param msg        the message
    * @param key        the key to use to generate the hash from the message
-   * @throws IOException
    */
   public static void verifyReply(String base64Hash, String msg, SecretKey key) throws IOException {
     byte[] hash = Base64.decodeBase64(base64Hash.getBytes(Charsets.UTF_8));
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), key);
 
-    if(res != true) {
+    if(!res) {
       throw new IOException("Verification of the hashReply failed");
     }
   }
@@ -120,7 +111,7 @@ public class SecureShuffleUtils {
   /**
    * verify that base64Hash is same as HMacHash(msg)
    * @param base64Hash (Base64 encoded hash)
-   * @param msg
+   * @param msg the message
    * @throws IOException if not the same
    */
   public static void verifyReply(String base64Hash, String msg, JobTokenSecretManager mgr)
@@ -129,14 +120,14 @@ public class SecureShuffleUtils {
 
     boolean res = verifyHash(hash, msg.getBytes(Charsets.UTF_8), mgr);
 
-    if(res != true) {
+    if(!res) {
       throw new IOException("Verification of the hashReply failed");
     }
   }
   
   /**
    * Shuffle specific utils - build string for encoding from URL
-   * @param url
+   *
    * @return string for encoding
    */
   public static String buildMsgFrom(URL url) {
@@ -145,11 +136,10 @@ public class SecureShuffleUtils {
 
   /**
    * Shuffle specific utils - build string for encoding from URL
-   * @param uri_path
-   * @param uri_query
+   *
    * @return string for encoding
    */
   private static String buildMsgFrom(String uri_path, String uri_query, int port) {
-    return String.valueOf(port) + uri_path + "?" + uri_query;
+    return port + uri_path + "?" + uri_query;
   }
 }

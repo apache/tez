@@ -29,7 +29,9 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TezTypeConverters {
+public final class TezTypeConverters {
+
+  private TezTypeConverters() {}
 
   // TODO Remove unused methods
   
@@ -46,15 +48,13 @@ public class TezTypeConverters {
   public static TaskAttemptId toYarn(TezTaskAttemptID taskAttemptId) {
     TaskAttemptID mrTaskAttemptId = IDConverter
         .toMRTaskAttemptId(taskAttemptId);
-    TaskAttemptId mrv2TaskAttemptId = TypeConverter.toYarn(mrTaskAttemptId);
-    return mrv2TaskAttemptId;
+    return TypeConverter.toYarn(mrTaskAttemptId);
   }
 
   public static TezTaskAttemptID toTez(TaskAttemptId taskAttemptId) {
     TaskAttemptID mrTaskAttemptId = TypeConverter.fromYarn(taskAttemptId);
-    TezTaskAttemptID tezTaskAttemptId = IDConverter
+    return IDConverter
         .fromMRTaskAttemptId(mrTaskAttemptId);
-    return tezTaskAttemptId;
   }
 
   public static Counters fromTez(TezCounters tezCounters) {

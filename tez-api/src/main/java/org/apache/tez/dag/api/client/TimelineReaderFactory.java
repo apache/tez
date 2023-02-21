@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 @InterfaceAudience.Private
-public class TimelineReaderFactory {
+public final class TimelineReaderFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(TimelineReaderFactory.class);
 
@@ -78,6 +78,8 @@ public class TimelineReaderFactory {
 
   private static Class<?> delegationTokenAuthenticatorClazz = null;
   private static Method delegationTokenAuthenticateURLOpenConnectionMethod = null;
+
+  private TimelineReaderFactory() {}
 
   public static TimelineReaderStrategy getTimelineReaderStrategy(Configuration conf,
                                                                  boolean useHttps,
@@ -140,17 +142,14 @@ public class TimelineReaderFactory {
    * auth strategy for secured and unsecured environment with delegation token (hadoop 2.6 and above)
    */
   private static class TimelineReaderTokenAuthenticatedStrategy implements TimelineReaderStrategy {
-    private final Configuration conf;
     private final boolean useHttps;
     private final int connTimeout;
-    private ConnectionConfigurator connectionConfigurator;
-    private SSLFactory sslFactory;
+    private final SSLFactory sslFactory;
 
     public TimelineReaderTokenAuthenticatedStrategy(final Configuration conf,
                                                     final boolean useHttps,
                                                     final int connTimeout) {
 
-      this.conf = conf;
       this.useHttps = useHttps;
       this.connTimeout = connTimeout;
       this.sslFactory = useHttps ? new SSLFactory(CLIENT, conf) : null;
@@ -161,11 +160,10 @@ public class TimelineReaderFactory {
       Authenticator authenticator;
       UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       UserGroupInformation realUgi = ugi.getRealUser();
-      UserGroupInformation authUgi;
       String doAsUser;
       ClientConfig clientConfig = new DefaultClientConfig(JSONRootElementProvider.App.class);
-      connectionConfigurator = getNewConnectionConf(conf, useHttps,
-          connTimeout, sslFactory);
+      ConnectionConfigurator connectionConfigurator = getNewConnectionConf(useHttps,
+              connTimeout, sslFactory);
 
       try {
         authenticator = getTokenAuthenticator();
@@ -175,17 +173,15 @@ public class TimelineReaderFactory {
       }
 
       if (realUgi != null) {
-        authUgi = realUgi;
         doAsUser = ugi.getShortUserName();
       } else {
-        authUgi = ugi;
         doAsUser = null;
       }
 
       HttpURLConnectionFactory connectionFactory;
       try {
         connectionFactory = new TokenAuthenticatedURLConnectionFactory(connectionConfigurator, authenticator,
-            authUgi, doAsUser);
+                doAsUser);
       } catch (TezException e) {
         throw new IOException("Fail to create TokenAuthenticatedURLConnectionFactory", e);
       }
@@ -208,17 +204,14 @@ public class TimelineReaderFactory {
 
       private final Authenticator authenticator;
       private final ConnectionConfigurator connConfigurator;
-      private final UserGroupInformation authUgi;
       private final String doAsUser;
       private final AuthenticatedURL.Token token;
 
       public TokenAuthenticatedURLConnectionFactory(ConnectionConfigurator connConfigurator,
                                                     Authenticator authenticator,
-                                                    UserGroupInformation authUgi,
                                                     String doAsUser) throws TezException {
         this.connConfigurator = connConfigurator;
         this.authenticator = authenticator;
-        this.authUgi = authUgi;
         this.doAsUser = doAsUser;
         this.token = ReflectionUtils.createClazzInstance(
             DELEGATION_TOKEN_AUTHENTICATED_URL_TOKEN_CLASS_NAME, null, null);
@@ -264,15 +257,14 @@ public class TimelineReaderFactory {
                                                      final boolean useHttps,
                                                      final int connTimeout) {
       sslFactory = useHttps ? new SSLFactory(CLIENT, conf) : null;
-      connectionConf = getNewConnectionConf(conf, useHttps, connTimeout, sslFactory);
+      connectionConf = getNewConnectionConf(useHttps, connTimeout, sslFactory);
     }
 
     @Override
     public Client getHttpClient() {
       ClientConfig config = new DefaultClientConfig(JSONRootElementProvider.App.class);
       HttpURLConnectionFactory urlFactory = new PseudoAuthenticatedURLConnectionFactory(connectionConf);
-      Client httpClient = new Client(new URLConnectionClientHandler(urlFactory), config);
-      return httpClient;
+      return new Client(new URLConnectionClientHandler(urlFactory), config);
     }
 
     @VisibleForTesting
@@ -289,7 +281,7 @@ public class TimelineReaderFactory {
             URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
 
         HttpURLConnection httpURLConnection =
-            (HttpURLConnection) (new URL(url.toString() + tokenString)).openConnection();
+            (HttpURLConnection) (new URL(url + tokenString)).openConnection();
         this.connectionConf.configure(httpURLConnection);
 
         return httpURLConnection;
@@ -304,14 +296,13 @@ public class TimelineReaderFactory {
     }
   }
 
-  private static ConnectionConfigurator getNewConnectionConf(final Configuration conf,
-                                                             final boolean useHttps,
+  private static ConnectionConfigurator getNewConnectionConf(final boolean useHttps,
                                                              final int connTimeout,
                                                              final SSLFactory sslFactory) {
     ConnectionConfigurator connectionConf = null;
     if (useHttps) {
       try {
-        connectionConf = getNewSSLConnectionConf(conf, connTimeout, sslFactory);
+        connectionConf = getNewSSLConnectionConf(connTimeout, sslFactory);
       } catch (IOException e) {
         LOG.debug("Cannot load customized ssl related configuration."
             + " Falling back to system-generic settings.", e);
@@ -321,7 +312,7 @@ public class TimelineReaderFactory {
     if (connectionConf == null) {
       connectionConf = new ConnectionConfigurator() {
         @Override
-        public HttpURLConnection configure(HttpURLConnection httpURLConnection) throws IOException {
+        public HttpURLConnection configure(HttpURLConnection httpURLConnection) {
           setTimeouts(httpURLConnection, connTimeout);
           return httpURLConnection;
         }
@@ -331,8 +322,7 @@ public class TimelineReaderFactory {
     return connectionConf;
   }
 
-  private static ConnectionConfigurator getNewSSLConnectionConf(final Configuration conf,
-                                                                final int connTimeout,
+  private static ConnectionConfigurator getNewSSLConnectionConf(final int connTimeout,
                                                                 final SSLFactory sslFactory)
       throws IOException {
     final SSLSocketFactory sslSocketFactory;

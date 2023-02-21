@@ -22,7 +22,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.dag.api.EdgeProperty;
 
 @Private
-class Utils {
+final class Utils {
+
+  private Utils() {}
 
   /**
    * Modify the EdgeProperty to set the history text if available

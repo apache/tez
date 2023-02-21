@@ -41,12 +41,14 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class SplitMetaInfoReaderTez {
+public final class SplitMetaInfoReaderTez {
 
   public static final Logger LOG = LoggerFactory.getLogger(SplitMetaInfoReaderTez.class);
 
   public static final int META_SPLIT_VERSION = JobSplit.META_SPLIT_VERSION;
   public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;
+
+  private SplitMetaInfoReaderTez() {}
 
   private static FSDataInputStream getFSDataIS(Configuration conf,
       FileSystem fs) throws IOException {
@@ -69,7 +71,7 @@ public class SplitMetaInfoReaderTez {
           + FileSystem.getDefaultUri(conf));
     }
 
-    FileStatus fStatus = null;
+    FileStatus fStatus;
     try {
       fStatus = fs.getFileStatus(metaSplitFile);
       if (maxMetaInfoSize > 0 && fStatus.getLen() > maxMetaInfoSize) {
@@ -131,7 +133,6 @@ public class SplitMetaInfoReaderTez {
    * @param fs FileSystem.
    * @param index the index of the task.
    * @return split meta info object of the task.
-   * @throws IOException
    */
   public static TaskSplitMetaInfo getSplitMetaInfo(Configuration conf,
       FileSystem fs, int index) throws IOException {
