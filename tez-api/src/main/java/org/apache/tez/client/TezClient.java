@@ -644,7 +644,7 @@ public class TezClient {
   }
 
   private DAGClient submitDAGSession(DAG dag) throws TezException, IOException {
-    Preconditions.checkState(isSession == true,
+    Preconditions.checkState(isSession,
         "submitDAG with additional resources applies to only session mode. " +
         "In non-session mode please specify all resources in the initial configuration");
 

@@ -920,11 +920,13 @@ public final class TezMerger {
      */
     private static int getPassFactor(int factor, int passNo, int numSegments) {
       // passNo > 1 in the OR list - is that correct ?
-      if (passNo > 1 || numSegments <= factor || factor == 1)
+      if (passNo > 1 || numSegments <= factor || factor == 1) {
         return factor;
+      }
       int mod = (numSegments - 1) % (factor - 1);
-      if (mod == 0)
+      if (mod == 0) {
         return factor;
+      }
       return mod + 1;
     }
 
