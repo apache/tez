@@ -111,8 +111,7 @@ public final class DAGUtils {
     return dagJson;
   }
   
-  public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info)
-      throws JSONException {
+  public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info) {
     return new JSONObject(convertDataEventDependecyInfoToATS(info));
   }
   
@@ -437,7 +436,7 @@ public final class DAGUtils {
   }
 
   public static JSONObject convertServicePluginToJSON(
-      ServicePluginInfo servicePluginInfo) throws JSONException {
+      ServicePluginInfo servicePluginInfo) {
     JSONObject jsonObject = new JSONObject(convertServicePluginToATSMap(servicePluginInfo));
     return jsonObject;
   }
