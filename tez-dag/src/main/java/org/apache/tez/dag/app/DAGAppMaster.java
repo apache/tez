@@ -1916,16 +1916,34 @@ public class DAGAppMaster extends AbstractService {
           LOG.info("Recovering data from previous attempts"
               + ", currentAttemptId=" + this.appAttemptID.getAttemptId());
           this.state = DAGAppMasterState.RECOVERING;
-          RecoveryParser recoveryParser = new RecoveryParser(
-              this, recoveryFS, recoveryDataDir, appAttemptID.getAttemptId());
-          DAGRecoveryData recoveredDAGData = recoveryParser.parseRecoveryData();
-          return recoveredDAGData;
+          return parseDAGFromRecoveryData();
         }
       } finally {
         hadoopShim.clearHadoopCallerContext();
       }
     }
     return null;
+  }
+
+  private DAGRecoveryData parseDAGFromRecoveryData() throws IOException {
+    RecoveryParser recoveryParser = new RecoveryParser(
+            this, recoveryFS, recoveryDataDir, appAttemptID.getAttemptId());
+    DAGRecoveryData recoveredDAGData = recoveryParser.parseRecoveryData();
+
+    /**
+     * Parsed recovery data can be NULL in scenarios where AM shutdown prematurely during the first attempt
+     * due to some FATAL error, if that happens recovery stream is not closed and no data is flushed on File System
+     * In cases like above, in next future attempts of application, recovery returns NULL instead of failing the DAG
+     * This config when enabled, throws an IOException for such cases, and it assumes that caller will catch these
+     * IOExceptions and will fail the DAG, which happens currently, JIRA: https://issues.apache.org/jira/browse/TEZ-4474
+     */
+    if(Objects.isNull(recoveredDAGData) && amConf.getBoolean(
+            TezConfiguration.TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA,
+            TezConfiguration.TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA_DEFAULT)) {
+      throw new IOException(String.format("Found nothing to recover in currentAttemptId=%s from recovery data dir=%s",
+              this.appAttemptID.getAttemptId(), this.recoveryDataDir));
+    }
+    return recoveredDAGData;
   }
 
   @Override
