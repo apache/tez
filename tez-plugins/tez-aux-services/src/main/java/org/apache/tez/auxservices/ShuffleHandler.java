@@ -129,7 +129,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -306,21 +305,28 @@ public class ShuffleHandler extends AuxiliaryService {
 
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
+      Channel ch = future.channel();
       if (!future.isSuccess()) {
-        future.channel().close();
+        ch.close();
         return;
       }
       int waitCount = this.reduceContext.getMapsToWait().decrementAndGet();
       if (waitCount == 0) {
+        LOG.debug("Finished with all map outputs");
+        /*
+         * LastHttpContent.EMPTY_LAST_CONTENT can only be written when there are no remaining maps to send,
+         * this is the only time we can finish the HTTP response.
+         */
+        ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         metrics.operationComplete(future);
         // Let the idle timer handler close keep-alive connections
         if (reduceContext.getKeepAlive()) {
-          ChannelPipeline pipeline = future.channel().pipeline();
+          ChannelPipeline pipeline = ch.pipeline();
           TimeoutHandler timeoutHandler =
               (TimeoutHandler) pipeline.get(TIMEOUT_HANDLER);
           timeoutHandler.setEnabledTimeout(true);
         } else {
-          future.channel().close();
+          ch.close();
         }
       } else {
         SHUFFLE.sendMap(reduceContext);
@@ -993,12 +999,11 @@ public class ShuffleHandler extends AuxiliaryService {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object message)
         throws Exception {
-      FullHttpRequest request = (FullHttpRequest) message;
+      HttpRequest request = (HttpRequest) message;
       handleRequest(ctx, request);
-      request.release();
     }
 
-    private void handleRequest(ChannelHandlerContext ctx, FullHttpRequest request)
+    private void handleRequest(ChannelHandlerContext ctx, HttpRequest request)
         throws IOException, Exception {
       if (request.getMethod() != GET) {
           sendError(ctx, METHOD_NOT_ALLOWED);
@@ -1123,13 +1128,9 @@ public class ShuffleHandler extends AuxiliaryService {
       for (int i = 0; i < Math.min(maxSessionOpenFiles, mapIds.size()); i++) {
         ChannelFuture nextMap = sendMap(reduceContext);
         if(nextMap == null) {
-          // by this special message flushed, we can make sure the whole response is finished
-          ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
           return;
         }
       }
-      // by this special message flushed, we can make sure the whole response is finished
-      ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
     }
 
     private boolean isNullOrEmpty(List<String> entries) {
@@ -1496,7 +1497,7 @@ public class ShuffleHandler extends AuxiliaryService {
       DataOutputBuffer dobRange = new DataOutputBuffer();
       // Indicate how many record to be written
       WritableUtils.writeVInt(dobRange, reduceRange.getLast() - reduceRange.getFirst() + 1);
-      ch.write(wrappedBuffer(dobRange.getData(), 0, dobRange.getLength()));
+      ch.writeAndFlush(wrappedBuffer(dobRange.getData(), 0, dobRange.getLength()));
       for (int reduce = reduceRange.getFirst(); reduce <= reduceRange.getLast(); reduce++) {
         TezIndexRecord index = outputInfo.getIndex(reduce);
         // Records are only valid if they have a non-zero part length
@@ -1511,7 +1512,7 @@ public class ShuffleHandler extends AuxiliaryService {
         DataOutputBuffer dob = new DataOutputBuffer();
         header.write(dob);
         // Free the memory needed to store the spill and index records
-        ch.write(wrappedBuffer(dob.getData(), 0, dob.getLength()));
+        ch.writeAndFlush(wrappedBuffer(dob.getData(), 0, dob.getLength()));
       }
       outputInfo.finish();
 
@@ -1531,14 +1532,14 @@ public class ShuffleHandler extends AuxiliaryService {
             rangeOffset, rangePartLength, manageOsCache, readaheadLength,
             readaheadPool, spillFile.getAbsolutePath(),
             shuffleBufferSize, shuffleTransferToAllowed);
-        writeFuture = ch.write(partition);
+        writeFuture = ch.writeAndFlush(partition);
       } else {
         // HTTPS cannot be done with zero copy.
         final FadvisedChunkedFile chunk = new FadvisedChunkedFile(spill,
             rangeOffset, rangePartLength, sslFileBufferSize,
             manageOsCache, readaheadLength, readaheadPool,
             spillFile.getAbsolutePath());
-        writeFuture = ch.write(chunk);
+        writeFuture = ch.writeAndFlush(chunk);
       }
       metrics.shuffleConnections.incr();
       metrics.shuffleOutputBytes.incr(rangePartLength); // optimistic
