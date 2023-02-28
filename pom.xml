@@ -58,7 +58,7 @@
 
     <clover.license>${user.home}/clover.license</clover.license>
     <guava.version>31.1-jre</guava.version>
-    <hadoop.version>3.3.1</hadoop.version>
+    <hadoop.version>3.3.4</hadoop.version>
     <netty.version>4.1.72.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <jersey.version>1.19</jersey.version>
@@ -739,7 +739,7 @@
       <dependency>
         <groupId>org.codehaus.jettison</groupId>
         <artifactId>jettison</artifactId>
-        <version>1.5.1</version>
+        <version>1.5.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
