@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
@@ -130,6 +132,7 @@ public class TezChild {
   private final HadoopShim hadoopShim;
   private final TezExecutors sharedExecutor;
   private ThreadLocalMap mdcContext;
+  private static ExecutorService eagerInitFsPool;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -503,6 +506,33 @@ public class TezChild {
         hadoopShim);
   }
 
+  private static void eagerInitFileSystemPaths(Configuration conf) {
+    Collection<String> eagerInitPaths = conf.getTrimmedStringCollection(
+        TezConfiguration.TEZ_TASK_EAGER_INIT_FS_PATHS);
+    if (eagerInitFsPool == null && !eagerInitPaths.isEmpty()) {
+      eagerInitFsPool = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+          .setDaemon(true)
+          .setNameFormat("Eager-Init-Fs-Thread-%d")
+          .build());
+    }
+    for (String path : eagerInitPaths) {
+      eagerInitFsPool.execute(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            long startTime = System.currentTimeMillis();
+            FileSystem fs = new Path(path).getFileSystem(conf);
+            long duration = System.currentTimeMillis() - startTime;
+            LOG.info("Eagerly initiated FileSystem at path {} in {} ms", path, duration);
+          } catch (Exception e) {
+            // swallow the exception since this doesn't block the core functionality
+            LOG.error("Unable to eager init FileSystem at the path {}", path, e);
+          }
+        }
+      });
+    }
+  }
+
   public static void main(String[] args) throws IOException, InterruptedException, TezException {
     TezClassLoader.setupTezClassLoader();
     final Configuration defaultConf = new Configuration();
@@ -530,6 +560,8 @@ public class TezChild {
     DAGProtos.ConfigurationProto confProto =
         TezUtilsInternal.readUserSpecifiedTezConfiguration(System.getenv(Environment.PWD.name()));
     TezUtilsInternal.addUserSpecifiedTezConfiguration(defaultConf, confProto.getConfKeyValuesList());
+    // eagerly load configured filesystem before it is actually required
+    eagerInitFileSystemPaths(defaultConf);
     UserGroupInformation.setConfiguration(defaultConf);
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
 

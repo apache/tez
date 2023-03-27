@@ -1132,6 +1132,14 @@ public class TezConfiguration extends Configuration {
   public static final int TASK_HEARTBEAT_TIMEOUT_CHECK_MS_DEFAULT = 30 * 1000;
 
   /**
+   * String value. Comma seperated list of FileSystem paths which needs to be eagerly initialized.
+   * For example s3://bucket/,file://,hdfs://localhost:8020/
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_TASK_EAGER_INIT_FS_PATHS = TEZ_TASK_PREFIX + "eager.init.fs.paths";
+
+  /**
    * Whether to scale down memory requested by each component if the total
    * exceeds the available JVM memory
    */
