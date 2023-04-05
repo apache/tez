@@ -263,6 +263,7 @@ public class DAGAppMaster extends AbstractService {
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private TaskSchedulerManager taskSchedulerManager;
+  private DAGAppMasterReadinessService appMasterReadinessService;
   private WebUIService webUIService;
   private HistoryEventHandler historyEventHandler;
   private final Map<String, LocalResource> amResources = new HashMap<String, LocalResource>();
@@ -587,6 +588,8 @@ public class DAGAppMaster extends AbstractService {
         taskSchedulerManager);
     addIfServiceDependency(taskSchedulerManager, clientRpcServer);
 
+    appMasterReadinessService = createAppMasterReadinessService();
+
     this.containerLauncherManager = createContainerLauncherManager(containerLauncherDescriptors,
         isLocal);
     addIfService(containerLauncherManager, true);
@@ -660,6 +663,15 @@ public class DAGAppMaster extends AbstractService {
     return new TaskSchedulerManager(context,
         clientRpcServer, dispatcher.getEventHandler(), containerSignatureMatcher, webUIService,
         taskSchedulerDescriptors, isLocal, hadoopShim);
+  }
+
+  @VisibleForTesting
+  protected DAGAppMasterReadinessService createAppMasterReadinessService() {
+    DAGAppMasterReadinessService service =
+        new DAGAppMasterReadinessService(DAGAppMasterReadinessService.class.getName());
+    addIfService(service, false);
+    addIfServiceDependency(service, taskSchedulerManager);
+    return service;
   }
 
   @VisibleForTesting
@@ -1291,6 +1303,8 @@ public class DAGAppMaster extends AbstractService {
 
   public String submitDAGToAppMaster(DAGPlan dagPlan,
       Map<String, LocalResource> additionalResources) throws TezException {
+    appMasterReadinessService.waitToBeReady();
+
     if (sessionStopped.get()) {
       throw new SessionNotRunning("AM unable to accept new DAG submissions."
           + " In the process of shutting down");
