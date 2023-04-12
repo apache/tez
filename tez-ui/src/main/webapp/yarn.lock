@@ -1226,51 +1226,11 @@ date-now@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/date-now/-/date-now-0.1.4.tgz#eaf439fd4d4848ad74e5cc7dbef200672b9e345b"
 
-debug@0.7.4:
-  version "0.7.4"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-0.7.4.tgz#06e1ea8082c2cb14e39806e22e2f6f757f92af39"
-
-debug@1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-1.0.2.tgz#3849591c10cce648476c3c7c2e2e3416db5963c4"
+debug@0.7.4, debug@1.0.2, debug@1.0.3, debug@1.0.4, debug@2.1.0, debug@2.6.1, debug@2.6.3, debug@2.6.9, debug@^2.1.0, debug@^2.1.1, debug@^2.1.3, debug@^2.2.0, debug@~2.2.0:
+  version "2.6.9"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
   dependencies:
-    ms "0.6.2"
-
-debug@1.0.3:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-1.0.3.tgz#fc8c6b2d6002804b4081c0208e0f6460ba1fa3e4"
-  dependencies:
-    ms "0.6.2"
-
-debug@1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-1.0.4.tgz#5b9c256bd54b6ec02283176fa8a0ede6d154cbf8"
-  dependencies:
-    ms "0.6.2"
-
-debug@2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-2.1.0.tgz#33ab915659d8c2cc8a41443d94d6ebd37697ed21"
-  dependencies:
-    ms "0.6.2"
-
-debug@2.6.1:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.1.tgz#79855090ba2c4e3115cc7d8769491d58f0491351"
-  dependencies:
-    ms "0.7.2"
-
-debug@2.6.3, debug@^2.1.0, debug@^2.1.1, debug@^2.1.3, debug@^2.2.0:
-  version "2.6.3"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.3.tgz#0f7eb8c30965ec08c72accfa0130c8b79984141d"
-  dependencies:
-    ms "0.7.2"
-
-debug@~2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-2.2.0.tgz#f87057e995b1a1f6ae6a4960664137bc56f039da"
-  dependencies:
-    ms "0.7.1"
+    ms "2.0.0"
 
 debuglog@^1.0.1:
   version "1.0.1"
@@ -3313,17 +3273,13 @@ mout@~0.9.0:
   version "0.9.1"
   resolved "https://registry.yarnpkg.com/mout/-/mout-0.9.1.tgz#84f0f3fd6acc7317f63de2affdcc0cee009b0477"
 
-ms@0.6.2:
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/ms/-/ms-0.6.2.tgz#d89c2124c6fdc1353d65a8b77bf1aac4b193708c"
-
-ms@0.7.1:
-  version "0.7.1"
-  resolved "https://registry.yarnpkg.com/ms/-/ms-0.7.1.tgz#9cd13c03adbff25b65effde7ce864ee952017098"
-
 ms@0.7.2:
   version "0.7.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-0.7.2.tgz#ae25cf2512b3885a1d95d7f037868d8431124765"
+
+ms@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"
 
 mustache@^2.0.0:
   version "2.3.0"
@@ -3826,21 +3782,9 @@ q@^1.1.2:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/q/-/q-1.5.0.tgz#dd01bac9d06d30e6f219aecb8253ee9ebdc308f1"
 
-qs@5.2.0, qs@~5.2.0:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-5.2.0.tgz#a9f31142af468cb72b25b30136ba2456834916be"
-
-qs@6.4.0:
-  version "6.4.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.4.0.tgz#13e26d28ad6b0ffaa91312cd3bf708ed351e7233"
-
-qs@~5.1.0:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-5.1.0.tgz#4d932e5c7ea411cca76a312d39a606200fd50cd9"
-
-qs@~6.2.0:
-  version "6.2.3"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.2.3.tgz#1cfcb25c10a9b2b483053ff39f5dfc9233908cfe"
+qs@5.2.0, qs@6.2.4, qs@6.4.0, qs@~5.1.0, qs@~5.2.0, qs@~6.2.0:
+  version "6.2.4"
+  resolved "https://registry.yarnpkg.com/qs/-/qs-6.2.4.tgz#d90821bb8537cecc140e6c34f54ec76e54b39b22"
 
 quick-temp@0.1.3, quick-temp@^0.1.0, quick-temp@^0.1.2, quick-temp@^0.1.3:
   version "0.1.3"
