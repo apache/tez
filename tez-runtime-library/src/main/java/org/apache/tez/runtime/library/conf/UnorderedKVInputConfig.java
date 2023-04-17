@@ -37,6 +37,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.RssShuffleFactory;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
 
 @InterfaceAudience.Public
@@ -295,11 +296,20 @@ public class UnorderedKVInputConfig {
     public Builder setFromConfiguration(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
-      Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
-              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
-      ConfigUtils.addConfigMapToConfiguration(this.conf, map);
-      return this;
+      if(RssShuffleFactory.isRssEnabled(conf)){
+        Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
+                Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
+                        RssShuffleFactory.RssUnOrderedPartitionedKVOutput.getConfigurationKeySet(),
+                        TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+        ConfigUtils.addConfigMapToConfiguration(this.conf, map);
+        return this;
+      } else {
+        Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
+                Lists.newArrayList(UnorderedKVInput.getConfigurationKeySet(),
+                        TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+        ConfigUtils.addConfigMapToConfiguration(this.conf, map);
+        return this;
+      }
     }
 
     @SuppressWarnings("unchecked")

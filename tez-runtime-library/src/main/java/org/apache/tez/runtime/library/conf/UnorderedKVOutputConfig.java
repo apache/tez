@@ -37,6 +37,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.ConfigUtils;
+import org.apache.tez.runtime.library.common.RssShuffleFactory;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
 @InterfaceAudience.Public
@@ -222,9 +223,17 @@ public class UnorderedKVOutputConfig {
     public Builder setFromConfiguration(Configuration conf) {
       // Maybe ensure this is the first call ? Otherwise this can end up overriding other parameters
       Preconditions.checkArgument(conf != null, "Configuration cannot be null");
-      Map<String, String> map = ConfigUtils.extractConfigurationMap(conf,
-          Lists.newArrayList(UnorderedKVOutput.getConfigurationKeySet(),
-              TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+      Map<String, String> map;
+      if (RssShuffleFactory.isRssEnabled(conf)) {
+        map = ConfigUtils.extractConfigurationMap(conf,
+                Lists.newArrayList(RssShuffleFactory.RssUnorderedKVOutput.getConfigurationKeySet(),
+                        TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+      } else {
+        map = ConfigUtils.extractConfigurationMap(conf,
+                Lists.newArrayList(UnorderedKVOutput.getConfigurationKeySet(),
+                        TezRuntimeConfiguration.getRuntimeAdditionalConfigKeySet()), TezRuntimeConfiguration.getAllowedPrefixes());
+      }
+
       ConfigUtils.addConfigMapToConfiguration(this.conf, map);
       return this;
     }

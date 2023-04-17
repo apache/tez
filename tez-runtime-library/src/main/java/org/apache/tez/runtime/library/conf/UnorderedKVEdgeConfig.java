@@ -34,6 +34,7 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.runtime.library.common.RssShuffleFactory;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
 import org.apache.tez.runtime.library.output.UnorderedKVOutput;
 
@@ -74,6 +75,9 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
   @Override
   public String getOutputClassName() {
+    if(RssShuffleFactory.isRssEnabled(getInputPayload())){
+      return RssShuffleFactory.RssUnorderedKVOutput.outputClassName;
+    }
     return UnorderedKVOutput.class.getName();
   }
 
@@ -94,6 +98,9 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
   @Override
   public String getInputClassName() {
+    if(RssShuffleFactory.isRssEnabled(getInputPayload())){
+      return RssShuffleFactory.RssUnOrderedPartitionedKVInput.getInputClassName();
+    }
     return UnorderedKVInput.class.getName();
   }
 
