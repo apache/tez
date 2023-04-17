@@ -205,7 +205,7 @@ public class ProfileServlet extends HttpServlet {
       response.getWriter().write("Event and method aren't allowed to be both used in the same request.");
       return;
     }
-    
+
     if (process == null || !process.isAlive()) {
       try {
         int lockTimeoutSecs = 3;
