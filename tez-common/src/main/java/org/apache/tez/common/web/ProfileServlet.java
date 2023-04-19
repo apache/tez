@@ -1,4 +1,4 @@
-/**
+  /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -47,6 +47,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * //  -i interval       sampling interval in nanoseconds (long)
  * //  -j jstackdepth    maximum Java stack depth (integer)
  * //  -b bufsize        frame buffer size (long)
+ * //  -m method         fully qualified method name: 'ClassName.methodName'
  * //  -t                profile different threads separately
  * //  -s                simple class names instead of FQN
  * //  -o fmt[,fmt...]   output format: summary|traces|flat|collapsed|svg|tree|jfr
@@ -196,18 +197,28 @@ public class ProfileServlet extends HttpServlet {
     final Integer height = getInteger(request, "height", null);
     final Double minwidth = getMinWidth(request);
     final boolean reverse = request.getParameterMap().containsKey("reverse");
+    final String method = request.getParameter("method");
+
+    if (request.getParameter("event") != null && method != null) {
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      setResponseHeader(response);
+      response.getWriter().write("Event and method aren't allowed to be both used in the same request.");
+      return;
+    }
+
     if (process == null || !process.isAlive()) {
       try {
         int lockTimeoutSecs = 3;
         if (profilerLock.tryLock(lockTimeoutSecs, TimeUnit.SECONDS)) {
           try {
             File outputFile = new File(OUTPUT_DIR,
-                "async-prof-pid-" + pid + "-" + event.name().toLowerCase() + "-" + ID_GEN.incrementAndGet() + "."
+                "async-prof-pid-" + pid + "-"
+                    + (method == null ? event.name().toLowerCase() : method) + "-" + ID_GEN.incrementAndGet() + "."
                     + output.name().toLowerCase());
             List<String> cmd = new ArrayList<>();
             cmd.add(asyncProfilerHome + PROFILER_SCRIPT);
             cmd.add("-e");
-            cmd.add(event.getInternalName());
+            cmd.add(method == null ? event.getInternalName() : method);
             cmd.add("-d");
             cmd.add("" + duration);
             cmd.add("-o");
