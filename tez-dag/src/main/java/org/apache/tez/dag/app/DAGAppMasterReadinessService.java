@@ -19,7 +19,9 @@ package org.apache.tez.dag.app;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +36,21 @@ public class DAGAppMasterReadinessService extends AbstractService {
   private static final Logger LOG = LoggerFactory.getLogger(DAGAppMasterReadinessService.class);
 
   private AtomicBoolean ready = new AtomicBoolean(false);
+  private int timeoutMs;
 
   public DAGAppMasterReadinessService(String name) {
     super(name);
+  }
+
+  @Override
+  protected void serviceInit(Configuration conf) throws Exception {
+    super.serviceInit(conf);
+    timeoutMs = getConfig().getInt(TezConfiguration.TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS,
+        TezConfiguration.TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS_DEFAULT);
+    if (timeoutMs <= 0) {
+      throw new TezException(
+          "timeout <= 0 is not supported for " + TezConfiguration.TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS);
+    }
   }
 
   @Override
@@ -52,7 +66,12 @@ public class DAGAppMasterReadinessService extends AbstractService {
    * @throws TezException
    */
   public void waitToBeReady() throws TezException {
+    long start = System.currentTimeMillis();
     while (!ready.get()) {
+      if (System.currentTimeMillis() - start > timeoutMs) {
+        throw new TezException("App Master is not ready within the configured time period (" + timeoutMs + "ms). "
+            + "Please check logs for AM service states.");
+      }
       try {
         LOG.info("App is not ready yet, waiting 100ms");
         Thread.sleep(100);
