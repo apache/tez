@@ -909,6 +909,17 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_YARN_SCHEDULER_CLASS_DEFAULT =
       "org.apache.tez.dag.app.rm.YarnTaskSchedulerService";
 
+  /**
+   * Int value. The AM waits this amount of time when the first DAG is submitted but not all the services are ready.
+   * This can happen when the client RPC handler is up and able to accept DAGs but e.g. task scheduler
+   * manager is not ready (e.g. a task scheduler is waiting for external resources).
+   * A value equal or less than 0 is not supported and leads to an exception.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS = TEZ_AM_PREFIX + "ready.for.submit.timeout.ms";
+  public static final int TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS_DEFAULT = 30000;
+
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
