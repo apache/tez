@@ -76,6 +76,7 @@
     <dependency-check-maven.version>1.3.6</dependency-check-maven.version>
     <restrict-imports.enforcer.version>2.0.0</restrict-imports.enforcer.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
+    <maven.javadoc.skip>true</maven.javadoc.skip> <!-- enabled only in relevant modules separately -->
   </properties>
   <scm>
     <connection>${scm.url}</connection>

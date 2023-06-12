@@ -24,6 +24,10 @@
   </parent>
   <artifactId>tez-runtime-library</artifactId>
 
+  <properties>
+    <maven.javadoc.skip>false</maven.javadoc.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.roaringbitmap</groupId>

@@ -24,6 +24,10 @@
   </parent>
   <artifactId>tez-mapreduce</artifactId>
 
+  <properties>
+    <maven.javadoc.skip>false</maven.javadoc.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.tez</groupId>
