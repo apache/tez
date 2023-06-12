@@ -48,7 +48,7 @@ public class SplitsInClientOptionParser {
   @SuppressWarnings("static-access")
   public boolean parse(String[] args, boolean defaultVal) throws ParseException {
     Preconditions.checkState(parsed == false,
-        "Craete a new instance for different option sets");
+        "Create a new instance for different option sets");
     parsed = true;
     Options opts = new Options();
     Option opt = OptionBuilder

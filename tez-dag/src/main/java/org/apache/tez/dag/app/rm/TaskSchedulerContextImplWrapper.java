@@ -53,7 +53,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   private TaskSchedulerContext real;
 
   private ExecutorService executorService;
-  
+
   /**
    * @param real the actual TaskSchedulerAppCallback
    * @param executorService the ExecutorService to be used to send these events.
@@ -90,7 +90,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
 
   @Override
   public void appShutdownRequested() {
-    executorService.submit(new AppShudownRequestedCallable(real));
+    executorService.submit(new AppShutdownRequestedCallable(real));
   }
 
   @Override
@@ -116,7 +116,7 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
       throw new TezUncheckedException(e);
     }
   }
-  
+
   @Override
   public void preemptContainer(ContainerId containerId) {
     executorService.submit(new PreemptContainerCallable(real, containerId));
@@ -280,10 +280,10 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
     }
   }
 
-  static class AppShudownRequestedCallable extends TaskSchedulerContextCallbackBase
+  static class AppShutdownRequestedCallable extends TaskSchedulerContextCallbackBase
       implements Callable<Void> {
 
-    public AppShudownRequestedCallable(TaskSchedulerContext app) {
+    public AppShutdownRequestedCallable(TaskSchedulerContext app) {
       super(app);
     }
 
@@ -346,19 +346,19 @@ class TaskSchedulerContextImplWrapper implements TaskSchedulerContext {
   static class PreemptContainerCallable extends TaskSchedulerContextCallbackBase
       implements Callable<Void> {
     private final ContainerId containerId;
-    
+
     public PreemptContainerCallable(TaskSchedulerContext app, ContainerId id) {
       super(app);
       this.containerId = id;
     }
-    
+
     @Override
     public Void call() throws Exception {
       app.preemptContainer(containerId);
       return null;
     }
   }
-  
+
   static class GetProgressCallable extends TaskSchedulerContextCallbackBase
       implements Callable<Float> {
 

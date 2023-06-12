@@ -277,7 +277,7 @@ public class ShuffleHandler extends AuxiliaryService {
         MutableCounterLong shuffleOutputBytes;
     @Metric("# of failed shuffle outputs")
         MutableCounterInt shuffleOutputsFailed;
-    @Metric("# of succeeeded shuffle outputs")
+    @Metric("# of succeeded shuffle outputs")
         MutableCounterInt shuffleOutputsOK;
     @Metric("# of current shuffle connections")
         MutableGaugeInt shuffleConnections;

@@ -58,7 +58,7 @@ public class TezDAGID extends TezID {
     Objects.requireNonNull(applicationId, "ApplicationID cannot be null");
     return tezDAGIDCache.intern(new TezDAGID(applicationId, id));
   }
-  
+
   /**
    * Get a DAGID object from given parts.
    * @param yarnRMIdentifier YARN RM identifier
@@ -69,7 +69,7 @@ public class TezDAGID extends TezID {
   public static TezDAGID getInstance(String yarnRMIdentifier, int appId, int id) {
     // The newly created TezDAGIds are primarily for their hashCode method, and
     // will be short-lived.
-    // Alternately the cache can be keyed by the hash of the incoming paramters.
+    // Alternately the cache can be keyed by the hash of the incoming parameters.
     Objects.requireNonNull(yarnRMIdentifier, "yarnRMIdentifier cannot be null");
     return tezDAGIDCache.intern(new TezDAGID(yarnRMIdentifier, appId, id));
   }
@@ -83,7 +83,7 @@ public class TezDAGID extends TezID {
     this.applicationId = applicationId;
   }
 
-  
+
   private TezDAGID(String yarnRMIdentifier, int appId, int id) {
     this(ApplicationId.newInstance(Long.parseLong(yarnRMIdentifier),
         appId), id);
@@ -127,7 +127,7 @@ public class TezDAGID extends TezID {
     TezDAGID dagID = getInstance(ApplicationId.newInstance(clusterId, appId), dagIdInt);
     return dagID;
   }
-  
+
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(applicationId.getClusterTimestamp());

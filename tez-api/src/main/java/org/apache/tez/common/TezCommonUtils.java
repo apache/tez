@@ -75,7 +75,7 @@ public final class TezCommonUtils {
    * function makes sure if the staging directory exists. If not, it creates the
    * directory with permission <code>TEZ_AM_DIR_PERMISSION</code>.
    * </p>
-   * 
+   *
    * @param conf
    *          TEZ configuration
    * @return Fully qualified staging directory
@@ -105,7 +105,7 @@ public final class TezCommonUtils {
    * sub-directory (<code>TEZ_SYSTEM_SUB_DIR</code>/<APP_ID>) under the base
    * staging directory, often provided by user.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -136,7 +136,7 @@ public final class TezCommonUtils {
    * its temporary files under this sub-directory. The function normally doesn't
    * creates any sub-directory under the base staging directory.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -156,7 +156,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store binary configuration
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to configuration
@@ -170,7 +170,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store local resources/session jars
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the session jars
@@ -184,7 +184,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store binary plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the plan in binary
@@ -198,7 +198,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store text plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param strAppId
@@ -218,7 +218,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store recovery information
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param conf
@@ -228,17 +228,17 @@ public final class TezCommonUtils {
   @Private
   public static Path getRecoveryPath(Path tezSysStagingPath, Configuration conf)
       throws IOException {
-    Path baseReecoveryPath = new Path(tezSysStagingPath,
+    Path baseRecoveryPath = new Path(tezSysStagingPath,
         TezConstants.DAG_RECOVERY_DATA_DIR_NAME);
-    FileSystem recoveryFS = baseReecoveryPath.getFileSystem(conf);
-    return recoveryFS.makeQualified(baseReecoveryPath);
+    FileSystem recoveryFS = baseRecoveryPath.getFileSystem(conf);
+    return recoveryFS.makeQualified(baseRecoveryPath);
   }
 
   /**
    * <p>
    * Returns a path to store app attempt specific recovery details
    * </p>
-   * 
+   *
    * @param recoveryPath
    *          TEZ recovery directory used for Tez internals
    * @param attemptID
@@ -254,7 +254,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store DAG specific recovery info
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          :TEZ system level staging directory used for Tez internals
    * @param dagID
@@ -270,7 +270,7 @@ public final class TezCommonUtils {
    * <p>
    * Returns a path to store summary info for recovery
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          TEZ system level staging directory used for Tez internals
    * @return Summary event path used in recovery
@@ -284,7 +284,7 @@ public final class TezCommonUtils {
    * <p>
    * Create a directory with predefined directory permission
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param dir
@@ -306,7 +306,7 @@ public final class TezCommonUtils {
    * Create a file with <code>TEZ_AM_FILE_PERMISSION</code> permission and
    * returns OutputStream
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param filePath
@@ -316,7 +316,7 @@ public final class TezCommonUtils {
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
   }
-  
+
   public static void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs,
       Map<String, LocalResource> originalLRs, String logContext) {
     // TODO TEZ-1798. Handle contents of Tez archives for duplicate LocalResource checks

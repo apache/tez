@@ -226,7 +226,7 @@ public class HashJoinExample extends TezExampleBase {
        * in both cases for brevity of code. The join task can perform the join
        * of its fragment of keys with all the keys of the hash side. Using an
        * unpartitioned edge to transfer the complete output of the hash side to
-       * be broadcasted to all fragments of the streamed side. Again, since the
+       * be broadcast to all fragments of the streamed side. Again, since the
        * data is the key, the value is null. The setFromConfiguration call is
        * optional and allows overriding the config options with command line
        * parameters.

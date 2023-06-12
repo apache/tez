@@ -276,7 +276,7 @@ public class TaskInfo extends BaseInfo {
   }
 
   /**
-   * Get average task attempt duration. Includes succesful and failed tasks
+   * Get average task attempt duration. Includes successful and failed tasks
    *
    * @return float
    */

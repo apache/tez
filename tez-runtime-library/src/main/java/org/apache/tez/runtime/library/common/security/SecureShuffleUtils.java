@@ -31,8 +31,8 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.tez.common.security.JobTokenSecretManager;
 
 /**
- * 
- * utilities for generating kyes, hashes and verifying them for shuffle
+ *
+ * utilities for generating keys, hashes and verifying them for shuffle
  *
  */
 @InterfaceAudience.Private
@@ -42,7 +42,7 @@ public final class SecureShuffleUtils {
   public static final String HTTP_HEADER_REPLY_URL_HASH = "ReplyHash";
 
   private SecureShuffleUtils() {}
-  
+
   /**
    * Base64 encoded hash of msg
    */
@@ -124,7 +124,7 @@ public final class SecureShuffleUtils {
       throw new IOException("Verification of the hashReply failed");
     }
   }
-  
+
   /**
    * Shuffle specific utils - build string for encoding from URL
    *

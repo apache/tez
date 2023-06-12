@@ -1929,7 +1929,7 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Int value.
-   * The maximium number of tasks running in parallel within the app master process.
+   * The maximum number of tasks running in parallel within the app master process.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")

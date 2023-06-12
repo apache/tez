@@ -52,7 +52,7 @@ public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
   private final CSVResult csvResult;
 
   /**
-   * Minimum output bytes that should be chunrned out by a task
+   * Minimum output bytes that should be churned out by a task
    */
   private static final String OUTPUT_BYTES_THRESHOLD = "tez.spill-analyzer.min.output.bytes"
       + ".threshold";

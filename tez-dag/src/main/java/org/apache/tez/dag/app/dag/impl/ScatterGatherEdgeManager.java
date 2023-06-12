@@ -35,8 +35,8 @@ import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
 public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
-  
-  private AtomicReference<ArrayList<EventRouteMetadata>> commonRouteMeta = 
+
+  private AtomicReference<ArrayList<EventRouteMetadata>> commonRouteMeta =
       new AtomicReference<ArrayList<EventRouteMetadata>>();
   private Object commonRouteMetaLock = new Object();
   private int[][] sourceIndices;
@@ -55,12 +55,12 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
   public int getNumDestinationTaskPhysicalInputs(int destinationTaskIndex) {
     return getContext().getSourceVertexNumTasks();
   }
-  
+
   @Override
   public int getNumSourceTaskPhysicalOutputs(int sourceTaskIndex) {
     int physicalOutputs = getContext().getDestinationVertexNumTasks();
     Preconditions.checkArgument(physicalOutputs >= 0,
-        "ScatteGather edge manager must have destination vertex task parallelism specified");
+        "ScatterGather edge manager must have destination vertex task parallelism specified");
     return physicalOutputs;
   }
 
@@ -98,10 +98,10 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
       targetIndices[i] = new int[]{i};
     }
   }
-  
+
   @Override
   public void prepareForRouting() throws Exception {
-    createIndices();    
+    createIndices();
   }
 
   @Override
@@ -112,12 +112,12 @@ public class ScatterGatherEdgeManager extends EdgeManagerPluginOnDemand {
     }
     return null;
   }
-  
+
   @Override
   public @Nullable CompositeEventRouteMetadata routeCompositeDataMovementEventToDestination(
       int sourceTaskIndex, int destinationTaskIndex)
       throws Exception {
-    return CompositeEventRouteMetadata.create(1, targetIndices[sourceTaskIndex][0], 
+    return CompositeEventRouteMetadata.create(1, targetIndices[sourceTaskIndex][0],
         sourceIndices[destinationTaskIndex][0]);
   }
 

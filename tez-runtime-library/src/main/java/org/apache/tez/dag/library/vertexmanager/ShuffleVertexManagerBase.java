@@ -548,8 +548,8 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     return srcVertexInfo.values();
   }
 
-  SourceVertexInfo getSourceVertexInfo(String vertextName) {
-    return srcVertexInfo.get(vertextName);
+  SourceVertexInfo getSourceVertexInfo(String vertexName) {
+    return srcVertexInfo.get(vertexName);
   }
 
   Iterable<Map.Entry<String, SourceVertexInfo>> getBipartiteInfo() {

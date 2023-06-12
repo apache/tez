@@ -24,21 +24,21 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 public class VertexEventTaskAttemptCompleted extends VertexEvent {
 
   private TezTaskAttemptID attemptId;
-  private TaskAttemptStateInternal attempState;
-  
+  private TaskAttemptStateInternal attemptState;
+
   public VertexEventTaskAttemptCompleted(TezTaskAttemptID taskAttemptId,
       TaskAttemptStateInternal state) {
     super(taskAttemptId.getVertexID(),
         VertexEventType.V_TASK_ATTEMPT_COMPLETED);
     this.attemptId = taskAttemptId;
-    this.attempState = state;
+    this.attemptState = state;
   }
 
   public TezTaskAttemptID getTaskAttemptId() {
     return attemptId;
   }
-  
+
   public TaskAttemptStateInternal getTaskAttemptState() {
-    return attempState;
+    return attemptState;
   }
 }

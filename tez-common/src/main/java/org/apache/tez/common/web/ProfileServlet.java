@@ -41,7 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * <pre>
  * Servlet that runs async-profiler as web-endpoint.
- * Following options from async-profiler can be specified as query paramater.
+ * Following options from async-profiler can be specified as query parameter.
  * //  -e event          profiling event: cpu|alloc|lock|cache-misses etc.
  * //  -d duration       run profiling for{@literal <duration>} seconds (integer)
  * //  -i interval       sampling interval in nanoseconds (long)

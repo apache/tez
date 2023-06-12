@@ -41,7 +41,7 @@ public class SVGUtils {
   private static int MAX_DAG_RUNTIME = 0;
   private static final int SCREEN_WIDTH = 1800;
 
-  public SVGUtils() {    
+  public SVGUtils() {
   }
 
   private int Y_MAX;
@@ -71,29 +71,29 @@ public class SVGUtils {
     long seconds = millis - TimeUnit.MINUTES.toMillis(
         TimeUnit.MILLISECONDS.toMinutes(millis));
     b.append(secondFormat.format(seconds/1000.0) + "s");
-    
-    return b.toString(); 
+
+    return b.toString();
   }
-  
+
   List<String> svgLines = new LinkedList<>();
-  
+
   private final int addOffsetX(int x) {
     int xOff = x + X_BASE;
     X_MAX = Math.max(X_MAX, xOff);
     return xOff;
   }
-  
+
   private final int addOffsetY(int y) {
     int yOff = y + Y_BASE;
     Y_MAX = Math.max(Y_MAX, yOff);
     return yOff;
   }
-  
+
   private int scaleDown(int len) {
     return Math.round((len * 1.0f / MAX_DAG_RUNTIME) * SCREEN_WIDTH);
   }
-  
-  private void addRectStr(int x, int width, int y, int height, 
+
+  private void addRectStr(int x, int width, int y, int height,
       String fillColor, String borderColor, float opacity, String title) {
     String rectStyle = "stroke: " + borderColor + "; fill: " + fillColor + "; opacity: " + opacity;
     String rectStr = "<rect x=\"" + addOffsetX(scaleDown(x)) + "\""
@@ -104,9 +104,9 @@ public class SVGUtils {
                + " >"
                + " <title>" + title +"</title>"
                + " </rect>";
-    svgLines.add(rectStr);    
+    svgLines.add(rectStr);
   }
-  
+
   private void addTextStr(int x, int y, String text, String anchor, int size, String title, boolean italic) {
     String textStyle = "text-anchor: " + anchor + "; font-style: " + (italic?"italic":"normal") +
         "; font-size: " + size + "px;";
@@ -118,7 +118,7 @@ public class SVGUtils {
         + "</text>";
     svgLines.add(textStr);
   }
-  
+
   private void addLineStr(int x1, int y1, int x2, int y2, String color, String title, int width) {
     String style = "stroke: " + color + "; stroke-width:" + width;
     String str = "<line x1=\"" + addOffsetX(scaleDown(x1)) + "\""
@@ -131,14 +131,14 @@ public class SVGUtils {
                + " </line>";
     svgLines.add(str);
   }
-  
+
   public void drawStep(CriticalPathStep step, long dagStartTime, int yOffset) {
     if (step.getType() != EntityType.ATTEMPT) {
       // draw initial vertex or final commit overhead
       StringBuilder title = new StringBuilder();
       String text = null;
       if (step.getType() == EntityType.VERTEX_INIT) {
-        String vertex = step.getAttempt().getTaskInfo().getVertexInfo().getVertexName(); 
+        String vertex = step.getAttempt().getTaskInfo().getVertexInfo().getVertexName();
         text = vertex + " : Init";
         title.append(text).append(TITLE_BR);
       } else {
@@ -165,9 +165,9 @@ public class SVGUtils {
       int startCriticalTimeInterval = (int) (step.getStartCriticalTime() - dagStartTime);
       int stopCriticalTimeInterval = (int) (step.getStopCriticalTime() - dagStartTime);
       int creationTimeInterval = (int) (attempt.getCreationTime() - dagStartTime);
-      int allocationTimeInterval = attempt.getAllocationTime() > 0 ? 
+      int allocationTimeInterval = attempt.getAllocationTime() > 0 ?
           (int) (attempt.getAllocationTime() - dagStartTime) : 0;
-      int launchTimeInterval = attempt.getStartTime() > 0 ? 
+      int launchTimeInterval = attempt.getStartTime() > 0 ?
           (int) (attempt.getStartTime() - dagStartTime) : 0;
       int finishTimeInterval = (int) (attempt.getFinishTime() - dagStartTime);
       LOG.debug(attempt.getTaskAttemptId() + " " + creationTimeInterval + " "
@@ -178,7 +178,7 @@ public class SVGUtils {
       title.append("Critical Path Dependency: " + step.getReason()).append(TITLE_BR);
       title.append("Completion Status: " + attempt.getDetailedStatus()).append(TITLE_BR);
       title.append(
-          "Critical Time Contribution: " + 
+          "Critical Time Contribution: " +
               getTimeStr(step.getStopCriticalTime() - step.getStartCriticalTime())).append(TITLE_BR);
       title.append("Critical start at: " + getTimeStr(startCriticalTimeInterval)).append(TITLE_BR);
       title.append("Critical stop at: " + getTimeStr(stopCriticalTimeInterval)).append(TITLE_BR);
@@ -201,29 +201,29 @@ public class SVGUtils {
         if (launchTimeInterval > 0) {
           addRectStr(allocationTimeInterval, launchTimeInterval - allocationTimeInterval,
               yOffset * STEP_GAP, STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY,
-              titleStr);          
+              titleStr);
           addRectStr(launchTimeInterval, finishTimeInterval - launchTimeInterval, yOffset * STEP_GAP,
               STEP_GAP, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
         } else {
           // no launch - so allocate to finish drawn - ended while launching
           addRectStr(allocationTimeInterval, finishTimeInterval - allocationTimeInterval, yOffset * STEP_GAP,
-              STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+              STEP_GAP, LAUNCH_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
         }
       } else {
         // no allocation - so create to finish drawn - ended while allocating
         addRectStr(creationTimeInterval, finishTimeInterval - creationTimeInterval, yOffset * STEP_GAP,
-            STEP_GAP, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);        
+            STEP_GAP, ALLOCATION_OVERHEAD_COLOR, BORDER_COLOR, RECT_OPACITY, titleStr);
       }
 
       addTextStr((finishTimeInterval + creationTimeInterval) / 2,
-          (yOffset * STEP_GAP + STEP_GAP / 2),   attempt.getShortName(), "middle", TEXT_SIZE, 
+          (yOffset * STEP_GAP + STEP_GAP / 2),   attempt.getShortName(), "middle", TEXT_SIZE,
           titleStr, !attempt.isSucceeded());
     }
   }
 
   private void drawCritical(DagInfo dagInfo, List<CriticalPathStep> criticalPath) {
     long dagStartTime = dagInfo.getStartTime();
-    int dagStartTimeInterval = 0; // this is 0 since we are offseting from the dag start time
+    int dagStartTimeInterval = 0; // this is 0 since we are offsetting from the dag start time
     int dagFinishTimeInterval = (int) (dagInfo.getFinishTime() - dagStartTime);
     if (dagInfo.getFinishTime() <= 0) {
       // AM crashed. no dag finish time written
@@ -231,13 +231,13 @@ public class SVGUtils {
           - dagStartTime);
     }
     MAX_DAG_RUNTIME = dagFinishTimeInterval;
-    
+
     // draw grid
     addLineStr(dagStartTimeInterval, 0, dagFinishTimeInterval, 0, BORDER_COLOR, "", TICK);
     int yGrid = (criticalPath.size() + 2)*STEP_GAP;
     for (int i=0; i<11; ++i) {
       int x = Math.round(((dagFinishTimeInterval - dagStartTimeInterval)/10.0f)*i);
-      addLineStr(x, 0, x, yGrid, BORDER_COLOR, "", TICK);  
+      addLineStr(x, 0, x, yGrid, BORDER_COLOR, "", TICK);
       addTextStr(x, 0, getTimeStr(x), "left", TEXT_SIZE, "", false);
     }
     addLineStr(dagStartTimeInterval, yGrid, dagFinishTimeInterval, yGrid, BORDER_COLOR, "", TICK);
@@ -247,21 +247,21 @@ public class SVGUtils {
 
     // draw steps
     for (int i=1; i<=criticalPath.size(); ++i) {
-      CriticalPathStep step = criticalPath.get(i-1); 
-      drawStep(step, dagStartTime, i);      
+      CriticalPathStep step = criticalPath.get(i-1);
+      drawStep(step, dagStartTime, i);
     }
-    
+
     // draw critical path on top
     for (int i=1; i<=criticalPath.size(); ++i) {
-      CriticalPathStep step = criticalPath.get(i-1); 
-      boolean isLast = i == criticalPath.size(); 
-      
+      CriticalPathStep step = criticalPath.get(i-1);
+      boolean isLast = i == criticalPath.size();
+
       // draw critical path for step
       int startCriticalTimeInterval = (int) (step.getStartCriticalTime() - dagStartTime);
       int stopCriticalTimeInterval = (int) (step.getStopCriticalTime() - dagStartTime);
       addLineStr(startCriticalTimeInterval, (i + 1) * STEP_GAP, stopCriticalTimeInterval,
           (i + 1) * STEP_GAP, CRITICAL_COLOR, "Critical Time " + step.getAttempt().getShortName(), TICK*5);
-      
+
       if (isLast) {
         // last step. add commit overhead
         int stepStopCriticalTimeInterval = (int) (step.getStopCriticalTime() - dagStartTime);
@@ -274,12 +274,12 @@ public class SVGUtils {
             (i + 2) * STEP_GAP, CRITICAL_COLOR, "Critical Time " + step.getAttempt().getShortName(), TICK*5);
       }
     }
-    
+
     // draw legend
     int legendX = 0;
     int legendY = (criticalPath.size() + 2) * STEP_GAP;
     int legendWidth = dagFinishTimeInterval/5;
-    
+
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, VERTEX_INIT_COMMIT_COLOR, BORDER_COLOR, RECT_OPACITY, "");
     addTextStr(legendX, legendY + STEP_GAP/3, "Vertex Init/Commit Overhead", "left", TEXT_SIZE, "", false);
     legendY += STEP_GAP/2;
@@ -291,17 +291,17 @@ public class SVGUtils {
     legendY += STEP_GAP/2;
     addRectStr(legendX, legendWidth, legendY, STEP_GAP/2, RUNTIME_COLOR, BORDER_COLOR, RECT_OPACITY, "");
     addTextStr(legendX, legendY + STEP_GAP/3, "Task Execution Time", "left", TEXT_SIZE, "", false);
-    
+
     Y_MAX += Y_BASE*2;
     X_MAX += X_BASE*2;
   }
-  
-  public void saveCriticalPathAsSVG(DagInfo dagInfo, 
+
+  public void saveCriticalPathAsSVG(DagInfo dagInfo,
       String fileName, List<CriticalPathStep> criticalPath) {
     drawCritical(dagInfo, criticalPath);
     saveFileStr(fileName);
   }
-  
+
   private void saveFileStr(String fileName) {
     String header = "<?xml version=\"1.0\" standalone=\"no\"?> "
         + "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" "

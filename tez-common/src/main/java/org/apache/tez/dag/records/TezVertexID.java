@@ -35,7 +35,7 @@ import com.google.common.collect.Interners;
  * TezVertexID represents the immutable and unique identifier for
  * a Vertex in a Tez DAG. Each TezVertexID encompasses multiple Tez Tasks.
  *
- * TezVertezID consists of 2 parts. The first part is the {@link TezDAGID},
+ * TezVertexID consists of 2 parts. The first part is the {@link TezDAGID},
  * that is the Tez DAG that this vertex belongs to. The second part is
  * the vertex number.
  *
@@ -113,7 +113,7 @@ public class TezVertexID extends TezID implements DAGIDAware {
     dagId = TezDAGID.readTezDAGID(in);
     super.readFields(in);
   }
-  
+
   public static TezVertexID readTezVertexID(DataInput in) throws IOException {
     TezDAGID dagID = TezDAGID.readTezDAGID(in);
     int vertexIdInt = TezID.readID(in);

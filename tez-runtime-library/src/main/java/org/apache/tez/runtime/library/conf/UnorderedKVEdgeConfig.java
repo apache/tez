@@ -276,7 +276,7 @@ public class UnorderedKVEdgeConfig extends HadoopKeyValuesBasedBaseEdgeConfig {
 
     /**
      * Build and return an instance of the configuration
-     * @return an instance of the acatual configuration
+     * @return an instance of the actual configuration
      */
     public UnorderedKVEdgeConfig build() {
       return new UnorderedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());

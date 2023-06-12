@@ -81,7 +81,7 @@ import org.apache.tez.common.Preconditions;
 
 /**
  * RecoverParser is mainly for Tez AM Recovery. It would read the recovery events. (summary & non-summary)
- * 
+ *
  */
 public class RecoveryParser {
 
@@ -150,7 +150,7 @@ public class RecoveryParser {
 
     // DAG is not recoverable if vertex has committer and has completed the commit (based on summary recovery events)
     // but its full recovery events are not seen. (based on non-summary recovery events)
-    // Unrecoverable reason: vertex is committed we cannot rerun it and if vertex recovery events are not completed 
+    // Unrecoverable reason: vertex is committed we cannot rerun it and if vertex recovery events are not completed
     // we cannot run other vertices that may depend on this one. So we have to abort.
     public void checkRecoverableNonSummary() {
       // It is OK without full recovering events if the dag is completed based on summary event.
@@ -425,8 +425,8 @@ public class RecoveryParser {
     }
   }
 
-  private Path getSummaryPath(Path attemptRrecoveryDataDir) {
-    return TezCommonUtils.getSummaryRecoveryPath(attemptRrecoveryDataDir);
+  private Path getSummaryPath(Path attemptRecoveryDataDir) {
+    return TezCommonUtils.getSummaryRecoveryPath(attemptRecoveryDataDir);
   }
 
   private FSDataInputStream getSummaryStream(Path summaryPath)
@@ -644,7 +644,7 @@ public class RecoveryParser {
 
   /**
    * 1. Read Summary Recovery file and build DAGSummaryData
-   *    Check whether it is recoverable based on the summary file (whether dag is 
+   *    Check whether it is recoverable based on the summary file (whether dag is
    *    in the middle of committing)
    * 2. Read the non-Summary Recovery file and build DAGRecoveryData
    *    Check whether it is recoverable based on both the summary file and non-summary file
@@ -796,10 +796,10 @@ public class RecoveryParser {
           case DAG_FINISHED:
             recoveredDAGData.dagFinishedEvent = (DAGFinishedEvent)event;
             skipAllOtherEvents = true;
-            break; 
+            break;
           case DAG_COMMIT_STARTED:
           case VERTEX_GROUP_COMMIT_STARTED:
-          case VERTEX_GROUP_COMMIT_FINISHED: 
+          case VERTEX_GROUP_COMMIT_FINISHED:
           case CONTAINER_LAUNCHED:
           {
             // Nothing to do for now
@@ -918,27 +918,27 @@ public class RecoveryParser {
     private VertexFinishedEvent vertexFinishedEvent;
     private Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap =
         new HashMap<TezTaskID, RecoveryParser.TaskRecoveryData>();
-    private boolean commited;
+    private boolean committed;
 
     @VisibleForTesting
     public VertexRecoveryData(VertexInitializedEvent vertexInitedEvent,
         VertexConfigurationDoneEvent vertexReconfigureDoneEvent,
         VertexStartedEvent vertexStartedEvent,
         VertexFinishedEvent vertexFinishedEvent,
-        Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap, boolean commited) {
+        Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap, boolean committed) {
       super();
       this.vertexInitedEvent = vertexInitedEvent;
       this.vertexConfigurationDoneEvent = vertexReconfigureDoneEvent;
       this.vertexStartedEvent = vertexStartedEvent;
       this.vertexFinishedEvent = vertexFinishedEvent;
       this.taskRecoveryDataMap = taskRecoveryDataMap;
-      this.commited = commited;
+      this.committed = committed;
     }
 
     public VertexRecoveryData(boolean committed) {
-      this.commited = committed;
+      this.committed = committed;
     }
- 
+
     public VertexInitializedEvent getVertexInitedEvent() {
       return vertexInitedEvent;
     }
@@ -987,7 +987,7 @@ public class RecoveryParser {
     }
 
     public boolean isVertexCommitted() {
-      return this.commited;
+      return this.committed;
     }
 
     public TaskRecoveryData getTaskRecoveryData(TezTaskID taskId) {

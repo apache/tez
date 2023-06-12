@@ -105,7 +105,7 @@ public class TezTaskRunner2 {
   // The callable which is being used to execute the task.
   private volatile TaskRunner2Callable taskRunnerCallable;
 
-  // This instance is set only if the runner was not configured explicity and will be shutdown
+  // This instance is set only if the runner was not configured explicitly and will be shutdown
   // when this task is finished.
   private final TezSharedExecutor localExecutor;
 
@@ -297,7 +297,7 @@ public class TezTaskRunner2 {
 
   // It's possible for the task to actually complete, and an alternate signal such as killTask/killContainer
   // come in before the future has been processed by this thread. That condition is not handled - and
-  // the result of the execution will be determind by the thread order.
+  // the result of the execution will be determined by the thread order.
   @VisibleForTesting
   void processCallableResult(TaskRunner2CallableResult executionResult) {
     if (executionResult != null) {

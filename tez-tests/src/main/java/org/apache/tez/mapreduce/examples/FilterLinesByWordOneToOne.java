@@ -77,7 +77,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
 
   private static void printUsage() {
-    System.err.println("Usage filterLinesByWordOneToOne <in> <out> <filter_word>" 
+    System.err.println("Usage filterLinesByWordOneToOne <in> <out> <filter_word>"
         + " [-generateSplitsInClient true/<false>]");
     ToolRunner.printGenericCommandUsage(System.err);
   }
@@ -112,7 +112,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
     String inputPath = otherArgs[0];
     String outputPath = otherArgs[1];
     String filterWord = otherArgs[2];
-    
+
     Configuration conf = getConf();
     FileSystem fs = FileSystem.get(conf);
     if (fs.exists(new Path(outputPath))) {
@@ -148,7 +148,7 @@ public class FilterLinesByWordOneToOne extends Configured implements Tool {
 
     TezClient tezSession = TezClient.create("FilterLinesByWordSession", tezConf,
         commonLocalResources, null);
-    tezSession.start(); // Why do I need to start the TezSession.
+    tezSession.start(); // Why do I need to start the TezSession?
 
     Configuration stage1Conf = new JobConf(conf);
     stage1Conf.set(FILTER_PARAM_NAME, filterWord);

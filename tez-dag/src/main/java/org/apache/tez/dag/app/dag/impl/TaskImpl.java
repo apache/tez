@@ -169,7 +169,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
 
   private static final TaskStateChangedCallback STATE_CHANGED_CALLBACK = new TaskStateChangedCallback();
-  
+
   private static final StateMachineFactory
                <TaskImpl, TaskStateInternal, TaskEventType, TaskEvent>
             stateMachineFactory
@@ -179,7 +179,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     // define the state machine of Task
 
     // Transitions from NEW state
-    // Stay in NEW in recovery when Task is killed in the previous AM           
+    // Stay in NEW in recovery when Task is killed in the previous AM
     .addTransition(TaskStateInternal.NEW,
         EnumSet.of(TaskStateInternal.NEW, TaskStateInternal.SCHEDULED),
         TaskEventType.T_SCHEDULE, new InitialScheduleTransition())
@@ -200,7 +200,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         EnumSet.of(TaskStateInternal.SCHEDULED, TaskStateInternal.FAILED),
         TaskEventType.T_ATTEMPT_FAILED,
         new AttemptFailedTransition())
-     // Happens in recovery   
+     // Happens in recovery
      .addTransition(TaskStateInternal.SCHEDULED,
         EnumSet.of(TaskStateInternal.RUNNING, TaskStateInternal.SUCCEEDED),
         TaskEventType.T_ATTEMPT_SUCCEEDED,
@@ -213,7 +213,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         TaskEventType.T_ATTEMPT_LAUNCHED) //more attempts may start later
     .addTransition(TaskStateInternal.RUNNING, TaskStateInternal.RUNNING,
         TaskEventType.T_ADD_SPEC_ATTEMPT, new RedundantScheduleTransition())
-    .addTransition(TaskStateInternal.RUNNING, 
+    .addTransition(TaskStateInternal.RUNNING,
         EnumSet.of(TaskStateInternal.SUCCEEDED),
         TaskEventType.T_ATTEMPT_SUCCEEDED,
         new AttemptSucceededTransition())
@@ -398,7 +398,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         stateMachineFactory.make(this), this);
     augmentStateMachine();
   }
-  
+
   @Override
   public Map<TezTaskAttemptID, TaskAttempt> getAttempts() {
     readLock.lock();
@@ -417,7 +417,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
+
   @Override
   public TaskAttempt getAttempt(TezTaskAttemptID attemptID) {
     readLock.lock();
@@ -478,7 +478,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
+
   TaskStatistics getStatistics() {
     // simply return the stats from the best attempt
     readLock.lock();
@@ -549,7 +549,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
+
   @Override
   public TaskSpec getBaseTaskSpec() {
     readLock.lock();
@@ -559,7 +559,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       readLock.unlock();
     }
   }
-  
+
   @Override
   public TaskLocationHint getTaskLocationHint() {
     readLock.lock();
@@ -643,7 +643,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     long finishTime = 0;
     for (TaskAttempt at : attempts.values()) {
       //select the max finish time of all attempts
-      // FIXME shouldnt this not count attempts killed after an attempt succeeds
+      // FIXME shouldn't this not count attempts killed after an attempt succeeds
       if (finishTime < at.getFinishTime()) {
         finishTime = at.getFinishTime();
       }
@@ -693,7 +693,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       LOG.debug("Commit go/no-go request from {}", taskAttemptID);
       TaskState state = getState();
       if (state == TaskState.SCHEDULED) {
-        // the actual running task ran and is done and asking for commit. we are still stuck 
+        // the actual running task ran and is done and asking for commit. we are still stuck
         // in the scheduled state which indicates a backlog in event processing. lets wait for the
         // backlog to clear. returning false will make the attempt come back to us.
         LOG.info(
@@ -701,7 +701,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             + "Attempt committing before state machine transitioned to running : Task {}", taskId);
         return false;
       }
-      // at this point the attempt is no longer in scheduled state or else we would still 
+      // at this point the attempt is no longer in scheduled state or else we would still
       // have been in scheduled state in task impl.
       if (state != TaskState.RUNNING) {
         LOG.info("Task not running. Issuing kill to bad commit attempt " + taskAttemptID);
@@ -897,12 +897,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     eventHandler.handle(new DAGEventSchedulerUpdate(
         DAGEventSchedulerUpdate.UpdateType.TA_COMPLETED, attempts.get(taId)));
   }
-  
+
   private static void unSucceed(TaskImpl task) {
     task.commitAttempt = null;
     task.successfulAttempt = null;
   }
-  
+
   /**
   * @return a String representation of the splits.
   *
@@ -937,7 +937,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     this.finishTime = clock.getTime();
     TaskFinishedEvent finishEvt = new TaskFinishedEvent(taskId,
         getVertex().getName(), getLaunchTime(), this.finishTime, null,
-        finalState, 
+        finalState,
         StringUtils.join(getDiagnostics(), LINE_SEPARATOR),
         getCounters(), failedAttempts);
     this.appContext.getHistoryHandler().handle(
@@ -949,7 +949,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       diagnostics.add(diag);
     }
   }
-  
+
   @VisibleForTesting
   int getUncompletedAttemptsCount() {
     try {
@@ -988,7 +988,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       if (task.recoveryData != null) {
         TaskStartedEvent tStartedEvent = task.recoveryData.getTaskStartedEvent();
         TaskFinishedEvent tFinishedEvent = task.recoveryData.getTaskFinishedEvent();
-        // If TaskStartedEvent is not seen but TaskFinishedEvent is seen, that means 
+        // If TaskStartedEvent is not seen but TaskFinishedEvent is seen, that means
         // Task is killed before it is started. Just send T_TERMINATE to itself to move to KILLED
         if (tStartedEvent == null
             && tFinishedEvent != null) {
@@ -1238,7 +1238,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       return task.getInternalState();
     }
   }
-  
+
   private boolean shouldScheduleNewAttempt() {
     return (getUncompletedAttemptsCount() == 0
             && successfulAttempt == null);
@@ -1248,7 +1248,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     MultipleArcTransition<TaskImpl, TaskEvent, TaskStateInternal> {
 
     private TezTaskAttemptID schedulingCausalTA;
-    
+
     @Override
     public TaskStateInternal transition(TaskImpl task, TaskEvent event) {
       task.failedAttempts++;
@@ -1309,7 +1309,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     protected TaskStateInternal getDefaultState(TaskImpl task) {
       return task.getInternalState();
     }
-    
+
     protected TezTaskAttemptID getSchedulingCausalTA() {
       return schedulingCausalTA;
     }
@@ -1337,7 +1337,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
                   containerId, failedAttemptId, true));
         }
       }
-      
+
       if (task.getInternalState() == TaskStateInternal.SUCCEEDED &&
           !failedAttemptId.equals(task.successfulAttempt)) {
         // don't allow a different task attempt to override a previous
@@ -1352,7 +1352,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         task.internalError(event.getType());
       }
       Preconditions.checkState(castEvent.getCausalEvent() != null);
-      TaskAttemptEventOutputFailed destinationEvent = 
+      TaskAttemptEventOutputFailed destinationEvent =
           (TaskAttemptEventOutputFailed) castEvent.getCausalEvent();
       schedulingCausalTA = destinationEvent.getInputFailedEvent().getSourceInfo().getTaskAttemptID();
 
@@ -1371,7 +1371,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
       return returnState;
     }
-    
+
     @Override
     protected TezTaskAttemptID getSchedulingCausalTA() {
       return schedulingCausalTA;
@@ -1451,12 +1451,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       // This is a horrible hack to get around recovery issues. Without this, recovery would fail
       // for successful vertices.
       // With this, recovery will end up failing for DAGs making use of InputInitializerEvents
-      int succesfulAttemptInt = -1;
+      int successfulAttemptInt = -1;
       if (successfulAttempt != null) {
-        succesfulAttemptInt = successfulAttempt.getTaskAttemptID().getId();
+        successfulAttemptInt = successfulAttempt.getTaskAttemptID().getId();
       }
       task.stateChangeNotifier.taskSucceeded(task.getVertex().getName(), task.getTaskID(),
-          succesfulAttemptInt);
+          successfulAttemptInt);
     }
   }
 

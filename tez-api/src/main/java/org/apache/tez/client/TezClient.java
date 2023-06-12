@@ -109,7 +109,7 @@ public class TezClient {
   private static final String appIdStrPrefix = "application";
   private static final String APPLICATION_ID_PREFIX = appIdStrPrefix + '_';
   private static final long PREWARM_WAIT_MS = 500;
-  
+
   @VisibleForTesting
   static final String NO_CLUSTER_DIAGNOSTICS_MSG = "No cluster diagnostics found.";
 
@@ -303,7 +303,7 @@ public class TezClient {
   }
 
   /**
-   * Add local files for the DAG App Master. These may be files, archives, 
+   * Add local files for the DAG App Master. These may be files, archives,
    * jars etc.<br>
    * <p>
    * In non-session mode these will be added to the files of the App Master
@@ -321,7 +321,7 @@ public class TezClient {
    * accumulate across DAG submissions and are never removed from the classpath.
    * Only LocalResourceType.FILE is supported. All files will be treated as
    * private.
-   * 
+   *
    * @param localFiles the files to be made available in the AM
    */
   public synchronized void addAppMasterLocalFiles(Map<String, LocalResource> localFiles) {
@@ -331,7 +331,7 @@ public class TezClient {
     }
     amConfig.addAMLocalResources(localFiles);
   }
-  
+
   /**
    * If the next DAG App Master needs different local files, then use this
    * method to clear the local files and then add the new local files
@@ -341,7 +341,7 @@ public class TezClient {
   public synchronized void clearAppMasterLocalFiles() {
     amConfig.clearAMLocalResources();
   }
-  
+
   /**
    * Set security credentials to be used inside the app master, if needed. Tez App
    * Master needs credentials to access the staging directory and for most HDFS
@@ -351,7 +351,7 @@ public class TezClient {
    * credentials must be supplied by the user. These will be used by the App
    * Master for the next DAG. <br>In session mode, credentials, if needed, must be
    * set before calling start()
-   * 
+   *
    * @param credentials credentials
    */
   public synchronized void setAppMasterCredentials(Credentials credentials) {
@@ -387,16 +387,16 @@ public class TezClient {
       LOG.info("Session mode. Starting session.");
       TezClientUtils.processTezLocalCredentialsFile(sessionCredentials,
           amConfig.getTezConfiguration());
-  
+
       clientTimeout = amConfig.getTezConfiguration().getInt(
           TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS,
           TezConfiguration.TEZ_SESSION_CLIENT_TIMEOUT_SECS_DEFAULT);
-  
+
       try {
         if (sessionAppId == null) {
           sessionAppId = createApplication();
         }
-  
+
         ApplicationSubmissionContext appContext = setupApplicationContext();
         frameworkClient.submitApplication(appContext);
         ApplicationReport appReport = frameworkClient.getApplicationReport(sessionAppId);
@@ -597,7 +597,7 @@ public class TezClient {
    * cluster.<br>In session mode, it submits the DAG to the session App Master. It
    * blocks until either the DAG is submitted to the session or configured
    * timeout period expires. Cleans up session if the submission timed out.
-   * 
+   *
    * @param dag
    *          DAG to be submitted to Session
    * @return DAGClient to monitor the DAG
@@ -605,7 +605,7 @@ public class TezClient {
    * @throws IOException
    * @throws DAGSubmissionTimedOut
    *           if submission timed out
-   */  
+   */
   public synchronized DAGClient submitDAG(DAG dag) throws TezException, IOException {
     DAGClient result = isSession ? submitDAGSession(dag) : submitDAGApplication(dag);
     if (result != null) {
@@ -642,12 +642,12 @@ public class TezClient {
     }
     prewarmDagClient = null;
   }
-  
+
   private DAGClient submitDAGSession(DAG dag) throws TezException, IOException {
-    Preconditions.checkState(isSession == true, 
-        "submitDAG with additional resources applies to only session mode. " + 
+    Preconditions.checkState(isSession,
+        "submitDAG with additional resources applies to only session mode. " +
         "In non-session mode please specify all resources in the initial configuration");
-    
+
     verifySessionStateForSubmission();
 
     String callerContextStr = "";
@@ -659,7 +659,7 @@ public class TezClient {
       + ", applicationId=" + sessionAppId
       + ", dagName=" + dag.getName()
       + callerContextStr);
-    
+
     if (!additionalLocalResources.isEmpty()) {
       for (LocalResource lr : additionalLocalResources.values()) {
         Preconditions.checkArgument(lr.getType() == LocalResourceType.FILE, "LocalResourceType: "
@@ -677,7 +677,7 @@ public class TezClient {
       requestBuilder.setAdditionalAmResources(DagTypeConverters
           .convertFromLocalResources(additionalLocalResources));
     }
-    
+
     additionalLocalResources.clear();
 
     // if request size exceeds maxSubmitDAGRequestSizeThroughIPC, we serialize them to HDFS
@@ -804,7 +804,7 @@ public class TezClient {
   public String getClientName() {
     return clientName;
   }
-  
+
   @Private
   @VisibleForTesting
   public synchronized ApplicationId getAppMasterApplicationId() {
@@ -817,16 +817,16 @@ public class TezClient {
 
   /**
    * Get the status of the App Master executing the DAG
-   * In non-session mode it returns the status of the last submitted DAG App Master 
+   * In non-session mode it returns the status of the last submitted DAG App Master
    * In session mode, it returns the status of the App Master hosting the session
-   * 
+   *
    * @return State of the session
    * @throws TezException
    * @throws IOException
    */
   public synchronized TezAppMasterStatus getAppMasterStatus() throws TezException, IOException {
-    // Supporting per-DAG app master case since user may choose to run the same 
-    // code in that mode and the code should continue to work. Its easy to provide 
+    // Supporting per-DAG app master case since user may choose to run the same
+    // code in that mode and the code should continue to work. Its easy to provide
     // the correct view for per-DAG app master too.
     ApplicationId appId = null;
     if (isSession) {
@@ -869,21 +869,21 @@ public class TezClient {
     }
     return TezAppMasterStatus.INITIALIZING;
   }
-  
+
   /**
    * API to help pre-allocate containers in session mode. In non-session mode
-   * this is ignored. The pre-allocated containers may be re-used by subsequent 
-   * job DAGs to improve performance. 
+   * this is ignored. The pre-allocated containers may be re-used by subsequent
+   * job DAGs to improve performance.
    * The preWarm vertex should be configured and setup exactly
-   * like the other vertices in the job DAGs so that the pre-allocated containers 
+   * like the other vertices in the job DAGs so that the pre-allocated containers
    * may be re-used by the subsequent DAGs to improve performance.
    * The processor for the preWarmVertex may be used to pre-warm the containers
-   * by pre-loading classes etc. It should be short-running so that pre-warming 
+   * by pre-loading classes etc. It should be short-running so that pre-warming
    * does not block real execution. Users can specify their custom processors or
    * use the PreWarmProcessor from the runtime library.
    * The parallelism of the preWarmVertex will determine the number of preWarmed
    * containers.
-   * Pre-warming is best efforts and among other factors is limited by the free 
+   * Pre-warming is best efforts and among other factors is limited by the free
    * resources on the cluster.
    * @param preWarmVertex
    * @throws TezException
@@ -929,7 +929,7 @@ public class TezClient {
     }
 
     verifySessionStateForSubmission();
-    
+
     DAG dag = org.apache.tez.dag.api.DAG.create(TezConstants.TEZ_PREWARM_DAG_NAME_PREFIX + "_"
         + preWarmDAGCounter++);
     dag.addVertex(preWarmVertex);
@@ -948,7 +948,7 @@ public class TezClient {
     }
   }
 
-  
+
   /**
    * Wait till the DAG is ready to be submitted.
    * In non-session mode this is a no-op since the application can be immediately
@@ -956,7 +956,7 @@ public class TezClient {
    * In session mode, this waits for the session host to be ready to accept a DAG
    * @throws IOException
    * @throws TezException
-   * @throws InterruptedException 
+   * @throws InterruptedException
    */
   @Evolving
   public synchronized void waitTillReady() throws IOException, TezException, InterruptedException {
@@ -1042,7 +1042,7 @@ public class TezClient {
       throw new SessionNotRunning("Session stopped by user");
     }
   }
-  
+
   private DAGClient submitDAGApplication(DAG dag)
       throws TezException, IOException {
     ApplicationId appId = createApplication();
@@ -1055,7 +1055,7 @@ public class TezClient {
     LOG.info("Submitting DAG application with id: " + appId);
     try {
       // Use the AMCredentials object in client mode, since this won't be re-used.
-      // Ensures we don't fetch credentially unnecessarily if the user has already provided them.
+      // Ensures we don't fetch credentials unnecessarily if the user has already provided them.
       Credentials credentials = amConfig.getCredentials();
       if (credentials == null) {
         credentials = new Credentials();
@@ -1259,7 +1259,7 @@ public class TezClient {
     }
   }
 
-  //Copied this helper method from 
+  //Copied this helper method from
   //org.apache.hadoop.yarn.api.records.ApplicationId in Hadoop 2.8+
   //to simplify implementation on 2.7.x
   @Public

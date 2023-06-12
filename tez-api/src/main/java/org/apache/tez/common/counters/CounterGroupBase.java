@@ -76,7 +76,7 @@ public interface CounterGroupBase<T extends TezCounter>
   /**
    * Find a counter in the group
    * @param counterName the name of the counter
-   * @param create create the counter if not found if true
+   * @param create create the counter if not found is true
    * @return the counter that was found or added or null if create is false
    */
   T findCounter(String counterName, boolean create);
@@ -99,7 +99,7 @@ public interface CounterGroupBase<T extends TezCounter>
    */
   @Deprecated
   void incrAllCounters(CounterGroupBase<T> rightGroup);
-  
+
   /**
    * Aggregate all counters by a group of counters
    * @param rightGroup  the group to be added to this group

@@ -283,7 +283,7 @@ public class RecoveryService extends AbstractService {
 
   public void handle(DAGHistoryEvent event) throws IOException {
     if (stopped.get()) {
-      LOG.warn("Igoring event as service stopped, eventType"
+      LOG.warn("Ignoring event as service stopped, eventType"
           + event.getHistoryEvent().getEventType());
       return;
     }

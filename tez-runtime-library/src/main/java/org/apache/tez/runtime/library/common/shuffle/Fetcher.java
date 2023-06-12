@@ -132,18 +132,18 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
   private int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
-  
+
   private final JobTokenSecretManager jobTokenSecretMgr;
 
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
   private final ApplicationId appId;
   private final int dagIdentifier;
-  
+
   private final String logIdentifier;
 
   private final String localHostname;
-  
+
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
   protected final int fetcherIdentifier;
@@ -173,7 +173,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private URL url;
   private volatile DataInputStream input;
-  
+
   BaseHttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
 
@@ -345,7 +345,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           DiskFetchedInput input = (DiskFetchedInput) fetchedInput;
           indexRec = new TezIndexRecord(0, decompressedLength, compressedLength);
           localFs.mkdirs(outputPath.getParent());
-          // avoid pit-falls of speculation
+          // avoid pitfalls of speculation
           tmpPath = outputPath.suffix(tmpSuffix);
           // JDK7 - TODO: use Files implementation to speed up this process
           localFs.copyFromLocalFile(input.getInputPath(), tmpPath);
@@ -459,7 +459,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             srcAttemptsRemaining.values(), "Requeuing as we didn't get a lock"), null, false);
       } else {
         if (findInputs() == srcAttemptsRemaining.size()) {
-          // double checked after lock
+          // double-checked after lock
           releaseLock(lock);
           lock = null;
           return doLocalDiskFetch(true);
@@ -1090,7 +1090,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   /**
    * Do some basic verification on the input received -- Being defensive
-   * 
+   *
    * @param compressedLength
    * @param decompressedLength
    * @param fetchPartition
@@ -1120,7 +1120,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (srcAttemptsRemaining.size() > 0) {
       return srcAttemptsRemaining.values().iterator().next();
