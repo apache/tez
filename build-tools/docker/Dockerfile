@@ -181,8 +181,11 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y openjdk-8
 RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-jre-headless openjdk-11-jdk-headless \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && update-java-alternatives -s java-1.8.0-openjdk-amd64 \
-    && rm -f /usr/lib/jvm/default-java \
+    && update-java-alternatives -s java-1.8.0-openjdk-amd64 || :
+# since update alternatives might fail on executables that we don't really need (e.g. appletviewer)
+# and return with exit code <0 (actually: 2), we can simply do a sanity check if the version is
+# as expected for "java" executable after the update and go on
+RUN java -version 2>&1 | grep "1.8.0" && rm -f /usr/lib/jvm/default-java \
     && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
