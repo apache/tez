@@ -24,6 +24,10 @@
   </parent>
   <artifactId>tez-api</artifactId>
 
+  <properties>
+    <maven.javadoc.skip>false</maven.javadoc.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
