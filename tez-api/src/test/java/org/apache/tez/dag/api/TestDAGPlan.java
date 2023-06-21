@@ -107,7 +107,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testEdgeManagerSerde() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-testEdgeManagerSerde");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2")
@@ -144,7 +144,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testUserPayloadSerde() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-testUserPayloadSerde");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -205,7 +205,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void userVertexOrderingIsMaintained() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-userVertexOrderingIsMaintained");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -278,7 +278,7 @@ public class TestDAGPlan {
 
   @Test (timeout=5000)
   public void testCredentialsSerde() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-testCredentialsSerde");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -322,7 +322,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testInvalidExecContext_1() {
-    DAG dag = DAG.create("dag1");
+    DAG dag = DAG.create("dag1-testInvalidExecContext_1");
     dag.setExecutionContext(VertexExecutionContext.createExecuteInAm(true));
     Vertex v1 = Vertex.create("testvertex", ProcessorDescriptor.create("processor1"), 1);
     dag.addVertex(v1);
@@ -364,7 +364,7 @@ public class TestDAGPlan {
         VertexExecutionContext.create("plugin", "plugin", "invalidplugin");
 
 
-    DAG dag = DAG.create("dag1");
+    DAG dag = DAG.create("dag1-testInvalidExecContext_2");
     dag.setExecutionContext(VertexExecutionContext.createExecuteInContainers(true));
     Vertex v1 = Vertex.create("testvertex", ProcessorDescriptor.create("processor1"), 1);
     dag.addVertex(v1);
@@ -429,7 +429,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testServiceDescriptorPropagation() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-testServiceDescriptorPropagation");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1").
         setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     ProcessorDescriptor pd2 = ProcessorDescriptor.create("processor2").
@@ -492,7 +492,7 @@ public class TestDAGPlan {
 
   @Test(timeout = 5000)
   public void testInvalidJavaOpts() {
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("testDag-testInvalidJavaOpts");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));

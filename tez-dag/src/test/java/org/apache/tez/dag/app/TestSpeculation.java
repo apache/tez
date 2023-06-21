@@ -300,7 +300,7 @@ public class TestSpeculation {
               TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
               entry.getKey());
 
-      DAG dag = DAG.create("test");
+      DAG dag = DAG.create("dag-testSingleTaskSpeculation");
       Vertex vA = Vertex.create("A",
               ProcessorDescriptor.create("Proc.class"),
               1);
@@ -343,7 +343,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   public void testBasicSpeculation(boolean withProgress) throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("dag-testSingleTaskSpeculation");
     Vertex vA = Vertex.create("A",
         ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
@@ -426,7 +426,7 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("dag-testBasicSpeculationPerVertexConf");
     String vNameNoSpec = "A";
     String vNameSpec = "B";
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
@@ -487,7 +487,7 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationNotUseful() throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("dag-testBasicSpeculationNotUseful");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 

@@ -103,7 +103,7 @@ public class TestAM {
   public void testAMWebUIService() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = DAG.create("TezSleepProcessor");
+    DAG dag = DAG.create("TezSleepProcessor-testAMWebUIService");
     Vertex vertex = Vertex.create("SleepVertex",
         ProcessorDescriptor.create(SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
         Resource.newInstance(1024, 1));

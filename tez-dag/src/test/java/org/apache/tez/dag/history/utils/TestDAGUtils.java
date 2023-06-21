@@ -56,7 +56,7 @@ import com.google.common.collect.Sets;
 public class TestDAGUtils {
 
   @SuppressWarnings("deprecation")
-  private DAGPlan createDAG() {
+  private DAGPlan createDAG(String dagName) {
     // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
     Configuration conf = new Configuration(false);
     int dummyTaskCount = 1;
@@ -73,7 +73,7 @@ public class TestDAGUtils {
         ProcessorDescriptor.create("Processor").setHistoryText("vertex3 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("Dag-" + dagName);
     dag.setCallerContext(CallerContext.create("context1", "callerId1", "callerType1", "desc1"));
     dag.setDAGInfo("dagInfo");
     String groupName1 = "uv12";
@@ -102,7 +102,7 @@ public class TestDAGUtils {
   @Test(timeout = 5000)
   @SuppressWarnings("unchecked")
   public void testConvertDAGPlanToATSMap() throws IOException, JSONException {
-    DAGPlan dagPlan = createDAG();
+    DAGPlan dagPlan = createDAG("testConvertDAGPlanToATSMap");
     Map<String,TezVertexID> idNameMap = new HashMap<String, TezVertexID>();
     ApplicationId appId = ApplicationId.newInstance(1, 1);
     TezDAGID dagId = TezDAGID.getInstance(appId, 1);
