@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -63,6 +64,11 @@ public interface TaskAttempt extends TaskAttemptIDAware {
         }
       }
     }
+
+    @VisibleForTesting
+    public void setCounters(TezCounters counters) {
+      this.counters = counters;
+    }
   }
 
   Task getTask();
@@ -70,6 +76,8 @@ public interface TaskAttempt extends TaskAttemptIDAware {
   List<String> getDiagnostics();
   TaskAttemptTerminationCause getTerminationCause();
   TezCounters getCounters();
+  @VisibleForTesting
+  void setCounters(TezCounters counters);
   float getProgress();
   TaskAttemptState getState();
   TaskAttemptState getStateNoLock();
