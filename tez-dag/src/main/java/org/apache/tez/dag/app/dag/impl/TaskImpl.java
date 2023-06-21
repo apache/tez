@@ -477,8 +477,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
         tezCounters.incrAllCounters(bestAttempt.getCounters());
         return tezCounters;
       }
-      return (bestAttempt !=
-          null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
+      return (bestAttempt != null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
     } finally {
       readLock.unlock();
     }
