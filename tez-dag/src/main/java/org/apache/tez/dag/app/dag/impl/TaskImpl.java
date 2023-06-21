@@ -465,19 +465,20 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
 
   @Override
   public TezCounters getCounters() {
-    TezCounters counters = null;
+    TezCounters tezCounters = null;
     if (getVertex().isSpeculationEnabled()) {
-      counters = new TezCounters();
-      counters.incrAllCounters(this.counters);
+      tezCounters = new TezCounters();
+      tezCounters.incrAllCounters(this.counters);
     }
     readLock.lock();
     try {
       TaskAttempt bestAttempt = selectBestAttempt();
-      if (bestAttempt != null && counters != null) {
-        counters.incrAllCounters(bestAttempt.getCounters());
-        return counters;
+      if (bestAttempt != null && tezCounters != null) {
+        tezCounters.incrAllCounters(bestAttempt.getCounters());
+        return tezCounters;
       }
-      return (bestAttempt != null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
+      return (bestAttempt !=
+          null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
     } finally {
       readLock.unlock();
     }
