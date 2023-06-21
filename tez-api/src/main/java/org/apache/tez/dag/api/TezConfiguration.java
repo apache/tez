@@ -288,7 +288,6 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_MDC_CUSTOM_KEYS = TEZ_PREFIX + "mdc.custom.keys";
-  public static final String TEZ_MDC_CUSTOM_KEYS_DEFAULT = "";
 
   /**
    * Comma separated list of Configuration keys. Tez will try to fill MDC with key value pairs in a
@@ -305,7 +304,6 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS = TEZ_MDC_CUSTOM_KEYS + ".conf.props";
-  public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS_DEFAULT = "";
 
   /**
    * double value. Represents ratio of unique failed outputs / number of consumer
