@@ -414,7 +414,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("Dag-" + dagName);
+    DAG testDag = DAG.create("Dag-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -427,8 +427,8 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !v3CommitSucceeded, true).toUserPayload())));
 
-    org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1,
-        v1, v2);
+    org.apache.tez.dag.api.VertexGroup uv12 =
+        testDag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     uv12.addDataSink("v12Out", DataSinkDescriptor.create(outDesc, ocd1, null));
     v3.addDataSink("v3Out", DataSinkDescriptor.create(outDesc, ocd2, null));
@@ -440,18 +440,19 @@ public class TestCommit {
         InputDescriptor.create("dummy input class")), InputDescriptor
         .create("merge.class"));
 
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addVertex(v3);
-    dag.addEdge(e1);
-    return dag.createDag(conf, null, null, null, true);
+    testDag.addVertex(v1);
+    testDag.addVertex(v2);
+    testDag.addVertex(v3);
+    testDag.addEdge(e1);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   // v1->v3
   // v2->v3
   // vertex_group (v1, v2) has 2 shared outputs
-  private DAGPlan createDAGPlanWith2VertexGroupOutputs(boolean vertexGroupCommitSucceeded1,
-    boolean vertexGroupCommitSucceeded2, boolean v3CommitSucceeded, String dagName) throws Exception {
+  private DAGPlan createDAGPlanWith2VertexGroupOutputs(
+      boolean vertexGroupCommitSucceeded1, boolean vertexGroupCommitSucceeded2,
+      boolean v3CommitSucceeded, String dagName) throws Exception {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -465,7 +466,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("Dag-" + dagName);
+    DAG testDag = DAG.create("Dag-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -483,8 +484,8 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !v3CommitSucceeded, true).toUserPayload())));
 
-    org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1,
-        v1, v2);
+    org.apache.tez.dag.api.VertexGroup uv12 =
+        testDag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     uv12.addDataSink("v12Out1", DataSinkDescriptor.create(outDesc, ocd1, null));
     uv12.addDataSink("v12Out2", DataSinkDescriptor.create(outDesc, ocd2, null));
@@ -497,11 +498,11 @@ public class TestCommit {
         InputDescriptor.create("dummy input class")), InputDescriptor
         .create("merge.class"));
 
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addVertex(v3);
-    dag.addEdge(e1);
-    return dag.createDag(conf, null, null, null, true);
+    testDag.addVertex(v1);
+    testDag.addVertex(v2);
+    testDag.addVertex(v3);
+    testDag.addEdge(e1);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   private DAGPlan createDAGPlan_SingleVertexWith2Committer(
@@ -510,8 +511,9 @@ public class TestCommit {
   }
 
   // used for route event error in VM
-  private DAGPlan createDAGPlan_SingleVertexWith2Committer
-    (boolean commit1Succeed, boolean commit2Succeed, boolean customVM, String dagName) throws IOException {
+  private DAGPlan createDAGPlan_SingleVertexWith2Committer(
+      boolean commit1Succeed, boolean commit2Succeed, boolean customVM,
+      String dagName) throws IOException {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -534,12 +536,12 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !commit2Succeed, true).toUserPayload())));
 
-    DAG dag = DAG.create("Dag-" + dagName);
-    dag.addVertex(v1);
+    DAG testDag = DAG.create("Dag-" + dagName);
+    testDag.addVertex(v1);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     v1.addDataSink("v1Out_1", DataSinkDescriptor.create(outDesc, ocd1, null));
     v1.addDataSink("v1Out_2", DataSinkDescriptor.create(outDesc, ocd2, null));
-    return dag.createDag(conf, null, null, null, true);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   private void initDAG(DAGImpl dag) {

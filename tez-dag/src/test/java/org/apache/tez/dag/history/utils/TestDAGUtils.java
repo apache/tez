@@ -115,7 +115,8 @@ public class TestDAGUtils {
 
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
-    Assert.assertEquals("testDag", atsMap.get(DAGUtils.DAG_NAME_KEY));
+    Assert.assertEquals("Dag-testConvertDAGPlanToATSMap",
+        atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_CONTEXT_KEY));
     Map<String, String> contextMap = (Map<String, String>)atsMap.get(DAGUtils.DAG_CONTEXT_KEY);
