@@ -46,15 +46,13 @@ public final class LoggingUtils {
     data.put("dagId", dagId == null ? "" : dagId);
     data.put("taskAttemptId", taskAttemptId == null ? "" : taskAttemptId);
 
-    String[] mdcKeys = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS,
-        TezConfiguration.TEZ_MDC_CUSTOM_KEYS_DEFAULT);
+    String[] mdcKeys = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS);
 
     if (mdcKeys == null || mdcKeys.length == 0) {
       return;
     }
 
-    String[] mdcKeysValuesFrom = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS,
-        TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS_DEFAULT);
+    String[] mdcKeysValuesFrom = conf.getStrings(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS);
     LOG.info("MDC_LOGGING: setting up MDC keys: keys: {} / conf: {}", Arrays.asList(mdcKeys),
         Arrays.asList(mdcKeysValuesFrom));
 
