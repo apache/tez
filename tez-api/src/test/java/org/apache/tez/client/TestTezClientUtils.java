@@ -408,7 +408,7 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("testdag-testSessionTokenInAmClc");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
 
@@ -449,7 +449,7 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsSimple");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
@@ -490,7 +490,7 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsPerLogger");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =

@@ -48,6 +48,8 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -160,6 +162,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.protobuf.ByteString;
 
 public class TestDAGImpl {
+
+  @Rule
+  public TestName testName = new TestName();
 
   private static final Logger LOG = LoggerFactory.getLogger(TestDAGImpl.class);
   private DAGPlan dagPlan;
@@ -426,7 +431,7 @@ public class TestDAGImpl {
   }
 
   // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
-  static DAGPlan createGroupDAGPlan() {
+  static DAGPlan createGroupDAGPlan(String dagName) {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -440,7 +445,7 @@ public class TestDAGImpl {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd = OutputCommitterDescriptor.create(
         TotalCountingOutputCommitter.class.getName());
@@ -906,7 +911,7 @@ public class TestDAGImpl {
     doReturn(defaultShim).when(groupAppContext).getHadoopShim();
 
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
-    groupDagPlan = createGroupDAGPlan();
+    groupDagPlan = createGroupDAGPlan(testName.getMethodName());
     groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,
         dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh,

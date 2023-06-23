@@ -809,9 +809,9 @@ public class TestVertexImpl {
      return dag;
   }
 
-  private DAGPlan createDAGPlanWithMixedEdges() {
+  private DAGPlan createDAGPlanWithMixedEdges(String dagName) {
     LOG.info("Setting up mixed edge dag plan");
-    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("MixedEdges");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("DAG-" + dagName);
     org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create("vertex1",
         ProcessorDescriptor.create("v1.class"), 1, Resource.newInstance(0, 0));
     org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create("vertex2",
@@ -4602,7 +4602,7 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testVertexManagerHeuristic() throws TezException {
     setupPreDagCreation();
-    dagPlan = createDAGPlanWithMixedEdges();
+    dagPlan = createDAGPlanWithMixedEdges("testVertexManagerHeuristic");
     setupPostDagCreation(false);
     initAllVertices(VertexState.INITED);
     Assert.assertEquals(ImmediateStartVertexManager.class, 

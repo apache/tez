@@ -133,7 +133,7 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, true);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithSession", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -145,7 +145,7 @@ public class TestLocalMode {
     tezClient1.stop();
 
     TezConfiguration tezConf2 = createConf();
-    DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithSession_2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, true);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
@@ -165,7 +165,7 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithoutSession", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -177,7 +177,7 @@ public class TestLocalMode {
 
 
     TezConfiguration tezConf2 = createConf();
-    DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithoutSession_2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, false);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
@@ -198,7 +198,7 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testNoSysExitOnSuccessfulDAG", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -213,14 +213,14 @@ public class TestLocalMode {
   }
 
   @Test(timeout = 20000)
-  public void testNoSysExitOnFailinglDAG() throws TezException, InterruptedException,
+  public void testNoSysExitOnFailingDAG() throws TezException, InterruptedException,
       IOException {
     TezConfiguration tezConf1 = createConf();
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", FailingProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testNoSysExitOnFailingDAG", FailingProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
@@ -261,10 +261,13 @@ public class TestLocalMode {
   }
 
   private DAG createSimpleDAG(String dagName, String processorName) {
-    DAG dag = DAG.create(dagName).addVertex(
+    DAG dag = DAG.create(generateDagName("DAG-" + dagName)).addVertex(
         Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor.create(processorName).setUserPayload(
             new SleepProcessor.SleepProcessorConfig(SLEEP_PROCESSOR_TIME_TO_SLEEP_MS).toUserPayload()), 1));
     return dag;
+  }
+  private String generateDagName(String baseName) {
+    return baseName + (useDfs ? "_useDfs" : "") + (useLocalModeWithoutNetwork ? "_useLocalModeWithoutNetwork" : "");
   }
 
   @Test(timeout=30000)

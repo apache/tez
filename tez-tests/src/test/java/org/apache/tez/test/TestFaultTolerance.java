@@ -843,7 +843,7 @@ public class TestFaultTolerance {
   public void testCartesianProduct() throws Exception {
     Configuration dagConf = new Configuration();
     dagConf.setDouble(TezConfiguration.TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES_FRACTION, 0.25);
-    DAG dag = DAG.create("dag");
+    DAG dag = DAG.create("DAG-testCartesianProduct");
 
     Configuration vertexConf = new Configuration();
     vertexConf.setInt(TestProcessor.getVertexConfName(

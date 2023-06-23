@@ -47,7 +47,7 @@ public class TestDAG {
         dummyTaskCount, dummyTaskResource);
     Vertex v2 = Vertex.create("v1", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
-    DAG dag = DAG.create("testDAG");
+    DAG dag = DAG.create("DAG-testDuplicatedVertices");
     dag.addVertex(v1);
     try {
       dag.addVertex(v2);
@@ -74,7 +74,7 @@ public class TestDAG {
         SchedulingType.CONCURRENT, OutputDescriptor.create("output"),
         InputDescriptor.create("input")));
 
-    DAG dag = DAG.create("testDAG");
+    DAG dag = DAG.create("DAG-testDuplicatedEdges");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(edge1);
@@ -96,7 +96,7 @@ public class TestDAG {
     Vertex v3 = Vertex.create("v3", ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDAG");
+    DAG dag = DAG.create("DAG-testDuplicatedVertexGroup");
     dag.createVertexGroup("group_1", v1, v2);
 
     try {
@@ -123,7 +123,7 @@ public class TestDAG {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("DAG-testDuplicatedGroupInputEdge");
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
 
@@ -156,7 +156,7 @@ public class TestDAG {
 
   @Test(timeout = 5000)
   public void testDAGConf() {
-    DAG dag = DAG.create("dag1");
+    DAG dag = DAG.create("DAG-testDAGConf");
     // it's OK to set custom configuration
     dag.setConf("unknown_conf", "value");
 
@@ -281,7 +281,7 @@ public class TestDAG {
 
   @Test(timeout = 5000)
   public void testDuplicatedOutput_2() {
-    DAG dag = DAG.create("dag1");
+    DAG dag = DAG.create("DAG-testDuplicatedOutput_2");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create("dummyProcessor"));
     DataSinkDescriptor dataSink =
         DataSinkDescriptor.create(OutputDescriptor.create("dummyOutput"), null, null);
@@ -354,7 +354,7 @@ public class TestDAG {
         Resource.newInstance(1, 1));
     Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("dummyProcessor2"), 1,
         Resource.newInstance(1, 1));
-    DAG dag = DAG.create("dag1").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-testRecreateDAG").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
 
     TezConfiguration tezConf = new TezConfiguration();
     DAGPlan firstPlan = dag.createDag(tezConf, null, null, null, false);
@@ -375,7 +375,7 @@ public class TestDAG {
         Resource.newInstance(1, 1));
     Vertex v2 = Vertex.create("v2", ProcessorDescriptor.create("dummyProcessor2"), 1,
         Resource.newInstance(1, 1));
-    DAG dag = DAG.create("dag1").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-testCreateDAGForHistoryLogLevel").addVertex(v1).addVertex(v2).addTaskLocalFiles(lrDAG);
 
     TezConfiguration tezConf = new TezConfiguration();
 

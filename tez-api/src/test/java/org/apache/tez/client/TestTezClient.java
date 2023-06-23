@@ -202,13 +202,13 @@ public class TestTezClient {
   }
   
   @Test (timeout = 5000)
-  public void testTezclientApp() throws Exception {
-    testTezClient(false, true);
+  public void testTezClientApp() throws Exception {
+    testTezClient(false, true, "testTezClientApp");
   }
   
   @Test (timeout = 5000)
-  public void testTezclientSession() throws Exception {
-    testTezClient(true, true);
+  public void testTezClientSession() throws Exception {
+    testTezClient(true, true, "testTezClientSession");
   }
 
   @Test (timeout = 5000)
@@ -246,7 +246,7 @@ public class TestTezClient {
     ProcessorDescriptor processorDescriptor = ProcessorDescriptor.create("P");
     processorDescriptor.setUserPayload(UserPayload.create(ByteBuffer.allocate(payloadSize)));
     Vertex vertex = Vertex.create("Vertex", processorDescriptor, 1, Resource.newInstance(1, 1));
-    DAG dag = DAG.create("DAG").addVertex(vertex);
+    DAG dag = DAG.create("DAG-testTezClientSessionLargeDAGPlan").addVertex(vertex);
 
     client.start();
     client.addAppMasterLocalFiles(localResourceMap);
@@ -277,7 +277,7 @@ public class TestTezClient {
   @Test (timeout = 5000)
   public void testGetClient() throws Exception {
     /* BEGIN first TezClient usage without calling stop() */
-    TezClientForTest client = testTezClient(true, false);
+    TezClientForTest client = testTezClient(true, false, "testGetClient");
     /* END first TezClient usage without calling stop() */
 
     /* BEGIN reuse of AM from new TezClient */
@@ -295,7 +295,7 @@ public class TestTezClient {
                     LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
             Resource.newInstance(1, 1));
-    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-testGetClient").addVertex(vertex).addTaskLocalFiles(lrDAG);
 
     //Bind TezClient to existing app and submit a dag
     DAGClient dagClient = client2.getClient(existingAppId).submitDAG(dag);
@@ -317,7 +317,7 @@ public class TestTezClient {
     /* END reuse of AM from new TezClient */
   }
   
-  public TezClientForTest testTezClient(boolean isSession, boolean shouldStop) throws Exception {
+  public TezClientForTest testTezClient(boolean isSession, boolean shouldStop, String dagName) throws Exception {
     Map<String, LocalResource> lrs = Maps.newHashMap();
     String lrName1 = "LR1";
     lrs.put(lrName1, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test"),
@@ -351,7 +351,7 @@ public class TestTezClient {
             LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1));
-    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-" + dagName).addVertex(vertex).addTaskLocalFiles(lrDAG);
     if (!isSession) {
       when(client.sessionAmProxy.getAMStatus(any(), any()))
               .thenReturn(GetAMStatusResponseProto.newBuilder().setStatus(TezAppMasterStatusProto.SHUTDOWN).build());
@@ -391,7 +391,7 @@ public class TestTezClient {
     
     when(client.mockYarnClient.getApplicationReport(appId2).getYarnApplicationState())
     .thenReturn(YarnApplicationState.RUNNING);
-    dag = DAG.create("DAG").addVertex(
+    dag = DAG.create("DAG-2-" + dagName).addVertex(
         Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1, Resource.newInstance(1, 1)));
     dagClient = client.submitDAG(dag);
     
@@ -603,7 +603,8 @@ public class TestTezClient {
             LocalResourceVisibility.PUBLIC, 1, 1));
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1)).addTaskLocalFiles(lrVertex);
-    DAG dag = DAG.create("DAG").addVertex(vertex).addTaskLocalFiles(lrDAG);
+    DAG dag =
+        DAG.create("DAG-testMultipleSubmissionsJob-session-" + isSession).addVertex(vertex).addTaskLocalFiles(lrDAG);
 
     // the dag resource will be added to the vertex once
     client1.submitDAG(dag);
@@ -694,7 +695,7 @@ public class TestTezClient {
 
     Vertex vertex = Vertex.create("Vertex", ProcessorDescriptor.create("P"), 1,
         Resource.newInstance(1, 1));
-    DAG dag = DAG.create("DAG").addVertex(vertex);
+    DAG dag = DAG.create("DAG-testSubmitDAGAppFailed").addVertex(vertex);
     
     try {
       client.submitDAG(dag);
@@ -884,7 +885,7 @@ public class TestTezClient {
     Vertex vertex2 = Vertex.create("Vertex2", ProcessorDescriptor.create("P2"), 1,
         Resource.newInstance(1, 1));
     vertex2.setTaskLaunchCmdOpts("-XX:+UseParallelGC -XX:+UseG1GC");
-    DAG dag = DAG.create("DAG").addVertex(vertex1).addVertex(vertex2).addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-testClientResubmit").addVertex(vertex1).addVertex(vertex2).addTaskLocalFiles(lrDAG);
     for (int i = 0; i < 3; ++i) {
       try {
         client.submitDAG(dag);
