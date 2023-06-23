@@ -654,6 +654,17 @@ public class TaskAttemptImpl implements TaskAttempt,
       readLock.unlock();
     }
   }
+
+  @VisibleForTesting
+  @Override
+  public void setCounters(TezCounters counters) {
+    writeLock.lock();
+    try {
+      reportedStatus.setCounters(counters);
+    } finally {
+      writeLock.unlock();
+    }
+  }
   
   TaskStatistics getStatistics() {
     return this.statistics;
