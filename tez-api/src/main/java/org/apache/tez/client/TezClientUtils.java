@@ -324,7 +324,7 @@ public final class TezClientUtils {
   /**
    * Verify or create the Staging area directory on the configured Filesystem
    * @param stagingArea Staging area directory path
-   * @return the FileSytem for the staging area directory
+   * @return the FileSystem for the staging area directory
    * @throws IOException
    */
   public static FileSystem ensureStagingDirExists(Configuration conf,
@@ -506,7 +506,7 @@ public final class TezClientUtils {
     String[] amLogParams = parseLogParams(amLogLevelString);
 
     String amLogLevel = amLogParams[0];
-    maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
+    TezClientUtils.addLog4jSystemProperties(amLogLevel, vargs);
 
 
     // FIX sun bug mentioned in TEZ-327
@@ -761,11 +761,6 @@ public final class TezClientUtils {
         amConfig.getBinaryConfLR(), tezLrsAsArchive, servicePluginsDescriptor, javaOptsChecker);
   }
 
-  static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
-    Objects.requireNonNull(vargs);
-    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
-  }
-
   @Private
   public static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
     List<String> vargs = new ArrayList<String>(5);
@@ -774,7 +769,7 @@ public final class TezClientUtils {
     } else {
       vargs.add("");
     }
-    maybeAddDefaultLoggingJavaOpts(logLevel, vargs);
+    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
     if (vargs.size() == 1) {
       return vargs.get(0);
     }
@@ -820,6 +815,7 @@ public final class TezClientUtils {
   @VisibleForTesting
   public static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
+    Objects.requireNonNull(vargs);
     vargs.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
     vargs.add("-Dlog4j.configuration="
         + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
