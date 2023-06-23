@@ -73,8 +73,7 @@ public class DatePartitionedLogger<T extends MessageLite> {
     FileSystem fileSystem = path.getFileSystem(conf);
     try {
       if (!fileSystem.exists(path)) {
-        fileSystem.mkdirs(path);
-        fileSystem.setPermission(path, DIR_PERMISSION);
+        fileSystem.mkdirs(path, DIR_PERMISSION);
       }
     } catch (IOException e) {
       // Ignore this exception, if there is a problem it'll fail when trying to read or write.
