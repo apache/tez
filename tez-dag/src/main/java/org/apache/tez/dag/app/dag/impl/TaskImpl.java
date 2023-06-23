@@ -473,11 +473,12 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     readLock.lock();
     try {
       TaskAttempt bestAttempt = selectBestAttempt();
-      if (bestAttempt != null && tezCounters != null) {
-        tezCounters.incrAllCounters(bestAttempt.getCounters());
+      TezCounters taskCounters = (bestAttempt != null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
+      if (getVertex().isSpeculationEnabled()) {
+        tezCounters.incrAllCounters(taskCounters);
         return tezCounters;
       }
-      return (bestAttempt != null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
+      return taskCounters;
     } finally {
       readLock.unlock();
     }
