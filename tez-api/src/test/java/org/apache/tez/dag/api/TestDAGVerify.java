@@ -73,7 +73,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyScatterGather");
+    DAG dag = DAG.create("DAG-testVerifyScatterGather");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -94,7 +94,7 @@ public class TestDAGVerify {
             SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyCustomEdge");
+    DAG dag = DAG.create("DAG-testVerifyCustomEdge");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -114,7 +114,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOne");
+    DAG dag = DAG.create("DAG-testVerifyOneToOne");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -143,7 +143,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOneInferParallelism");
+    DAG dag = DAG.create("DAG-testVerifyOneToOneInferParallelism");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -177,7 +177,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOneInferParallelismReverseOrder");
+    DAG dag = DAG.create("DAG-testVerifyOneToOneInferParallelismReverseOrder");
     dag.addVertex(v3);
     dag.addVertex(v1);
     dag.addVertex(v2);
@@ -204,7 +204,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOneNoInferParallelism");
+    DAG dag = DAG.create("DAG-testVerifyOneToOneNoInferParallelism");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -234,7 +234,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOneIncorrectParallelism1");
+    DAG dag = DAG.create("DAG-testVerifyOneToOneIncorrectParallelism1");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -280,7 +280,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyOneToOneIncorrectParallelism2");
+    DAG dag = DAG.create("DAG-testVerifyOneToOneIncorrectParallelism2");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -290,7 +290,7 @@ public class TestDAGVerify {
     dag.addEdge(e3);
     try {
       dag.verify();
-      Assert.assertTrue(false);
+      Assert.fail();
     } catch (TezUncheckedException e) {
       Assert.assertTrue(e.getMessage().contains(
           "1-1 Edge. Destination vertex parallelism must match source vertex"));
@@ -310,7 +310,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerifyBroadcast");
+    DAG dag = DAG.create("DAG-testVerifyBroadcast");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -330,7 +330,7 @@ public class TestDAGVerify {
             DataSourceType.EPHEMERAL, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerify3");
+    DAG dag = DAG.create("DAG-testVerify3");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -350,7 +350,7 @@ public class TestDAGVerify {
             DataSourceType.EPHEMERAL, SchedulingType.CONCURRENT,
             OutputDescriptor.create(dummyOutputClassName),
             InputDescriptor.create(dummyInputClassName)));
-    DAG dag = DAG.create("testDag-testVerify4");
+    DAG dag = DAG.create("DAG-testVerify4");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -397,7 +397,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    DAG dag = DAG.create("testDag-testCycle1");
+    DAG dag = DAG.create("DAG-testCycle1");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -457,7 +457,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    DAG dag = DAG.create("testDag-testCycle2");
+    DAG dag = DAG.create("DAG-testCycle2");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -489,7 +489,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    DAG dag = DAG.create("testDag-testSelfCycle");
+    DAG dag = DAG.create("DAG-testSelfCycle");
     dag.addVertex(v1);
     dag.addEdge(e1);
     try{
@@ -513,7 +513,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("MapProcessor"),
         dummyTaskCount, dummyTaskResource);
     try {
-      DAG dag = DAG.create("testDag-repeatedVertexName");
+      DAG dag = DAG.create("DAG-repeatedVertexName");
       dag.addVertex(v1);
       dag.addVertex(v1repeat);
       dag.verify();
@@ -543,7 +543,7 @@ public class TestDAGVerify {
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
 
-    DAG dag = DAG.create("testDag-testInputAndInputVertexNameCollision");
+    DAG dag = DAG.create("DAG-testInputAndInputVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -567,7 +567,7 @@ public class TestDAGVerify {
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
 
-    DAG dag = DAG.create("testDag-testOutputAndOutputVertexNameCollision");
+    DAG dag = DAG.create("DAG-testOutputAndOutputVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addEdge(e1);
@@ -585,7 +585,7 @@ public class TestDAGVerify {
 
     v1.addDataSink("v2", DataSinkDescriptor.create(null, null, null));
 
-    DAG dag = DAG.create("testDag-testOutputAndVertexNameCollision");
+    DAG dag = DAG.create("DAG-testOutputAndVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.verify();
@@ -602,7 +602,7 @@ public class TestDAGVerify {
 
     v1.addDataSource("v2", DataSourceDescriptor.create(null, null, null));
 
-    DAG dag = DAG.create("testDag-testInputAndVertexNameCollision");
+    DAG dag = DAG.create("DAG-testInputAndVertexNameCollision");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.verify();
@@ -632,7 +632,7 @@ public class TestDAGVerify {
             DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
             OutputDescriptor.create("dummy output class"),
             InputDescriptor.create("dummy input class")));
-    DAG dag = DAG.create("testDag-BinaryInputAllowed");
+    DAG dag = DAG.create("DAG-BinaryInputAllowed");
     dag.addVertex(v1);
     dag.addVertex(v2);
     dag.addVertex(v3);
@@ -656,7 +656,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag-testVertexGroupWithMultipleOutputEdges");
+    DAG dag = DAG.create("DAG-testVertexGroupWithMultipleOutputEdges");
     VertexGroup uv12 = dag.createVertexGroup("uv12", v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
     uv12.addDataSink("uvOut", DataSinkDescriptor.create(outDesc, null, null));
@@ -712,7 +712,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag-testVertexGroup");
+    DAG dag = DAG.create("DAG-testVertexGroup");
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
@@ -794,7 +794,7 @@ public class TestDAGVerify {
         ProcessorDescriptor.create("Processor"),
         -1, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag-testVertexGroupOneToOne");
+    DAG dag = DAG.create("DAG-testVertexGroupOneToOne");
     String groupName1 = "uv12";
     VertexGroup uv12 = dag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = new OutputDescriptor();
@@ -856,7 +856,7 @@ public class TestDAGVerify {
               DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
               OutputDescriptor.create("dummy output class"),
               InputDescriptor.create("dummy input class")));
-      DAG dag = DAG.create("testDag-BinaryOutput");
+      DAG dag = DAG.create("DAG-BinaryOutput");
       dag.addVertex(v1);
       dag.addVertex(v2);
       dag.addVertex(v3);
@@ -874,7 +874,7 @@ public class TestDAGVerify {
   public void testDagWithNoVertices() {
     IllegalStateException ex=null;
     try {
-      DAG dag = DAG.create("testDag-testDagWithNoVertices");
+      DAG dag = DAG.create("DAG-testDagWithNoVertices");
       dag.verify();
     }
     catch (IllegalStateException e){
@@ -921,7 +921,7 @@ public class TestDAGVerify {
 
   @Test(timeout = 5000)
   public void testMultipleRootInputsAllowed() {
-    DAG dag = DAG.create("testDag-testMultipleRootInputsAllowed");
+    DAG dag = DAG.create("DAG-testMultipleRootInputsAllowed");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
@@ -966,7 +966,7 @@ public class TestDAGVerify {
         InputInitializerDescriptor.create(dummyInputInitClassName), dummyTaskCount, null, vLoc, lrs2);
     v1.addDataSource("i1", ds);
 
-    DAG dag = DAG.create("testDag-testDAGCreateDataInference");
+    DAG dag = DAG.create("DAG-testDAGCreateDataInference");
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs1);
     DAGPlan dagPlan = dag.createDag(new TezConfiguration(), null, null, null, true);
@@ -1007,7 +1007,7 @@ public class TestDAGVerify {
         null, -1, null, null, lrs2);
     v1.addDataSource("i1", ds);
 
-    DAG dag = DAG.create("testDag-testInferredFilesFail");
+    DAG dag = DAG.create("DAG-testInferredFilesFail");
     dag.addVertex(v1);
     dag.addTaskLocalFiles(lrs);
     try {
@@ -1027,7 +1027,7 @@ public class TestDAGVerify {
 
   @Test(timeout = 5000)
   public void testDAGAccessControls() {
-    DAG dag = DAG.create("testDag-testDAGAccessControls");
+    DAG dag = DAG.create("DAG-testDAGAccessControls");
     ProcessorDescriptor pd1 = ProcessorDescriptor.create("processor1")
         .setUserPayload(UserPayload.create(ByteBuffer.wrap("processor1Bytes".getBytes())));
     Vertex v1 = Vertex.create("v1", pd1, 10, Resource.newInstance(1024, 1));
@@ -1055,7 +1055,7 @@ public class TestDAGVerify {
   // v1 has input initializer
   @Test(timeout = 5000)
   public void testDAGInvalidParallelism1() {
-    DAG dag = DAG.create("testDAG-testDAGInvalidParallelism1");
+    DAG dag = DAG.create("DAG-testDAGInvalidParallelism1");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
@@ -1076,7 +1076,7 @@ public class TestDAGVerify {
   // v1 has custom vertex manager
   @Test(timeout = 5000)
   public void testDAGInvalidParallelism2() {
-    DAG dag = DAG.create("testDAG-testDAGInvalidParallelism2");
+    DAG dag = DAG.create("DAG-testDAGInvalidParallelism2");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
@@ -1095,7 +1095,7 @@ public class TestDAGVerify {
   // v1 has 1-1 united source vertex v0 which has input initializer
   @Test(timeout = 5000)
   public void testDAGInvalidParallelism3() {
-    DAG dag = DAG.create("testDAG-testDAGInvalidParallelism3");
+    DAG dag = DAG.create("DAG-testDAGInvalidParallelism3");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
@@ -1122,7 +1122,7 @@ public class TestDAGVerify {
   // v1 has an 1-1 united parent v0 which has custom vertex manager
   @Test//(timeout = 5000)
   public void testDAGInvalidParallelism4() {
-    DAG dag = DAG.create("testDAG-testDAGInvalidParallelism4");
+    DAG dag = DAG.create("DAG-testDAGInvalidParallelism4");
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
     dag.addVertex(v1);
     try {
@@ -1146,7 +1146,7 @@ public class TestDAGVerify {
 
   @Test
   public void testDAGWithSplitsOnClient() {
-    DAG dag = DAG.create("testDag-testDAGWithSplitsOnClient");
+    DAG dag = DAG.create("DAG-testDAGWithSplitsOnClient");
 
     // Mimic map which has a data source and shards set when splits are generated in the client
     Vertex v1 = Vertex.create("v1", ProcessorDescriptor.create(dummyProcessorClassName));
@@ -1170,7 +1170,7 @@ public class TestDAGVerify {
   // Verifies failure in case of a file size difference. Does not verify sha differences.
   @Test(timeout = 5000)
   public void testDAGWithConflictingResource() {
-    DAG dag = DAG.create("dag-testDAGWithConflictingResource");
+    DAG dag = DAG.create("DAG-testDAGWithConflictingResource");
     Map<String, LocalResource> localResourceMap = new HashMap<>();
     String commonResourceKey = "local resource";
     localResourceMap.put("lr", LocalResource.newInstance(null, LocalResourceType.FILE,

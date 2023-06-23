@@ -189,7 +189,7 @@ public class TestMRRJobsDAGApi {
   public void testSleepJob() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = DAG.create("TezSleepProcessor-testSleepJob");
+    DAG dag = DAG.create("DAG-testSleepJob");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
         Resource.newInstance(1024, 1));
@@ -232,7 +232,7 @@ public class TestMRRJobsDAGApi {
   public void testNonDefaultFSStagingDir() throws Exception {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
 
-    DAG dag = DAG.create("TezSleepProcessor-testNonDefaultFSStagingDir");
+    DAG dag = DAG.create("DAG-testNonDefaultFSStagingDir");
     Vertex vertex = Vertex.create("SleepVertex", ProcessorDescriptor.create(
             SleepProcessor.class.getName()).setUserPayload(spConf.toUserPayload()), 1,
         Resource.newInstance(1024, 1));

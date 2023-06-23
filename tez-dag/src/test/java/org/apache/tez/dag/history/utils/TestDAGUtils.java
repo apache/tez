@@ -73,7 +73,7 @@ public class TestDAGUtils {
         ProcessorDescriptor.create("Processor").setHistoryText("vertex3 Processor HistoryText"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("Dag-" + dagName);
+    DAG dag = DAG.create("DAG-" + dagName);
     dag.setCallerContext(CallerContext.create("context1", "callerId1", "callerType1", "desc1"));
     dag.setDAGInfo("dagInfo");
     String groupName1 = "uv12";
@@ -115,7 +115,7 @@ public class TestDAGUtils {
 
     Map<String, Object> atsMap = DAGUtils.convertDAGPlanToATSMap(dagPlan);
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_NAME_KEY));
-    Assert.assertEquals("Dag-testConvertDAGPlanToATSMap",
+    Assert.assertEquals("DAG-testConvertDAGPlanToATSMap",
         atsMap.get(DAGUtils.DAG_NAME_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_INFO_KEY));
     Assert.assertTrue(atsMap.containsKey(DAGUtils.DAG_CONTEXT_KEY));

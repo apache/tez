@@ -449,7 +449,7 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag-testAMLoggingOptsSimple");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsSimple");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
@@ -490,7 +490,7 @@ public class TestTezClientUtils {
     Credentials credentials = new Credentials();
     JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag-testAMLoggingOptsPerLogger");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsPerLogger");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =

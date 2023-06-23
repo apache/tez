@@ -414,7 +414,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG testDag = DAG.create("Dag-" + dagName);
+    DAG testDag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -466,7 +466,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG testDag = DAG.create("Dag-" + dagName);
+    DAG testDag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -536,7 +536,7 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !commit2Succeed, true).toUserPayload())));
 
-    DAG testDag = DAG.create("Dag-" + dagName);
+    DAG testDag = DAG.create("DAG-" + dagName);
     testDag.addVertex(v1);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     v1.addDataSink("v1Out_1", DataSinkDescriptor.create(outDesc, ocd1, null));

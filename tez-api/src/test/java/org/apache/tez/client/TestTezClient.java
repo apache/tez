@@ -202,13 +202,13 @@ public class TestTezClient {
   }
   
   @Test (timeout = 5000)
-  public void testTezclientApp() throws Exception {
-    testTezClient(false, true, "testTezclientApp");
+  public void testTezClientApp() throws Exception {
+    testTezClient(false, true, "testTezClientApp");
   }
   
   @Test (timeout = 5000)
-  public void testTezclientSession() throws Exception {
-    testTezClient(true, true, "testTezclientSession");
+  public void testTezClientSession() throws Exception {
+    testTezClient(true, true, "testTezClientSession");
   }
 
   @Test (timeout = 5000)

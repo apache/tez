@@ -809,10 +809,9 @@ public class TestVertexImpl {
      return dag;
   }
 
-  private DAGPlan createDAGPlanWithMixedEdges(String dagNeme) {
+  private DAGPlan createDAGPlanWithMixedEdges(String dagName) {
     LOG.info("Setting up mixed edge dag plan");
-    org.apache.tez.dag.api.DAG dag =
-        org.apache.tez.dag.api.DAG.create("Dag-MixedEdges-" + dagNeme);
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("DAG-" + dagName);
     org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create("vertex1",
         ProcessorDescriptor.create("v1.class"), 1, Resource.newInstance(0, 0));
     org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create("vertex2",

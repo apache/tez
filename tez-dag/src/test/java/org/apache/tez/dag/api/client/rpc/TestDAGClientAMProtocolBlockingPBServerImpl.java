@@ -75,7 +75,7 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
   @SuppressWarnings("unchecked")
   public void testSubmitDagInSessionWithLargeDagPlan() throws Exception {
     int maxIPCMsgSize = 1024;
-    String dagPlanName = "dagplan-name-testSubmitDagInSessionWithLargeDagPlan";
+    String dagPlanName = "DAG-testSubmitDagInSessionWithLargeDagPlan";
     File requestFile = tmpFolder.newFile("request-file");
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxIPCMsgSize);

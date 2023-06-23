@@ -900,7 +900,7 @@ public class TestMockDAGAppMaster {
     lrVertex.put(lrName2, LocalResource.newInstance(URL.newInstance("file", "localhost", 0, "/test1"),
         LocalResourceType.FILE, LocalResourceVisibility.PUBLIC, 1, 1));
 
-    DAG dag = DAG.create("dag-testMultipleSubmissions").addTaskLocalFiles(lrDAG);
+    DAG dag = DAG.create("DAG-testMultipleSubmissions").addTaskLocalFiles(lrDAG);
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5).addTaskLocalFiles(lrVertex);
     dag.addVertex(vA);
 
@@ -1212,7 +1212,7 @@ public class TestMockDAGAppMaster {
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(true);
 
-    DAG dag = DAG.create("dag-testDAGFinishedRecoveryError");
+    DAG dag = DAG.create("DAG-testDAGFinishedRecoveryError");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
