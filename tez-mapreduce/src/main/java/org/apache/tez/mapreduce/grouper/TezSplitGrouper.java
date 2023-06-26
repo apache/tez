@@ -265,12 +265,10 @@ public abstract class TezSplitGrouper {
             " Min splitLength: " + minLengthPerGroup +
             " Max splitLength: " + maxLengthPerGroup +
             " Desired splits: " + desiredNumSplits +
+            " New Desired splits: " + newDesiredNumSplits +
             " Total length: " + totalLength +
             " Original splits: " + originalSplits.size());
-        if (desiredNumSplits != newDesiredNumSplits) {
-          LOG.info("Desired splits will change from {} to {}", desiredNumSplits, newDesiredNumSplits);
-          desiredNumSplits = newDesiredNumSplits;
-        }
+        desiredNumSplits = newDesiredNumSplits;
       }
     }
 
