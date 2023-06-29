@@ -164,6 +164,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
   private final TezExecutors sharedExecutor;
   /** nanoTime of the task initialization start. */
   private Long initStartTimeNs = null;
+  private Long waitInitializersFinishTimeout;
 
   public LogicalIOProcessorRuntimeTask(TaskSpec taskSpec, int appAttemptNumber,
       Configuration tezConf, String[] localDirs, TezUmbilical tezUmbilical,
@@ -225,6 +226,8 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     this.maxEventBacklog = tezConf.getInt(TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG,
         TezConfiguration.TEZ_TASK_MAX_EVENT_BACKLOG_DEFAULT);
     this.sharedExecutor = sharedExecutor;
+    this.waitInitializersFinishTimeout = tezConf.getLong(TezConfiguration.TEZ_AM_INITIALIZE_WAIT_INITIALIZERS_FINISH_TIMEOUT,
+            TezConfiguration.TEZ_AM_INITIALIZE_WAIT_INITIALIZERS_FINISH_TIMEOUT_DEFAULT);
   }
 
   /**
@@ -267,10 +270,19 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     int completedTasks = 0;
     while (completedTasks < numTasks) {
       LOG.info("Waiting for " + (numTasks-completedTasks) + " initializers to finish");
-      Future<Void> future = initializerCompletionService.take();
+      Future<Void> future;
+      if (waitInitializersFinishTimeout >= 0) {
+        future = initializerCompletionService.poll(waitInitializersFinishTimeout, TimeUnit.MILLISECONDS);
+      } else {
+        future = initializerCompletionService.take();
+      }
       try {
-        future.get();
-        completedTasks++;
+        if (future != null) {
+          future.get();
+          completedTasks++;
+        } else {
+          throw new RuntimeException("Timed out while waiting for all initializers to finish");
+        }
       } catch (ExecutionException e) {
         if (e.getCause() instanceof Exception) {
           throw (Exception) e.getCause();
