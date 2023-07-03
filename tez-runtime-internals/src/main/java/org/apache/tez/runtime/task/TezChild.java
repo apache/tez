@@ -94,10 +94,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
-import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
+import static org.apache.tez.runtime.TezThreadDumpHelper.getTezThreadDumpHelper;
 
 public class TezChild {
 
@@ -217,15 +214,7 @@ public class TezChild {
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
 
-    long periodicThreadDumpFrequency =
-        defaultConf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
-
-    if (periodicThreadDumpFrequency > 0) {
-      LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms",
-          periodicThreadDumpFrequency);
-      Path basePath = new Path(defaultConf.get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
-      tezThreadDumpHelper = new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, defaultConf);
-    }
+    tezThreadDumpHelper = getTezThreadDumpHelper(conf);
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {

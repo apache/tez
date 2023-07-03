@@ -200,10 +200,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
-import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
+import static org.apache.tez.runtime.TezThreadDumpHelper.getTezThreadDumpHelper;
 
 /**
  * The Tez DAG Application Master.
@@ -2595,20 +2592,11 @@ public class DAGAppMaster extends AbstractService {
       throws TezException {
     currentDAG = dag;
 
-    long periodicThreadDumpFrequency = dag.getConf()
-        .getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
-
-    if (periodicThreadDumpFrequency > 0) {
-      LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms",
-          periodicThreadDumpFrequency);
-      Path basePath = new Path(dag.getConf().get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
-      try {
-        tezThreadDumpHelper = new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, dag.getConf());
-        tezThreadDumpHelper.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
-      } catch (IOException e) {
-        LOG.warn("Can not initialize periodic thread dump service for {}", dag.getName(), e);
-      }
+    tezThreadDumpHelper = getTezThreadDumpHelper(dag.getConf());
+    if (tezThreadDumpHelper != null) {
+      tezThreadDumpHelper.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
     }
+
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;
     try {

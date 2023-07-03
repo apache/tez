@@ -23,6 +23,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -33,19 +35,44 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
+
 public class TezThreadDumpHelper {
 
   private final long duration;
   private final Path basePath;
   private final FileSystem fs;
 
-  static private final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
+  private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
+  private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
+
   private ScheduledExecutorService periodicThreadDumpServiceExecutor;
 
-  public TezThreadDumpHelper(long duration, Path basePath, Configuration conf) throws IOException {
+  private TezThreadDumpHelper(long duration, Path basePath, Configuration conf) throws IOException {
     this.duration = duration;
     this.basePath = basePath;
     this.fs = basePath.getFileSystem(conf);
+  }
+
+  public static TezThreadDumpHelper getTezThreadDumpHelper(Configuration conf) {
+    long periodicThreadDumpFrequency =
+        conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+
+    if (periodicThreadDumpFrequency > 0) {
+      Path basePath = new Path(conf.get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
+      LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms frequency and at " +
+          "path: {}", periodicThreadDumpFrequency, basePath);
+      try {
+        return new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, conf);
+      } catch (IOException e) {
+        LOG.warn("Can not initialize periodic thread dump service", e);
+      }
+
+    }
+    return null;
   }
 
   public void schedulePeriodicThreadDumpService(String dagName) {
