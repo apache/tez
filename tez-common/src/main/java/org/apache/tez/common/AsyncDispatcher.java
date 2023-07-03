@@ -105,9 +105,12 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
           Event event;
           try {
             event = eventQueue.take();
+            if (LOG.isTraceEnabled()) {
+              LOG.trace("AsyncDispatcher taken event: {}", event);
+            }
           } catch(InterruptedException ie) {
             if (!stopped) {
-              LOG.warn("AsyncDispatcher thread interrupted", ie);
+              LOG.warn("AsyncDispatcher thread interrupted (while taking event)", ie);
             }
             return;
           }
@@ -140,6 +143,8 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
 
   @Override
   protected void serviceStop() throws Exception {
+    LOG.info("AsyncDispatcher serviceStop called, drainEventsOnStop: {}, drained: {}, eventQueue size: {}",
+        drainEventsOnStop, drained, eventQueue.size());
     if (drainEventsOnStop) {
       blockNewEvents = true;
       LOG.info("AsyncDispatcher is draining to stop, ignoring any new events.");
@@ -148,7 +153,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
               TezConfiguration.TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT_DEFAULT);
 
       synchronized (waitForDrained) {
-        while (!drained && eventHandlingThread.isAlive() && System.currentTimeMillis() < endTime) {
+        while (!eventQueue.isEmpty() && eventHandlingThread.isAlive() && System.currentTimeMillis() < endTime) {
           waitForDrained.wait(1000);
           LOG.info(
               "Waiting for AsyncDispatcher to drain. Current queue size: {}, handler thread state: {}",
@@ -364,9 +369,12 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
       }
       try {
         eventQueue.put(event);
+        if (LOG.isTraceEnabled()) {
+          LOG.trace("AsyncDispatcher put event: {}", event);
+        }
       } catch (InterruptedException e) {
         if (!stopped) {
-          LOG.warn("AsyncDispatcher thread interrupted", e);
+          LOG.warn("AsyncDispatcher thread interrupted (while putting event): {}", event, e);
         }
         throw new YarnRuntimeException(e);
       }
