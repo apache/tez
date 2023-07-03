@@ -185,6 +185,7 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
+import org.apache.tez.runtime.TezThreadDumpHelper;
 import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.codehaus.jettison.json.JSONException;
@@ -198,6 +199,11 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
 
 /**
  * The Tez DAG Application Master.
@@ -340,6 +346,7 @@ public class DAGAppMaster extends AbstractService {
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
   private ThreadLocalMap mdcContext;
+  private HashMap<String, TezThreadDumpHelper> tezThreadDumpHelper = new HashMap<>();
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
@@ -766,6 +773,10 @@ public class DAGAppMaster extends AbstractService {
           "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
+      TezThreadDumpHelper threadDumService = tezThreadDumpHelper.remove(currentDAG.getName());
+      if (threadDumService != null) {
+        threadDumService.shutdownPeriodicThreadDumpService();
+      }
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -951,6 +962,11 @@ public class DAGAppMaster extends AbstractService {
         shutdownHandlerRunning.set(true);
       }
       LOG.info("Handling DAGAppMaster shutdown");
+
+      for (Map.Entry<String, TezThreadDumpHelper> t : tezThreadDumpHelper.entrySet()) {
+        t.getValue().shutdownPeriodicThreadDumpService();
+      }
+      tezThreadDumpHelper.clear();
 
       AMShutdownRunnable r = new AMShutdownRunnable(now, sleepTimeBeforeExit);
       Thread t = new Thread(r, "AMShutdownThread");
@@ -2577,6 +2593,24 @@ public class DAGAppMaster extends AbstractService {
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
       throws TezException {
     currentDAG = dag;
+
+    long periodicThreadDumpFrequency = dag.getConf()
+        .getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT,
+            TimeUnit.MILLISECONDS);
+
+    if (periodicThreadDumpFrequency > 0) {
+      LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms",
+          periodicThreadDumpFrequency);
+      Path basePath = new Path(dag.getConf().get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
+      try {
+        TezThreadDumpHelper tezThreadDumpService =
+            new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, dag.getConf());
+        tezThreadDumpHelper.put(dag.getName(), tezThreadDumpService);
+        tezThreadDumpService.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
+      } catch (IOException e) {
+        LOG.warn("Can not initialize periodic thread dump service for {}", dag.getName(), e);
+      }
+    }
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;
     try {

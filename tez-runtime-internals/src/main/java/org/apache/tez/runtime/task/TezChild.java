@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -40,6 +41,7 @@ import javax.annotation.Nullable;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
@@ -69,6 +71,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
+import org.apache.tez.runtime.TezThreadDumpHelper;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
@@ -90,6 +93,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
 
 public class TezChild {
 
@@ -119,6 +127,7 @@ public class TezChild {
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
   private final boolean updateSysCounters;
+  private TezThreadDumpHelper tezThreadDumpHelper = null;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -178,7 +187,7 @@ public class TezChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("",token);
+        LOG.debug("{}",token);
       }
     }
 
@@ -207,6 +216,16 @@ public class TezChild {
       ownUmbilical = false;
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
+
+    long periodicThreadDumpFrequency =
+        defaultConf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+
+    if (periodicThreadDumpFrequency > 0) {
+      LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms",
+          periodicThreadDumpFrequency);
+      Path basePath = new Path(defaultConf.get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
+      tezThreadDumpHelper = new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, defaultConf);
+    }
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -229,6 +248,9 @@ public class TezChild {
       ContainerTask containerTask = null;
       try {
         containerTask = getTaskFuture.get();
+        if (tezThreadDumpHelper != null) {
+          tezThreadDumpHelper.schedulePeriodicThreadDumpService(containerTask.getTaskSpec().getDAGName());
+        }
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
@@ -424,6 +446,10 @@ public class TezChild {
       if (ownUmbilical) {
         RPC.stopProxy(umbilical);
       }
+    }
+
+    if (tezThreadDumpHelper != null) {
+      tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
     }
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");

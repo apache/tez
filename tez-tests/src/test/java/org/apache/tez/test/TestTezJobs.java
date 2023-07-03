@@ -18,6 +18,9 @@
 
 package org.apache.tez.test;
 
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
+import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -40,6 +43,8 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -533,8 +538,21 @@ public class TestTezJobs {
 
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(false);
+  }
+
+  @Test
+  public void testSortMergeJoinExampleWithThreadDump() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(true);
+  }
+
+  public void testSortMergeJoinExampleDisableSplitGrouping(boolean withThreadDum) throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
-    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+    Configuration newConf = new Configuration(mrrTezCluster.getConfig());
+    if (withThreadDum) {
+      newConf.set(TEZ_THREAD_DUMP_INTERVAL, "2ms");
+    }
+    sortMergeJoinExample.setConf(newConf);
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");
@@ -587,6 +605,30 @@ public class TestTezJobs {
     reader.close();
     inStream.close();
     assertEquals(0, expectedResult.size());
+
+    if (withThreadDum) {
+      validateThreadDumpCaptured();
+    }
+  }
+
+  private static void validateThreadDumpCaptured() throws IOException {
+    Path jstackPath = new Path(conf.get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
+    RemoteIterator<LocatedFileStatus> files = localFs.listFiles(jstackPath, true);
+    boolean threadDumpFound = false;
+    boolean appMasterDumpFound = false;
+    while (files.hasNext()) {
+      LocatedFileStatus file = files.next();
+      if (file.getPath().getName().endsWith(".jstack")) {
+        if(file.getPath().getName().contains("AppMaster")) {
+          appMasterDumpFound = true;
+        } else {
+          threadDumpFound = true;
+        }
+      }
+    }
+    assertTrue(threadDumpFound);
+    assertTrue(appMasterDumpFound);
+    localFs.delete(jstackPath, true);
   }
 
   /**

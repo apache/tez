@@ -2296,4 +2296,12 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
 
+  /**
+   *  Frequency at which thread dump should be captured. Supports TimeUnits.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
+  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0";
+
 }
