@@ -346,7 +346,7 @@ public class DAGAppMaster extends AbstractService {
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
   private ThreadLocalMap mdcContext;
-  private HashMap<String, TezThreadDumpHelper> tezThreadDumpHelper = new HashMap<>();
+  private TezThreadDumpHelper tezThreadDumpHelper = null;
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
@@ -773,9 +773,9 @@ public class DAGAppMaster extends AbstractService {
           "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
-      TezThreadDumpHelper threadDumService = tezThreadDumpHelper.remove(currentDAG.getName());
-      if (threadDumService != null) {
-        threadDumService.shutdownPeriodicThreadDumpService();
+      if (tezThreadDumpHelper != null) {
+        tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
+        tezThreadDumpHelper = null;
       }
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
@@ -963,10 +963,11 @@ public class DAGAppMaster extends AbstractService {
       }
       LOG.info("Handling DAGAppMaster shutdown");
 
-      for (Map.Entry<String, TezThreadDumpHelper> t : tezThreadDumpHelper.entrySet()) {
-        t.getValue().shutdownPeriodicThreadDumpService();
+      // Check if the thread dump service is up in any case, if yes attempt a shutdown
+      if (tezThreadDumpHelper != null) {
+        tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
+        tezThreadDumpHelper = null;
       }
-      tezThreadDumpHelper.clear();
 
       AMShutdownRunnable r = new AMShutdownRunnable(now, sleepTimeBeforeExit);
       Thread t = new Thread(r, "AMShutdownThread");
@@ -2595,18 +2596,15 @@ public class DAGAppMaster extends AbstractService {
     currentDAG = dag;
 
     long periodicThreadDumpFrequency = dag.getConf()
-        .getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT,
-            TimeUnit.MILLISECONDS);
+        .getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
 
     if (periodicThreadDumpFrequency > 0) {
       LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms",
           periodicThreadDumpFrequency);
       Path basePath = new Path(dag.getConf().get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
       try {
-        TezThreadDumpHelper tezThreadDumpService =
-            new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, dag.getConf());
-        tezThreadDumpHelper.put(dag.getName(), tezThreadDumpService);
-        tezThreadDumpService.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
+        tezThreadDumpHelper = new TezThreadDumpHelper(periodicThreadDumpFrequency, basePath, dag.getConf());
+        tezThreadDumpHelper.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
       } catch (IOException e) {
         LOG.warn("Can not initialize periodic thread dump service for {}", dag.getName(), e);
       }
