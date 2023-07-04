@@ -40,7 +40,7 @@ import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DI
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
 
-public class TezThreadDumpHelper {
+public final class TezThreadDumpHelper {
 
   private final long duration;
   private final Path basePath;
