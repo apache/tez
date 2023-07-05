@@ -75,7 +75,13 @@ public final class TezThreadDumpHelper {
     return null;
   }
 
-  public void schedulePeriodicThreadDumpService(String dagName) {
+  public static void schedulePeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper, String dagName) {
+    if (threadDumpHelper != null) {
+      threadDumpHelper.schedulePeriodicThreadDumpService(dagName);
+    }
+  }
+
+  private void schedulePeriodicThreadDumpService(String dagName) {
     periodicThreadDumpServiceExecutor = Executors.newScheduledThreadPool(1,
         new ThreadFactoryBuilder().setDaemon(true).
                 setNameFormat("PeriodicThreadDumpService{" + dagName + "} #%d").build());
@@ -83,7 +89,13 @@ public final class TezThreadDumpHelper {
     periodicThreadDumpServiceExecutor.schedule(threadDumpCollector, duration, TimeUnit.MILLISECONDS);
   }
 
-  public void shutdownPeriodicThreadDumpService() {
+  public static void shutdownPeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper) {
+    if (threadDumpHelper != null) {
+      threadDumpHelper.shutdownPeriodicThreadDumpService();
+    }
+  }
+
+  private void shutdownPeriodicThreadDumpService() {
     if (periodicThreadDumpServiceExecutor != null) {
       periodicThreadDumpServiceExecutor.shutdown();
 

@@ -546,10 +546,10 @@ public class TestTezJobs {
     testSortMergeJoinExampleDisableSplitGrouping(true);
   }
 
-  public void testSortMergeJoinExampleDisableSplitGrouping(boolean withThreadDum) throws Exception {
+  public void testSortMergeJoinExampleDisableSplitGrouping(boolean withThreadDump) throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
     Configuration newConf = new Configuration(mrrTezCluster.getConfig());
-    if (withThreadDum) {
+    if (withThreadDump) {
       newConf.set(TEZ_THREAD_DUMP_INTERVAL, "2ms");
     }
     sortMergeJoinExample.setConf(newConf);
@@ -606,7 +606,7 @@ public class TestTezJobs {
     inStream.close();
     assertEquals(0, expectedResult.size());
 
-    if (withThreadDum) {
+    if (withThreadDump) {
       validateThreadDumpCaptured();
     }
   }

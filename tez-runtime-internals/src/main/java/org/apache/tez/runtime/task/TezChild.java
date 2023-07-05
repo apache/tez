@@ -92,8 +92,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.tez.runtime.TezThreadDumpHelper.getTezThreadDumpHelper;
-
 public class TezChild {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezChild.class);
@@ -212,7 +210,7 @@ public class TezChild {
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
 
-    tezThreadDumpHelper = getTezThreadDumpHelper(conf);
+    tezThreadDumpHelper = TezThreadDumpHelper.getTezThreadDumpHelper(conf);
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -235,9 +233,8 @@ public class TezChild {
       ContainerTask containerTask = null;
       try {
         containerTask = getTaskFuture.get();
-        if (tezThreadDumpHelper != null) {
-          tezThreadDumpHelper.schedulePeriodicThreadDumpService(containerTask.getTaskSpec().getDAGName());
-        }
+        TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper,
+            containerTask.getTaskSpec().getDAGName());
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
@@ -435,9 +432,8 @@ public class TezChild {
       }
     }
 
-    if (tezThreadDumpHelper != null) {
-      tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
-    }
+    TezThreadDumpHelper.shutdownPeriodicThreadDumpService(tezThreadDumpHelper);
+    tezThreadDumpHelper = null;
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");
   }

@@ -200,8 +200,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static org.apache.tez.runtime.TezThreadDumpHelper.getTezThreadDumpHelper;
-
 /**
  * The Tez DAG Application Master.
  * The state machine is encapsulated in the implementation of Job interface.
@@ -770,10 +768,8 @@ public class DAGAppMaster extends AbstractService {
           "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
-      if (tezThreadDumpHelper != null) {
-        tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
-        tezThreadDumpHelper = null;
-      }
+      TezThreadDumpHelper.shutdownPeriodicThreadDumpService(tezThreadDumpHelper);
+      tezThreadDumpHelper = null;
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -959,12 +955,6 @@ public class DAGAppMaster extends AbstractService {
         shutdownHandlerRunning.set(true);
       }
       LOG.info("Handling DAGAppMaster shutdown");
-
-      // Check if the thread dump service is up in any case, if yes attempt a shutdown
-      if (tezThreadDumpHelper != null) {
-        tezThreadDumpHelper.shutdownPeriodicThreadDumpService();
-        tezThreadDumpHelper = null;
-      }
 
       AMShutdownRunnable r = new AMShutdownRunnable(now, sleepTimeBeforeExit);
       Thread t = new Thread(r, "AMShutdownThread");
@@ -2215,6 +2205,10 @@ public class DAGAppMaster extends AbstractService {
       execService.shutdownNow();
     }
 
+    // Check if the thread dump service is up in any case, if yes attempt a shutdown
+    TezThreadDumpHelper.shutdownPeriodicThreadDumpService(tezThreadDumpHelper);
+    tezThreadDumpHelper = null;
+
     super.serviceStop();
   }
 
@@ -2592,10 +2586,8 @@ public class DAGAppMaster extends AbstractService {
       throws TezException {
     currentDAG = dag;
 
-    tezThreadDumpHelper = getTezThreadDumpHelper(dag.getConf());
-    if (tezThreadDumpHelper != null) {
-      tezThreadDumpHelper.schedulePeriodicThreadDumpService(dag.getName() + "_AppMaster");
-    }
+    tezThreadDumpHelper = TezThreadDumpHelper.getTezThreadDumpHelper(dag.getConf());
+    TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper, dag.getName() + "_AppMaster");
 
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;
