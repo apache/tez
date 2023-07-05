@@ -2587,7 +2587,7 @@ public class DAGAppMaster extends AbstractService {
     currentDAG = dag;
 
     tezThreadDumpHelper = TezThreadDumpHelper.getTezThreadDumpHelper(dag.getConf());
-    TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper, dag.getName() + "_AppMaster");
+    TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper, dag.getID() + "_AppMaster");
 
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;

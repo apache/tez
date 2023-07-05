@@ -234,7 +234,7 @@ public class TezChild {
       try {
         containerTask = getTaskFuture.get();
         TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper,
-            containerTask.getTaskSpec().getDAGName());
+            containerTask.getTaskSpec().getDAGID().toString());
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
