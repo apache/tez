@@ -83,17 +83,17 @@ public final class TezThreadDumpHelper {
     return null;
   }
 
-  public static void schedulePeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper, String dagName) {
+  public static void schedulePeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper, String name) {
     if (threadDumpHelper != null) {
-      threadDumpHelper.schedulePeriodicThreadDumpService(dagName);
+      threadDumpHelper.schedulePeriodicThreadDumpService(name);
     }
   }
 
-  private void schedulePeriodicThreadDumpService(String dagName) {
+  private void schedulePeriodicThreadDumpService(String name) {
     periodicThreadDumpServiceExecutor = Executors.newScheduledThreadPool(1,
         new ThreadFactoryBuilder().setDaemon(true).
-                setNameFormat("PeriodicThreadDumpService{" + dagName + "} #%d").build());
-    Runnable threadDumpCollector = new ThreadDumpCollector(basePath, dagName, fs);
+                setNameFormat("PeriodicThreadDumpService{" + name + "} #%d").build());
+    Runnable threadDumpCollector = new ThreadDumpCollector(basePath, name, fs);
     periodicThreadDumpServiceExecutor.schedule(threadDumpCollector, duration, TimeUnit.MILLISECONDS);
   }
 
@@ -122,22 +122,22 @@ public final class TezThreadDumpHelper {
   private static class ThreadDumpCollector implements Runnable {
 
     private final Path path;
-    private final String dagName;
+    private final String name;
     private final FileSystem fs;
 
-    ThreadDumpCollector(Path path, String dagName, FileSystem fs) {
+    ThreadDumpCollector(Path path, String name, FileSystem fs) {
       this.path = path;
       this.fs = fs;
-      this.dagName = dagName;
+      this.name = name;
     }
 
     @Override
     public void run() {
       if (!Thread.interrupted()) {
         try (FSDataOutputStream fsStream = fs.create(
-            new Path(path, dagName + "_" + System.currentTimeMillis() + ".jstack"));
+            new Path(path, name + "_" + System.currentTimeMillis() + ".jstack"));
             PrintStream printStream = new PrintStream(fsStream, false, "UTF8")) {
-          printThreadInfo(printStream, dagName);
+          printThreadInfo(printStream, name);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
