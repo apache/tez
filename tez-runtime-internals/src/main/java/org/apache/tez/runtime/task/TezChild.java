@@ -210,7 +210,7 @@ public class TezChild {
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
 
-    tezThreadDumpHelper = TezThreadDumpHelper.getTezThreadDumpHelper(conf);
+    tezThreadDumpHelper = TezThreadDumpHelper.getInstance(conf);
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -233,7 +233,7 @@ public class TezChild {
       ContainerTask containerTask = null;
       try {
         containerTask = getTaskFuture.get();
-        TezThreadDumpHelper.schedulePeriodicThreadDumpService(tezThreadDumpHelper,
+        TezThreadDumpHelper.startPeriodicThreadDumpService(tezThreadDumpHelper,
             containerTask.getTaskSpec().getTaskAttemptID().toString());
       } catch (ExecutionException e) {
         error = true;
@@ -432,8 +432,7 @@ public class TezChild {
       }
     }
 
-    TezThreadDumpHelper.shutdownPeriodicThreadDumpService(tezThreadDumpHelper);
-    tezThreadDumpHelper = null;
+    TezThreadDumpHelper.stopPeriodicThreadDumpService(tezThreadDumpHelper);
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");
   }
