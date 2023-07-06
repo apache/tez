@@ -45,6 +45,7 @@ import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_D
 
 public class TezThreadDumpHelper {
 
+  public static final NoopTezThreadDumpHelper NOOP_TEZ_THREAD_DUMP_HELPER = new NoopTezThreadDumpHelper();
   private long duration = 0L;
   private Path basePath = null;
   private FileSystem fs = null;
@@ -83,7 +84,7 @@ public class TezThreadDumpHelper {
         LOG.warn("Can not initialize periodic thread dump service", e);
       }
     }
-    return new NoopTezThreadDumpHelper();
+    return NOOP_TEZ_THREAD_DUMP_HELPER;
   }
 
   public TezThreadDumpHelper start(String name) {

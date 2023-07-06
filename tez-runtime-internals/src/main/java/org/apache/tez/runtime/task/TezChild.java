@@ -120,7 +120,7 @@ public class TezChild {
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
   private final boolean updateSysCounters;
-  private TezThreadDumpHelper tezThreadDumpHelper = null;
+  private TezThreadDumpHelper tezThreadDumpHelper = TezThreadDumpHelper.NOOP_TEZ_THREAD_DUMP_HELPER;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -250,13 +250,15 @@ public class TezChild {
       }
 
       TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
+      Configuration taskConf;
       if (containerTask.getTaskSpec().getTaskConf() != null) {
         Configuration copy = new Configuration(defaultConf);
         TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
-
+        taskConf = copy;
         LoggingUtils.initLoggingContext(mdcContext, copy,
             attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       } else {
+        taskConf = defaultConf;
         LoggingUtils.initLoggingContext(mdcContext, defaultConf,
             attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       }
@@ -294,8 +296,7 @@ public class TezChild {
             hadoopShim, sharedExecutor);
 
         boolean shouldDie;
-        tezThreadDumpHelper =
-            TezThreadDumpHelper.getInstance(containerTask.getTaskSpec().getTaskConf()).start(attemptId.toString());
+        tezThreadDumpHelper = TezThreadDumpHelper.getInstance(taskConf).start(attemptId.toString());
         try {
           TaskRunner2Result result = taskRunner.run();
           LOG.info("TaskRunner2Result: {}", result);

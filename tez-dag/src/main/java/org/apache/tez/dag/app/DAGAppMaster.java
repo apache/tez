@@ -341,7 +341,7 @@ public class DAGAppMaster extends AbstractService {
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
   private ThreadLocalMap mdcContext;
-  private TezThreadDumpHelper tezThreadDumpHelper = null;
+  private TezThreadDumpHelper tezThreadDumpHelper = TezThreadDumpHelper.NOOP_TEZ_THREAD_DUMP_HELPER;
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
