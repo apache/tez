@@ -768,7 +768,7 @@ public class DAGAppMaster extends AbstractService {
           "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
-      TezThreadDumpHelper.stopPeriodicThreadDumpService(tezThreadDumpHelper);
+      tezThreadDumpHelper.stop();
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -2205,7 +2205,7 @@ public class DAGAppMaster extends AbstractService {
     }
 
     // Check if the thread dump service is up in any case, if yes attempt a shutdown
-    TezThreadDumpHelper.stopPeriodicThreadDumpService(tezThreadDumpHelper);
+    tezThreadDumpHelper.stop();
 
     super.serviceStop();
   }
@@ -2583,9 +2583,7 @@ public class DAGAppMaster extends AbstractService {
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
       throws TezException {
     currentDAG = dag;
-
-    tezThreadDumpHelper = TezThreadDumpHelper.getInstance(dag.getConf());
-    TezThreadDumpHelper.startPeriodicThreadDumpService(tezThreadDumpHelper, dag.getID().toString());
+    tezThreadDumpHelper = TezThreadDumpHelper.getInstance(dag.getConf()).start(dag.getID().toString());
 
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;

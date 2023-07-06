@@ -43,11 +43,11 @@ import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DI
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
 
-public final class TezThreadDumpHelper {
+public class TezThreadDumpHelper {
 
-  private final long duration;
-  private final Path basePath;
-  private final FileSystem fs;
+  private long duration = 0L;
+  private Path basePath = null;
+  private FileSystem fs = null;
 
   private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
   private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
@@ -69,6 +69,9 @@ public final class TezThreadDumpHelper {
         "path: {}", duration, basePath);
   }
 
+  public TezThreadDumpHelper() {
+  }
+
   public static TezThreadDumpHelper getInstance(Configuration conf) {
     long periodicThreadDumpFrequency =
         conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
@@ -80,30 +83,19 @@ public final class TezThreadDumpHelper {
         LOG.warn("Can not initialize periodic thread dump service", e);
       }
     }
-    return null;
+    return new NoopTezThreadDumpHelper();
   }
 
-  public static void startPeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper, String name) {
-    if (threadDumpHelper != null) {
-      threadDumpHelper.startPeriodicThreadDumpService(name);
-    }
-  }
-
-  private void startPeriodicThreadDumpService(String name) {
+  public TezThreadDumpHelper start(String name) {
     periodicThreadDumpServiceExecutor = Executors.newScheduledThreadPool(1,
-        new ThreadFactoryBuilder().setDaemon(true).
-                setNameFormat("PeriodicThreadDumpService{" + name + "} #%d").build());
+        new ThreadFactoryBuilder().setDaemon(true).setNameFormat("PeriodicThreadDumpService{" + name + "} #%d")
+            .build());
     Runnable threadDumpCollector = new ThreadDumpCollector(basePath, name, fs);
     periodicThreadDumpServiceExecutor.schedule(threadDumpCollector, duration, TimeUnit.MILLISECONDS);
+    return this;
   }
 
-  public static void stopPeriodicThreadDumpService(TezThreadDumpHelper threadDumpHelper) {
-    if (threadDumpHelper != null) {
-      threadDumpHelper.stopPeriodicThreadDumpService();
-    }
-  }
-
-  private void stopPeriodicThreadDumpService() {
+  public void stop() {
     if (periodicThreadDumpServiceExecutor != null) {
       periodicThreadDumpServiceExecutor.shutdown();
 
@@ -134,9 +126,9 @@ public final class TezThreadDumpHelper {
     @Override
     public void run() {
       if (!Thread.interrupted()) {
-        try (FSDataOutputStream fsStream = fs.create(
-            new Path(path, name + "_" + System.currentTimeMillis() + ".jstack"));
-            PrintStream printStream = new PrintStream(fsStream, false, "UTF8")) {
+        try (FSDataOutputStream fsStream = fs.create(new Path(path,
+            name + "_" + System.currentTimeMillis() + ".jstack")); PrintStream printStream = new PrintStream(fsStream,
+            false, "UTF8")) {
           printThreadInfo(printStream, name);
         } catch (IOException e) {
           throw new RuntimeException(e);
@@ -183,6 +175,20 @@ public final class TezThreadDumpHelper {
         return Long.toString(id);
       }
       return id + " (" + taskName + ")";
+    }
+  }
+
+  private static class NoopTezThreadDumpHelper extends TezThreadDumpHelper {
+
+    @Override
+    public TezThreadDumpHelper start(String name) {
+      // Do Nothing
+      return this;
+    }
+
+    @Override
+    public void stop() {
+      // Do Nothing
     }
   }
 }

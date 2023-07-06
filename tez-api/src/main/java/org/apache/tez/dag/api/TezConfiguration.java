@@ -2302,6 +2302,6 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.DAG)
   @ConfigurationProperty
   public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
-  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0";
+  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0ms";
 
 }

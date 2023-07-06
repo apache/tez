@@ -209,8 +209,6 @@ public class TezChild {
       ownUmbilical = false;
     }
     TezCommonUtils.logCredentials(LOG, credentials, "tezChildInit");
-
-    tezThreadDumpHelper = TezThreadDumpHelper.getInstance(conf);
   }
   
   public ContainerExecutionResult run() throws IOException, InterruptedException, TezException {
@@ -233,8 +231,6 @@ public class TezChild {
       ContainerTask containerTask = null;
       try {
         containerTask = getTaskFuture.get();
-        TezThreadDumpHelper.startPeriodicThreadDumpService(tezThreadDumpHelper,
-            containerTask.getTaskSpec().getTaskAttemptID().toString());
       } catch (ExecutionException e) {
         error = true;
         Throwable cause = e.getCause();
@@ -298,6 +294,8 @@ public class TezChild {
             hadoopShim, sharedExecutor);
 
         boolean shouldDie;
+        tezThreadDumpHelper =
+            TezThreadDumpHelper.getInstance(containerTask.getTaskSpec().getTaskConf()).start(attemptId.toString());
         try {
           TaskRunner2Result result = taskRunner.run();
           LOG.info("TaskRunner2Result: {}", result);
@@ -316,6 +314,7 @@ public class TezChild {
                 e, "TaskExecutionFailure: " + e.getMessage());
           }
         } finally {
+          tezThreadDumpHelper.stop();
           FileSystem.closeAllForUGI(childUGI);
         }
       }
@@ -432,7 +431,6 @@ public class TezChild {
       }
     }
 
-    TezThreadDumpHelper.stopPeriodicThreadDumpService(tezThreadDumpHelper);
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");
   }
