@@ -613,6 +613,7 @@ public class TestTezJobs {
 
     if (withThreadDump) {
       validateThreadDumpCaptured(logPath);
+      org.apache.log4j.Logger.getRootLogger().removeAppender(TEZ_CONTAINER_LOGGER_NAME);
     }
   }
 

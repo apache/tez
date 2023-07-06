@@ -178,11 +178,11 @@ public final class TezThreadDumpHelper {
       stream.flush();
     }
 
-    private String getTaskName(long id, String name) {
-      if (name == null) {
+    private String getTaskName(long id, String taskName) {
+      if (taskName == null) {
         return Long.toString(id);
       }
-      return id + " (" + name + ")";
+      return id + " (" + taskName + ")";
     }
   }
 }
