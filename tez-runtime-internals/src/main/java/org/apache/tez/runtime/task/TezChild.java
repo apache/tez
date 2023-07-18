@@ -69,6 +69,7 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
+import org.apache.tez.runtime.TezThreadDumpHelper;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
@@ -119,6 +120,7 @@ public class TezChild {
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
   private final boolean updateSysCounters;
+  private TezThreadDumpHelper tezThreadDumpHelper = TezThreadDumpHelper.NOOP_TEZ_THREAD_DUMP_HELPER;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -178,7 +180,7 @@ public class TezChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("",token);
+        LOG.debug("{}", token);
       }
     }
 
@@ -248,13 +250,15 @@ public class TezChild {
       }
 
       TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
+      Configuration taskConf;
       if (containerTask.getTaskSpec().getTaskConf() != null) {
         Configuration copy = new Configuration(defaultConf);
         TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
-
+        taskConf = copy;
         LoggingUtils.initLoggingContext(mdcContext, copy,
             attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       } else {
+        taskConf = defaultConf;
         LoggingUtils.initLoggingContext(mdcContext, defaultConf,
             attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
       }
@@ -292,6 +296,7 @@ public class TezChild {
             hadoopShim, sharedExecutor);
 
         boolean shouldDie;
+        tezThreadDumpHelper = TezThreadDumpHelper.getInstance(taskConf).start(attemptId.toString());
         try {
           TaskRunner2Result result = taskRunner.run();
           LOG.info("TaskRunner2Result: {}", result);
@@ -310,6 +315,7 @@ public class TezChild {
                 e, "TaskExecutionFailure: " + e.getMessage());
           }
         } finally {
+          tezThreadDumpHelper.stop();
           FileSystem.closeAllForUGI(childUGI);
         }
       }
@@ -425,6 +431,7 @@ public class TezChild {
         RPC.stopProxy(umbilical);
       }
     }
+
     TezRuntimeShutdownHandler.shutdown();
     LOG.info("TezChild shutdown finished");
   }

@@ -18,6 +18,8 @@
 
 package org.apache.tez.test;
 
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -40,6 +42,8 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -47,6 +51,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.tez.common.TezContainerLogAppender;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -533,8 +538,26 @@ public class TestTezJobs {
 
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(false);
+  }
+
+  @Test
+  public void testSortMergeJoinExampleWithThreadDump() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(true);
+  }
+
+  public void testSortMergeJoinExampleDisableSplitGrouping(boolean withThreadDump) throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
-    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+    Configuration newConf = new Configuration(mrrTezCluster.getConfig());
+    Path logPath = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/logPath");
+    if (withThreadDump) {
+      TezContainerLogAppender appender = new TezContainerLogAppender();
+      org.apache.log4j.Logger.getRootLogger().addAppender(appender);
+      appender.setName(TEZ_CONTAINER_LOGGER_NAME);
+      appender.setContainerLogDir(logPath.toString());
+      newConf.set(TEZ_THREAD_DUMP_INTERVAL, "1ms");
+    }
+    sortMergeJoinExample.setConf(newConf);
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");
@@ -587,6 +610,29 @@ public class TestTezJobs {
     reader.close();
     inStream.close();
     assertEquals(0, expectedResult.size());
+
+    if (withThreadDump) {
+      validateThreadDumpCaptured(logPath);
+      org.apache.log4j.Logger.getRootLogger().removeAppender(TEZ_CONTAINER_LOGGER_NAME);
+    }
+  }
+
+  private static void validateThreadDumpCaptured(Path jstackPath) throws IOException {
+    RemoteIterator<LocatedFileStatus> files = localFs.listFiles(jstackPath, true);
+    boolean appMasterDumpFound = false;
+    boolean tezChildDumpFound = false;
+    while (files.hasNext()) {
+      LocatedFileStatus file = files.next();
+      if (file.getPath().getName().endsWith(".jstack")) {
+        if (file.getPath().getName().contains("attempt")) {
+          tezChildDumpFound = true;
+        } else {
+          appMasterDumpFound = true;
+        }
+      }
+    }
+    assertTrue(tezChildDumpFound);
+    assertTrue(appMasterDumpFound);
   }
 
   /**
