@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
-import org.apache.hadoop.ipc.ProtobufRpcEngine;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
 import org.apache.hadoop.net.NetUtils;
@@ -126,7 +126,7 @@ public class DAGClientServer extends AbstractService {
   private Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
       int numHandlers,
       BlockingService blockingService, String portRangeConfig) throws IOException {
-    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
+    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine2.class);
     RPC.Server server = new RPC.Builder(conf).setProtocol(pbProtocol)
         .setInstance(blockingService).setBindAddress(addr.getHostString())
         .setPort(addr.getPort()).setNumHandlers(numHandlers).setVerbose(false)
