@@ -72,7 +72,7 @@
     <dependency-check-maven.version>1.3.6</dependency-check-maven.version>
     <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
-    <guava.version>31.1-jre</guava.version>
+    <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.3.6</hadoop.version>
     <jdk.tools.version>1.8</jdk.tools.version>
     <jersey.version>1.19</jersey.version>
