@@ -2315,7 +2315,7 @@ public class TestTaskAttempt {
     boolean inputFailedReported = false;
 
     public MockTaskAttemptImpl setNodeId(NodeId nodeId) {
-      this.containerNodeId = nodeId;
+      this.container = Container.newInstance(null, nodeId, null, null, null, null);
       return this;
     }
 
