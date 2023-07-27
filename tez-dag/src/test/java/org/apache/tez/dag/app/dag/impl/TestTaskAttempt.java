@@ -138,8 +138,6 @@ import com.google.common.collect.Maps;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TestTaskAttempt.class);
-
   static public class StubbedFS extends RawLocalFileSystem {
     @Override
     public FileStatus getFileStatus(Path f) throws IOException {
