@@ -39,6 +39,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.common.counters.TaskAttemptCounter;
 import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
@@ -58,6 +59,7 @@ import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachineFactory;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.counters.TaskCounter;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -315,6 +317,9 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     stateMachine
         .registerStateEnteredCallback(TaskStateInternal.SUCCEEDED,
             STATE_CHANGED_CALLBACK);
+    if (StateMachineTez.isStateIntervalMonitorEnabled(conf)) {
+      stateMachine.enableStateIntervalMonitor();
+    }
   }
 
   private final StateMachineTez<TaskStateInternal, TaskEventType, TaskEvent, TaskImpl>
@@ -474,6 +479,10 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     try {
       TaskAttempt bestAttempt = selectBestAttempt();
       TezCounters taskCounters = (bestAttempt != null) ? bestAttempt.getCounters() : TaskAttemptImpl.EMPTY_COUNTERS;
+
+      stateMachine.incrementStateCounters(TaskCounter.class.getSimpleName() + "_" + getVertex().getName(), taskCounters);
+      maybeMergeAllTaskAttemptCounters(taskCounters);
+
       if (getVertex().isSpeculationEnabled()) {
         tezCounters.incrAllCounters(taskCounters);
         return tezCounters;
@@ -481,6 +490,18 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
       return taskCounters;
     } finally {
       readLock.unlock();
+    }
+  }
+
+  private void maybeMergeAllTaskAttemptCounters(TezCounters taskCounters) {
+    if (stateMachine.isStateIntervalMonitorEnabled()) {
+      // if the state interval monitoring is disabled for this TaskImpl.stateMachine,
+      // it's disabled for all TaskAttemptImpl's stateMachine too
+      return;
+    }
+    String groupName = TaskAttemptCounter.class.getSimpleName() + "_" + getVertex().getName();
+    for (TaskAttempt at : attempts.values()) {
+      taskCounters.getGroup(groupName).aggrAllCounters(at.getStateCounters().getGroup(groupName));
     }
   }
 

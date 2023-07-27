@@ -2089,6 +2089,19 @@ public class TezConfiguration extends Configuration {
   public static final long TEZ_DAG_STATUS_POLLINTERVAL_MS_DEFAULT = 500;
 
   /**
+   * Boolean value
+   * Whether to count how much time the DAG StateMachine spends in certain states
+   * and report it in counters.
+   * Minor performance degradation is possible so this is turned off by default.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_DAG_STATE_INTERVAL_MONITOR_ENABLED = TEZ_PREFIX
+      + "dag.state.interval.monitor.enabled";
+  //FIXME: false
+  public static final boolean TEZ_DAG_STATE_INTERVAL_MONITOR_ENABLED_DEFAULT = true;
+
+  /**
    * Long value.
    * Time to wait (in seconds) for apps to complete on MiniTezCluster shutdown.
    */

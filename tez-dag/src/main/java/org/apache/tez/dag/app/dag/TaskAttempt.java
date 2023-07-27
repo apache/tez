@@ -76,6 +76,7 @@ public interface TaskAttempt extends TaskAttemptIDAware {
   List<String> getDiagnostics();
   TaskAttemptTerminationCause getTerminationCause();
   TezCounters getCounters();
+  TezCounters getStateCounters();
   @VisibleForTesting
   void setCounters(TezCounters counters);
   float getProgress();

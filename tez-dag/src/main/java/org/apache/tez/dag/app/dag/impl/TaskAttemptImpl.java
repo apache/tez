@@ -38,9 +38,11 @@ import org.apache.tez.dag.app.dag.event.TaskEventTAFailed;
 import org.apache.tez.dag.app.dag.event.TaskEventTAKilled;
 import org.apache.tez.dag.app.dag.event.TaskEventTALaunched;
 import org.apache.tez.dag.app.dag.event.TaskEventTASucceeded;
+import org.apache.tez.dag.app.dag.event.TaskEventType;
 import org.apache.tez.dag.app.rm.AMSchedulerEventTAStateUpdated;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.state.StateMachineTez;
 import org.apache.tez.util.StringInterner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +65,7 @@ import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.DAGCounter;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -76,7 +79,9 @@ import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.dag.TaskAttemptStateInternal;
+import org.apache.tez.dag.app.dag.TaskStateInternal;
 import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.dag.event.DAGEvent;
 import org.apache.tez.dag.app.dag.event.DAGEventCounterUpdate;
@@ -242,7 +247,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private static SingleArcTransition<TaskAttemptImpl, TaskAttemptEvent>
       STATUS_UPDATER = new StatusUpdaterTransition();
 
-  private final StateMachine<TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent> stateMachine;
+  private final StateMachineTez<TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent, TaskAttemptImpl> stateMachine;
 
   // TODO TEZ-2003 (post) TEZ-2667 We may need some additional state management for STATUS_UPDATES, FAILED, KILLED coming in before
   // TASK_STARTED_REMOTELY. In case of a PUSH it's more intuitive to send TASK_STARTED_REMOTELY after communicating
@@ -571,7 +576,10 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.reportedStatus = new TaskAttemptStatus(this.attemptId);
     initTaskAttemptStatus(reportedStatus);
     RackResolver.init(conf);
-    this.stateMachine = stateMachineFactory.make(this);
+    this.stateMachine =
+        new StateMachineTez<TaskAttemptStateInternal, TaskAttemptEventType, TaskAttemptEvent, TaskAttemptImpl>(
+            stateMachineFactory.make(this), this);
+    augmentStateMachine();
     this.isRescheduled = isRescheduled;
     this.taskResource = resource;
     this.containerContext = containerContext;
@@ -582,6 +590,12 @@ public class TaskAttemptImpl implements TaskAttempt,
 
     this.recoveryData = appContext.getDAGRecoveryData() == null ?
         null : appContext.getDAGRecoveryData().getTaskAttemptRecoveryData(attemptId);
+  }
+
+  private void augmentStateMachine() {
+    if (StateMachineTez.isStateIntervalMonitorEnabled(conf)) {
+      stateMachine.enableStateIntervalMonitor();
+    }
   }
 
   @Override
@@ -653,6 +667,13 @@ public class TaskAttemptImpl implements TaskAttempt,
     } finally {
       readLock.unlock();
     }
+  }
+
+  @Override
+  public TezCounters getStateCounters() {
+    TezCounters counters = new TezCounters();
+    stateMachine.incrementStateCounters("TaskAttemptCounter_" + getVertex().getName(), counters);
+    return counters;
   }
 
   @VisibleForTesting

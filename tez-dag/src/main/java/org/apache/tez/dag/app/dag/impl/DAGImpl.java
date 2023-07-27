@@ -588,6 +588,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
             STATE_CHANGED_CALLBACK)
         .registerStateEnteredCallback(DAGState.ERROR,
             STATE_CHANGED_CALLBACK);
+    if (StateMachineTez.isStateIntervalMonitorEnabled(dagConf)) {
+      stateMachine.enableStateIntervalMonitor();
+    }
   }
 
   private static class DagStateChangedCallback
@@ -1943,6 +1946,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     for (Vertex v : this.vertices.values()) {
       aggregateTezCounters.aggrAllCounters(v.getAllCounters());
     }
+    stateMachine.incrementStateCounters(this.getClass().getSimpleName() + "_STATES", aggregateTezCounters);
     return aggregateTezCounters;
   }
 
