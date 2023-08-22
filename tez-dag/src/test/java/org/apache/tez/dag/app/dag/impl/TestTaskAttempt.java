@@ -2311,7 +2311,7 @@ public class TestTaskAttempt {
     boolean inputFailedReported = false;
 
     public MockTaskAttemptImpl setNodeId(NodeId nodeId) {
-      this.container = Container.newInstance(null, nodeId, null, null, null, null);
+      this.container = new TezContainer(Container.newInstance(null, nodeId, null, null, null, null));
       return this;
     }
 

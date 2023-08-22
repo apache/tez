@@ -187,7 +187,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String trackerName;
   private int httpPort;
 
-  Container container;
+  TezContainer container = new TezContainer(null);
   private long allocationTime;
   private final Vertex vertex;
   private final Task task;
@@ -716,7 +716,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public Container getAssignedContainer() {
     readLock.lock();
     try {
-      return container;
+      return new TezContainer(container);
     } finally {
       readLock.unlock();
     }
@@ -748,7 +748,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public String getNodeHttpAddress() {
     readLock.lock();
     try {
-      return StringInterner.intern(container.getNodeHttpAddress());
+      return container.getNodeHttpAddress();
     } finally {
       readLock.unlock();
     }
@@ -761,7 +761,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public String getNodeRackName() {
     this.readLock.lock();
     try {
-      return StringInterner.intern(RackResolver.resolve(container.getNodeId().getHost()).getNetworkLocation());
+      return container.getRackName();
     } finally {
       this.readLock.unlock();
     }
@@ -1129,7 +1129,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     TaskAttemptStartedEvent startEvt = new TaskAttemptStartedEvent(
         attemptId, getVertex().getName(),
         launchTime, container.getId(), container.getNodeId(),
-        inProgressLogsUrl, completedLogsUrl, StringInterner.intern(container.getNodeHttpAddress()));
+        inProgressLogsUrl, completedLogsUrl, container.getNodeHttpAddress());
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), startEvt));
   }
@@ -1166,8 +1166,8 @@ public class TaskAttemptImpl implements TaskAttempt,
     String completedLogsUrl = null;
     if (finishTime <= 0) {
       finishTime = clock.getTime(); // comes here in case it was terminated before launch
-      unsuccessfulContainerId = container != null ? container.getId() : null;
-      unsuccessfulContainerNodeId = container != null ? container.getNodeId() : null;
+      unsuccessfulContainerId = container.getId();
+      unsuccessfulContainerNodeId = container.getNodeId();
       inProgressLogsUrl = getInProgressLogsUrl();
       completedLogsUrl = getCompletedLogsUrl();
     }
@@ -1179,8 +1179,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         StringUtils.join(
             getDiagnostics(), LINE_SEPARATOR), getCounters(), lastDataEvents,
         taGeneratedEvents, creationTime, creationCausalTA, allocationTime, unsuccessfulContainerId,
-        unsuccessfulContainerNodeId, inProgressLogsUrl, completedLogsUrl,
-        StringInterner.intern(container != null ? container.getNodeHttpAddress() : null));
+        unsuccessfulContainerNodeId, inProgressLogsUrl, completedLogsUrl, container.getNodeHttpAddress());
     // FIXME how do we store information regd completion events
     this.appContext.getHistoryHandler().handle(
         new DAGHistoryEvent(getDAGID(), finishEvt));
@@ -1192,9 +1191,9 @@ public class TaskAttemptImpl implements TaskAttempt,
           TezConstants.getTezYarnServicePluginName())
         || getVertex().getServicePluginInfo().getContainerLauncherName().equals(
           TezConstants.getTezUberServicePluginName())) {
-      if (container != null && container.getId() != null && container.getNodeHttpAddress() != null) {
+      if (container.getId() != null && container.getNodeHttpAddress() != null) {
         final String containerIdStr = container.getId().toString();
-        inProgressLogsUrl = StringInterner.intern(container.getNodeHttpAddress())
+        inProgressLogsUrl = container.getNodeHttpAddress()
             + "/" + "node/containerlogs"
             + "/" + containerIdStr
             + "/" + this.appContext.getUser();
@@ -1213,7 +1212,7 @@ public class TaskAttemptImpl implements TaskAttempt,
           TezConstants.getTezYarnServicePluginName())
         || getVertex().getServicePluginInfo().getContainerLauncherName().equals(
           TezConstants.getTezUberServicePluginName())) {
-      if (container != null && container.getId() != null && container.getNodeId() != null &&
+      if (container.getId() != null && container.getNodeId() != null &&
           container.getNodeHttpAddress() != null) {
         final String containerIdStr = container.getId().toString();
         if (conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED,
@@ -1380,7 +1379,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       if (event instanceof TaskAttemptEventContainerTerminated) {
         TaskAttemptEventContainerTerminated tEvent = (TaskAttemptEventContainerTerminated) event;
         AMContainer amContainer = ta.appContext.getAllContainers().get(tEvent.getContainerId());
-        Container container = amContainer.getContainer();
+        TezContainer container = new TezContainer(amContainer.getContainer());
 
         ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
         ta.container = container;
@@ -1392,7 +1391,7 @@ public class TaskAttemptImpl implements TaskAttempt,
         Container container = amContainer.getContainer();
 
         ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
-        ta.container = container;
+        ta.container = new TezContainer(container);
       }
 
       if (ta.recoveryData == null ||
@@ -1428,17 +1427,16 @@ public class TaskAttemptImpl implements TaskAttempt,
       TaskAttemptEventSubmitted event = (TaskAttemptEventSubmitted) origEvent;
 
       AMContainer amContainer = ta.appContext.getAllContainers().get(event.getContainerId());
-      Container container = amContainer.getContainer();
+      TezContainer container = new TezContainer(amContainer.getContainer());
 
       ta.allocationTime = amContainer.getCurrentTaskAttemptAllocationTime();
-      ta.container = container;
+      ta.container = new TezContainer(container);
       ta.lastNotifyProgressTimestamp = ta.clock.getTime();
 
       ta.setLaunchTime();
 
       // TODO Resolve to host / IP in case of a local address.
-      InetSocketAddress nodeHttpInetAddr = NetUtils
-          .createSocketAddr(StringInterner.intern(container.getNodeHttpAddress())); // TODO: Costly?
+      InetSocketAddress nodeHttpInetAddr = NetUtils.createSocketAddr(container.getNodeHttpAddress()); // TODO: Costly?
       ta.trackerName = StringInterner.intern(nodeHttpInetAddr.getHostName());
       ta.httpPort = nodeHttpInetAddr.getPort();
       ta.sendEvent(createDAGCounterUpdateEventTALaunched(ta));
@@ -1455,8 +1453,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       // Compute LOCALITY counter for this task.
       if (ta.taskHosts.contains(ta.container.getNodeId().getHost())) {
         ta.localityCounter = DAGCounter.DATA_LOCAL_TASKS;
-      } else if (ta.taskRacks.contains(
-          StringInterner.intern(RackResolver.resolve(container.getNodeId().getHost()).getNetworkLocation()))) {
+      } else if (ta.taskRacks.contains(container.getRackName())) {
         ta.localityCounter = DAGCounter.RACK_LOCAL_TASKS;
       } else {
         // Not computing this if the task does not have locality information.
@@ -1515,8 +1512,7 @@ public class TaskAttemptImpl implements TaskAttempt,
       super.transition(ta, event);
       // Inform the scheduler
       if (sendSchedulerEvent()) {
-        ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.container != null ? ta.container.getId() : null,
-            helper.getTaskAttemptState(),
+        ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.container.getId(), helper.getTaskAttemptState(),
             TezUtilsInternal.toTaskAttemptEndReason(ta.terminationCause),
             ta instanceof DiagnosableEvent ? ((DiagnosableEvent) ta).getDiagnosticInfo() : null,
             ta.getVertex().getTaskSchedulerIdentifier()));
@@ -1656,8 +1652,8 @@ public class TaskAttemptImpl implements TaskAttempt,
           TaskAttemptState.SUCCEEDED));
 
       // Inform the Scheduler.
-      ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.container!=null ? ta.container.getId() : null,
-          TaskAttemptState.SUCCEEDED, null, null, ta.getVertex().getTaskSchedulerIdentifier()));
+      ta.sendEvent(new AMSchedulerEventTAEnded(ta, ta.container.getId(), TaskAttemptState.SUCCEEDED, null, null,
+          ta.getVertex().getTaskSchedulerIdentifier()));
 
       // Inform the task.
       ta.sendEvent(new TaskEventTASucceeded(ta.attemptId));
