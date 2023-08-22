@@ -33,6 +33,7 @@ import org.apache.tez.util.StringInterner;
 
 public class TezContainer extends Container {
 
+  public final static TezContainer NULL_TEZ_CONTAINER = new TezContainer(null);
   private final Container container;
 
   public TezContainer(Container container) {
@@ -122,6 +123,11 @@ public class TezContainer extends Container {
   @Override
   public int compareTo(Container o) {
     return container.compareTo(o);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return container == obj;
   }
 
   public String getRackName() {

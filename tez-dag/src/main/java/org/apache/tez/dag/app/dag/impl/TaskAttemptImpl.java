@@ -120,6 +120,8 @@ import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import static org.apache.tez.dag.app.dag.impl.TezContainer.NULL_TEZ_CONTAINER;
+
 public class TaskAttemptImpl implements TaskAttempt,
     EventHandler<TaskAttemptEvent> {
 
@@ -187,7 +189,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private String trackerName;
   private int httpPort;
 
-  TezContainer container = new TezContainer(null);
+  TezContainer container = NULL_TEZ_CONTAINER;
   private long allocationTime;
   private final Vertex vertex;
   private final Task task;
@@ -716,7 +718,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   public Container getAssignedContainer() {
     readLock.lock();
     try {
-      return new TezContainer(container);
+      return container == NULL_TEZ_CONTAINER ? null : container;
     } finally {
       readLock.unlock();
     }
