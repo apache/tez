@@ -150,6 +150,11 @@ public class TezContainer extends Container {
     return false;
   }
 
+  @Override
+  public int hashCode() {
+    return container.hashCode();
+  }
+
   public String getRackName() {
     return StringInterner.intern(RackResolver.resolve(container.getNodeId().getHost()).getNetworkLocation());
   }
