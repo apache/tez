@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -121,13 +121,33 @@ public class TezContainer extends Container {
   }
 
   @Override
-  public int compareTo(Container o) {
-    return container.compareTo(o);
+  public int compareTo(Container other) {
+    if (this.getId().compareTo(other.getId()) == 0) {
+      if (this.getNodeId().compareTo(other.getNodeId()) == 0) {
+        return this.getResource().compareTo(other.getResource());
+      } else {
+        return this.getNodeId().compareTo(other.getNodeId());
+      }
+    } else {
+      return this.getId().compareTo(other.getId());
+    }
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return container == obj;
+  public boolean equals(Object other) {
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass().isAssignableFrom(this.getClass())) {
+      Container otherContainer = ((TezContainer) other).container;
+      if (this.container == null && otherContainer == null) {
+        return true;
+      } else if (this.container == null) {
+        return false;
+      }
+      return this.container.equals((otherContainer));
+    }
+    return false;
   }
 
   public String getRackName() {
