@@ -31,6 +31,9 @@ import org.apache.hadoop.yarn.api.records.Token;
 import org.apache.hadoop.yarn.util.RackResolver;
 import org.apache.tez.util.StringInterner;
 
+/**
+ * Convenience wrapper around  {@link org.apache.hadoop.yarn.api.records.Container}
+ */
 public class TezContainer extends Container {
 
   public final static TezContainer NULL_TEZ_CONTAINER = new TezContainer(null);
