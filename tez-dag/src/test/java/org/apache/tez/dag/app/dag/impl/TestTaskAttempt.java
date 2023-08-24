@@ -130,15 +130,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TestTaskAttempt {
-
-  private static final Logger LOG = LoggerFactory.getLogger(TestTaskAttempt.class);
 
   static public class StubbedFS extends RawLocalFileSystem {
     @Override
@@ -2315,7 +2311,7 @@ public class TestTaskAttempt {
     boolean inputFailedReported = false;
 
     public MockTaskAttemptImpl setNodeId(NodeId nodeId) {
-      this.containerNodeId = nodeId;
+      this.container = new TezContainer(Container.newInstance(null, nodeId, null, null, null, null));
       return this;
     }
 
