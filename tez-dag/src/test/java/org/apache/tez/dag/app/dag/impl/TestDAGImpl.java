@@ -25,6 +25,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -42,6 +44,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.common.DrainDispatcher;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConstants;
@@ -56,6 +59,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
@@ -2354,4 +2358,22 @@ public class TestDAGImpl {
 
   }
 
+  @SuppressWarnings("unchecked")
+  @Test(timeout = 5000)
+  public void testTotalContainersUsedCounter() {
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+
+    DAGImpl spy = spy(mrrDag);
+    spy.addUsedContainer(mock(ContainerId.class));
+    spy.addUsedContainer(mock(ContainerId.class));
+
+    spy.onFinish();
+    // 2 calls to addUsedContainer, obviously, we did it here
+    verify(spy, times(2)).addUsedContainer(any(ContainerId.class));
+    // 1 call to setDagCounter, which happened at dag.onFinish
+    verify(spy).setDagCounter(DAGCounter.TOTAL_CONTAINERS_USED, 2);
+  }
 }

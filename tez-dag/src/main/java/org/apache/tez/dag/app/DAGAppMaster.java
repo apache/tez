@@ -121,6 +121,7 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.VersionInfo;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.ACLManager;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -774,8 +775,9 @@ public class DAGAppMaster extends AbstractService {
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
       System.err.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId());
       System.out.println(timeStamp + " Completed Dag: " + finishEvt.getDAGId());
-      // Stop vertex services if any
-      stopVertexServices(currentDAG);
+
+      currentDAG.onFinish();
+
       if (!isSession) {
         LOG.info("Not a session, AM will unregister as DAG has completed");
         this.taskSchedulerManager.setShouldUnregisterFlag();
@@ -1903,7 +1905,7 @@ public class DAGAppMaster extends AbstractService {
     Exception firstException = null;
     // stop in reverse order of start
     if (currentDAG != null) {
-      stopVertexServices(currentDAG);
+      currentDAG.onFinish();
     }
     List<Service> serviceList = new ArrayList<Service>(services.size());
     for (ServiceWithDependency sd : services.values()) {
@@ -2093,7 +2095,7 @@ public class DAGAppMaster extends AbstractService {
         dagEventDispatcher.handle(recoverDAGEvent);
         // If we reach here, then we have recoverable DAG and we need to
         // reinitialize the vertex services including speculators.
-        startVertexServices(currentDAG);
+        currentDAG.onStart();
         this.state = DAGAppMasterState.RUNNING;
       }
     } else {
@@ -2563,21 +2565,15 @@ public class DAGAppMaster extends AbstractService {
       throw new TezUncheckedException(e);
     }
 
+    countHeldContainers(newDAG);
     startDAGExecution(newDAG, lrDiff);
     // set state after curDag is set
     this.state = DAGAppMasterState.RUNNING;
   }
 
-  private void startVertexServices(DAG dag) {
-    for (Vertex v : dag.getVertices().values()) {
-      v.startServices();
-    }
-  }
-
-  void stopVertexServices(DAG dag) {
-    for (Vertex v: dag.getVertices().values()) {
-      v.stopServices();
-    }
+  private void countHeldContainers(DAG newDAG) {
+    newDAG.setDagCounter(DAGCounter.INITIAL_HELD_CONTAINERS,
+        taskSchedulerManager.getHeldContainersCount());
   }
 
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
@@ -2613,8 +2609,9 @@ public class DAGAppMaster extends AbstractService {
     // This is a synchronous call, not an event through dispatcher. We want
     // job-init to be done completely here.
     dagEventDispatcher.handle(initDagEvent);
-    // Start the vertex services
-    startVertexServices(dag);
+
+    dag.onStart();
+
     // All components have started, start the job.
     /** create a job-start event to get this ball rolling */
     DAGEvent startDagEvent = new DAGEventStartDag(currentDAG.getID(), additionalUrlsForClasspath);

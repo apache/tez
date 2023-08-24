@@ -41,5 +41,51 @@ public enum DAGCounter {
   AM_CPU_MILLISECONDS,
   /** Wall clock time taken by all the tasks. */
   WALL_CLOCK_MILLIS,
-  AM_GC_TIME_MILLIS
+  AM_GC_TIME_MILLIS,
+
+  /*
+   * Type: # of containers
+   * Both allocated and launched containers before DAG start.
+   * This is incremented only once when the DAG starts and it's calculated
+   * by querying all the held containers from TaskSchedulers.
+   */
+  INITIAL_HELD_CONTAINERS,
+
+  /*
+   * Type: # of containers
+   * All containers that have been seen/used in this DAG by task allocation.
+   * This counter can be calculated at the end of DAG by simply counting the distinct
+   * ContainerIds that have been seen in TaskSchedulerManager.taskAllocated callbacks.
+   */
+  TOTAL_CONTAINERS_USED,
+
+  /*
+   * Type: # of events
+   * Number of container allocations during a DAG. This is incremented every time
+   * the containerAllocated callback is called in the TaskSchedulerContext.
+   * This counter doesn't account for initially held (launched, allocated) containers.
+   */
+  TOTAL_CONTAINER_ALLOCATION_COUNT,
+
+  /*
+   * Type: # of events
+   * Number of container launches during a DAG. This is incremented every time
+   * the containerLaunched callback is called in the ContainerLauncherContext.
+   * This counter doesn't account for initially held (launched, allocated) containers.
+   */
+  TOTAL_CONTAINER_LAUNCH_COUNT,
+
+  /*
+   * Type: # of events
+   * Number of container releases during a DAG. This is incremented every time
+   * the containerBeingReleased callback is called in the TaskSchedulerContext.
+   */
+  TOTAL_CONTAINER_RELEASE_COUNT,
+
+  /*
+   * Type: # of events
+   * Number of container reuses during a DAG. This is incremented every time
+   * the containerReused callback is called in the TaskSchedulerContext.
+   */
+  TOTAL_CONTAINER_REUSE_COUNT
 }

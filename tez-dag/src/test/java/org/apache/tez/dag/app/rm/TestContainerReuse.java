@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
@@ -69,6 +70,7 @@ import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
 import org.apache.tez.dag.app.DAGAppMasterState;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.TaskAttempt;
 import org.apache.tez.dag.app.rm.YarnTaskSchedulerService.CookieContainerRequest;
 import org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.AMRMClientAsyncForTest;
@@ -126,6 +128,7 @@ public class TestContainerReuse {
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
     TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
 
@@ -143,6 +146,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -257,6 +261,7 @@ public class TestContainerReuse {
     conf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
     TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
 
@@ -274,6 +279,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -358,6 +364,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -371,17 +378,18 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
-    TaskSchedulerManager
-        taskSchedulerManagerReal = new TaskSchedulerManagerForTest(appContext, eventHandler, rmClient, new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
+    TaskSchedulerManager taskSchedulerManagerReal = new TaskSchedulerManagerForTest(appContext, eventHandler, rmClient,
+        new AlwaysMatchesContainerMatcher(), TezUtils.createUserPayloadFromConf(tezConf));
     TaskSchedulerManager taskSchedulerManager = spy(taskSchedulerManagerReal);
     taskSchedulerManager.init(tezConf);
     taskSchedulerManager.start();
 
-    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext) ((TaskSchedulerManagerForTest) taskSchedulerManager)
-        .getSpyTaskScheduler();
+    TaskSchedulerWithDrainableContext taskScheduler =
+        (TaskSchedulerWithDrainableContext) ((TaskSchedulerManagerForTest) taskSchedulerManager).getSpyTaskScheduler();
     TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
@@ -428,6 +436,7 @@ public class TestContainerReuse {
     drainableAppCallback.drain();
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta11), any(),
         eq(container1));
+    verify(dag).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_ALLOCATION_COUNT, 1); // allocated
 
     // Task assigned to container completed successfully. Container should be re-used.
     taskSchedulerManager.handleEvent(
@@ -438,6 +447,7 @@ public class TestContainerReuse {
     verify(taskSchedulerManager).taskAllocated(eq(0), eq(ta12), any(), eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
+    verify(dag).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_REUSE_COUNT, 1); // reused
     eventHandler.reset();
 
     // Task assigned to container completed successfully.
@@ -451,6 +461,7 @@ public class TestContainerReuse {
         eq(container1));
     verify(rmClient, times(0)).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyNoInvocations(AMContainerEventStopRequest.class);
+    verify(dag, times(2)).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_REUSE_COUNT, 1); // reused again
     eventHandler.reset();
 
     // Verify no re-use if a previous task fails.
@@ -463,6 +474,7 @@ public class TestContainerReuse {
     verifyDeAllocateTask(taskScheduler, ta13, false, null, "TIMEOUT");
     verify(rmClient).releaseAssignedContainer(eq(container1.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
+    verify(dag).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_RELEASE_COUNT, 1); // released
     eventHandler.reset();
 
     Container container2 = createContainer(2, "host2", resource1, priority1);
@@ -482,10 +494,13 @@ public class TestContainerReuse {
     verifyDeAllocateTask(taskScheduler, ta14, true, null, null);
     verify(rmClient).releaseAssignedContainer(eq(container2.getId()));
     eventHandler.verifyInvocation(AMContainerEventStopRequest.class);
+    verify(dag, times(2)).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_ALLOCATION_COUNT, 1); // new allocation
+    verify(dag, times(2)).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_RELEASE_COUNT, 1); // then released again
     eventHandler.reset();
 
     taskScheduler.shutdown();
     taskSchedulerManager.close();
+    dag.onFinish();
   }
 
   @Test(timeout = 10000l)
@@ -503,6 +518,7 @@ public class TestContainerReuse {
     TaskSpecificLaunchCmdOption taskSpecificLaunchCmdOption =  new TaskSpecificLaunchCmdOption(tezConf);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -516,6 +532,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -690,6 +707,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 1000l);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -706,6 +724,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -814,6 +833,7 @@ public class TestContainerReuse {
         TezConfiguration.TEZ_AM_SESSION_MIN_HELD_CONTAINERS, 1);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -831,6 +851,7 @@ public class TestContainerReuse {
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(true).when(appContext).isSession();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -931,6 +952,7 @@ public class TestContainerReuse {
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID1 = TezDAGID.getInstance("0", 1, 0);
+    DAG dag1 = mock(DAG.class);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
@@ -943,6 +965,7 @@ public class TestContainerReuse {
     AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    doReturn(dag1).when(appContext).getCurrentDAG();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(true).when(appContext).isSession();
     doAnswer(dagIDAnswer).when(appContext).getCurrentDAGID();
@@ -1088,6 +1111,7 @@ public class TestContainerReuse {
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
     TezDAGID dagID1 = TezDAGID.getInstance("0", 1, 0);
+    DAG dag1 = mock(DAG.class);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
     TezAMRMClientAsync<CookieContainerRequest> rmClient = spy(new AMRMClientAsyncForTest(rmClientCore, 100));
@@ -1100,6 +1124,7 @@ public class TestContainerReuse {
     AMNodeTracker amNodeTracker = new AMNodeTracker(eventHandler, appContext);
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
+    doReturn(dag1).when(appContext).getCurrentDAG();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
     doReturn(true).when(appContext).isSession();
     doAnswer(dagIDAnswer).when(appContext).getCurrentDAGID();
@@ -1112,8 +1137,8 @@ public class TestContainerReuse {
     taskSchedulerManager.init(tezConf);
     taskSchedulerManager.start();
 
-    TaskSchedulerWithDrainableContext taskScheduler = (TaskSchedulerWithDrainableContext) ((TaskSchedulerManagerForTest) taskSchedulerManager)
-        .getSpyTaskScheduler();
+    TaskSchedulerWithDrainableContext taskScheduler =
+        (TaskSchedulerWithDrainableContext) ((TaskSchedulerManagerForTest) taskSchedulerManager).getSpyTaskScheduler();
     TaskSchedulerContextDrainable drainableAppCallback = taskScheduler.getDrainableAppCallback();
     AtomicBoolean drainNotifier = new AtomicBoolean(false);
     taskScheduler.delayedContainerManager.drainedDelayedContainersForTest = drainNotifier;
@@ -1324,6 +1349,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -1338,6 +1364,7 @@ public class TestContainerReuse {
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.SUCCEEDED).when(appContext).getAMState();
     doReturn(true).when(appContext).isAMInCompletionState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -1391,6 +1418,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -1405,6 +1433,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 
@@ -1527,6 +1556,7 @@ public class TestContainerReuse {
     tezConf.setLong(TezConfiguration.TEZ_AM_CONTAINER_IDLE_RELEASE_TIMEOUT_MAX_MILLIS, 0);
 
     CapturingEventHandler eventHandler = new CapturingEventHandler();
+    DAG dag = mock(DAG.class);
     TezDAGID dagID = TezDAGID.getInstance("0", 0, 0);
 
     AMRMClient<CookieContainerRequest> rmClientCore = new AMRMClientForTest();
@@ -1541,6 +1571,7 @@ public class TestContainerReuse {
     doReturn(amContainerMap).when(appContext).getAllContainers();
     doReturn(amNodeTracker).when(appContext).getNodeTracker();
     doReturn(DAGAppMasterState.RUNNING).when(appContext).getAMState();
+    doReturn(dag).when(appContext).getCurrentDAG();
     doReturn(dagID).when(appContext).getCurrentDAGID();
     doReturn(mock(ClusterInfo.class)).when(appContext).getClusterInfo();
 

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -47,6 +48,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
@@ -74,6 +76,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 public class TestContainerLauncherManager {
+
+  private static final String DAG_NAME = "dagName";
+  private static final int DAG_INDEX = 1;
 
   @Before
   @After
@@ -249,14 +254,44 @@ public class TestContainerLauncherManager {
     }
   }
 
-  @SuppressWarnings("unchecked")
+
+  @SuppressWarnings("rawtypes")
+  @Test
+  public void testContainerLaunchCounter() throws TezException, InterruptedException, IOException {
+    AppContext appContext = mock(AppContext.class);
+    DAG dag = mock(DAG.class);
+    when(appContext.getCurrentDAG()).thenReturn(dag);
+
+    EventHandler eventHandler = mock(EventHandler.class);
+    doReturn(eventHandler).when(appContext).getEventHandler();
+    doReturn("testlauncher").when(appContext).getContainerLauncherName(0);
+
+    NamedEntityDescriptor<TaskCommunicatorDescriptor> containerLauncherDescriptor =
+        new NamedEntityDescriptor<>("testlauncher", ContainerLauncherForTest.class.getName());
+    List<NamedEntityDescriptor> descriptors = new LinkedList<>();
+    descriptors.add(containerLauncherDescriptor);
+
+    ContainerLauncherManager containerLauncherManager =
+        new ContainerLauncherManager(appContext, mock(TaskCommunicatorManagerInterface.class), "", descriptors, false);
+
+    ContainerLaunchContext clc = mock(ContainerLaunchContext.class);
+    Container container = mock(Container.class);
+    ContainerLauncherLaunchRequestEvent launchRequestEvent =
+        new ContainerLauncherLaunchRequestEvent(clc, container, 0, 0, 0);
+    containerLauncherManager.handle(launchRequestEvent);
+    containerLauncherManager.close();
+
+    // ContainerLauncherForTest is properly calling the context callbacks
+    // so it's supposed to handle increment DAGCounter.TOTAL_CONTAINER_LAUNCH_COUNT
+    verify(dag).incrementDagCounter(DAGCounter.TOTAL_CONTAINER_LAUNCH_COUNT, 1); // launched
+  }
+
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test(timeout = 5000)
   public void testReportFailureFromContainerLauncher() throws ServicePluginException, TezException {
-    final String dagName = DAG_NAME;
-    final int dagIndex = DAG_INDEX;
-    TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(0, 0), dagIndex);
+    TezDAGID dagId = TezDAGID.getInstance(ApplicationId.newInstance(0, 0), DAG_INDEX);
     DAG dag = mock(DAG.class);
-    doReturn(dagName).when(dag).getName();
+    doReturn(DAG_NAME).when(dag).getName();
     doReturn(dagId).when(dag).getID();
     EventHandler eventHandler = mock(EventHandler.class);
     AppContext appContext = mock(AppContext.class);
@@ -264,10 +299,10 @@ public class TestContainerLauncherManager {
     doReturn(dag).when(appContext).getCurrentDAG();
     doReturn("testlauncher").when(appContext).getContainerLauncherName(0);
 
-    NamedEntityDescriptor<TaskCommunicatorDescriptor> taskCommDescriptor =
-        new NamedEntityDescriptor<>("testlauncher", ContainerLauncherForTest.class.getName());
+    NamedEntityDescriptor<TaskCommunicatorDescriptor> containerLauncherDescriptor =
+        new NamedEntityDescriptor<>("testlauncher", FailureReporterContainerLauncher.class.getName());
     List<NamedEntityDescriptor> list = new LinkedList<>();
-    list.add(taskCommDescriptor);
+    list.add(containerLauncherDescriptor);
     ContainerLauncherManager containerLauncherManager =
         new ContainerLauncherManager(appContext, mock(TaskCommunicatorManagerInterface.class), "",
             list, false);
@@ -514,26 +549,41 @@ public class TestContainerLauncherManager {
     }
   }
 
-  private static final String DAG_NAME = "dagName";
-  private static final int DAG_INDEX = 1;
-  public static class ContainerLauncherForTest extends ContainerLauncher {
+  public static class FailureReporterContainerLauncher extends ContainerLauncher {
 
-    public ContainerLauncherForTest(
-        ContainerLauncherContext containerLauncherContext) {
+    public FailureReporterContainerLauncher(ContainerLauncherContext containerLauncherContext) {
       super(containerLauncherContext);
     }
 
     @Override
-    public void launchContainer(ContainerLaunchRequest launchRequest) throws
-        ServicePluginException {
+    public void launchContainer(ContainerLaunchRequest launchRequest) throws ServicePluginException {
       getContext().reportError(ServicePluginErrorDefaults.INCONSISTENT_STATE, "ReportedFatalError", null);
     }
 
     @Override
     public void stopContainer(ContainerStopRequest stopRequest) throws ServicePluginException {
-      getContext()
-          .reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError", new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
+      getContext().reportError(ServicePluginErrorDefaults.SERVICE_UNAVAILABLE, "ReportError",
+          new DagInfoImplForTest(DAG_INDEX, DAG_NAME));
     }
   }
 
+  /**
+   * This container launcher simply implements ContainerLauncher methods with the proper context callbacks.
+   */
+  public static class ContainerLauncherForTest extends ContainerLauncher {
+
+    public ContainerLauncherForTest(ContainerLauncherContext containerLauncherContext) {
+      super(containerLauncherContext);
+    }
+
+    @Override
+    public void launchContainer(ContainerLaunchRequest launchRequest) throws ServicePluginException {
+      getContext().containerLaunched(launchRequest.getContainerId());
+    }
+
+    @Override
+    public void stopContainer(ContainerStopRequest stopRequest) throws ServicePluginException {
+      getContext().containerStopRequested(stopRequest.getContainerId());
+    }
+  }
 }

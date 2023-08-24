@@ -491,6 +491,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
+    super.onContainersAllocated(containers);
+
     if (isStopStarted.get()) {
       LOG.info("Ignoring container allocations because application is shutting down. Num " + 
           containers.size());
@@ -1607,6 +1609,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
         heldContainers.put(container.getId(),
             new HeldContainer(container, heldContainer.getNextScheduleTime(),
                 heldContainer.getContainerExpiryTime(), assigned, this.containerSignatureMatcher));
+      } else { // if a held container is not new, it's most probably reused
+        getContext().containerReused(container);
       }
       heldContainer.setLastTaskInfo(assigned);
     }
@@ -2399,5 +2403,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
           + (lastAssignedContainerSignature != null? lastAssignedContainerSignature.toString()
             : "null");
     }
+  }
+
+  @Override
+  public int getHeldContainersCount() {
+    return heldContainers.size();
   }
 }
