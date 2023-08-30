@@ -47,6 +47,8 @@ import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -396,19 +398,20 @@ public final class TaskExecutionTestHelpers {
         for (TezEvent event : requestEvents) {
           if (event.getEvent() instanceof TaskAttemptFailedEvent) {
             TaskAttemptFailedEvent failedEvent = (TaskAttemptFailedEvent) event.getEvent();
-            if (failedEvent.getDiagnostics().startsWith(diagStart)) {
+            String diagnostics = getDiagnosticsWithoutNodeIp(failedEvent.getDiagnostics());
+            if (diagnostics.startsWith(diagStart)) {
               if (diagContains != null) {
-                if (failedEvent.getDiagnostics().contains(diagContains)) {
+                if (diagnostics.contains(diagContains)) {
                   assertEquals(taskFailureType, failedEvent.getTaskFailureType());
                   return;
                 } else {
                   fail("Diagnostic message does not contain expected message. Found [" +
-                      failedEvent.getDiagnostics() + "], Expected: [" + diagContains + "]");
+                      diagnostics + "], Expected: [" + diagContains + "]");
                 }
               }
             } else {
               fail("Diagnostic message does not start with expected message. Found [" +
-                  failedEvent.getDiagnostics() + "], Expected: [" + diagStart + "]");
+                  diagnostics + "], Expected: [" + diagStart + "]");
             }
           }
         }
@@ -425,18 +428,19 @@ public final class TaskExecutionTestHelpers {
           if (event.getEvent() instanceof TaskAttemptKilledEvent) {
             TaskAttemptKilledEvent killedEvent =
                 (TaskAttemptKilledEvent) event.getEvent();
-            if (killedEvent.getDiagnostics().startsWith(diagStart)) {
+            String diagnostics = getDiagnosticsWithoutNodeIp(killedEvent.getDiagnostics());
+            if (diagnostics.startsWith(diagStart)) {
               if (diagContains != null) {
-                if (killedEvent.getDiagnostics().contains(diagContains)) {
+                if (diagnostics.contains(diagContains)) {
                   return;
                 } else {
                   fail("Diagnostic message does not contain expected message. Found [" +
-                      killedEvent.getDiagnostics() + "], Expected: [" + diagContains + "]");
+                      diagnostics + "], Expected: [" + diagContains + "]");
                 }
               }
             } else {
               fail("Diagnostic message does not start with expected message. Found [" +
-                  killedEvent.getDiagnostics() + "], Expected: [" + diagStart + "]");
+                  diagnostics + "], Expected: [" + diagStart + "]");
             }
           }
         }
@@ -516,6 +520,17 @@ public final class TaskExecutionTestHelpers {
     public int getTaskInvocations() {
       return taskInvocations.get();
     }
+  }
+
+  private static String getDiagnosticsWithoutNodeIp(String diagnostics) {
+    String diagnosticsWithoutIP = diagnostics;
+    if (diagnostics != null && diagnostics.startsWith("Node:")) {
+      diagnosticsWithoutIP = diagnostics.substring(diagnostics.indexOf(" : ") + 3);
+      String nodeIp = diagnostics.substring(5, diagnostics.indexOf(" : "));
+      Assert.assertFalse(nodeIp.isEmpty());
+    }
+
+    return diagnosticsWithoutIP;
   }
 
   @SuppressWarnings("deprecation")
