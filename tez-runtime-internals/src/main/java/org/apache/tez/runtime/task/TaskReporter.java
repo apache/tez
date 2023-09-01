@@ -21,6 +21,7 @@ package org.apache.tez.runtime.task;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -401,9 +402,10 @@ public class TaskReporter implements TaskReporterInterface {
       if (!finalEventQueued.getAndSet(true)) {
         List<TezEvent> tezEvents = new ArrayList<TezEvent>();
         if (diagnostics == null) {
-          diagnostics = ExceptionUtils.getStackTrace(t);
+          diagnostics = "Node: " + InetAddress.getLocalHost() + " : " + ExceptionUtils.getStackTrace(t);
         } else {
-          diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
+          diagnostics =
+              "Node: " + InetAddress.getLocalHost() + " : " + diagnostics + ":" + ExceptionUtils.getStackTrace(t);
         }
         if (isKilled) {
           tezEvents.add(new TezEvent(new TaskAttemptKilledEvent(diagnostics),
