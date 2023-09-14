@@ -1581,6 +1581,26 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_GENERATE_DEBUG_ARTIFACTS_DEFAULT = false;
 
   /**
+   * Int value. Property size threshold (in bytes) for logging during payload serialization. Properties exceeding the
+   * threshold are considered unusually large and potentially problematic thus they should be logged.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD =
+      TEZ_PREFIX + "logging.property.size.threshold";
+  public static final int TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT = 512 * 1024;
+  /**
+   * Boolean value. Whether property masking is enabled for logging. Properties may contain sensitive user information
+   * such as passwords, credentials, secrets, etc., so they shouldn't be logged unconditionally. When masking is
+   * enabled, the property value (content) is not displayed in the logs.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_LOGGING_PROPERTY_MASK =
+      TEZ_PREFIX + "logging.property.mask";
+  public static final boolean TEZ_LOGGING_PROPERTY_MASK_DEFAULT = true;
+
+  /**
    * Set of tasks for which specific launch command options need to be added.
    * Format: "vertexName[csv of task ids];vertexName[csv of task ids].."
    * Valid e.g:
