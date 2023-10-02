@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -383,18 +384,18 @@ public class RecoveryParser {
           new Path(currentAttemptRecoveryDataDir, appId.toString().replace(
               "application", "dag")
               + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-      if (fs.exists(recoveryFilePath)) {
-        LOG.info("Read recovery file:" + recoveryFilePath);
-        FSDataInputStream in = null;
-        try {
-          in = fs.open(recoveryFilePath);
-          historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(in));
-        } catch (IOException e) {
-          throw e;
-        } finally {
-          if (in != null) {
-            in.close();
-          }
+      LOG.info("Read recovery file:" + recoveryFilePath);
+      FSDataInputStream in = null;
+      try {
+        in = fs.open(recoveryFilePath);
+        historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(in));
+      } catch (FileNotFoundException fnf) {
+        // Ignore, the file doesn't exist
+      } catch (IOException e) {
+        throw e;
+      } finally {
+        if (in != null) {
+          in.close();
         }
       }
     }
@@ -429,12 +430,13 @@ public class RecoveryParser {
     return TezCommonUtils.getSummaryRecoveryPath(attemptRecoveryDataDir);
   }
 
-  private FSDataInputStream getSummaryStream(Path summaryPath)
-      throws IOException {
-    if (!recoveryFS.exists(summaryPath)) {
+  private FSDataInputStream getSummaryStream(Path summaryPath) throws IOException {
+    try {
+      return recoveryFS.open(summaryPath, recoveryBufferSize);
+    } catch (FileNotFoundException fnf) {
       return null;
+
     }
-    return recoveryFS.open(summaryPath, recoveryBufferSize);
   }
 
   private Path getDAGRecoveryFilePath(Path recoveryDataDir,
@@ -741,12 +743,10 @@ public class RecoveryParser {
             + lastRecoveryFile);
         break;
       }
-      FileStatus fileStatus = recoveryFS.getFileStatus(dagRecoveryFile);
       lastRecoveryFile = dagRecoveryFile;
-      LOG.info("Trying to recover dag from recovery file"
-          + ", dagId=" + lastInProgressDAG.toString()
-          + ", dagRecoveryFile=" + dagRecoveryFile
-          + ", len=" + fileStatus.getLen());
+      LOG.info("Trying to recover dag from recovery file, dagId={}, dagRecoveryFile={}", lastInProgressDAG,
+          dagRecoveryFile);
+
       FSDataInputStream dagRecoveryStream = recoveryFS.open(dagRecoveryFile, recoveryBufferSize);
       CodedInputStream codedInputStream = CodedInputStream.newInstance(dagRecoveryStream);
       codedInputStream.setSizeLimit(Integer.MAX_VALUE);

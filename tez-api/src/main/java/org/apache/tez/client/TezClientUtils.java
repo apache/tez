@@ -19,6 +19,7 @@
 package org.apache.tez.client;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -44,6 +45,8 @@ import java.util.Objects;
 import com.google.common.base.Strings;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
@@ -118,33 +121,27 @@ import com.google.common.collect.Lists;
 @Private
 public final class TezClientUtils {
 
-  private static Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
   private TezClientUtils() {}
 
-  private static FileStatus[] getLRFileStatus(String fileName, Configuration conf) throws
-      IOException {
-    URI uri;
+  private static RemoteIterator<LocatedFileStatus> getListFilesFileStatus(String configUri, Configuration conf)
+      throws IOException {
+    Path p = getPath(configUri);
+    FileSystem fs = p.getFileSystem(conf);
+    p = fs.resolvePath(p.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
+    FileSystem targetFS = p.getFileSystem(conf);
+    return targetFS.listFiles(p, false);
+  }
+
+  private static Path getPath(String configUri) {
     try {
-      uri = new URI(fileName);
+      return new Path(new URI(configUri));
     } catch (URISyntaxException e) {
-      String message = "Invalid URI defined in configuration for"
-          + " location of TEZ jars. providedURI=" + fileName;
+      String message = "Invalid URI defined in configuration for" + " location of TEZ jars. providedURI=" + configUri;
       LOG.error(message);
       throw new TezUncheckedException(message, e);
-    }
-
-    Path p = new Path(uri);
-    FileSystem fs = p.getFileSystem(conf);
-    p = fs.resolvePath(p.makeQualified(fs.getUri(),
-        fs.getWorkingDirectory()));
-    FileSystem targetFS = p.getFileSystem(conf);
-    if (targetFS.isDirectory(p)) {
-      return targetFS.listStatus(p);
-    } else {
-      FileStatus fStatus = targetFS.getFileStatus(p);
-      return new FileStatus[]{fStatus};
     }
   }
 
@@ -233,15 +230,11 @@ public final class TezClientUtils {
         } else {
           type = LocalResourceType.FILE;
         }
+      RemoteIterator<LocatedFileStatus> fileStatuses = getListFilesFileStatus(configUri, conf);
 
-      FileStatus [] fileStatuses = getLRFileStatus(configUri, conf);
-
-      for (FileStatus fStatus : fileStatuses) {
+      while (fileStatuses.hasNext()) {
+        LocatedFileStatus fStatus = fileStatuses.next();
         String linkName;
-        if (fStatus.isDirectory()) {
-          // Skip directories - no recursive search support.
-          continue;
-        }
         // If the resource is an archive, we've already done this work
         if(type != LocalResourceType.ARCHIVE) {
           u = fStatus.getPath().toUri();
@@ -250,8 +243,7 @@ public final class TezClientUtils {
           p = remoteFS.resolvePath(p.makeQualified(remoteFS.getUri(),
               remoteFS.getWorkingDirectory()));
           if(null != u.getFragment()) {
-            LOG.warn("Fragment set for link being interpreted as a file," +
-                "URI: " + u.toString());
+            LOG.warn("Fragment set for link being interpreted as a file, URI: {}", u);
           }
         }
 
@@ -336,8 +328,13 @@ public final class TezClientUtils {
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     realUser = ugi.getShortUserName();
     currentUser = UserGroupInformation.getCurrentUser().getShortUserName();
-    if (fs.exists(stagingArea)) {
-      FileStatus fsStatus = fs.getFileStatus(stagingArea);
+    FileStatus fsStatus = null;
+    try {
+      fsStatus = fs.getFileStatus(stagingArea);
+    } catch (FileNotFoundException fnf) {
+      // Ignore
+    }
+    if (fsStatus != null) {
       String owner = fsStatus.getOwner();
       if (!(owner.equals(currentUser) || owner.equals(realUser))) {
         throw new IOException("The ownership on the staging directory "
