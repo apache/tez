@@ -746,6 +746,10 @@ public class RecoveryParser {
       lastRecoveryFile = dagRecoveryFile;
       LOG.info("Trying to recover dag from recovery file, dagId={}, dagRecoveryFile={}", lastInProgressDAG,
           dagRecoveryFile);
+      if (LOG.isDebugEnabled()) {
+        FileStatus fileStatus = recoveryFS.getFileStatus(dagRecoveryFile);
+        LOG.debug("Recovery file details: {}", fileStatus);
+      }
 
       FSDataInputStream dagRecoveryStream = recoveryFS.open(dagRecoveryFile, recoveryBufferSize);
       CodedInputStream codedInputStream = CodedInputStream.newInstance(dagRecoveryStream);
