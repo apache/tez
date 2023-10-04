@@ -153,9 +153,7 @@ public class TestSpeculation {
                     .contains(UNIT_EXCEPTION_MESSAGE)))) {
                   throw caughtThrowable;
                 }
-                LOG.warn("{} : Failed. Retries remaining: ",
-                    description.getDisplayName(),
-                    retryCount.toString());
+                LOG.warn("{} : Failed. Retries remaining: {}", description.getDisplayName(), retryCount.toString());
               } else {
                 throw caughtThrowable;
               }
