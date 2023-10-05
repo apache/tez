@@ -202,8 +202,7 @@ public class TaskCommunicatorManager extends AbstractService implements
   TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
                                                 NamedEntityDescriptor taskCommDescriptor)
                                                     throws TezException {
-    LOG.info("Creating TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
-        taskCommDescriptor.getClassName());
+    LOG.info("Creating TaskCommunicator {}:{} ", taskCommDescriptor.getEntityName(), taskCommDescriptor.getClassName());
     Class<? extends TaskCommunicator> taskCommClazz =
         (Class<? extends TaskCommunicator>) ReflectionUtils
             .getClazz(taskCommDescriptor.getClassName());

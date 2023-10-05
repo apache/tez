@@ -1396,7 +1396,7 @@ class ShuffleScheduler {
         }
 
         if (LOG.isDebugEnabled()) {
-          LOG.debug(srcNameTrimmed + ": " + "NumCompletedInputs: {}" + (numInputs - remainingMaps.get()));
+          LOG.debug("{}: NumCompletedInputs: {}", srcNameTrimmed, (numInputs - remainingMaps.get()));
         }
 
         // Ensure there's memory available before scheduling the next Fetcher.

@@ -156,7 +156,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     Request request = rb.setUrl(url.toString()).build();
 
     //for debugging
-    LOG.debug("Request url={}, encHash={}, id={}", url, encHash);
+    LOG.debug("Request url={}, encHash={}", url, encHash);
 
     try {
       //Blocks calling thread until it receives headers, but have the option to defer response body
@@ -176,7 +176,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     //verify the response
     int rc = response.getStatusCode();
     if (rc != HttpURLConnection.HTTP_OK) {
-      LOG.debug("Request url={}, id={}", response.getUri());
+      LOG.debug("Request url={}", response.getUri());
       throw new IOException("Got invalid response code " + rc + " from "
           + url + ": " + response.getStatusText());
     }

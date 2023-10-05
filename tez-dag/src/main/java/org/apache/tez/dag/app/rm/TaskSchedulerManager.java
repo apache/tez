@@ -908,8 +908,7 @@ public class TaskSchedulerManager extends AbstractService implements
                           DagInfo dagInfo) {
     if (servicePluginError == YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR) {
       LOG.info("Error reported by scheduler {} - {}",
-          Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext) + ": " +
-              diagnostics);
+          Utils.getTaskSchedulerIdentifierString(taskSchedulerIndex, appContext), diagnostics);
       if (taskSchedulerDescriptors[taskSchedulerIndex].getEntityName()
           .equals(TezConstants.getTezYarnServicePluginName())) {
         LOG.warn(

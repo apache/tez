@@ -460,7 +460,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     }
 
     if (sessionContainers.contains(hc)) {
-      LOG.info("Retaining container {} since it is a session container");
+      LOG.info("Retaining container {} since it is a session container", hc);
       hc.resetMatchingLevel();
     } else {
       long now = now();
