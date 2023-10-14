@@ -30,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import org.apache.hadoop.fs.ClusterStorageCapacityExceededException;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Multimap;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -204,7 +205,7 @@ public class TezTaskRunner2 {
         synchronized (this) {
           if (isRunningState()) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(TaskFailureType.NON_FATAL, e, null);
+            registerFirstException(getTaskFailureType(e), e, null);
             LOG.warn("Exception from RunnerCallable", e);
           }
         }
@@ -305,7 +306,7 @@ public class TezTaskRunner2 {
         if (isRunningState()) {
           if (executionResult.error != null) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(TaskFailureType.NON_FATAL, executionResult.error, null);
+            registerFirstException(getTaskFailureType(executionResult.error), executionResult.error, null);
           } else {
             trySettingEndReason(EndReason.SUCCESS);
             taskComplete.set(true);
@@ -583,5 +584,14 @@ public class TezTaskRunner2 {
   private void logAborting(String abortReason) {
     LOG.info("Attempting to abort {} due to an invocation of {}", task.getTaskAttemptID(),
         abortReason);
+  }
+
+  private TaskFailureType getTaskFailureType(Throwable e) {
+    boolean hasClusterStorageCapacityExceededException =
+        ExceptionUtils.indexOfType(e, ClusterStorageCapacityExceededException.class) != -1;
+    if (hasClusterStorageCapacityExceededException) {
+      return TaskFailureType.FATAL;
+    }
+    return TaskFailureType.NON_FATAL;
   }
 }
