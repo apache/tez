@@ -91,7 +91,7 @@ public class TezTaskRunner2 {
   // TaskRunnerCallable, a failure to heartbeat, or a signalFatalError on the context.
   private volatile Throwable firstException;
   private volatile EventMetaData exceptionSourceInfo;
-  private volatile TaskFailureType firstTaskFailureType;
+  volatile TaskFailureType firstTaskFailureType;
   private final AtomicBoolean errorReporterToAm = new AtomicBoolean(false);
 
   private volatile boolean oobSignalErrorInProgress = false;
