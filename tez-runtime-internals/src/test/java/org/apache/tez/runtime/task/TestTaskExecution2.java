@@ -658,7 +658,7 @@ public class TestTaskExecution2 {
   }
 
   @Test
-  public void testClusterStoragaeCapacityFatalError() throws IOException {
+  public void testClusterStorageCapacityFatalError() throws IOException {
     // Try having a ClusterStorageCapacityExceededException, which is nested within several exceptions.
     TezTaskRunner2ForTest taskRunner = createTaskRunnerForTest();
     TaskRunner2CallableResult executionResult = new TaskRunner2CallableResult(new Exception(
