@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Objects;
 
+import com.google.common.collect.Iterables;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -42,6 +43,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.common.JavaOptsChecker;
+import org.apache.tez.common.LargePropertyLogger;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -983,7 +985,8 @@ public class DAG {
 
       if (vertex.getConf()!= null && vertex.getConf().size() > 0) {
         ConfigurationProto.Builder confBuilder = ConfigurationProto.newBuilder();
-        TezUtils.populateConfProtoFromEntries(vertex.getConf().entrySet(), confBuilder);
+        TezUtils.populateConfProtoFromEntries(Iterables.transform(vertex.getConf().entrySet(),
+            LargePropertyLogger.from(vertex.getConf())::logEntry), confBuilder);
         vertexBuilder.setVertexConf(confBuilder);
       }
 

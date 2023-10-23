@@ -26,10 +26,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
+import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 
 import com.google.protobuf.CodedInputStream;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.TaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +44,6 @@ import org.codehaus.jettison.json.JSONObject;
 import org.xerial.snappy.SnappyInputStream;
 import org.xerial.snappy.SnappyOutputStream;
 
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_MASK;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_MASK_DEFAULT;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT;
-
 /**
  * Utility methods for setting up a DAG. Has helpers for setting up log4j configuration, converting
  * {@link org.apache.hadoop.conf.Configuration} to {@link org.apache.tez.dag.api.UserPayload} etc.
@@ -57,14 +52,6 @@ import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_
 public final class TezUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezUtils.class);
-  private static final int PROPERTY_THRESHOLD;
-  private static final boolean PROPERTY_MASK;
-
-  static {
-    TezConfiguration c = new TezConfiguration();
-    PROPERTY_THRESHOLD = c.getInt(TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD, TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT);
-    PROPERTY_MASK = c.getBoolean(TEZ_LOGGING_PROPERTY_MASK, TEZ_LOGGING_PROPERTY_MASK_DEFAULT);
-  }
 
   private TezUtils() {}
 
@@ -171,7 +158,7 @@ public final class TezUtils {
 
   private static void writeConfInPB(OutputStream dos, Configuration conf) throws IOException {
     DAGProtos.ConfigurationProto.Builder confProtoBuilder = DAGProtos.ConfigurationProto.newBuilder();
-    populateConfProtoFromEntries(conf, confProtoBuilder);
+    populateConfProtoFromEntries(Iterables.transform(conf, LargePropertyLogger.from(conf)::logEntry), confProtoBuilder);
     DAGProtos.ConfigurationProto confProto = confProtoBuilder.build();
     confProto.writeTo(dos);
   }
@@ -225,19 +212,10 @@ public final class TezUtils {
         kvp.setKey(key);
         kvp.setValue(val);
         confBuilder.addConfKeyValues(kvp);
-        logEntryIfLarge(key, val);
       } else {
         LOG.debug("null value for key={}. Skipping.", key);
       }
     }
   }
 
-  private static void logEntryIfLarge(String key, String value) {
-    if (value.length() > PROPERTY_THRESHOLD) {
-      LOG.warn("Property '{}' is unusually big ({} bytes); large payload may lead to OOM.", key, value.length());
-      if (!PROPERTY_MASK) {
-        LOG.warn("Large property '{}': {}", key, value);
-      }
-    }
-  }
 }
