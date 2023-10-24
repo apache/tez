@@ -18,7 +18,7 @@
 
 package org.apache.tez.runtime.task;
 
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -255,7 +255,7 @@ public class TestTaskReporter {
     // Check limits with default shouldn't throw exception.
     lio1.checkTaskLimits();
 
-    tezConf.setLong(TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES, 10);
+    tezConf.setLong(TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES, 10);
     lio1 = new LogicalIOProcessorRuntimeTask(mockSpec, 0, tezConf, null, null, null, null, null, null, "", null,
         Runtime.getRuntime().maxMemory(), true, null, null);
 

@@ -41,8 +41,8 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES_DEFAULT;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT;
 
 public abstract class RuntimeTask {
 
@@ -83,7 +83,7 @@ public abstract class RuntimeTask {
       this.counterUpdater = null;
     }
     this.lfsBytesWriteLimit =
-        tezConf.getLong(TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES, TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES_DEFAULT);
+        tezConf.getLong(TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES, TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT);
   }
 
   protected enum State {
@@ -222,7 +222,7 @@ public abstract class RuntimeTask {
   /**
    * Exception thrown when the task exceeds some configured limits.
    */
-  public class TaskLimitException extends IOException {
+  public static class TaskLimitException extends IOException {
     public TaskLimitException(String str) {
       super(str);
     }

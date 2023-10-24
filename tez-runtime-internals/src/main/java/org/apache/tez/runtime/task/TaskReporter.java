@@ -266,6 +266,7 @@ public class TaskReporter implements TaskReporterInterface {
         try {
           task.checkTaskLimits();
         } catch (TaskLimitException tle) {
+          LOG.error("Task limit exceeded", tle);
           askedToDie.set(true);
           return new ResponseWrapper(true, 1);
         }
