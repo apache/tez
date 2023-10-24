@@ -1589,6 +1589,7 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD =
       TEZ_PREFIX + "logging.property.size.threshold";
   public static final int TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT = 512 * 1024;
+
   /**
    * Boolean value. Whether property masking is enabled for logging. Properties may contain sensitive user information
    * such as passwords, credentials, secrets, etc., so they shouldn't be logged unconditionally. When masking is
