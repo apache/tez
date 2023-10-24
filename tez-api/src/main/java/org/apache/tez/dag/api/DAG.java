@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Objects;
 
-import com.google.common.collect.Iterables;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualLinkedHashBidiMap;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -43,7 +42,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.common.JavaOptsChecker;
-import org.apache.tez.common.LargePropertyLogger;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.records.DAGProtos;
@@ -62,7 +60,6 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -985,8 +982,7 @@ public class DAG {
 
       if (vertex.getConf()!= null && vertex.getConf().size() > 0) {
         ConfigurationProto.Builder confBuilder = ConfigurationProto.newBuilder();
-        TezUtils.populateConfProtoFromEntries(Iterables.transform(vertex.getConf().entrySet(),
-            LargePropertyLogger.from(vertex.getConf())::logEntry), confBuilder);
+        TezUtils.populateConfProtoFromMap(vertex.getConf(), confBuilder);
         vertexBuilder.setVertexConf(confBuilder);
       }
 
@@ -1087,7 +1083,7 @@ public class DAG {
 
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
     if (!this.dagConf.isEmpty()) {
-      TezUtils.populateConfProtoFromEntries(this.dagConf.entrySet(), confProtoBuilder);
+      TezUtils.populateConfProtoFromMap(this.dagConf, confProtoBuilder);
     }
     // Copy historyLogLevel from tezConf into dagConf if its not overridden in dagConf.
     String logLevel = this.dagConf.get(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL);

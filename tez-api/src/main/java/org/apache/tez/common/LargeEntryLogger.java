@@ -21,45 +21,51 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_MASK;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_MASK_DEFAULT;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT;
 
-public class LargePropertyLogger {
-  private static final Logger LOG = LoggerFactory.getLogger(LargePropertyLogger.class);
+/**
+ * A configurable logger for large configuration/payload entries.
+ */
+public class LargeEntryLogger implements Consumer<Map.Entry<String, String>> {
+  private static final Logger LOG = LoggerFactory.getLogger(LargeEntryLogger.class);
   private final int threshold;
   private final boolean mask;
 
-  public static LargePropertyLogger from(Configuration c) {
-    return new LargePropertyLogger(
+  public static LargeEntryLogger from(Configuration c) {
+    return new LargeEntryLogger(
         c.getInt(TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD, TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT),
         c.getBoolean(TEZ_LOGGING_PROPERTY_MASK, TEZ_LOGGING_PROPERTY_MASK_DEFAULT));
   }
 
-  public static LargePropertyLogger from(Map<String, String> c) {
+  public static LargeEntryLogger from(Map<String, String> c) {
     String threshold = c.getOrDefault(TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD,
         String.valueOf(TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD_DEFAULT));
-    //TODO Not really 100% equivalent with Conf factory
     String mask = c.getOrDefault(TEZ_LOGGING_PROPERTY_MASK, String.valueOf(TEZ_LOGGING_PROPERTY_MASK_DEFAULT));
-    return new LargePropertyLogger(Integer.parseInt(threshold), Boolean.valueOf(mask));
+    return new LargeEntryLogger(Integer.parseInt(threshold), Boolean.parseBoolean(mask));
   }
 
-  private LargePropertyLogger(int threshold, boolean mask) {
+  private LargeEntryLogger(int threshold, boolean mask) {
     this.threshold = threshold;
     this.mask = mask;
   }
 
-  public Map.Entry<String, String> logEntry(Map.Entry<String, String> e) {
+  public void accept(Map.Entry<String, String> e) {
     String key = e.getKey();
     String value = e.getValue();
+    if (value == null) {
+      LOG.debug("Skipping entry '{}' cause value is null.", key);
+      return;
+    }
     if (value.length() > threshold) {
-      LOG.warn("Property '{}' is unusually big ({} bytes); large payload may lead to OOM.", key, value.length());
+      LOG.warn("Entry '{}' is unusually big ({} bytes); large entries may lead to OOM.", key, value.length());
       if (!mask) {
-        LOG.warn("Large property '{}': {}", key, value);
+        LOG.warn("Large entry '{}': {}", key, value);
       }
     }
-    return e;
   }
 }
