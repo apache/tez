@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.task;
 
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -27,7 +28,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,12 +41,21 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Lists;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
+import org.apache.tez.runtime.RuntimeTask.TaskLimitException;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
+import org.apache.tez.runtime.api.impl.InputSpec;
+import org.apache.tez.runtime.api.impl.OutputSpec;
+import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TaskStatistics;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
@@ -54,6 +68,9 @@ import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("rawtypes")
 public class TestTaskReporter {
+
+  private static final File TEST_DIR =
+      new File(System.getProperty("test.build.data"), TestTaskReporter.class.getName()).getAbsoluteFile();
 
   @Test(timeout = 10000)
   public void testContinuousHeartbeatsOnMaxEvents() throws Exception {
@@ -216,6 +233,38 @@ public class TestTaskReporter {
     Assert.assertEquals(counters, event.getCounters());
     Assert.assertEquals(stats, event.getStatistics());
 
+  }
+
+  @Test
+  public void testLocalFileSystemBytesWrittenLimit() throws IOException {
+    TaskSpec mockSpec = mock(TaskSpec.class);
+    when(mockSpec.getInputs()).thenReturn(Collections.singletonList(mock(InputSpec.class)));
+    when(mockSpec.getOutputs()).thenReturn(Collections.singletonList(mock(OutputSpec.class)));
+    TezConfiguration tezConf = new TezConfiguration();
+    LogicalIOProcessorRuntimeTask lio1 =
+        new LogicalIOProcessorRuntimeTask(mockSpec, 0, tezConf, null, null, null, null, null, null, "", null,
+            Runtime.getRuntime().maxMemory(), true, null, null);
+
+    LocalFileSystem localFS = FileSystem.getLocal(tezConf);
+    FileSystem.clearStatistics();
+    Path tmpPath =
+        new Path(TEST_DIR + "/testLocalFileSystemBytesWrittenLimit" + new Random(System.currentTimeMillis()).nextInt());
+    try (FSDataOutputStream out = localFS.create(tmpPath, true)) {
+      out.write(new byte[1024]);
+    }
+    // Check limits with default shouldn't throw exception.
+    lio1.checkTaskLimits();
+
+    tezConf.setLong(TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES, 10);
+    lio1 = new LogicalIOProcessorRuntimeTask(mockSpec, 0, tezConf, null, null, null, null, null, null, "", null,
+        Runtime.getRuntime().maxMemory(), true, null, null);
+
+    try {
+      lio1.checkTaskLimits();
+      Assert.fail("Expected to throw TaskLimitException");
+    } catch (TaskLimitException taskLimitException) {
+      Assert.assertTrue(taskLimitException.getMessage().contains("Too much write to local file system"));
+    }
   }
 
   private List<TezEvent> createEvents(int numEvents) {

@@ -44,6 +44,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.RuntimeTask.TaskLimitException;
 import org.apache.tez.runtime.api.*;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -261,6 +262,12 @@ public class TaskReporter implements TaskReporterInterface {
         if ((nonOobHeartbeatCounter.get() - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
           sendCounters = true;
           prevCounterSendHeartbeatNum = nonOobHeartbeatCounter.get();
+        }
+        try {
+          task.checkTaskLimits();
+        } catch (TaskLimitException tle) {
+          askedToDie.set(true);
+          return new ResponseWrapper(true, 1);
         }
         updateEvent = new TezEvent(getStatusUpdateEvent(sendCounters), updateEventMetadata);
         events.add(updateEvent);

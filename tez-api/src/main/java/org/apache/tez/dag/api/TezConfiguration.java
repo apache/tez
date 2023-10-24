@@ -2304,4 +2304,9 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
   public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0ms";
 
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty(type = "long")
+  public static final String TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES = "tez.thread.dump.interval";
+  public static final long TEZ_TASK_LOCAL_WRITE_LIMIT_BYTES_DEFAULT = -1;
+
 }
