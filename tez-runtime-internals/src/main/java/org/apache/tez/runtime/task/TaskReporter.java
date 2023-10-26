@@ -44,7 +44,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
-import org.apache.tez.runtime.RuntimeTask.TaskLimitException;
+import org.apache.tez.runtime.RuntimeTask.LocalWriteLimitException;
 import org.apache.tez.runtime.api.*;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -274,8 +274,8 @@ public class TaskReporter implements TaskReporterInterface {
             task.checkTaskLimits();
             localFileSystemBytesWrittenCheckInterval = now;
           }
-        } catch (TaskLimitException tle) {
-          LOG.error("Task limit exceeded", tle);
+        } catch (LocalWriteLimitException lwle) {
+          LOG.error("Local FileSystem write limit exceeded", lwle);
           askedToDie.set(true);
           return new ResponseWrapper(true, 1);
         }

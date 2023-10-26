@@ -199,9 +199,9 @@ public abstract class RuntimeTask {
   /**
    * Check whether the task has exceeded any configured limits.
    *
-   * @throws TaskLimitException in case the limit is exceeded.
+   * @throws LocalWriteLimitException in case the limit is exceeded.
    */
-  public void checkTaskLimits() throws TaskLimitException {
+  public void checkTaskLimits() throws LocalWriteLimitException {
     // check the limit for writing to local file system
     if (lfsBytesWriteLimit >= 0) {
       Long lfsBytesWritten = null;
@@ -212,7 +212,7 @@ public abstract class RuntimeTask {
         LOG.warn("Could not get LocalFileSystem bytesWritten counter");
       }
       if (lfsBytesWritten != null && lfsBytesWritten > lfsBytesWriteLimit) {
-        throw new TaskLimitException(
+        throw new LocalWriteLimitException(
             "Too much write to local file system." + " current value is " + lfsBytesWritten + " the limit is "
                 + lfsBytesWriteLimit);
       }
@@ -222,8 +222,8 @@ public abstract class RuntimeTask {
   /**
    * Exception thrown when the task exceeds some configured limits.
    */
-  public static class TaskLimitException extends IOException {
-    public TaskLimitException(String str) {
+  public static class LocalWriteLimitException extends IOException {
+    public LocalWriteLimitException(String str) {
       super(str);
     }
   }

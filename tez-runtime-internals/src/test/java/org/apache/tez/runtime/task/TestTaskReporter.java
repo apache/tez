@@ -51,7 +51,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
-import org.apache.tez.runtime.RuntimeTask.TaskLimitException;
+import org.apache.tez.runtime.RuntimeTask.LocalWriteLimitException;
 import org.apache.tez.runtime.api.events.TaskStatusUpdateEvent;
 import org.apache.tez.runtime.api.impl.InputSpec;
 import org.apache.tez.runtime.api.impl.OutputSpec;
@@ -261,9 +261,9 @@ public class TestTaskReporter {
 
     try {
       lio1.checkTaskLimits();
-      Assert.fail("Expected to throw TaskLimitException");
-    } catch (TaskLimitException taskLimitException) {
-      Assert.assertTrue(taskLimitException.getMessage().contains("Too much write to local file system"));
+      Assert.fail("Expected to throw LocalWriteLimitException");
+    } catch (LocalWriteLimitException localWriteLimitException) {
+      Assert.assertTrue(localWriteLimitException.getMessage().contains("Too much write to local file system"));
     }
   }
 
