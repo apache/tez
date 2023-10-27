@@ -927,6 +927,7 @@
               <test.build.data>${test.build.data}</test.build.data>
               <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
               <tez.hadoop.version>${hadoop.version}</tez.hadoop.version>
+              <project.build.directory>${project.build.directory}</project.build.directory>
             </systemPropertyVariables>
           </configuration>
         </plugin>
