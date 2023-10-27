@@ -44,6 +44,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.RuntimeTask.LocalWriteLimitException;
 import org.apache.tez.runtime.api.*;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -141,6 +142,8 @@ public class TaskReporter implements TaskReporterInterface {
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
     private static final int HEAP_MEMORY_USAGE_UPDATE_INTERVAL = 5000; // 5 seconds
 
+    private static final int LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL = 10000; // 10 seconds
+
     private final RuntimeTask task;
     private final EventMetaData updateEventMetadata;
 
@@ -164,6 +167,9 @@ public class TaskReporter implements TaskReporterInterface {
     private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
     private long usedMemory = 0;
     private long heapMemoryUsageUpdatedTime = System.currentTimeMillis() - HEAP_MEMORY_USAGE_UPDATE_INTERVAL;
+
+    private long localFileSystemBytesWrittenCheckInterval =
+        System.currentTimeMillis() - LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL;
 
     /*
      * Keeps track of regular timed heartbeats. Is primarily used as a timing mechanism to send /
@@ -261,6 +267,17 @@ public class TaskReporter implements TaskReporterInterface {
         if ((nonOobHeartbeatCounter.get() - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
           sendCounters = true;
           prevCounterSendHeartbeatNum = nonOobHeartbeatCounter.get();
+        }
+        try {
+          long now = System.currentTimeMillis();
+          if (now - localFileSystemBytesWrittenCheckInterval > LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL) {
+            task.checkTaskLimits();
+            localFileSystemBytesWrittenCheckInterval = now;
+          }
+        } catch (LocalWriteLimitException lwle) {
+          LOG.error("Local FileSystem write limit exceeded", lwle);
+          askedToDie.set(true);
+          return new ResponseWrapper(true, 1);
         }
         updateEvent = new TezEvent(getStatusUpdateEvent(sendCounters), updateEventMetadata);
         events.add(updateEvent);

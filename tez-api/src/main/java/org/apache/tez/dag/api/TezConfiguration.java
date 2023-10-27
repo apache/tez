@@ -2304,4 +2304,12 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
   public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0ms";
 
+  /**
+   * Limits the amount of data that can be written to LocalFileSystem by a Task.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty(type = "long")
+  public static final String TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES = "tez.task.local-fs.write-limit.bytes";
+  public static final long TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT = -1;
+
 }
