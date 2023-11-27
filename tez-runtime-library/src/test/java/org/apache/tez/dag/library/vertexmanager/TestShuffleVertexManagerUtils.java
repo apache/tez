@@ -20,6 +20,7 @@ package org.apache.tez.dag.library.vertexmanager;
 
 
 import com.google.protobuf.ByteString;
+import java.util.Arrays;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.ReflectionUtils;
@@ -125,10 +126,10 @@ public class TestShuffleVertexManagerUtils {
       long uncompressedTotalSize, String vertexName, boolean reportDetailedStats)
       throws IOException {
     ByteBuffer payload;
-    long totalSize = 0;
+    final long totalSize;
     // Use partition sizes to compute the total size.
     if (partitionSizes != null) {
-      totalSize = estimatedUncompressedSum(partitionSizes);
+      totalSize = Arrays.stream(partitionSizes).sum();
     } else {
       totalSize = uncompressedTotalSize;
     }
@@ -167,16 +168,6 @@ public class TestShuffleVertexManagerUtils {
     VertexManagerEvent vmEvent = VertexManagerEvent.create(vertexName, payload);
     vmEvent.setProducerAttemptIdentifier(taId);
     return vmEvent;
-  }
-
-  // Assume 3 : 1 compression ratio to estimate the total size
-  // of all partitions.
-  long estimatedUncompressedSum(long[] partitionStats) {
-    long sum = 0;
-    for (long partition : partitionStats) {
-      sum += partition;
-    }
-    return sum * 3;
   }
 
   public static TaskAttemptIdentifier createTaskAttemptIdentifier(String vName, int tId) {
