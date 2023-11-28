@@ -131,6 +131,7 @@ public abstract class ExternalSorter {
   protected final boolean cleanup;
 
   protected OutputStatisticsReporter statsReporter;
+  // uncompressed size for each partition
   protected final long[] partitionStats;
   protected final boolean finalMergeEnabled;
   protected final boolean sendEmptyPartitionDetails;

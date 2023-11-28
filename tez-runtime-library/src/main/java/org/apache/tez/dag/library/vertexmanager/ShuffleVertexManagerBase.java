@@ -130,7 +130,9 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     final BitSet finishedTaskSet;
     int numTasks;
     int numVMEventsReceived;
+    // The total uncompressed size
     long outputSize;
+    // The uncompressed size of each partition. The size might not be precise
     int[] statsInMB;
     EdgeManagerPluginDescriptor newDescriptor;
 
