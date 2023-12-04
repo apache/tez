@@ -37,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple record reader which reads the TFile and emits it as key, value pair.
@@ -84,7 +85,7 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     //splitpath contains the machine name. Create the key as splitPath + realKey
     String keyStr = new StringBuilder()
         .append(splitPath.getName()).append(":")
-        .append(new String(keyBytesWritable.getBytes()))
+        .append(new String(keyBytesWritable.getBytes(), StandardCharsets.UTF_8))
         .toString();
 
     /**
@@ -92,7 +93,7 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
      * better to handle such scenarios.
      */
     currentValueReader = new BufferedReader(
-        new InputStreamReader(entry.getValueStream()));
+        new InputStreamReader(entry.getValueStream(), StandardCharsets.UTF_8));
     key.set(keyStr);
     String line = currentValueReader.readLine();
     value.set((line == null) ? "" : line);
