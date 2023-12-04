@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -293,9 +294,10 @@ public final class TezCommonUtils {
   public static void mkDirForAM(FileSystem fs, Path dir) throws IOException {
     FsPermission perm = new FsPermission(TEZ_AM_DIR_PERMISSION);
     fs.mkdirs(dir, perm);
-    if (!fs.getFileStatus(dir).getPermission().equals(perm)) {
+    FileStatus fileStatus = fs.getFileStatus(dir);
+    if (!fileStatus.getPermission().equals(perm)) {
       LOG.warn("Directory " + dir.toString() + " created with unexpected permissions : "
-            + fs.getFileStatus(dir).getPermission() + ". Fixing permissions to correct value : "
+            + fileStatus.getPermission() + ". Fixing permissions to correct value : "
             + perm.toString());
       fs.setPermission(dir, perm);
     }

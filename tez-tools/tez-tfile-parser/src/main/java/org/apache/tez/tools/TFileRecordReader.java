@@ -32,6 +32,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.util.functional.FutureIO;
 
 import java.io.BufferedReader;
 import java.io.EOFException;
@@ -74,9 +75,9 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
 
     FileSystem fs = fileSplit.getPath().getFileSystem(context.getConfiguration());
     splitPath = fileSplit.getPath();
-    fin = fs.open(splitPath);
-    reader = new TFile.Reader(fin, fs.getFileStatus(splitPath).getLen(),
-        context.getConfiguration());
+    FileStatus fileStatus = fs.getFileStatus(splitPath);
+    fin = FutureIO.awaitFuture(rfs.openFile(splitPath).withFileStatus(fileStatus).build());
+    reader = new TFile.Reader(fin, fileStatus.getLen(), context.getConfiguration());
     scanner = reader.createScannerByByteRange(start, fileSplit.getLength());
   }
 
