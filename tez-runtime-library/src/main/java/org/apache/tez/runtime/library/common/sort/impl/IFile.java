@@ -29,9 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
-import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
