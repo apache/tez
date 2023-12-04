@@ -1034,13 +1034,12 @@ public final class TezClientUtils {
       return true;
     }
 
-    FileStatus fileStatus = fs.getFileStatus(pathComponent);
-    if (fileStatus.isFile()) {
+    if (fs.getFileStatus(pathComponent).isFile()) {
       pathComponent = pathComponent.getParent();
     }
 
     while (pathComponent != null) {
-      if (!fileStatus.getPermission().getOtherAction().implies(permission)) {
+      if (!fs.getFileStatus(pathComponent).getPermission().getOtherAction().implies(permission)) {
         return false;
       }
       pathComponent = pathComponent.getParent();
