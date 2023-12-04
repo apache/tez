@@ -23,6 +23,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -76,7 +77,7 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     FileSystem fs = fileSplit.getPath().getFileSystem(context.getConfiguration());
     splitPath = fileSplit.getPath();
     FileStatus fileStatus = fs.getFileStatus(splitPath);
-    fin = FutureIO.awaitFuture(rfs.openFile(splitPath).withFileStatus(fileStatus).build());
+    fin = FutureIO.awaitFuture(fs.openFile(splitPath).withFileStatus(fileStatus).build());
     reader = new TFile.Reader(fin, fileStatus.getLen(), context.getConfiguration());
     scanner = reader.createScannerByByteRange(start, fileSplit.getLength());
   }
