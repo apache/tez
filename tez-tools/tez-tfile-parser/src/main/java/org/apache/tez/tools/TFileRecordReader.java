@@ -23,6 +23,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -32,6 +33,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.util.functional.FutureIO;
 
 import java.io.BufferedReader;
 import java.io.EOFException;
@@ -74,9 +76,9 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
 
     FileSystem fs = fileSplit.getPath().getFileSystem(context.getConfiguration());
     splitPath = fileSplit.getPath();
-    fin = fs.open(splitPath);
-    reader = new TFile.Reader(fin, fs.getFileStatus(splitPath).getLen(),
-        context.getConfiguration());
+    FileStatus fileStatus = fs.getFileStatus(splitPath);
+    fin = FutureIO.awaitFuture(fs.openFile(splitPath).withFileStatus(fileStatus).build());
+    reader = new TFile.Reader(fin, fileStatus.getLen(), context.getConfiguration());
     scanner = reader.createScannerByByteRange(start, fileSplit.getLength());
   }
 

@@ -36,6 +36,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.common.TezCommonUtils;
@@ -430,12 +431,11 @@ public class RecoveryParser {
     return TezCommonUtils.getSummaryRecoveryPath(attemptRecoveryDataDir);
   }
 
-  private FSDataInputStream getSummaryStream(Path summaryPath) throws IOException {
+  private FSDataInputStream getSummaryStream(Path summaryPath, FileStatus summaryFileStatus) throws IOException {
     try {
-      return recoveryFS.open(summaryPath, recoveryBufferSize);
+      return FutureIO.awaitFuture(recoveryFS.openFile(summaryPath).withFileStatus(summaryFileStatus).build());
     } catch (FileNotFoundException fnf) {
       return null;
-
     }
   }
 
@@ -667,7 +667,7 @@ public class RecoveryParser {
           + ", len=" + summaryFileStatus.getLen()
           + ", lastModTime=" + summaryFileStatus.getModificationTime());
       FSDataInputStream summaryStream = getSummaryStream(
-          summaryFile);
+          summaryFile, summaryFileStatus);
       while (true) {
         RecoveryProtos.SummaryEventProto proto;
         try {
