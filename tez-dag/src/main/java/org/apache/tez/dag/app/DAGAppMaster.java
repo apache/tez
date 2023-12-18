@@ -2606,7 +2606,7 @@ public class DAGAppMaster extends AbstractService {
     currentDAG = dag;
     final Configuration conf = dag.getConf();
     final String[] hookClasses = conf.getStrings(TezConfiguration.TEZ_AM_HOOKS, new String[0]);
-    final TezDAGHook[] hooks = new TezDAGHook[hookClasses.length];
+    hooks = new TezDAGHook[hookClasses.length];
     for (int i = 0; i < hooks.length; i++) {
       hooks[i] = ReflectionUtils.createClazzInstance(hookClasses[i]);
       hooks[i].start(dag.getID(), conf);
