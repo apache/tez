@@ -49,6 +49,12 @@
       <version>${project.version}</version>
       <type>test-jar</type>
     </dependency>
+    <dependency>
+        <groupId>org.apache.tez</groupId>
+        <artifactId>tez-job-analyzer</artifactId>
+        <version>${project.version}</version>
+        <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <properties>
