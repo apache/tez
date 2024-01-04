@@ -23,10 +23,3 @@ Talks
     Hitesh Shah at [Hadoop Summit 2014, San Jose, CA, USA](http://hadoopsummit.org/san-jose/)
     -   [Slides](https://www.slideshare.net/Hadoop_Summit/w-1205phall1saha)
     -   [Video](https://www.youtube.com/watch?v=yf_hBiZy3nk)
-
-User Meetup Recordings
-----------------------
-
--   [Recording](https://hortonworks.webex.com/hortonworks/ldr.php?AT=pb&amp;SP=MC&amp;rID=125516477&amp;rKey=d147a3c924b64496)
-    from [Meetup on July 31st, 2013](https://www.meetup.com/Apache-Tez-User-Group/events/130852782/)
-    at [Hortonworks Inc](https://hortonworks.com)
