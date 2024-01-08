@@ -124,7 +124,11 @@ public final class LoggingUtils {
       mdcField.set(null, mdc);
 
     } catch (Exception e) {
-      LOG.warn("Cannot set log4j global MDC, mdcContext won't be applied to log4j's MDC class", e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot set log4j global MDC, mdcContext won't be applied to log4j's MDC class", e);
+      } else {
+        LOG.warn("Cannot set log4j global MDC, mdcContext won't be applied to log4j's MDC class: {}", e.getMessage());
+      }
     }
 
     return mdcContext;
