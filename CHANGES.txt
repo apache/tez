@@ -7,6 +7,7 @@ INCOMPATIBLE CHANGES
 
 ALL CHANGES:
 
+TEZ-4526: Avoid calling LocationProvider#getPreferredLocations multiple times while generating grouped splits (#323)
 TEZ-4039: Addendum: Tez should inject dag id, query id into MDC. (#325) (Ayush Saxena reviewed by Laszlo Bodor)
 TEZ-4520: Enable Parallel Compilation for TEZ (#315) (JiaLiangC reviewed by Laszlo Bodor)
 TEZ-4494: Addressing CVE-2022-41881 - Netty vulnerability (#287) ( Sercan Tekin reviewed by Laszlo Bodor)
