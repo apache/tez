@@ -208,10 +208,12 @@ public abstract class TezSplitGrouper {
 
     long totalLength = 0;
     Map<String, LocationHolder> distinctLocations = createLocationsMap(conf);
+    Map<SplitContainer, String[]> splitToLocationsMap = new HashMap<>(originalSplits.size());
     // go through splits and add them to locations
     for (SplitContainer split : originalSplits) {
       totalLength += estimator.getEstimatedSize(split);
       String[] locations = locationProvider.getPreferredLocations(split);
+      splitToLocationsMap.put(split, locations);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
         allSplitsHaveLocalhost = false;
@@ -293,7 +295,7 @@ public abstract class TezSplitGrouper {
       groupedSplits = new ArrayList<GroupedSplitContainer>(originalSplits.size());
       for (SplitContainer split : originalSplits) {
         GroupedSplitContainer newSplit =
-            new GroupedSplitContainer(1, wrappedInputFormatName, cleanupLocations(locationProvider.getPreferredLocations(split)),
+            new GroupedSplitContainer(1, wrappedInputFormatName, cleanupLocations(splitToLocationsMap.get(split)),
                 null);
         newSplit.addSplit(split);
         groupedSplits.add(newSplit);
@@ -314,7 +316,7 @@ public abstract class TezSplitGrouper {
     Set<String> locSet = new HashSet<String>();
     for (SplitContainer split : originalSplits) {
       locSet.clear();
-      String[] locations = locationProvider.getPreferredLocations(split);
+      String[] locations = splitToLocationsMap.get(split);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
       }
@@ -408,7 +410,7 @@ public abstract class TezSplitGrouper {
           groupLocation = null;
         } else if (doingRackLocal) {
           for (SplitContainer splitH : group) {
-            String[] locations = locationProvider.getPreferredLocations(splitH);
+            String[] locations = splitToLocationsMap.get(splitH);
             if (locations != null) {
               for (String loc : locations) {
                 if (loc != null) {
@@ -503,7 +505,7 @@ public abstract class TezSplitGrouper {
           }
           numRackSplitsToGroup--;
           rackSet.clear();
-          String[] locations = locationProvider.getPreferredLocations(split);
+          String[] locations = splitToLocationsMap.get(split);
           if (locations == null || locations.length == 0) {
             locations = emptyLocations;
           }
