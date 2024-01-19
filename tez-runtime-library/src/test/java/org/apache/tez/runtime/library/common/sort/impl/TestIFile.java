@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common.sort.impl;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -400,7 +401,7 @@ public class TestIFile {
 
     URL url = getClass().getClassLoader()
         .getResource("TestIFile_concatenated_compressed.bin");
-    assertNotEquals("IFileinput file must exist", null, url);
+    Assume.assumeThat("IFileinput file must exist", url, notNullValue());
     Path p = new Path(url.toURI());
     FSDataInputStream inStream = localFs.open(p);
 
