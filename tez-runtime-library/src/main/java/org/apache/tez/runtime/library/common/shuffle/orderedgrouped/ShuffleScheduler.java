@@ -1175,7 +1175,19 @@ class ShuffleScheduler {
     } else {
       isInputFinished = isInputFinished(id.getInputIdentifier());
     }
-    return !obsoleteInputs.contains(id) && !isInputFinished;
+    return !isObsoleteInputAttemptIdentifier(id) && !isInputFinished;
+  }
+
+  private boolean isObsoleteInputAttemptIdentifier(InputAttemptIdentifier input) {
+    InputAttemptIdentifier obsoleteInput;
+    Iterator<InputAttemptIdentifier> obsoleteInputsIter = obsoleteInputs.iterator();
+    while (obsoleteInputsIter.hasNext()) {
+      obsoleteInput = obsoleteInputsIter.next();
+      if (input.include(obsoleteInput.getInputIdentifier(), obsoleteInput.getAttemptNumber())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public synchronized List<InputAttemptIdentifier> getMapsForHost(MapHost host) {

@@ -50,6 +50,12 @@ public class CompositeInputAttemptIdentifier extends InputAttemptIdentifier {
     return new InputAttemptIdentifier(getInputIdentifier() + inputIdentifierOffset, getAttemptNumber(), getPathComponent(), isShared(), getFetchTypeInfo(), getSpillEventId());
   }
 
+  public boolean include(int thatInputIdentifier, int thatAttemptNumber) {
+    return
+        super.getInputIdentifier() <= thatInputIdentifier && thatInputIdentifier < (super.getInputIdentifier() + inputIdentifierCount) &&
+        super.getAttemptNumber() == thatAttemptNumber;
+  }
+
   // PathComponent & shared does not need to be part of the hashCode and equals computation.
   @Override
   public int hashCode() {
@@ -63,6 +69,6 @@ public class CompositeInputAttemptIdentifier extends InputAttemptIdentifier {
 
   @Override
   public String toString() {
-    return super.toString();
+    return super.toString() + ", count=" + inputIdentifierCount;
   }
 }
