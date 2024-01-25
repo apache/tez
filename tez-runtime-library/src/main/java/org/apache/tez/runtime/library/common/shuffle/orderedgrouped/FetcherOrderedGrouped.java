@@ -340,8 +340,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   boolean setupConnection(MapHost host, Collection<InputAttemptIdentifier> attempts)
       throws IOException {
     boolean connectSucceeded = false;
+    StringBuilder baseURI = null;
     try {
-      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
+      baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
           host.getPort(), host.getPartitionId(), host.getPartitionCount(), applicationId, dagId, sslShuffle);
       URL url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts, httpConnectionParams.isKeepAlive());
       httpConnection = ShuffleUtils.getHttpConnection(asyncHttp, url, httpConnectionParams,
@@ -364,13 +365,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       }
       ioErrs.increment(1);
       if (!connectSucceeded) {
-        LOG.warn(String.format("Failed to connect from %s to %s with %d inputs", localShuffleHost,
-            host, remaining.size()), ie);
+        LOG.warn("FETCH_FAILURE: Failed to connect from {} to {} with {} inputs, url: {}", localShuffleHost,
+            host, remaining.size(), baseURI, ie);
         connectionErrs.increment(1);
       } else {
-        LOG.warn(String.format(
-            "Failed to verify reply after connecting from %s to %s with %d inputs pending",
-            localShuffleHost, host, remaining.size()), ie);
+        LOG.warn(
+            "FETCH_FAILURE: Failed to verify reply after connecting from {} to {} with {} inputs pending, url: {}",
+            localShuffleHost, host, remaining.size(), baseURI, ie);
       }
 
       // At this point, either the connection failed, or the initial header verification failed.
