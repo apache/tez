@@ -24,7 +24,7 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.ipc.ProtobufRpcEngine;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.service.AbstractService;
@@ -121,7 +121,7 @@ public class TezTestServiceProtocolServerImpl extends AbstractService
   private RPC.Server createServer(Class<?> pbProtocol, InetSocketAddress addr, Configuration conf,
                                   int numHandlers, BlockingService blockingService) throws
       IOException {
-    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine.class);
+    RPC.setProtocolEngine(conf, pbProtocol, ProtobufRpcEngine2.class);
     RPC.Server server = new RPC.Builder(conf)
         .setProtocol(pbProtocol)
         .setInstance(blockingService)

@@ -20,7 +20,7 @@ import java.net.InetSocketAddress;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.ipc.ProtobufRpcEngine;
+import org.apache.hadoop.ipc.ProtobufRpcEngine2;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.tez.service.TezTestServiceProtocolBlockingPB;
@@ -74,7 +74,7 @@ public class TezTestServiceProtocolClientImpl implements TezTestServiceProtocolB
   public TezTestServiceProtocolBlockingPB createProxy() throws IOException {
     TezTestServiceProtocolBlockingPB p;
     // TODO Fix security
-    RPC.setProtocolEngine(conf, TezTestServiceProtocolBlockingPB.class, ProtobufRpcEngine.class);
+    RPC.setProtocolEngine(conf, TezTestServiceProtocolBlockingPB.class, ProtobufRpcEngine2.class);
     p = (TezTestServiceProtocolBlockingPB) RPC
         .getProxy(TezTestServiceProtocolBlockingPB.class, 0, serverAddr, conf);
     return p;
