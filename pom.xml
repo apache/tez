@@ -88,7 +88,7 @@
     <maven-site-plugin.version>2.4</maven-site-plugin.version>
     <metrics-core.version>3.1.0</metrics-core.version>
     <mockito-core.version>4.3.1</mockito-core.version>
-    <netty.version>4.1.94.Final</netty.version>
+    <netty.version>4.1.100.Final</netty.version>
     <pig.version>0.13.0</pig.version>
     <protobuf.version>3.21.1</protobuf.version>
     <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
