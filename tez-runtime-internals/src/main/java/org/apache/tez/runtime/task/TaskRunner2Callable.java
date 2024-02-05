@@ -19,6 +19,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.statistics.IOStatisticsContext;
 import org.apache.hadoop.fs.statistics.IOStatisticsLogging;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.common.CallableWithNdc;
@@ -29,8 +30,6 @@ import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.hadoop.fs.statistics.IOStatisticsContext.getCurrentIOStatisticsContext;
 
 /**
  * This class is responsible for running a {@link LogicalIOProcessorRuntimeTask}.
@@ -79,7 +78,7 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
           LOG.info("Initializing task" + ", taskAttemptId={}", task.getTaskAttemptID());
           TezUtilsInternal.setHadoopCallerContext(task.getHadoopShim(), task.getTaskAttemptID());
           TezCommonUtils.logCredentials(LOG, ugi.getCredentials(), "taskInit");
-          getCurrentIOStatisticsContext().reset();
+          IOStatisticsContext.getCurrentIOStatisticsContext().reset();
           task.initialize();
 
           if (!stopRequested.get() && !Thread.currentThread().isInterrupted()) {
@@ -121,8 +120,8 @@ public class TaskRunner2Callable extends CallableWithNdc<TaskRunner2Callable.Tas
       // For a successful task, however, this should be almost no delay since close has already happened.
       maybeFixInterruptStatus();
       LOG.info("Cleaning up task {}, stopRequested={}", task.getTaskAttemptID(), stopRequested.get());
-      String ioStats =
-          IOStatisticsLogging.ioStatisticsToPrettyString(getCurrentIOStatisticsContext().getIOStatistics());
+      String ioStats = IOStatisticsLogging.ioStatisticsToPrettyString(
+          IOStatisticsContext.getCurrentIOStatisticsContext().getIOStatistics());
       if (StringUtils.isNotEmpty(ioStats)) {
         LOG.info("TaskAttemptId={}, {}", task.getTaskAttemptID(), ioStats);
       }
