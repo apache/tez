@@ -24,7 +24,7 @@
   <groupId>org.apache.tez</groupId>
   <artifactId>tez</artifactId>
   <packaging>pom</packaging>
-  <version>0.10.3-SNAPSHOT</version>
+  <version>0.10.4-SNAPSHOT</version>
   <name>tez</name>
 
   <licenses>
