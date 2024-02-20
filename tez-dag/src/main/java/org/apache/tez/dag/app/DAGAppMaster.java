@@ -44,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -59,6 +60,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Objects;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 
@@ -312,10 +314,7 @@ public class DAGAppMaster extends AbstractService {
   private final BiMap<String, Integer> containerLaunchers = HashBiMap.create();
   private final BiMap<String, Integer> taskCommunicators = HashBiMap.create();
 
-  /**
-   * set of already executed dag names.
-   */
-  Set<String> dagIDs = new HashSet<String>();
+  Queue<String> dagIDs = EvictingQueue.create(10);
 
   protected boolean isLastAMRetry = false;
 
@@ -1522,8 +1521,8 @@ public class DAGAppMaster extends AbstractService {
     }
 
     @Override
-    public Set<String> getAllDAGIDs() {
-      return dagIDs;
+    public Set<String> getRecentDAGIDs() {
+      return new HashSet<>(dagIDs);
     }
 
     @Override

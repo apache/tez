@@ -80,7 +80,7 @@ public interface AppContext {
 
   void setDAGRecoveryData(DAGRecoveryData dagRecoveryData);
 
-  Set<String> getAllDAGIDs();
+  Set<String> getRecentDAGIDs();
 
   @SuppressWarnings("rawtypes")
   EventHandler getEventHandler();
