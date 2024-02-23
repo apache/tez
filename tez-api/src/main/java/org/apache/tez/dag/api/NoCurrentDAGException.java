@@ -21,15 +21,19 @@ package org.apache.tez.dag.api;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 /**
- *  Thrown by the AM when the DAG for which the status was queried
- *  is not running anymore: client can decide further action in this case.
+ *  Fatal exception: thrown by the AM if there is no DAG running when
+ *  when a DAG's status is queried. This is different from {@link org.apache.tez.dag.api.DAGNotRunningException}
+ *  in a sense that this exception is fatal, in which scenario the client might consider the DAG failed, because
+ *  it tries to ask a status from an AM which is not currently running a DAG. This scenario is possible in case
+ *  an AM is restarted and the DagClient fails to realize it's asking the status of a possibly lost DAG.
  */
 @Private
-public class DAGNotRunningException extends TezException {
+public class NoCurrentDAGException extends TezException {
   private static final long serialVersionUID = 6337442733802964448L;
-  public DAGNotRunningException(Throwable cause) { super(cause); }
-  public DAGNotRunningException(String message) { super(message); }
-  public DAGNotRunningException(String message, Throwable cause) {
-    super(message, cause);
+
+  public static final String MESSAGE_PREFIX = "No running DAG at present";
+
+  public NoCurrentDAGException(String dagId) {
+    super(MESSAGE_PREFIX + ": " + dagId);
   }
 }

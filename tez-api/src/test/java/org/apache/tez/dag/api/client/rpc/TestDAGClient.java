@@ -45,6 +45,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.common.CachedEntity;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
@@ -435,7 +436,7 @@ public class TestDAGClient {
   }
 
   private static class DAGClientRPCImplForTest extends DAGClientRPCImpl {
-    private AtomicReference<IOException> faultAMInjectedRef;
+    private AtomicReference<TezException> faultAMInjectedRef;
     int numGetStatusViaAmInvocations = 0;
 
     public DAGClientRPCImplForTest(ApplicationId appId, String dagId,
@@ -472,7 +473,7 @@ public class TestDAGClient {
       return super.getDAGStatusViaAM(statusOptions, timeout);
     }
 
-    void injectAMFault(IOException exception) {
+    void injectAMFault(TezException exception) {
       faultAMInjectedRef.set(exception);
     }
   }
@@ -667,7 +668,7 @@ public class TestDAGClient {
       // When AM proxy throws an exception, the cachedDAGStatus should be returned
       dagClientImpl.resetCounters();
       dagClientRpc.resetCounters();
-      dagClientRpc.injectAMFault(new IOException("injected Fault"));
+      dagClientRpc.injectAMFault(new TezException("injected Fault"));
       dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
       // get the Status from the cache
       assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
@@ -678,7 +679,7 @@ public class TestDAGClient {
 
       // test that RM is invoked when the cacheExpires and the AM fails.
       dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
-      dagClientRpc.injectAMFault(new IOException("injected AM Fault"));
+      dagClientRpc.injectAMFault(new TezException("injected AM Fault"));
       dagClientImpl.resetCounters();
       dagClientRpc.resetCounters();
       dagClientImpl.enforceExpirationCachedDAGStatus();
@@ -708,6 +709,25 @@ public class TestDAGClient {
         assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
         assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
       }
+    }
+  }
+
+  @Test
+  public void testDagClientReturnsFailedDAGOnNoCurrentDAGException() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration();
+
+    try (DAGClientImplForTest dagClientImpl = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
+
+      DAGClientRPCImplForTest dagClientRpc = new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
+      dagClientImpl.setRealClient(dagClientRpc);
+
+      DAGClientAMProtocolBlockingPB mock = mock(DAGClientAMProtocolBlockingPB.class);
+      dagClientRpc.setAMProxy(mock);
+      dagClientRpc.injectAMFault(new NoCurrentDAGException("dag_0_0_0"));
+
+      DAGStatus dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      assertEquals(DAGStatus.State.FAILED, dagStatus.getState());
+      assertEquals(NoCurrentDAGException.MESSAGE_PREFIX, dagStatus.getDiagnostics().get(0));
     }
   }
 }

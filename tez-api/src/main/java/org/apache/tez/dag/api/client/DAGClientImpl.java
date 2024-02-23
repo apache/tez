@@ -46,6 +46,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DAGNotRunningException;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.TezUncheckedException;
@@ -408,6 +409,8 @@ public class DAGClientImpl extends DAGClient {
     } catch (ApplicationNotFoundException e) {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       dagCompleted = true;
+    } catch (NoCurrentDAGException e) {
+      return dagLost(e);
     } catch (TezException e) {
       // can be either due to a n/w issue or due to AM completed.
       LOG.info("Cannot retrieve DAG Status due to TezException: {}", e.getMessage());
@@ -423,6 +426,14 @@ public class DAGClientImpl extends DAGClient {
     return dagStatus;
   }
 
+  private DAGStatus dagLost(Exception e) {
+    DAGProtos.DAGStatusProto.Builder builder = DAGProtos.DAGStatusProto.newBuilder();
+    DAGStatus dagStatus = new DAGStatus(builder, DagStatusSource.AM);
+    builder.setState(DAGProtos.DAGStatusStateProto.DAG_FAILED);
+    builder.addAllDiagnostics(Collections.singleton(NoCurrentDAGException.MESSAGE_PREFIX));
+    return dagStatus;
+  }
+
   private VertexStatus getVertexStatusViaAM(String vertexName, Set<StatusGetOpts> statusOptions) throws
       IOException {
     VertexStatus vertexStatus = null;
@@ -435,9 +446,11 @@ public class DAGClientImpl extends DAGClient {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       dagCompleted = true;
     } catch (TezException e) {
-      // can be either due to a n/w issue of due to AM completed.
+      // can be either due to a n/w issue or due to AM completed.
+      LOG.info("Cannot retrieve Vertex Status due to TezException: {}", e.getMessage());
     } catch (IOException e) {
       // can be either due to a n/w issue of due to AM completed.
+      LOG.info("Cannot retrieve Vertex Status due to IOException: {}", e.getMessage());
     }
 
     if (vertexStatus == null && !dagCompleted) {
@@ -455,10 +468,11 @@ public class DAGClientImpl extends DAGClient {
    */
   @VisibleForTesting
   protected DAGStatus getDAGStatusViaRM() throws TezException, IOException {
-    LOG.debug("GetDAGStatus via AM for app: {} dag:{}", appId, dagId);
+    LOG.debug("Get DAG status via framework client for app: {} dag: {}", appId, dagId);
     ApplicationReport appReport;
     try {
       appReport = frameworkClient.getApplicationReport(appId);
+      LOG.debug("Got appReport from framework client: {}", appReport);
     } catch (ApplicationNotFoundException e) {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       throw new DAGNotRunningException(e);

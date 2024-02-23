@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezAppMasterStatus;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.AppContext;
@@ -58,12 +59,9 @@ public class TestDAGClientHandler {
     when(mockDAG.getVertexStatus(anyString(), anySet()))
         .thenReturn(mockVertexStatusBuilder);
 
-    DAGAppMaster mockDagAM = mock(DAGAppMaster.class);
-    when(mockDagAM.getState()).thenReturn(DAGAppMasterState.RUNNING);
-    AppContext mockAppContext = mock(AppContext.class);
-    when(mockDagAM.getContext()).thenReturn(mockAppContext);
+    DAGAppMaster mockDagAM = getMockAm();
+
     when(mockDagAM.getContext().getCurrentDAG()).thenReturn(mockDAG);
-    when(mockAppContext.getClock()).thenReturn(new SystemClock());
 
     DAGClientHandler dagClientHandler = new DAGClientHandler(mockDagAM);
 
@@ -130,5 +128,44 @@ public class TestDAGClientHandler {
     dagClientHandler.shutdownAM();
     verify(mockDagAM).shutdownTezAM(contains("Received message to shutdown AM from"));
   }
-  
+
+  @Test
+  public void testCurrentDAGFound() throws TezException {
+    TezDAGID mockTezDAGId = mock(TezDAGID.class);
+    when(mockTezDAGId.getId()).thenReturn(1);
+    when(mockTezDAGId.toString()).thenReturn("dag_9999_0001_1");
+
+    DAG mockDAG = mock(DAG.class);
+    when(mockDAG.getID()).thenReturn(mockTezDAGId);
+
+    DAGAppMaster mockDagAM = getMockAm();
+
+    // make the DAGAppMaster return the mockDAG as current DAG
+    when(mockDagAM.getContext().getCurrentDAG()).thenReturn(mockDAG);
+
+    DAGClientHandler dagClientHandler = new DAGClientHandler(mockDagAM);
+    assertEquals("dag_9999_0001_1", dagClientHandler.getDAG("dag_9999_0001_1").getID().toString());
+  }
+
+  @Test(expected = NoCurrentDAGException.class)
+  public void testNoCurrentDAGException() throws TezException {
+    DAGAppMaster mockDagAM = getMockAm();
+
+    // make the DAGAppMaster return null as current DAG
+    when(mockDagAM.getContext().getCurrentDAG()).thenReturn(null);
+
+    // so this should throw NoCurrentDAGException
+    new DAGClientHandler(mockDagAM).getDAG("dag_0000_0000_0");
+  }
+
+  private DAGAppMaster getMockAm() {
+    DAGAppMaster mockDagAM = mock(DAGAppMaster.class);
+    when(mockDagAM.getState()).thenReturn(DAGAppMasterState.RUNNING);
+
+    AppContext mockAppContext = mock(AppContext.class);
+    when(mockDagAM.getContext()).thenReturn(mockAppContext);
+    when(mockAppContext.getClock()).thenReturn(new SystemClock());
+
+    return mockDagAM;
+  }
 }

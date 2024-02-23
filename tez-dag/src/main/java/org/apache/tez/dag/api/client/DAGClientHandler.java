@@ -32,6 +32,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.client.TezAppMasterStatus;
 import org.apache.tez.dag.api.DAGNotRunningException;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.app.DAGAppMaster;
@@ -94,7 +95,7 @@ public class DAGClientHandler {
 
     DAG currentDAG = getCurrentDAG();
     if (currentDAG == null) {
-      throw new TezException("No running dag at present");
+      throw new NoCurrentDAGException(dagIdStr);
     }
 
     final String currentDAGIdStr = currentDAG.getID().toString();

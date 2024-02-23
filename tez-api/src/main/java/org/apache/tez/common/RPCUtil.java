@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.tez.dag.api.DAGNotRunningException;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezException;
 
@@ -112,6 +113,9 @@ public final class RPCUtil {
         } else if (DAGNotRunningException.class.isAssignableFrom(realClass)) {
             throw instantiateTezException(
                 realClass.asSubclass(DAGNotRunningException.class), re);
+        } else if (NoCurrentDAGException.class.isAssignableFrom(realClass)) {
+          throw instantiateTezException(
+              realClass.asSubclass(NoCurrentDAGException.class), re);
         } else if (TezException.class.isAssignableFrom(realClass)) {
           throw instantiateTezException(
               realClass.asSubclass(TezException.class), re);
