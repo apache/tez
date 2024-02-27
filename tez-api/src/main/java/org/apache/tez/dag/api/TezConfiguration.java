@@ -306,6 +306,27 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS = TEZ_MDC_CUSTOM_KEYS + ".conf.props";
 
   /**
+   * String value
+   * Whether to start web ui service in task processes.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_TASK_WEBSERVICE_ENABLE = TEZ_TASK_PREFIX
+      + "webservice.enable";
+  public static final boolean TEZ_TASK_WEBSERVICE_ENABLE_DEFAULT = false;
+
+  /**
+   * String value. Range of ports that the task container can use for the WebUIService. Leave blank
+   * to use all possible ports. Expert level setting. It's hadoop standard range configuration.
+   * For example 50051-55000
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type = "string")
+  public static final String TEZ_TASK_WEBSERVICE_PORT_RANGE = TEZ_AM_PREFIX + "webservice.port-range";
+
+  public static final String TEZ_TASK_WEBSERVICE_PORT_RANGE_DEFAULT = "50051-55000";
+
+  /**
    * double value. Represents ratio of unique failed outputs / number of consumer
    * tasks. When this condition or value mentioned in {@link
    * #TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES} is met, task would be declared as failed by AM.
@@ -2054,7 +2075,7 @@ public class TezConfiguration extends Configuration {
    * For example 50000-50050,50100-50200
    */
   @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty(type="boolean")
+  @ConfigurationProperty(type="string")
   public static final String TEZ_AM_WEBSERVICE_PORT_RANGE = TEZ_AM_PREFIX
       + "tez-ui.webservice.port-range";
 
