@@ -357,7 +357,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       Preconditions.checkArgument(buffers.get(bufferIndex) != null, "block should not be empty");
       //TODO: fix per item being passed.
-      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), (1024*1024),
+      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), items,
           perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
       // queue up the sort
