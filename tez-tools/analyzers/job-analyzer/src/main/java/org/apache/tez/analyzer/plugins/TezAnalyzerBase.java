@@ -69,6 +69,8 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
   private String outputDir;
   private boolean saveResults = false;
 
+  protected List<String> configProperties = new ArrayList<>();
+
   public TezAnalyzerBase(Configuration config) {
     setConf(config);
   }
@@ -276,5 +278,9 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       }
       LOG.debug(separator);
     }
+  }
+
+  public List<String> getConfigProperties(){
+    return configProperties;
   }
 }

@@ -20,6 +20,7 @@ package org.apache.tez.history.parser;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +94,21 @@ public class SimpleHistoryParser extends BaseParser {
     }
   }
 
+  public List<JSONObject> dumpAllEvents() throws Exception {
+    List<JSONObject> dumpedEvents = new ArrayList<>();
+    try {
+      JSONObjectSource source = getJsonSource();
+      while (source.hasNext()) {
+        dumpedEvents.add(source.next());
+      }
+      source.close();
+    } catch (Exception e) {
+      throw new TezException(e);
+    }
+
+    return dumpedEvents;
+  }
+
   private void populateOtherInfo(JSONObject source, JSONObject destination) throws JSONException {
     if (source == null || destination == null) {
       return;
@@ -118,7 +134,7 @@ public class SimpleHistoryParser extends BaseParser {
     parse(dagId, source);
   }
 
-  private JSONObjectSource getJsonSource() throws FileNotFoundException {
+  protected JSONObjectSource getJsonSource() throws JSONException, FileNotFoundException, IOException {
     final Scanner scanner = new Scanner(historyFile, UTF8);
     scanner.useDelimiter(SimpleHistoryLoggingService.RECORD_SEPARATOR);
 
