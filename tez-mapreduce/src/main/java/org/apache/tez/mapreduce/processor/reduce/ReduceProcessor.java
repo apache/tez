@@ -43,7 +43,6 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
-import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
@@ -64,25 +63,8 @@ public class ReduceProcessor extends MRTask {
   private Counter reduceInputKeyCounter;
   private Counter reduceInputValueCounter;
 
-  protected Map<String, LogicalInput> inputs;
-  protected Map<String, LogicalOutput> outputs;
-  private ProgressHelper progressHelper;
-
   public ReduceProcessor(ProcessorContext processorContext) {
     super(processorContext, false);
-  }
-
-  @Override
-  public void handleEvents(List<Event> processorEvents) {
-    // TODO Auto-generated method stub
-
-  }
-
-  public void close() throws IOException {
-    if (progressHelper != null) {
-      progressHelper.shutDownProgressTaskService();
-    }
-
   }
 
   @Override
