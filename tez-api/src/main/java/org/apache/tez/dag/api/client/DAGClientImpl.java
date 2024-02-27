@@ -410,7 +410,8 @@ public class DAGClientImpl extends DAGClient {
       LOG.info("DAG is no longer running - application not found by YARN", e);
       dagCompleted = true;
     } catch (NoCurrentDAGException e) {
-      return dagLost(e);
+      LOG.info("Got NoCurrentDAGException from AM, returning a failed DAG", e);
+      return dagLost();
     } catch (TezException e) {
       // can be either due to a n/w issue or due to AM completed.
       LOG.info("Cannot retrieve DAG Status due to TezException: {}", e.getMessage());
@@ -426,7 +427,7 @@ public class DAGClientImpl extends DAGClient {
     return dagStatus;
   }
 
-  private DAGStatus dagLost(Exception e) {
+  private DAGStatus dagLost() {
     DAGProtos.DAGStatusProto.Builder builder = DAGProtos.DAGStatusProto.newBuilder();
     DAGStatus dagStatus = new DAGStatus(builder, DagStatusSource.AM);
     builder.setState(DAGProtos.DAGStatusStateProto.DAG_FAILED);

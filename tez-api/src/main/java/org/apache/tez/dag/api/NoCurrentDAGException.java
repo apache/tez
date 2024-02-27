@@ -22,7 +22,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 /**
  *  Fatal exception: thrown by the AM if there is no DAG running when
- *  when a DAG's status is queried. This is different from {@link org.apache.tez.dag.api.DAGNotRunningException}
+ *  a DAG's status is queried. This is different from {@link org.apache.tez.dag.api.DAGNotRunningException}
  *  in a sense that this exception is fatal, in which scenario the client might consider the DAG failed, because
  *  it tries to ask a status from an AM which is not currently running a DAG. This scenario is possible in case
  *  an AM is restarted and the DagClient fails to realize it's asking the status of a possibly lost DAG.
