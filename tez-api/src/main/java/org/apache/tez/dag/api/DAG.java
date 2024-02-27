@@ -60,7 +60,6 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezYARNUtils;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
-import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.ConfigurationProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
@@ -983,7 +982,7 @@ public class DAG {
 
       if (vertex.getConf()!= null && vertex.getConf().size() > 0) {
         ConfigurationProto.Builder confBuilder = ConfigurationProto.newBuilder();
-        TezUtils.populateConfProtoFromEntries(vertex.getConf().entrySet(), confBuilder);
+        TezUtils.populateConfProtoFromMap(vertex.getConf(), confBuilder);
         vertexBuilder.setVertexConf(confBuilder);
       }
 
@@ -1084,7 +1083,7 @@ public class DAG {
 
     ConfigurationProto.Builder confProtoBuilder = ConfigurationProto.newBuilder();
     if (!this.dagConf.isEmpty()) {
-      TezUtils.populateConfProtoFromEntries(this.dagConf.entrySet(), confProtoBuilder);
+      TezUtils.populateConfProtoFromMap(this.dagConf, confProtoBuilder);
     }
     // Copy historyLogLevel from tezConf into dagConf if its not overridden in dagConf.
     String logLevel = this.dagConf.get(TezConfiguration.TEZ_HISTORY_LOGGING_LOGLEVEL);
