@@ -36,6 +36,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -81,7 +84,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -128,6 +133,9 @@ public class TestDefaultSorter {
     cleanup();
     localFs.mkdirs(workingDir);
   }
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   @Test(timeout = 5000)
   public void testSortSpillPercent() throws Exception {
@@ -575,6 +583,71 @@ public class TestDefaultSorter {
     }
     assertTrue(spillIndex == spillCount);
     verifyCounters(sorter, context);
+  }
+
+  @Test(timeout = 60000)
+  @SuppressWarnings("unchecked")
+  public void testSpillFilesCountLimitInvalidValue() throws IOException, NoSuchMethodException,
+          NoSuchFieldException, IllegalAccessException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, 1);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT, -2);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+            context.getTotalMemoryAvailableToTask()), handler);
+
+    exception.expect(IllegalArgumentException.class);
+    exception.expectMessage("tez.runtime.sort.spill.files.count.limit should be greater than 0 or unbounded");
+
+    SorterWrapper sorterWrapper = new SorterWrapper(context, conf, 1, handler.getMemoryAssigned());
+    sorterWrapper.getSorter();
+    sorterWrapper.close();
+  }
+
+  @Test(timeout = 60000)
+  @SuppressWarnings("unchecked")
+  public void testSpillFilesCountBreach() throws IOException, NoSuchMethodException,
+          NoSuchFieldException, IllegalAccessException {
+    OutputContext context = createTezOutputContext();
+
+    conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT, false);
+    conf.setLong(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 4);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES, 1);
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT, 2);
+    MemoryUpdateCallbackHandler handler = new MemoryUpdateCallbackHandler();
+    context.requestInitialMemory(ExternalSorter.getInitialMemoryRequirement(conf,
+            context.getTotalMemoryAvailableToTask()), handler);
+    SorterWrapper sorterWrapper = new SorterWrapper(context, conf, 1, handler.getMemoryAssigned());
+    DefaultSorter sorter = sorterWrapper.getSorter();
+
+    Field numSpillsField = ExternalSorter.class.getDeclaredField("numSpills");
+    numSpillsField.setAccessible(true);
+    numSpillsField.set(sorter, 2);
+
+    Method method = sorter.getClass().getDeclaredMethod("incrementNumSpills");
+    method.setAccessible(true);
+    boolean gotExceptionWithMessage = false;
+    try {
+      method.invoke(sorter);
+    } catch(InvocationTargetException e) {
+      Throwable targetException = e.getTargetException();
+      if (targetException != null) {
+        String errorMessage = targetException.getMessage();
+        if (errorMessage != null) {
+          if(errorMessage.equals("Too many spill files got created, control it with " +
+                  "tez.runtime.sort.spill.files.count.limit, current value: 2, current spill count: 3")) {
+            gotExceptionWithMessage = true;
+          }
+        }
+      }
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    Assert.assertTrue(gotExceptionWithMessage);
   }
 
   private void verifyOutputPermissions(String spillId) throws IOException {

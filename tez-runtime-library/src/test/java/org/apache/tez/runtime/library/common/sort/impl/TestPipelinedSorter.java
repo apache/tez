@@ -54,9 +54,14 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +120,9 @@ public class TestPipelinedSorter {
         TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT);
     this.outputContext = createMockOutputContext(counters, appId, uniqueId, auxiliaryService);
   }
+
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
 
   public static Configuration getConf() {
     Configuration conf = new Configuration();
@@ -856,6 +864,75 @@ public class TestPipelinedSorter {
   public void testWithLargeKeyValueWithMinBlockSize() throws IOException {
     //2 MB key & 2 MB value, 48 MB sort buffer.  block size is 16MB
     basicTest(1, 5, (2 << 20), (48 * 1024l * 1024l), 16 << 20);
+  }
+
+  @Test(timeout = 60000)
+  @SuppressWarnings("unchecked")
+  public void testSpillFilesCountLimitInvalidValue() throws IOException, NoSuchMethodException,
+          NoSuchFieldException, IllegalAccessException {
+    this.numOutputs = 10;
+
+    //128 MB. Do not pre-allocate.
+    // Get 32 MB buffer first and the another buffer with 96 on filling up
+    // the 32 MB buffer.
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 128);
+    conf.setBoolean(TezRuntimeConfiguration
+            .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+    conf.setInt(TezRuntimeConfiguration
+            .TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT, -2);
+
+    exception.expect(IllegalArgumentException.class);
+    exception.expectMessage("tez.runtime.sort.spill.files.count.limit should be greater than 0 or unbounded");
+
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
+            numOutputs, (128L << 20));
+
+    closeSorter(sorter);
+  }
+
+  @Test(timeout = 60000)
+  @SuppressWarnings("unchecked")
+  public void testSpillFilesCountBreach() throws IOException, NoSuchMethodException,
+          NoSuchFieldException, IllegalAccessException {
+    this.numOutputs = 10;
+
+    //128 MB. Do not pre-allocate.
+    // Get 32 MB buffer first and the another buffer with 96 on filling up
+    // the 32 MB buffer.
+    conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 128);
+    conf.setBoolean(TezRuntimeConfiguration
+            .TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY, true);
+    conf.setInt(TezRuntimeConfiguration
+            .TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT, 2);
+
+    PipelinedSorter sorter = new PipelinedSorter(this.outputContext, conf,
+            numOutputs, (128L << 20));
+
+    Field numSpillsField = ExternalSorter.class.getDeclaredField("numSpills");
+    numSpillsField.setAccessible(true);
+    numSpillsField.set(sorter, 2);
+
+    Method method = sorter.getClass().getDeclaredMethod("incrementNumSpills");
+    method.setAccessible(true);
+    boolean gotExceptionWithMessage = false;
+    try {
+      method.invoke(sorter);
+    } catch(InvocationTargetException e) {
+      Throwable targetException = e.getTargetException();
+      if (targetException != null) {
+        String errorMessage = targetException.getMessage();
+        if (errorMessage != null) {
+          if(errorMessage.equals("Too many spill files got created, control it with " +
+                  "tez.runtime.sort.spill.files.count.limit, current value: 2, current spill count: 3")) {
+            gotExceptionWithMessage = true;
+          }
+        }
+      }
+    } catch (IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+
+    Assert.assertTrue(gotExceptionWithMessage);
   }
 
   private void verifyOutputPermissions(String spillId) throws IOException {
