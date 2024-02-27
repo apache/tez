@@ -27,11 +27,11 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairRoutingType;
+import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairShuffleVertexManagerConfig;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.junit.Assert;
@@ -86,7 +86,7 @@ public class TestFairShuffleVertexManager
   }
 
   @Test(timeout = 5000)
-  public void testInvalidSetup() {
+  public void testFairAutoParallelismConfig() {
     Configuration conf = new Configuration();
     ShuffleVertexManagerBase manager;
 
@@ -96,17 +96,15 @@ public class TestFairShuffleVertexManager
         "Vertex1", 2, "Vertex2", 2, "Vertex3", 2,
         "Vertex4", 4, scheduledTasks, null);
 
-    // fail if there are more than one bipartite for FAIR_PARALLELISM
-    try {
-      manager = createFairShuffleVertexManager(conf, mockContext,
-          FairRoutingType.FAIR_PARALLELISM, 1000 * MB, 0.001f, 0.001f);
-      manager.onVertexStarted(emptyCompletions);
-      Assert.assertFalse(true);
-    } catch (TezUncheckedException e) {
-      Assert.assertTrue(e.getMessage().contains(
-          "Having more than one destination task process same partition(s) " +
-              "only works with one bipartite source."));
-    }
+    manager = createFairShuffleVertexManager(conf, mockContext,
+        FairRoutingType.FAIR_PARALLELISM, 1000 * MB, null, 0.5f);
+    verify(mockContext, times(1)).vertexReconfigurationPlanned(); // Tez notified of reconfig
+    FairShuffleVertexManagerConfig config = (FairShuffleVertexManagerConfig) manager.config;
+    Assert.assertTrue(config.isAutoParallelismEnabled());
+    Assert.assertTrue(config.fairRoutingType == FairRoutingType.FAIR_PARALLELISM);
+    Assert.assertTrue(config.getDesiredTaskInputDataSize() == 1000l * MB);
+    Assert.assertTrue(config.getMinFraction() == 0.25f);
+    Assert.assertTrue(config.getMaxFraction() == 0.5f);
   }
 
   @Test(timeout = 5000)

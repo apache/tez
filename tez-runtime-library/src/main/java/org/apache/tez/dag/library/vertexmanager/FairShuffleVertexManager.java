@@ -144,10 +144,6 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
       return equals(FairRoutingType.REDUCE_PARALLELISM);
     }
 
-    public boolean fairParallelismEnabled() {
-      return equals(FairRoutingType.FAIR_PARALLELISM);
-    }
-
     public boolean enabled() {
       return !equals(FairRoutingType.NONE);
     }
@@ -190,18 +186,6 @@ public class FairShuffleVertexManager extends ShuffleVertexManagerBase {
 
   public FairShuffleVertexManager(VertexManagerPluginContext context) {
     super(context);
-  }
-
-  @Override
-  protected void onVertexStartedCheck() {
-    super.onVertexStartedCheck();
-    if (bipartiteSources > 1 &&
-        (mgrConfig.getFairRoutingType().fairParallelismEnabled())) {
-      // TODO TEZ-3500
-      throw new TezUncheckedException(
-          "Having more than one destination task process same partition(s) " +
-              "only works with one bipartite source.");
-    }
   }
 
   static long ceil(long a, long b) {
