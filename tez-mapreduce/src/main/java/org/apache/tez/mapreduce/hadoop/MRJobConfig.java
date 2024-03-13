@@ -131,6 +131,8 @@ public interface MRJobConfig {
 
   public static final String CACHE_ARCHIVES_VISIBILITIES = "mapreduce.job.cache.archives.visibilities";
 
+  public static final String MR_PARENT_JOB_ID = "mapreduce.parent.job.id";
+
   public static final String FILEOUTPUTCOMMITTER_ALGORITHM_VERSION = "mapreduce.fileoutputcommitter.algorithm.version";
 
   /**

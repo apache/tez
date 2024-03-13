@@ -119,6 +119,7 @@ public class MROutputCommitter extends OutputCommitter {
         || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
     }
+    jobConf.set(MRJobConfig.MR_PARENT_JOB_ID, new org.apache.hadoop.mapred.JobID(String.valueOf(getContext().getApplicationId().getClusterTimestamp()), getContext().getApplicationId().getId()).toString());
     LOG.info("Committer for " + getContext().getVertexName() + ":" + getContext().getOutputName() +
         " using " + (newApiCommitter ? "new" : "old") + "mapred API");
 

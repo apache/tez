@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -57,6 +58,7 @@ import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
@@ -129,6 +131,26 @@ public class TestMROutput {
     Configuration mergedConf = output.jobConf;
     assertEquals("local-value", mergedConf.get("local-key"));
     assertEquals("base-value", mergedConf.get("base-key"));
+  }
+
+  @Test
+  public void testParentJobIDSet() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
+    DataSinkDescriptor dataSink = MROutput
+            .createConfigBuilder(conf, TextOutputFormat.class,
+                    tmpDir.getPath())
+            .build();
+
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+            new Configuration(false));
+    MROutput output = new MROutput(outputContext, 2);
+    output.initialize();
+    String invalidJobID = "invalid default";
+    String parentJobID = output.jobConf.get(MRJobConfig.MR_PARENT_JOB_ID, invalidJobID);
+    assertNotEquals(parentJobID,invalidJobID);
+    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID),parentJobID);
+    assertEquals(parentJobID, new JobID(String.valueOf(outputContext.getApplicationId().getClusterTimestamp()),outputContext.getApplicationId().getId()).toString());
   }
 
   @Test(timeout = 5000)
