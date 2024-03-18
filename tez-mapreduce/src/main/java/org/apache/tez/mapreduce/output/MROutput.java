@@ -33,6 +33,7 @@ import com.google.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
+import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,6 @@ import org.apache.hadoop.mapred.FileOutputCommitter;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
-import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -414,11 +414,11 @@ public class MROutput extends AbstractLogicalOutput {
     }
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
+    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(), getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
         .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
             getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),
             getContext().getTaskIndex(), getContext().getTaskAttemptNumber(), isMapperOutput);
-    jobConf.set(MRJobConfig.MR_PARENT_JOB_ID, new JobID(String.valueOf(getContext().getApplicationId().getClusterTimestamp()), getContext().getApplicationId().getId()).toString());
     jobConf.set(JobContext.TASK_ATTEMPT_ID, taskAttemptId.toString());
     jobConf.set(JobContext.TASK_ID, taskAttemptId.getTaskID().toString());
     jobConf.setBoolean(JobContext.TASK_ISMAP, isMapperOutput);

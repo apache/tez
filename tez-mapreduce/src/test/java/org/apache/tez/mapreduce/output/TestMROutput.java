@@ -57,6 +57,7 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
+import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
@@ -134,7 +135,7 @@ public class TestMROutput {
   }
 
   @Test
-  public void testParentJobIDSet() throws Exception {
+  public void testJobUUIDSet() throws Exception {
     Configuration conf = new Configuration();
     conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     DataSinkDescriptor dataSink = MROutput
@@ -147,10 +148,10 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
     String invalidJobID = "invalid default";
-    String parentJobID = output.jobConf.get(MRJobConfig.MR_PARENT_JOB_ID, invalidJobID);
-    assertNotEquals(parentJobID,invalidJobID);
-    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID),parentJobID);
-    assertEquals(parentJobID, new JobID(String.valueOf(outputContext.getApplicationId().getClusterTimestamp()),outputContext.getApplicationId().getId()).toString());
+    String parentJobID = output.jobConf.get(MRJobConfig.MR_JOB_UUID, invalidJobID);
+    assertNotEquals(parentJobID, invalidJobID);
+    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), parentJobID);
+    assertEquals(parentJobID, Utils.createJobUUID(outputContext.getApplicationId().getClusterTimestamp(), outputContext.getApplicationId().getId(), outputContext.getDagIdentifier()));
   }
 
   @Test(timeout = 5000)

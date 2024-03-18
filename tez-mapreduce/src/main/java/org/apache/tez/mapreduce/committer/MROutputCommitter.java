@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.committer;
 
+import org.apache.tez.mapreduce.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -119,7 +120,7 @@ public class MROutputCommitter extends OutputCommitter {
         || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
     }
-    jobConf.set(MRJobConfig.MR_PARENT_JOB_ID, new org.apache.hadoop.mapred.JobID(String.valueOf(getContext().getApplicationId().getClusterTimestamp()), getContext().getApplicationId().getId()).toString());
+    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(), getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     LOG.info("Committer for " + getContext().getVertexName() + ":" + getContext().getOutputName() +
         " using " + (newApiCommitter ? "new" : "old") + "mapred API");
 

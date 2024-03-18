@@ -34,6 +34,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final String dagName;
   private final String vertexName;
   private final int vertexIdx;
+  private final int dagIdentifier;
   private final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
@@ -41,7 +42,8 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
       String dagName,
       String vertexName,
       RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
-      int vertexIdx) {
+      int vertexIdx,
+      int dagIdentifier) {
     Objects.requireNonNull(applicationId, "applicationId is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(vertexName, "vertexName is null");
@@ -52,6 +54,7 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
     this.vertexName = vertexName;
     this.output = output;
     this.vertexIdx = vertexIdx;
+    this.dagIdentifier = dagIdentifier;
   }
 
   @Override
@@ -92,6 +95,11 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   @Override
   public int getVertexIndex() {
     return vertexIdx;
+  }
+
+  @Override
+  public int getDagIdentifier() {
+    return dagIdentifier;
   }
 
 }
