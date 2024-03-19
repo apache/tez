@@ -49,8 +49,8 @@ public final class InputDataInformationEvent extends Event {
   private final int sourceIndex;
   private int targetIndex; // TODO Likely to be multiple at a later point.
   private final ByteBuffer userPayload;
+  private String serializedPath;
   private final Object userPayloadObject;
-  
 
   private InputDataInformationEvent(int srcIndex, ByteBuffer userPayload) {
     this.sourceIndex = srcIndex;
@@ -79,6 +79,12 @@ public final class InputDataInformationEvent extends Event {
     return new InputDataInformationEvent(srcIndex, userPayloadDeserialized, null);
   }
 
+  public static InputDataInformationEvent createWithSerializedPath(int srcIndex, String serializedPath) {
+    InputDataInformationEvent event = new InputDataInformationEvent(srcIndex, null);
+    event.serializedPath = serializedPath;
+    return event;
+  }
+
   public int getSourceIndex() {
     return this.sourceIndex;
   }
@@ -90,11 +96,15 @@ public final class InputDataInformationEvent extends Event {
   public void setTargetIndex(int target) {
     this.targetIndex = target;
   }
-  
+
+  public String getSerializedPath() {
+    return serializedPath;
+  }
+
   public ByteBuffer getUserPayload() {
     return userPayload == null ? null : userPayload.asReadOnlyBuffer();
   }
-  
+
   public Object getDeserializedUserPayload() {
     return this.userPayloadObject;
   }
@@ -103,6 +113,7 @@ public final class InputDataInformationEvent extends Event {
   public String toString() {
     return "InputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
         + targetIndex + ", serializedUserPayloadExists=" + (userPayload != null)
-        + ", deserializedUserPayloadExists=" + (userPayloadObject != null) + "]";
-  } 
+        + ", deserializedUserPayloadExists=" + (userPayloadObject != null)
+        + ", serializedPath=" + serializedPath + "]";
+  }
 }

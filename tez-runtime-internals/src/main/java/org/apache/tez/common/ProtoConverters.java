@@ -18,7 +18,10 @@
 
 package org.apache.tez.common;
 
+import com.google.common.base.Charsets;
 import com.google.protobuf.ByteString;
+
+import java.nio.ByteBuffer;
 
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
@@ -135,15 +138,22 @@ public final class ProtoConverters {
     if (event.getUserPayload() != null) {
       builder.setUserPayload(ByteString.copyFrom(event.getUserPayload()));
     }
+    if (event.getSerializedPath() != null) {
+      builder.setSerializedPath(ByteString.copyFrom(event.getSerializedPath().getBytes(Charsets.UTF_8)));
+    }
     return builder.build();
   }
 
-  public static InputDataInformationEvent
-      convertRootInputDataInformationEventFromProto(
+  public static InputDataInformationEvent convertRootInputDataInformationEventFromProto(
       EventProtos.RootInputDataInformationEventProto proto) {
-    InputDataInformationEvent diEvent = InputDataInformationEvent.createWithSerializedPayload(
-        proto.getSourceIndex(),
-        proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null);
+    ByteBuffer payload = proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null;
+    InputDataInformationEvent diEvent = null;
+    if (!proto.getSerializedPath().isEmpty()) {
+      diEvent = InputDataInformationEvent.createWithSerializedPath(proto.getSourceIndex(),
+          proto.getSerializedPath().toStringUtf8());
+    } else {
+      diEvent = InputDataInformationEvent.createWithSerializedPayload(proto.getSourceIndex(), payload);
+    }
     diEvent.setTargetIndex(proto.getTargetIndex());
     return diEvent;
   }

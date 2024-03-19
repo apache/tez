@@ -272,9 +272,8 @@ public class RootInputInitializerManager {
       List<Event> events = ugi.doAs(new PrivilegedExceptionAction<List<Event>>() {
         @Override
         public List<Event> run() throws Exception {
-          LOG.info(
-              "Starting InputInitializer for Input: " + initializerWrapper.getInput().getName() +
-                  " on vertex " + initializerWrapper.getVertexLogIdentifier());
+          LOG.info("Starting InputInitializer for Input: {} on vertex {}", initializerWrapper.getInput().getName(),
+              initializerWrapper.getVertexLogIdentifier());
           try {
             TezUtilsInternal.setHadoopCallerContext(appContext.getHadoopShim(),
                 initializerWrapper.vertexId);

@@ -103,6 +103,11 @@ public class TezRootInputInitializerContextImpl implements
   }
 
   @Override
+  public int getVertexId() {
+    return vertex.getVertexId().getId();
+  }
+
+  @Override
   public Resource getTotalAvailableResource() {
     return appContext.getTaskScheduler().getTotalResources(vertex.getTaskSchedulerIdentifier());
   }

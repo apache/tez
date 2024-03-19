@@ -105,6 +105,11 @@ public final class TezTestUtils {
     }
 
     @Override
+    public int getVertexId() {
+      return 0;
+    }
+
+    @Override
     public Resource getTotalAvailableResource() {
       return Resource.newInstance(10240, 10);
     }

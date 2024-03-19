@@ -16,12 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.tez.runtime.api.event;
+package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
 
-import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
-import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.junit.Assert;
 import org.junit.Test;
 
