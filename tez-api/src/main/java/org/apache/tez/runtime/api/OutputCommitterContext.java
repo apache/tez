@@ -78,4 +78,6 @@ public interface OutputCommitterContext {
    */
   public int getVertexIndex();
 
+  public int getDagIdentifier();
+
 }

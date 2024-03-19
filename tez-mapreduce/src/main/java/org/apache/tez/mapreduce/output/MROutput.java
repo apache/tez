@@ -33,6 +33,7 @@ import com.google.protobuf.ByteString;
 import org.apache.tez.common.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
+import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -413,6 +414,7 @@ public class MROutput extends AbstractLogicalOutput {
     }
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
+    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(), getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
         .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
             getContext().getTaskVertexIndex(), getContext().getApplicationId().getId(),

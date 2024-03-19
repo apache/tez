@@ -2561,7 +2561,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
                     appContext.getCurrentDAG().getName(),
                     vertexName,
                     od,
-                    vertexId.getId());
+                    vertexId.getId(),
+                    appContext.getCurrentDAG().getID().getId());
             OutputCommitter outputCommitter = ReflectionUtils
                 .createClazzInstance(od.getControllerDescriptor().getClassName(),
                     new Class[]{OutputCommitterContext.class},
