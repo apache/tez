@@ -66,6 +66,6 @@ public final class Utils {
   }
 
   public static String createJobUUID(long clusterId, int appId, int dagIdentifier) {
-    return new JobID(String.valueOf(clusterId), appId).toString()+"_"+String.valueOf(dagIdentifier);
+    return new JobID(String.valueOf(clusterId), appId).toString() + "_" + String.valueOf(dagIdentifier);
   }
 }

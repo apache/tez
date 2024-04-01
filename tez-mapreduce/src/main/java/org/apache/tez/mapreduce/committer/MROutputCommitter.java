@@ -79,6 +79,9 @@ public class MROutputCommitter extends OutputCommitter {
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
+    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(
+            getContext().getApplicationId().getClusterTimestamp(),
+            getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     jobConf.setInt(MRJobConfig.VERTEX_ID, getContext().getVertexIndex());
     committer = getOutputCommitter(getContext());
     jobContext = getJobContextFromVertexContext(getContext());
@@ -120,7 +123,6 @@ public class MROutputCommitter extends OutputCommitter {
         || jobConf.getBoolean("mapred.mapper.new-api", false))  {
       newApiCommitter = true;
     }
-    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(), getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     LOG.info("Committer for " + getContext().getVertexName() + ":" + getContext().getOutputName() +
         " using " + (newApiCommitter ? "new" : "old") + "mapred API");
 
