@@ -87,7 +87,12 @@ public interface InputInitializerContext {
    * @return Resource
    */
   Resource getVertexTaskResource();
-  
+
+  /**
+   * Get the vertex id as integer that belongs to this input.
+   */
+  int getVertexId();
+
   /**
    * Get the total resource allocated to this vertex. If the DAG is running in 
    * a busy cluster then it may have no resources available dedicated to it. The

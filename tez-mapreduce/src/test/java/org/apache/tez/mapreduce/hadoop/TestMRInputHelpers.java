@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -42,9 +44,15 @@ import org.apache.hadoop.mapreduce.split.SplitMetaInfoReader;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
+import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
+import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.google.protobuf.ByteString;
 
 public class TestMRInputHelpers {
 
@@ -52,17 +60,21 @@ public class TestMRInputHelpers {
 
   private static Configuration conf = new Configuration();
   private static FileSystem remoteFs;
+  private static LocalFileSystem localFs;
   private static Path testFilePath;
   private static Path oldSplitsDir;
   private static Path newSplitsDir;
 
-  private static String TEST_ROOT_DIR = "target"
-      + Path.SEPARATOR + TestMRHelpers.class.getName() + "-tmpDir";
+  private static Path testRootDir;
+  private static Path localTestRootDir;
 
   @BeforeClass
   public static void setup() throws IOException {
+    testRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName()).toString());
+    localTestRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName() + "-local").toString());
+
     try {
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testRootDir.toString());
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
           .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
@@ -98,6 +110,8 @@ public class TestMRInputHelpers {
 
     oldSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirOld/"));
     newSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirNew/"));
+
+    localFs = FileSystem.getLocal(conf);
   }
 
 
@@ -188,6 +202,42 @@ public class TestMRInputHelpers {
         MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
   }
 
+  @Test
+  public void testInputEventSerializedPayload() throws IOException {
+    MRSplitProto proto = MRSplitProto.newBuilder().setSplitBytes(ByteString.copyFrom("splits".getBytes())).build();
+
+    InputDataInformationEvent initEvent =
+        InputDataInformationEvent.createWithSerializedPayload(0, proto.toByteString().asReadOnlyByteBuffer());
+    MRSplitProto protoFromEvent = MRInputHelpers.getProto(initEvent, new JobConf(conf));
+
+    Assert.assertEquals(proto, protoFromEvent);
+  }
+
+  @Test
+  public void testInputEventSerializedPath() throws IOException {
+    MRSplitProto proto = MRSplitProto.newBuilder().setSplitBytes(ByteString.copyFrom("splits".getBytes())).build();
+
+    Path splitsDir = localFs.resolvePath(localTestRootDir);
+
+    Path serializedPath = new Path(splitsDir + Path.SEPARATOR + "splitpayload");
+
+    try (FSDataOutputStream out = localFs.create(serializedPath)) {
+      proto.writeTo(out);
+    }
+
+    // event file is present on fs
+    Assert.assertTrue("Event file should be present on fs", localFs.exists(serializedPath));
+
+    InputDataInformationEvent initEvent =
+        InputDataInformationEvent.createWithSerializedPath(0, serializedPath.toUri().toString());
+    MRSplitProto protoFromEvent = MRInputHelpers.getProto(initEvent, new JobConf(conf));
+
+    Assert.assertEquals(proto, protoFromEvent);
+
+    // event file is deleted after read
+    Assert.assertFalse("Event file should be deleted after read", localFs.exists(serializedPath));
+  }
+
   private void verifyLocationHints(Path inputSplitsDir,
                                    List<TaskLocationHint> actual) throws Exception {
     JobID jobId = new JobID("dummy", 1);
@@ -231,31 +281,30 @@ public class TestMRInputHelpers {
 
   @Test(timeout = 5000)
   public void testInputSplitLocalResourceCreationWithDifferentFS() throws Exception {
-    FileSystem localFs = FileSystem.getLocal(conf);
-    Path LOCAL_TEST_ROOT_DIR = new Path("target"
-        + Path.SEPARATOR + TestMRHelpers.class.getName() + "-localtmpDir");
+    Path splitsDir = localFs.resolvePath(localTestRootDir);
 
-    try {
-      localFs.mkdirs(LOCAL_TEST_ROOT_DIR);
+    DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(splitsDir);
 
-      Path splitsDir = localFs.resolvePath(LOCAL_TEST_ROOT_DIR);
+    Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
 
-      DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(splitsDir);
+    Assert.assertEquals(2, localResources.size());
+    Assert.assertTrue(localResources.containsKey(
+        MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
+    Assert.assertTrue(localResources.containsKey(
+        MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
 
-      Map<String, LocalResource> localResources = dataSource.getAdditionalLocalFiles();
-
-      Assert.assertEquals(2, localResources.size());
-      Assert.assertTrue(localResources.containsKey(
-          MRInputHelpers.JOB_SPLIT_RESOURCE_NAME));
-      Assert.assertTrue(localResources.containsKey(
-          MRInputHelpers.JOB_SPLIT_METAINFO_RESOURCE_NAME));
-
-      for (LocalResource lr : localResources.values()) {
-        Assert.assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));
-      }
-    } finally {
-      localFs.delete(LOCAL_TEST_ROOT_DIR, true);
+    for (LocalResource lr : localResources.values()) {
+      Assert.assertFalse(lr.getResource().getScheme().contains(remoteFs.getScheme()));
     }
   }
 
+  @Before
+  public void before() throws IOException {
+    localFs.mkdirs(localTestRootDir);
+  }
+
+  @After
+  public void after() throws IOException {
+    localFs.delete(localTestRootDir, true);
+  }
 }
