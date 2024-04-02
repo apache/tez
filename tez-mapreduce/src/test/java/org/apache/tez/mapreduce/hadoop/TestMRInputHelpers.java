@@ -217,7 +217,6 @@ public class TestMRInputHelpers {
   public void testInputEventSerializedPath() throws IOException {
     MRSplitProto proto = MRSplitProto.newBuilder().setSplitBytes(ByteString.copyFrom("splits".getBytes())).build();
 
-    FileSystem localFs = FileSystem.getLocal(conf);
     Path splitsDir = localFs.resolvePath(localTestRootDir);
 
     Path serializedPath = new Path(splitsDir + Path.SEPARATOR + "splitpayload");
@@ -282,7 +281,6 @@ public class TestMRInputHelpers {
 
   @Test(timeout = 5000)
   public void testInputSplitLocalResourceCreationWithDifferentFS() throws Exception {
-    FileSystem localFs = FileSystem.getLocal(conf);
     Path splitsDir = localFs.resolvePath(localTestRootDir);
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(splitsDir);
