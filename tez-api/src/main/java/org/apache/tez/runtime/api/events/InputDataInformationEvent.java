@@ -114,6 +114,6 @@ public final class InputDataInformationEvent extends Event {
     return "InputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
         + targetIndex + ", serializedUserPayloadExists=" + (userPayload != null)
         + ", deserializedUserPayloadExists=" + (userPayloadObject != null)
-        + ", serializedPath=" + serializedPath + "]";
-  }
+        + serializedPath != null ? (", serializedPath=" + serializedPath) : "" + "]";
+    }
 }
