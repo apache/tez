@@ -65,17 +65,16 @@ public class TestMRInputHelpers {
   private static Path oldSplitsDir;
   private static Path newSplitsDir;
 
-
-  private static Path TEST_ROOT_DIR;
-  private static Path LOCAL_TEST_ROOT_DIR;
+  private static Path testRootDir;
+  private static Path localTestRootDir;
 
   @BeforeClass
   public static void setup() throws IOException {
-    TEST_ROOT_DIR = new Path(Files.createTempDirectory(TestMRHelpers.class.getName()).toString());
-    LOCAL_TEST_ROOT_DIR = new Path(Files.createTempDirectory(TestMRHelpers.class.getName() + "-local").toString());
+    testRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName()).toString());
+    localTestRootDir = new Path(Files.createTempDirectory(TestMRHelpers.class.getName() + "-local").toString());
 
     try {
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR.toString());
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testRootDir.toString());
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
           .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
@@ -219,7 +218,7 @@ public class TestMRInputHelpers {
     MRSplitProto proto = MRSplitProto.newBuilder().setSplitBytes(ByteString.copyFrom("splits".getBytes())).build();
 
     FileSystem localFs = FileSystem.getLocal(conf);
-    Path splitsDir = localFs.resolvePath(LOCAL_TEST_ROOT_DIR);
+    Path splitsDir = localFs.resolvePath(localTestRootDir);
 
     Path serializedPath = new Path(splitsDir + Path.SEPARATOR + "splitpayload");
 
@@ -284,7 +283,7 @@ public class TestMRInputHelpers {
   @Test(timeout = 5000)
   public void testInputSplitLocalResourceCreationWithDifferentFS() throws Exception {
     FileSystem localFs = FileSystem.getLocal(conf);
-    Path splitsDir = localFs.resolvePath(LOCAL_TEST_ROOT_DIR);
+    Path splitsDir = localFs.resolvePath(localTestRootDir);
 
     DataSourceDescriptor dataSource = generateDataSourceDescriptorMapRed(splitsDir);
 
@@ -303,11 +302,11 @@ public class TestMRInputHelpers {
 
   @Before
   public void before() throws IOException {
-    localFs.mkdirs(LOCAL_TEST_ROOT_DIR);
+    localFs.mkdirs(localTestRootDir);
   }
 
   @After
   public void after() throws IOException {
-    localFs.delete(LOCAL_TEST_ROOT_DIR, true);
+    localFs.delete(localTestRootDir, true);
   }
 }
