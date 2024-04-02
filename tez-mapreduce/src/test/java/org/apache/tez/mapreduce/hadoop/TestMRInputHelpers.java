@@ -19,6 +19,7 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -58,20 +60,22 @@ public class TestMRInputHelpers {
 
   private static Configuration conf = new Configuration();
   private static FileSystem remoteFs;
+  private static LocalFileSystem localFs;
   private static Path testFilePath;
   private static Path oldSplitsDir;
   private static Path newSplitsDir;
 
-  private static final String TEST_ROOT_DIR = "target"
-      + Path.SEPARATOR + TestMRHelpers.class.getName() + "-tmpDir";
 
-  private static final Path LOCAL_TEST_ROOT_DIR = new Path("target"
-      + Path.SEPARATOR + TestMRHelpers.class.getName() + "-localtmpDir");
+  private static Path TEST_ROOT_DIR;
+  private static Path LOCAL_TEST_ROOT_DIR;
 
   @BeforeClass
   public static void setup() throws IOException {
+    TEST_ROOT_DIR = new Path(Files.createTempDirectory(TestMRHelpers.class.getName()).toString());
+    LOCAL_TEST_ROOT_DIR = new Path(Files.createTempDirectory(TestMRHelpers.class.getName() + "-local").toString());
+
     try {
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR.toString());
       dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2)
           .format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
@@ -107,6 +111,8 @@ public class TestMRInputHelpers {
 
     oldSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirOld/"));
     newSplitsDir = remoteFs.makeQualified(new Path("/tmp/splitsDirNew/"));
+
+    localFs = FileSystem.getLocal(conf);
   }
 
 
@@ -297,13 +303,11 @@ public class TestMRInputHelpers {
 
   @Before
   public void before() throws IOException {
-    FileSystem localFs = FileSystem.getLocal(conf);
     localFs.mkdirs(LOCAL_TEST_ROOT_DIR);
   }
 
   @After
   public void after() throws IOException {
-    FileSystem localFs = FileSystem.getLocal(conf);
     localFs.delete(LOCAL_TEST_ROOT_DIR, true);
   }
 }

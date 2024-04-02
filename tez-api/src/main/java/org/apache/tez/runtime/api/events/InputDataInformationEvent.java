@@ -109,11 +109,16 @@ public final class InputDataInformationEvent extends Event {
     return this.userPayloadObject;
   }
 
-  @Override
   public String toString() {
-    return "InputDataInformationEvent [sourceIndex=" + sourceIndex + ", targetIndex="
-        + targetIndex + ", serializedUserPayloadExists=" + (userPayload != null)
-        + ", deserializedUserPayloadExists=" + (userPayloadObject != null)
-        + serializedPath != null ? (", serializedPath=" + serializedPath) : "" + "]";
+    StringBuilder sb = new StringBuilder();
+    sb.append("InputDataInformationEvent [sourceIndex=").append(sourceIndex)
+        .append(", targetIndex=").append(targetIndex)
+        .append(", serializedUserPayloadExists=").append(userPayload != null)
+        .append(", deserializedUserPayloadExists=").append(userPayloadObject != null);
+    if (serializedPath != null) {
+      sb.append(", serializedPath=").append(serializedPath);
     }
+    sb.append("]");
+    return sb.toString();
+  }
 }

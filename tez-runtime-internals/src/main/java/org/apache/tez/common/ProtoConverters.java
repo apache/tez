@@ -148,7 +148,7 @@ public final class ProtoConverters {
       EventProtos.RootInputDataInformationEventProto proto) {
     ByteBuffer payload = proto.hasUserPayload() ? proto.getUserPayload().asReadOnlyByteBuffer() : null;
     InputDataInformationEvent diEvent = null;
-    if (!proto.getSerializedPath().isEmpty()) {
+    if (proto.hasSerializedPath()) {
       diEvent = InputDataInformationEvent.createWithSerializedPath(proto.getSourceIndex(),
           proto.getSerializedPath().toStringUtf8());
     } else {

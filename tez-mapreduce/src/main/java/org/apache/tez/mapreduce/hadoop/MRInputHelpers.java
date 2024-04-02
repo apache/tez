@@ -906,7 +906,7 @@ public class MRInputHelpers {
     LOG.info("Reading InputDataInformationEvent from path: {}", filePath);
 
     MRSplitProto splitProto = null;
-    FileSystem fs = FileSystem.get(filePath.toUri(), jobConf);
+    FileSystem fs = filePath.getFileSystem(jobConf);
 
     try (FSDataInputStream in = fs.open(filePath)) {
       splitProto = MRSplitProto.parseFrom(in);
@@ -917,7 +917,7 @@ public class MRInputHelpers {
 
   private static MRSplitProto readProtoFromPayload(InputDataInformationEvent initEvent) throws IOException {
     ByteBuffer payload = initEvent.getUserPayload();
-    LOG.info("Reading InputDataInformationEvent from payload, size: {} bytes}", payload.limit());
+    LOG.info("Reading InputDataInformationEvent from payload: {}}", payload);
     return MRSplitProto.parseFrom(ByteString.copyFrom(payload));
   }
 }
