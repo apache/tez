@@ -917,7 +917,7 @@ public class MRInputHelpers {
 
   private static MRSplitProto readProtoFromPayload(InputDataInformationEvent initEvent) throws IOException {
     ByteBuffer payload = initEvent.getUserPayload();
-    LOG.info("Reading InputDataInformationEvent from payload: {}}", payload);
+    LOG.info("Reading InputDataInformationEvent from payload: {}", payload);
     return MRSplitProto.parseFrom(ByteString.copyFrom(payload));
   }
 }
