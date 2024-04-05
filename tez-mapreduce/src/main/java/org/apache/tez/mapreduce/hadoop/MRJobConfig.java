@@ -134,7 +134,7 @@ public interface MRJobConfig {
   /**
    * Can be used by downstream applications to set a DAG-wide UUID for some committers which need one
    */
-  public static final String MR_JOB_UUID = "mapreduce.job.uuid";
+  public static final String FS_S3A_COMMITTER_UUID = "fs.s3a.committer.uuid";
 
   public static final String FILEOUTPUTCOMMITTER_ALGORITHM_VERSION = "mapreduce.fileoutputcommitter.algorithm.version";
 

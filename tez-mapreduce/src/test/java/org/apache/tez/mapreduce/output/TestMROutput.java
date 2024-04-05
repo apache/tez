@@ -35,7 +35,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -148,7 +147,7 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
     String invalidJobID = "invalid default";
-    String parentJobID = output.jobConf.get(MRJobConfig.MR_JOB_UUID, invalidJobID);
+    String parentJobID = output.jobConf.get(MRJobConfig.FS_S3A_COMMITTER_UUID, invalidJobID);
     assertNotEquals(parentJobID, invalidJobID);
     assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), parentJobID);
     assertEquals(parentJobID, Utils.createJobUUID(outputContext.getApplicationId().getClusterTimestamp(), outputContext.getApplicationId().getId(), outputContext.getDagIdentifier()));

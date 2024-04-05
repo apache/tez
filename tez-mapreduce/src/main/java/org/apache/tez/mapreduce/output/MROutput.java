@@ -414,7 +414,7 @@ public class MROutput extends AbstractLogicalOutput {
     }
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
-    jobConf.set(MRJobConfig.MR_JOB_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(),
+    jobConf.set(MRJobConfig.FS_S3A_COMMITTER_UUID, Utils.createJobUUID(getContext().getApplicationId().getClusterTimestamp(),
             getContext().getApplicationId().getId(), getContext().getDagIdentifier()));
     TaskAttemptID taskAttemptId = org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl
         .createMockTaskAttemptID(getContext().getApplicationId().getClusterTimestamp(),
