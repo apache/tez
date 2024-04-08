@@ -146,11 +146,11 @@ public class TestMROutput {
             new Configuration(false));
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
-    String invalidJobID = "invalid default";
-    String parentJobID = output.jobConf.get(MRJobConfig.FS_S3A_COMMITTER_UUID, invalidJobID);
-    assertNotEquals(parentJobID, invalidJobID);
-    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), parentJobID);
-    assertEquals(parentJobID, Utils.createJobUUID(outputContext.getApplicationId().getClusterTimestamp(), outputContext.getApplicationId().getId(), outputContext.getDagIdentifier()));
+    String invalidDAGID = "invalid default";
+    String dagID = output.jobConf.get(MRJobConfig.FS_S3A_COMMITTER_UUID, invalidDAGID);
+    assertNotEquals(dagID, invalidDAGID);
+    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), dagID);
+    assertEquals(dagID, Utils.getDAGID(outputContext.getApplicationId(), outputContext.getDagIdentifier()));
   }
 
   @Test(timeout = 5000)

@@ -29,8 +29,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.Counters.Counter;
-import org.apache.hadoop.mapred.JobID;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
 
 @Private
@@ -65,7 +66,7 @@ public final class Utils {
     return new MRCounters.MRCounter(tezCounter);
   }
 
-  public static String createJobUUID(long clusterId, int appId, int dagIdentifier) {
-    return new JobID(String.valueOf(clusterId), appId).toString() + "_" + String.valueOf(dagIdentifier);
+  public static String getDAGID(ApplicationId id, int dagIdentifier) {
+    return TezDAGID.getInstance(id, dagIdentifier).toString();
   }
 }

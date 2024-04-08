@@ -132,7 +132,7 @@ public interface MRJobConfig {
   public static final String CACHE_ARCHIVES_VISIBILITIES = "mapreduce.job.cache.archives.visibilities";
 
   /**
-   * Can be used by downstream applications to set a DAG-wide UUID for some committers which need one
+   * Used by Hadoop's MagicS3Guard and Staging committers to set a job-wide UUID
    */
   public static final String FS_S3A_COMMITTER_UUID = "fs.s3a.committer.uuid";
 
