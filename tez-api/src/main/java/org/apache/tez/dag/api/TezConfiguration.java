@@ -905,7 +905,7 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_AM_YARN_SCHEDULER_CLASS = TEZ_AM_PREFIX + "yarn.scheduler.class";
   public static final String TEZ_AM_YARN_SCHEDULER_CLASS_DEFAULT =
-      "org.apache.tez.dag.app.rm.YarnTaskSchedulerService";
+      "org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler";
 
   /**
    * Int value. The AM waits this amount of time when the first DAG is submitted but not all the services are ready.
