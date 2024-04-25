@@ -331,8 +331,17 @@ public class LocalClient extends FrameworkClient {
           // Prepare Environment
           Path logDir = new Path(userDir, "localmode-log-dir");
           Path localDir = new Path(userDir, "localmode-local-dir");
-          localFs.mkdirs(logDir);
-          localFs.mkdirs(localDir);
+
+          // fail fast if the local directories (on the paths that were used on HDFS) cannot be created
+          // in this case, user might want to choose a different staging path, which works on the local FS too
+          if (!localFs.mkdirs(logDir)) {
+            throw new IOException(
+                "Unable to create log directory, try to create it manually for further insights: " + logDir);
+          }
+          if (!localFs.mkdirs(localDir)) {
+            throw new IOException(
+                "Unable to create local directory, try to create it manually for further insights: " + localDir);
+          }
 
           UserGroupInformation.setConfiguration(conf);
           // Add session specific credentials to the AM credentials.
