@@ -58,7 +58,7 @@
 
     <!--dependency versions in alphabetical order-->
     <asynchttpclient.version>2.12.3</asynchttpclient.version>
-    <bouncycastle.version>1.70</bouncycastle.version>
+    <bouncycastle.version>1.77</bouncycastle.version>
     <build-helper-maven-plugin.version>1.8</build-helper-maven-plugin.version>
     <buildnumber-maven-plugin.version>1.1</buildnumber-maven-plugin.version>
     <checkstyle.version>8.35</checkstyle.version>
@@ -784,13 +784,13 @@
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcprov-jdk15on</artifactId>
+        <artifactId>bcprov-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
-        <artifactId>bcpkix-jdk15on</artifactId>
+        <artifactId>bcpkix-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
         <scope>test</scope>
       </dependency>
