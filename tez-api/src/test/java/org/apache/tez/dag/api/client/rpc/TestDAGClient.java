@@ -715,6 +715,7 @@ public class TestDAGClient {
   @Test
   public void testDagClientReturnsFailedDAGOnNoCurrentDAGException() throws Exception {
     TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
 
     try (DAGClientImplForTest dagClientImpl = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
 
