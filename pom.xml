@@ -58,7 +58,7 @@
 
     <!--dependency versions in alphabetical order-->
     <asynchttpclient.version>2.12.3</asynchttpclient.version>
-    <bouncycastle.version>1.77</bouncycastle.version>
+    <bouncycastle.version>1.78</bouncycastle.version>
     <build-helper-maven-plugin.version>1.8</build-helper-maven-plugin.version>
     <buildnumber-maven-plugin.version>1.1</buildnumber-maven-plugin.version>
     <checkstyle.version>8.35</checkstyle.version>
