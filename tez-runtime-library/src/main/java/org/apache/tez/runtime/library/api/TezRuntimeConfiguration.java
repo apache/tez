@@ -122,6 +122,11 @@ public final class TezRuntimeConfiguration {
   public static final int TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES_DEFAULT =
       1024 * 1024;
 
+  @ConfigurationProperty(type = "integer")
+  public static final String TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT = TEZ_RUNTIME_PREFIX +
+          "sort.spill.files.count.limit";
+  public static final int TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT_DEFAULT = -1;
+
 
   // TODO Use the default value
   @ConfigurationProperty(type = "integer")
@@ -616,6 +621,7 @@ public final class TezRuntimeConfiguration {
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SORT_SPILL_PERCENT);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IO_SORT_MB);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SORT_SPILL_FILES_COUNT_LIMIT);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_COMBINE_MIN_SPILLS);
     TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
     TEZ_RUNTIME_KEYS.add(
