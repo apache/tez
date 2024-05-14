@@ -62,7 +62,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -903,8 +902,6 @@ public class ShuffleHandler extends AuxiliaryService {
     private static final int ALLOWED_CONCURRENCY = 16;
     private final Configuration conf;
     private final IndexCache indexCache;
-    private final LocalDirAllocator lDirAlloc =
-      new LocalDirAllocator(YarnConfiguration.NM_LOCAL_DIRS);
     private int port;
     private final LoadingCache<AttemptPathIdentifier, AttemptPathInfo> pathCache =
       CacheBuilder.newBuilder().expireAfterAccess(EXPIRE_AFTER_ACCESS_MINUTES,
@@ -937,10 +934,10 @@ public class ShuffleHandler extends AuxiliaryService {
             Exception {
           String base = getBaseLocation(key.jobId, key.dagId, key.user);
           String attemptBase = base + key.attemptId;
-          Path indexFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + INDEX_FILE_NAME, conf);
-          Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
+          Path indexFileName = getAuxiliaryLocalPathHandler()
+              .getLocalPathForRead(attemptBase + "/" + INDEX_FILE_NAME);
+          Path mapOutputFileName = getAuxiliaryLocalPathHandler()
+              .getLocalPathForRead(attemptBase + "/" + DATA_FILE_NAME);
 
           LOG.debug("Loaded : {} via loader", key);
           return new AttemptPathInfo(indexFileName, mapOutputFileName);
@@ -1154,7 +1151,7 @@ public class ShuffleHandler extends AuxiliaryService {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           FileContext lfc = FileContext.getLocalFSFileContext();
-          for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
+          for(Path dagPath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(base)) {
             lfc.delete(dagPath, true);
           }
         } catch (IOException e) {
@@ -1196,7 +1193,7 @@ public class ShuffleHandler extends AuxiliaryService {
           String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
           try {
             FileSystem fs = FileSystem.getLocal(conf).getRaw();
-            for (Path basePath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+            for (Path basePath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(baseStr)) {
               for (FileStatus fileStatus : fs.listStatus(basePath)) {
                 Path taskAttemptPath = fileStatus.getPath();
                 if (taskAttemptPath.getName().startsWith(taskAttemptId)) {
@@ -1293,7 +1290,7 @@ public class ShuffleHandler extends AuxiliaryService {
     private void deleteTaskDirsOfVertex(String jobId, String dagId, String vertexId, String user) throws IOException {
       String baseStr = getBaseLocation(jobId, dagId, user);
       FileContext lfc = FileContext.getLocalFSFileContext();
-      for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(baseStr, conf)) {
+      for(Path dagPath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(baseStr)) {
         RemoteIterator<FileStatus> status = lfc.listStatus(dagPath);
         final JobID jobID = JobID.forName(jobId);
         String taskDirPrefix = String.format("attempt%s_%s_%s_",
