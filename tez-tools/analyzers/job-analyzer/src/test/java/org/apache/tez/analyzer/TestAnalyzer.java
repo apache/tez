@@ -681,7 +681,7 @@ public class TestAnalyzer {
         createStep("v2 : 00000[01]_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY),
         createStep("v1 : 000000_1", CriticalPathDependency.OUTPUT_RECREATE_DEPENDENCY,
             null, Collections.singletonList("preemption of v3")),
-        createStep("v2 : 00000[01]_[1]", CriticalPathDependency.DATA_DEPENDENCY),
+        createStep("v2 : 00000[01]_[12]", CriticalPathDependency.DATA_DEPENDENCY),
         createStep("v3 : 000000_1", CriticalPathDependency.DATA_DEPENDENCY)
     };
     
