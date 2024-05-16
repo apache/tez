@@ -1286,4 +1286,12 @@ public class TezClient {
               + appIdStr, n);
     }
   }
+
+  public String getAmHost() {
+    return frameworkClient.getAmHost();
+  }
+
+  public int getAmPort() {
+    return frameworkClient.getAmPort();
+  }
 }

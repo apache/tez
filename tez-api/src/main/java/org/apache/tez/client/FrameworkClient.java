@@ -94,6 +94,9 @@ public abstract class FrameworkClient {
 
   public abstract ApplicationReport getApplicationReport(ApplicationId appId) throws YarnException, IOException;
 
+  public abstract String getAmHost();
+  public abstract int getAmPort();
+
   public abstract boolean isRunning() throws IOException;
 
   public TezAppMasterStatus getAMStatus(Configuration conf, ApplicationId appId,
