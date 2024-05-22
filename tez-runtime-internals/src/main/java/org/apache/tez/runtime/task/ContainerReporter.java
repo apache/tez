@@ -69,8 +69,9 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
         + " ms after starting to poll."
         + " TaskInfo: shouldDie: "
         + containerTask.shouldDie()
-        + (containerTask.shouldDie() == true ? "" : ", currentTaskAttemptId: "
-            + containerTask.getTaskSpec().getTaskAttemptID()));
+        + (containerTask.shouldDie() ? "" : ", currentTaskAttemptId: "
+        + (containerTask.getTaskSpec() == null ? "none"
+        : containerTask.getTaskSpec().getTaskAttemptID())));
     return containerTask;
   }
 
