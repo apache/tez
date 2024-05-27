@@ -1288,10 +1288,10 @@ public class TezClient {
   }
 
   public String getAmHost() {
-    return frameworkClient.getAmHost();
+    return frameworkClient == null ? null : frameworkClient.getAmHost();
   }
 
   public int getAmPort() {
-    return frameworkClient.getAmPort();
+    return frameworkClient == null ? -1 : frameworkClient.getAmPort();
   }
 }
