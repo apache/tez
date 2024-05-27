@@ -98,6 +98,7 @@ pipeline {
 
                         # our project defaults come from a personality file
                         YETUS_ARGS+=("--project=tez")
+                        YETUS_ARGS+=("--personality=${WORKSPACE}/${SOURCEDIR}/build-tools/tez-personality.sh")
 
                         # lots of different output formats
                         YETUS_ARGS+=("--brief-report-file=${WORKSPACE}/${PATCHDIR}/brief.txt")
