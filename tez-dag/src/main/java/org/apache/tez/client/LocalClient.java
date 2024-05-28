@@ -88,6 +88,8 @@ public class LocalClient extends FrameworkClient {
   private TezApiVersionInfo versionInfo = new TezApiVersionInfo();
   private volatile Throwable amFailException = null;
   private boolean isLocalWithoutNetwork;
+  private String amHost;
+  private int amPort;
 
   private static final String localModeDAGSchedulerClassName =
       "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrderControlled";
@@ -203,6 +205,9 @@ public class LocalClient extends FrameworkClient {
     report.setOriginalTrackingUrl("N/A");
     report.setProgress(dagAppMaster.getProgress());
     report.setAMRMToken(null);
+
+    this.amHost = dagAppMaster.getAppNMHost();
+    this.amPort = dagAppMaster.getRpcPort();
 
     return report;
   }
@@ -474,5 +479,15 @@ public class LocalClient extends FrameworkClient {
       return true;
     }
     return super.shutdownSession(configuration, sessionAppId, ugi);
+  }
+
+  @Override
+  public String getAmHost() {
+    return amHost;
+  }
+
+  @Override
+  public int getAmPort() {
+    return amPort;
   }
 }
