@@ -147,7 +147,7 @@ public class TestMROutput {
     MROutput output = new MROutput(outputContext, 2);
     output.initialize();
     String invalidDAGID = "invalid default";
-    String dagID = output.jobConf.get(MRJobConfig.FS_S3A_COMMITTER_UUID, invalidDAGID);
+    String dagID = output.jobConf.get(MRJobConfig.JOB_COMMITTER_UUID, invalidDAGID);
     assertNotEquals(dagID, invalidDAGID);
     assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), dagID);
     assertEquals(dagID, Utils.getDAGID(outputContext.getApplicationId(), outputContext.getDagIdentifier()));

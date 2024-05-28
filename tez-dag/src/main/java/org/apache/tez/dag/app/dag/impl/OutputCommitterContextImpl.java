@@ -38,12 +38,10 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
   private final RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output;
 
   public OutputCommitterContextImpl(ApplicationId applicationId,
-      int dagAttemptNumber,
-      String dagName,
-      String vertexName,
-      RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output,
-      int vertexIdx,
-      int dagIdentifier) {
+                                    int dagAttemptNumber,
+                                    String dagName,
+                                    String vertexName,
+                                    int dagIdentifier, int vertexIdx, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output) {
     Objects.requireNonNull(applicationId, "applicationId is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(vertexName, "vertexName is null");
