@@ -746,7 +746,7 @@ public class TaskSchedulerManager extends AbstractService implements
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), schedulerId, container.getId()));
     }
-    appContext.getCurrentDAG().addUsedContainer(containerId);
+    appContext.getCurrentDAG().addUsedContainer(container);
 
     TaskAttempt taskAttempt = event.getTaskAttempt();
     // TODO - perhaps check if the task still needs this container

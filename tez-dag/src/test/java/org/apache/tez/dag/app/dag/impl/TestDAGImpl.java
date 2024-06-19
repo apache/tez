@@ -49,6 +49,7 @@ import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.junit.Rule;
@@ -60,6 +61,8 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
@@ -181,6 +184,7 @@ public class TestDAGImpl {
   private ACLManager aclManager;
   private ApplicationAttemptId appAttemptId;
   private DAGImpl dag;
+  private TaskSchedulerManager taskSchedulerManager;
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
@@ -861,11 +865,12 @@ public class TestDAGImpl {
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
+    taskSchedulerManager = mock(TaskSchedulerManager.class);
     execService = mock(ListeningExecutorService.class);
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     when(appContext.getHadoopShim()).thenReturn(defaultShim);
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
-    
+
     doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
@@ -2358,22 +2363,82 @@ public class TestDAGImpl {
 
   }
 
-  @SuppressWarnings("unchecked")
   @Test(timeout = 5000)
   public void testTotalContainersUsedCounter() {
+    DAGImpl spy = getDagSpy();
+
+    spy.addUsedContainer(Container.newInstance(ContainerId.fromString("container_e16_1504924099862_7571_01_000005"),
+        mock(NodeId.class), null, null, null, null));
+    spy.addUsedContainer(Container.newInstance(ContainerId.fromString("container_e16_1504924099862_7571_01_000006"),
+        mock(NodeId.class), null, null, null, null));
+
+    spy.onFinish();
+    // 2 calls to addUsedContainer
+    verify(spy, times(2)).addUsedContainer(any(Container.class));
+    // 2 containers were used
+    Assert.assertEquals(2,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.TOTAL_CONTAINERS_USED.name())
+            .getValue());
+  }
+
+  @Test(timeout = 5000)
+  public void testNodesUsedCounter() {
+    DAGImpl spy = getDagSpy();
+
+    Container containerOnHost = mock(Container.class);
+    when(containerOnHost.getNodeId()).thenReturn(NodeId.fromString("localhost:0"));
+    Container containerOnSameHost = mock(Container.class);
+    when(containerOnSameHost.getNodeId()).thenReturn(NodeId.fromString("localhost:0"));
+    Container containerOnDifferentHost = mock(Container.class);
+    when(containerOnDifferentHost.getNodeId()).thenReturn(NodeId.fromString("otherhost:0"));
+    Container containerOnSameHostWithDifferentPort = mock(Container.class);
+    when(containerOnSameHostWithDifferentPort.getNodeId()).thenReturn(NodeId.fromString("localhost:1"));
+
+    spy.addUsedContainer(containerOnHost);
+    spy.addUsedContainer(containerOnSameHost);
+    spy.addUsedContainer(containerOnDifferentHost);
+    spy.addUsedContainer(containerOnSameHostWithDifferentPort);
+
+    when(taskSchedulerManager.getNumClusterNodes()).thenReturn(10);
+
+    spy.onFinish();
+    // 4 calls to addUsedContainer
+    verify(spy, times(4)).addUsedContainer(any(Container.class));
+    // 3 nodes were used: localhost:0, otherhost:0, localhost:1
+    // localhost:0 and localhost:1 might be on the same physical host, but as long as
+    // yarn considers them different nodes, we consider them different too
+    Assert.assertEquals(3,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.NODE_USED_COUNT.name())
+            .getValue());
+
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("localhost:0")));
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("otherhost:0")));
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("localhost:1")));
+
+    // 2 distinct node hosts were seen: localhost, otherhost
+    Assert.assertEquals(2,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName())
+            .findCounter(DAGCounter.NODE_HOSTS_USED_COUNT.name())
+            .getValue());
+
+    Assert.assertEquals(10,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName())
+            .findCounter(DAGCounter.NODE_TOTAL_COUNT.name())
+            .getValue());
+
+    Assert.assertTrue(spy.nodeHostsUsedByCurrentDAG.contains("localhost"));
+    Assert.assertTrue(spy.nodeHostsUsedByCurrentDAG.contains("otherhost"));
+  }
+
+  private DAGImpl getDagSpy() {
     initDAG(mrrDag);
     dispatcher.await();
     startDAG(mrrDag);
     dispatcher.await();
 
-    DAGImpl spy = spy(mrrDag);
-    spy.addUsedContainer(mock(ContainerId.class));
-    spy.addUsedContainer(mock(ContainerId.class));
+    // needed when onFinish() method is called on a DAGImpl
+    when(mrrAppContext.getTaskScheduler()).thenReturn(taskSchedulerManager);
 
-    spy.onFinish();
-    // 2 calls to addUsedContainer, obviously, we did it here
-    verify(spy, times(2)).addUsedContainer(any(ContainerId.class));
-    // 1 call to setDagCounter, which happened at dag.onFinish
-    verify(spy).setDagCounter(DAGCounter.TOTAL_CONTAINERS_USED, 2);
+    return spy(mrrDag);
   }
 }
