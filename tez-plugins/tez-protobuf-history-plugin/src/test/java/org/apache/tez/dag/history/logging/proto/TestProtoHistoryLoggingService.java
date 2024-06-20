@@ -166,7 +166,8 @@ public class TestProtoHistoryLoggingService {
     }
   }
 
-  private static int getTotalBytesRead(ProtoMessageReader<HistoryEventProto> reader) throws NoSuchFieldException, IllegalAccessException {
+  private static int getTotalBytesRead(ProtoMessageReader<HistoryEventProto> reader) throws NoSuchFieldException,
+      IllegalAccessException {
     // writable is a private field in ProtoMessageReader.java
     Field f = reader.getClass().getDeclaredField("writable");
     f.setAccessible(true);
@@ -178,8 +179,7 @@ public class TestProtoHistoryLoggingService {
     CodedInputStream cin = (CodedInputStream) c.get(writable);
 
     // Goal is to get value of: reader.writable.cin.getTotalBytesRead()
-    int totalBytesRead = cin.getTotalBytesRead();
-    return totalBytesRead;
+    return cin.getTotalBytesRead();
   }
 
   @Test
