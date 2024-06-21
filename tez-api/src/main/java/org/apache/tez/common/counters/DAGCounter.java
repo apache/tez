@@ -91,15 +91,9 @@ public enum DAGCounter {
 
   /*
    * Number of nodes to which task attempts were assigned in this DAG.
-   * Nodes are distinguished by the Yarn NodeId.
+   * Nodes are distinguished by the Yarn NodeId.getHost().
    */
   NODE_USED_COUNT,
-
-  /*
-   * Number of node hosts to which task attempts were assigned in this DAG.
-   * Nodes are distinguished by Yarn NodeId.getHost()
-   */
-  NODE_HOSTS_USED_COUNT,
 
   /*
    * Total number of nodes visible to the task scheduler (regardless of

@@ -64,7 +64,6 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
@@ -253,10 +252,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
   private final Set<ContainerId> containersUsedByCurrentDAG = new HashSet<>();
   @VisibleForTesting
-  final Set<NodeId> nodesUsedByCurrentDAG = new HashSet<>();
-  @VisibleForTesting
-  final Set<String> nodeHostsUsedByCurrentDAG = new HashSet<>();
-
+  final Set<String> nodesUsedByCurrentDAG = new HashSet<>();
 
   protected static final
     StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
@@ -2588,14 +2584,12 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   @Override
   public void addUsedContainer(Container container) {
     containersUsedByCurrentDAG.add(container.getId());
-    nodesUsedByCurrentDAG.add(container.getNodeId());
-    nodeHostsUsedByCurrentDAG.add(container.getNodeId().getHost());
+    nodesUsedByCurrentDAG.add(container.getNodeId().getHost());
   }
 
   private void updateCounters() {
     setDagCounter(DAGCounter.TOTAL_CONTAINERS_USED, containersUsedByCurrentDAG.size());
     setDagCounter(DAGCounter.NODE_USED_COUNT, nodesUsedByCurrentDAG.size());
-    setDagCounter(DAGCounter.NODE_HOSTS_USED_COUNT, nodeHostsUsedByCurrentDAG.size());
-    setDagCounter(DAGCounter.NODE_TOTAL_COUNT, appContext.getTaskScheduler().getNumClusterNodes());
+    setDagCounter(DAGCounter.NODE_TOTAL_COUNT, appContext.getTaskScheduler().getNumClusterNodes(true));
   }
 }

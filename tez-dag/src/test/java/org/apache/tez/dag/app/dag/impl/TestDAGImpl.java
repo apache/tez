@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app.dag.impl;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -2399,35 +2400,24 @@ public class TestDAGImpl {
     spy.addUsedContainer(containerOnDifferentHost);
     spy.addUsedContainer(containerOnSameHostWithDifferentPort);
 
-    when(taskSchedulerManager.getNumClusterNodes()).thenReturn(10);
+    when(taskSchedulerManager.getNumClusterNodes(anyBoolean())).thenReturn(10);
 
     spy.onFinish();
     // 4 calls to addUsedContainer
     verify(spy, times(4)).addUsedContainer(any(Container.class));
-    // 3 nodes were used: localhost:0, otherhost:0, localhost:1
-    // localhost:0 and localhost:1 might be on the same physical host, but as long as
-    // yarn considers them different nodes, we consider them different too
-    Assert.assertEquals(3,
-        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.NODE_USED_COUNT.name())
-            .getValue());
-
-    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("localhost:0")));
-    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("otherhost:0")));
-    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains(NodeId.fromString("localhost:1")));
 
     // 2 distinct node hosts were seen: localhost, otherhost
     Assert.assertEquals(2,
-        spy.getAllCounters().getGroup(DAGCounter.class.getName())
-            .findCounter(DAGCounter.NODE_HOSTS_USED_COUNT.name())
+        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.NODE_USED_COUNT.name())
             .getValue());
+
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("localhost"));
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("otherhost"));
 
     Assert.assertEquals(10,
         spy.getAllCounters().getGroup(DAGCounter.class.getName())
             .findCounter(DAGCounter.NODE_TOTAL_COUNT.name())
             .getValue());
-
-    Assert.assertTrue(spy.nodeHostsUsedByCurrentDAG.contains("localhost"));
-    Assert.assertTrue(spy.nodeHostsUsedByCurrentDAG.contains("otherhost"));
   }
 
   private DAGImpl getDagSpy() {
