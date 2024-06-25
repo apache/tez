@@ -234,7 +234,7 @@ public class TestTaskSchedulerManager {
     assertEquals(priority, assignEvent.getPriority());
     assertEquals(mockAttemptId, assignEvent.getTaskAttemptId());
 
-    verify(mockAppContext.getCurrentDAG()).addUsedContainer(any(ContainerId.class)); // called on taskAllocated
+    verify(mockAppContext.getCurrentDAG()).addUsedContainer(any(Container.class)); // called on taskAllocated
   }
 
   @Test(timeout = 5000)

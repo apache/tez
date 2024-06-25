@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.common.counters.DAGCounter;
@@ -106,7 +106,7 @@ public interface DAG extends DagInfo {
 
   void incrementDagCounter(DAGCounter counter, int incrValue);
   void setDagCounter(DAGCounter counter, int setValue);
-  void addUsedContainer(ContainerId containerId);
+  void addUsedContainer(Container container);
 
   /**
    * Called by the DAGAppMaster when the DAG is started normally or in the event of recovery.
