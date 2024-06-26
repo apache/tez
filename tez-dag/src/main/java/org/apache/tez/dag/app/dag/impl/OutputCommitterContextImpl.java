@@ -41,7 +41,9 @@ public class OutputCommitterContextImpl implements OutputCommitterContext {
                                     int dagAttemptNumber,
                                     String dagName,
                                     String vertexName,
-                                    int dagIdentifier, int vertexIdx, RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output) {
+                                    int dagIdentifier,
+                                    int vertexIdx,
+                                    RootInputLeafOutput<OutputDescriptor, OutputCommitterDescriptor> output) {
     Objects.requireNonNull(applicationId, "applicationId is null");
     Objects.requireNonNull(dagName, "dagName is null");
     Objects.requireNonNull(vertexName, "vertexName is null");

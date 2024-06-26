@@ -33,6 +33,8 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
+import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.OutputContext;
 
 @Private
 public final class Utils {
@@ -66,7 +68,11 @@ public final class Utils {
     return new MRCounters.MRCounter(tezCounter);
   }
 
-  public static String getDAGID(ApplicationId id, int dagIdentifier) {
-    return TezDAGID.getInstance(id, dagIdentifier).toString();
+  public static String getDAGID(OutputCommitterContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
+  }
+
+  public static String getDAGID(OutputContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
   }
 }

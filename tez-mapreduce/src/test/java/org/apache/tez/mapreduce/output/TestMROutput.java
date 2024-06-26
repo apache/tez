@@ -150,7 +150,7 @@ public class TestMROutput {
     String dagID = output.jobConf.get(MRJobConfig.JOB_COMMITTER_UUID, invalidDAGID);
     assertNotEquals(dagID, invalidDAGID);
     assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), dagID);
-    assertEquals(dagID, Utils.getDAGID(outputContext.getApplicationId(), outputContext.getDagIdentifier()));
+    assertEquals(dagID, Utils.getDAGID(outputContext));
   }
 
   @Test(timeout = 5000)
