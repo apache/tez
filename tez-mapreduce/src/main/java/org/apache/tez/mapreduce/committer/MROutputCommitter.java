@@ -18,6 +18,7 @@
 
 package org.apache.tez.mapreduce.committer;
 
+import org.apache.tez.mapreduce.common.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -78,6 +79,7 @@ public class MROutputCommitter extends OutputCommitter {
     jobConf.getCredentials().mergeAll(UserGroupInformation.getCurrentUser().getCredentials());
     jobConf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID,
         getContext().getDAGAttemptNumber());
+    jobConf.set(MRJobConfig.JOB_COMMITTER_UUID, Utils.getDAGID(getContext()));
     jobConf.setInt(MRJobConfig.VERTEX_ID, getContext().getVertexIndex());
     committer = getOutputCommitter(getContext());
     jobContext = getJobContextFromVertexContext(getContext());
