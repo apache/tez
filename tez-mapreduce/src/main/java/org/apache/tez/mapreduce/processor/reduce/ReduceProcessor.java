@@ -18,8 +18,8 @@
 package org.apache.tez.mapreduce.processor.reduce;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +44,6 @@ import org.apache.tez.mapreduce.output.MROutputLegacy;
 import org.apache.tez.mapreduce.processor.MRTask;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Input;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
@@ -106,9 +105,7 @@ public class ReduceProcessor extends MRTask {
     LogicalInput in = _inputs.values().iterator().next();
     in.start();
 
-    List<Input> pendingInputs = new LinkedList<Input>();
-    pendingInputs.add(in);
-    processorContext.waitForAllInputsReady(pendingInputs);
+    processorContext.waitForAllInputsReady(Collections.singletonList(in));
     LOG.info("Input is ready for consumption. Starting Output");
 
     LogicalOutput out = _outputs.values().iterator().next();
