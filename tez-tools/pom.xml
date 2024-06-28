@@ -50,6 +50,25 @@
         <module>tez-tfile-parser</module>
       </modules>
     </profile>
+    <profile>
+      <id>jdk8-16</id>
+      <activation>
+        <jdk>[8,16]</jdk>
+      </activation>
+      <modules>
+        <module>tez-javadoc-tools-base-jdk8</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>jdk17plus</id>
+      <activation>
+        <!-- JDK9 starts strong encapsulation of Java internals, JDK17 removes/hides those -->
+        <jdk>[17,)</jdk>
+      </activation>
+      <modules>
+        <module>tez-javadoc-tools-base</module>
+      </modules>
+    </profile>
   </profiles>
 
 </project>
