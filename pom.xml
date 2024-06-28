@@ -377,10 +377,6 @@
             <groupId>io.netty</groupId>
             <artifactId>*</artifactId>
           </exclusion>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -391,10 +387,6 @@
           <exclusion>
             <groupId>io.netty</groupId>
             <artifactId>netty</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
