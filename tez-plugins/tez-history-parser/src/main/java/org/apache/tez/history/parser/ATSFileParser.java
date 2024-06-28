@@ -190,7 +190,10 @@ public class ATSFileParser extends BaseParser implements ATSData {
       throws IOException, JSONException, TezException, InterruptedException {
     final ZipFile atsZipFile = new ZipFile(atsFile);
     try {
+      // Need to keep around the dag to handle merging dag extra info
+      JSONObject dagJsonSave = null;
       Enumeration<? extends ZipEntry> zipEntries = atsZipFile.entries();
+
       while (zipEntries.hasMoreElements()) {
         ZipEntry zipEntry = zipEntries.nextElement();
         LOG.debug("Processing " + zipEntry.getName());
@@ -202,6 +205,24 @@ public class ATSFileParser extends BaseParser implements ATSData {
         if (dagJson != null) {
           //TODO: support for multiple dags per ATS file later.
           dagInfo = DagInfo.create(dagJson);
+          dagJsonSave = dagJson;
+        }
+        JSONObject dagExtraInfoJson = jsonObject.optJSONObject(Constants.DAG_EXTRA_INFO);
+        // We need to merge DAG and DAG_EXTRA_INFO together before processing
+        if (dagJsonSave != null) {
+          if (dagExtraInfoJson != null) {
+            JSONObject dagOtherInfo = dagJsonSave.getJSONObject(Constants.OTHER_INFO);
+            JSONObject extraOtherInfo = dagExtraInfoJson.getJSONObject(Constants.OTHER_INFO);
+            @SuppressWarnings("unchecked")
+            Iterator<String> iter = extraOtherInfo.keys();
+            while (iter.hasNext()) {
+              String key = iter.next();
+              dagOtherInfo.put(key, extraOtherInfo.get(key));
+            }
+            // Recreate the dagInfo with the merged DAG and DAG_EXTRA_INFO
+            // Needs created before vertex processing can begin
+            dagInfo = DagInfo.create(dagJsonSave);
+          }
         }
 
         //Process vertex

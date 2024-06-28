@@ -55,9 +55,14 @@ public abstract class BaseInfo {
        * already generated events should be parsed correctly, hence this workaround.
        * Will be investigated in the scope of TEZ-4324.
        */
-      countersObj = new JSONObject(otherInfoNode.optString(Constants.COUNTERS));
+      String countersStr = otherInfoNode.optString(Constants.COUNTERS);
+      if (!countersStr.isEmpty()) {
+        countersObj = new JSONObject(otherInfoNode.optString(Constants.COUNTERS));
+      }
     }
-    tezCounters = Utils.parseTezCountersFromJSON(countersObj);
+    if (countersObj != null) {
+      tezCounters = Utils.parseTezCountersFromJSON(countersObj);
+    }
 
     //parse events
     eventList = Lists.newArrayList();
