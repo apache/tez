@@ -22,7 +22,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.tez.common.ServicePluginLifecycle;
+import org.apache.tez.common.plugin.ServicePluginAware;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -42,7 +42,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
  * of this heartbeat mechanism, handling lost or duplicate responses.
  *
  */
-public abstract class TaskCommunicator implements ServicePluginLifecycle {
+public abstract class TaskCommunicator extends ServicePluginAware {
 
   // TODO TEZ-2003 (post) TEZ-2666 Enhancements to interface
   // - registerContainerEnd should provide the end reason / possible rename
