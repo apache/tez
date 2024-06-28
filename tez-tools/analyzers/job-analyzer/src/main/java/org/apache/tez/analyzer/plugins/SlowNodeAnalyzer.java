@@ -72,21 +72,21 @@ public class SlowNodeAnalyzer extends TezAnalyzerBase implements Analyzer {
       Collection<TaskAttemptInfo> taskAttemptInfos = nodeDetails.get(nodeName);
 
       record.add(nodeName);
-      record.add(taskAttemptInfos.size() + "");
-      record.add(getNumberOfTasks(taskAttemptInfos, TaskAttemptState.KILLED) + "");
-      record.add(getNumberOfTasks(taskAttemptInfos, TaskAttemptState.FAILED) + "");
+      record.add(Integer.toString(taskAttemptInfos.size()));
+      record.add(Integer.toString(getNumberOfTasks(taskAttemptInfos, TaskAttemptState.KILLED)));
+      record.add(Integer.toString(getNumberOfTasks(taskAttemptInfos, TaskAttemptState.FAILED)));
 
       Iterable<TaskAttemptInfo> succeedTasks = getFilteredTaskAttempts(taskAttemptInfos,
           TaskAttemptState.SUCCEEDED);
-      record.add(getAvgTaskExecutionTime(succeedTasks) + "");
+      record.add(Float.toString(getAvgTaskExecutionTime(succeedTasks)));
 
       Iterable<TaskAttemptInfo> killedTasks = getFilteredTaskAttempts(taskAttemptInfos,
           TaskAttemptState.KILLED);
-      record.add(getAvgTaskExecutionTime(killedTasks) + "");
+      record.add(Float.toString(getAvgTaskExecutionTime(killedTasks)));
 
       Iterable<TaskAttemptInfo> failedTasks = getFilteredTaskAttempts(taskAttemptInfos,
           TaskAttemptState.FAILED);
-      record.add(getAvgTaskExecutionTime(failedTasks) + "");
+      record.add(Float.toString(getAvgTaskExecutionTime(failedTasks)));
 
       record.add(getAvgCounter(taskAttemptInfos, FileSystemCounter.class
           .getName(), FileSystemCounter.HDFS_BYTES_READ.name()) + "");
