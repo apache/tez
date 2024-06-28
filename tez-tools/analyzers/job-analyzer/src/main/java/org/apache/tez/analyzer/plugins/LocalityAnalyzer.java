@@ -57,6 +57,7 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
   public LocalityAnalyzer(Configuration config) {
     super(config);
     csvResult = new CSVResult(headers);
+    this.configProperties.add(DATA_LOCAL_RATIO);
   }
 
   @Override
