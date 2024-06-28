@@ -16,32 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.tez.tools.javadoc.model;
+package org.apache.tez.tools.javadoc.util;
 
-public class ConfigProperty {
+import org.apache.tez.tools.javadoc.model.Config;
+import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
-  public String propertyName;
-  public String defaultValue;
-  public String description;
-  public String type = "string";
-  public boolean isPrivate = false;
-  public boolean isUnstable = false;
-  public boolean isEvolving = false;
-  public boolean isValidConfigProp = false;
-  public String[] validValues;
-  public String inferredType;
+import java.io.IOException;
 
-  @Override
-  public String toString() {
-    return "name=" + propertyName
-        + ", defaultValue=" + defaultValue
-        + ", description=" + description
-        + ", type=" + type
-        + ", inferredType=" + inferredType
-        + ", private=" + isPrivate
-        + ", validValues=" + (validValues == null ? "null" : validValues)
-        + ", isConfigProp=" + isValidConfigProp;
-  }
+public abstract class Writer {
+
+    public abstract void write(Config config) throws IOException;
+
+    public boolean isValidConfigProperty(ConfigProperty configProperty) {
+        if (!configProperty.isValidConfigProp) {
+            return false;
+        }
+        if (configProperty.propertyName == null || configProperty.propertyName.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
 }
-
-

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,14 +31,8 @@ import org.apache.tez.tools.javadoc.model.ConfigProperty;
 import org.apache.tez.tools.javadoc.util.HtmlWriter;
 import org.apache.tez.tools.javadoc.util.XmlWriter;
 
-import com.sun.javadoc.AnnotationDesc;
-import com.sun.javadoc.AnnotationDesc.ElementValuePair;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.DocErrorReporter;
-import com.sun.javadoc.FieldDoc;
-import com.sun.javadoc.LanguageVersion;
-import com.sun.javadoc.RootDoc;
-import com.sun.tools.doclets.standard.Standard;
+import java.io.IOException;
+import java.util.Map;
 
 public final class ConfigStandardDoclet {
 
@@ -194,40 +188,34 @@ public final class ConfigStandardDoclet {
             }
           }
         }
+
+        HtmlWriter writer = new HtmlWriter();
+        try {
+          writer.write(config);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+
+        XmlWriter xmlWriter = new XmlWriter();
+        try {
+          xmlWriter.write(config);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
 
-      configProperty.description = field.commentText();
+      private static String stripQuotes (String s){
+        if (s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
+          return s.substring(1, s.length() - 1);
+        }
+        return s;
+      }
 
+      public static int optionLength (String option){
+        return Standard.optionLength(option);
+      }
+
+      public static boolean validOptions (String options[][],DocErrorReporter reporter){
+        return true;
+      }
     }
-
-    HtmlWriter writer = new HtmlWriter();
-    try {
-      writer.write(config);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    XmlWriter xmlWriter = new XmlWriter();
-    try {
-      xmlWriter.write(config);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-  }
-
-  private static String stripQuotes(String s) {
-    if (s.charAt(0) == '"' && s.charAt(s.length()-1) == '"') {
-      return s.substring(1, s.length()-1);
-    }
-    return s;
-  }
-
-  public static int optionLength(String option) {
-    return Standard.optionLength(option);
-  }
-
-  public static boolean validOptions(String options[][], DocErrorReporter reporter) {
-    return true;
-  }
-}
