@@ -747,7 +747,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     try {
       // FIXME a better lightweight approach for counters is needed
       if (fullCounters == null && cachedCounters != null
-          && ((cachedCountersTimestamp+10000) > System.currentTimeMillis())) {
+          && ((cachedCountersTimestamp + 10000) - System.currentTimeMillis() > 0)) {
         LOG.info("Asked for counters"
             + ", cachedCountersTimestamp=" + cachedCountersTimestamp
             + ", currentTime=" + System.currentTimeMillis());
