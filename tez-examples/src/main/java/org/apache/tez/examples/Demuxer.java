@@ -33,8 +33,6 @@ import org.apache.tez.client.TezClient;
 import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
-import org.apache.tez.dag.api.GroupInputEdge;
-import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
@@ -51,7 +49,6 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
-import org.apache.tez.runtime.library.input.ConcatenatedMergedKeyValuesInput;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,6 +98,10 @@ public class Demuxer extends TezExampleBase {
         .stream(inputDirs.split(","))
         .map(Path::new)
         .collect(Collectors.toList());
+    if (inputPaths.size() > 1) {
+      System.err.println("Input paths must contain exactly one path until TEZ-4508 is resolved");
+      return 3;
+    }
     Path outputPath = new Path(outputDir);
 
     FileSystem fs = outputPath.getFileSystem(tezConf);
@@ -109,9 +110,7 @@ public class Demuxer extends TezExampleBase {
       System.err.println("Output directory: " + outputDir + " already exists");
       return 3;
     }
-    DAG dag = inputPaths.size() == 1
-        ? createDag(tezConf, inputPaths.get(0), outputPath, numPartitions)
-        : createDagWithUnion(tezConf, inputPaths, outputPath, numPartitions);
+    DAG dag = createDag(tezConf, inputPaths.get(0), outputPath, numPartitions);
     LOG.info("Running Demuxer");
     return runDag(dag, isCountersLog(), LOG);
   }
@@ -132,33 +131,6 @@ public class Demuxer extends TezExampleBase {
         .addVertex(inputVertex)
         .addVertex(demuxVertex)
         .addEdge(Edge.create(inputVertex, demuxVertex, edgeConf.createDefaultEdgeProperty()));
-  }
-
-  private DAG createDagWithUnion(TezConfiguration tezConf, List<Path> inputPaths, Path outputPath,
-      int numPartitions) {
-    Vertex[] inputVertices = new Vertex[inputPaths.size()];
-    for (int i = 0; i < inputPaths.size(); i++) {
-      inputVertices[i] = createInputVertex(tezConf, "input-" + i, inputPaths.get(i));
-    }
-
-    Vertex demuxVertex = createDemuxVertex(tezConf, outputPath, numPartitions);
-
-    OrderedPartitionedKVEdgeConfig edgeConf = OrderedPartitionedKVEdgeConfig
-        .newBuilder(Text.class.getName(), NullWritable.class.getName(),
-            HashPartitioner.class.getName())
-        .setFromConfiguration(tezConf)
-        .build();
-
-    DAG dag = DAG.create("Demuxer");
-    Arrays.stream(inputVertices).forEach(dag::addVertex);
-    return dag
-        .addVertex(demuxVertex)
-        .addEdge(
-            GroupInputEdge.create(
-                dag.createVertexGroup("union", inputVertices),
-                demuxVertex,
-                edgeConf.createDefaultEdgeProperty(),
-                InputDescriptor.create(ConcatenatedMergedKeyValuesInput.class.getName())));
   }
 
   private Vertex createInputVertex(TezConfiguration tezConf, String vertexName, Path path) {
