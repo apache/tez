@@ -30,7 +30,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
+import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.OutputContext;
 
 @Private
 public final class Utils {
@@ -63,5 +66,12 @@ public final class Utils {
     Objects.requireNonNull(tezCounter);
     return new MRCounters.MRCounter(tezCounter);
   }
-  
+
+  public static String getDAGID(OutputCommitterContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
+  }
+
+  public static String getDAGID(OutputContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
+  }
 }

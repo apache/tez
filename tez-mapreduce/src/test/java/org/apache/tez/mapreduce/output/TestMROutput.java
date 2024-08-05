@@ -56,7 +56,9 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.mapreduce.TestUmbilical;
 import org.apache.tez.mapreduce.TezTestUtils;
+import org.apache.tez.mapreduce.common.Utils;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
+import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 import org.apache.tez.runtime.LogicalIOProcessorRuntimeTask;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.ProcessorContext;
@@ -129,6 +131,26 @@ public class TestMROutput {
     Configuration mergedConf = output.jobConf;
     assertEquals("local-value", mergedConf.get("local-key"));
     assertEquals("base-value", mergedConf.get("base-key"));
+  }
+
+  @Test
+  public void testJobUUIDSet() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
+    DataSinkDescriptor dataSink = MROutput
+            .createConfigBuilder(conf, TextOutputFormat.class,
+                    tmpDir.getPath())
+            .build();
+
+    OutputContext outputContext = createMockOutputContext(dataSink.getOutputDescriptor().getUserPayload(),
+            new Configuration(false));
+    MROutput output = new MROutput(outputContext, 2);
+    output.initialize();
+    String invalidDAGID = "invalid default";
+    String dagID = output.jobConf.get(MRJobConfig.JOB_COMMITTER_UUID, invalidDAGID);
+    assertNotEquals(dagID, invalidDAGID);
+    assertNotEquals(output.jobConf.get(org.apache.hadoop.mapred.JobContext.TASK_ATTEMPT_ID), dagID);
+    assertEquals(dagID, Utils.getDAGID(outputContext));
   }
 
   @Test(timeout = 5000)
