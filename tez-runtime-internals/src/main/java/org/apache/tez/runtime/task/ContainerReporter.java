@@ -77,7 +77,7 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
 
   private void maybeLogSleepMessage(long sleepTimeMilliSecs) {
     long currentTime = System.currentTimeMillis();
-    if (sleepTimeMilliSecs + currentTime > nextGetTaskPrintTime) {
+    if ((sleepTimeMilliSecs + currentTime) - nextGetTaskPrintTime > 0) {
       LOG.info("Sleeping for " + sleepTimeMilliSecs
           + "ms before retrying getTask again. Got null now. "
           + "Next getTask sleep message after " + LOG_INTERVAL + "ms");
