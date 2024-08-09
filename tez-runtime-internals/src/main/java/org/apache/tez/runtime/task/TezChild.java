@@ -249,20 +249,6 @@ public class TezChild {
         }
       }
 
-      TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
-      Configuration taskConf;
-      if (containerTask.getTaskSpec().getTaskConf() != null) {
-        Configuration copy = new Configuration(defaultConf);
-        TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
-        taskConf = copy;
-        LoggingUtils.initLoggingContext(mdcContext, copy,
-            attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
-      } else {
-        taskConf = defaultConf;
-        LoggingUtils.initLoggingContext(mdcContext, defaultConf,
-            attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
-      }
-
       TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
@@ -270,7 +256,20 @@ public class TezChild {
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
             "Asked to die by the AM");
       } else {
-        String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
+        TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
+        Configuration taskConf;
+        if (containerTask.getTaskSpec().getTaskConf() != null) {
+          Configuration copy = new Configuration(defaultConf);
+          TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
+          taskConf = copy;
+          LoggingUtils.initLoggingContext(mdcContext, copy, attemptId.getTaskID().getVertexID().getDAGID().toString(),
+              attemptId.toString());
+        } else {
+          taskConf = defaultConf;
+          LoggingUtils.initLoggingContext(mdcContext, defaultConf,
+              attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
+        }
+        String loggerAddend = attemptId.toString();
         taskCount++;
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         System.err.println(timeStamp + " Starting to run new task attempt: " +

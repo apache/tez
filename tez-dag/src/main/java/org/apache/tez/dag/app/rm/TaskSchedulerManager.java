@@ -224,9 +224,24 @@ public class TaskSchedulerManager extends AbstractService implements
   }
 
   public int getNumClusterNodes() {
+    return getNumClusterNodes(false);
+  }
+
+  public int getNumClusterNodes(boolean tryUpdate){
+    if (cachedNodeCount == -1 && tryUpdate){
+      cachedNodeCount = countAllNodes();
+    }
     return cachedNodeCount;
   }
-  
+
+  private int countAllNodes() {
+    try {
+      return taskSchedulers[0].getClusterNodeCount();
+    } catch (Exception e) {
+      return handleTaskSchedulerExceptionWhileGettingNodeCount(e);
+    }
+  }
+
   public Resource getAvailableResources(int schedulerId) {
     try {
       return taskSchedulers[schedulerId].getAvailableResources();
@@ -746,7 +761,7 @@ public class TaskSchedulerManager extends AbstractService implements
       sendEvent(new AMNodeEventContainerAllocated(container
           .getNodeId(), schedulerId, container.getId()));
     }
-    appContext.getCurrentDAG().addUsedContainer(containerId);
+    appContext.getCurrentDAG().addUsedContainer(container);
 
     TaskAttempt taskAttempt = event.getTaskAttempt();
     // TODO - perhaps check if the task still needs this container
@@ -883,24 +898,23 @@ public class TaskSchedulerManager extends AbstractService implements
     // Doubles as a mechanism to update node counts periodically. Hence schedulerId required.
 
     // TODO Handle this in TEZ-2124. Need a way to know which scheduler is calling in.
-    int nodeCount = 0;
-    try {
-      nodeCount = taskSchedulers[0].getClusterNodeCount();
-    } catch (Exception e) {
-      String msg = "Error in TaskScheduler while getting node count"
-          + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(schedulerId, appContext);
-      LOG.error(msg, e);
-      sendEvent(
-          new DAGAppMasterEventUserServiceFatalError(
-              DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR,
-              msg, e));
-      throw new RuntimeException(e);
-    }
+    int nodeCount = countAllNodes();
     if (nodeCount != cachedNodeCount) {
       cachedNodeCount = nodeCount;
       sendEvent(new AMNodeEventNodeCountUpdated(cachedNodeCount, schedulerId));
     }
     return dagAppMaster.getProgress();
+  }
+
+  private int handleTaskSchedulerExceptionWhileGettingNodeCount(Exception e) {
+    String msg = "Error in TaskScheduler while getting node count"
+        + ", scheduler=" + Utils.getTaskSchedulerIdentifierString(0, appContext);
+    LOG.error(msg, e);
+    sendEvent(
+        new DAGAppMasterEventUserServiceFatalError(
+            DAGAppMasterEventType.TASK_SCHEDULER_SERVICE_FATAL_ERROR,
+            msg, e));
+    throw new RuntimeException(e);
   }
 
   public void reportError(int taskSchedulerIndex, ServicePluginError servicePluginError,

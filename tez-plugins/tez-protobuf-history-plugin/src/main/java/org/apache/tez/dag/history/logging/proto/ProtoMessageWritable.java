@@ -98,5 +98,6 @@ public class ProtoMessageWritable<T extends MessageLite> implements Writable {
     }
     din.in = in;
     message = cin.readMessage(parser, ExtensionRegistry.getEmptyRegistry());
+    cin.resetSizeCounter();
   }
 }

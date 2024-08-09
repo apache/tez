@@ -87,5 +87,18 @@ public enum DAGCounter {
    * Number of container reuses during a DAG. This is incremented every time
    * the containerReused callback is called in the TaskSchedulerContext.
    */
-  TOTAL_CONTAINER_REUSE_COUNT
+  TOTAL_CONTAINER_REUSE_COUNT,
+
+  /*
+   * Number of nodes to which task attempts were assigned in this DAG.
+   * Nodes are distinguished by the Yarn NodeId.getHost().
+   */
+  NODE_USED_COUNT,
+
+  /*
+   * Total number of nodes visible to the task scheduler (regardless of
+   * task assignments). This is typically exposed by a resource manager
+   * client.
+   */
+  NODE_TOTAL_COUNT
 }

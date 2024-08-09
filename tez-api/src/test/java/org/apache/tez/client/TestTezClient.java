@@ -161,6 +161,16 @@ public class TestTezClient {
       }
       return super.getProxy(conf, sessionAppId, ugi);
     }
+
+    @Override
+    public String getAmHost() {
+      return "testhost";
+    }
+
+    @Override
+    public int getAmPort() {
+      return 1234;
+    }
   }
 
   TezClientForTest configureAndCreateTezClient() throws YarnException, IOException, ServiceException {
@@ -1004,5 +1014,14 @@ public class TestTezClient {
 
     //Test that Exception is not thrown by createFinalConfProtoForApp
     TezClientUtils.createFinalConfProtoForApp(conf, null);
+  }
+
+  @Test
+  public void testGetAmHostAndPort() throws Exception {
+    final TezClientForTest client = configureAndCreateTezClient(new TezConfiguration());
+
+    // TezClient exposes AM host and port from the FrameworkClient (now it's a TezYarnClientForTest)
+    assertEquals("testhost", client.getAmHost());
+    assertEquals(1234, client.getAmPort());
   }
 }
