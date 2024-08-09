@@ -16,24 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.tez.tools.javadoc.util;
+package org.apache.tez.tools.javadoc.model;
 
-import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
 
-import org.apache.tez.tools.javadoc.model.Config;
-import org.apache.tez.tools.javadoc.model.ConfigProperty;
+public class Config {
 
-public abstract class Writer {
+    public final String templateName;
+    public final String configName;
+    public Map<String, ConfigProperty> configProperties;
 
-  public abstract void write(Config config) throws IOException;
-
-  public boolean isValidConfigProperty(ConfigProperty configProperty) {
-    if (!configProperty.isValidConfigProp) {
-      return false;
+    public Config(String configName, String templateName) {
+        this.configName = configName;
+        this.templateName = templateName;
+        this.configProperties = new TreeMap<String, ConfigProperty>();
     }
-    if (configProperty.propertyName == null || configProperty.propertyName.isEmpty()) {
-      return false;
+
+    public Config() {
+        this(null, null);
     }
-    return true;
-  }
 }
