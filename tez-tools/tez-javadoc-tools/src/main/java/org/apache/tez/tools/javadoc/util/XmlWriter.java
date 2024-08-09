@@ -21,13 +21,16 @@ package org.apache.tez.tools.javadoc.util;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
+
+import com.google.common.io.ByteStreams;
 
 public class XmlWriter extends Writer {
 
@@ -46,9 +49,10 @@ public class XmlWriter extends Writer {
 
     try {
       File file = new File(fileName);
-      out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+      writeApacheHeader(file);
 
-      out.println("<?xml version=\"1.0\"?>");
+      out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"));
+
       out.println("<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>");
       out.println();
       out.println("<!-- WARNING: THIS IS A GENERATED TEMPLATE PURELY FOR DOCUMENTATION PURPOSES");
@@ -95,5 +99,10 @@ public class XmlWriter extends Writer {
     }
   }
 
-
+  private void writeApacheHeader(File file) throws IOException {
+    try (InputStream in = this.getClass().getClassLoader().getResourceAsStream("apache-licence.xml.header");
+      OutputStream out = new FileOutputStream(file)) {
+      ByteStreams.copy(in, out);
+    }
+  }
 }
