@@ -24,11 +24,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
@@ -41,6 +47,7 @@ import org.junit.Test;
 import com.google.protobuf.ByteString;
 
 public class TestTezUtils {
+  private static final Path LOG_PATH = Paths.get(System.getProperty("project.build.directory"), "tez-test.log");
 
   @Test (timeout=2000)
   public void testByteStringToAndFromConf() throws IOException {
@@ -101,6 +108,18 @@ public class TestTezUtils {
     Assert.assertEquals(conf.size(), 7);
     checkConf(conf);
     Assert.assertEquals(conf.get("testLargeValue"), largeValue);
+  }
+
+  @Test public void testByteStringFromConfEmitsLogForLargeEntry() throws IOException {
+    Configuration conf = new Configuration(false);
+    conf.set(TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD, "10");
+    conf.set(TezConfiguration.TEZ_LOGGING_PROPERTY_MASK, "false");
+    conf.set("tez.fake.property.id00", "ABCDEFGHIJK");
+    TezUtils.createByteStringFromConf(conf);
+    List<String> logLines = Lists.reverse(Files.readAllLines(LOG_PATH));
+    assertEquals("Entry 'tez.fake.property.id00' is unusually big (11 bytes); large entries may lead to OOM.",
+        logLines.get(1));
+    assertEquals("Large entry 'tez.fake.property.id00': ABCDEFGHIJK", logLines.get(0));
   }
 
   @Test (timeout=2000)
@@ -292,6 +311,25 @@ public class TestTezUtils {
       DAGProtos.ConfigurationProto.Builder confBuilder = DAGProtos.ConfigurationProto.newBuilder();
       TezUtils.populateConfProtoFromEntries(map.entrySet(), confBuilder);
       assertEquals(confBuilder.getConfKeyValuesList().size(), 1);
+  }
+
+  @Test public void testPopulateConfProtoFromMapSetsKeyValuePair() {
+    DAGProtos.ConfigurationProto.Builder builder = DAGProtos.ConfigurationProto.newBuilder();
+    TezUtils.populateConfProtoFromMap(ImmutableMap.of("tez.fake.property", "someValue"), builder);
+    assertEquals(builder.getConfKeyValues(0).getKey(), "tez.fake.property");
+    assertEquals(builder.getConfKeyValues(0).getValue(), "someValue");
+  }
+
+  @Test public void testPopulateConfProtoFromMapEmitsLogForLargeEntry() throws IOException {
+    Map<String, String> map = new HashMap<>();
+    map.put(TezConfiguration.TEZ_LOGGING_PROPERTY_SIZE_THRESHOLD, "10");
+    map.put(TezConfiguration.TEZ_LOGGING_PROPERTY_MASK, "false");
+    map.put("tez.fake.property.id01", "ABCDEFGHIJK");
+    TezUtils.populateConfProtoFromMap(map, DAGProtos.ConfigurationProto.newBuilder());
+    List<String> logLines = Lists.reverse(Files.readAllLines(LOG_PATH));
+    assertEquals("Entry 'tez.fake.property.id01' is unusually big (11 bytes); large entries may lead to OOM.",
+        logLines.get(1));
+    assertEquals("Large entry 'tez.fake.property.id01': ABCDEFGHIJK", logLines.get(0));
   }
 
 }
