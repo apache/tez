@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -80,6 +79,7 @@ import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.junit.*;
 
+import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.Lists;
 
 import static org.junit.Assert.*;
@@ -108,7 +108,7 @@ public class TestRecoveryParser {
     this.recoveryPath = new Path(TEST_ROOT_DIR + "/" + appId + "/recovery");
     this.localFS.delete(new Path(TEST_ROOT_DIR), true);
     mockAppMaster = mock(DAGAppMaster.class);
-    mockAppMaster.dagIDs = new HashSet<String>();
+    mockAppMaster.dagIDs = EvictingQueue.create(10);
     when(mockAppMaster.getConfig()).thenReturn(new Configuration());
     mockDAGImpl = mock(DAGImpl.class);
     when(mockAppMaster.createDAG(any(), any())).thenReturn(mockDAGImpl);
