@@ -38,5 +38,5 @@ jobs:
       - run: echo "$java-version"
       - run: echo "$JAVA_HOME"
       - run: echo "${{ matrix.java-version }}"
-      - run: java --version
+      - run: java -version
       - run: mvn clean install -DskipTests -Dmaven.javadoc.skip=true
