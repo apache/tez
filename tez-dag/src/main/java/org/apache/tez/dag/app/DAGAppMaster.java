@@ -1749,7 +1749,7 @@ public class DAGAppMaster extends AbstractService {
 
   private String getShutdownTimeString() {
     if (shutdownHandler != null && shutdownHandler.shutdownTime != null) {
-      return " The shutdown hook started at " + shutdownHandler.shutdownTime;
+      return ". The shutdown hook started at " + shutdownHandler.shutdownTime;
     }
     return "";
   }
