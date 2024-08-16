@@ -1762,6 +1762,7 @@ public class DAGAppMaster extends AbstractService {
       Throwable dependencyError = dependency.getFailureCause();
       if (dependencyError != null) {
         synchronized(this) {
+          // test
           dependenciesFailed = true;
           if(LOG.isDebugEnabled()) {
             LOG.debug("Service: " + service.getName() + " will fail to start"
