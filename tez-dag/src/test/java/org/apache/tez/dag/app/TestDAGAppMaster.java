@@ -510,7 +510,8 @@ public class TestDAGAppMaster {
     dam.stop();
     dam.mockShutdown.shutdownTime = Date.from(Instant.ofEpochMilli(Time.now()));
     LambdaTestUtils.intercept(TezUncheckedException.class,
-        " Cannot get ApplicationACLs before all services have started, The current service state is STOPPED. The shutdown hook started at "
+        " Cannot get ApplicationACLs before all services have started, "
+            + "The current service state is STOPPED. The shutdown hook started at "
             + dam.mockShutdown.shutdownTime, () -> dam.getContext().getApplicationACLs());
   }
 
