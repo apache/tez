@@ -69,6 +69,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
@@ -508,11 +509,11 @@ public class TestDAGAppMaster {
         () -> dam.getContext().getApplicationACLs());
     dam.start();
     dam.stop();
-    dam.mockShutdown.shutdownTime = Date.from(Instant.ofEpochMilli(Time.now()));
+    Mockito.when(dam.mockShutdown.getShutdownTime()).thenReturn(Date.from(Instant.ofEpochMilli(Time.now())));
     LambdaTestUtils.intercept(TezUncheckedException.class,
         " Cannot get ApplicationACLs before all services have started, "
             + "The current service state is STOPPED. The shutdown hook started at "
-            + dam.mockShutdown.shutdownTime, () -> dam.getContext().getApplicationACLs());
+            + dam.mockShutdown.getShutdownTime(), () -> dam.getContext().getApplicationACLs());
   }
 
   @Test
