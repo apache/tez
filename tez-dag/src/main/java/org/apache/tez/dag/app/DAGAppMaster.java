@@ -937,13 +937,13 @@ public class DAGAppMaster extends AbstractService {
   protected class DAGAppMasterShutdownHandler {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
     private long sleepTimeBeforeExit = TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT;
-    private Date shutdownTime;
+    private long shutdownTime;
 
     public Date getShutdownTime() {
-      return shutdownTime;
+      return new Date(shutdownTime);
     }
 
-    public void setShutdownTime(Date shutdownTime) {
+    public void setShutdownTime(long shutdownTime) {
       this.shutdownTime = shutdownTime;
     }
 
@@ -964,7 +964,7 @@ public class DAGAppMaster extends AbstractService {
 
       synchronized (shutdownHandlerRunning) {
         shutdownHandlerRunning.set(true);
-        setShutdownTime(new Date(System.currentTimeMillis()));
+        setShutdownTime(System.currentTimeMillis());
       }
       LOG.info("Handling DAGAppMaster shutdown");
 
