@@ -18,6 +18,7 @@
 
 package org.apache.tez.dag.history.logging.proto;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -71,9 +72,18 @@ public class DatePartitionedLogger<T extends MessageLite> {
 
   private void createDirIfNotExists(Path path) throws IOException {
     FileSystem fileSystem = path.getFileSystem(conf);
+    FileStatus fileStatus = null;
     try {
-      if (!fileSystem.exists(path)) {
+      fileStatus = fileSystem.getFileStatus(path);
+    } catch (FileNotFoundException fnf) {
+      // ignore
+    }
+    try {
+      if (fileStatus == null) {
         fileSystem.mkdirs(path);
+        fileSystem.setPermission(path, DIR_PERMISSION);
+      } else if (!fileStatus.getPermission().equals(DIR_PERMISSION)) {
+        LOG.info("Permission on path {} is {}, setting it to {}", path, fileStatus.getPermission(), DIR_PERMISSION);
         fileSystem.setPermission(path, DIR_PERMISSION);
       }
     } catch (IOException e) {

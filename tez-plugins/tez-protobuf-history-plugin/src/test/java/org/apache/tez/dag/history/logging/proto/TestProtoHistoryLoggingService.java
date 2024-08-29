@@ -32,7 +32,10 @@ import java.util.List;
 
 import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -265,6 +268,23 @@ public class TestProtoHistoryLoggingService {
     // Verify manifest file scanner.
     Assert.assertNull(scanner.getNext());
     scanner.close();
+  }
+
+  @Test
+  public void testDirPermissions() throws IOException {
+    Path basePath = new Path(tempFolder.newFolder().getAbsolutePath());
+    Configuration conf = new Configuration();
+    FileSystem fs = basePath.getFileSystem(conf);
+    FsPermission expectedPermissions = FsPermission.createImmutable((short) 01777);
+
+    // Check the directory already exists and doesn't have the expected permissions.
+    Assert.assertTrue(fs.exists(basePath));
+    Assert.assertNotEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
+
+    new DatePartitionedLogger<>(HistoryEventProto.PARSER, basePath, conf, new FixedClock(Time.now()));
+
+    // Check the permissions they should be same as the expected permissions
+    Assert.assertEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,
