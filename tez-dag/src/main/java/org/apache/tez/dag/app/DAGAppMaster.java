@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -936,6 +937,15 @@ public class DAGAppMaster extends AbstractService {
   protected class DAGAppMasterShutdownHandler {
     private AtomicBoolean shutdownHandled = new AtomicBoolean(false);
     private long sleepTimeBeforeExit = TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT;
+    private long shutdownTime;
+
+    public Date getShutdownTime() {
+      return new Date(shutdownTime);
+    }
+
+    public void setShutdownTime(long shutdownTime) {
+      this.shutdownTime = shutdownTime;
+    }
 
     void setSleepTimeBeforeExit(long sleepTimeBeforeExit) {
       this.sleepTimeBeforeExit = sleepTimeBeforeExit;
@@ -954,6 +964,7 @@ public class DAGAppMaster extends AbstractService {
 
       synchronized (shutdownHandlerRunning) {
         shutdownHandlerRunning.set(true);
+        setShutdownTime(System.currentTimeMillis());
       }
       LOG.info("Handling DAGAppMaster shutdown");
 
@@ -1680,9 +1691,11 @@ public class DAGAppMaster extends AbstractService {
 
     @Override
     public Map<ApplicationAccessType, String> getApplicationACLs() {
-      if (getServiceState() != STATE.STARTED) {
+      STATE serviceState = getServiceState();
+      if (serviceState != STATE.STARTED) {
         throw new TezUncheckedException(
-            "Cannot get ApplicationACLs before all services have started");
+            "Cannot get ApplicationACLs before all services have started, The current service state is " + serviceState
+                + "." + getShutdownTimeString());
       }
       return taskSchedulerManager.getApplicationAcls();
     }
@@ -1741,6 +1754,13 @@ public class DAGAppMaster extends AbstractService {
     public void setQueueName(String queueName) {
       this.queueName = queueName;
     }
+  }
+
+  private String getShutdownTimeString() {
+    if (shutdownHandler != null && shutdownHandler.getShutdownTime() != null) {
+      return " The shutdown hook started at " + shutdownHandler.getShutdownTime();
+    }
+    return "";
   }
 
   private static class ServiceWithDependency implements ServiceStateChangeListener {

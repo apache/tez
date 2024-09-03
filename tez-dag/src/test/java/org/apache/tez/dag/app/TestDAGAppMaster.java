@@ -32,7 +32,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
-import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.test.LambdaTestUtils;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -49,6 +50,7 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
@@ -67,18 +69,19 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.URI;
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -491,6 +494,26 @@ public class TestDAGAppMaster {
   @Test
   public void testDagCredentialsWithMerge() throws Exception {
     testDagCredentials(true);
+  }
+
+  @Test
+  public void testGetACLFailure() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true);
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+    dam.init(conf);
+    LambdaTestUtils.intercept(TezUncheckedException.class,
+        "Cannot get ApplicationACLs before all services have started, The current service state is INITED",
+        () -> dam.getContext().getApplicationACLs());
+    dam.start();
+    dam.stop();
+    Mockito.when(dam.mockShutdown.getShutdownTime()).thenReturn(Date.from(Instant.ofEpochMilli(Time.now())));
+    LambdaTestUtils.intercept(TezUncheckedException.class,
+        " Cannot get ApplicationACLs before all services have started, "
+            + "The current service state is STOPPED. The shutdown hook started at "
+            + dam.mockShutdown.getShutdownTime(), () -> dam.getContext().getApplicationACLs());
   }
 
   @Test
