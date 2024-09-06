@@ -76,7 +76,8 @@ public class DatePartitionedLogger<T extends MessageLite> {
     try {
       fileStatus = fileSystem.getFileStatus(path);
     } catch (FileNotFoundException fnf) {
-      // ignore
+      // ignore: regardless of the outcome of FileSystem.getFileStatus call (exception or returning null),
+      // we handle the fileStatus == null case later on, so it's safe to ignore this exception now
     }
     try {
       if (fileStatus == null) {
