@@ -94,7 +94,7 @@
     <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
     <protoc.path>${env.PROTOC_PATH}</protoc.path>
     <restrict-imports.enforcer.version>2.0.0</restrict-imports.enforcer.version>
-    <roaringbitmap.version>0.7.45</roaringbitmap.version>
+    <roaringbitmap.version>1.2.1</roaringbitmap.version>
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <servlet-api.version>3.1.0</servlet-api.version>
     <slf4j.version>1.7.36</slf4j.version>
