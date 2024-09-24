@@ -357,7 +357,7 @@ public class PipelinedSorter extends ExternalSorter {
       }
       Preconditions.checkArgument(buffers.get(bufferIndex) != null, "block should not be empty");
       //TODO: fix per item being passed.
-      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), items,
+      span = new SortSpan((ByteBuffer)buffers.get(bufferIndex).clear(), (1024*1024),
           perItem, ConfigUtils.getIntermediateOutputKeyComparator(this.conf));
     } else {
       // queue up the sort
@@ -940,7 +940,7 @@ public class PipelinedSorter extends ExternalSorter {
     public SortSpan(ByteBuffer source, int maxItems, int perItem, RawComparator comparator) {
       capacity = source.remaining();
       int metasize = METASIZE*maxItems;
-      int dataSize = maxItems * perItem;
+      long dataSize = (long) maxItems * (long) perItem;
       if(capacity < (metasize+dataSize)) {
         // try to allocate less meta space, because we have sample data
         metasize = METASIZE*(capacity/(perItem+METASIZE));
