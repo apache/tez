@@ -52,6 +52,7 @@ import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.log4j.helpers.ThreadLocalMap;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezLocalResource;
@@ -69,10 +70,10 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
-import org.apache.tez.runtime.TezThreadDumpHelper;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
+import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.apache.tez.util.LoggingUtils;
 
@@ -120,7 +121,6 @@ public class TezChild {
   private final AtomicBoolean isShutdown = new AtomicBoolean(false);
   private final String user;
   private final boolean updateSysCounters;
-  private TezThreadDumpHelper tezThreadDumpHelper = TezThreadDumpHelper.NOOP_TEZ_THREAD_DUMP_HELPER;
 
   private Multimap<String, String> startedInputsMap = HashMultimap.create();
   private final boolean ownUmbilical;
@@ -295,7 +295,13 @@ public class TezChild {
             hadoopShim, sharedExecutor);
 
         boolean shouldDie;
-        tezThreadDumpHelper = TezThreadDumpHelper.getInstance(taskConf).start(attemptId.toString());
+        final String[] hookClasses = taskConf
+            .getStrings(TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS, new String[0]);
+        final TezTaskAttemptHook[] hooks = new TezTaskAttemptHook[hookClasses.length];
+        for (int i = 0; i < hooks.length; i++) {
+          hooks[i] = ReflectionUtils.createClazzInstance(hookClasses[i]);
+          hooks[i].start(attemptId, taskConf);
+        }
         try {
           TaskRunner2Result result = taskRunner.run();
           LOG.info("TaskRunner2Result: {}", result);
@@ -314,7 +320,9 @@ public class TezChild {
                 e, "TaskExecutionFailure: " + e.getMessage());
           }
         } finally {
-          tezThreadDumpHelper.stop();
+          for (TezTaskAttemptHook hook : hooks) {
+            hook.stop();
+          }
           FileSystem.closeAllForUGI(childUGI);
         }
       }
