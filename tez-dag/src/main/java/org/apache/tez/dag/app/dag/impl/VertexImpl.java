@@ -2819,6 +2819,18 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     return VertexState.INITED;
   }
 
+  private boolean canSkipInitializingParents() {
+    // Both cases use RootInputVertexManager. RootInputVertexManager can start tasks even though
+    // any parents are not fully initialized.
+    if (vertexPlan.hasVertexManagerPlugin()) {
+      final VertexManagerPluginDescriptor pluginDesc = DagTypeConverters
+          .convertVertexManagerPluginDescriptorFromDAGPlan(vertexPlan.getVertexManagerPlugin());
+      return pluginDesc.getClassName().equals(RootInputVertexManager.class.getName());
+    } else {
+      return inputsWithInitializers != null;
+    }
+  }
+
   private boolean isVertexInitSkippedInParentVertices() {
     for (Map.Entry<Vertex, Edge> entry : sourceVertices.entrySet()) {
       if(!(((VertexImpl) entry.getKey()).isVertexInitSkipped())) {
@@ -2845,7 +2857,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     if (recoveryData != null && recoveryData.shouldSkipInit()
         && (recoveryData.isVertexTasksStarted() ||
         recoveryData.getVertexConfigurationDoneEvent().isSetParallelismCalled())
-        && isVertexInitSkippedInParentVertices()) {
+        && (canSkipInitializingParents() || isVertexInitSkippedInParentVertices())) {
       // Replace the original VertexManager with NoOpVertexManager if the reconfiguration is done in the last AM attempt
       VertexConfigurationDoneEvent reconfigureDoneEvent = recoveryData.getVertexConfigurationDoneEvent();
       if (LOG.isInfoEnabled()) {
