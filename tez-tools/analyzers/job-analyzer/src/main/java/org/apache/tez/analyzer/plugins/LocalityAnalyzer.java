@@ -91,10 +91,10 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
 
         List<String> record = Lists.newLinkedList();
         record.add(vertexName);
-        record.add(totalVertexTasks + "");
-        record.add(dataLocalRatio + "");
-        record.add(rackLocalRatio + "");
-        record.add(othersRatio + "");
+        record.add(Long.toString(totalVertexTasks));
+        record.add(Float.toString(dataLocalRatio));
+        record.add(Float.toString(rackLocalRatio));
+        record.add(Float.toString(othersRatio));
 
         TaskAttemptDetails dataLocalResult = computeAverages(vertexInfo,
             DAGCounter.DATA_LOCAL_TASKS);
@@ -103,18 +103,18 @@ public class LocalityAnalyzer extends TezAnalyzerBase implements Analyzer {
         TaskAttemptDetails otherTaskResult = computeAverages(vertexInfo,
             DAGCounter.OTHER_LOCAL_TASKS);
 
-        record.add(dataLocalResult.avgRuntime + "");
-        record.add(rackLocalResult.avgRuntime + "");
-        record.add(otherTaskResult.avgRuntime + "");
+        record.add(Float.toString(dataLocalResult.avgRuntime));
+        record.add(Float.toString(rackLocalResult.avgRuntime));
+        record.add(Float.toString(otherTaskResult.avgRuntime));
 
         //Get the number of inputs to this vertex
         record.add(vertexInfo.getInputEdges().size()
             + vertexInfo.getAdditionalInputInfoList().size() + "");
 
         //Get the avg HDFS bytes read in this vertex for different type of locality
-        record.add(dataLocalResult.avgHDFSBytesRead + "");
-        record.add(rackLocalResult.avgHDFSBytesRead + "");
-        record.add(otherTaskResult.avgHDFSBytesRead + "");
+        record.add(Float.toString(dataLocalResult.avgHDFSBytesRead));
+        record.add(Float.toString(rackLocalResult.avgHDFSBytesRead));
+        record.add(Float.toString(otherTaskResult.avgHDFSBytesRead));
 
         String recommendation = "";
         if (dataLocalRatio < getConf().getFloat(DATA_LOCAL_RATIO, DATA_LOCAL_RATIO_DEFAULT)) {

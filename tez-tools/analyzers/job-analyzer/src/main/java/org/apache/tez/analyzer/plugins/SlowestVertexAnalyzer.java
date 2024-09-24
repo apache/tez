@@ -138,10 +138,10 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
       List<String> record = Lists.newLinkedList();
       record.add(vertexName);
       record.add(vertexInfo.getTaskAttempts().size() + "");
-      record.add(totalTime + "");
-      record.add(Math.max(0, shuffleMax) + "");
+      record.add(Long.toString(totalTime));
+      record.add(Long.toString(Math.max(0, shuffleMax)));
       record.add(shuffleMaxSource);
-      record.add(Math.max(0, slowestLastEventTime) + "");
+      record.add(Long.toString(Math.max(0, slowestLastEventTime)));
       record.add(maxSourceName);
       //Finding out real_work done at vertex level might be meaningless (as it is quite possible
       // that it went to starvation).
