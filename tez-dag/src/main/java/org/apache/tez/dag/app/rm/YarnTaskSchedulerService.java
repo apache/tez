@@ -1275,7 +1275,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             + numHighestPriRequests + " pending requests at pri: "
             + highestPriRequest.getPriority());
       }
-
+      int newContainersReleased = 0;
       for (int i=0; i<numPendingRequestsToService; ++i) {
         // This request must have been considered for matching with all existing 
         // containers when request was made.
@@ -1311,7 +1311,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
               " with priority: " + lowestPriNewContainer.getPriority() + 
               " to free resource for request: " + highestPriRequest +
               " . Current free resources: " + freeResources);
-          numPendingRequestsToService--;
+          newContainersReleased++;
           releaseUnassignedContainers(Collections.singletonList(lowestPriNewContainer));
           // We are returning an unused resource back the RM. The RM thinks it 
           // has serviced our initial request and will not re-allocate this back
@@ -1324,7 +1324,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
           continue;
         }
       }
-      
+      numPendingRequestsToService -= newContainersReleased;
       if (numPendingRequestsToService < 1) {
         return true;
       }
@@ -1573,6 +1573,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     if (delayedContainer != null) {
       Resources.subtractFrom(allocatedResources,
           delayedContainer.getContainer().getResource());
+      if (shouldReuseContainers) {
+        delayedContainerManager.removeDelayedContainer(delayedContainer);
+      }
     }
     if (delayedContainer != null || !shouldReuseContainers) {
       amRmClient.releaseAssignedContainer(containerId);
@@ -2163,6 +2166,17 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
     }
 
+    void removeDelayedContainer(HeldContainer container) {
+      if (container != null) {
+        synchronized(this) {
+          if (delayedContainers.remove(container)) {
+            LOG.info("Removed {} from delayed containers", container.getContainer().getId());
+          } else {
+            LOG.warn("Unknown container {} sent for removal. Ignoring.", container.getContainer().getId());
+          }
+        }
+      }
+    }
   }
   
   synchronized void determineMinHeldContainers() {
