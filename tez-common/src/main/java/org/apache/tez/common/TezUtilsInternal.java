@@ -38,6 +38,7 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.TextFormat;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -77,7 +78,9 @@ public final class TezUtilsInternal {
       IOException {
     File confPBFile = new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME);
     try (FileInputStream fis = new FileInputStream(confPBFile)) {
-      return ConfigurationProto.parseFrom(fis);
+      CodedInputStream in = CodedInputStream.newInstance(fis);
+      in.setSizeLimit(Integer.MAX_VALUE);
+      return ConfigurationProto.parseFrom(in);
     }
   }
 
