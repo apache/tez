@@ -1036,7 +1036,6 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
     @Override
     public void transition(TaskImpl task, TaskEvent event) {
       LOG.info("Scheduling a redundant attempt for task " + task.taskId);
-      task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
       TaskAttempt earliestUnfinishedAttempt = null;
       for (TaskAttempt ta : task.attempts.values()) {
         // find the oldest running attempt
@@ -1063,6 +1062,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
             task.getTaskID(), task.commitAttempt);
         return;
       }
+      task.counters.findCounter(TaskCounter.NUM_SPECULATIONS).increment(1);
       task.addAndScheduleAttempt(earliestUnfinishedAttempt.getTaskAttemptID());
     }
   }
