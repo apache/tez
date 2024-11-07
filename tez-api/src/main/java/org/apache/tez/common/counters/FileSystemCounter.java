@@ -19,16 +19,42 @@
 package org.apache.tez.common.counters;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.fs.StorageStatistics.CommonStatisticNames;
 
 @Private
 public enum FileSystemCounter {
-  BYTES_READ,
-  BYTES_WRITTEN,
-  READ_OPS,
-  LARGE_READ_OPS,
-  WRITE_OPS,
-  HDFS_BYTES_READ,
-  HDFS_BYTES_WRITTEN,
-  FILE_BYTES_READ,
-  FILE_BYTES_WRITTEN
+  BYTES_READ("bytesRead"),
+  BYTES_WRITTEN("bytesWritten"),
+  READ_OPS("readOps"),
+  LARGE_READ_OPS("largeReadOps"),
+  WRITE_OPS("writeOps"),
+  HDFS_BYTES_READ("hdfsBytesRead"),
+  HDFS_BYTES_WRITTEN("hdfsBytesWritten"),
+  FILE_BYTES_READ("fileBytesRead"),
+  FILE_BYTES_WRITTEN("fileBytesWritten"),
+
+  // Additional counters from HADOOP-13305
+  OP_APPEND(CommonStatisticNames.OP_APPEND),
+  OP_CREATE(CommonStatisticNames.OP_CREATE),
+  OP_DELETE(CommonStatisticNames.OP_DELETE),
+  OP_GET_FILE_STATUS(CommonStatisticNames.OP_GET_FILE_STATUS),
+  OP_LIST_FILES(CommonStatisticNames.OP_LIST_FILES),
+  OP_LIST_LOCATED_STATUS(CommonStatisticNames.OP_LIST_LOCATED_STATUS),
+  OP_MKDIRS(CommonStatisticNames.OP_MKDIRS),
+  OP_OPEN(CommonStatisticNames.OP_OPEN),
+  OP_RENAME(CommonStatisticNames.OP_RENAME),
+  OP_SET_ACL(CommonStatisticNames.OP_SET_ACL),
+  OP_SET_OWNER(CommonStatisticNames.OP_SET_OWNER),
+  OP_SET_PERMISSION(CommonStatisticNames.OP_SET_PERMISSION),
+  OP_GET_FILE_BLOCK_LOCATIONS("op_get_file_block_locations");
+
+  private final String opName;
+
+  FileSystemCounter(String opName) {
+    this.opName = opName;
+  }
+
+  public String getOpName() {
+    return opName;
+  }
 }

@@ -18,17 +18,18 @@
 
 package org.apache.tez.runtime.metrics;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
+import org.apache.hadoop.fs.GlobalStorageStatistics;
+import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.GcTimeUpdater;
 import org.apache.tez.common.counters.TaskCounter;
@@ -48,11 +49,16 @@ public class TaskCounterUpdater {
   private final TezCounters tezCounters;
   private final Configuration conf;
 
+//  /**
+//   * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
+//   */
+//  private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
+//     new HashMap<>();
   /**
-   * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
+   * A Map where Key-> URIScheme and value->Map<Name, FileSystemStatisticUpdater>
    */
-  private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
-     new HashMap<String, FileSystemStatisticUpdater>();
+  private Map<String, Map<String, FileSystemStatisticUpdater>> statisticUpdaters =
+      new HashMap<>();
   protected final GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
@@ -69,32 +75,16 @@ public class TaskCounterUpdater {
 
   
   public void updateCounters() {
-    // FileSystemStatistics are reset each time a new task is seen by the
-    // container.
-    // This doesn't remove the fileSystem, and does not clear all statistics -
-    // so there is a potential of an unused FileSystem showing up for a
-    // Container, and strange values for READ_OPS etc.
-    Map<String, List<FileSystem.Statistics>> map = new
-        HashMap<String, List<FileSystem.Statistics>>();
-    for(Statistics stat: FileSystem.getAllStatistics()) {
-      String uriScheme = stat.getScheme();
-      if (map.containsKey(uriScheme)) {
-        List<FileSystem.Statistics> list = map.get(uriScheme);
-        list.add(stat);
-      } else {
-        List<FileSystem.Statistics> list = new ArrayList<FileSystem.Statistics>();
-        list.add(stat);
-        map.put(uriScheme, list);
+    GlobalStorageStatistics globalStorageStatistics = FileSystem.getGlobalStorageStatistics();
+    Iterator<StorageStatistics> iter = globalStorageStatistics.iterator();
+    while (iter.hasNext()) {
+      StorageStatistics stats = iter.next();
+      if (!statisticUpdaters.containsKey(stats.getScheme())) {
+        Map<String, FileSystemStatisticUpdater> updaterSet = new TreeMap<>();
+        statisticUpdaters.put(stats.getScheme(), updaterSet);
       }
-    }
-    for (Map.Entry<String, List<FileSystem.Statistics>> entry: map.entrySet()) {
-      FileSystemStatisticUpdater updater = statisticUpdaters.get(entry.getKey());
-      if(updater==null) {//new FileSystem has been found in the cache
-        updater =
-            new FileSystemStatisticUpdater(tezCounters, entry.getValue(),
-                entry.getKey());
-        statisticUpdaters.put(entry.getKey(), updater);
-      }
+      FileSystemStatisticUpdater updater = statisticUpdaters.get(stats.getScheme())
+          .computeIfAbsent(stats.getName(), k -> new FileSystemStatisticUpdater(tezCounters, stats));
       updater.updateCounters();
     }
 
