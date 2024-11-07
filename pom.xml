@@ -75,7 +75,7 @@
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.3.6</hadoop.version>
     <jdk.tools.version>1.8</jdk.tools.version>
-    <jersey.version>1.19</jersey.version>
+    <jersey.version>1.19.4</jersey.version>
     <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
     <junit.version>4.13.2</junit.version>
