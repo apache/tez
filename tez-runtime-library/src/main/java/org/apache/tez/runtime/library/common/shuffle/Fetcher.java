@@ -44,6 +44,7 @@ import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.MeasuredDataInputStream;
 import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -563,7 +564,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   protected void setupConnectionInternal(String host, Collection<InputAttemptIdentifier> attempts)
       throws IOException, InterruptedException {
-    input = httpConnection.getInputStream();
+    input = new MeasuredDataInputStream(httpConnection.getInputStream());
     httpConnection.validate();
   }
 
