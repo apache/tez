@@ -41,7 +41,6 @@ import com.google.common.annotations.VisibleForTesting;
 
 import org.apache.hadoop.fs.ClusterStorageCapacityExceededException;
 import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -181,7 +180,9 @@ public class TestTaskExecution2 {
       assertFalse(TestProcessor.wasAborted());
       umbilical.resetTrackedEvents();
       TezCounters tezCounters = runtimeTask.getCounters();
-      verifySysCounters(tezCounters, 5, 5);
+      // with TEZ-3331, fs counters are not set if the value is 0 (see FileSystemStatisticUpdater2), so there can be
+      // a mismatch in task counter count and fs counter count
+      verifySysCounters(tezCounters, 5, 0);
 
       taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
           TestProcessor.CONF_EMPTY, false);
@@ -692,10 +693,6 @@ public class TestTaskExecution2 {
   }
 
   private void verifySysCounters(TezCounters tezCounters, int minTaskCounterCount, int minFsCounterCount) {
-
-    Preconditions.checkArgument((minTaskCounterCount > 0 && minFsCounterCount > 0) ||
-        (minTaskCounterCount <= 0 && minFsCounterCount <= 0),
-        "Both targetCounter counts should be postitive or negative. A mix is not expected");
 
     int numTaskCounters = 0;
     int numFsCounters = 0;
