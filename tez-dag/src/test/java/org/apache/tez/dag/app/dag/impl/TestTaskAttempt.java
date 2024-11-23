@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import org.apache.hadoop.yarn.util.MonotonicClock;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.dag.app.MockClock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -2261,6 +2263,85 @@ public class TestTaskAttempt {
     Assert.assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
   }
 
+  @Test
+  public void testDAGCounterUpdateEvent(){
+    TaskAttemptImpl taImpl = getMockTaskAttempt();
+
+    DAGEventCounterUpdate counterUpdateSucceeded = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.SUCCEEDED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> succeededUpdates = counterUpdateSucceeded.getCounterUpdates();
+    // SUCCEEDED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.NUM_SUCCEEDED_TASKS, 1);
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no FAILED, no KILLED)
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.NUM_FAILED_TASKS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.NUM_KILLED_TASKS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS);
+
+    DAGEventCounterUpdate counterUpdateFailed = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.FAILED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> failedUpdates = counterUpdateFailed.getCounterUpdates();
+    // FAILED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.NUM_FAILED_TASKS, 1);
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no SUCCEEDED, no KILLED)
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.NUM_SUCCEEDED_TASKS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.NUM_KILLED_TASKS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS);
+
+    DAGEventCounterUpdate counterUpdateKilled = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.KILLED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> killedUpdates = counterUpdateKilled.getCounterUpdates();
+    // KILLED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.NUM_KILLED_TASKS, 1);
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no SUCCEEDED, no FAILED)
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.NUM_SUCCEEDED_TASKS);
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.NUM_FAILED_TASKS);
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS);
+  }
+
+  private TaskAttemptImpl getMockTaskAttempt() {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    return new MockTaskAttemptImpl(taskID, 1, mock(EventHandler.class),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new MonotonicClock(),
+        mock(TaskHeartbeatHandler.class), mock(AppContext.class), false,
+        mock(Resource.class), mock(ContainerContext.class), false);
+  }
+
+  private void assertCounterIncrementalUpdate(List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates,
+      DAGCounter counter, int expectedValue) {
+    for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
+      if (update.getCounterKey().equals(counter) && update.getIncrementValue() == expectedValue) {
+        return;
+      }
+    }
+    Assert.fail(
+        String.format("Haven't found counter update %s=%d, instead seen: %s", counter, expectedValue, counterUpdates));
+  }
+
+  private void assertCounterIncrementalUpdateNotFound(
+      List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates, DAGCounter counter) {
+    for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
+      if (update.getCounterKey().equals(counter)) {
+        Assert.fail(
+            String.format("Found counter update %s=%d, which is not expected", counter, update.getIncrementValue()));
+      }
+    }
+  }
+
   private Event verifyEventType(List<Event> events,
       Class<? extends Event> eventClass, int expectedOccurences) {
     int count = 0;
@@ -2343,6 +2424,11 @@ public class TestTaskAttempt {
     @Override
     protected void sendInputFailedToConsumers() {
       inputFailedReported = true;
+    }
+
+    @Override
+    public long getDurationNs(){
+      return 1000000000L; // 1000000000ns = 1000ms
     }
   }
 

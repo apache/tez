@@ -29,7 +29,7 @@ public class DAGEventCounterUpdate extends DAGEvent {
   
   public DAGEventCounterUpdate(TezDAGID dagId) {
     super(dagId, DAGEventType.DAG_COUNTER_UPDATE);
-    counterUpdates = new ArrayList<DAGEventCounterUpdate.CounterIncrementalUpdate>();
+    counterUpdates = new ArrayList<>();
   }
 
   public void addCounterUpdate(Enum<?> key, long incrValue) {
@@ -55,6 +55,11 @@ public class DAGEventCounterUpdate extends DAGEvent {
 
     public long getIncrementValue() {
       return incrValue;
+    }
+
+    @Override
+    public String toString(){
+      return String.format("DAGEventCounterUpdate.CounterIncrementalUpdate(key=%s, incrValue=%d)", key, incrValue);
     }
   }
 }
