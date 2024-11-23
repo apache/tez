@@ -108,6 +108,10 @@ public class InputAttemptIdentifier {
         (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE.ordinal());
   }
 
+  public boolean include(int thatInputIdentifier, int thatAttemptNumber) {
+    return this.inputIdentifier == thatInputIdentifier && this.attemptNumber == thatAttemptNumber;
+  }
+
   // PathComponent & shared does not need to be part of the hashCode and equals computation.
   @Override
   public int hashCode() {
@@ -139,6 +143,6 @@ public class InputAttemptIdentifier {
   public String toString() {
     return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
         + ", attemptNumber=" + attemptNumber + ", pathComponent="
-        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId  +"]";
+        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId + "]";
   }
 }
