@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.google.protobuf.ByteString;
 
@@ -154,10 +156,10 @@ public final class TezUtils {
     return createConfFromByteString(ByteString.copyFrom(payload.getPayload()));
   }
 
-
   private static void writeConfInPB(OutputStream dos, Configuration conf) throws IOException {
     DAGProtos.ConfigurationProto.Builder confProtoBuilder = DAGProtos.ConfigurationProto.newBuilder();
-    populateConfProtoFromEntries(conf, confProtoBuilder);
+    populateConfProtoFromStream(StreamSupport.stream(conf.spliterator(), false).peek(LargeEntryLogger.from(conf)),
+        confProtoBuilder);
     DAGProtos.ConfigurationProto confProto = confProtoBuilder.build();
     confProto.writeTo(dos);
   }
@@ -199,22 +201,30 @@ public final class TezUtils {
     return convertToHistoryText(null, conf);
   }
 
-
-  /* Copy each Map.Entry with non-null value to DAGProtos.ConfigurationProto */
-  public static void populateConfProtoFromEntries(Iterable<Map.Entry<String, String>> params,
-                                              DAGProtos.ConfigurationProto.Builder confBuilder) {
-    for(Map.Entry<String, String> entry : params) {
-      String key = entry.getKey();
-      String val = entry.getValue();
-      if(val != null) {
-        DAGProtos.PlanKeyValuePair.Builder kvp = DAGProtos.PlanKeyValuePair.newBuilder();
-        kvp.setKey(key);
-        kvp.setValue(val);
-        confBuilder.addConfKeyValues(kvp);
-      } else {
-        LOG.debug("null value for key={}. Skipping.", key);
-      }
-    }
+  /**
+   * Copy each entry with non-null value from the specified map to the configuration builder.
+   * <p>Implementation detail: For debugging purposes, this method can be configured to log large entries.</p>
+   */
+  public static void populateConfProtoFromMap(Map<String, String> map,
+      DAGProtos.ConfigurationProto.Builder confBuilder) {
+    populateConfProtoFromStream(map.entrySet().stream().peek(LargeEntryLogger.from(map)), confBuilder);
   }
 
+  /**
+   * Copy each entry with non-null value to the specified configuration builder.
+   *
+   * @deprecated Use {@link #populateConfProtoFromMap(Map, DAGProtos.ConfigurationProto.Builder)} instead.
+   */
+  @Deprecated
+  public static void populateConfProtoFromEntries(Iterable<Map.Entry<String, String>> params,
+                                              DAGProtos.ConfigurationProto.Builder confBuilder) {
+    populateConfProtoFromStream(StreamSupport.stream(params.spliterator(), false), confBuilder);
+  }
+
+  private static void populateConfProtoFromStream(Stream<Map.Entry<String, String>> entries,
+      DAGProtos.ConfigurationProto.Builder proto) {
+    entries.filter(e -> e.getValue() != null)
+        .map(e -> DAGProtos.PlanKeyValuePair.newBuilder().setKey(e.getKey()).setValue(e.getValue()).build())
+        .forEach(proto::addConfKeyValues);
+  }
 }
