@@ -79,11 +79,11 @@ public class TaskCounterUpdater {
     Iterator<StorageStatistics> iter = globalStorageStatistics.iterator();
     while (iter.hasNext()) {
       StorageStatistics stats = iter.next();
-      if (!statisticUpdaters.containsKey(stats.getScheme())) {
-        Map<String, FileSystemStatisticUpdater> updaterSet = new TreeMap<>();
-        statisticUpdaters.put(stats.getScheme(), updaterSet);
-      }
-      FileSystemStatisticUpdater updater = statisticUpdaters.get(stats.getScheme())
+      // Fetch or initialize the updater set for the scheme
+      Map<String, FileSystemStatisticUpdater> updaterSet = statisticUpdaters
+          .computeIfAbsent(stats.getScheme(), k -> new TreeMap<>());
+      // Fetch or create the updater for the specific statistic
+      FileSystemStatisticUpdater updater = updaterSet
           .computeIfAbsent(stats.getName(), k -> new FileSystemStatisticUpdater(tezCounters, stats));
       updater.updateCounters();
     }

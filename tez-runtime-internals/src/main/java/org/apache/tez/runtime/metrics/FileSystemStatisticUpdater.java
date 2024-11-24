@@ -28,8 +28,8 @@ import org.apache.tez.common.counters.TezCounters;
  */
 public class FileSystemStatisticUpdater {
 
-  private StorageStatistics stats;
-  private TezCounters counters;
+  private final StorageStatistics stats;
+  private final TezCounters counters;
 
   FileSystemStatisticUpdater(TezCounters counters, StorageStatistics storageStatistics) {
     this.stats = storageStatistics;

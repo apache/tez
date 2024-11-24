@@ -21,9 +21,9 @@ package org.apache.tez.runtime.metrics;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DFSTestUtil;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -42,7 +42,7 @@ public class TestFileSystemStatisticUpdater {
 
   private static MiniDFSCluster dfsCluster;
 
-  private static Configuration conf = new Configuration();
+  private static final Configuration CONF = new Configuration();
   private static FileSystem remoteFs;
 
   private static final String TEST_ROOT_DIR = "target" + Path.SEPARATOR +
@@ -51,9 +51,8 @@ public class TestFileSystemStatisticUpdater {
   @BeforeClass
   public static void setup() throws IOException {
     try {
-      conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
-      dfsCluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).format(true).racks(null)
-          .build();
+      CONF.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+      dfsCluster = new MiniDFSCluster.Builder(CONF).numDataNodes(2).build();
       remoteFs = dfsCluster.getFileSystem();
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
@@ -71,45 +70,40 @@ public class TestFileSystemStatisticUpdater {
   @Test
   public void basicTest() throws IOException {
     TezCounters counters = new TezCounters();
-    TaskCounterUpdater updater = new TaskCounterUpdater(counters, conf, "pid");
+    TaskCounterUpdater updater = new TaskCounterUpdater(counters, CONF, "pid");
 
-    remoteFs.mkdirs(new Path("/tmp/foo/"));
-    FSDataOutputStream out = remoteFs.create(new Path("/tmp/foo/abc.txt"));
-    out.writeBytes("xyz");
-    out.close();
+    DFSTestUtil.writeFile(remoteFs, new Path("/tmp/foo/abc.txt"), "xyz");
 
     updater.updateCounters();
+    LOG.info("Counters (after first update): {}", counters);
+    assertCounter(counters, FileSystemCounter.OP_MKDIRS, 0); // DFSTestUtil doesn't call separate mkdirs
+    assertCounter(counters, FileSystemCounter.OP_CREATE, 1);
+    assertCounter(counters, FileSystemCounter.BYTES_WRITTEN, 3); // "xyz"
+    assertCounter(counters, FileSystemCounter.WRITE_OPS, 1);
+    assertCounter(counters, FileSystemCounter.OP_GET_FILE_STATUS, 1); // DFSTestUtil calls fs.exists
+    assertCounter(counters, FileSystemCounter.OP_CREATE, 1);
 
-    LOG.info("Counters: " + counters);
-    TezCounter mkdirCounter = counters.findCounter(remoteFs.getScheme(),
-        FileSystemCounter.OP_MKDIRS);
-    TezCounter createCounter = counters.findCounter(remoteFs.getScheme(),
-        FileSystemCounter.OP_CREATE);
-    Assert.assertNotNull(mkdirCounter);
-    Assert.assertNotNull(createCounter);
-    Assert.assertEquals(1, mkdirCounter.getValue());
-    Assert.assertEquals(1, createCounter.getValue());
+    DFSTestUtil.writeFile(remoteFs, new Path("/tmp/foo/abc1.txt"), "xyz");
 
-    FSDataOutputStream out1 = remoteFs.create(new Path("/tmp/foo/abc1.txt"));
-    out1.writeBytes("xyz");
-    out1.close();
-
-    long oldCreateVal = createCounter.getValue();
     updater.updateCounters();
+    LOG.info("Counters (after second update): {}", counters);
+    assertCounter(counters, FileSystemCounter.OP_CREATE, 2);
+    assertCounter(counters, FileSystemCounter.BYTES_WRITTEN, 6); // "xyz" has been written twice
+    assertCounter(counters, FileSystemCounter.WRITE_OPS, 2);
+    assertCounter(counters, FileSystemCounter.OP_GET_FILE_STATUS, 2); // DFSTestUtil calls fs.exists again
+    assertCounter(counters, FileSystemCounter.OP_CREATE, 2);
 
-    LOG.info("Counters: " + counters);
-    Assert.assertTrue("Counter not updated, old=" + oldCreateVal
-        + ", new=" + createCounter.getValue(), createCounter.getValue() > oldCreateVal);
-
-    oldCreateVal = createCounter.getValue();
     // Ensure all numbers are reset
-    remoteFs.clearStatistics();
+    FileSystem.clearStatistics();
     updater.updateCounters();
-    LOG.info("Counters: " + counters);
-    Assert.assertEquals(oldCreateVal, createCounter.getValue());
-
+    LOG.info("Counters (after third update): {}", counters);
+    // counter holds its value after clearStatistics + updateCounters
+    assertCounter(counters, FileSystemCounter.OP_CREATE, 2);
   }
 
-
-
+  private void assertCounter(TezCounters counters, FileSystemCounter fsCounter, int value) {
+    TezCounter counter = counters.findCounter(remoteFs.getScheme(), fsCounter);
+    Assert.assertNotNull(counter);
+    Assert.assertEquals(value, counter.getValue());
+  }
 }

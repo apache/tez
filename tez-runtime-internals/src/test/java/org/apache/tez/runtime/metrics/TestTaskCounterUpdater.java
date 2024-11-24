@@ -29,31 +29,31 @@ import org.slf4j.LoggerFactory;
 
 public class TestTaskCounterUpdater {
 
-  private static final Logger LOG = LoggerFactory.getLogger(
-      TestTaskCounterUpdater.class);
-  private static Configuration conf = new Configuration();
+  private static final Logger LOG = LoggerFactory.getLogger(TestTaskCounterUpdater.class);
+  private static final Configuration CONF = new Configuration();
 
   @Test
   public void basicTest() {
     TezCounters counters = new TezCounters();
-    TaskCounterUpdater updater = new TaskCounterUpdater(counters, conf, "pid");
+    TaskCounterUpdater updater = new TaskCounterUpdater(counters, CONF, "pid");
 
     updater.updateCounters();
-    LOG.info("Counters: " + counters);
-    TezCounter gcCounter = counters.findCounter(TaskCounter.GC_TIME_MILLIS);
-    TezCounter cpuCounter = counters.findCounter(TaskCounter.CPU_MILLISECONDS);
+    LOG.info("Counters (after first update): {}", counters);
+    assertCounter(counters, TaskCounter.GC_TIME_MILLIS);
+    TezCounter cpuCounter = assertCounter(counters, TaskCounter.CPU_MILLISECONDS);
 
-    Assert.assertNotNull(gcCounter);
-    Assert.assertNotNull(cpuCounter);
     long oldVal = cpuCounter.getValue();
     Assert.assertTrue(cpuCounter.getValue() > 0);
 
     updater.updateCounters();
-    LOG.info("Counters: " + counters);
+    LOG.info("Counters (after second update): {}", counters);
     Assert.assertTrue("Counter not updated, old=" + oldVal
         + ", new=" + cpuCounter.getValue(), cpuCounter.getValue() > oldVal);
-
   }
 
-
+  private TezCounter assertCounter(TezCounters counters, TaskCounter taskCounter) {
+    TezCounter counter = counters.findCounter(taskCounter);
+    Assert.assertNotNull(counter);
+    return counter;
+  }
 }
