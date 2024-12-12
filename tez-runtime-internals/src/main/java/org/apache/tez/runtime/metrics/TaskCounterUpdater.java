@@ -21,7 +21,6 @@ package org.apache.tez.runtime.metrics;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.hadoop.fs.GlobalStorageStatistics;
 import org.apache.hadoop.fs.StorageStatistics;
@@ -49,16 +48,10 @@ public class TaskCounterUpdater {
   private final TezCounters tezCounters;
   private final Configuration conf;
 
-//  /**
-//   * A Map where Key-> URIScheme and value->FileSystemStatisticUpdater
-//   */
-//  private Map<String, FileSystemStatisticUpdater> statisticUpdaters =
-//     new HashMap<>();
   /**
    * A Map where Key-> URIScheme and value->Map<Name, FileSystemStatisticUpdater>
    */
-  private Map<String, Map<String, FileSystemStatisticUpdater>> statisticUpdaters =
-      new HashMap<>();
+  private final Map<String, Map<String, FileSystemStatisticUpdater>> statisticUpdaters = new HashMap<>();
   protected final GcTimeUpdater gcUpdater;
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
@@ -73,7 +66,7 @@ public class TaskCounterUpdater {
     recordInitialCpuStats();
   }
 
-  
+
   public void updateCounters() {
     GlobalStorageStatistics globalStorageStatistics = FileSystem.getGlobalStorageStatistics();
     Iterator<StorageStatistics> iter = globalStorageStatistics.iterator();
@@ -81,7 +74,7 @@ public class TaskCounterUpdater {
       StorageStatistics stats = iter.next();
       // Fetch or initialize the updater set for the scheme
       Map<String, FileSystemStatisticUpdater> updaterSet = statisticUpdaters
-          .computeIfAbsent(stats.getScheme(), k -> new TreeMap<>());
+          .computeIfAbsent(stats.getScheme(), k -> new HashMap<>());
       // Fetch or create the updater for the specific statistic
       FileSystemStatisticUpdater updater = updaterSet
           .computeIfAbsent(stats.getName(), k -> new FileSystemStatisticUpdater(tezCounters, stats));

@@ -30,6 +30,7 @@ import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -49,14 +50,8 @@ public class TestFileSystemStatisticUpdater {
       TestFileSystemStatisticUpdater.class.getName() + "-tmpDir";
 
   @BeforeClass
-  public static void setup() throws IOException {
-    try {
-      CONF.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
-      dfsCluster = new MiniDFSCluster.Builder(CONF).numDataNodes(2).build();
-      remoteFs = dfsCluster.getFileSystem();
-    } catch (IOException io) {
-      throw new RuntimeException("problem starting mini dfs cluster", io);
-    }
+  public static void beforeClass() throws Exception {
+    CONF.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
   }
 
   @AfterClass
@@ -64,6 +59,21 @@ public class TestFileSystemStatisticUpdater {
     if (dfsCluster != null) {
       dfsCluster.shutdown();
       dfsCluster = null;
+    }
+  }
+
+  @Before
+  public void setup() throws IOException {
+    FileSystem.clearStatistics();
+    try {
+      // tear down the whole cluster before each test to completely get rid of file system statistics
+      if (dfsCluster != null) {
+        dfsCluster.shutdown();
+      }
+      dfsCluster = new MiniDFSCluster.Builder(CONF).numDataNodes(2).build();
+      remoteFs = dfsCluster.getFileSystem();
+    } catch (IOException io) {
+      throw new RuntimeException("problem starting mini dfs cluster", io);
     }
   }
 
@@ -94,7 +104,6 @@ public class TestFileSystemStatisticUpdater {
     assertCounter(counters, FileSystemCounter.OP_CREATE, 2);
 
     // Ensure all numbers are reset
-    FileSystem.clearStatistics();
     updater.updateCounters();
     LOG.info("Counters (after third update): {}", counters);
     // counter holds its value after clearStatistics + updateCounters

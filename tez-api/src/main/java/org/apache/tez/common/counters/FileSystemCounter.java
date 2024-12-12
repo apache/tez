@@ -33,7 +33,6 @@ public enum FileSystemCounter {
   WRITE_OPS("writeOps"),
 
   // Additional counters from HADOOP-13305
-  // Additional counters from HADOOP-13305
   OP_APPEND(CommonStatisticNames.OP_APPEND),
   OP_COPY_FROM_LOCAL_FILE(CommonStatisticNames.OP_COPY_FROM_LOCAL_FILE),
   OP_CREATE(CommonStatisticNames.OP_CREATE),
