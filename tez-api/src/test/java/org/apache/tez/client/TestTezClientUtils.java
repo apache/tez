@@ -893,7 +893,8 @@ public class TestTezClientUtils {
     opts = TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vOpts, conf);
 
     Assert.assertEquals(opts,
-        TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + "  " + vOpts);
+        TezConfiguration.TEZ_TASK_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
+            + TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT + " " + vOpts);
 
     String taskOpts = "taskOpts";
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, taskOpts);
@@ -921,7 +922,9 @@ public class TestTezClientUtils {
     vOpts = "foo";
     opts = TezClientUtils.addDefaultsToTaskLaunchCmdOpts(vOpts, conf);
 
-    Assert.assertEquals(opts, adminOpts + "  " + vOpts);
+    Assert.assertEquals(opts,
+        adminOpts + " "
+            + TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS_DEFAULT + " " + vOpts);
 
     String taskOpts = "taskOpts";
     conf.set(TezConfiguration.TEZ_TASK_LAUNCH_CMD_OPTS, taskOpts);
