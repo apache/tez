@@ -2303,8 +2303,8 @@ public class TezConfiguration extends Configuration {
    */
   @ConfigurationScope(Scope.DAG)
   @ConfigurationProperty
-  public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
-  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
+  public static final String TEZ_HOOK_THREAD_DUMP_INTERVAL = "tez.hook.thread.dump.interval";
+  public static final String TEZ_HOOK_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
 
   /**
    * Limits the amount of data that can be written to LocalFileSystem by a Task.

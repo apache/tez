@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
 import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_HOOK_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_HOOK_THREAD_DUMP_INTERVAL_DEFAULT;
 
 public class TezThreadDumpHelper {
 
@@ -74,8 +74,8 @@ public class TezThreadDumpHelper {
   }
 
   public static TezThreadDumpHelper getInstance(Configuration conf) {
-    long periodicThreadDumpFrequency =
-        conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+    long periodicThreadDumpFrequency = conf.getTimeDuration(TEZ_HOOK_THREAD_DUMP_INTERVAL,
+        TEZ_HOOK_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
 
     if (periodicThreadDumpFrequency > 0) {
       try {

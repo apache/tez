@@ -18,7 +18,9 @@
 
 package org.apache.tez.test;
 
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_AM_HOOKS;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_HOOK_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS;
 import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -59,11 +61,13 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.app.ThreadDumpDAGHook;
 import org.apache.tez.mapreduce.examples.CartesianProduct;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -555,7 +559,9 @@ public class TestTezJobs {
       org.apache.log4j.Logger.getRootLogger().addAppender(appender);
       appender.setName(TEZ_CONTAINER_LOGGER_NAME);
       appender.setContainerLogDir(logPath.toString());
-      newConf.set(TEZ_THREAD_DUMP_INTERVAL, "1ms");
+      newConf.set(TEZ_AM_HOOKS, ThreadDumpDAGHook.class.getName());
+      newConf.set(TEZ_TASK_ATTEMPT_HOOKS, ThreadDumpTaskAttemptHook.class.getName());
+      newConf.set(TEZ_HOOK_THREAD_DUMP_INTERVAL, "1ms");
     }
     sortMergeJoinExample.setConf(newConf);
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
