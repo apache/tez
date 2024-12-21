@@ -24,7 +24,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.records.TezDAGID;
 
 /**
- * A hook which is instantiated and triggered before and after a DAG is exeucted.
+ * A hook which is instantiated and triggered before and after a DAG is executed.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving

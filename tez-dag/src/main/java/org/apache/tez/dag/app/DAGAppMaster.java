@@ -2229,7 +2229,7 @@ public class DAGAppMaster extends AbstractService {
       execService.shutdownNow();
     }
 
-    // Check if the thread dump service is up in any case, if yes attempt a shutdown
+    // Try to shut down any hooks that are still active
     for (TezDAGHook hook : hooks) {
       hook.stop();
     }
