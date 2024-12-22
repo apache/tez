@@ -123,8 +123,7 @@ public class TestAMRecoveryAggregationBroadcast {
     try {
       dfsConf = new Configuration();
       dfsConf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
-      dfsCluster = new MiniDFSCluster.Builder(dfsConf).numDataNodes(3)
-          .format(true).racks(null).build();
+      dfsCluster = new MiniDFSCluster.Builder(dfsConf).numDataNodes(3).format(true).racks(null).build();
       remoteFs = dfsCluster.getFileSystem();
       createSampleFile();
     } catch (IOException io) {
@@ -287,7 +286,7 @@ public class TestAMRecoveryAggregationBroadcast {
    *       v3
    */
   private DAG createDAG(String dagName) throws Exception {
-    UserPayload payload =TezUtils.createUserPayloadFromConf(tezConf);
+    UserPayload payload = TezUtils.createUserPayloadFromConf(tezConf);
     DataSourceDescriptor dataSource = MRInput
         .createConfigBuilder(new Configuration(tezConf), TextInputFormat.class,
             INPUT_FILE.toString())
@@ -343,13 +342,11 @@ public class TestAMRecoveryAggregationBroadcast {
       YarnClient yarnClient = YarnClient.createYarnClient();
       yarnClient.init(tezConf);
       yarnClient.start();
-      ApplicationAttemptId id = ApplicationAttemptId.newInstance(
-          tezSession.getAppMasterApplicationId(), 1);
+      ApplicationAttemptId id = ApplicationAttemptId.newInstance(tezSession.getAppMasterApplicationId(), 1);
       yarnClient.failApplicationAttempt(id);
       yarnClient.close();
     }
-    DAGStatus dagStatus = dagClient
-        .waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
+    DAGStatus dagStatus = dagClient.waitForCompletionWithStatusUpdates(EnumSet.of(StatusGetOpts.GET_COUNTERS));
     LOG.info("Diagnosis: " + dagStatus.getDiagnostics());
     Assert.assertEquals(State.SUCCEEDED, dagStatus.getState());
 
@@ -398,8 +395,7 @@ public class TestAMRecoveryAggregationBroadcast {
         if (taFinishedEvent.getState() == TaskAttemptState.KILLED) {
           continue;
         }
-        if (taFinishedEvent.getVertexID().getId() == vertexId
-            && taFinishedEvent.getTaskID().getId() == taskId) {
+        if (taFinishedEvent.getVertexID().getId() == vertexId && taFinishedEvent.getTaskID().getId() == taskId) {
           resultEvents.add(taFinishedEvent);
         }
       }
