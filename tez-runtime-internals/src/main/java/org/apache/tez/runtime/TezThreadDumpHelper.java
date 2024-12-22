@@ -47,9 +47,9 @@ import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_D
 
 public class TezThreadDumpHelper {
 
-  private long duration = 0L;
-  private Path basePath = null;
-  private FileSystem fs = null;
+  private final long duration;
+  private final Path basePath;
+  private final FileSystem fs;
 
   private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
   private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
