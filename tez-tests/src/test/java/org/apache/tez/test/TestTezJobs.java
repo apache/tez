@@ -19,7 +19,7 @@
 package org.apache.tez.test;
 
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_AM_HOOKS;
-import static org.apache.tez.dag.api.TezConfiguration.TEZ_HOOK_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS;
 import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
 import static org.junit.Assert.assertEquals;
@@ -561,7 +561,7 @@ public class TestTezJobs {
       appender.setContainerLogDir(logPath.toString());
       newConf.set(TEZ_AM_HOOKS, ThreadDumpDAGHook.class.getName());
       newConf.set(TEZ_TASK_ATTEMPT_HOOKS, ThreadDumpTaskAttemptHook.class.getName());
-      newConf.set(TEZ_HOOK_THREAD_DUMP_INTERVAL, "1ms");
+      newConf.set(TEZ_THREAD_DUMP_INTERVAL, "1ms");
     }
     sortMergeJoinExample.setConf(newConf);
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
