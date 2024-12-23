@@ -2856,7 +2856,7 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     //        -  Why using VertexConfigurationDoneEvent
     //           -  VertexConfigurationDoneEvent represent the case that user use API reconfigureVertex
     //              VertexConfigurationDoneEvent will be logged
-    //   - VertexStartedEvent is seen in that vertex or setVertexParallelism is called
+    //   - TaskStartEvent is seen in that vertex or setVertexParallelism is called
     //   - All the parent vertices have skipped initializing stage while recovering
     //        - Or RootInputVertexManager is used, which can start without waiting for parent vertices
     if (recoveryData == null) {
@@ -2865,7 +2865,8 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
     if (!recoveryData.shouldSkipInit()) {
       return false;
     }
-    if (!recoveryData.isVertexStarted() && !recoveryData.getVertexConfigurationDoneEvent().isSetParallelismCalled()) {
+    if (!recoveryData.isVertexTasksStarted()
+        && !recoveryData.getVertexConfigurationDoneEvent().isSetParallelismCalled()) {
       return false;
     }
     return isVertexInitSkippedInParentVertices() || usesRootInputVertexManager();
