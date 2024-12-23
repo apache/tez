@@ -2167,13 +2167,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     }
 
     void removeDelayedContainer(HeldContainer container) {
-      if (container != null) {
-        synchronized(this) {
-          if (delayedContainers.remove(container)) {
-            LOG.info("Removed {} from delayed containers", container.getContainer().getId());
-          } else {
-            LOG.warn("Unknown container {} sent for removal. Ignoring.", container.getContainer().getId());
-          }
+      synchronized(this) {
+        if (delayedContainers.remove(container)) {
+          LOG.debug("Removed {} from delayed containers", container.getContainer().getId());
         }
       }
     }
