@@ -2297,12 +2297,14 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
 
   /**
-   *  Frequency at which thread dump should be captured. Supports TimeUnits.
+   *  Frequency at which thread dump should be captured. Supports TimeUnits. This is effective only
+   *  when org.apache.tez.dag.app.ThreadDumpDAGHook is configured to tez.am.hooks or
+   *  org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook is configured to tez.task.attempt.hooks.
    */
   @ConfigurationScope(Scope.DAG)
   @ConfigurationProperty
   public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
-  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "0ms";
+  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
 
   /**
    * Limits the amount of data that can be written to LocalFileSystem by a Task.
@@ -2312,4 +2314,19 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES = "tez.task.local-fs.write-limit.bytes";
   public static final long TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT = -1;
 
+  /**
+   * Comma-separated list of hook classes implementing org.apache.tez.runtime.hook.TezDAGHook.
+   * e.g. org.apache.tez.dag.app.ThreadDumpDAGHook
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_HOOKS = TEZ_AM_PREFIX + "hooks";
+
+  /**
+   * Comma-separated list of hook classes implementing org.apache.tez.runtime.hook.TezTaskAttemptHook.
+   * e.g. org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_TASK_ATTEMPT_HOOKS = TEZ_TASK_PREFIX + "attempt.hooks";
 }

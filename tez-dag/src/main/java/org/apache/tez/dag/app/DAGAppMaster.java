@@ -71,6 +71,7 @@ import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.Utils;
 import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
@@ -187,7 +188,7 @@ import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
-import org.apache.tez.runtime.TezThreadDumpHelper;
+import org.apache.tez.runtime.hook.TezDAGHook;
 import org.apache.tez.util.LoggingUtils;
 import org.apache.tez.util.TezMxBeanResourceCalculator;
 import org.codehaus.jettison.json.JSONException;
@@ -343,7 +344,7 @@ public class DAGAppMaster extends AbstractService {
   Map<Service, ServiceWithDependency> services =
       new LinkedHashMap<Service, ServiceWithDependency>();
   private ThreadLocalMap mdcContext;
-  private TezThreadDumpHelper tezThreadDumpHelper = TezThreadDumpHelper.NOOP_TEZ_THREAD_DUMP_HELPER;
+  private TezDAGHook[] hooks = {};
 
   public DAGAppMaster(ApplicationAttemptId applicationAttemptId,
       ContainerId containerId, String nmHost, int nmPort, int nmHttpPort,
@@ -770,7 +771,9 @@ public class DAGAppMaster extends AbstractService {
           "DAGAppMaster Internal Error occurred");
       break;
     case DAG_FINISHED:
-      tezThreadDumpHelper.stop();
+      for (TezDAGHook hook : hooks) {
+        hook.stop();
+      }
       DAGAppMasterEventDAGFinished finishEvt =
           (DAGAppMasterEventDAGFinished) event;
       String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
@@ -2226,8 +2229,10 @@ public class DAGAppMaster extends AbstractService {
       execService.shutdownNow();
     }
 
-    // Check if the thread dump service is up in any case, if yes attempt a shutdown
-    tezThreadDumpHelper.stop();
+    // Try to shut down any hooks that are still active
+    for (TezDAGHook hook : hooks) {
+      hook.stop();
+    }
 
     super.serviceStop();
   }
@@ -2599,7 +2604,13 @@ public class DAGAppMaster extends AbstractService {
   private void startDAGExecution(DAG dag, final Map<String, LocalResource> additionalAmResources)
       throws TezException {
     currentDAG = dag;
-    tezThreadDumpHelper = TezThreadDumpHelper.getInstance(dag.getConf()).start(dag.getID().toString());
+    final Configuration conf = dag.getConf();
+    final String[] hookClasses = conf.getStrings(TezConfiguration.TEZ_AM_HOOKS, new String[0]);
+    hooks = new TezDAGHook[hookClasses.length];
+    for (int i = 0; i < hooks.length; i++) {
+      hooks[i] = ReflectionUtils.createClazzInstance(hookClasses[i]);
+      hooks[i].start(dag.getID(), conf);
+    }
 
     // Try localizing the actual resources.
     List<URL> additionalUrlsForClasspath;

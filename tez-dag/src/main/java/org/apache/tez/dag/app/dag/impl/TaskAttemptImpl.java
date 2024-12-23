@@ -967,22 +967,25 @@ public class TaskAttemptImpl implements TaskAttempt,
     return dagCounterEvent;
   }
 
-  private static DAGEventCounterUpdate createDAGCounterUpdateEventTAFinished(
+  @VisibleForTesting
+  static DAGEventCounterUpdate createDAGCounterUpdateEventTAFinished(
       TaskAttemptImpl taskAttempt, TaskAttemptState taState) {
     DAGEventCounterUpdate jce =
         new DAGEventCounterUpdate(taskAttempt.getDAGID());
 
+    long amSideWallClockTimeMs = TimeUnit.NANOSECONDS.toMillis(taskAttempt.getDurationNs());
+    jce.addCounterUpdate(DAGCounter.WALL_CLOCK_MILLIS, amSideWallClockTimeMs);
+
     if (taState == TaskAttemptState.FAILED) {
       jce.addCounterUpdate(DAGCounter.NUM_FAILED_TASKS, 1);
+      jce.addCounterUpdate(DAGCounter.DURATION_FAILED_TASKS_MILLIS, amSideWallClockTimeMs);
     } else if (taState == TaskAttemptState.KILLED) {
       jce.addCounterUpdate(DAGCounter.NUM_KILLED_TASKS, 1);
+      jce.addCounterUpdate(DAGCounter.DURATION_KILLED_TASKS_MILLIS, amSideWallClockTimeMs);
     } else if (taState == TaskAttemptState.SUCCEEDED ) {
       jce.addCounterUpdate(DAGCounter.NUM_SUCCEEDED_TASKS, 1);
+      jce.addCounterUpdate(DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS, amSideWallClockTimeMs);
     }
-
-    long amSideWallClockTimeMs = TimeUnit.NANOSECONDS.toMillis(
-        taskAttempt.getDurationNs());
-    jce.addCounterUpdate(DAGCounter.WALL_CLOCK_MILLIS, amSideWallClockTimeMs);
 
     return jce;
   }

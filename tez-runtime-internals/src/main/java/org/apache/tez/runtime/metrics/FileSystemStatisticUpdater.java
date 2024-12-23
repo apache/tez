@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -17,9 +17,7 @@
 
 package org.apache.tez.runtime.metrics;
 
-import java.util.List;
-
-import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.tez.common.counters.FileSystemCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
@@ -30,50 +28,22 @@ import org.apache.tez.common.counters.TezCounters;
  */
 public class FileSystemStatisticUpdater {
 
-  private List<FileSystem.Statistics> stats;
-  private TezCounter readBytesCounter, writeBytesCounter, readOpsCounter, largeReadOpsCounter,
-      writeOpsCounter;
-  private String scheme;
-  private TezCounters counters;
+  private final StorageStatistics stats;
+  private final TezCounters counters;
 
-  FileSystemStatisticUpdater(TezCounters counters, List<FileSystem.Statistics> stats, String scheme) {
-    this.stats = stats;
-    this.scheme = scheme;
+  FileSystemStatisticUpdater(TezCounters counters, StorageStatistics storageStatistics) {
+    this.stats = storageStatistics;
     this.counters = counters;
   }
 
   void updateCounters() {
-    if (readBytesCounter == null) {
-      readBytesCounter = counters.findCounter(scheme, FileSystemCounter.BYTES_READ);
+    // loop through FileSystemCounter enums as it is a smaller set
+    for (FileSystemCounter fsCounter : FileSystemCounter.values()) {
+      Long val = stats.getLong(fsCounter.getOpName());
+      if (val != null && val != 0) {
+        TezCounter counter = counters.findCounter(stats.getScheme(), fsCounter);
+        counter.setValue(val);
+      }
     }
-    if (writeBytesCounter == null) {
-      writeBytesCounter = counters.findCounter(scheme, FileSystemCounter.BYTES_WRITTEN);
-    }
-    if (readOpsCounter == null) {
-      readOpsCounter = counters.findCounter(scheme, FileSystemCounter.READ_OPS);
-    }
-    if (largeReadOpsCounter == null) {
-      largeReadOpsCounter = counters.findCounter(scheme, FileSystemCounter.LARGE_READ_OPS);
-    }
-    if (writeOpsCounter == null) {
-      writeOpsCounter = counters.findCounter(scheme, FileSystemCounter.WRITE_OPS);
-    }
-    long readBytes = 0;
-    long writeBytes = 0;
-    long readOps = 0;
-    long largeReadOps = 0;
-    long writeOps = 0;
-    for (FileSystem.Statistics stat : stats) {
-      readBytes = readBytes + stat.getBytesRead();
-      writeBytes = writeBytes + stat.getBytesWritten();
-      readOps = readOps + stat.getReadOps();
-      largeReadOps = largeReadOps + stat.getLargeReadOps();
-      writeOps = writeOps + stat.getWriteOps();
-    }
-    readBytesCounter.setValue(readBytes);
-    writeBytesCounter.setValue(writeBytes);
-    readOpsCounter.setValue(readOps);
-    largeReadOpsCounter.setValue(largeReadOps);
-    writeOpsCounter.setValue(writeOps);
   }
 }

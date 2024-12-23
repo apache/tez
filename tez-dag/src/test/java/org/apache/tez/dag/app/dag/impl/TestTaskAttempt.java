@@ -18,6 +18,8 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import org.apache.hadoop.yarn.util.MonotonicClock;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.dag.app.MockClock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -508,27 +510,27 @@ public class TestTaskAttempt {
     assertEquals("Terminating", taImpl.getDiagnostics().get(0));
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     Event event = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+            expectedEventsAfterTerminating), TaskEventTAFailed.class, 1);
     TaskEventTAFailed failedEvent = (TaskEventTAFailed) event;
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
         "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
-    int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
+    int expectedEventAfterTerminated = expectedEventsAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
 
@@ -603,27 +605,27 @@ public class TestTaskAttempt {
     assertEquals(TaskAttemptTerminationCause.CONTAINER_EXITED, taImpl.getTerminationCause());
     // TODO Ensure TA_TERMINATING after this is ingored.
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     Event event = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+            expectedEventsAfterTerminating), TaskEventTAFailed.class, 1);
     TaskEventTAFailed failedEvent = (TaskEventTAFailed) event;
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
         "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
-    int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
+    int expectedEventAfterTerminated = expectedEventsAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
   }
@@ -691,25 +693,25 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     taImpl.handle(new TaskAttemptEventContainerTerminated(contId, taskAttemptID,
         "Terminated", TaskAttemptTerminationCause.CONTAINER_EXITED));
     // verify unregister is not invoked again
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
-    int expectedEventAfterTerminated = expectedEvenstAfterTerminating + 0;
+    int expectedEventAfterTerminated = expectedEventsAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventAfterTerminated)).handle(arg.capture());
 
@@ -890,25 +892,25 @@ public class TestTaskAttempt {
     // err cause does not change
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 5;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 5;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+            expectedEventsAfterTerminating), TaskEventTAFailed.class, 1);
     TaskEventTAFailed failedEvent = (TaskEventTAFailed) e;
     assertEquals(TaskFailureType.NON_FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
+            expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
 
   @Test(timeout = 5000)
@@ -997,24 +999,24 @@ public class TestTaskAttempt {
     // err cause does not change
     assertEquals(TaskAttemptTerminationCause.APPLICATION_ERROR, taImpl.getTerminationCause());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 5;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 5;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTAFailed.class, 1);
+            expectedEventsAfterTerminating), TaskEventTAFailed.class, 1);
     TaskEventTAFailed failedEvent = (TaskEventTAFailed) e;
     assertEquals(TaskFailureType.FATAL, failedEvent.getTaskFailureType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
+            expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
 
   @Test
@@ -1398,21 +1400,21 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtStarting + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtStarting + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtStarting,
-            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
     assertEquals(TaskEventType.T_ATTEMPT_SUCCEEDED, e.getType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtStarting,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtStarting,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
   }
 
   @Test(timeout = 5000)
@@ -1483,23 +1485,23 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 5;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 5;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     Event e = verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
     assertEquals(TaskEventType.T_ATTEMPT_SUCCEEDED, e.getType());
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
+            expectedEventsAfterTerminating), SpeculatorEventTaskAttemptStatusUpdate.class, 2);
   }
   
   @Test(timeout = 5000)
@@ -1658,20 +1660,20 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     // Send out a Node Failure.
     taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned",
@@ -1683,11 +1685,11 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler, times(1)).unregister(taskAttemptID);
     assertEquals(true, taImpl.inputFailedReported);
     // Verify one event to the Task informing it about FAILURE. No events to scheduler. Counter event.
-    int expectedEventsNodeFailure = expectedEvenstAfterTerminating + 2;
+    int expectedEventsNodeFailure = expectedEventsAfterTerminating + 2;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventsNodeFailure)).handle(arg.capture());
     verifyEventType(
-        arg.getAllValues().subList(expectedEvenstAfterTerminating,
+        arg.getAllValues().subList(expectedEventsAfterTerminating,
             expectedEventsNodeFailure), TaskEventTAKilled.class, 1);
 
     // Verify still in KILLED state
@@ -1765,26 +1767,26 @@ public class TestTaskAttempt {
     verify(mockHeartbeatHandler).unregister(taskAttemptID);
     assertEquals(0, taImpl.getDiagnostics().size());
 
-    int expectedEvenstAfterTerminating = expectedEventsAtRunning + 3;
+    int expectedEventsAfterTerminating = expectedEventsAtRunning + 3;
     arg = ArgumentCaptor.forClass(Event.class);
-    verify(eventHandler, times(expectedEvenstAfterTerminating)).handle(arg.capture());
+    verify(eventHandler, times(expectedEventsAfterTerminating)).handle(arg.capture());
 
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), TaskEventTASucceeded.class, 1);
+            expectedEventsAfterTerminating), TaskEventTASucceeded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), AMSchedulerEventTAEnded.class, 1);
+            expectedEventsAfterTerminating), AMSchedulerEventTAEnded.class, 1);
     verifyEventType(
         arg.getAllValues().subList(expectedEventsAtRunning,
-            expectedEvenstAfterTerminating), DAGEventCounterUpdate.class, 1);
+            expectedEventsAfterTerminating), DAGEventCounterUpdate.class, 1);
 
     // Send out a Node Failure.
     taImpl.handle(new TaskAttemptEventNodeFailed(taskAttemptID, "NodeDecomissioned", 
         TaskAttemptTerminationCause.NODE_FAILED));
 
     // Verify no additional events
-    int expectedEventsNodeFailure = expectedEvenstAfterTerminating + 0;
+    int expectedEventsNodeFailure = expectedEventsAfterTerminating + 0;
     arg = ArgumentCaptor.forClass(Event.class);
     verify(eventHandler, times(expectedEventsNodeFailure)).handle(arg.capture());
 
@@ -2261,6 +2263,85 @@ public class TestTaskAttempt {
     Assert.assertEquals(TaskAttemptStateInternal.FAILED, resultState2);
   }
 
+  @Test
+  public void testDAGCounterUpdateEvent(){
+    TaskAttemptImpl taImpl = getMockTaskAttempt();
+
+    DAGEventCounterUpdate counterUpdateSucceeded = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.SUCCEEDED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> succeededUpdates = counterUpdateSucceeded.getCounterUpdates();
+    // SUCCEEDED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.NUM_SUCCEEDED_TASKS, 1);
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(succeededUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no FAILED, no KILLED)
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.NUM_FAILED_TASKS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.NUM_KILLED_TASKS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(succeededUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS);
+
+    DAGEventCounterUpdate counterUpdateFailed = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.FAILED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> failedUpdates = counterUpdateFailed.getCounterUpdates();
+    // FAILED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.NUM_FAILED_TASKS, 1);
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(failedUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no SUCCEEDED, no KILLED)
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.NUM_SUCCEEDED_TASKS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.NUM_KILLED_TASKS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS);
+
+    DAGEventCounterUpdate counterUpdateKilled = TaskAttemptImpl.createDAGCounterUpdateEventTAFinished(taImpl,
+        TaskAttemptState.KILLED);
+    List<DAGEventCounterUpdate.CounterIncrementalUpdate> killedUpdates = counterUpdateKilled.getCounterUpdates();
+    // KILLED task related counters are updated (+ WALL_CLOCK_MILLIS)
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.NUM_KILLED_TASKS, 1);
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.DURATION_KILLED_TASKS_MILLIS, 1000);
+    assertCounterIncrementalUpdate(killedUpdates, DAGCounter.WALL_CLOCK_MILLIS, 1000);
+    // other counters are not updated (no SUCCEEDED, no FAILED)
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.NUM_SUCCEEDED_TASKS);
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.NUM_FAILED_TASKS);
+    assertCounterIncrementalUpdateNotFound(killedUpdates, DAGCounter.DURATION_FAILED_TASKS_MILLIS);
+    assertCounterIncrementalUpdateNotFound(failedUpdates, DAGCounter.DURATION_SUCCEEDED_TASKS_MILLIS);
+  }
+
+  private TaskAttemptImpl getMockTaskAttempt() {
+    ApplicationId appId = ApplicationId.newInstance(1, 2);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(
+        appId, 0);
+    TezDAGID dagID = TezDAGID.getInstance(appId, 1);
+    TezVertexID vertexID = TezVertexID.getInstance(dagID, 1);
+    TezTaskID taskID = TezTaskID.getInstance(vertexID, 1);
+
+    return new MockTaskAttemptImpl(taskID, 1, mock(EventHandler.class),
+        mock(TaskCommunicatorManagerInterface.class), new Configuration(), new MonotonicClock(),
+        mock(TaskHeartbeatHandler.class), mock(AppContext.class), false,
+        mock(Resource.class), mock(ContainerContext.class), false);
+  }
+
+  private void assertCounterIncrementalUpdate(List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates,
+      DAGCounter counter, int expectedValue) {
+    for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
+      if (update.getCounterKey().equals(counter) && update.getIncrementValue() == expectedValue) {
+        return;
+      }
+    }
+    Assert.fail(
+        String.format("Haven't found counter update %s=%d, instead seen: %s", counter, expectedValue, counterUpdates));
+  }
+
+  private void assertCounterIncrementalUpdateNotFound(
+      List<DAGEventCounterUpdate.CounterIncrementalUpdate> counterUpdates, DAGCounter counter) {
+    for (DAGEventCounterUpdate.CounterIncrementalUpdate update : counterUpdates) {
+      if (update.getCounterKey().equals(counter)) {
+        Assert.fail(
+            String.format("Found counter update %s=%d, which is not expected", counter, update.getIncrementValue()));
+      }
+    }
+  }
+
   private Event verifyEventType(List<Event> events,
       Class<? extends Event> eventClass, int expectedOccurences) {
     int count = 0;
@@ -2343,6 +2424,11 @@ public class TestTaskAttempt {
     @Override
     protected void sendInputFailedToConsumers() {
       inputFailedReported = true;
+    }
+
+    @Override
+    public long getDurationNs(){
+      return 1000000000L; // 1000000000ns = 1000ms
     }
   }
 

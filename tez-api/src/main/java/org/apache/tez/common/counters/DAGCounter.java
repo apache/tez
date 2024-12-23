@@ -30,6 +30,28 @@ public enum DAGCounter {
   NUM_KILLED_TASKS,
   NUM_SUCCEEDED_TASKS,
   TOTAL_LAUNCHED_TASKS,
+
+  /* The durations of task attempts are categorized based on their final states. The duration of successful tasks
+  can serve as a reference when analyzing the durations of failed or killed tasks. This is because solely examining
+  failed or killed task durations may be misleading, as these durations are measured from the submission time,
+  which does not always correspond to the actual start time of the task attempt on executor nodes
+  (e.g., in scenarios involving Hive LLAP).
+  These counters align with the duration metrics used for WALL_CLOCK_MILLIS.
+  As such, the following relationship applies:
+  WALL_CLOCK_MILLIS = DURATION_FAILED_TASKS_MILLIS + DURATION_KILLED_TASKS_MILLIS + DURATION_SUCCEEDED_TASKS_MILLIS
+  */
+
+  // Total amount of time spent on running FAILED task attempts. This can be blamed for performance degradation, as a
+  // DAG can still finish successfully in the presence of failed attempts.
+  DURATION_FAILED_TASKS_MILLIS,
+
+  // Total amount of time spent on running KILLED task attempts.
+  DURATION_KILLED_TASKS_MILLIS,
+
+  // Total amount of time spent on running SUCCEEDED task attempts, which can be a reference together with the same for
+  // FAILED and KILLED attempts.
+  DURATION_SUCCEEDED_TASKS_MILLIS,
+
   OTHER_LOCAL_TASKS,
   DATA_LOCAL_TASKS,
   RACK_LOCAL_TASKS,
