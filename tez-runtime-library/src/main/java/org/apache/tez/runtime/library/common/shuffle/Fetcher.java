@@ -1075,7 +1075,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       retryStartTime = currentTime;
     }
 
-    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+    if ((currentTime - retryStartTime) - httpConnectionParams.getReadTimeout() < 0) {
       LOG.warn("Shuffle output from " + srcAttemptId +
           " failed (to "+ localHostname +"), retry it.");
       //retry connecting to the host

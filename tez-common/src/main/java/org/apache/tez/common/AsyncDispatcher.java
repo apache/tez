@@ -153,7 +153,7 @@ public class AsyncDispatcher extends CompositeService implements Dispatcher {
               TezConfiguration.TEZ_AM_DISPATCHER_DRAIN_EVENTS_TIMEOUT_DEFAULT);
 
       synchronized (waitForDrained) {
-        while (!eventQueue.isEmpty() && eventHandlingThread.isAlive() && System.currentTimeMillis() < endTime) {
+        while (!eventQueue.isEmpty() && eventHandlingThread.isAlive() && (System.currentTimeMillis() - endTime < 0)) {
           waitForDrained.wait(1000);
           LOG.info(
               "Waiting for AsyncDispatcher to drain. Current queue size: {}, handler thread state: {}",

@@ -642,7 +642,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       long currentTime = System.currentTimeMillis();
       boolean releaseContainer = false;
 
-      if (isNew || (heldContainer.getContainerExpiryTime() <= currentTime
+      if (isNew || (heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1)) {
         // container idle timeout has expired or is a new unused container. 
         // new container is possibly a spurious race condition allocation.
@@ -775,7 +775,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // if we are not being able to assign containers to pending tasks then 
         // we cannot avoid releasing containers. Or else we may not be able to 
         // get new containers from YARN to match the pending request
-        if (!isNew && heldContainer.getContainerExpiryTime() <= currentTime
+        if (!isNew && heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1) {
           LOG.info("Container's idle timeout expired. Releasing container"
               + ", containerId=" + heldContainer.container.getId()
@@ -2025,7 +2025,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         LOG.debug("Considering HeldContainer: {} for assignment", delayedContainer);
         long currentTs = System.currentTimeMillis();
         long nextScheduleTs = delayedContainer.getNextScheduleTime();
-        if (currentTs >= nextScheduleTs) {
+        if (currentTs - nextScheduleTs >= 0) {
           Map<CookieContainerRequest, Container> assignedContainers = null;
           synchronized(YarnTaskSchedulerService.this) {
             // Remove the container and try scheduling it.

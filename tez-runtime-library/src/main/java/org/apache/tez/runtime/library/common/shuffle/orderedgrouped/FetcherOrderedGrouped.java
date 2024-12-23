@@ -640,7 +640,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       retryStartTime = currentTime;
     }
 
-    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+    if ((currentTime - retryStartTime) - httpConnectionParams.getReadTimeout() < 0) {
       LOG.warn("Shuffle output from " + host.getHostIdentifier() +
           " failed, retry it.");
       //retry connecting to the host
