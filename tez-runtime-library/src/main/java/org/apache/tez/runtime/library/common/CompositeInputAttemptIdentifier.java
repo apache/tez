@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime.library.common;
 
+import com.google.common.collect.Range;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 /**
@@ -50,10 +51,12 @@ public class CompositeInputAttemptIdentifier extends InputAttemptIdentifier {
     return new InputAttemptIdentifier(getInputIdentifier() + inputIdentifierOffset, getAttemptNumber(), getPathComponent(), isShared(), getFetchTypeInfo(), getSpillEventId());
   }
 
-  public boolean include(int thatInputIdentifier, int thatAttemptNumber) {
-    return
-        super.getInputIdentifier() <= thatInputIdentifier && thatInputIdentifier < (super.getInputIdentifier() + inputIdentifierCount) &&
-        super.getAttemptNumber() == thatAttemptNumber;
+  public boolean includes(InputAttemptIdentifier thatInputAttemptIdentifier) {
+    Range<Integer> inputRange =
+        Range.closedOpen(super.getInputIdentifier(), super.getInputIdentifier() + inputIdentifierCount);
+
+    return inputRange.contains(thatInputAttemptIdentifier.getInputIdentifier()) &&
+        super.getAttemptNumber() == thatInputAttemptIdentifier.getAttemptNumber();
   }
 
   // PathComponent & shared does not need to be part of the hashCode and equals computation.

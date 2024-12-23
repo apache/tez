@@ -584,14 +584,8 @@ public class ShuffleManager implements FetcherCallback {
           alreadyCompleted = completedInputSet.get(input.getInputIdentifier());
       }
 
-      // Avoid adding attempts which have already completed
-      if (alreadyCompleted) {
-        inputIter.remove();
-        continue;
-      }
-      // Avoid adding attempts which have been marked as OBSOLETE
-      if (isObsoleteInputAttemptIdentifier(input)) {
-        LOG.info("Skipping obsolete input: " + input);
+      // Avoid adding attempts which have already completed or have been marked as OBSOLETE
+      if (alreadyCompleted || isObsoleteInputAttemptIdentifier(input)) {
         inputIter.remove();
         continue;
       }
@@ -1004,7 +998,7 @@ public class ShuffleManager implements FetcherCallback {
     Iterator<InputAttemptIdentifier> obsoleteInputsIter = obsoletedInputs.iterator();
     while (obsoleteInputsIter.hasNext()) {
       obsoleteInput = obsoleteInputsIter.next();
-      if (input.include(obsoleteInput.getInputIdentifier(), obsoleteInput.getAttemptNumber())) {
+      if (input.includes(obsoleteInput)) {
         return true;
       }
     }

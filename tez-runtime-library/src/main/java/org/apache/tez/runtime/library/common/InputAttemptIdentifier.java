@@ -108,8 +108,16 @@ public class InputAttemptIdentifier {
         (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE.ordinal());
   }
 
-  public boolean include(int thatInputIdentifier, int thatAttemptNumber) {
-    return this.inputIdentifier == thatInputIdentifier && this.attemptNumber == thatAttemptNumber;
+  /**
+   * Checks whether this InputAttemptIdentifier includes the given InputAttemptIdentifier.
+   * It is used when we obsolete InputAttemptIdentifiers that include a FetchFailure reported one.
+   *
+   * @param thatInputAttemptIdentifier The InputAttemptIdentifier to check for inclusion.
+   * @return True if the current identifier includes the given one, false otherwise.
+   */
+  public boolean includes(InputAttemptIdentifier thatInputAttemptIdentifier) {
+    return this.inputIdentifier == thatInputAttemptIdentifier.getInputIdentifier() &&
+        this.attemptNumber == thatInputAttemptIdentifier.getAttemptNumber();
   }
 
   // PathComponent & shared does not need to be part of the hashCode and equals computation.

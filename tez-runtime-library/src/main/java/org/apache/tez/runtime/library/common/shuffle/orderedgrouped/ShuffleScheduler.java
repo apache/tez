@@ -1183,7 +1183,7 @@ class ShuffleScheduler {
     Iterator<InputAttemptIdentifier> obsoleteInputsIter = obsoleteInputs.iterator();
     while (obsoleteInputsIter.hasNext()) {
       obsoleteInput = obsoleteInputsIter.next();
-      if (input.include(obsoleteInput.getInputIdentifier(), obsoleteInput.getAttemptNumber())) {
+      if (input.includes(obsoleteInput)) {
         return true;
       }
     }
