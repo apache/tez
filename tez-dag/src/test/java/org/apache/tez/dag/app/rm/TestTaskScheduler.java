@@ -1039,8 +1039,8 @@ public class TestTaskScheduler {
     totalResource = Resource.newInstance(0, 0);
     when(mockRMClient.getAvailableResources()).thenReturn(totalResource);
 
-    // We don't want containers to be assigned to a task by delayedContainerManager as it invokes another preemption flow
-    // Delayed thread first takes lock on delayedContainerManager instance to check if there are any containers
+    // We don't want containers to be assigned to a task by delayedContainerManager as it invokes another preemption
+    // flow. Delayed thread first takes lock on delayedContainerManager instance to check if there are any containers
     // We block the thread, ensure all delayed containers have schedule time beyond test's runtime to avoid assignment.
     synchronized (scheduler.delayedContainerManager) {
       scheduler.onContainersAllocated(lowPriorityContainers);
