@@ -24,8 +24,10 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Appender;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezContainerLogAppender;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +47,9 @@ import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_D
 
 public class TezThreadDumpHelper {
 
-  public static final NoopTezThreadDumpHelper NOOP_TEZ_THREAD_DUMP_HELPER = new NoopTezThreadDumpHelper();
-  private long duration = 0L;
-  private Path basePath = null;
-  private FileSystem fs = null;
+  private final long duration;
+  private final Path basePath;
+  private final FileSystem fs;
 
   private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
   private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
@@ -70,21 +71,17 @@ public class TezThreadDumpHelper {
         "path: {}", duration, basePath);
   }
 
-  public TezThreadDumpHelper() {
-  }
-
   public static TezThreadDumpHelper getInstance(Configuration conf) {
-    long periodicThreadDumpFrequency =
-        conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+    long periodicThreadDumpFrequency = conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL,
+        TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+    Preconditions.checkArgument(periodicThreadDumpFrequency > 0, "%s must be positive duration",
+        TEZ_THREAD_DUMP_INTERVAL);
 
-    if (periodicThreadDumpFrequency > 0) {
-      try {
-        return new TezThreadDumpHelper(periodicThreadDumpFrequency, conf);
-      } catch (IOException e) {
-        LOG.warn("Can not initialize periodic thread dump service", e);
-      }
+    try {
+      return new TezThreadDumpHelper(periodicThreadDumpFrequency, conf);
+    } catch (IOException e) {
+      throw new TezUncheckedException("Can not initialize periodic thread dump service", e);
     }
-    return NOOP_TEZ_THREAD_DUMP_HELPER;
   }
 
   public TezThreadDumpHelper start(String name) {
@@ -176,20 +173,6 @@ public class TezThreadDumpHelper {
         return Long.toString(id);
       }
       return id + " (" + taskName + ")";
-    }
-  }
-
-  private static class NoopTezThreadDumpHelper extends TezThreadDumpHelper {
-
-    @Override
-    public TezThreadDumpHelper start(String name) {
-      // Do Nothing
-      return this;
-    }
-
-    @Override
-    public void stop() {
-      // Do Nothing
     }
   }
 }
