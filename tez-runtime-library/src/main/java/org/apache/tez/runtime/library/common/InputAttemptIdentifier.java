@@ -108,6 +108,18 @@ public class InputAttemptIdentifier {
         (fetchTypeInfo == SPILL_INFO.FINAL_UPDATE.ordinal());
   }
 
+  /**
+   * Checks whether this InputAttemptIdentifier includes the given InputAttemptIdentifier.
+   * It is used when we obsolete InputAttemptIdentifiers that include a FetchFailure reported one.
+   *
+   * @param thatInputAttemptIdentifier The InputAttemptIdentifier to check for inclusion.
+   * @return True if the current identifier includes the given one, false otherwise.
+   */
+  public boolean includes(InputAttemptIdentifier thatInputAttemptIdentifier) {
+    return this.inputIdentifier == thatInputAttemptIdentifier.getInputIdentifier() &&
+        this.attemptNumber == thatInputAttemptIdentifier.getAttemptNumber();
+  }
+
   // PathComponent & shared does not need to be part of the hashCode and equals computation.
   @Override
   public int hashCode() {
@@ -139,6 +151,6 @@ public class InputAttemptIdentifier {
   public String toString() {
     return "InputAttemptIdentifier [inputIdentifier=" + inputIdentifier
         + ", attemptNumber=" + attemptNumber + ", pathComponent="
-        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId  +"]";
+        + pathComponent + ", spillType=" + fetchTypeInfo + ", spillId=" + spillEventId + "]";
   }
 }

@@ -583,8 +583,9 @@ public class ShuffleManager implements FetcherCallback {
       } else {
           alreadyCompleted = completedInputSet.get(input.getInputIdentifier());
       }
+
       // Avoid adding attempts which have already completed or have been marked as OBSOLETE
-      if (alreadyCompleted || obsoletedInputs.contains(input)) {
+      if (alreadyCompleted || isObsoleteInputAttemptIdentifier(input)) {
         inputIter.remove();
         continue;
       }
@@ -949,10 +950,14 @@ public class ShuffleManager implements FetcherCallback {
     // TODO NEWTEZ. Implement logic to report fetch failures after a threshold.
     // For now, reporting immediately.
     InputAttemptIdentifier srcAttemptIdentifier = inputAttemptFetchFailure.getInputAttemptIdentifier();
+    if (isObsoleteInputAttemptIdentifier(srcAttemptIdentifier)) {
+      LOG.info("Do not report obsolete input: " + srcAttemptIdentifier);
+      return;
+    }
     LOG.info(
-        "{}: Fetch failed for src: {} InputIdentifier: {}, connectFailed: {}, "
+        "{}: Fetch failed for InputIdentifier: {}, connectFailed: {}, "
             + "local fetch: {}, remote fetch failure reported as local failure: {})",
-        sourceDestNameTrimmed, srcAttemptIdentifier, srcAttemptIdentifier, connectFailed,
+        sourceDestNameTrimmed, srcAttemptIdentifier, connectFailed,
         inputAttemptFetchFailure.isLocalFetch(), inputAttemptFetchFailure.isDiskErrorAtSource());
     failedShufflesCounter.increment(1);
     inputContext.notifyProgress();
@@ -984,6 +989,22 @@ public class ShuffleManager implements FetcherCallback {
       }
     }
   }
+
+  private boolean isObsoleteInputAttemptIdentifier(InputAttemptIdentifier input) {
+    if (input == null) {
+      return false;
+    }
+    InputAttemptIdentifier obsoleteInput;
+    Iterator<InputAttemptIdentifier> obsoleteInputsIter = obsoletedInputs.iterator();
+    while (obsoleteInputsIter.hasNext()) {
+      obsoleteInput = obsoleteInputsIter.next();
+      if (input.includes(obsoleteInput)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /////////////////// End of Methods from FetcherCallbackHandler
 
   public void shutdown() throws InterruptedException {
