@@ -98,6 +98,7 @@
     <scm.url>scm:git:https://gitbox.apache.org/repos/asf/tez.git</scm.url>
     <servlet-api.version>3.1.0</servlet-api.version>
     <slf4j.version>1.7.36</slf4j.version>
+    <snappy-java.version>1.1.10.4</snappy-java.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
 
@@ -382,6 +383,10 @@
           <exclusion>
             <groupId>io.netty</groupId>
             <artifactId>*</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -796,6 +801,11 @@
         <groupId>org.fusesource.leveldbjni</groupId>
         <artifactId>leveldbjni-all</artifactId>
         <version>${leveldbjni-all.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>${snappy-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
