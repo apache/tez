@@ -118,7 +118,7 @@ pipeline {
                         YETUS_ARGS+=("--dockermemlimit=20g")
 
                         # -1 findbugs issues that show up prior to the patch being applied
-                        # YETUS_ARGS+=("--findbugs-strict-precheck")
+                        # YETUS_ARGS+=("--findbugs-strict-precheck --findbugs-strict=false")
 
                         # rsync these files back into the archive dir
                         YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,findbugsXml.xml")
