@@ -15,6 +15,18 @@
 
   <Match>
     <Class name="org.apache.tez.tools.javadoc.model.ConfigProperty"/>
+    <Field name="description"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.tools.javadoc.model.ConfigProperty"/>
+    <Field name="validValues"/>
+    <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.tools.javadoc.model.ConfigProperty"/>
     <Field name="validValues"/>
     <Bug pattern="UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"/>
   </Match>

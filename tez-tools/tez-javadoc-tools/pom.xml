@@ -78,32 +78,61 @@
         </dependency>
       </dependencies>
     </profile>
+
     <profile>
-      <id>jdk8-16</id>
-      <activation>
-        <jdk>[1.8,16]</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-javadoc-tools-base-jdk8</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-    </dependencies>
+      <id>java8-16</id>
+       <activation>
+             <jdk>[1.8,16]</jdk>
+       </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/main/java-8-16</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
+
     <profile>
-      <id>jdk17plus</id>
+      <id>java17</id>
       <activation>
-        <!-- JDK9 starts strong encapsulation of Java internals, JDK17 removes/hides those -->
         <jdk>[17,)</jdk>
       </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.tez</groupId>
-          <artifactId>tez-javadoc-tools-base</artifactId>
-          <version>${project.version}</version>
-        </dependency>
-      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/main/java-17</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 
