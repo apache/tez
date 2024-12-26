@@ -51,7 +51,6 @@ public class HtmlWriter extends Writer {
       out.println("<head>");
       out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\" />");
       out.println("<title>" + config.getConfigName() + "</title>");
-//      out.println("<link rel='stylesheet' type='text/css' href=' " + config.getStyleSheet() + "'/>");
       out.println("</head>");
 
       out.println("<style>");
@@ -133,8 +132,6 @@ public class HtmlWriter extends Writer {
         out.println("<td>" + configProperty.getDefaultValue() + "</td>");
         out.println("<td>" + configProperty.getDescription() + "</td>");
         out.println("<td>" + configProperty.getType() + "</td>");
-        // Re-enable after adding values
-        // out.println("<td>" + configProperty.validValues + "</td>");
 
         out.println(
             "<td class=\"" + (configProperty.isPrivate() ? "td_private_true" : "td_private_false")
