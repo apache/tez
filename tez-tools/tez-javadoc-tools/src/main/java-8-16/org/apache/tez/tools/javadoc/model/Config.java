@@ -23,18 +23,29 @@ import java.util.TreeMap;
 
 public class Config {
 
-  public final String templateName;
-  public final String configName;
-  public Map<String, ConfigProperty> configProperties;
+  private final String templateName;
+  private final String configName;
+  private Map<String, ConfigProperty> configProperties;
 
   public Config(String configName, String templateName) {
     this.configName = configName;
     this.templateName = templateName;
-    this.configProperties = new TreeMap<String, ConfigProperty>();
+    this.setConfigProperties(new TreeMap<String, ConfigProperty>());
   }
 
-  public Config() {
-    this(null, null);
+  public String getTemplateName() {
+    return templateName;
   }
 
+  public String getConfigName() {
+    return configName;
+  }
+
+  public Map<String, ConfigProperty> getConfigProperties() {
+    return configProperties;
+  }
+
+  public void setConfigProperties(Map<String, ConfigProperty> configProperties) {
+    this.configProperties = configProperties;
+  }
 }

@@ -16,32 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.tez.tools.javadoc.model;
+@Private
+package org.apache.tez.tools.javadoc.doclet;
 
-public class ConfigProperty {
-
-  public String propertyName;
-  public String defaultValue;
-  public String description;
-  public String type = "string";
-  public boolean isPrivate = false;
-  public boolean isUnstable = false;
-  public boolean isEvolving = false;
-  public boolean isValidConfigProp = false;
-  public String[] validValues;
-  public String inferredType;
-
-  @Override
-  public String toString() {
-    return "name=" + propertyName
-        + ", defaultValue=" + defaultValue
-        + ", description=" + description
-        + ", type=" + type
-        + ", inferredType=" + inferredType
-        + ", private=" + isPrivate
-        + ", validValues=" + (validValues == null ? "null" : validValues)
-        + ", isConfigProp=" + isValidConfigProp;
-  }
-}
-
-
+import org.apache.hadoop.classification.InterfaceAudience.Private;
