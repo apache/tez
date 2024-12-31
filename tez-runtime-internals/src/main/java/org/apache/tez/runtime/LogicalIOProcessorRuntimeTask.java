@@ -284,7 +284,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
     initializeGroupInputs();
     // Register the groups so that appropriate calls can be made.
     this.inputReadyTracker
-        .setGroupedInputs(groupInputsMap == null ? null : groupInputsMap.values());
+        .setGroupedInputs(groupInputsMap == null ? Collections.emptyList() : groupInputsMap.values());
     // Grouped input start will be controlled by the start of the GroupedInput
 
     // Construct the set of groupedInputs up front so that start is not invoked on them.
