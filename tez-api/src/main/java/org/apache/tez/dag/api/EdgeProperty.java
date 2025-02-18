@@ -261,6 +261,14 @@ public class EdgeProperty {
     return edgeManagerDescriptor;
   }
 
+  /**
+   * Returns a new EdgeProperty with the given EdgeManagerPluginDescriptor.
+   */
+  public EdgeProperty withDescriptor(EdgeManagerPluginDescriptor newDescriptor) {
+    return new EdgeProperty(newDescriptor, this.dataMovementType, this.dataSourceType,
+            this.schedulingType, this.outputDescriptor, this.inputDescriptor);
+  }
+
   @Override
   public String toString() {
     return "{ " + dataMovementType + " : " + inputDescriptor.getClassName()

@@ -1998,7 +1998,12 @@ public class VertexImpl implements org.apache.tez.dag.app.dag.Vertex, EventHandl
             Vertex sourceVertex = appContext.getCurrentDAG().getVertex(entry.getKey());
             Edge edge = sourceVertices.get(sourceVertex);
             try {
-              edge.setEdgeProperty(entry.getValue());
+              if (edge != null) {
+                edge.setEdgeProperty(entry.getValue());
+              } else {
+                LOG.warn("edge = {}, sourceVertex = {}, entry.getValue() = {}",
+                        edge, sourceVertex, entry.getValue());
+              }
             } catch (Exception e) {
               throw new TezUncheckedException(e);
             }
