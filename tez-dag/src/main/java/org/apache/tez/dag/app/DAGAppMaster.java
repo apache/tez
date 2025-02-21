@@ -2390,7 +2390,9 @@ public class DAGAppMaster extends AbstractService {
       ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
       ApplicationAttemptId applicationAttemptId =
           containerId.getApplicationAttemptId();
-
+      org.apache.hadoop.ipc.CallerContext.setCurrent(new org.apache.hadoop.ipc.CallerContext
+              .Builder("tez_appmaster_" + containerId.getApplicationAttemptId()
+      ).build());
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
       String jobUserName = System
