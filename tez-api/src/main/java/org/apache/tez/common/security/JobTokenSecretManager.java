@@ -60,7 +60,7 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
     } catch (NoSuchAlgorithmException nsa) {
       throw new IllegalArgumentException("Can't find " + algorithm + " algorithm.", nsa);
     } catch (InvalidKeyException ike) {
-      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
+      throw new IllegalArgumentException("Invalid key to " + algorithm + " computation", ike);
     }
   }
 

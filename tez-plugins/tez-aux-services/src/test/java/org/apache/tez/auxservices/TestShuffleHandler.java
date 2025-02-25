@@ -218,7 +218,8 @@ public class TestShuffleHandler {
         "Could not find application_1234/240/output/attempt_1234_0/file.out.index";
 
     private JobTokenSecretManager secretManager =
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()), new TezConfiguration());
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()),
+            new TezConfiguration());
 
     protected JobTokenSecretManager getSecretManager(){
       return secretManager;
