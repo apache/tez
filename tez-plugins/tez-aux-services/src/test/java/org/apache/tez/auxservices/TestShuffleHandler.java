@@ -66,6 +66,7 @@ import org.apache.hadoop.yarn.server.api.AuxiliaryLocalPathHandler;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -217,7 +218,7 @@ public class TestShuffleHandler {
         "Could not find application_1234/240/output/attempt_1234_0/file.out.index";
 
     private JobTokenSecretManager secretManager =
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()));
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()), new TezConfiguration());
 
     protected JobTokenSecretManager getSecretManager(){
       return secretManager;
@@ -1209,7 +1210,7 @@ public class TestShuffleHandler {
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     String encHash = SecureShuffleUtils.hashFromString(
         SecureShuffleUtils.buildMsgFrom(url),
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(jt.getPassword())));
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(jt.getPassword()), new TezConfiguration()));
     conn.addRequestProperty(
         SecureShuffleUtils.HTTP_HEADER_URL_HASH, encHash);
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,

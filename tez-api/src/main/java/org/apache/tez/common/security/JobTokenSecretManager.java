@@ -28,6 +28,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
 
@@ -37,10 +39,30 @@ import org.apache.hadoop.security.token.Token;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
-  private static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA1";
-  private final SecretKey masterKey;
   private final Map<String, SecretKey> currentJobTokens;
   private final Mac mac;
+
+
+  /**
+   * @param conf a mandatory configuration for JobTokenSecretManager to prevent algorithm mismatch
+   */
+  public JobTokenSecretManager(Configuration conf) {
+    this(null, conf);
+  }
+
+  public JobTokenSecretManager(SecretKey key, Configuration conf) {
+    String algorithm = getAlgorithm(conf);
+    SecretKey masterKey = (key == null) ? generateSecret() : key;
+    this.currentJobTokens = new TreeMap<>();
+    try {
+      mac = Mac.getInstance(algorithm);
+      mac.init(masterKey);
+    } catch (NoSuchAlgorithmException nsa) {
+      throw new IllegalArgumentException("Can't find " + algorithm + " algorithm.", nsa);
+    } catch (InvalidKeyException ike) {
+      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
+    }
+  }
 
   /**
    * Convert the byte[] to a secret key
@@ -72,26 +94,11 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
     }
   }
 
-  /**
-   * Default constructor
-   */
-  public JobTokenSecretManager() {
-    this(null);
+  private String getAlgorithm(Configuration conf) {
+    return conf.get(
+        CommonConfigurationKeysPublic.HADOOP_SECURITY_SECRET_MANAGER_KEY_GENERATOR_ALGORITHM_KEY,
+        CommonConfigurationKeysPublic.HADOOP_SECURITY_SECRET_MANAGER_KEY_GENERATOR_ALGORITHM_DEFAULT);
   }
-
-  public JobTokenSecretManager(SecretKey key) {
-    this.masterKey = (key == null) ? generateSecret() : key;
-    this.currentJobTokens = new TreeMap<String, SecretKey>();
-    try {
-      mac = Mac.getInstance(DEFAULT_HMAC_ALGORITHM);
-      mac.init(masterKey);
-    } catch (NoSuchAlgorithmException nsa) {
-      throw new IllegalArgumentException("Can't find " + DEFAULT_HMAC_ALGORITHM + " algorithm.", nsa);
-    } catch (InvalidKeyException ike) {
-      throw new IllegalArgumentException("Invalid key to HMAC computation", ike);
-    }
-  }
-
 
   /**
    * Create a new password/secret for the given job token identifier.

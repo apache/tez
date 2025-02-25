@@ -206,7 +206,7 @@ public class ShuffleHandler {
             DEFAULT_SHUFFLE_MAPOUTPUT_META_INFO_CACHE_SIZE));
 
     userRsrc = new ConcurrentHashMap<String,String>();
-    secretManager = new JobTokenSecretManager();
+    secretManager = new JobTokenSecretManager(conf);
   }
 
 

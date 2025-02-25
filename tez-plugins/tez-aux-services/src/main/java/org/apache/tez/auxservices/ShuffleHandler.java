@@ -560,7 +560,7 @@ public class ShuffleHandler extends AuxiliaryService {
   protected void serviceStart() throws Exception {
     Configuration conf = getConfig();
     userRsrc = new ConcurrentHashMap<String,String>();
-    secretManager = new JobTokenSecretManager();
+    secretManager = new JobTokenSecretManager(conf);
     recoverState(conf);
     ServerBootstrap bootstrap = new ServerBootstrap()
         .channel(NioServerSocketChannel.class)

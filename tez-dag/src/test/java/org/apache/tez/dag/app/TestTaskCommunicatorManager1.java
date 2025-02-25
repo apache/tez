@@ -360,7 +360,7 @@ public class TestTaskCommunicatorManager1 {
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
         "fakeIdentifier"));
     Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
-        new JobTokenSecretManager());
+        new JobTokenSecretManager(conf));
     sessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(sessionToken, credentials);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
@@ -381,7 +381,7 @@ public class TestTaskCommunicatorManager1 {
       JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
           "fakeIdentifier"));
       Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
-          new JobTokenSecretManager());
+          new JobTokenSecretManager(conf));
       sessionToken.setService(identifier.getJobId());
       TokenCache.setSessionToken(sessionToken, credentials);
 
