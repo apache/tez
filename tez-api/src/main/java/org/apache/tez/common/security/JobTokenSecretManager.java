@@ -95,9 +95,8 @@ public class JobTokenSecretManager extends SecretManager<JobTokenIdentifier> {
   }
 
   private String getAlgorithm(Configuration conf) {
-    return conf.get(
-        CommonConfigurationKeysPublic.HADOOP_SECURITY_SECRET_MANAGER_KEY_GENERATOR_ALGORITHM_KEY,
-        CommonConfigurationKeysPublic.HADOOP_SECURITY_SECRET_MANAGER_KEY_GENERATOR_ALGORITHM_DEFAULT);
+    // TODO: TEZ-4607: replace with CommonConfigurationKeysPublic enum values
+    return conf.get("hadoop.security.secret-manager.key-generator.algorithm", "HmacSHA1");
   }
 
   /**
