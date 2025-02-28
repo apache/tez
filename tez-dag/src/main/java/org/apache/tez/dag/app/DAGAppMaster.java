@@ -304,6 +304,7 @@ public class DAGAppMaster extends AbstractService {
   private boolean recoveryEnabled;
   private Path recoveryDataDir;
   private Path currentRecoveryDataDir;
+  private Path tezBaseStagingDir;
   private Path tezSystemStagingDir;
   private FileSystem recoveryFS;
 
@@ -490,6 +491,7 @@ public class DAGAppMaster extends AbstractService {
     } else {
       dispatcher.enableExitOnDispatchException();
     }
+    this.tezBaseStagingDir = TezCommonUtils.getTezBaseStagingPath(conf);
     String strAppId = this.appAttemptID.getApplicationId().toString();
     this.tezSystemStagingDir = TezCommonUtils.getTezSystemStagingPath(conf, strAppId);
 
@@ -2201,19 +2203,20 @@ public class DAGAppMaster extends AbstractService {
     if (deleteTezScratchData && this.taskSchedulerManager != null
         && this.taskSchedulerManager.hasUnregistered()) {
       // Delete tez scratch data dir
-      if (this.tezSystemStagingDir != null) {
+      boolean cleanupBaseStagingDir = this.amConf.getBoolean(TezConfiguration.TEZ_AM_STAGING_BASE_DIR_CLEANUP,
+          TezConfiguration.TEZ_AM_STAGING_BASE_DIR_CLEANUP_DEFAULT);
+      Path directory = cleanupBaseStagingDir ? this.tezBaseStagingDir : this.tezSystemStagingDir;
+      if (directory != null) {
         try {
           this.appMasterUgi.doAs(new PrivilegedExceptionAction<Void>() {
             @Override
             public Void run() throws Exception {
-              FileSystem fs = tezSystemStagingDir.getFileSystem(amConf);
-              boolean deletedStagingDir = fs.delete(tezSystemStagingDir, true);
+              FileSystem fs = directory.getFileSystem(amConf);
+              boolean deletedStagingDir = fs.delete(directory, true);
               if (!deletedStagingDir) {
-                LOG.warn("Failed to delete tez scratch data dir, path="
-                    + tezSystemStagingDir);
+                LOG.warn("Failed to delete tez scratch data dir, path={}", directory);
               } else {
-                LOG.info("Completed deletion of tez scratch data dir, path="
-                    + tezSystemStagingDir);
+                LOG.info("Completed deletion of tez scratch data dir, path={}", directory);
               }
               return null;
             }
