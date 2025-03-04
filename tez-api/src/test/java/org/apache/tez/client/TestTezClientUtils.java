@@ -359,7 +359,7 @@ public class TestTezClientUtils {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
     TezClientUtils.createSessionToken(appId.toString(),
-        new JobTokenSecretManager(), credentials);
+        new JobTokenSecretManager(tezConf), credentials);
     tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     Map<String, LocalResource> m = new HashMap<String, LocalResource>();
     tezConf.setInt(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY, testpriority);
@@ -413,7 +413,7 @@ public class TestTezClientUtils {
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
 
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
     assertNotNull(jobToken);
@@ -447,7 +447,7 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     DAG dag = DAG.create("DAG-testAMLoggingOptsSimple");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
@@ -488,7 +488,7 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     DAG dag = DAG.create("DAG-testAMLoggingOptsPerLogger");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)

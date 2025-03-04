@@ -527,7 +527,7 @@ public class TestDAGAppMaster {
 
     // create some sample AM credentials
     Credentials amCreds = new Credentials();
-    JobTokenSecretManager jtsm = new JobTokenSecretManager();
+    JobTokenSecretManager jtsm = new JobTokenSecretManager(conf);
     JobTokenIdentifier identifier = new JobTokenIdentifier(
         new Text(appId.toString()));
     Token<JobTokenIdentifier> sessionToken =
@@ -608,7 +608,7 @@ public class TestDAGAppMaster {
 
     // create some sample AM credentials
     Credentials amCreds = new Credentials();
-    JobTokenSecretManager jtsm = new JobTokenSecretManager();
+    JobTokenSecretManager jtsm = new JobTokenSecretManager(conf);
     JobTokenIdentifier identifier = new JobTokenIdentifier(
         new Text(appId.toString()));
     Token<JobTokenIdentifier> sessionToken =
@@ -764,7 +764,7 @@ public class TestDAGAppMaster {
 
     public static Credentials createCredentials() {
       Credentials creds = new Credentials();
-      JobTokenSecretManager jtsm = new JobTokenSecretManager();
+      JobTokenSecretManager jtsm = new JobTokenSecretManager(new TezConfiguration());
       JobTokenIdentifier jtid = new JobTokenIdentifier(new Text());
       Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(jtid, jtsm);
       TokenCache.setSessionToken(token, creds);

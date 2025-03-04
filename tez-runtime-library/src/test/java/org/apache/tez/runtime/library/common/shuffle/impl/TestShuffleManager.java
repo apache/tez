@@ -289,7 +289,7 @@ public class TestShuffleManager {
 
     DataOutputBuffer out = new DataOutputBuffer();
     Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(new JobTokenIdentifier(),
-        new JobTokenSecretManager(null));
+        new JobTokenSecretManager(new TezConfiguration()));
     token.write(out);
     doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).
         getServiceConsumerMetaData(

@@ -381,7 +381,7 @@ class ShuffleScheduler {
     SecretKey jobTokenSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(auxiliaryService));
-    this.jobTokenSecretManager = new JobTokenSecretManager(jobTokenSecret);
+    this.jobTokenSecretManager = new JobTokenSecretManager(jobTokenSecret, conf);
 
     final ExecutorService fetcherRawExecutor;
     if (conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL,

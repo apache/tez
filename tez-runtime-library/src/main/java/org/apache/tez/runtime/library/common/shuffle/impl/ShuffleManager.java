@@ -309,7 +309,7 @@ public class ShuffleManager implements FetcherCallback {
     SecretKey shuffleSecret = ShuffleUtils
         .getJobTokenSecretFromTokenBytes(inputContext
             .getServiceConsumerMetaData(auxiliaryService));
-    this.jobTokenSecretMgr = new JobTokenSecretManager(shuffleSecret);
+    this.jobTokenSecretMgr = new JobTokenSecretManager(shuffleSecret, conf);
     this.asyncHttp = conf.getBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, false);
     httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
 

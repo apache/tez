@@ -132,8 +132,7 @@ public class TezClient {
   Map<String, LocalResource> cachedTezJarResources;
   boolean usingTezArchiveDeploy = false;
   private static final long SLEEP_FOR_READY = 500;
-  private JobTokenSecretManager jobTokenSecretManager =
-      new JobTokenSecretManager();
+  private final JobTokenSecretManager jobTokenSecretManager;
   private final Map<String, LocalResource> additionalLocalResources = Maps.newHashMap();
   @VisibleForTesting
   final TezApiVersionInfo apiVersionInfo;
@@ -205,6 +204,8 @@ public class TezClient {
         tezConf.getInt(TezConfiguration.TEZ_IPC_PAYLOAD_RESERVED_BYTES,
         TezConfiguration.TEZ_IPC_PAYLOAD_RESERVED_BYTES_DEFAULT);
     Limits.setConfiguration(tezConf);
+
+    this.jobTokenSecretManager = new JobTokenSecretManager(tezConf);
 
     LOG.info("Tez Client Version: " + apiVersionInfo.toString());
   }
