@@ -20,6 +20,7 @@ package org.apache.tez.client.registry.zookeeper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.TimeUnit;
@@ -230,5 +231,72 @@ public class TestZkConfig {
     ZkConfig zkConfig = new ZkConfig(conf);
     assertEquals("/tez-external-sessions" + TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE_DEFAULT,
         zkConfig.getZkNamespace());
+  }
+
+  @Test
+  public void testZkConfigTezAmZookeeperSslEnableNotSpecified() {
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
+    ZkConfig zkConf = new ZkConfig(conf);
+
+    assertNull(zkConf.isSslEnabled());
+    assertNull(zkConf.getZookeeperKeyStoreLocation());
+    assertNull(zkConf.getZookeeperKeyStorePassword());
+    assertNull(zkConf.getZookeeperTrustStoreLocation());
+    assertNull(zkConf.getZookeeperTrustStorePassword());
+  }
+
+  @Test
+  public void testZkConfigTezAmZookeeperSslEnableEmpty() {
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, ""); // empty means not set
+    ZkConfig zkConf = new ZkConfig(conf);
+
+    assertNull(zkConf.isSslEnabled());
+    assertNull(zkConf.getZookeeperKeyStoreLocation());
+    assertNull(zkConf.getZookeeperKeyStorePassword());
+    assertNull(zkConf.getZookeeperTrustStoreLocation());
+    assertNull(zkConf.getZookeeperTrustStorePassword());
+  }
+
+  @Test
+  public void testZkConfigSslEnabled() {
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, "true");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_LOCATION, "/keystore.jks");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_KEYSTORE_PASSWORD, "secret");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION, "/truststore.jks");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD, "changeit");
+    ZkConfig zkConf = new ZkConfig(conf);
+
+    assertEquals(zkConf.isSslEnabled(), Boolean.TRUE);
+    assertEquals(zkConf.getZookeeperKeyStoreLocation(), "/keystore.jks");
+    assertEquals(zkConf.getZookeeperKeyStorePassword(), "secret");
+    assertEquals(zkConf.getZookeeperTrustStoreLocation(), "/truststore.jks");
+    assertEquals(zkConf.getZookeeperTrustStorePassword(), "changeit");
+  }
+
+  @Test
+  public void testZkConfigSslDisabled() {
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, "False");
+    ZkConfig zkConf = new ZkConfig(conf);
+
+    assertEquals(zkConf.isSslEnabled(), Boolean.FALSE);
+    assertNull(zkConf.getZookeeperKeyStoreLocation());
+    assertNull(zkConf.getZookeeperKeyStorePassword());
+    assertNull(zkConf.getZookeeperTrustStoreLocation());
+    assertNull(zkConf.getZookeeperTrustStorePassword());
+  }
+
+  @Test
+  public void testZkConfigAmZookeeperSslEnableInvalid() {
+    Configuration conf = new Configuration();
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "dummyZkQuorum");
+    conf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_SSL_ENABLE, "invalidValue");
+    assertThrows(IllegalArgumentException.class, () -> new ZkConfig(conf));
   }
 }
