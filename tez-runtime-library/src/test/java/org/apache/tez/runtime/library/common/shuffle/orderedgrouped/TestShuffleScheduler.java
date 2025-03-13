@@ -1008,7 +1008,7 @@ public class TestShuffleScheduler {
     doReturn(shuffleBuffer).when(inputContext).getServiceProviderMetaData(anyString());
     Token<JobTokenIdentifier>
         sessionToken = new Token<JobTokenIdentifier>(new JobTokenIdentifier(new Text("text")),
-        new JobTokenSecretManager());
+        new JobTokenSecretManager(new TezConfiguration()));
     ByteBuffer tokenBuffer = TezCommonUtils.serializeServiceData(sessionToken);
     doReturn(tokenBuffer).when(inputContext).getServiceConsumerMetaData(anyString());
     when(inputContext.createTezFrameworkExecutorService(anyInt(), anyString())).thenAnswer(

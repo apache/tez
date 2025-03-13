@@ -261,8 +261,7 @@ public class DAGAppMaster extends AbstractService {
   private ContainerHeartbeatHandler containerHeartbeatHandler;
   private TaskHeartbeatHandler taskHeartbeatHandler;
   private TaskCommunicatorManagerInterface taskCommunicatorManager;
-  private JobTokenSecretManager jobTokenSecretManager =
-      new JobTokenSecretManager();
+  private JobTokenSecretManager jobTokenSecretManager;
   private Token<JobTokenIdentifier> sessionToken;
   private DagEventDispatcher dagEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
@@ -519,6 +518,8 @@ public class DAGAppMaster extends AbstractService {
 
     containerHeartbeatHandler = createContainerHeartbeatHandler(context, conf);
     addIfService(containerHeartbeatHandler, true);
+
+    jobTokenSecretManager = new JobTokenSecretManager(amConf);
 
     sessionToken =
         TokenCache.getSessionToken(amCredentials);
@@ -2390,7 +2391,9 @@ public class DAGAppMaster extends AbstractService {
       ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
       ApplicationAttemptId applicationAttemptId =
           containerId.getApplicationAttemptId();
-
+      org.apache.hadoop.ipc.CallerContext.setCurrent(new org.apache.hadoop.ipc.CallerContext
+              .Builder("tez_appmaster_" + containerId.getApplicationAttemptId()
+      ).build());
       long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
       String jobUserName = System
