@@ -945,8 +945,7 @@ public class PipelinedSorter extends ExternalSorter {
         // try to allocate less meta space, because we have sample data
         metasize = METASIZE*(capacity/(perItem+METASIZE));
       }
-      ByteBuffer reserved = source.duplicate();
-      reserved.mark();
+      ByteBuffer reserved = (ByteBuffer) source.duplicate().mark();
       LOG.info(outputContext.getInputOutputVertexNames() + ": " + "reserved.remaining()=" +
           reserved.remaining() + ", reserved.metasize=" + metasize);
       reserved.position(metasize);
