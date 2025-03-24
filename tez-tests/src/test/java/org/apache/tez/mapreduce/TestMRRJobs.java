@@ -21,6 +21,9 @@ package org.apache.tez.mapreduce;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +91,7 @@ public class TestMRRJobs {
       conf.set(MRJobConfig.MR_AM_STAGING_DIR, "/apps_staging_dir");
       conf.setLong(YarnConfiguration.DEBUG_NM_DELETE_DELAY_SEC, 0l);
       conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
+      //conf.setLong(TezConfiguration.TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS, 500);
       mrrTezCluster.init(conf);
       mrrTezCluster.start();
     }
@@ -104,6 +108,32 @@ public class TestMRRJobs {
       dfsCluster.shutdown();
       dfsCluster = null;
     }
+  }
+
+  private void assertStagingDir() throws IOException, InterruptedException {
+    // Wait for the clean-up process to be invoked
+    while (true) {
+      int numAllocatedCores = mrrTezCluster.getResourceManager().getResourceScheduler().getRootQueueMetrics()
+          .getAllocatedVirtualCores();
+      LOG.info("Number of cores in use: {}", numAllocatedCores);
+      if (numAllocatedCores == 0) {
+        break;
+      }
+      Thread.sleep(100L);
+    }
+
+    String userName = UserGroupInformation.getCurrentUser().getUserName();
+    Path userStagingDir = new Path(String.format("%s/%s/.staging", mrrTezCluster.getStagingPath(), userName));
+
+    Assert.assertTrue(remoteFs.exists(userStagingDir));
+
+    RemoteIterator<LocatedFileStatus> directoryTree = remoteFs.listFiles(userStagingDir, true);
+    int numFiles = 0;
+    while (directoryTree.hasNext()) {
+      numFiles += 1;
+      LOG.info("Path in the staging dir: {}", directoryTree.next().getPath());
+    }
+    Assert.assertEquals(0, numFiles);
   }
 
   @Test (timeout = 60000)
@@ -140,6 +170,7 @@ public class TestMRRJobs {
     Assert.assertTrue("Tracking URL was " + trackingUrl +
                       " but didn't Match Job ID " + jobId ,
           trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
+    assertStagingDir();
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
@@ -190,7 +221,7 @@ public class TestMRRJobs {
       }
     }
     Assert.assertEquals("Number of part files is wrong!", 3, count);
-
+    assertStagingDir();
   }
 
 
@@ -223,6 +254,7 @@ public class TestMRRJobs {
     boolean succeeded = job.waitForCompletion(true);
     Assert.assertFalse(succeeded);
     Assert.assertEquals(JobStatus.State.FAILED, job.getJobState());
+    assertStagingDir();
 
     // FIXME once counters and task progress can be obtained properly
     // TODO verify failed task diagnostics
@@ -257,9 +289,42 @@ public class TestMRRJobs {
     boolean succeeded = job.waitForCompletion(true);
     Assert.assertTrue(succeeded);
     Assert.assertEquals(JobStatus.State.SUCCEEDED, job.getJobState());
+    assertStagingDir();
 
     // FIXME once counters and task progress can be obtained properly
     // TODO verify failed task diagnostics
+  }
+
+  @Test (timeout = 60000)
+  public void testFailingSubmission() throws IOException, InterruptedException,
+      ClassNotFoundException {
+
+    LOG.info("\n\n\nStarting testFailingSubmission().");
+
+    if (!(new File(MiniTezCluster.APPJAR)).exists()) {
+      LOG.info("MRAppJar " + MiniTezCluster.APPJAR
+          + " not found. Not running test.");
+      return;
+    }
+
+    Configuration sleepConf = new Configuration(mrrTezCluster.getConfig());
+
+    MRRSleepJob sleepJob = new MRRSleepJob();
+    sleepJob.setConf(sleepConf);
+
+    Job job = sleepJob.createJob(1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1);
+
+    job.setJarByClass(MRRSleepJob.class);
+    job.setMaxMapAttempts(1); // speed up failures
+    job.getConfiguration().set(JobContext.QUEUE_NAME, "non-existent-queue");
+
+    try {
+      job.submit();
+    } catch (Exception e) {
+      Assert.assertTrue(e.getMessage().contains("to unknown queue: non-existent-queue"));
+    }
+    assertStagingDir();
   }
 
   @Test (timeout = 60000)
@@ -298,6 +363,7 @@ public class TestMRRJobs {
     Assert.assertTrue("Tracking URL was " + trackingUrl +
                       " but didn't Match Job ID " + jobId ,
           trackingUrl.contains(jobId.substring(jobId.indexOf("_"))));
+    assertStagingDir();
 
     // FIXME once counters and task progress can be obtained properly
     // TODO use dag client to test counters and task progress?
@@ -354,6 +420,7 @@ public class TestMRRJobs {
         Assert.assertTrue("Tracking URL was " + trackingUrl +
                           " but didn't Match Job ID " + jobId ,
           trackingUrl.endsWith(jobId.substring(jobId.lastIndexOf("_")) + "/"));
+        assertStagingDir();
         return null;
       }
     });

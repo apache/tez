@@ -144,6 +144,16 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_STAGING_SCRATCH_DATA_AUTO_DELETE_DEFAULT = true;
 
   /**
+   * Boolean value. If true then Tez will try to delete the entire TEZ_AM_STAGING_DIR. Otherwise, Tez will delete
+   * only a subdirectory created by Tez and a client needs to clean up the parent directories. This is typically used
+   * by tez-mapreduce.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type = "boolean")
+  public static final String TEZ_AM_STAGING_BASE_DIR_CLEANUP = TEZ_AM_PREFIX + "staging.base.dir.cleanup";
+  public static final boolean TEZ_AM_STAGING_BASE_DIR_CLEANUP_DEFAULT = false;
+
+  /**
    * String value. Specifies the name of the shuffle auxiliary service.
    */
   @ConfigurationScope(Scope.AM)
