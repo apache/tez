@@ -802,10 +802,10 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public DAGReport getReport() {
     readLock.lock();
     try {
-      StringBuilder diagsb = new StringBuilder();
+      /*StringBuilder diagsb = new StringBuilder();
       for (String s : getDiagnostics()) {
         diagsb.append(s).append("\n");
-      }
+      }*/
 
       if (getInternalState() == DAGState.NEW) {
         /*
