@@ -893,28 +893,29 @@ public class AMWebController extends Controller {
     @Override
     public void render() {
       response().setContentType(MimeType.HTML);
-      PrintWriter pw = writer();
-      pw.write("<html>");
-      pw.write("<head>");
-      pw.write("<meta charset=\"utf-8\">");
-      pw.write("<title>Redirecting to Tez UI</title>");
-      pw.write("</head>");
-      pw.write("<body>");
-      if (historyUrl == null || historyUrl.isEmpty()) {
-        pw.write("<h1>Tez UI Url is not defined.</h1>" +
-            "<p>To enable tracking url pointing to Tez UI, set the config <b>" +
-            TezConfiguration.TEZ_HISTORY_URL_BASE + "</b> in the tez-site.xml.</p>");
-      } else {
-        pw.write("<h1>Redirecting to Tez UI</h1>. <p>If you are not redirected shortly, click " +
-            "<a href='" + historyUrl + "'><b>here</b></a></p>"
-        );
-        pw.write("<script type='text/javascript'>setTimeout(function() { " +
-          "window.location.replace('" + historyUrl + "');" +
-          "}, 0); </script>");
+      try(PrintWriter pw = writer()) {
+        pw.write("<html>");
+        pw.write("<head>");
+        pw.write("<meta charset=\"utf-8\">");
+        pw.write("<title>Redirecting to Tez UI</title>");
+        pw.write("</head>");
+        pw.write("<body>");
+        if (historyUrl == null || historyUrl.isEmpty()) {
+          pw.write("<h1>Tez UI Url is not defined.</h1>" +
+                  "<p>To enable tracking url pointing to Tez UI, set the config <b>" +
+                  TezConfiguration.TEZ_HISTORY_URL_BASE + "</b> in the tez-site.xml.</p>");
+        } else {
+          pw.write("<h1>Redirecting to Tez UI</h1>. <p>If you are not redirected shortly, click " +
+                  "<a href='" + historyUrl + "'><b>here</b></a></p>"
+          );
+          pw.write("<script type='text/javascript'>setTimeout(function() { " +
+                  "window.location.replace('" + historyUrl + "');" +
+                  "}, 0); </script>");
+        }
+        pw.write("</body>");
+        pw.write("</html>");
+        pw.flush();
       }
-      pw.write("</body>");
-      pw.write("</html>");
-      pw.flush();
     }
   }
 
