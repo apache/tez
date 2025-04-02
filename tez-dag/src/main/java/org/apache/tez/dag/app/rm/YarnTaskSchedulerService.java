@@ -37,11 +37,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.util.Time;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.AbstractCounters;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AMState;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -158,6 +163,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
   @VisibleForTesting
   protected AtomicBoolean shouldUnregister = new AtomicBoolean(false);
 
+  private final TaskSchedulerStatistics taskSchedulerStatistics = new TaskSchedulerStatistics();
+
   static class CRCookie {
     // Do not use these variables directly. Can caused mocked unit tests to fail.
     private Object task;
@@ -183,9 +190,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
     }
   }
 
-  class CookieContainerRequest extends ContainerRequest {
+  class CookieContainerRequest extends ContainerRequest implements TaskSchedulerStatistics.TaskRequestData {
     CRCookie cookie;
     ContainerId affinitizedContainerId;
+    private final long created;
 
     public CookieContainerRequest(
         Resource capability,
@@ -195,6 +203,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         CRCookie cookie) {
       super(capability, hosts, racks, priority);
       this.cookie = cookie;
+      this.created = Time.now();
     }
 
     public CookieContainerRequest(
@@ -214,6 +223,11 @@ public class YarnTaskSchedulerService extends TaskScheduler
     
     ContainerId getAffinitizedContainer() {
       return affinitizedContainerId;
+    }
+
+    @Override
+    public long getCreatedTime() {
+      return created;
     }
   }
 
@@ -874,6 +888,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     synchronized(delayedContainerManager) {
       delayedContainerManager.notify();
     }
+    taskSchedulerStatistics.clear();
   }
 
   @Override
@@ -1777,6 +1792,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   private void informAppAboutAssignment(CookieContainerRequest assigned,
       Container container) {
+    taskSchedulerStatistics.trackRequestPendingTime(assigned);
     getContext().taskAllocated(getTask(assigned),
         assigned.getCookie().getAppCookie(), container);
   }
@@ -2418,5 +2434,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
   @Override
   public int getHeldContainersCount() {
     return heldContainers.size();
+  }
+
+  @Override
+  public TaskSchedulerStatistics getStatistics() {
+    return taskSchedulerStatistics;
   }
 }
