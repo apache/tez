@@ -319,7 +319,7 @@ public class TestGroupedSplits {
         .build();
     InputSplit mockSplit1 = mock(InputSplit.class);
     when(mockSplit1.getLength()).thenReturn(10*1000*1000l);
-    when(mockSplit1.getLocations()).thenReturn(null);
+    when(mockSplit1.getLocations()).thenReturn(new String[]{"SomeLocation"});
     int numSplits = 100;
     InputSplit[] mockSplits = new InputSplit[numSplits];
     for (int i=0; i<numSplits; i++) {
@@ -485,15 +485,8 @@ public class TestGroupedSplits {
     }
   }
 
-
-  @Test (timeout = 30000)
-  public void testS3Scenario() throws IOException {
-    //There can be multiple nodes in cluster, but locations would be "localhost" in s3
-    String[] locations = {"localhost"};
-    int oriSplits = 52;
-    int desiredSplits = 19;
-    long splitLength = 231958;
-
+  private InputSplit[] getSplitsForLocation(String[] locations, int oriSplits, int desiredSplits,
+      long splitLength) throws IOException {
     InputSplit[] origSplits = new InputSplit[oriSplits];
 
     for (int i = 0; i < oriSplits; i++) {
@@ -506,31 +499,36 @@ public class TestGroupedSplits {
     conf = (JobConf) TezSplitGrouper.newConfigBuilder(conf).build();
 
     //Create splits now
-    InputSplit[] groupedSplits =
-        grouper.getGroupedSplits(conf, origSplits, desiredSplits, "SampleFormat");
+    return grouper.getGroupedSplits(conf, origSplits, desiredSplits, "SampleFormat");
+  }
 
+  @Test (timeout = 30000)
+  public void testS3Scenario() throws IOException {
+    //There can be multiple nodes in cluster, but locations would be "localhost" in s3
+    String[] locations = {"localhost"};
+    //Create splits now
+    int oriSplits = 52;
+    int desiredSplits = 19;
+    long splitLength = 231958;
+    InputSplit[] groupedSplits = getSplitsForLocation(locations, oriSplits, desiredSplits, splitLength);
     //Verify
     int splitsInGroup = oriSplits / desiredSplits;
     int totalSplits = (int) Math.ceil(oriSplits * 1.0 / splitsInGroup);
     assertEquals(totalSplits, groupedSplits.length);
 
+    // Check for EmptyLocation
+    groupedSplits = getSplitsForLocation(new String[]{"EmptyLocation"},
+        oriSplits, desiredSplits, splitLength);
+    // Verify
+    splitsInGroup = oriSplits / desiredSplits;
+    totalSplits = (int) Math.ceil(oriSplits * 1.0 / splitsInGroup);
+    assertEquals(totalSplits, groupedSplits.length);
 
     // min split optimization should not be invoked if any location is not localhost
-    String[] nonLocalLocations = { "EmptyLocation", "localhost" };
-
-    origSplits = new InputSplit[oriSplits];
-
-    for (int i = 0; i < oriSplits; i++) {
-      String[] splitLoc = nonLocalLocations;
-      origSplits[i] = new TestInputSplit(splitLength, splitLoc, i);
-    }
-
-    grouper = new TezMapredSplitsGrouper();
-    conf = new JobConf(defaultConf);
-    conf = (JobConf) TezSplitGrouper.newConfigBuilder(conf).build();
+    String[] nonLocalLocations = { "SomeLocation", "localhost" };
 
     //Create splits now
-    groupedSplits = grouper.getGroupedSplits(conf, origSplits, desiredSplits, "SampleFormat");
+    groupedSplits = getSplitsForLocation(nonLocalLocations, oriSplits, desiredSplits, splitLength);
 
     //splits should be 1
     assertEquals(1, groupedSplits.length);
