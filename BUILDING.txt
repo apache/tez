@@ -8,7 +8,7 @@ Requirements:
 
 * JDK 1.8+
 * Maven 3.6.3 or later
-* spotbugs 4.2.2 or later (if running spotbugs)
+* spotbugs 4.9.3 or later (if running spotbugs)
 * ProtocolBuffer 3.21.1
 * Internet connection for first build (to fetch all dependencies)
 * Hadoop version should be 2.7.0 or higher.

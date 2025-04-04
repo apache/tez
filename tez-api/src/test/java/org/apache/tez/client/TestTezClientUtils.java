@@ -534,7 +534,8 @@ public class TestTezClientUtils {
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     assertEquals(tmpOpts + " "
         + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
-        + amCommandOpts,
+        + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test2: Setup cluster-default command opts explicitly
@@ -543,7 +544,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
 
 
     // Test3: Don't setup Xmx explicitly
@@ -555,7 +557,7 @@ public class TestTezClientUtils {
     // It's OK for the Xmx value to show up before cluster default options, since Xmx will not be replaced if it already exists.
     assertEquals(
         " -Xmx" + ((int) (1024 * factor)) + "m" + " " + tmpOpts + " " + clusterDefaultCommandOpts + " " +
-            amCommandOpts,
+            amCommandOpts + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test4: Ensure admin options with Xmx does not cause them to be overridden. This should almost never be done though.
@@ -564,7 +566,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
   }
 
   @Test(timeout = 5000)
