@@ -187,7 +187,19 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-j
 # as expected for "java" executable after the update and go on
 RUN java -version 2>&1 | grep "1.8.0" && rm -f /usr/lib/jvm/default-java \
     && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+
+####
+# OpenJDK 17
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-17-jdk && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME and PATH environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Set the default Java version using update-alternatives
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 1
 
 ######
 # Install findbugs
