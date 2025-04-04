@@ -147,10 +147,8 @@ pipeline {
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
 
-                        # test with Java 8 and 11
-                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
-                        YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-11-openjdk-amd64")
-                        YETUS_ARGS+=("--multijdktests=compile")
+                        # test with Java 17
+                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-17-openjdk-amd64")
                         YETUS_ARGS+=("--debug")
 
                         # write Yetus report as GitHub comment (YETUS-1102)

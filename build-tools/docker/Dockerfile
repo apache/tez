@@ -165,35 +165,24 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ####
 
 ####
-# OpenJDK 8
-####
+# OpenJDK 17
 # hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y openjdk-8-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get -q update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-17-jdk \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-####
-# OpenJDK 11 (but keeps default to JDK8)
-# NOTE: This default only works when Apache Yetus is launched
-# _in_ the container and not outside of it!
-####
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-jre-headless openjdk-11-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-java-alternatives -s java-1.8.0-openjdk-amd64 || :
-# since update alternatives might fail on executables that we don't really need (e.g. appletviewer)
-# and return with exit code <0 (actually: 2), we can simply do a sanity check if the version is
-# as expected for "java" executable after the update and go on
-RUN java -version 2>&1 | grep "1.8.0" && rm -f /usr/lib/jvm/default-java \
-    && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+# Set JAVA_HOME and PATH environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Set the default Java version using update-alternatives
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 1
 
 #######
-# Install SpotBugs 4.2.2
+# Install SpotBugs 4.9.3
 #######
 RUN mkdir -p /opt/spotbugs \
-    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.2.2/spotbugs-4.2.2.tgz \
+    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.9.3/spotbugs-4.9.3.tgz \
       -o /opt/spotbugs.tgz \
     && tar xzf /opt/spotbugs.tgz --strip-components 1 -C /opt/spotbugs \
     && chmod +x /opt/spotbugs/bin/*
