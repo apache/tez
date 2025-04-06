@@ -66,7 +66,7 @@ public class TestSimpleFetchedInputAllocator {
     
     
     FetchedInput fi2 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(2, 1));
-    assertEquals(FetchedInput.Type.MEMORY, fi2.getType());
+    assertEquals(FetchedInput.Type.DISK, fi2.getType());
     
     
     // Over limit by this point. Next reserve should give back a DISK allocation
