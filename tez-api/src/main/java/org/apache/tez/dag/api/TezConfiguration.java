@@ -396,8 +396,17 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS =
       TEZ_AM_PREFIX + "launch.cluster-default.cmd-opts";
-  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+  public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT;
+
+  static {
+    if (TezCommonUtils.getJavaVersion() >= 9) {
+      TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
+      "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN --add-opens java.base/java.lang=ALL-UNNAMED";
+    } else {
+      TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
       "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
+    }
+  }
 
   /**
    * String value. Command line options provided during the launch of the Tez

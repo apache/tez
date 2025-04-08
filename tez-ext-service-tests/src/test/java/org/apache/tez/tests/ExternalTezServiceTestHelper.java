@@ -78,10 +78,17 @@ public class ExternalTezServiceTestHelper {
     for (Map.Entry<String, String> entry : tezCluster.getConfig()) {
       clusterConf.set(entry.getKey(), entry.getValue());
     }
+
     long jvmMax = Runtime.getRuntime().maxMemory();
+    long availableMemory;
+    if ((jvmMax * 0.5d) >= Integer.MAX_VALUE) {
+      availableMemory = Integer.MAX_VALUE;
+    } else {
+      availableMemory = (long) (jvmMax * 0.5d);
+    }
 
     tezTestServiceCluster = MiniTezTestServiceCluster
-        .create(TestExternalTezServices.class.getSimpleName(), 3, ((long) (jvmMax * 0.5d)), 1);
+        .create(TestExternalTezServices.class.getSimpleName(), 3, availableMemory, 1);
     tezTestServiceCluster.init(clusterConf);
     tezTestServiceCluster.start();
     LOG.info("MiniTezTestServer started");
