@@ -165,30 +165,6 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ####
 
 ####
-# OpenJDK 8
-####
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y openjdk-8-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-####
-# OpenJDK 11 (but keeps default to JDK8)
-# NOTE: This default only works when Apache Yetus is launched
-# _in_ the container and not outside of it!
-####
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-jre-headless openjdk-11-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-java-alternatives -s java-1.8.0-openjdk-amd64 || :
-# since update alternatives might fail on executables that we don't really need (e.g. appletviewer)
-# and return with exit code <0 (actually: 2), we can simply do a sanity check if the version is
-# as expected for "java" executable after the update and go on
-RUN java -version 2>&1 | grep "1.8.0" && rm -f /usr/lib/jvm/default-java \
-    && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
-
-####
 # OpenJDK 17
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y openjdk-17-jdk && \
