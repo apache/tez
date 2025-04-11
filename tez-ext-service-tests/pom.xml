@@ -112,7 +112,10 @@
       <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.openjdk.nashorn</groupId>
+      <artifactId>nashorn-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
