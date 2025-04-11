@@ -117,11 +117,13 @@ pipeline {
                         YETUS_ARGS+=("--proclimit=5500")
                         YETUS_ARGS+=("--dockermemlimit=20g")
 
-                        # -1 findbugs issues that show up prior to the patch being applied
-                        # YETUS_ARGS+=("--findbugs-strict-precheck")
+                        # -1 spotbugs issues that show up prior to the patch being applied
+                        YETUS_ARGS+=("--spotbugs-effort=max")
+                        YETUS_ARGS+=("--spotbugs-exclude-filter=findbugs-exclude.xml")
+                        YETUS_ARGS+=("--spotbugs-output-file=spotbugs-report.xml")
 
                         # rsync these files back into the archive dir
-                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,findbugsXml.xml")
+                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,spotbugs-report.xml")
 
                         # URL for user-side presentation in reports and such to our artifacts
                         # (needs to match the archive bits below)
