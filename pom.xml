@@ -101,6 +101,7 @@
     <snappy-java.version>1.1.10.4</snappy-java.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
+    <nashorn.version>15.4</nashorn.version>
 
     <maven.javadoc.skip>true</maven.javadoc.skip> <!-- enabled only in relevant modules separately -->
   </properties>
@@ -156,6 +157,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>org.openjdk.nashorn</groupId>
+        <artifactId>nashorn-core</artifactId>
+        <version>${nashorn.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.tez</groupId>
         <artifactId>hadoop-shim</artifactId>

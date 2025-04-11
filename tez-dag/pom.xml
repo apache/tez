@@ -37,6 +37,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.openjdk.nashorn</groupId>
+      <artifactId>nashorn-core</artifactId>
+      <version>${nashorn.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>hadoop-shim</artifactId>
     </dependency>
