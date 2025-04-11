@@ -70,7 +70,7 @@
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
+    <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.1</hadoop.version>
@@ -970,9 +970,12 @@
           <version>${dependency-check-maven.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs-maven-plugin.version}</version>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs-maven-plugin.version}</version>
+          <configuration>
+            <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -1119,10 +1122,17 @@
         <artifactId>build-helper-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-maven-plugin.version}</version>
         <configuration>
-          <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+          <effort>Max</effort>
+          <threshold>Default</threshold>
+          <spotbugsXmlOutputDirectory>target/site</spotbugsXmlOutputDirectory>
+          <skipEmptyReport>false</skipEmptyReport>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <includeTests>true</includeTests>
+          <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
         </configuration>
       </plugin>
       <plugin>
@@ -1215,29 +1225,28 @@
       </build>
     </profile>
     <profile>
-      <id>findbugs</id>
+      <id>spotbugs</id>
       <activation>
         <activeByDefault>false</activeByDefault>
         <property>
-          <name>findbugs</name>
+          <name>spotbugs</name>
         </property>
       </activation>
       <build>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>site</id>
-                <phase>pre-site</phase>
-                <goals>
-                  <goal>findbugs</goal>
-                </goals>
-              </execution>
-            </executions>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>${spotbugs-maven-plugin.version}</version>
             <configuration>
               <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+              <effort>Max</effort>
+              <threshold>Default</threshold>
+              <spotbugsXmlOutputDirectory>target/site</spotbugsXmlOutputDirectory>
+              <skipEmptyReport>false</skipEmptyReport>
+              <encoding>${project.build.sourceEncoding}</encoding>
+              <includeTests>true</includeTests>
+              <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
             </configuration>
           </plugin>
         </plugins>
@@ -1245,14 +1254,10 @@
       <reporting>
         <plugins>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>${spotbugs-maven-plugin.version}</version>
             <configuration>
-              <formats>
-                <format>xml</format>
-                <format>html</format>
-              </formats>
-              <canGenerate>true</canGenerate>
               <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
             </configuration>
           </plugin>

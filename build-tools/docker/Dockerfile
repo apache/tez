@@ -190,13 +190,19 @@ RUN java -version 2>&1 | grep "1.8.0" && rm -f /usr/lib/jvm/default-java \
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 
 ######
-# Install findbugs
+# Install spotbugs
 ######
 # hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y findbugs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-ENV FINDBUGS_HOME /usr
+# Download SpotBugs version 4.9.3.0 from GitHub releases
+WORKDIR /opt
+RUN curl -L https://github.com/spotbugs/spotbugs/releases/download/spotbugs-4.9.3.0/spotbugs-4.9.3.0.zip -o spotbugs.zip \
+    && unzip spotbugs.zip \
+    && rm spotbugs.zip
+
+# Set environment variables for SpotBugs and add to PATH
+ENV SPOTBUGS_HOME=/opt/spotbugs-4.9.3.0
+ENV PATH=$SPOTBUGS_HOME/bin:$PATH
+WORKDIR /root
 
 ######
 # Install maven
