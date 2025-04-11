@@ -153,6 +153,10 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.nashorn</groupId>
+      <artifactId>nashorn-core</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
@@ -205,6 +209,11 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <argLine>
+            --add-opens=java.base/java.lang=ALL-UNNAMED
+            --add-opens=java.base/java.util=ALL-UNNAMED
+            --add-opens java.base/java.io=ALL-UNNAMED
+          </argLine>
           <environmentVariables>
             <LOG_DIRS>${test.log.dir}</LOG_DIRS>
           </environmentVariables>

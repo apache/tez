@@ -117,12 +117,6 @@ pipeline {
                         YETUS_ARGS+=("--proclimit=5500")
                         YETUS_ARGS+=("--dockermemlimit=20g")
 
-                        # -1 findbugs issues that show up prior to the patch being applied
-                        # YETUS_ARGS+=("--findbugs-strict-precheck")
-
-                        # rsync these files back into the archive dir
-                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,findbugsXml.xml")
-
                         # URL for user-side presentation in reports and such to our artifacts
                         # (needs to match the archive bits below)
                         YETUS_ARGS+=("--build-url-artifacts=artifact/out")
@@ -152,9 +146,9 @@ pipeline {
                         # use emoji vote so it is easier to find the broken line
                         YETUS_ARGS+=("--github-use-emoji-vote")
 
-                        # test with Java 8 and 11
-                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
-                        YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-11-openjdk-amd64")
+                        # test with Java 17
+                        YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-17-openjdk-amd64")
+                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-17-openjdk-amd64")
                         YETUS_ARGS+=("--multijdktests=compile")
                         YETUS_ARGS+=("--debug")
 
