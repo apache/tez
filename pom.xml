@@ -70,7 +70,8 @@
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
+    <spotbugs.version>4.2.2</spotbugs.version>
+    <spotbugs-maven-plugin.version>4.2.0</spotbugs-maven-plugin.version>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.1</hadoop.version>
@@ -771,11 +772,6 @@
         <version>${jettison.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.code.findbugs</groupId>
-        <artifactId>jsr305</artifactId>
-        <version>${jsr305.version}</version>
-      </dependency>
-      <dependency>
         <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-client</artifactId>
        <version>${jersey.version}</version>
@@ -970,9 +966,20 @@
           <version>${dependency-check-maven.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>${findbugs-maven-plugin.version}</version>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs-maven-plugin.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.github.spotbugs</groupId>
+              <artifactId>spotbugs</artifactId>
+              <version>${spotbugs.version}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+            <failOnError>false</failOnError>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -1119,10 +1126,11 @@
         <artifactId>build-helper-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
         <configuration>
           <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+          <failOnError>false</failOnError>
         </configuration>
       </plugin>
       <plugin>
@@ -1213,51 +1221,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <id>findbugs</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-        <property>
-          <name>findbugs</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>site</id>
-                <phase>pre-site</phase>
-                <goals>
-                  <goal>findbugs</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-      <reporting>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <configuration>
-              <formats>
-                <format>xml</format>
-                <format>html</format>
-              </formats>
-              <canGenerate>true</canGenerate>
-              <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
-            </configuration>
-          </plugin>
-        </plugins>
-      </reporting>
     </profile>
     <profile>
       <id>sources</id>
@@ -1382,6 +1345,46 @@
           <version>${hadoop.version}</version>
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>spotbugs</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <property>
+          <name>spotbugs</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <version>${spotbugs-maven-plugin.version}</version>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>spotbugs</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <reporting>
+        <plugins>
+          <plugin>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
+            <configuration>
+              <excludeFilterFile>${basedir}/findbugs-exclude.xml</excludeFilterFile>
+            </configuration>
+          </plugin>
+        </plugins>
+      </reporting>
     </profile>
   </profiles>
 
