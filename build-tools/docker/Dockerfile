@@ -177,14 +177,15 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # Set the default Java version using update-alternatives
 RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 1
 
-######
-# Install findbugs
-######
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y findbugs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-ENV FINDBUGS_HOME /usr
+#######
+# Install SpotBugs 4.9.3
+#######
+RUN mkdir -p /opt/spotbugs \
+    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.9.3/spotbugs-4.9.3.tgz \
+      -o /opt/spotbugs.tgz \
+    && tar xzf /opt/spotbugs.tgz --strip-components 1 -C /opt/spotbugs \
+    && chmod +x /opt/spotbugs/bin/*
+ENV SPOTBUGS_HOME /opt/spotbugs
 
 ######
 # Install maven
