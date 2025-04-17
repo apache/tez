@@ -898,6 +898,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
+              <exclude>**/*.json</exclude>
               <exclude>CHANGES.txt</exclude>
               <exclude>**/LICENSE*</exclude>
               <!-- IDE files -->

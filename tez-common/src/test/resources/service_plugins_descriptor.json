@@ -1,0 +1,26 @@
+{
+  "taskSchedulerDescriptors": [
+    {
+      "className": "testScheduler0_class",
+      "entityName": "testScheduler0"
+    }
+  ],
+  "containerLauncherDescriptors": [
+    {
+      "className": "testLauncher0_class",
+      "entityName": "testLauncher0"
+    }
+  ],
+  "taskCommunicatorDescriptors": [
+    {
+      "userPayload": {
+        "payload": "AAAAAQ==",
+        "version": 1
+      },
+      "className": "testComm0_class",
+      "entityName": "testComm0"
+    }
+  ],
+  "enableContainers": false,
+  "enableUber": true
+}

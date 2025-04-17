@@ -17,18 +17,28 @@
 
 package org.apache.tez.common;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
+import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
+import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
 
 import com.google.protobuf.ByteString;
 
@@ -291,4 +301,30 @@ public class TestTezUtils {
       assertEquals(confBuilder.getConfKeyValuesList().size(), 1);
   }
 
+  @Test(timeout = 5000)
+  public void testReadTezConfigurationXmlFromClasspath() throws IOException {
+    InputStream is = ClassLoader.getSystemResourceAsStream(TezConfiguration.TEZ_SITE_XML);
+    Configuration conf = TezUtilsInternal.readTezConfigurationXml(is);
+    assertEquals(conf.get("tez.lib.uris"), "tez.tar.gz");
+  }
+
+  @Test(timeout = 5000)
+  public void testPluginsDescriptorFromJSON() throws IOException {
+    InputStream is = ClassLoader.getSystemResourceAsStream(TezConstants.SERVICE_PLUGINS_DESCRIPTOR_JSON);
+    ServicePluginsDescriptor spd = TezClientUtils.createPluginsDescriptorFromJSON(is);
+    TaskSchedulerDescriptor tsd = spd.getTaskSchedulerDescriptors()[0];
+    ContainerLauncherDescriptor cld = spd.getContainerLauncherDescriptors()[0];
+    TaskCommunicatorDescriptor tcd = spd.getTaskCommunicatorDescriptors()[0];
+
+    assertFalse(spd.areContainersEnabled());
+    assertTrue(spd.isUberEnabled());
+    assertEquals(tsd.getClassName(), "testScheduler0_class");
+    assertEquals(tsd.getEntityName(), "testScheduler0");
+    assertEquals(cld.getClassName(), "testLauncher0_class");
+    assertEquals(cld.getEntityName(), "testLauncher0");
+    assertEquals(tcd.getClassName(), "testComm0_class");
+    assertEquals(tcd.getEntityName(), "testComm0");
+    assertEquals(tcd.getUserPayload().getVersion(), 1);
+    assertArrayEquals(tcd.getUserPayload().deepCopyAsArray(), new byte[] {0, 0, 0, 1});
+  }
 }

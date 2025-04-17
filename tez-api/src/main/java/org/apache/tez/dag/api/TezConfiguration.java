@@ -2332,4 +2332,11 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.DAG)
   @ConfigurationProperty
   public static final String TEZ_TASK_ATTEMPT_HOOKS = TEZ_TASK_PREFIX + "attempt.hooks";
+
+  /**
+   * Comma-separated list of additional hadoop config files to load from CLASSPATH in standalone mode.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_STANDALONE_CONFS = TEZ_AM_PREFIX + "standalone.confs";
 }
