@@ -35,7 +35,7 @@ pipeline {
         DOCKERFILE = "${SOURCEDIR}/build-tools/docker/Dockerfile"
         YETUS='yetus'
         // Branch or tag name.  Yetus release tags are 'rel/X.Y.Z'
-        YETUS_VERSION='rel/0.12.0'
+        YETUS_VERSION='rel/0.15.1'
 
     }
 
@@ -105,7 +105,6 @@ pipeline {
                         YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
 
                         # enable writing back to Github
-                        YETUS_ARGS+=(--github-user="${GITHUB_USER}")
                         YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
 
                         # auto-kill any surefire stragglers during unit test runs
@@ -149,14 +148,15 @@ pipeline {
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
 
-                        # use emoji vote so it is easier to find the broken line
-                        YETUS_ARGS+=("--github-use-emoji-vote")
-
                         # test with Java 8 and 11
                         YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
                         YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-11-openjdk-amd64")
                         YETUS_ARGS+=("--multijdktests=compile")
                         YETUS_ARGS+=("--debug")
+
+                        # write Yetus report as GitHub comment (YETUS-1102)
+                        YETUS_ARGS+=("--github-write-comment")
+                        YETUS_ARGS+=("--github-use-emoji-vote")
 
                         "${TESTPATCHBIN}" "${YETUS_ARGS[@]}"
                         '''
