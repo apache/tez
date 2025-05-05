@@ -33,10 +33,9 @@ import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
 import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
@@ -358,27 +357,27 @@ public class ATSImportTool extends Configured implements Tool {
   }
 
   private static Options buildOptions() {
-    Option dagIdOption = OptionBuilder.withArgName(DAG_ID).withLongOpt(DAG_ID)
-        .withDescription("DagId that needs to be downloaded").hasArg().isRequired(true).create();
+    Option dagIdOption = Option.builder().argName(DAG_ID).longOpt(DAG_ID)
+        .desc("DagId that needs to be downloaded").hasArg().required(true).build();
 
-    Option downloadDirOption = OptionBuilder.withArgName(BASE_DOWNLOAD_DIR).withLongOpt
+    Option downloadDirOption = Option.builder().argName(BASE_DOWNLOAD_DIR).longOpt
         (BASE_DOWNLOAD_DIR)
-        .withDescription("Download directory where data needs to be downloaded").hasArg()
-        .isRequired(true).create();
+        .desc("Download directory where data needs to be downloaded").hasArg()
+        .required(true).build();
 
-    Option atsAddressOption = OptionBuilder.withArgName(YARN_TIMELINE_SERVICE_ADDRESS).withLongOpt(
+    Option atsAddressOption = Option.builder().argName(YARN_TIMELINE_SERVICE_ADDRESS).longOpt(
         YARN_TIMELINE_SERVICE_ADDRESS)
-        .withDescription("Optional. ATS address (e.g http://clusterATSNode:8188)").hasArg()
-        .isRequired(false)
-        .create();
+        .desc("Optional. ATS address (e.g http://clusterATSNode:8188)").hasArg()
+        .required(false)
+        .build();
 
-    Option batchSizeOption = OptionBuilder.withArgName(BATCH_SIZE).withLongOpt(BATCH_SIZE)
-        .withDescription("Optional. batch size for downloading data").hasArg()
-        .isRequired(false)
-        .create();
+    Option batchSizeOption = Option.builder().argName(BATCH_SIZE).longOpt(BATCH_SIZE)
+        .desc("Optional. batch size for downloading data").hasArg()
+        .required(false)
+        .build();
 
-    Option help = OptionBuilder.withArgName("help").withLongOpt("help")
-        .withDescription("print help").isRequired(false).create();
+    Option help = Option.builder().argName("help").longOpt("help")
+        .desc("print help").required(false).build();
 
     Options opts = new Options();
     opts.addOption(dagIdOption);
@@ -451,7 +450,7 @@ public class ATSImportTool extends Configured implements Tool {
     Options options = buildOptions();
     try {
       Configuration conf = new Configuration();
-      CommandLine cmdLine = new GnuParser().parse(options, args);
+      CommandLine cmdLine = new DefaultParser().parse(options, args);
       String dagId = cmdLine.getOptionValue(DAG_ID);
 
       File downloadDir = new File(cmdLine.getOptionValue(BASE_DOWNLOAD_DIR));

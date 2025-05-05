@@ -64,7 +64,8 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -2400,11 +2401,14 @@ public class DAGAppMaster extends AbstractService {
           .getenv(ApplicationConstants.Environment.USER.name());
 
       // Command line options
-      Options opts = new Options();
-      opts.addOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION,
-          false, "Run Tez Application Master in Session mode");
+      Option option = Option.builder()
+          .longOpt(TezConstants.TEZ_SESSION_MODE_CLI_OPTION)
+          .hasArg(false)
+          .desc("Run Tez Application Master in Session mode")
+          .build();
+      Options opts = new Options().addOption(option);
 
-      CommandLine cliParser = new GnuParser().parse(opts, args);
+      CommandLine cliParser = new DefaultParser().parse(opts, args);
       boolean sessionModeCliOption = cliParser.hasOption(TezConstants.TEZ_SESSION_MODE_CLI_OPTION);
 
       LOG.info("Creating DAGAppMaster for "
