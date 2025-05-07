@@ -87,4 +87,12 @@ class AMConfiguration {
     return binaryConfLRsrc;
   }
 
+  // do not review. spotbugs should catch this.
+  private final Object lock1 = new Object();
+  public void doNothing() {
+    synchronized (lock1) {
+      // SpotBugs: empty synchronized block
+    }
+  }
+
 }
