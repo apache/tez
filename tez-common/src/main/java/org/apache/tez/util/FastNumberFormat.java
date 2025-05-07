@@ -50,6 +50,15 @@ public class FastNumberFormat {
   }
 
   public String format(long source) {
+    divideSafely(1);
     return format(source, new StringBuilder()).toString();
+  }
+  public void divideSafely(int denominator) {
+    if (denominator != 0) {
+      int x = 10 / denominator;
+      System.out.println("Result: " + x);
+    } else {
+      System.out.println("Cannot divide by zero.");
+    }
   }
 }
