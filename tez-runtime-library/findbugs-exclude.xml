@@ -220,4 +220,28 @@
     <Field name="shuffleSchedulerThread"/>
     <Bug pattern="IS2_INCONSISTENT_SYNC"/>
   </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.api.TezRuntimeConfiguration"/>
+    <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.common.shuffle.impl.ShuffleManager"/>
+    <Field name="localDisks"/>
+    <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.cartesianproduct.CartesianProductCombination"/>
+    <Method name="nextTask" params="" returns="boolean"/>
+    <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.runtime.library.cartesianproduct.CartesianProductCombination"/>
+    <Method name="nextTaskWithFixedChunk" params="" returns="boolean"/>
+    <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+  </Match>
+
 </FindBugsFilter>
