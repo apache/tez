@@ -31,10 +31,15 @@ import java.util.LinkedHashMap;
 
 import com.google.common.primitives.Ints;
 
+import org.apache.hadoop.util.Time;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.counters.AbstractCounters;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -63,6 +68,8 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   final HashMap<Object, AllocatedTask> taskAllocations;
   final String appTrackingUrl;
   final long customContainerAppId;
+
+  private final TaskSchedulerStatistics taskSchedulerStatistics = new TaskSchedulerStatistics();
 
   public LocalTaskSchedulerService(TaskSchedulerContext taskSchedulerContext) {
     super(taskSchedulerContext);
@@ -101,7 +108,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   }
 
   @Override
-  public void dagComplete() {
+  public void dagComplete( ) {
     taskRequestHandler.dagComplete();
   }
 
@@ -159,7 +166,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
         new LocalContainerFactory(getContext().getApplicationAttemptId(), customContainerAppId),
         taskAllocations,
         getContext(),
-        conf);
+        conf, taskSchedulerStatistics);
   }
 
   @Override
@@ -221,11 +228,13 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   static class SchedulerRequest {
   }
 
-  static class TaskRequest extends SchedulerRequest {
+  static class TaskRequest extends SchedulerRequest implements TaskSchedulerStatistics.TaskRequestData {
     final Object task;
+    final long created;
 
     public TaskRequest(Object task) {
       this.task = task;
+      this.created = Time.now();
     }
 
     @Override
@@ -251,6 +260,10 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       return 7841 + (task != null ? task.hashCode() : 0);
     }
 
+    @Override
+    public long getCreatedTime() {
+      return created;
+    }
   }
 
   static class AllocateTaskRequest extends TaskRequest implements Comparable<AllocateTaskRequest> {
@@ -344,6 +357,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
     final HashMap<Object, AllocatedTask> taskAllocations;
     final TaskSchedulerContext taskSchedulerContext;
     private final Object descendantsLock = new Object();
+    private final TaskSchedulerStatistics taskSchedulerStatistics;
     private ArrayList<BitSet> vertexDescendants = null;
     final int MAX_TASKS;
 
@@ -351,7 +365,7 @@ public class LocalTaskSchedulerService extends TaskScheduler {
         LocalContainerFactory localContainerFactory,
         HashMap<Object, AllocatedTask> taskAllocations,
         TaskSchedulerContext taskSchedulerContext,
-        Configuration conf) {
+        Configuration conf, TaskSchedulerStatistics taskSchedulerStatistics) {
       this.clientRequestQueue = clientRequestQueue;
       this.localContainerFactory = localContainerFactory;
       this.taskAllocations = taskAllocations;
@@ -359,12 +373,14 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       this.MAX_TASKS = conf.getInt(TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS,
           TezConfiguration.TEZ_AM_INLINE_TASK_EXECUTION_MAX_TASKS_DEFAULT);
       this.taskRequestQueue = new PriorityBlockingQueue<>();
+      this.taskSchedulerStatistics = taskSchedulerStatistics;
     }
 
     void dagComplete() {
       synchronized (descendantsLock) {
         vertexDescendants = null;
       }
+      taskSchedulerStatistics.clear();
     }
     private void ensureVertexDescendants() {
       synchronized (descendantsLock) {
@@ -423,7 +439,8 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       while (!Thread.currentThread().isInterrupted()) {
         dispatchRequest();
         while (shouldProcess()) {
-          allocateTask();
+          AllocateTaskRequest request = allocateTask();
+          taskSchedulerStatistics.trackRequestPendingTime(request);
         }
       }
     }
@@ -468,15 +485,17 @@ public class LocalTaskSchedulerService extends TaskScheduler {
       }
     }
 
-    void allocateTask() {
+    AllocateTaskRequest allocateTask() {
       try {
         AllocateTaskRequest request = taskRequestQueue.take();
         Container container = localContainerFactory.createContainer(request.capability,
             request.priority);
         taskAllocations.put(request.task, new AllocatedTask(request, container));
         taskSchedulerContext.taskAllocated(request.task, request.clientCookie, container);
+        return request;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
+        return null;
       }
     }
 
@@ -517,5 +536,10 @@ public class LocalTaskSchedulerService extends TaskScheduler {
   @Override
   public int getHeldContainersCount() {
     return 0;
+  }
+
+  @Override
+  public TaskSchedulerStatistics getStatistics() {
+    return taskSchedulerStatistics;
   }
 }
