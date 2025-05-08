@@ -145,10 +145,10 @@
             <id>generate-sources</id>
             <phase>generate-sources</phase>
             <configuration>
-              <tasks>
+              <target>
                 <delete dir="${test.log.dir}" />
                 <mkdir dir="${test.log.dir}" />
-              </tasks>
+              </target>
             </configuration>
             <goals>
               <goal>run</goal>
