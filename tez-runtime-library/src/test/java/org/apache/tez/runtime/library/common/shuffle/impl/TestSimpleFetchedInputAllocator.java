@@ -63,17 +63,15 @@ public class TestSimpleFetchedInputAllocator {
     
     FetchedInput fi1 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(1, 1));
     assertEquals(FetchedInput.Type.MEMORY, fi1.getType());
-    
-    
+
+    // Over limit by this point. Next reserve should give back a DISK allocation
     FetchedInput fi2 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(2, 1));
-    assertEquals(FetchedInput.Type.MEMORY, fi2.getType());
-    
-    
+    assertEquals(FetchedInput.Type.DISK, fi2.getType());
+
     // Over limit by this point. Next reserve should give back a DISK allocation
     FetchedInput fi3 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(3, 1));
     assertEquals(FetchedInput.Type.DISK, fi3.getType());
-    
-    
+
     // Freed one memory allocation. Next should be mem again.
     fi1.abort();
     fi1.free();

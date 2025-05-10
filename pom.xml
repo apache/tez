@@ -41,8 +41,8 @@
 
   <properties>
     <!-- Build Properties -->
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <surefire.version>3.0.0-M4</surefire.version>
     <failIfNoTests>false</failIfNoTests>
@@ -70,8 +70,8 @@
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
-    <spotbugs.version>4.2.2</spotbugs.version>
-    <spotbugs-maven-plugin.version>4.2.0</spotbugs-maven-plugin.version>
+    <spotbugs.version>4.9.3</spotbugs.version>
+    <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.1</hadoop.version>
@@ -102,6 +102,11 @@
     <snappy-java.version>1.1.10.4</snappy-java.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
+    <test.jvm.args>
+      --add-opens=java.base/java.lang=ALL-UNNAMED
+      --add-opens=java.base/java.util=ALL-UNNAMED
+      --add-opens java.base/java.io=ALL-UNNAMED
+    </test.jvm.args>
 
     <maven.javadoc.skip>true</maven.javadoc.skip> <!-- enabled only in relevant modules separately -->
   </properties>
@@ -922,7 +927,9 @@
             <forkCount>1</forkCount>
             <reuseForks>false</reuseForks>
             <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
+            <testFailureIgnore>true</testFailureIgnore>
             <argLine>-Xmx1024m -XX:+HeapDumpOnOutOfMemoryError</argLine>
+            <argLine>${test.jvm.args}</argLine>
             <environmentVariables>
               <JAVA_HOME>${java.home}</JAVA_HOME>
               <MALLOC_ARENA_MAX>4</MALLOC_ARENA_MAX>

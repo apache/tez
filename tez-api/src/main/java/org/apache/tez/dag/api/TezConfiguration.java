@@ -399,6 +399,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
       "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
+  public static final String TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT =
+      " --add-opens java.base/java.lang=ALL-UNNAMED";
   /**
    * String value. Command line options provided during the launch of the Tez
    * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
