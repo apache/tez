@@ -1063,6 +1063,7 @@ public final class TezClientUtils {
     amOpts = amOpts + tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
 
+    amOpts = amOpts + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT;
     amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
         tezConf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
             TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
