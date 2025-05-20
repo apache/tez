@@ -4,30 +4,42 @@
 # 1. java is installed and JAVA_HOME is set
 # 2. ssh localhost works without password
 
-# configure this if needed, by default it will use the latest stable versions in the current directory
-export TEZ_VERSION=$(curl -s "https://downloads.apache.org/tez/" | grep -oP '\K[0-9]+\.[0-9]+\.[0-9]+(?=/)' | sort -V | tail -1) # e.g. 0.10.4
-export HADOOP_VERSION=$(curl -s "https://downloads.apache.org/hadoop/common/" | grep -oP 'hadoop-\K[0-9]+\.[0-9]+\.[0-9]+(?=/)' | sort -V | tail -1) # e.g. 3.4.1
-export HADOOP_STACK_HOME=$PWD
+# All parameters are optional:
+# TEZ_VERSION: defaults to the latest version available on the Apache Tez download page
+# HADOOP_VERSION: defaults to the version which belongs to the TEZ_VERSION
+# TEZ_EXAMPLE_WORKING_DIR: defaults to the current working directory
 
-echo "Demo script is running in $HADOOP_STACK_HOME with TEZ version $TEZ_VERSION and HADOOP version $HADOOP_VERSION"
+# TEZ_VERSION comes from environment variable or is fetched from the Apache Tez download page
+export TEZ_VERSION=${TEZ_VERSION:=$(curl -s "https://downloads.apache.org/tez/" | grep --color=never -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | sed -n '/\/$/!p' | sort -V | tail -1)} # e.g. 0.10.4
+export TEZ_EXAMPLE_WORKING_DIR=${TEZ_EXAMPLE_WORKING_DIR:=$PWD}
+cd $TEZ_EXAMPLE_WORKING_DIR
 
-cd $HADOOP_STACK_HOME
-wget -nc https://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
+echo "TEZ_VERSION: $TEZ_VERSION"
 wget -nc https://archive.apache.org/dist/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz
+
+# Need to extract the Tez tarball early to get hadoop version it depends on
+if [ ! -d "apache-tez-$TEZ_VERSION-bin" ]; then
+    tar -xzf apache-tez-$TEZ_VERSION-bin.tar.gz
+fi
+
+export HADOOP_VERSION=${HADOOP_VERSION:=$(basename apache-tez-$TEZ_VERSION-bin/lib/hadoop-hdfs-client-*.jar | sed -E 's/.*hadoop-hdfs-client-([0-9]+\.[0-9]+\.[0-9]+)\.jar/\1/')} # e.g. 3.4.1
+
+cat <<EOF
+***
+*** Demo setup script is running in $TEZ_EXAMPLE_WORKING_DIR ***
+*** TEZ version: $TEZ_VERSION
+*** HADOOP version $HADOOP_VERSION
+***
+EOF
+
+wget -nc https://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
 
 if [ ! -d "hadoop-$HADOOP_VERSION" ]; then
     tar -xzf hadoop-$HADOOP_VERSION.tar.gz
 fi
 
-if [ ! -d "apache-tez-$TEZ_VERSION-bin" ]; then
-    tar -xzf apache-tez-$TEZ_VERSION-bin.tar.gz
-fi
-
-ln -s hadoop-$HADOOP_VERSION hadoop
-ln -s apache-tez-$TEZ_VERSION-bin tez
-
-export HADOOP_HOME=$HADOOP_STACK_HOME/hadoop
-export TEZ_HOME=$HADOOP_STACK_HOME/tez
+export HADOOP_HOME=$TEZ_EXAMPLE_WORKING_DIR/hadoop-$HADOOP_VERSION
+export TEZ_HOME=$TEZ_EXAMPLE_WORKING_DIR/apache-tez-$TEZ_VERSION-bin
 export HADOOP_CLASSPATH=$TEZ_HOME/*:$TEZ_HOME/lib/*:$TEZ_HOME/conf
 
 export PATH=$PATH:$HADOOP_HOME/bin
@@ -70,16 +82,16 @@ cat <<EOF > $HADOOP_HOME/etc/hadoop/yarn-site.xml
 EOF
 
 # optionally stop previous clusters if any
-#$HADOOP_HOME/sbin/stop-dfs.sh
-#$HADOOP_HOME/sbin/stop-yarn.sh
+$HADOOP_HOME/sbin/stop-dfs.sh
+$HADOOP_HOME/sbin/stop-yarn.sh
 
-hdfs namenode -format
+rm -rf /tmp/hadoop-$USER/dfs/data
+hdfs namenode -format -force
 
 $HADOOP_HOME/sbin/start-dfs.sh
 $HADOOP_HOME/sbin/start-yarn.sh
 
-hadoop fs -mkdir /apps/
-hadoop fs -mkdir /apps/tez-$TEZ_VERSION
+hadoop fs -mkdir -p /apps/tez-$TEZ_VERSION
 hadoop fs -copyFromLocal $TEZ_HOME/share/tez.tar.gz /apps/tez-$TEZ_VERSION
 
 # create a simple tez-site.xml
@@ -111,9 +123,26 @@ EOF
 
 hadoop fs -copyFromLocal words.txt /words.txt
 
+export HADOOP_USER_CLASSPATH_FIRST=true
 # finally run the example
-hadoop jar $TEZ_HOME/tez-examples-$TEZ_VERSION.jar orderedwordcount /words.txt /words_out
+yarn jar $TEZ_HOME/tez-examples-$TEZ_VERSION.jar orderedwordcount /words.txt /words_out
 
 # check the output
 hadoop fs -ls /words_out
 hadoop fs -text /words_out/part-v002-o000-r-00000
+
+
+cat <<EOF
+*** Since the environment is already set up, you can rerun the DAG using the commands below.
+
+export HADOOP_USER_CLASSPATH_FIRST=true
+export TEZ_HOME=$TEZ_EXAMPLE_WORKING_DIR/apache-tez-$TEZ_VERSION-bin
+export HADOOP_CLASSPATH=$TEZ_HOME/*:$TEZ_HOME/lib/*:$TEZ_HOME/conf
+$HADOOP_HOME/bin/yarn jar $TEZ_HOME/tez-examples-$TEZ_VERSION.jar orderedwordcount /words.txt /words_out
+
+*** You can also visit some of the sites that are set up during the script execution.
+
+Yarn RM: http://localhost:8088
+HDFS NN: http://localhost:9870
+
+EOF
