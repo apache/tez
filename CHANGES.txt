@@ -1,7 +1,7 @@
 Apache Tez Change Log
 =====================
 
-Release 0.10.5: 2024-06-01
+Release 0.10.5: 2025-05-30
 
 INCOMPATIBLE CHANGES
 
