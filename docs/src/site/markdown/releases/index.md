@@ -19,6 +19,7 @@
 
 Releases
 ------------
+-   [Apache TEZ&reg; 0.10.5](./apache-tez-0-10-5.html) (May 30, 2025)
 -   [Apache TEZ&reg; 0.10.4](./apache-tez-0-10-4.html) (Sep 15, 2024)
 -   [Apache TEZ&reg; 0.10.3](./apache-tez-0-10-3.html) (Jan 31, 2024)
 -   [Apache TEZ&reg; 0.10.2](./apache-tez-0-10-2.html) (Jul 30, 2022)
