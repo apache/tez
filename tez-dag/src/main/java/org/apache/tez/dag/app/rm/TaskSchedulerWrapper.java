@@ -22,6 +22,7 @@ import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 
 public class TaskSchedulerWrapper {
 
@@ -86,6 +87,10 @@ public class TaskSchedulerWrapper {
 
   public void dagComplete() throws Exception {
     real.dagComplete();
+  }
+
+  public TaskSchedulerStatistics getStatistics() {
+    return real.getStatistics();
   }
 
   public TaskScheduler getTaskScheduler() {

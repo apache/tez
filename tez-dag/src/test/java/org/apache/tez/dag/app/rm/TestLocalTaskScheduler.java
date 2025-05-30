@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -36,6 +37,8 @@ import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AllocatedTask;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AsyncDelegateRequestHandler;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.SchedulerRequest;
+
+import static org.mockito.Mockito.mock;
 
 public class TestLocalTaskScheduler {
 
@@ -65,7 +68,7 @@ public class TestLocalTaskScheduler {
           containerFactory,
           taskAllocations,
           mockContext,
-          tezConf);
+          tezConf, mock(TaskSchedulerStatistics.class));
 
     // Allocate up to max tasks
     for (int i = 0; i < MAX_TASKS; i++) {
