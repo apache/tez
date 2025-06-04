@@ -50,6 +50,7 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AMState;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,6 +157,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   private int numHeartbeatsBetweenPreemptions;
   private int lastPreemptionHeartbeat = 0;
   private long preemptionMaxWaitTime;
+
+  private final TaskSchedulerStatistics taskSchedulerStatistics = new TaskSchedulerStatistics();
 
   public DagAwareYarnTaskScheduler(TaskSchedulerContext taskSchedulerContext) {
     super(taskSchedulerContext);
@@ -595,6 +598,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
           request.getCookie());
     } else {
       getContext().taskAllocated(request.getTask(), request.getCookie(), container);
+      taskSchedulerStatistics.trackRequestPendingTime(request);
     }
   }
 
@@ -1162,6 +1166,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       hc.resetMatchingLevel();
     }
     vertexDescendants = null;
+    taskSchedulerStatistics.clear();
   }
 
   @GuardedBy("this")
@@ -1265,12 +1270,14 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   /**
    * A utility class to track a task allocation.
    */
-  static class TaskRequest extends AMRMClient.ContainerRequest {
+  static class TaskRequest extends AMRMClient.ContainerRequest
+      implements TaskSchedulerStatistics.TaskRequestData {
     final Object task;
     final int vertexIndex;
     final Object signature;
     final Object cookie;
     final ContainerId affinityContainerId;
+    final long created;
 
     TaskRequest(Object task, int vertexIndex, Resource capability, String[] hosts, String[] racks,
         Priority priority, Object signature, Object cookie) {
@@ -1285,6 +1292,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       this.signature = signature;
       this.cookie = cookie;
       this.affinityContainerId = affinityContainerId;
+      this.created = Time.now();
     }
 
     Object getTask() {
@@ -1312,6 +1320,11 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       List<String> nodes = getNodes();
       List<String> racks = getRacks();
       return (nodes != null && !nodes.isEmpty()) || (racks != null && !racks.isEmpty());
+    }
+
+    @Override
+    public long getCreatedTime() {
+      return created;
     }
   }
 
@@ -2102,5 +2115,10 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
   @Override
   public int getHeldContainersCount() {
     return heldContainers.size();
+  }
+
+  @Override
+  public TaskSchedulerStatistics getStatistics() {
+    return taskSchedulerStatistics;
   }
 }

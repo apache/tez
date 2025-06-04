@@ -122,5 +122,18 @@ public enum DAGCounter {
    * task assignments). This is typically exposed by a resource manager
    * client.
    */
-  NODE_TOTAL_COUNT
+  NODE_TOTAL_COUNT,
+
+  /*
+   * The maximum amount of time a task spent waiting as a task request before being scheduled.
+   */
+  TASK_SCHEDULER_MAX_PENDING_TIME_MS,
+  /*
+   * The total accumulated time that all tasks spent waiting as task requests.
+   */
+  TASK_SCHEDULER_SUM_PENDING_TIME_MS,
+  /*
+   * The average time tasks spent waiting as task requests before being scheduled.
+   */
+  TASK_SCHEDULER_AVG_PENDING_TIME_MS
 }
