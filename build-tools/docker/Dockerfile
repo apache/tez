@@ -223,7 +223,7 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-    && python3 /tmp/get-pip.py \
+    && python3 /tmp/get-pip.py --break-system-packages \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
     && pip3 install --break-system-packages -v \
         astroid==2.4.2 \
