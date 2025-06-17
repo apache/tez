@@ -225,7 +225,7 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
     && python3 /tmp/get-pip.py \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
-    && pip3 install -v \
+    && pip3 install --break-system-packages -v \
         astroid==2.4.2 \
         codespell==2.0 \
         pylint==2.5.3 \
