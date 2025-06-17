@@ -239,7 +239,7 @@ RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 # Install npm and JSHint
 ###
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y nodejs npm \
+RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && npm install -g \
         jshint@2.12.0 \
         markdownlint-cli@0.23.2 \
