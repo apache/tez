@@ -41,8 +41,8 @@
 
   <properties>
     <!-- Build Properties -->
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <surefire.version>3.0.0-M4</surefire.version>
     <failIfNoTests>false</failIfNoTests>
