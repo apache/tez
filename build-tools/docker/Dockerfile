@@ -239,14 +239,12 @@ RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 # Install npm and JSHint
 ###
 # hadolint ignore=DL3008
-RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get -q install --no-install-recommends -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y nodejs npm \
     && npm install -g \
         jshint@2.12.0 \
         markdownlint-cli@0.23.2 \
-    && rm -rf /root/.npm
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
 
 #####
 # Now all the stuff that was built in parallel
