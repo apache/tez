@@ -787,17 +787,16 @@
         <artifactId>jersey-json</artifactId>
         <version>${jersey.version}</version>
       </dependency>
+      <!-- BouncyCastle should be in default scope to make their way to tez.tar.gz since Hadoop 3.4 -->
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk18on</artifactId>
         <version>${bouncycastle.version}</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.fusesource.leveldbjni</groupId>
