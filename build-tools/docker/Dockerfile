@@ -24,7 +24,7 @@
 #
 ###############
 
-FROM ubuntu:jammy AS tezbase
+FROM ubuntu:noble AS tezbase
 
 WORKDIR /root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -168,15 +168,15 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # OpenJDK 17
 # hadolint ignore=DL3008
 RUN apt-get -q update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-17-jdk \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-21-jdk \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME and PATH environment variables
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Set the default Java version using update-alternatives
-RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 1
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
 
 #######
 # Install SpotBugs 4.9.3
@@ -223,9 +223,9 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-    && python3 /tmp/get-pip.py \
+    && python3 /tmp/get-pip.py --break-system-packages \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
-    && pip3 install -v \
+    && pip3 install --break-system-packages -v \
         astroid==2.4.2 \
         codespell==2.0 \
         pylint==2.5.3 \
@@ -239,14 +239,12 @@ RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 # Install npm and JSHint
 ###
 # hadolint ignore=DL3008
-RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get -q install --no-install-recommends -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && npm install -g \
         jshint@2.12.0 \
         markdownlint-cli@0.23.2 \
-    && rm -rf /root/.npm
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
 
 #####
 # Now all the stuff that was built in parallel
