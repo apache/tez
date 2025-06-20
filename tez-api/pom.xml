@@ -110,10 +110,10 @@
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- BouncyCastle should be in default scope to make their way to tez.tar.gz since Hadoop 3.4 -->
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk18on</artifactId>
-      <scope>test</scope>
     </dependency>
     <dependency>
         <groupId>org.xerial.snappy</groupId>
