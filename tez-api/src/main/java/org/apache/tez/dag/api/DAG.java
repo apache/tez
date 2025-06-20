@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -577,7 +578,7 @@ public class DAG {
 
     // check for valid vertices, duplicate vertex names,
     // and prepare for cycle detection
-    Map<String, AnnotatedVertex> vertexMap = new HashMap<String, AnnotatedVertex>();
+    Map<String, AnnotatedVertex> vertexMap = new LinkedHashMap<String, AnnotatedVertex>();
     Map<Vertex, Set<String>> inboundVertexMap = new HashMap<Vertex, Set<String>>();
     Map<Vertex, Set<String>> outboundVertexMap = new HashMap<Vertex, Set<String>>();
     for (Vertex v : vertices.values()) {
@@ -909,7 +910,7 @@ public class DAG {
             TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES,
             TezConfiguration.TEZ_TASK_RESOURCE_CPU_VCORES_DEFAULT));
       }
-      Map<String, LocalResource> vertexLRs = Maps.newHashMap();
+      Map<String, LocalResource> vertexLRs = Maps.newLinkedHashMap();
       vertexLRs.putAll(vertex.getTaskLocalFiles());
       List<DataSourceDescriptor> dataSources = vertex.getDataSources();
       for (DataSourceDescriptor dataSource : dataSources) {
@@ -1007,7 +1008,7 @@ public class DAG {
         taskConfigBuilder.addAllLocalResource(DagTypeConverters.convertToDAGPlan(vertexLRs));
       }
 
-      Map<String, String> taskEnv = Maps.newHashMap(vertex.getTaskEnvironment());
+      Map<String, String> taskEnv = Maps.newLinkedHashMap(vertex.getTaskEnvironment());
       TezYARNUtils.setupDefaultEnv(taskEnv, tezConf,
           TezConfiguration.TEZ_TASK_LAUNCH_ENV,
           TezConfiguration.TEZ_TASK_LAUNCH_ENV_DEFAULT,
