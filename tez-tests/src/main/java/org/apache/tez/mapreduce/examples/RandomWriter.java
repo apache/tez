@@ -246,51 +246,52 @@ public class RandomWriter extends Configured implements Tool {
     
     Path outDir = new Path(args[0]);
     Configuration conf = getConf();
-    JobClient client = new JobClient(conf);
-    ClusterStatus cluster = client.getClusterStatus();
-    int numMapsPerHost = conf.getInt(MAPS_PER_HOST, 10);
-    long numBytesToWritePerMap = conf.getLong(BYTES_PER_MAP,
-                                             1*1024*1024*1024);
-    if (numBytesToWritePerMap == 0) {
-      System.err.println("Cannot have" + BYTES_PER_MAP + " set to 0");
-      return -2;
-    }
-    long totalBytesToWrite = conf.getLong(TOTAL_BYTES, 
-         numMapsPerHost*numBytesToWritePerMap*cluster.getTaskTrackers());
-    int numMaps = (int) (totalBytesToWrite / numBytesToWritePerMap);
-    if (numMaps == 0 && totalBytesToWrite > 0) {
-      numMaps = 1;
-      conf.setLong(BYTES_PER_MAP, totalBytesToWrite);
-    }
-    conf.setInt(MRJobConfig.NUM_MAPS, numMaps);
+    try (JobClient client = new JobClient(conf)) {
+      ClusterStatus cluster = client.getClusterStatus();
+      int numMapsPerHost = conf.getInt(MAPS_PER_HOST, 10);
+      long numBytesToWritePerMap = conf.getLong(BYTES_PER_MAP,
+              1 * 1024 * 1024 * 1024);
+      if (numBytesToWritePerMap == 0) {
+        System.err.println("Cannot have" + BYTES_PER_MAP + " set to 0");
+        return -2;
+      }
+      long totalBytesToWrite = conf.getLong(TOTAL_BYTES,
+              numMapsPerHost * numBytesToWritePerMap * cluster.getTaskTrackers());
+      int numMaps = (int) (totalBytesToWrite / numBytesToWritePerMap);
+      if (numMaps == 0 && totalBytesToWrite > 0) {
+        numMaps = 1;
+        conf.setLong(BYTES_PER_MAP, totalBytesToWrite);
+      }
+      conf.setInt(MRJobConfig.NUM_MAPS, numMaps);
 
-    Job job = new Job(conf);
-    
-    job.setJarByClass(RandomWriter.class);
-    job.setJobName("random-writer");
-    FileOutputFormat.setOutputPath(job, outDir);
-    job.setOutputKeyClass(BytesWritable.class);
-    job.setOutputValueClass(BytesWritable.class);
-    job.setInputFormatClass(RandomInputFormat.class);
-    job.setMapperClass(RandomMapper.class);        
-    job.setReducerClass(Reducer.class);
-    job.setOutputFormatClass(SequenceFileOutputFormat.class);
-    
-    System.out.println("Running " + numMaps + " maps.");
-    
-    // reducer NONE
-    job.setNumReduceTasks(0);
-    
-    Date startTime = new Date();
-    System.out.println("Job started: " + startTime);
-    int ret = job.waitForCompletion(true) ? 0 : 1;
-    Date endTime = new Date();
-    System.out.println("Job ended: " + endTime);
-    System.out.println("The job took " + 
-                       (endTime.getTime() - startTime.getTime()) /1000 + 
-                       " seconds.");
-    
-    return ret;
+      Job job = new Job(conf);
+
+      job.setJarByClass(RandomWriter.class);
+      job.setJobName("random-writer");
+      FileOutputFormat.setOutputPath(job, outDir);
+      job.setOutputKeyClass(BytesWritable.class);
+      job.setOutputValueClass(BytesWritable.class);
+      job.setInputFormatClass(RandomInputFormat.class);
+      job.setMapperClass(RandomMapper.class);
+      job.setReducerClass(Reducer.class);
+      job.setOutputFormatClass(SequenceFileOutputFormat.class);
+
+      System.out.println("Running " + numMaps + " maps.");
+
+      // reducer NONE
+      job.setNumReduceTasks(0);
+
+      Date startTime = new Date();
+      System.out.println("Job started: " + startTime);
+      int ret = job.waitForCompletion(true) ? 0 : 1;
+      Date endTime = new Date();
+      System.out.println("Job ended: " + endTime);
+      System.out.println("The job took " +
+              (endTime.getTime() - startTime.getTime()) / 1000 +
+              " seconds.");
+
+      return ret;
+    }
   }
   
   public static void main(String[] args) throws Exception {
