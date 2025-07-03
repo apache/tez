@@ -97,6 +97,9 @@ public class SkewAnalyzer extends TezAnalyzerBase implements Analyzer {
         ATTEMPT_SHUFFLE_KEY_GROUP_MIN_RATIO_DEFAULT);
     maxShuffleBytesPerSource = config.getLong(SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE,
         SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE_DEFAULT);
+    this.configProperties.add(SHUFFLE_BYTES_PER_ATTEMPT_PER_SOURCE);
+    this.configProperties.add(ATTEMPT_SHUFFLE_KEY_GROUP_MIN_RATIO);
+    this.configProperties.add(ATTEMPT_SHUFFLE_KEY_GROUP_MAX_RATIO);
   }
 
   @Override
