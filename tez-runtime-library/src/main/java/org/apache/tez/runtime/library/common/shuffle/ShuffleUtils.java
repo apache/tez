@@ -29,6 +29,7 @@ import java.text.DecimalFormat;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.Deflater;
 
@@ -71,7 +72,7 @@ import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DetailedPartitionStatsProto;
 
-public class ShuffleUtils {
+public final class ShuffleUtils {
 
   private static final Logger LOG = LoggerFactory.getLogger(ShuffleUtils.class);
   private static final long MB = 1024l * 1024l;
@@ -92,6 +93,8 @@ public class ShuffleUtils {
           return fmt;
         }
       };
+
+  private ShuffleUtils() {}
 
   public static SecretKey getJobTokenSecretFromTokenBytes(ByteBuffer meta)
       throws IOException {
@@ -407,7 +410,7 @@ public class ShuffleUtils {
       int numPhysicalOutputs, boolean sendEmptyPartitionDetails, String pathComponent,
       @Nullable long[] partitionStats, boolean reportDetailedPartitionStats, String auxiliaryService, Deflater deflater)
       throws IOException {
-    Preconditions.checkArgument(eventList != null, "EventList can't be null");
+    Objects.requireNonNull(eventList, "EventList can't be null");
 
     context.notifyProgress();
     if (finalMergeEnabled) {

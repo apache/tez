@@ -18,7 +18,7 @@
 
 package org.apache.tez.common.security;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -153,7 +153,7 @@ public class TestTokenCache {
       throws IOException {
     MockFileSystem mockFs = new MockFileSystem();
     when(mockFs.getCanonicalServiceName()).thenReturn(service);
-    when(mockFs.getDelegationToken(any(String.class))).thenAnswer(
+    when(mockFs.getDelegationToken(any())).thenAnswer(
         new Answer<Token<?>>() {
           int unique = 0;
           @Override

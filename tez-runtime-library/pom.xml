@@ -20,9 +20,13 @@
   <parent>
     <groupId>org.apache.tez</groupId>
     <artifactId>tez</artifactId>
-    <version>0.10.2-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>tez-runtime-library</artifactId>
+
+  <properties>
+    <maven.javadoc.skip>false</maven.javadoc.skip>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -32,6 +36,10 @@
     <dependency>
       <groupId>org.asynchttpclient</groupId>
       <artifactId>async-http-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.tez</groupId>
@@ -98,7 +106,7 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -110,30 +118,26 @@
         <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-maven-plugins</artifactId>
+        <groupId>com.github.os72</groupId>
+        <artifactId>protoc-jar-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>compile-protoc</id>
             <phase>generate-sources</phase>
             <goals>
-              <goal>protoc</goal>
+              <goal>run</goal>
             </goals>
             <configuration>
-              <protocVersion>${protobuf.version}</protocVersion>
+              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}</protocArtifact>
               <protocCommand>${protoc.path}</protocCommand>
-              <imports>
-                <param>${basedir}/src/main/proto</param>
-              </imports>
-              <source>
-                <directory>${basedir}/src/main/proto</directory>
-                <includes>
-                  <include>ShufflePayloads.proto</include>
-                  <include>CartesianProductPayload.proto</include>
-                  <include>FairShufflePayloads.proto</include>
-                </includes>
-              </source>
-              <output>${project.build.directory}/generated-sources/java</output>
+              <addSources>none</addSources>
+              <inputDirectories>
+                <include>${basedir}/src/main/proto</include>
+              </inputDirectories>
+              <outputTargets>
+                <outputTarget>
+                  <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
+                </outputTarget>
+              </outputTargets>
             </configuration>
           </execution>
         </executions>

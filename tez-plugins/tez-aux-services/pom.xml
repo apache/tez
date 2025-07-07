@@ -20,7 +20,7 @@
   <parent>
     <artifactId>tez-plugins</artifactId>
     <groupId>org.apache.tez</groupId>
-    <version>0.10.2-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>tez-aux-services</artifactId>
@@ -124,7 +124,7 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
    <dependency>
@@ -195,7 +195,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.4</version>
+        <version>${maven-shade-plugin.version}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -207,7 +207,7 @@
               <minimizeJar>true</minimizeJar>
               <artifactSet>
                 <excludes>
-                  <exclude>log4j:log4j</exclude>
+                  <exclude>ch.qos.reload4j:reload4j</exclude>
                   <exclude>org.slf4j:*</exclude>
                 </excludes>
               </artifactSet>
@@ -215,6 +215,7 @@
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
+                    <exclude>javax/**</exclude>
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
@@ -240,13 +241,6 @@
                 <relocation>
                   <pattern>io.netty</pattern>
                   <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>javax</pattern>
-                  <shadedPattern>org.apache.tez.shaded.$0</shadedPattern>
-                  <excludes>
-                    <exclude>javax.crypto.*</exclude>
-                  </excludes>
                 </relocation>
               </relocations>
             </configuration>

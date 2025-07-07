@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -31,11 +30,11 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.TezUtils;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 public class TestEntityDescriptor {
 
@@ -57,7 +56,7 @@ public class TestEntityDescriptor {
     ByteArrayOutputStream bos = new ByteArrayOutputStream(out.getData().length);
     bos.write(out.getData());
 
-    Mockito.verify(entityDescriptor).writeSingular(eq(out), any(ByteBuffer.class));
+    verify(entityDescriptor).writeSingular(eq(out), any());
     deserialized.readFields(new DataInputStream(new ByteArrayInputStream(bos.toByteArray())));
     verifyResults(entityDescriptor, deserialized, payload, confVal);
   }
@@ -69,12 +68,12 @@ public class TestEntityDescriptor {
     entityDescriptor.write(out);
     out.close();
 
-    Mockito.verify(entityDescriptor).writeSegmented(eq(out), any(ByteBuffer.class));
+    verify(entityDescriptor).writeSegmented(eq(out), any());
     deserialized.readFields(new DataInputStream(new ByteArrayInputStream(bos.toByteArray())));
     verifyResults(entityDescriptor, deserialized, payload, confVal);
   }
 
-  @Test (timeout=1000)
+  @Test (timeout=3000)
   public void testEntityDescriptorHadoopSerialization() throws IOException {
      /* This tests the alternate serialization code path
      * if the DataOutput is not DataOutputBuffer

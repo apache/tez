@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.launcher;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -34,6 +35,8 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +74,26 @@ public class DeletionTrackerImpl extends DeletionTracker {
   }
 
   @Override
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
+    super.taskAttemptFailed(taskAttemptID, jobTokenSecretManager, nodeId);
+    if (nodeIdShufflePortMap == null || nodeIdShufflePortMap.get(nodeId) == null) {
+      LOG.warn("Unable to find the shuffle port for shuffle data deletion of failed task attempt.");
+      return;
+    }
+    int shufflePort = nodeIdShufflePortMap.get(nodeId);
+    if (shufflePort != TezRuntimeUtils.INVALID_PORT) {
+      TaskAttemptFailedRunnable taskAttemptFailedRunnable = new TaskAttemptFailedRunnable(nodeId, shufflePort,
+          taskAttemptID, TezRuntimeUtils.getHttpConnectionParams(conf), jobTokenSecretManager);
+      try {
+        dagCleanupService.submit(taskAttemptFailedRunnable);
+      } catch (RejectedExecutionException rejectedException) {
+        LOG.info("Ignoring failed task attempt deletion request for " + taskAttemptFailedRunnable);
+      }
+    }
+  }
+
+  @Override
   public void addNodeShufflePort(NodeId nodeId, int port) {
     if (port != TezRuntimeUtils.INVALID_PORT) {
       if(nodeIdShufflePortMap.get(nodeId) == null) {
@@ -91,5 +114,26 @@ public class DeletionTrackerImpl extends DeletionTracker {
       dagCleanupService = null;
     }
     nodeIdShufflePortMap = null;
+  }
+
+  @Override
+  public void vertexComplete(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager, Set<NodeId> nodeIdList) {
+    super.vertexComplete(vertex, jobTokenSecretManager, nodeIdList);
+    String vertexId = String.format("%02d", vertex.getId());
+    for (NodeId nodeId : nodeIdList) {
+      Integer shufflePort = null;
+      if (nodeIdShufflePortMap != null) {
+        shufflePort = nodeIdShufflePortMap.get(nodeId);
+      }
+      if (shufflePort != null) {
+        VertexDeleteRunnable vertexDeleteRunnable = new VertexDeleteRunnable(vertex, jobTokenSecretManager, nodeId,
+                shufflePort, vertexId, TezRuntimeUtils.getHttpConnectionParams(conf));
+        try {
+          dagCleanupService.submit(vertexDeleteRunnable);
+        } catch (RejectedExecutionException rejectedException) {
+          LOG.info("Ignoring deletion request for " + vertexDeleteRunnable);
+        }
+      }
+    }
   }
 }

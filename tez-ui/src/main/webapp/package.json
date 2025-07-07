@@ -62,5 +62,17 @@
   },
   "dependencies": {
     "em-tgraph": "0.0.14"
+  },
+  "resolutions": {
+    "**/form-data/async": "2.6.4",
+    "**/mkdirp/minimist": "1.2.6",
+    "**/optimist/minimist": "1.2.6",
+    "**/jsprim/json-schema": "0.4.0",
+    "jsonpointer": "4.1.0",
+    "cryptiles": "4.1.2",
+    "lodash.merge": "4.6.2",
+    "is-my-json-valid": "2.20.3",
+    "debug": "2.6.9",
+    "qs": "6.2.4"
   }
 }

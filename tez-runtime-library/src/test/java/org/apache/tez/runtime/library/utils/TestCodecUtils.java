@@ -49,7 +49,8 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.DummyCompres
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
 
 public class TestCodecUtils {
 
@@ -80,7 +81,7 @@ public class TestCodecUtils {
           Decompressor decompressor = CodecUtils.getDecompressor(codec);
           DecompressorStream stream =
               (DecompressorStream) CodecUtils.getDecompressedInputStreamWithBufferSize(codec,
-                  Mockito.mock(IFileInputStream.class), decompressor, modifiedBufferSize);
+                  mock(IFileInputStream.class), decompressor, modifiedBufferSize);
 
           Assert.assertEquals("stream buffer size is incorrect", modifiedBufferSize,
               getBufferSize(stream));
@@ -128,7 +129,7 @@ public class TestCodecUtils {
             Decompressor decompressor = CodecUtils.getDecompressor(codec);
             CompressionInputStream stream =
                 (CompressionInputStream) CodecUtils.getDecompressedInputStreamWithBufferSize(codec,
-                    Mockito.mock(IFileInputStream.class), decompressor, modifiedBufferSize);
+                    mock(IFileInputStream.class), decompressor, modifiedBufferSize);
 
             Assert.assertEquals("stream buffer size is incorrect", modifiedBufferSize,
                 getBufferSize(stream));
@@ -146,7 +147,7 @@ public class TestCodecUtils {
 
             Compressor compressor = CodecUtils.getCompressor(codec);
             CompressionOutputStream stream =
-                CodecUtils.createOutputStream(codec, Mockito.mock(OutputStream.class), compressor);
+                CodecUtils.createOutputStream(codec, mock(OutputStream.class), compressor);
 
             Assert.assertEquals("stream buffer size is incorrect",
                 CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream));
@@ -164,7 +165,7 @@ public class TestCodecUtils {
 
             Decompressor decompressor = CodecUtils.getDecompressor(codec);
             CompressionInputStream stream =
-                CodecUtils.createInputStream(codec, Mockito.mock(InputStream.class), decompressor);
+                CodecUtils.createInputStream(codec, mock(InputStream.class), decompressor);
 
             Assert.assertEquals("stream buffer size is incorrect",
                 CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT, getBufferSize(stream));

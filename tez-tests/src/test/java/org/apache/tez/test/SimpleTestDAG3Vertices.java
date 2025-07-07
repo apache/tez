@@ -40,11 +40,13 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
  * v3
  *
  */
-public class SimpleTestDAG3Vertices {
+public final class SimpleTestDAG3Vertices {
   static Resource defaultResource = Resource.newInstance(100, 0);
   public static String TEZ_SIMPLE_DAG_NUM_TASKS =
       "tez.simple-test-dag-3-vertices.num-tasks";
   public static int TEZ_SIMPLE_DAG_NUM_TASKS_DEFAULT = 2;
+
+  private SimpleTestDAG3Vertices() {}
   
   public static DAG createDAG(String name, 
       Configuration conf) throws Exception {

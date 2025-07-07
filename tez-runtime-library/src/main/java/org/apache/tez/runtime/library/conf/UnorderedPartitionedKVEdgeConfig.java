@@ -281,7 +281,7 @@ public class UnorderedPartitionedKVEdgeConfig
 
     /**
      * Build and return an instance of the configuration
-     * @return an instance of the acatual configuration
+     * @return an instance of the actual configuration
      */
     public UnorderedPartitionedKVEdgeConfig build() {
       return new UnorderedPartitionedKVEdgeConfig(outputBuilder.build(), inputBuilder.build());

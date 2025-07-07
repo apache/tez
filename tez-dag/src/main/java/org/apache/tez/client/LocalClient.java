@@ -60,6 +60,7 @@ import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.client.DAGClientImplLocal;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.app.AppContext;
@@ -87,6 +88,8 @@ public class LocalClient extends FrameworkClient {
   private TezApiVersionInfo versionInfo = new TezApiVersionInfo();
   private volatile Throwable amFailException = null;
   private boolean isLocalWithoutNetwork;
+  private String amHost;
+  private int amPort;
 
   private static final String localModeDAGSchedulerClassName =
       "org.apache.tez.dag.app.dag.impl.DAGSchedulerNaturalOrderControlled";
@@ -203,6 +206,9 @@ public class LocalClient extends FrameworkClient {
     report.setProgress(dagAppMaster.getProgress());
     report.setAMRMToken(null);
 
+    this.amHost = dagAppMaster.getAppNMHost();
+    this.amPort = dagAppMaster.getRpcPort();
+
     return report;
   }
 
@@ -265,7 +271,7 @@ public class LocalClient extends FrameworkClient {
             if (dagAMState.equals(DAGAppMasterState.NEW)) {
               LOG.info("DAGAppMaster is not started wait for 100ms...");
             } else if (dagAMState.equals(DAGAppMasterState.INITED)) {
-              LOG.info("DAGAppMaster is not startetd wait for 100ms...");
+              LOG.info("DAGAppMaster is not started wait for 100ms...");
             } else if (dagAMState.equals(DAGAppMasterState.ERROR)) {
               throw new TezException("DAGAppMaster got an error during initialization");
             } else if (dagAMState.equals(DAGAppMasterState.KILLED)) {
@@ -330,8 +336,17 @@ public class LocalClient extends FrameworkClient {
           // Prepare Environment
           Path logDir = new Path(userDir, "localmode-log-dir");
           Path localDir = new Path(userDir, "localmode-local-dir");
-          localFs.mkdirs(logDir);
-          localFs.mkdirs(localDir);
+
+          // fail fast if the local directories (on the paths that were used on HDFS) cannot be created
+          // in this case, user might want to choose a different staging path, which works on the local FS too
+          if (!localFs.mkdirs(logDir)) {
+            throw new IOException(
+                "Unable to create log directory, try to create it manually for further insights: " + logDir);
+          }
+          if (!localFs.mkdirs(localDir)) {
+            throw new IOException(
+                "Unable to create local directory, try to create it manually for further insights: " + localDir);
+          }
 
           UserGroupInformation.setConfiguration(conf);
           // Add session specific credentials to the AM credentials.
@@ -426,20 +441,32 @@ public class LocalClient extends FrameworkClient {
     }
 
     String dagId = dagAppMaster.submitDAGToAppMaster(request.getDAGPlan(), additionalResources);
+    return getDAGClient(sessionAppId, dagId, tezConf, ugi);
+  }
 
+  @Override
+  public DAGClient getDAGClient(ApplicationId appId, String dagId, TezConfiguration tezConf,
+      UserGroupInformation ugi) {
     return isLocalWithoutNetwork
-      ? new DAGClientImplLocal(sessionAppId, dagId, tezConf, this,
-          ugi, new BiFunction<Set<StatusGetOpts>, Long, DAGStatus>() {
-            @Override
-            public DAGStatus apply(Set<StatusGetOpts> statusOpts, Long timeout) {
-              try {
-                return clientHandler.getDAGStatus(dagId, statusOpts, timeout);
-              } catch (TezException e) {
-                throw new RuntimeException(e);
-              }
-            }
-          })
-      : new DAGClientImpl(sessionAppId, dagId, tezConf, this, ugi);
+      ? new DAGClientImplLocal(appId, dagId, tezConf, this, ugi, new BiFunction<Set<StatusGetOpts>, Long, DAGStatus>() {
+        @Override
+        public DAGStatus apply(Set<StatusGetOpts> statusOpts, Long timeout) {
+          try {
+            return clientHandler.getDAGStatus(dagId, statusOpts, timeout);
+          } catch (TezException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }, new BiFunction<Set<StatusGetOpts>, String, VertexStatus>() {
+        @Override
+        public VertexStatus apply(Set<StatusGetOpts> statusOpts, String vertexName) {
+          try {
+            return clientHandler.getVertexStatus(dagId, vertexName, statusOpts);
+          } catch (TezException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      }) : new DAGClientImpl(appId, dagId, tezConf, this, ugi);
   }
 
   @Override
@@ -452,5 +479,15 @@ public class LocalClient extends FrameworkClient {
       return true;
     }
     return super.shutdownSession(configuration, sessionAppId, ugi);
+  }
+
+  @Override
+  public String getAmHost() {
+    return amHost;
+  }
+
+  @Override
+  public int getAmPort() {
+    return amPort;
   }
 }

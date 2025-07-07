@@ -20,9 +20,9 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -169,6 +169,7 @@ public class TestShuffleManager {
     InputContext inputContext = mock(InputContext.class);
     doReturn(new TezCounters()).when(inputContext).getCounters();
     doReturn("sourceVertex").when(inputContext).getSourceVertexName();
+    doReturn("taskVertex").when(inputContext).getTaskVertexName();
     doReturn(shuffleMetaData).when(inputContext)
         .getServiceProviderMetaData(conf.get(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID,
             TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID_DEFAULT));
@@ -178,8 +179,8 @@ public class TestShuffleManager {
           @Override
           public ExecutorService answer(InvocationOnMock invocation) throws Throwable {
             return sharedExecutor.createExecutorService(
-                invocation.getArgumentAt(0, Integer.class),
-                invocation.getArgumentAt(1, String.class));
+                invocation.getArgument(0, Integer.class),
+                invocation.getArgument(1, String.class));
           }
         });
     return inputContext;
@@ -288,7 +289,7 @@ public class TestShuffleManager {
 
     DataOutputBuffer out = new DataOutputBuffer();
     Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(new JobTokenIdentifier(),
-        new JobTokenSecretManager(null));
+        new JobTokenSecretManager(new TezConfiguration()));
     token.write(out);
     doReturn(ByteBuffer.wrap(out.getData())).when(inputContext).
         getServiceConsumerMetaData(

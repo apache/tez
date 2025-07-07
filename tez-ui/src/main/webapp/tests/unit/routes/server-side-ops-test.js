@@ -136,7 +136,7 @@ test('loadNewPage test', function(assert) {
   let currentQuery = {
         val: {}
       },
-      data = [],
+      data = {content: []},
       fromId = "id1",
       route = this.subject({
         controller: Ember.Object.create(),
@@ -144,7 +144,7 @@ test('loadNewPage test', function(assert) {
         fromId: fromId,
         loadedValue: {
           pushObjects: function (objs) {
-            assert.equal(data, objs);
+            assert.equal(data.content, objs);
           }
         },
         load: function (value, query) {

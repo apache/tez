@@ -24,6 +24,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -32,6 +33,7 @@ import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
+import org.apache.tez.dag.records.DAGIDAware;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGFinishedProto;
@@ -40,7 +42,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 
-public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
+public class DAGFinishedEvent implements HistoryEvent, SummaryEvent, DAGIDAware {
 
   private TezDAGID dagID;
   private long startTime;
@@ -128,7 +130,7 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.PARSER, null);
+    DAGFinishedProto proto = inputStream.readMessage(DAGFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -179,7 +181,8 @@ public class DAGFinishedEvent implements HistoryEvent, SummaryEvent {
     return state;
   }
 
-  public TezDAGID getDagID() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagID;
   }
 

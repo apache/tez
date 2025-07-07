@@ -167,7 +167,7 @@ public class TestCommit {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      Vertex vertex = dag.getVertex(event.getVertexId());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -176,7 +176,7 @@ public class TestCommit {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      Vertex vertex = dag.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>) task).handle(event);
     }
@@ -400,7 +400,7 @@ public class TestCommit {
   // v2->v3
   // vertex_group (v1, v2)
   private DAGPlan createDAGPlan(boolean vertexGroupCommitSucceeded,
-      boolean v3CommitSucceeded) throws Exception {
+      boolean v3CommitSucceeded, String dagName) throws Exception {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -414,7 +414,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG testDag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -427,8 +427,8 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !v3CommitSucceeded, true).toUserPayload())));
 
-    org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1,
-        v1, v2);
+    org.apache.tez.dag.api.VertexGroup uv12 =
+        testDag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     uv12.addDataSink("v12Out", DataSinkDescriptor.create(outDesc, ocd1, null));
     v3.addDataSink("v3Out", DataSinkDescriptor.create(outDesc, ocd2, null));
@@ -440,18 +440,19 @@ public class TestCommit {
         InputDescriptor.create("dummy input class")), InputDescriptor
         .create("merge.class"));
 
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addVertex(v3);
-    dag.addEdge(e1);
-    return dag.createDag(conf, null, null, null, true);
+    testDag.addVertex(v1);
+    testDag.addVertex(v2);
+    testDag.addVertex(v3);
+    testDag.addEdge(e1);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   // v1->v3
   // v2->v3
   // vertex_group (v1, v2) has 2 shared outputs
-  private DAGPlan createDAGPlanWith2VertexGroupOutputs(boolean vertexGroupCommitSucceeded1,
-    boolean vertexGroupCommitSucceeded2, boolean v3CommitSucceeded) throws Exception {
+  private DAGPlan createDAGPlanWith2VertexGroupOutputs(
+      boolean vertexGroupCommitSucceeded1, boolean vertexGroupCommitSucceeded2,
+      boolean v3CommitSucceeded, String dagName) throws Exception {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -465,7 +466,7 @@ public class TestCommit {
         "vertex3", ProcessorDescriptor.create("Processor"), dummyTaskCount,
         dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG testDag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd1 = OutputCommitterDescriptor.create(
         CountingOutputCommitter.class.getName()).setUserPayload(
@@ -483,8 +484,8 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !v3CommitSucceeded, true).toUserPayload())));
 
-    org.apache.tez.dag.api.VertexGroup uv12 = dag.createVertexGroup(groupName1,
-        v1, v2);
+    org.apache.tez.dag.api.VertexGroup uv12 =
+        testDag.createVertexGroup(groupName1, v1, v2);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     uv12.addDataSink("v12Out1", DataSinkDescriptor.create(outDesc, ocd1, null));
     uv12.addDataSink("v12Out2", DataSinkDescriptor.create(outDesc, ocd2, null));
@@ -497,21 +498,22 @@ public class TestCommit {
         InputDescriptor.create("dummy input class")), InputDescriptor
         .create("merge.class"));
 
-    dag.addVertex(v1);
-    dag.addVertex(v2);
-    dag.addVertex(v3);
-    dag.addEdge(e1);
-    return dag.createDag(conf, null, null, null, true);
+    testDag.addVertex(v1);
+    testDag.addVertex(v2);
+    testDag.addVertex(v3);
+    testDag.addEdge(e1);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   private DAGPlan createDAGPlan_SingleVertexWith2Committer(
-      boolean commit1Succeed, boolean commit2Succeed) throws IOException {
-    return createDAGPlan_SingleVertexWith2Committer(commit1Succeed, commit2Succeed, false);
+      boolean commit1Succeed, boolean commit2Succeed, String dagName) throws IOException {
+    return createDAGPlan_SingleVertexWith2Committer(commit1Succeed, commit2Succeed, false, dagName);
   }
 
   // used for route event error in VM
-  private DAGPlan createDAGPlan_SingleVertexWith2Committer
-    (boolean commit1Succeed, boolean commit2Succeed, boolean customVM) throws IOException {
+  private DAGPlan createDAGPlan_SingleVertexWith2Committer(
+      boolean commit1Succeed, boolean commit2Succeed, boolean customVM,
+      String dagName) throws IOException {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -534,12 +536,12 @@ public class TestCommit {
             .wrap(new CountingOutputCommitter.CountingOutputCommitterConfig(
                 !commit2Succeed, true).toUserPayload())));
 
-    DAG dag = DAG.create("testDag");
-    dag.addVertex(v1);
+    DAG testDag = DAG.create("DAG-" + dagName);
+    testDag.addVertex(v1);
     OutputDescriptor outDesc = OutputDescriptor.create("output.class");
     v1.addDataSink("v1Out_1", DataSinkDescriptor.create(outDesc, ocd1, null));
     v1.addDataSink("v1Out_2", DataSinkDescriptor.create(outDesc, ocd2, null));
-    return dag.createDag(conf, null, null, null, true);
+    return testDag.createDag(conf, null, null, null, true);
   }
 
   private void initDAG(DAGImpl dag) {
@@ -559,11 +561,12 @@ public class TestCommit {
   public void testVertexCommit_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true,
+        "testVertexCommit_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertNull(v1.getTerminationCause());
@@ -590,11 +593,12 @@ public class TestCommit {
   public void testVertexCommit_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true,
+        "testVertexCommit_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -629,11 +633,12 @@ public class TestCommit {
   public void testVertexCommitFail1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(false, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(false, true,
+        "testVertexCommitFail1_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -665,11 +670,12 @@ public class TestCommit {
   public void testVertexCommitFail2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, false));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, false,
+        "testVertexCommitFail2_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     CountingOutputCommitter v1OutputCommitter_1 = (CountingOutputCommitter) v1
@@ -703,11 +709,12 @@ public class TestCommit {
   public void testVertexKilledWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true,
+        "testVertexKilledWhileCommitting"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // kill dag which will trigger the vertex killed event
@@ -742,11 +749,12 @@ public class TestCommit {
   public void testVertexRescheduleWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true,
+        "testVertexRescheduleWhileCommitting"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
@@ -782,11 +790,12 @@ public class TestCommit {
   public void testVertexRouteEventErrorWhileCommitting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true, true,
+        "testVertexRouteEventErrorWhileCommitting"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // reschedule task
@@ -827,11 +836,12 @@ public class TestCommit {
   public void testVertexInternalErrorWhileCommiting() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true));
+    setupDAG(createDAGPlan_SingleVertexWith2Committer(true, true,
+        "testVertexInternalErrorWhileCommiting"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v1.getState());
     // internal error
@@ -868,18 +878,18 @@ public class TestCommit {
   public void testDAGCommitSucceeded_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitSucceeded_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
@@ -924,18 +934,18 @@ public class TestCommit {
   public void testDAGCommitFail1_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, false));
+    setupDAG(createDAGPlan(true, false, "testDAGCommitFail1_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
 
@@ -985,18 +995,18 @@ public class TestCommit {
   public void testDAGCommitFail2_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(false, true));
+    setupDAG(createDAGPlan(false, true, "testDAGCommitFail2_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
 
@@ -1045,18 +1055,18 @@ public class TestCommit {
   public void testDAGCommitSucceeded1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitSucceeded1_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1103,18 +1113,18 @@ public class TestCommit {
   public void testDAGCommitSucceeded2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitSucceeded2_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1163,18 +1173,18 @@ public class TestCommit {
   public void testDAGCommitSucceeded3_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlanWith2VertexGroupOutputs(true, true, true));
+    setupDAG(createDAGPlanWith2VertexGroupOutputs(true, true, true, "testDAGCommitSucceeded3_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1228,18 +1238,18 @@ public class TestCommit {
   public void testDAGCommitFail1_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(false, true));
+    setupDAG(createDAGPlan(false, true, "testDAGCommitFail1_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1287,18 +1297,18 @@ public class TestCommit {
   public void testDAGCommitFail2_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, false));
+    setupDAG(createDAGPlan(true, false, "testDAGCommitFail2_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1346,18 +1356,18 @@ public class TestCommit {
   public void testDAGCommitFail3_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, false));
+    setupDAG(createDAGPlan(true, false, "testDAGCommitFail3_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1409,18 +1419,18 @@ public class TestCommit {
   public void testDAGCommitFail4_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(false, true));
+    setupDAG(createDAGPlan(false, true, "testDAGCommitFail4_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
 
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.SUCCEEDED, v1.getState());
     Assert.assertEquals(VertexState.SUCCEEDED, v2.getState());
@@ -1468,18 +1478,18 @@ public class TestCommit {
   public void testDAGInternalErrorWhileCommiting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGInternalErrorWhileCommiting_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
@@ -1530,18 +1540,18 @@ public class TestCommit {
   private void _testDAGTerminatedWhileCommitting1_OnDAGSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "_testDAGTerminatedWhileCommitting1_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEventTerminateDag(dag.getID(), terminationCause, null));
@@ -1595,18 +1605,18 @@ public class TestCommit {
   private void _testDAGTerminatedWhileCommitting1_OnVertexSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "_testDAGTerminatedWhileCommitting1_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
@@ -1665,18 +1675,18 @@ public class TestCommit {
   private void _testDAGKilledWhileRunning_OnVertexSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "_testDAGKilledWhileRunning_OnVertexSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     Assert.assertEquals(VertexState.COMMITTING, v3.getState());
     // dag is still in RUNNING because v3 has not completed
@@ -1724,18 +1734,18 @@ public class TestCommit {
   public void testDAGCommitVertexRerunWhileCommitting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitVertexRerunWhileCommitting_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     TezTaskID newTaskId = TezTaskID.getInstance(v1.getVertexId(), 1);
@@ -1783,18 +1793,18 @@ public class TestCommit {
   public void testDAGCommitInternalErrorWhileCommiting_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitInternalErrorWhileCommiting_OnDAGSuccess"));
     initDAG(dag);
     startDAG(dag);
     VertexImpl v1 = (VertexImpl) dag.getVertex("vertex1");
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     dag.handle(new DAGEvent(dag.getID(), DAGEventType.INTERNAL_ERROR));
@@ -1831,7 +1841,7 @@ public class TestCommit {
   public void testVertexGroupCommitFinishedEventFail_OnVertexSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testVertexGroupCommitFinishedEventFail_OnVertexSuccess"));
     historyEventHandler.failVertexGroupCommitFinishedEvent = true;
     
     initDAG(dag);
@@ -1840,11 +1850,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     CountingOutputCommitter v12OutputCommitter = (CountingOutputCommitter) v1
         .getOutputCommitter("v12Out");
@@ -1886,7 +1896,7 @@ public class TestCommit {
   public void testDAGCommitStartedEventFail_OnDAGSuccess() throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitStartedEventFail_OnDAGSuccess"));
     historyEventHandler.failDAGCommitStartedEvent = true;
     
     initDAG(dag);
@@ -1895,11 +1905,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.FAILED);
     Assert.assertEquals(DAGTerminationCause.RECOVERY_FAILURE, dag.getTerminationCause());
@@ -1947,7 +1957,7 @@ public class TestCommit {
   private void _testCommitCanceled_OnDAGSuccess(DAGTerminationCause terminationCause) throws Exception {
     conf.setBoolean(TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         true);
-    setupDAG(createDAGPlan(true, true));
+    setupDAG(createDAGPlan(true, true, "testDAGCommitStartedEventFail_OnDAGSuccess"));
     // create customized ThreadPoolExecutor to wait before schedule new task
     rawExecutor = new ControlledThreadPoolExecutor(1);
     execService = MoreExecutors.listeningDecorator(rawExecutor);
@@ -1959,11 +1969,11 @@ public class TestCommit {
     VertexImpl v2 = (VertexImpl) dag.getVertex("vertex2");
     VertexImpl v3 = (VertexImpl) dag.getVertex("vertex3");
     // need to make vertices to go to SUCCEEDED
-    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskId(),
+    v1.handle(new VertexEventTaskCompleted(v1.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskId(),
+    v2.handle(new VertexEventTaskCompleted(v2.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
-    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskId(),
+    v3.handle(new VertexEventTaskCompleted(v3.getTask(0).getTaskID(),
         TaskState.SUCCEEDED));
     waitUntil(dag, DAGState.COMMITTING);
     // mean the commits have been submitted to ThreadPool
@@ -2110,7 +2120,7 @@ public class TestCommit {
       for (HistoryEvent event : historyEvents) {
         if (event.getEventType() == HistoryEventType.DAG_FINISHED) {
           DAGFinishedEvent startedEvent = (DAGFinishedEvent)event;
-          if (startedEvent.getDagID().equals(dagId)) {
+          if (startedEvent.getDAGID().equals(dagId)) {
             actualTimes ++;
           }
         }

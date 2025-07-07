@@ -22,7 +22,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
 import org.apache.tez.dag.api.event.VertexState;
@@ -52,10 +51,10 @@ import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -72,7 +71,7 @@ public class TestFairCartesianProductVertexManager {
 
   @Before
   public void setup() {
-    MockitoAnnotations.initMocks(this);
+    MockitoAnnotations.openMocks(this);
     ctx = mock(VertexManagerPluginContext.class);
     vertexManager = new FairCartesianProductVertexManager(ctx);
   }
@@ -224,11 +223,11 @@ public class TestFairCartesianProductVertexManager {
 
     vertexManager.onVertexManagerEventReceived(getVMEvent(250, "v0", 0));
     verify(ctx, never()).reconfigureVertex(
-      anyInt(), any(VertexLocationHint.class), anyMapOf(String.class, EdgeProperty.class));
+            anyInt(), any(), anyMap());
 
     vertexManager.onVertexManagerEventReceived(getVMEvent(200, "v1", 0));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(30), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(30), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1"}, new int[]{5, 6}, 30);
     verifyVertexGroupInfo(edgeProperties.get("v0"), 0);
@@ -259,7 +258,7 @@ public class TestFairCartesianProductVertexManager {
     }
 
     verify(ctx, times(1)).reconfigureVertex(
-      eq(12), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(12), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1"}, new int[]{4, 3}, 100);
     verifyEdgeProperties(edgeProperties.get("v1"), new String[]{"v0", "v1"}, new int[]{4, 3}, 100);
@@ -289,7 +288,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexManagerEventReceived(getVMEvent(5, "v2", 0));
     vertexManager.onVertexManagerEventReceived(getVMEvent(5, "v2", 1));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(100), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(100), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     for (int i = 0; i < 3; i++) {
       verifyEdgeProperties(edgeProperties.get("v" + i), new String[]{"v0", "g0"},
@@ -323,7 +322,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexManagerEventReceived(getVMEvent(16, "v3", 0));
 
     verify(ctx, times(1)).reconfigureVertex(
-      eq(100), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(100), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     for (int i = 0; i < 4; i++) {
       verifyEdgeProperties(edgeProperties.get("v" + i), new String[]{"g0", "g1"},
@@ -352,7 +351,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexManagerEventReceived(getVMEvent(250, "v0", 0));
     vertexManager.onVertexManagerEventReceived(getVMEvent(200, "v1", 0));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(30), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(30), any(), edgePropertiesCaptor.capture());
     assertFalse(edgePropertiesCaptor.getValue().containsKey("v2"));
 
     vertexManager.onVertexStarted(null);
@@ -400,7 +399,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.initialize(config);
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v0", VertexState.CONFIGURED));
     vertexManager.onVertexStateUpdated(new VertexStateUpdate("v1", VertexState.CONFIGURED));
-    vertexManager.onVertexStarted(new ArrayList<TaskAttemptIdentifier>());
+    vertexManager.onVertexStarted(new ArrayList<>());
     vertexManager.onSourceTaskCompleted(getTaId("v0", 0));
     vertexManager.onSourceTaskCompleted(getTaId("v0", 1));
   }
@@ -430,11 +429,11 @@ public class TestFairCartesianProductVertexManager {
       vertexManager.onSourceTaskCompleted(getTaId("v1", i));
     }
     verify(ctx, never()).reconfigureVertex(
-      anyInt(), any(VertexLocationHint.class), anyMapOf(String.class, EdgeProperty.class));
+        anyInt(), any(), anyMap());
 
     vertexManager.onSourceTaskCompleted(getTaId("v1", 14));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(24), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(24), any(), edgePropertiesCaptor.capture());
   }
 
   @Test(timeout = 5000)
@@ -448,7 +447,7 @@ public class TestFairCartesianProductVertexManager {
       vertexManager.onSourceTaskCompleted(getTaId("v1", i));
     }
     verify(ctx, never()).reconfigureVertex(
-      anyInt(), any(VertexLocationHint.class), anyMapOf(String.class, EdgeProperty.class));
+        anyInt(), any(), anyMap());
   }
 
   @Test(timeout = 5000)
@@ -462,7 +461,7 @@ public class TestFairCartesianProductVertexManager {
       vertexManager.onSourceTaskCompleted(getTaId("v1", i));
     }
     verify(ctx, times(1)).reconfigureVertex(
-      eq(0), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(0), any(), edgePropertiesCaptor.capture());
   }
 
   @Test(timeout = 5000)
@@ -476,7 +475,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexManagerEventReceived(getVMEvent(0, "v1", 1));
     vertexManager.onVertexManagerEventReceived(getVMEvent(0, "v1", 2));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(0), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(0), any(), edgePropertiesCaptor.capture());
   }
 
   @Test(timeout = 5000)
@@ -495,7 +494,7 @@ public class TestFairCartesianProductVertexManager {
     vertexManager.onVertexManagerEventReceived(getVMEvent(250, "v0", 0));
     vertexManager.onVertexManagerEventReceived(getVMEvent(200, "v1", 0));
     verify(ctx, times(1)).reconfigureVertex(
-      eq(6), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(6), any(), edgePropertiesCaptor.capture());
   }
 
   @Test(timeout = 5000)
@@ -511,7 +510,7 @@ public class TestFairCartesianProductVertexManager {
     }
 
     verify(ctx, times(1)).reconfigureVertex(
-      eq(99), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(99), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1"},
       new int[]{99, 1}, 100);
@@ -539,7 +538,7 @@ public class TestFairCartesianProductVertexManager {
     }
 
     verify(ctx, times(1)).reconfigureVertex(
-      eq(93), any(VertexLocationHint.class), edgePropertiesCaptor.capture());
+        eq(93), any(), edgePropertiesCaptor.capture());
     Map<String, EdgeProperty> edgeProperties = edgePropertiesCaptor.getValue();
     verifyEdgeProperties(edgeProperties.get("v0"), new String[]{"v0", "v1", "v2"},
       new int[]{31, 3, 1}, 100);

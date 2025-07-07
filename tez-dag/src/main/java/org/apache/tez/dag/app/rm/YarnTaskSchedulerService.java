@@ -254,7 +254,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   @Override
   public Resource getAvailableResources() {
-    return amRmClient.getAvailableResources();
+    Resource resource = amRmClient.getAvailableResources();
+    return resource == null ? Resource.newInstance(0, 0) : resource;
   }
 
   @Override
@@ -490,6 +491,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
+    super.onContainersAllocated(containers);
+
     if (isStopStarted.get()) {
       LOG.info("Ignoring container allocations because application is shutting down. Num " + 
           containers.size());
@@ -639,7 +642,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
       long currentTime = System.currentTimeMillis();
       boolean releaseContainer = false;
 
-      if (isNew || (heldContainer.getContainerExpiryTime() <= currentTime
+      if (isNew || (heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1)) {
         // container idle timeout has expired or is a new unused container. 
         // new container is possibly a spurious race condition allocation.
@@ -772,7 +775,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         // if we are not being able to assign containers to pending tasks then 
         // we cannot avoid releasing containers. Or else we may not be able to 
         // get new containers from YARN to match the pending request
-        if (!isNew && heldContainer.getContainerExpiryTime() <= currentTime
+        if (!isNew && heldContainer.getContainerExpiryTime() - currentTime <= 0
           && idleContainerTimeoutMin != -1) {
           LOG.info("Container's idle timeout expired. Releasing container"
               + ", containerId=" + heldContainer.container.getId()
@@ -1166,7 +1169,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
     ContainerId[] preemptedContainers = null;
     int numPendingRequestsToService = 0;
     synchronized (this) {
-      Resource freeResources = amRmClient.getAvailableResources();
+      Resource freeResources = this.getAvailableResources();
       if (LOG.isDebugEnabled()) {
         LOG.debug(constructPreemptionPeriodicLog(freeResources));
       } else {
@@ -1272,7 +1275,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
             + numHighestPriRequests + " pending requests at pri: "
             + highestPriRequest.getPriority());
       }
-
+      int newContainersReleased = 0;
       for (int i=0; i<numPendingRequestsToService; ++i) {
         // This request must have been considered for matching with all existing 
         // containers when request was made.
@@ -1308,7 +1311,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
               " with priority: " + lowestPriNewContainer.getPriority() + 
               " to free resource for request: " + highestPriRequest +
               " . Current free resources: " + freeResources);
-          numPendingRequestsToService--;
+          newContainersReleased++;
           releaseUnassignedContainers(Collections.singletonList(lowestPriNewContainer));
           // We are returning an unused resource back the RM. The RM thinks it 
           // has serviced our initial request and will not re-allocate this back
@@ -1321,7 +1324,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
           continue;
         }
       }
-      
+      numPendingRequestsToService -= newContainersReleased;
       if (numPendingRequestsToService < 1) {
         return true;
       }
@@ -1570,6 +1573,9 @@ public class YarnTaskSchedulerService extends TaskScheduler
     if (delayedContainer != null) {
       Resources.subtractFrom(allocatedResources,
           delayedContainer.getContainer().getResource());
+      if (shouldReuseContainers) {
+        delayedContainerManager.removeDelayedContainer(delayedContainer);
+      }
     }
     if (delayedContainer != null || !shouldReuseContainers) {
       amRmClient.releaseAssignedContainer(containerId);
@@ -1606,6 +1612,8 @@ public class YarnTaskSchedulerService extends TaskScheduler
         heldContainers.put(container.getId(),
             new HeldContainer(container, heldContainer.getNextScheduleTime(),
                 heldContainer.getContainerExpiryTime(), assigned, this.containerSignatureMatcher));
+      } else { // if a held container is not new, it's most probably reused
+        getContext().containerReused(container);
       }
       heldContainer.setLastTaskInfo(assigned);
     }
@@ -2020,7 +2028,7 @@ public class YarnTaskSchedulerService extends TaskScheduler
         LOG.debug("Considering HeldContainer: {} for assignment", delayedContainer);
         long currentTs = System.currentTimeMillis();
         long nextScheduleTs = delayedContainer.getNextScheduleTime();
-        if (currentTs >= nextScheduleTs) {
+        if (currentTs - nextScheduleTs >= 0) {
           Map<CookieContainerRequest, Container> assignedContainers = null;
           synchronized(YarnTaskSchedulerService.this) {
             // Remove the container and try scheduling it.
@@ -2158,6 +2166,13 @@ public class YarnTaskSchedulerService extends TaskScheduler
       }
     }
 
+    void removeDelayedContainer(HeldContainer container) {
+      synchronized(this) {
+        if (delayedContainers.remove(container)) {
+          LOG.debug("Removed {} from delayed containers", container.getContainer().getId());
+        }
+      }
+    }
   }
   
   synchronized void determineMinHeldContainers() {
@@ -2398,5 +2413,10 @@ public class YarnTaskSchedulerService extends TaskScheduler
           + (lastAssignedContainerSignature != null? lastAssignedContainerSignature.toString()
             : "null");
     }
+  }
+
+  @Override
+  public int getHeldContainersCount() {
+    return heldContainers.size();
   }
 }

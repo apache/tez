@@ -22,7 +22,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -75,7 +79,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.mockito.Mockito;
 
 public class TestLogicalIOProcessorRuntimeTask {
 
@@ -190,7 +193,7 @@ public class TestLogicalIOProcessorRuntimeTask {
     runner.call();
 
     // We verify that no events were sent
-    Mockito.verify(umbilical, Mockito.only()).addEvents(Collections.<TezEvent> emptyList());
+    verify(umbilical, only()).addEvents(Collections.<TezEvent> emptyList());
   }
 
   /**
@@ -229,7 +232,7 @@ public class TestLogicalIOProcessorRuntimeTask {
         fail("RuntimeException should have been thrown");
       } catch (RuntimeException e) {
         // No events should be sent thorught the umbilical protocol
-        Mockito.verify(umbilical, Mockito.never()).addEvents(Mockito.anyList());
+        verify(umbilical, never()).addEvents(anyList());
       }
     } finally {
       sharedExecutor.shutdownNow();

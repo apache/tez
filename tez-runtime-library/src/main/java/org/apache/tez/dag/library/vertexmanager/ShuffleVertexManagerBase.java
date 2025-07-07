@@ -130,7 +130,9 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     final BitSet finishedTaskSet;
     int numTasks;
     int numVMEventsReceived;
+    // The total uncompressed size
     long outputSize;
+    // The uncompressed size of each partition. The size might not be precise
     int[] statsInMB;
     EdgeManagerPluginDescriptor newDescriptor;
 
@@ -548,8 +550,8 @@ abstract class ShuffleVertexManagerBase extends VertexManagerPlugin {
     return srcVertexInfo.values();
   }
 
-  SourceVertexInfo getSourceVertexInfo(String vertextName) {
-    return srcVertexInfo.get(vertextName);
+  SourceVertexInfo getSourceVertexInfo(String vertexName) {
+    return srcVertexInfo.get(vertexName);
   }
 
   Iterable<Map.Entry<String, SourceVertexInfo>> getBipartiteInfo() {

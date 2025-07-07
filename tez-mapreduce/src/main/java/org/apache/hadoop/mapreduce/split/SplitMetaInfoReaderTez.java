@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
+import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
 
@@ -41,12 +42,14 @@ import org.apache.tez.mapreduce.hadoop.MRJobConfig;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class SplitMetaInfoReaderTez {
+public final class SplitMetaInfoReaderTez {
 
   public static final Logger LOG = LoggerFactory.getLogger(SplitMetaInfoReaderTez.class);
 
   public static final int META_SPLIT_VERSION = JobSplit.META_SPLIT_VERSION;
   public static final byte[] META_SPLIT_FILE_HEADER = JobSplit.META_SPLIT_FILE_HEADER;
+
+  private SplitMetaInfoReaderTez() {}
 
   private static FSDataInputStream getFSDataIS(Configuration conf,
       FileSystem fs) throws IOException {
@@ -69,14 +72,14 @@ public class SplitMetaInfoReaderTez {
           + FileSystem.getDefaultUri(conf));
     }
 
-    FileStatus fStatus = null;
+    FileStatus fStatus;
     try {
       fStatus = fs.getFileStatus(metaSplitFile);
       if (maxMetaInfoSize > 0 && fStatus.getLen() > maxMetaInfoSize) {
         throw new IOException("Split metadata size exceeded " + maxMetaInfoSize
             + ". Aborting job ");
       }
-      in = fs.open(metaSplitFile);
+      in = FutureIO.awaitFuture(fs.openFile(metaSplitFile).withFileStatus(fStatus).build());
       byte[] header = new byte[JobSplit.META_SPLIT_FILE_HEADER.length];
       in.readFully(header);
       if (!Arrays.equals(JobSplit.META_SPLIT_FILE_HEADER, header)) {
@@ -131,7 +134,6 @@ public class SplitMetaInfoReaderTez {
    * @param fs FileSystem.
    * @param index the index of the task.
    * @return split meta info object of the task.
-   * @throws IOException
    */
   public static TaskSplitMetaInfo getSplitMetaInfo(Configuration conf,
       FileSystem fs, int index) throws IOException {

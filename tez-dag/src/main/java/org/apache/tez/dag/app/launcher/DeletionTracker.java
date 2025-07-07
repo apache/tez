@@ -18,10 +18,14 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import java.util.Set;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 
 public abstract class DeletionTracker {
 
@@ -32,6 +36,15 @@ public abstract class DeletionTracker {
   }
 
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
+    //do nothing
+  }
+
+  public void vertexComplete(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager, Set<NodeId> nodeIdList) {
+    //do nothing
+  }
+
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
     //do nothing
   }
 

@@ -114,6 +114,7 @@ public class TestSecureShuffle {
   public static void setupDFSCluster() throws Exception {
     conf = new Configuration();
     conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH, false);
+    conf.setBoolean("fs.hdfs.impl.disable.cache", true);
     EditLogFileOutputStream.setShouldSkipFsyncForTesting(true);
     conf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
     miniDFSCluster =
@@ -145,6 +146,8 @@ public class TestSecureShuffle {
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT, 3 * 1000);
     //set to low value so that it can detect failures quickly
     conf.setInt(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT, 2);
+    //reduce the maximum number of failed attempts per task
+    conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
 
     conf.setLong(TezConfiguration.TEZ_AM_SLEEP_TIME_BEFORE_EXIT_MILLIS, 500);
     conf.setBoolean(TezRuntimeConfiguration.TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP, asyncHttp);
@@ -299,10 +302,15 @@ public class TestSecureShuffle {
     KeyPair keyPair = pair;
     X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
 
+    String hostName = InetAddress.getLocalHost().getHostName();
     String hostAddress = InetAddress.getLocalHost().getHostAddress();
     certGen.addExtension(X509Extensions.SubjectAlternativeName, false,
-        new GeneralNames(new GeneralName(GeneralName.iPAddress, hostAddress)));
-
+        new GeneralNames(new GeneralName[] {
+            new GeneralName(GeneralName.iPAddress, hostAddress),
+            new GeneralName(GeneralName.dNSName, hostName),
+            new GeneralName(GeneralName.dNSName, "localhost")
+        })
+    );
     X500Principal dnName = new X500Principal(dn);
 
     certGen.setSerialNumber(sn);

@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.launcher;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.records.TezDAGID;
 import org.junit.Assert;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class TestDeletionTracker {
     deletionTracker.addNodeShufflePort(nodeId, shufflePort);
     Assert.assertEquals("Unexpected number of entries in NodeIdShufflePortMap!",
         1, deletionTracker.getNodeIdShufflePortMap().size());
-    deletionTracker.dagComplete(new TezDAGID(), new JobTokenSecretManager());
+    deletionTracker.dagComplete(new TezDAGID(), new JobTokenSecretManager(new TezConfiguration()));
     Assert.assertEquals("Unexpected number of entries in NodeIdShufflePortMap after dagComplete!",
         1, deletionTracker.getNodeIdShufflePortMap().size());
   }

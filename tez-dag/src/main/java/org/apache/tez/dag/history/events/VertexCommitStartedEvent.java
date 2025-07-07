@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.SummaryEvent;
@@ -80,7 +81,8 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexCommitStartedProto proto = inputStream.readMessage(VertexCommitStartedProto.PARSER, null);
+    VertexCommitStartedProto proto =
+        inputStream.readMessage(VertexCommitStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -99,7 +101,7 @@ public class VertexCommitStartedEvent implements HistoryEvent, SummaryEvent {
   @Override
   public void toSummaryProtoStream(OutputStream outputStream) throws IOException {
     SummaryEventProto.Builder builder = RecoveryProtos.SummaryEventProto.newBuilder()
-        .setDagId(vertexID.getDAGId().toString())
+        .setDagId(vertexID.getDAGID().toString())
         .setTimestamp(commitStartTime)
         .setEventType(getEventType().ordinal())
         .setEventPayload(

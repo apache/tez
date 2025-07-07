@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,6 @@ import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.records.TezDAGID;
@@ -56,18 +54,20 @@ import org.apache.tez.dag.utils.TezRuntimeChildJVM;
 
 import com.google.common.annotations.VisibleForTesting;
 
-public class AMContainerHelpers {
+public final class AMContainerHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(AMContainerHelpers.class);
 
-  private static Object commonContainerSpecLock = new Object();
+  private static final Object COMMON_CONTAINER_SPEC_LOCK = new Object();
   private static TezDAGID lastDAGID = null;
-  private static Map<TezDAGID, ContainerLaunchContext> commonContainerSpecs =
-      new HashMap<TezDAGID, ContainerLaunchContext>();
+  private static final Map<TezDAGID, ContainerLaunchContext> COMMON_CONTAINER_SPECS =
+          new HashMap<>();
+
+  private AMContainerHelpers() {}
 
   public static void dagComplete(TezDAGID dagId) {
-    synchronized (commonContainerSpecLock) {
-      commonContainerSpecs.remove(dagId);
+    synchronized (COMMON_CONTAINER_SPEC_LOCK) {
+      COMMON_CONTAINER_SPECS.remove(dagId);
     }
   }
 
@@ -89,24 +89,21 @@ public class AMContainerHelpers {
 
   /**
    * Create the common {@link ContainerLaunchContext} for all attempts.
-   *
-   * @param applicationACLs
-   * @param auxiliaryService
    */
   private static ContainerLaunchContext createCommonContainerLaunchContext(
       Map<ApplicationAccessType, String> applicationACLs,
       Credentials credentials, String auxiliaryService) {
 
     // Application environment
-    Map<String, String> environment = new HashMap<String, String>();
+    Map<String, String> environment = new HashMap<>();
 
     // Service data
-    Map<String, ByteBuffer> serviceData = new HashMap<String, ByteBuffer>();
+    Map<String, ByteBuffer> serviceData = new HashMap<>();
 
     // Tokens
     
     // Setup up task credentials buffer
-    ByteBuffer containerCredentialsBuffer = ByteBuffer.wrap(new byte[] {});
+    ByteBuffer containerCredentialsBuffer;
     try {
       Credentials containerCredentials = new Credentials();
       
@@ -135,10 +132,8 @@ public class AMContainerHelpers {
     // Construct the actual Container
     // The null fields are per-container and will be constructed for each
     // container separately.
-    ContainerLaunchContext container =
-        ContainerLaunchContext.newInstance(null, environment, null,
-            serviceData, containerCredentialsBuffer, applicationACLs);
-    return container;
+    return ContainerLaunchContext.newInstance(null, environment, null,
+        serviceData, containerCredentialsBuffer, applicationACLs);
   }
 
   @VisibleForTesting
@@ -153,14 +148,14 @@ public class AMContainerHelpers {
       AppContext appContext, Resource containerResource,
       Configuration conf, String auxiliaryService) {
 
-    ContainerLaunchContext commonContainerSpec = null;
-    synchronized (commonContainerSpecLock) {
-      if (!commonContainerSpecs.containsKey(tezDAGID)) {
+    ContainerLaunchContext commonContainerSpec;
+    synchronized (COMMON_CONTAINER_SPEC_LOCK) {
+      if (!COMMON_CONTAINER_SPECS.containsKey(tezDAGID)) {
         commonContainerSpec =
             createCommonContainerLaunchContext(acls, credentials, auxiliaryService);
-        commonContainerSpecs.put(tezDAGID, commonContainerSpec);
+        COMMON_CONTAINER_SPECS.put(tezDAGID, commonContainerSpec);
       } else {
-        commonContainerSpec = commonContainerSpecs.get(tezDAGID);
+        commonContainerSpec = COMMON_CONTAINER_SPECS.get(tezDAGID);
       }
 
       // Ensure that we remove container specs for previous AMs to reduce
@@ -168,14 +163,14 @@ public class AMContainerHelpers {
       if (lastDAGID == null) {
         lastDAGID = tezDAGID;
       } else if (!lastDAGID.equals(tezDAGID)) {
-        commonContainerSpecs.remove(lastDAGID);
+        COMMON_CONTAINER_SPECS.remove(lastDAGID);
         lastDAGID = tezDAGID;
       }
     }
 
     // Setup environment by cloning from common env.
     Map<String, String> env = commonContainerSpec.getEnvironment();
-    Map<String, String> myEnv = new HashMap<String, String>(env.size());
+    Map<String, String> myEnv = new HashMap<>(env.size());
     myEnv.putAll(env);
     myEnv.putAll(vertexEnv);
 
@@ -197,17 +192,15 @@ public class AMContainerHelpers {
         appContext.getApplicationAttemptId().getAttemptId(), modifiedJavaOpts);
 
     // Duplicate the ByteBuffers for access by multiple containers.
-    Map<String, ByteBuffer> myServiceData = new HashMap<String, ByteBuffer>();
+    Map<String, ByteBuffer> myServiceData = new HashMap<>();
     for (Entry<String, ByteBuffer> entry : commonContainerSpec.getServiceData()
         .entrySet()) {
       myServiceData.put(entry.getKey(), entry.getValue().duplicate());
     }
 
     // Construct the actual Container
-    ContainerLaunchContext container =
-        ContainerLaunchContext.newInstance(localResources, myEnv, commands,
-            myServiceData, commonContainerSpec.getTokens().duplicate(), acls);
 
-    return container;
+    return ContainerLaunchContext.newInstance(localResources, myEnv, commands,
+        myServiceData, commonContainerSpec.getTokens().duplicate(), acls);
   }
 }

@@ -38,7 +38,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
+
+import org.apache.hadoop.fs.ClusterStorageCapacityExceededException;
+import org.apache.hadoop.hdfs.protocol.NSQuotaExceededException;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -77,6 +79,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.common.resources.ScalingAllocator;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
 import org.apache.tez.runtime.task.TaskExecutionTestHelpers.TestProcessor;
+import org.apache.tez.runtime.task.TaskRunner2Callable.TaskRunner2CallableResult;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,7 +180,9 @@ public class TestTaskExecution2 {
       assertFalse(TestProcessor.wasAborted());
       umbilical.resetTrackedEvents();
       TezCounters tezCounters = runtimeTask.getCounters();
-      verifySysCounters(tezCounters, 5, 5);
+      // with TEZ-3331, fs counters are not set if the value is 0 (see FileSystemStatisticUpdater2), so there can be
+      // a mismatch in task counter count and fs counter count
+      verifySysCounters(tezCounters, 5, 0);
 
       taskRunner = createTaskRunner(appId, umbilical, taskReporter, executor,
           TestProcessor.CONF_EMPTY, false);
@@ -653,11 +658,41 @@ public class TestTaskExecution2 {
     }
   }
 
-  private void verifySysCounters(TezCounters tezCounters, int minTaskCounterCount, int minFsCounterCount) {
+  @Test
+  public void testClusterStorageCapacityFatalError() throws IOException {
+    // Try having a ClusterStorageCapacityExceededException, which is nested within several exceptions.
+    TezTaskRunner2ForTest taskRunner = createTaskRunnerForTest();
+    TaskRunner2CallableResult executionResult = new TaskRunner2CallableResult(new Exception(
+        new IllegalArgumentException(new ClusterStorageCapacityExceededException("cluster capacity blown"))));
+    taskRunner.processCallableResult(executionResult);
 
-    Preconditions.checkArgument((minTaskCounterCount > 0 && minFsCounterCount > 0) ||
-        (minTaskCounterCount <= 0 && minFsCounterCount <= 0),
-        "Both targetCounter counts should be postitive or negative. A mix is not expected");
+    assertEquals(TaskFailureType.FATAL, taskRunner.getFirstTaskFailureType());
+
+    // Try having a child class of ClusterStorageCapacityExceededException, which is nested within several exceptions.
+    taskRunner = createTaskRunnerForTest();
+    executionResult = new TaskRunner2CallableResult(
+        new Exception(new IllegalArgumentException(new NSQuotaExceededException("Namespace quota blown"))));
+    taskRunner.processCallableResult(executionResult);
+
+    assertEquals(TaskFailureType.FATAL, taskRunner.getFirstTaskFailureType());
+
+    // Try having a ClusterStorageCapacityExceededException as the first exception (non-nested)
+    taskRunner = createTaskRunnerForTest();
+    executionResult =
+        new TaskRunner2CallableResult(new ClusterStorageCapacityExceededException("cluster capacity blown"));
+    taskRunner.processCallableResult(executionResult);
+
+    assertEquals(TaskFailureType.FATAL, taskRunner.getFirstTaskFailureType());
+
+    // Try having some other exception, for that it should be NON_FATAL
+    taskRunner = createTaskRunnerForTest();
+    executionResult = new TaskRunner2CallableResult(new Exception(new IllegalArgumentException("Generic Exception")));
+    taskRunner.processCallableResult(executionResult);
+
+    assertEquals(TaskFailureType.NON_FATAL, taskRunner.getFirstTaskFailureType());
+  }
+
+  private void verifySysCounters(TezCounters tezCounters, int minTaskCounterCount, int minFsCounterCount) {
 
     int numTaskCounters = 0;
     int numFsCounters = 0;
@@ -747,6 +782,11 @@ public class TestTaskExecution2 {
         processorConf, false, updateSysCounters);
   }
 
+  private TezTaskRunner2ForTest createTaskRunnerForTest() throws IOException {
+    return (TezTaskRunner2ForTest) createTaskRunner(ApplicationId.newInstance(10000, 1), null, null, null,
+        TestProcessor.class.getName(), TestProcessor.CONF_EMPTY, true, false);
+  }
+
   private TezTaskRunner2ForTest createTaskRunnerForTest(ApplicationId appId,
                                                         TaskExecutionTestHelpers.TezTaskUmbilicalForTest umbilical,
                                                         TaskReporter taskReporter,
@@ -827,6 +867,9 @@ public class TestTaskExecution2 {
           sharedExecutor);
     }
 
+    public TaskFailureType getFirstTaskFailureType() {
+      return firstTaskFailureType;
+    }
 
     @Override
     @VisibleForTesting

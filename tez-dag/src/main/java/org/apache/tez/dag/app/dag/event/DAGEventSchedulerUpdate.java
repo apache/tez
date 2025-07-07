@@ -19,9 +19,11 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class DAGEventSchedulerUpdate extends DAGEvent {
-  
+public class DAGEventSchedulerUpdate extends DAGEvent implements TaskAttemptIDAware {
+
   public enum UpdateType {
     TA_SCHEDULE,
     TA_COMPLETED
@@ -31,7 +33,7 @@ public class DAGEventSchedulerUpdate extends DAGEvent {
   private final UpdateType updateType;
   
   public DAGEventSchedulerUpdate(UpdateType updateType, TaskAttempt attempt) {
-    super(attempt.getDAGID(), 
+    super(attempt.getDAGID(),
           DAGEventType.DAG_SCHEDULER_UPDATE);
     this.attempt = attempt;
     this.updateType = updateType;
@@ -43,5 +45,10 @@ public class DAGEventSchedulerUpdate extends DAGEvent {
   
   public TaskAttempt getAttempt() {
     return attempt;
+  }
+
+  @Override
+  public TezTaskAttemptID getTaskAttemptID() {
+    return attempt.getTaskAttemptID();
   }
 }

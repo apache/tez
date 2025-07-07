@@ -37,10 +37,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @InterfaceAudience.Private
-/**
+/*
  * Utility class within the tez-dag module
  */
-public class Utils {
+public final class Utils {
 
   private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
@@ -48,6 +48,8 @@ public class Utils {
    * Pattern to clean the labels in the .dot generation.
    */
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
+
+  private Utils() {}
 
   public static String getContainerLauncherIdentifierString(int launcherIndex, AppContext appContext) {
     String name;

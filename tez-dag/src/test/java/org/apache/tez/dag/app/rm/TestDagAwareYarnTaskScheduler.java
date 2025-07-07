@@ -77,11 +77,11 @@ import static org.apache.tez.dag.app.rm.TestTaskSchedulerHelpers.setupMockTaskSc
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -170,23 +170,23 @@ public class TestDagAwareYarnTaskScheduler {
         racks, mockPriority, null, mockCookie1);
     drainableAppCallback.drain();
     verify(mockRMClient, times(1)).
-        addContainerRequest(any(TaskRequest.class));
+        addContainerRequest(any());
 
     // returned from task requests before allocation happens
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
-    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
+    verify(mockApp, times(0)).containerBeingReleased(any());
     verify(mockRMClient, times(1)).
-        removeContainerRequest(any(TaskRequest.class));
+        removeContainerRequest(any());
     verify(mockRMClient, times(0)).
-        releaseAssignedContainer((ContainerId) any());
+        releaseAssignedContainer(any());
 
     // deallocating unknown task
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
-    verify(mockApp, times(0)).containerBeingReleased(any(ContainerId.class));
+    verify(mockApp, times(0)).containerBeingReleased(any());
     verify(mockRMClient, times(1)).
-        removeContainerRequest(any(TaskRequest.class));
+        removeContainerRequest(any());
     verify(mockRMClient, times(0)).
-        releaseAssignedContainer((ContainerId) any());
+        releaseAssignedContainer(any());
 
     // allocate tasks
     Object mockTask2 = new MockTask("task2");
@@ -237,7 +237,7 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockApp).taskAllocated(mockTask2, mockCookie2, mockContainer2);
     verify(mockApp).taskAllocated(mockTask3, mockCookie3, mockContainer3);
     // no other allocations returned
-    verify(mockApp, times(3)).taskAllocated(any(), any(), (Container) any());
+    verify(mockApp, times(3)).taskAllocated(any(), any(), any());
     verify(mockRMClient).removeContainerRequest(request1);
     verify(mockRMClient).removeContainerRequest(request2);
     verify(mockRMClient).removeContainerRequest(request3);
@@ -253,7 +253,7 @@ public class TestDagAwareYarnTaskScheduler {
     assertEquals(mockTask2, scheduler.deallocateContainer(mockCId2));
     drainableAppCallback.drain();
     verify(mockRMClient).releaseAssignedContainer(mockCId2);
-    verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
+    verify(mockRMClient, times(3)).releaseAssignedContainer(any());
 
     List<ContainerStatus> statuses = new ArrayList<>();
     ContainerStatus mockStatus1 = mock(ContainerStatus.class);
@@ -277,16 +277,16 @@ public class TestDagAwareYarnTaskScheduler {
     // currently allocated container status returned and not released
     verify(mockApp).containerCompleted(mockTask3, mockStatus3);
     // no other statuses returned
-    verify(mockApp, times(3)).containerCompleted(any(), (ContainerStatus) any());
-    verify(mockRMClient, times(3)).releaseAssignedContainer((ContainerId) any());
+    verify(mockApp, times(3)).containerCompleted(any(), any());
+    verify(mockRMClient, times(3)).releaseAssignedContainer(any());
 
     // verify blacklisting
-    verify(mockRMClient, times(0)).updateBlacklist(anyListOf(String.class), anyListOf(String.class));
+    verify(mockRMClient, times(0)).updateBlacklist(anyList(), anyList());
     String badHost = "host6";
     NodeId badNodeId = NodeId.newInstance(badHost, 1);
     scheduler.blacklistNode(badNodeId);
     List<String> badNodeList = Collections.singletonList(badHost);
-    verify(mockRMClient, times(1)).updateBlacklist(eq(badNodeList), isNull(List.class));
+    verify(mockRMClient, times(1)).updateBlacklist(eq(badNodeList), isNull());
     Object mockTask4 = new MockTask("task4");
     Object mockCookie4 = new Object();
     scheduler.allocateTask(mockTask4, mockCapability, null,
@@ -300,10 +300,10 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.onContainersAllocated(containers);
     drainableAppCallback.drain();
     // no new allocation
-    verify(mockApp, times(3)).taskAllocated(any(), any(), (Container) any());
+    verify(mockApp, times(3)).taskAllocated(any(), any(), any());
     // verify blacklisted container released
     verify(mockRMClient).releaseAssignedContainer(mockCId5);
-    verify(mockRMClient, times(4)).releaseAssignedContainer((ContainerId) any());
+    verify(mockRMClient, times(4)).releaseAssignedContainer(any());
     // verify request added back
     verify(mockRMClient, times(6)).addContainerRequest(requestCaptor.capture());
     NodeId host6 = NodeId.newInstance("host6", 6);
@@ -314,17 +314,17 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.onContainersAllocated(containers);
     drainableAppCallback.drain();
     // new allocation
-    verify(mockApp, times(4)).taskAllocated(any(), any(), (Container) any());
+    verify(mockApp, times(4)).taskAllocated(any(), any(), any());
     verify(mockApp).taskAllocated(mockTask4, mockCookie4, mockContainer6);
     // deallocate allocated task
     assertTrue(scheduler.deallocateTask(mockTask4, true, null, null));
     drainableAppCallback.drain();
     verify(mockApp).containerBeingReleased(mockCId6);
     verify(mockRMClient).releaseAssignedContainer(mockCId6);
-    verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
+    verify(mockRMClient, times(5)).releaseAssignedContainer(any());
     // test unblacklist
     scheduler.unblacklistNode(badNodeId);
-    verify(mockRMClient, times(1)).updateBlacklist(isNull(List.class), eq(badNodeList));
+    verify(mockRMClient, times(1)).updateBlacklist(isNull(), eq(badNodeList));
     assertEquals(0, scheduler.getNumBlacklistedNodes());
 
     float progress = 0.5f;
@@ -335,16 +335,16 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.allocateTask(mockTask1, mockCapability, hosts, racks,
         mockPriority, null, mockCookie1);
     drainableAppCallback.drain();
-    verify(mockRMClient, times(7)).addContainerRequest(any(TaskRequest.class));
+    verify(mockRMClient, times(7)).addContainerRequest(any());
     verify(mockRMClient, times(6)).
-        removeContainerRequest(any(TaskRequest.class));
+        removeContainerRequest(any());
     scheduler.allocateTask(mockTask1, mockCapability, hosts, racks,
         mockPriority, null, mockCookie1);
     drainableAppCallback.drain();
     // old request removed and new one added
     verify(mockRMClient, times(7)).
-        removeContainerRequest(any(TaskRequest.class));
-    verify(mockRMClient, times(8)).addContainerRequest(any(TaskRequest.class));
+        removeContainerRequest(any());
+    verify(mockRMClient, times(8)).addContainerRequest(any());
     assertFalse(scheduler.deallocateTask(mockTask1, true, null, null));
 
     // test speculative node adjustment
@@ -360,9 +360,9 @@ public class TestDagAwareYarnTaskScheduler {
         mockPriority, null, mockCookie5);
     drainableAppCallback.drain();
     // no new allocation
-    verify(mockApp, times(4)).taskAllocated(any(), any(), (Container) any());
+    verify(mockApp, times(4)).taskAllocated(any(), any(), any());
     // verify container released
-    verify(mockRMClient, times(5)).releaseAssignedContainer((ContainerId) any());
+    verify(mockRMClient, times(5)).releaseAssignedContainer(any());
     // verify request added back
     verify(mockRMClient, times(9)).addContainerRequest(requestCaptor.capture());
 
@@ -377,7 +377,7 @@ public class TestDagAwareYarnTaskScheduler {
     drainableAppCallback.drain();
     verify(mockApp)
         .reportError(eq(YarnTaskSchedulerServiceError.RESOURCEMANAGER_ERROR), argumentCaptor.capture(),
-            any(DagInfo.class));
+            any());
     assertTrue(argumentCaptor.getValue().contains("mockexception"));
 
     scheduler.onShutdownRequest();
@@ -468,8 +468,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv0t2.task, taskv0t2.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv0t2);
 
@@ -477,8 +477,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t2.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv1t0.task, taskv1t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv1t0);
 
@@ -575,8 +575,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv1t0.task, taskv1t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv1t0);
 
@@ -584,8 +584,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv1t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv0t1.task, taskv0t1.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv0t1);
 
@@ -682,8 +682,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv1t0.task, taskv1t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv1t0);
 
@@ -691,8 +691,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv1t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv0t1.task, taskv0t1.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv0t1);
 
@@ -700,8 +700,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t1.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv0t2.task, taskv0t2.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv0t2);
 
@@ -795,8 +795,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv1t0.task, taskv1t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv1t0);
 
@@ -895,8 +895,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv2t0.task, taskv2t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv2t0);
 
@@ -905,8 +905,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv2t0.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv0t1.task, taskv0t1.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv0t1);
 
@@ -914,8 +914,8 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t1.task, true, null, null));
     clock.incrementTime(10000);
     drainableAppCallback.drain();
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
     verify(mockApp).taskAllocated(taskv1t0.task, taskv1t0.cookie, container1);
     verify(mockRMClient).removeContainerRequest(reqv1t0);
 
@@ -1070,15 +1070,15 @@ public class TestDagAwareYarnTaskScheduler {
     assertTrue(scheduler.deallocateTask(taskv0t4.task, true, null, null));
     assertTrue(scheduler.deallocateTask(taskv0t5.task, true, null, null));
     assertTrue(scheduler.deallocateTask(taskv0t6.task, true, null, null));
-    verify(mockApp, never()).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, never()).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, never()).containerBeingReleased(any());
+    verify(mockRMClient, never()).releaseAssignedContainer(any());
 
     // verify only two of the containers were released after idle expiration
     // and the rest were spread across the nodes and racks
     clock.incrementTime(5000);
     drainableAppCallback.drain();
-    verify(mockApp, times(2)).containerBeingReleased(any(ContainerId.class));
-    verify(mockRMClient, times(2)).releaseAssignedContainer(any(ContainerId.class));
+    verify(mockApp, times(2)).containerBeingReleased(any());
+    verify(mockRMClient, times(2)).releaseAssignedContainer(any());
     Set<String> hosts = new HashSet<>();
     Set<String> racks = new HashSet<>();
     for (HeldContainer hc : scheduler.getSessionContainers()) {
@@ -1202,7 +1202,7 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.getProgress();
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockApp, times(1)).preemptContainer(any(ContainerId.class));
+    verify(mockApp, times(1)).preemptContainer(any());
     verify(mockApp).preemptContainer(cid2);
     assertEquals(taskv1t1.task, scheduler.deallocateContainer(cid2));
     drainableAppCallback.drain();
@@ -1226,13 +1226,13 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.getProgress();
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockApp, times(1)).preemptContainer(any(ContainerId.class));
+    verify(mockApp, times(1)).preemptContainer(any());
 
     // adding request for v0 should trigger preemption on next heartbeat
     taskRequestCaptor.scheduleTask(taskv0t1);
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockApp, times(2)).preemptContainer(any(ContainerId.class));
+    verify(mockApp, times(2)).preemptContainer(any());
     verify(mockApp).preemptContainer(cid1);
     assertEquals(taskv1t0.task, scheduler.deallocateContainer(cid1));
     drainableAppCallback.drain();
@@ -1346,7 +1346,7 @@ public class TestDagAwareYarnTaskScheduler {
     scheduler.getProgress();
     scheduler.getProgress();
     drainableAppCallback.drain();
-    verify(mockApp, times(1)).preemptContainer(any(ContainerId.class));
+    verify(mockApp, times(1)).preemptContainer(any());
     verify(mockApp).preemptContainer(cid1);
     String appMsg = "success";
     AppFinalStatus finalStatus =

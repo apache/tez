@@ -311,9 +311,9 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       case VERTEX_GROUP_COMMIT_FINISHED:
       case DAG_RECOVERED:
         String entityGroupId = numDagsPerGroup > 1
-            ? event.getDagID().getGroupId(numDagsPerGroup)
-            : event.getDagID().toString();
-        return TimelineEntityGroupId.newInstance(event.getDagID().getApplicationId(), entityGroupId);
+            ? event.getDAGID().getGroupId(numDagsPerGroup)
+            : event.getDAGID().toString();
+        return TimelineEntityGroupId.newInstance(event.getApplicationId(), entityGroupId);
       case APP_LAUNCHED:
       case AM_LAUNCHED:
       case AM_STARTED:
@@ -333,7 +333,7 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
 
   private boolean isValidEvent(DAGHistoryEvent event) {
     HistoryEventType eventType = event.getHistoryEvent().getEventType();
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
 
     if (eventType.equals(HistoryEventType.DAG_SUBMITTED)) {
       DAGSubmittedEvent dagSubmittedEvent =
@@ -373,7 +373,7 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
   private void handleEvents(DAGHistoryEvent event) {
     String domainId = getDomainForEvent(event);
     // skippedDags is updated in the above call so check again.
-    if (event.getDagID() != null && skippedDAGs.contains(event.getDagID())) {
+    if (event.getDAGID() != null && skippedDAGs.contains(event.getDAGID())) {
       return;
     }
     TimelineEntityGroupId groupId = getGroupId(event);
@@ -417,7 +417,7 @@ public class ATSV15HistoryLoggingService extends HistoryLoggingService {
       return domainId;
     }
 
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
     HistoryEvent historyEvent = event.getHistoryEvent();
     if (dagId == null || !HistoryEventType.isDAGSpecificEvent(historyEvent.getEventType())) {
       return domainId;

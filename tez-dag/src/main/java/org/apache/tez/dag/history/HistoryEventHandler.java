@@ -124,7 +124,7 @@ public class HistoryEventHandler extends CompositeService {
    * @throws IOException
    */
   public void handleCriticalEvent(DAGHistoryEvent event) throws IOException {
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
     String dagIdStr = "N/A";
     if(dagId != null) {
       dagIdStr = dagId.toString();
@@ -161,7 +161,7 @@ public class HistoryEventHandler extends CompositeService {
   }
 
   private boolean shouldLogEvent(DAGHistoryEvent event) {
-    TezDAGID dagId = event.getDagID();
+    TezDAGID dagId = event.getDAGID();
 
     HistoryLogLevel dagLogLevel = null;
     if (dagId != null) {
@@ -207,7 +207,7 @@ public class HistoryEventHandler extends CompositeService {
     if (dagLogLevel == HistoryLogLevel.TASK_ATTEMPT &&
         (eventType == HistoryEventType.TASK_ATTEMPT_STARTED ||
          eventType == HistoryEventType.TASK_ATTEMPT_FINISHED)) {
-      TezDAGID dagId = event.getDagID();
+      TezDAGID dagId = event.getDAGID();
       Set<TaskAttemptTerminationCause> filters = null;
       if (dagId != null) {
         filters = dagIdToTaskAttemptFilters.get(dagId);

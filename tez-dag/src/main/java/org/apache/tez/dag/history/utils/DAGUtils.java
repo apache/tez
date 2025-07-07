@@ -56,7 +56,7 @@ import org.codehaus.jettison.json.JSONObject;
 
 import org.apache.tez.common.Preconditions;
 
-public class DAGUtils {
+public final class DAGUtils {
 
   public static final String DAG_NAME_KEY = "dagName";
   public static final String DAG_INFO_KEY = "dagInfo";
@@ -99,7 +99,7 @@ public class DAGUtils {
   public static final String VERTEX_GROUP_EDGE_MERGED_INPUTS_KEY = "edgeMergedInputs";
   public static final String VERTEX_GROUP_DESTINATION_VERTEX_NAME_KEY = "destinationVertexName";
 
-
+  private DAGUtils() {}
 
   public static JSONObject generateSimpleJSONPlan(DAGPlan dagPlan) throws JSONException {
     JSONObject dagJson;
@@ -111,7 +111,8 @@ public class DAGUtils {
     return dagJson;
   }
   
-  public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info) {
+  public static JSONObject convertDataEventDependencyInfoToJSON(List<DataEventDependencyInfo> info)
+      throws JSONException {
     return new JSONObject(convertDataEventDependecyInfoToATS(info));
   }
   
@@ -436,7 +437,7 @@ public class DAGUtils {
   }
 
   public static JSONObject convertServicePluginToJSON(
-      ServicePluginInfo servicePluginInfo) {
+      ServicePluginInfo servicePluginInfo) throws JSONException {
     JSONObject jsonObject = new JSONObject(convertServicePluginToATSMap(servicePluginInfo));
     return jsonObject;
   }

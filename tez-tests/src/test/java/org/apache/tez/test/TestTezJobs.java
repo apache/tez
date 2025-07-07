@@ -18,6 +18,10 @@
 
 package org.apache.tez.test;
 
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_AM_HOOKS;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS;
+import static org.apache.tez.dag.api.TezConstants.TEZ_CONTAINER_LOGGER_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -40,6 +44,8 @@ import java.util.Set;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -47,6 +53,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.tez.common.TezContainerLogAppender;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -54,11 +61,13 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
+import org.apache.tez.dag.app.ThreadDumpDAGHook;
 import org.apache.tez.mapreduce.examples.CartesianProduct;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductVertexManager;
 import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
+import org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -164,10 +173,59 @@ public class TestTezJobs {
   public void testHashJoinExample() throws Exception {
     HashJoinExample hashJoinExample = new HashJoinExample();
     hashJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
-    Path stagingDirPath = new Path("/tmp/tez-staging-dir");
-    Path inPath1 = new Path("/tmp/hashJoin/inPath1");
-    Path inPath2 = new Path("/tmp/hashJoin/inPath2");
-    Path outPath = new Path("/tmp/hashJoin/outPath");
+    runHashJoinExample(hashJoinExample);
+  }
+
+  @Test(timeout = 60000)
+  public void testHashJoinExampleWithLogPattern() throws Exception {
+    HashJoinExample hashJoinExample = new HashJoinExample();
+
+    Configuration patternConfig = new Configuration(mrrTezCluster.getConfig());
+
+    patternConfig.set(TezConfiguration.TEZ_AM_LOG_LEVEL, "debug");
+    patternConfig.set(TezConfiguration.TEZ_TASK_LOG_LEVEL, "debug");
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM,
+        "%d{ISO8601} [%p] [%t (queryId=%X{queryId} dag=%X{dagId})] |%c{2}|: %m%n");
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK,
+        "%d{ISO8601} [%p] [%t (queryId=%X{queryId} dag=%X{dagId} task=%X{taskAttemptId})] |%c{2}|: %m%n");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "queryId");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS, "hive.query.id");
+    patternConfig.set("hive.query.id", "hello-upstream-application-12345");
+
+    //1. feature is on
+    //[main (queryId=hello-upstream-application-12345 dag=dag_1666683231618_0001_1)] |app.DAGAppMaster|
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //2. feature is on, but custom keys are empty: expecting empty queryId with the same format
+    //[main (queryId= dag=dag_1666683231618_0002_1)] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "");
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //3. feature is on, custom keys are defined but corresponding value is null in config:
+    //expecting empty queryId with the same format
+    //[main (queryId= dag=dag_1666683231618_0003_1)] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS, "queryId");
+    patternConfig.set(TezConfiguration.TEZ_MDC_CUSTOM_KEYS_CONF_PROPS, "hive.query.id.null");
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+
+    //4. feature is off: expecting to have properly formatted log lines with original log4j config (not empty string)
+    //[main] |app.DAGAppMaster|
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_AM, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+    patternConfig.set(TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_TASK, TezConfiguration.TEZ_LOG_PATTERN_LAYOUT_DEFAULT);
+
+    hashJoinExample.setConf(patternConfig);
+    runHashJoinExample(hashJoinExample);
+  }
+
+  private void runHashJoinExample(HashJoinExample hashJoinExample) throws Exception {
+    int random = new Random(System.currentTimeMillis()).nextInt(10000);
+    Path stagingDirPath = new Path(String.format("/tmp/tez-staging-dir%d", random));
+    Path inPath1 = new Path(String.format("/tmp/hashJoin%d/inPath1", random));
+    Path inPath2 = new Path(String.format("/tmp/hashJoin%d/inPath2", random));
+    Path outPath = new Path(String.format("/tmp/hashJoin%d/outPath", random));
     remoteFs.mkdirs(inPath1);
     remoteFs.mkdirs(inPath2);
     remoteFs.mkdirs(stagingDirPath);
@@ -484,8 +542,28 @@ public class TestTezJobs {
 
   @Test(timeout = 60000)
   public void testSortMergeJoinExampleDisableSplitGrouping() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(false);
+  }
+
+  @Test
+  public void testSortMergeJoinExampleWithThreadDump() throws Exception {
+    testSortMergeJoinExampleDisableSplitGrouping(true);
+  }
+
+  public void testSortMergeJoinExampleDisableSplitGrouping(boolean withThreadDump) throws Exception {
     SortMergeJoinExample sortMergeJoinExample = new SortMergeJoinExample();
-    sortMergeJoinExample.setConf(new Configuration(mrrTezCluster.getConfig()));
+    Configuration newConf = new Configuration(mrrTezCluster.getConfig());
+    Path logPath = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/logPath");
+    if (withThreadDump) {
+      TezContainerLogAppender appender = new TezContainerLogAppender();
+      org.apache.log4j.Logger.getRootLogger().addAppender(appender);
+      appender.setName(TEZ_CONTAINER_LOGGER_NAME);
+      appender.setContainerLogDir(logPath.toString());
+      newConf.set(TEZ_AM_HOOKS, ThreadDumpDAGHook.class.getName());
+      newConf.set(TEZ_TASK_ATTEMPT_HOOKS, ThreadDumpTaskAttemptHook.class.getName());
+      newConf.set(TEZ_THREAD_DUMP_INTERVAL, "1ms");
+    }
+    sortMergeJoinExample.setConf(newConf);
     Path stagingDirPath = new Path(TEST_ROOT_DIR + "/tmp/tez-staging-dir");
     Path inPath1 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath1");
     Path inPath2 = new Path(TEST_ROOT_DIR + "/tmp/sortMerge/inPath2");
@@ -538,6 +616,29 @@ public class TestTezJobs {
     reader.close();
     inStream.close();
     assertEquals(0, expectedResult.size());
+
+    if (withThreadDump) {
+      validateThreadDumpCaptured(logPath);
+      org.apache.log4j.Logger.getRootLogger().removeAppender(TEZ_CONTAINER_LOGGER_NAME);
+    }
+  }
+
+  private static void validateThreadDumpCaptured(Path jstackPath) throws IOException {
+    RemoteIterator<LocatedFileStatus> files = localFs.listFiles(jstackPath, true);
+    boolean appMasterDumpFound = false;
+    boolean tezChildDumpFound = false;
+    while (files.hasNext()) {
+      LocatedFileStatus file = files.next();
+      if (file.getPath().getName().endsWith(".jstack")) {
+        if (file.getPath().getName().contains("attempt")) {
+          tezChildDumpFound = true;
+        } else {
+          appMasterDumpFound = true;
+        }
+      }
+    }
+    assertTrue(tezChildDumpFound);
+    assertTrue(appMasterDumpFound);
   }
 
   /**

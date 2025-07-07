@@ -28,6 +28,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.util.StringInterner;
 
@@ -35,7 +36,7 @@ import org.apache.tez.util.StringInterner;
  * Class that encapsulates all the information to identify the unique
  * object that either generated an Event or is the recipient of an Event.
  */
-public class EventMetaData implements Writable {
+public class EventMetaData implements Writable, TaskAttemptIDAware {
 
   public static enum EventProducerConsumerType {
     INPUT,
@@ -83,6 +84,7 @@ public class EventMetaData implements Writable {
     return producerConsumerType;
   }
 
+  @Override
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptID;
   }

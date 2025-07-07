@@ -181,7 +181,7 @@ public class TestReduceProcessor {
     LOG.info("Starting reduce...");
     
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(dagName));
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(jobConf);
     Token<JobTokenIdentifier> shuffleToken = new Token<JobTokenIdentifier>(identifier,
         jobTokenSecretManager);
     shuffleToken.setService(identifier.getJobId());

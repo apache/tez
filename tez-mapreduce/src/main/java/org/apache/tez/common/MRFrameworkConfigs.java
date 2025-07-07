@@ -23,7 +23,7 @@ package org.apache.tez.common;
 import org.apache.hadoop.classification.InterfaceAudience;
 
 @InterfaceAudience.Private
-public class MRFrameworkConfigs {
+public final class MRFrameworkConfigs {
 
   /**
    * One local dir for the specific job.
@@ -38,4 +38,6 @@ public class MRFrameworkConfigs {
   public static final String TASK_LOCAL_RESOURCE_DIR_DEFAULT = "/tmp";
 
   public static final String JOB_LOCAL_DIR = MR_FRAMEWORK_PREFIX + "job.local.dir";
+
+  private MRFrameworkConfigs() {}
 }

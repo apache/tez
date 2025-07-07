@@ -18,6 +18,7 @@
 
 package org.apache.tez.auxservices;
 
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.util.DiskChecker;
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
@@ -32,6 +33,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -57,7 +60,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
-import org.apache.hadoop.fs.LocalDirAllocator;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -124,7 +128,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -273,7 +276,7 @@ public class ShuffleHandler extends AuxiliaryService {
         MutableCounterLong shuffleOutputBytes;
     @Metric("# of failed shuffle outputs")
         MutableCounterInt shuffleOutputsFailed;
-    @Metric("# of succeeeded shuffle outputs")
+    @Metric("# of succeeded shuffle outputs")
         MutableCounterInt shuffleOutputsOK;
     @Metric("# of current shuffle connections")
         MutableGaugeInt shuffleConnections;
@@ -301,21 +304,28 @@ public class ShuffleHandler extends AuxiliaryService {
 
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
+      Channel ch = future.channel();
       if (!future.isSuccess()) {
-        future.channel().close();
+        ch.close();
         return;
       }
       int waitCount = this.reduceContext.getMapsToWait().decrementAndGet();
       if (waitCount == 0) {
+        LOG.debug("Finished with all map outputs");
+        /*
+         * LastHttpContent.EMPTY_LAST_CONTENT can only be written when there are no remaining maps to send,
+         * this is the only time we can finish the HTTP response.
+         */
+        ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         metrics.operationComplete(future);
         // Let the idle timer handler close keep-alive connections
         if (reduceContext.getKeepAlive()) {
-          ChannelPipeline pipeline = future.channel().pipeline();
+          ChannelPipeline pipeline = ch.pipeline();
           TimeoutHandler timeoutHandler =
               (TimeoutHandler) pipeline.get(TIMEOUT_HANDLER);
           timeoutHandler.setEnabledTimeout(true);
         } else {
-          future.channel().close();
+          ch.close();
         }
       } else {
         SHUFFLE.sendMap(reduceContext);
@@ -464,6 +474,10 @@ public class ShuffleHandler extends AuxiliaryService {
     return jt;
   }
 
+  public int getPort() {
+    return port;
+  }
+
   @Override
   public void initializeApplication(ApplicationInitializationContext context) {
 
@@ -522,7 +536,7 @@ public class ShuffleHandler extends AuxiliaryService {
 
     final String BOSS_THREAD_NAME_PREFIX = "Tez Shuffle Handler Boss #";
     AtomicInteger bossThreadCounter = new AtomicInteger(0);
-    bossGroup = new NioEventLoopGroup(maxShuffleThreads, new ThreadFactory() {
+    bossGroup = new NioEventLoopGroup(1, new ThreadFactory() {
       @Override
       public Thread newThread(Runnable r) {
         return new Thread(r, BOSS_THREAD_NAME_PREFIX + bossThreadCounter.incrementAndGet());
@@ -537,7 +551,7 @@ public class ShuffleHandler extends AuxiliaryService {
         return new Thread(r, WORKER_THREAD_NAME_PREFIX + workerThreadCounter.incrementAndGet());
       }
     });
-
+    port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     super.serviceInit(new YarnConfiguration(conf));
   }
 
@@ -546,7 +560,7 @@ public class ShuffleHandler extends AuxiliaryService {
   protected void serviceStart() throws Exception {
     Configuration conf = getConfig();
     userRsrc = new ConcurrentHashMap<String,String>();
-    secretManager = new JobTokenSecretManager();
+    secretManager = new JobTokenSecretManager(conf);
     recoverState(conf);
     ServerBootstrap bootstrap = new ServerBootstrap()
         .channel(NioServerSocketChannel.class)
@@ -556,7 +570,6 @@ public class ShuffleHandler extends AuxiliaryService {
             conf.getInt(SHUFFLE_LISTEN_QUEUE_SIZE, DEFAULT_SHUFFLE_LISTEN_QUEUE_SIZE))
         .childOption(ChannelOption.SO_KEEPALIVE, true);
     initPipeline(bootstrap, conf);
-    port = conf.getInt(SHUFFLE_PORT_CONFIG_KEY, DEFAULT_SHUFFLE_PORT);
     Channel ch = bootstrap.bind().sync().channel();
     accepted.add(ch);
 
@@ -596,6 +609,9 @@ public class ShuffleHandler extends AuxiliaryService {
         ChannelPipeline pipeline = ch.pipeline();
         if (sslFactory != null) {
           pipeline.addLast("ssl", new SslHandler(sslFactory.createSSLEngine()));
+        }
+        if (LOG.isDebugEnabled()) {
+          pipeline.addLast("loggingHandler", new LoggingHandler(LogLevel.DEBUG));
         }
         pipeline.addLast("decoder", new HttpRequestDecoder());
         pipeline.addLast("aggregator", new HttpObjectAggregator(1 << 16));
@@ -886,8 +902,6 @@ public class ShuffleHandler extends AuxiliaryService {
     private static final int ALLOWED_CONCURRENCY = 16;
     private final Configuration conf;
     private final IndexCache indexCache;
-    private final LocalDirAllocator lDirAlloc =
-      new LocalDirAllocator(YarnConfiguration.NM_LOCAL_DIRS);
     private int port;
     private final LoadingCache<AttemptPathIdentifier, AttemptPathInfo> pathCache =
       CacheBuilder.newBuilder().expireAfterAccess(EXPIRE_AFTER_ACCESS_MINUTES,
@@ -920,10 +934,10 @@ public class ShuffleHandler extends AuxiliaryService {
             Exception {
           String base = getBaseLocation(key.jobId, key.dagId, key.user);
           String attemptBase = base + key.attemptId;
-          Path indexFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + INDEX_FILE_NAME, conf);
-          Path mapOutputFileName = lDirAlloc.getLocalPathToRead(
-              attemptBase + Path.SEPARATOR + DATA_FILE_NAME, conf);
+          Path indexFileName = getAuxiliaryLocalPathHandler()
+              .getLocalPathForRead(attemptBase + "/" + INDEX_FILE_NAME);
+          Path mapOutputFileName = getAuxiliaryLocalPathHandler()
+              .getLocalPathForRead(attemptBase + "/" + DATA_FILE_NAME);
 
           LOG.debug("Loaded : {} via loader", key);
           return new AttemptPathInfo(indexFileName, mapOutputFileName);
@@ -982,12 +996,11 @@ public class ShuffleHandler extends AuxiliaryService {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object message)
         throws Exception {
-      FullHttpRequest request = (FullHttpRequest) message;
+      HttpRequest request = (HttpRequest) message;
       handleRequest(ctx, request);
-      request.release();
     }
 
-    private void handleRequest(ChannelHandlerContext ctx, FullHttpRequest request)
+    private void handleRequest(ChannelHandlerContext ctx, HttpRequest request)
         throws IOException, Exception {
       if (request.getMethod() != GET) {
           sendError(ctx, METHOD_NOT_ALLOWED);
@@ -1004,6 +1017,8 @@ public class ShuffleHandler extends AuxiliaryService {
       final Map<String, List<String>> q = new QueryStringDecoder(request.getUri()).parameters();
       final List<String> keepAliveList = q.get("keepAlive");
       final List<String> dagCompletedQ = q.get("dagAction");
+      final List<String> vertexCompletedQ = q.get("vertexAction");
+      final List<String> taskAttemptFailedQ = q.get("taskAttemptAction");
       boolean keepAliveParam = false;
       if (keepAliveList != null && keepAliveList.size() == 1) {
         keepAliveParam = Boolean.parseBoolean(keepAliveList.get(0));
@@ -1013,6 +1028,7 @@ public class ShuffleHandler extends AuxiliaryService {
       final Range reduceRange = splitReduces(q.get("reduce"));
       final List<String> jobQ = q.get("job");
       final List<String> dagIdQ = q.get("dag");
+      final List<String> vertexIdQ = q.get("vertex");
       if (LOG.isDebugEnabled()) {
         LOG.debug("RECV: " + request.getUri() +
             "\n  mapId: " + mapIds +
@@ -1023,6 +1039,12 @@ public class ShuffleHandler extends AuxiliaryService {
       }
       // If the request is for Dag Deletion, process the request and send OK.
       if (deleteDagDirectories(ctx.channel(), dagCompletedQ, jobQ, dagIdQ))  {
+        return;
+      }
+      if (deleteVertexDirectories(ctx.channel(), vertexCompletedQ, jobQ, dagIdQ, vertexIdQ)) {
+        return;
+      }
+      if (deleteTaskAttemptDirectories(ctx.channel(), taskAttemptFailedQ, jobQ, dagIdQ, mapIds)) {
         return;
       }
       if (mapIds == null || reduceRange == null || jobQ == null || dagIdQ == null) {
@@ -1103,13 +1125,20 @@ public class ShuffleHandler extends AuxiliaryService {
       for (int i = 0; i < Math.min(maxSessionOpenFiles, mapIds.size()); i++) {
         ChannelFuture nextMap = sendMap(reduceContext);
         if(nextMap == null) {
-          // by this special message flushed, we can make sure the whole response is finished
-          ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
           return;
         }
       }
-      // by this special message flushed, we can make sure the whole response is finished
-      ch.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+    }
+
+    private boolean isNullOrEmpty(List<String> entries) {
+      return entries == null || entries.isEmpty();
+    }
+
+    private boolean notEmptyAndContains(List<String> entries, String key) {
+      if (entries == null || entries.isEmpty()) {
+        return false;
+      }
+      return entries.get(0).contains(key);
     }
 
     private boolean deleteDagDirectories(Channel channel,
@@ -1118,12 +1147,11 @@ public class ShuffleHandler extends AuxiliaryService {
       if (jobQ == null || jobQ.isEmpty()) {
         return false;
       }
-      if (dagCompletedQ != null && !dagCompletedQ.isEmpty() && dagCompletedQ.get(0).contains("delete")
-          && dagIdQ != null && !dagIdQ.isEmpty()) {
+      if (notEmptyAndContains(dagCompletedQ,"delete") && !isNullOrEmpty(dagIdQ)) {
         String base = getDagLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
         try {
           FileContext lfc = FileContext.getLocalFSFileContext();
-          for(Path dagPath : lDirAlloc.getAllLocalPathsToRead(base, conf)) {
+          for(Path dagPath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(base)) {
             lfc.delete(dagPath, true);
           }
         } catch (IOException e) {
@@ -1131,6 +1159,59 @@ public class ShuffleHandler extends AuxiliaryService {
         }
         channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
             .addListener(ChannelFutureListener.CLOSE);
+        return true;
+      }
+      return false;
+    }
+
+    private boolean deleteVertexDirectories(Channel channel, List<String> vertexCompletedQ,
+                                            List<String> jobQ, List<String> dagIdQ,
+                                            List<String> vertexIdQ) {
+      if (jobQ == null || jobQ.isEmpty()) {
+        return false;
+      }
+      if (notEmptyAndContains(vertexCompletedQ, "delete") && !isNullOrEmpty(vertexIdQ)) {
+        try {
+          deleteTaskDirsOfVertex(jobQ.get(0), dagIdQ.get(0), vertexIdQ.get(0), userRsrc.get(jobQ.get(0)));
+        } catch (IOException e) {
+          LOG.warn("Encountered exception during vertex delete " + e);
+        }
+        channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
+                .addListener(ChannelFutureListener.CLOSE);
+        return true;
+      }
+      return false;
+    }
+
+    private boolean deleteTaskAttemptDirectories(Channel channel, List<String> taskAttemptFailedQ,
+                                            List<String> jobQ, List<String> dagIdQ, List<String> taskAttemptIdQ) {
+      if (jobQ == null || jobQ.isEmpty()) {
+        return false;
+      }
+      if (notEmptyAndContains(taskAttemptFailedQ,"delete") && !isNullOrEmpty(taskAttemptIdQ)) {
+        for (String taskAttemptId : taskAttemptIdQ) {
+          String baseStr = getBaseLocation(jobQ.get(0), dagIdQ.get(0), userRsrc.get(jobQ.get(0)));
+          try {
+            FileSystem fs = FileSystem.getLocal(conf).getRaw();
+            for (Path basePath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(baseStr)) {
+              for (FileStatus fileStatus : fs.listStatus(basePath)) {
+                Path taskAttemptPath = fileStatus.getPath();
+                if (taskAttemptPath.getName().startsWith(taskAttemptId)) {
+                  if (fs.delete(taskAttemptPath, true)) {
+                    LOG.info("Deleted directory : " + taskAttemptPath);
+                    // remove entry from IndexCache
+                    indexCache.removeMap(taskAttemptPath.getName());
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (IOException e) {
+            LOG.warn("Encountered exception during failed task attempt delete " + e);
+          }
+        }
+        channel.writeAndFlush(new DefaultHttpResponse(HTTP_1_1, OK))
+                .addListener(ChannelFutureListener.CLOSE);
         return true;
       }
       return false;
@@ -1201,6 +1282,29 @@ public class ShuffleHandler extends AuxiliaryService {
       final String baseStr =
           getDagLocation(jobId, dagId, user) + "output" + Path.SEPARATOR;
       return baseStr;
+    }
+
+    /**
+     * Delete shuffle data in task directories belonging to a vertex.
+     */
+    private void deleteTaskDirsOfVertex(String jobId, String dagId, String vertexId, String user) throws IOException {
+      String baseStr = getBaseLocation(jobId, dagId, user);
+      FileContext lfc = FileContext.getLocalFSFileContext();
+      for(Path dagPath : getAuxiliaryLocalPathHandler().getAllLocalPathsForRead(baseStr)) {
+        RemoteIterator<FileStatus> status = lfc.listStatus(dagPath);
+        final JobID jobID = JobID.forName(jobId);
+        String taskDirPrefix = String.format("attempt%s_%s_%s_",
+            jobID.toString().replace("job", ""), dagId, vertexId);
+        while (status.hasNext()) {
+          FileStatus fileStatus = status.next();
+          Path attemptPath = fileStatus.getPath();
+          if (attemptPath.getName().startsWith(taskDirPrefix)) {
+            if(lfc.delete(attemptPath, true)) {
+              LOG.debug("deleted shuffle data in task directory: {}", attemptPath);
+            }
+          }
+        }
+      }
     }
 
     private String getDagLocation(String jobId, String dagId, String user) {
@@ -1390,7 +1494,7 @@ public class ShuffleHandler extends AuxiliaryService {
       DataOutputBuffer dobRange = new DataOutputBuffer();
       // Indicate how many record to be written
       WritableUtils.writeVInt(dobRange, reduceRange.getLast() - reduceRange.getFirst() + 1);
-      ch.write(wrappedBuffer(dobRange.getData(), 0, dobRange.getLength()));
+      ch.writeAndFlush(wrappedBuffer(dobRange.getData(), 0, dobRange.getLength()));
       for (int reduce = reduceRange.getFirst(); reduce <= reduceRange.getLast(); reduce++) {
         TezIndexRecord index = outputInfo.getIndex(reduce);
         // Records are only valid if they have a non-zero part length
@@ -1405,7 +1509,7 @@ public class ShuffleHandler extends AuxiliaryService {
         DataOutputBuffer dob = new DataOutputBuffer();
         header.write(dob);
         // Free the memory needed to store the spill and index records
-        ch.write(wrappedBuffer(dob.getData(), 0, dob.getLength()));
+        ch.writeAndFlush(wrappedBuffer(dob.getData(), 0, dob.getLength()));
       }
       outputInfo.finish();
 
@@ -1425,14 +1529,14 @@ public class ShuffleHandler extends AuxiliaryService {
             rangeOffset, rangePartLength, manageOsCache, readaheadLength,
             readaheadPool, spillFile.getAbsolutePath(),
             shuffleBufferSize, shuffleTransferToAllowed);
-        writeFuture = ch.write(partition);
+        writeFuture = ch.writeAndFlush(partition);
       } else {
         // HTTPS cannot be done with zero copy.
         final FadvisedChunkedFile chunk = new FadvisedChunkedFile(spill,
             rangeOffset, rangePartLength, sslFileBufferSize,
             manageOsCache, readaheadLength, readaheadPool,
             spillFile.getAbsolutePath());
-        writeFuture = ch.write(chunk);
+        writeFuture = ch.writeAndFlush(chunk);
       }
       metrics.shuffleConnections.incr();
       metrics.shuffleOutputBytes.incr(rangePartLength); // optimistic
@@ -1446,7 +1550,6 @@ public class ShuffleHandler extends AuxiliaryService {
     protected void sendError(ChannelHandlerContext ctx, String message, HttpResponseStatus status) {
       FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, status);
       sendError(ctx, message, response);
-      response.release();
     }
 
     protected void sendError(ChannelHandlerContext ctx, String message, FullHttpResponse response) {
@@ -1464,7 +1567,6 @@ public class ShuffleHandler extends AuxiliaryService {
       header.write(out);
 
       sendError(ctx, wrappedBuffer(out.getData(), 0, out.getLength()), fullResponse);
-      fullResponse.release();
     }
 
     protected void sendError(ChannelHandlerContext ctx, ByteBuf content,
@@ -1479,6 +1581,11 @@ public class ShuffleHandler extends AuxiliaryService {
 
       // Close the connection as soon as the error message is sent.
       ctx.channel().writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+      /*
+       * The general rule of thumb is that the party that accesses a reference-counted object last
+       * is also responsible for the destruction of that reference-counted object.
+       */
+      content.release();
     }
 
     @Override

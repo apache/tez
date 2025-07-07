@@ -29,6 +29,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.hadoop.fs.ClusterStorageCapacityExceededException;
 import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Multimap;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -89,7 +91,7 @@ public class TezTaskRunner2 {
   // TaskRunnerCallable, a failure to heartbeat, or a signalFatalError on the context.
   private volatile Throwable firstException;
   private volatile EventMetaData exceptionSourceInfo;
-  private volatile TaskFailureType firstTaskFailureType;
+  volatile TaskFailureType firstTaskFailureType;
   private final AtomicBoolean errorReporterToAm = new AtomicBoolean(false);
 
   private volatile boolean oobSignalErrorInProgress = false;
@@ -104,7 +106,7 @@ public class TezTaskRunner2 {
   // The callable which is being used to execute the task.
   private volatile TaskRunner2Callable taskRunnerCallable;
 
-  // This instance is set only if the runner was not configured explicity and will be shutdown
+  // This instance is set only if the runner was not configured explicitly and will be shutdown
   // when this task is finished.
   private final TezSharedExecutor localExecutor;
 
@@ -140,18 +142,22 @@ public class TezTaskRunner2 {
     this.umbilicalAndErrorHandler = new UmbilicalAndErrorHandler();
     this.hadoopShim = hadoopShim;
     this.taskConf = new Configuration(tezConf);
-    if (taskSpec.getTaskConf() != null) {
-      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
-      while (iter.hasNext()) {
-        Entry<String, String> entry = iter.next();
-        taskConf.set(entry.getKey(), entry.getValue());
-      }
-    }
+    mergeTaskSpecConfToConf(taskSpec, taskConf);
     localExecutor = sharedExecutor == null ? new TezSharedExecutor(tezConf) : null;
     this.task = new LogicalIOProcessorRuntimeTask(taskSpec, appAttemptNumber, taskConf, localDirs,
         umbilicalAndErrorHandler, serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap,
         objectRegistry, pid, executionContext, memAvailable, updateSysCounters, hadoopShim,
         sharedExecutor == null ? localExecutor : sharedExecutor);
+  }
+
+  static void mergeTaskSpecConfToConf(TaskSpec taskSpec, Configuration conf) {
+    if (taskSpec.getTaskConf() != null) {
+      Iterator<Entry<String, String>> iter = taskSpec.getTaskConf().iterator();
+      while (iter.hasNext()) {
+        Entry<String, String> entry = iter.next();
+        conf.set(entry.getKey(), entry.getValue());
+      }
+    }
   }
 
   /**
@@ -199,7 +205,7 @@ public class TezTaskRunner2 {
         synchronized (this) {
           if (isRunningState()) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(TaskFailureType.NON_FATAL, e, null);
+            registerFirstException(getTaskFailureType(e), e, null);
             LOG.warn("Exception from RunnerCallable", e);
           }
         }
@@ -292,7 +298,7 @@ public class TezTaskRunner2 {
 
   // It's possible for the task to actually complete, and an alternate signal such as killTask/killContainer
   // come in before the future has been processed by this thread. That condition is not handled - and
-  // the result of the execution will be determind by the thread order.
+  // the result of the execution will be determined by the thread order.
   @VisibleForTesting
   void processCallableResult(TaskRunner2CallableResult executionResult) {
     if (executionResult != null) {
@@ -300,7 +306,7 @@ public class TezTaskRunner2 {
         if (isRunningState()) {
           if (executionResult.error != null) {
             trySettingEndReason(EndReason.TASK_ERROR);
-            registerFirstException(TaskFailureType.NON_FATAL, executionResult.error, null);
+            registerFirstException(getTaskFailureType(executionResult.error), executionResult.error, null);
           } else {
             trySettingEndReason(EndReason.SUCCESS);
             taskComplete.set(true);
@@ -578,5 +584,14 @@ public class TezTaskRunner2 {
   private void logAborting(String abortReason) {
     LOG.info("Attempting to abort {} due to an invocation of {}", task.getTaskAttemptID(),
         abortReason);
+  }
+
+  private TaskFailureType getTaskFailureType(Throwable e) {
+    boolean hasClusterStorageCapacityExceededException =
+        ExceptionUtils.indexOfType(e, ClusterStorageCapacityExceededException.class) != -1;
+    if (hasClusterStorageCapacityExceededException) {
+      return TaskFailureType.FATAL;
+    }
+    return TaskFailureType.NON_FATAL;
   }
 }

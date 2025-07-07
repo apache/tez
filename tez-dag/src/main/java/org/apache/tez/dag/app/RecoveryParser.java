@@ -19,6 +19,7 @@
 package org.apache.tez.dag.app;
 
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.tez.common.TezCommonUtils;
@@ -81,7 +83,7 @@ import org.apache.tez.common.Preconditions;
 
 /**
  * RecoverParser is mainly for Tez AM Recovery. It would read the recovery events. (summary & non-summary)
- * 
+ *
  */
 public class RecoveryParser {
 
@@ -150,7 +152,7 @@ public class RecoveryParser {
 
     // DAG is not recoverable if vertex has committer and has completed the commit (based on summary recovery events)
     // but its full recovery events are not seen. (based on non-summary recovery events)
-    // Unrecoverable reason: vertex is committed we cannot rerun it and if vertex recovery events are not completed 
+    // Unrecoverable reason: vertex is committed we cannot rerun it and if vertex recovery events are not completed
     // we cannot run other vertices that may depend on this one. So we have to abort.
     public void checkRecoverableNonSummary() {
       // It is OK without full recovering events if the dag is completed based on summary event.
@@ -383,18 +385,18 @@ public class RecoveryParser {
           new Path(currentAttemptRecoveryDataDir, appId.toString().replace(
               "application", "dag")
               + "_1" + TezConstants.DAG_RECOVERY_RECOVER_FILE_SUFFIX);
-      if (fs.exists(recoveryFilePath)) {
-        LOG.info("Read recovery file:" + recoveryFilePath);
-        FSDataInputStream in = null;
-        try {
-          in = fs.open(recoveryFilePath);
-          historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(in));
-        } catch (IOException e) {
-          throw e;
-        } finally {
-          if (in != null) {
-            in.close();
-          }
+      LOG.info("Read recovery file:" + recoveryFilePath);
+      FSDataInputStream in = null;
+      try {
+        in = fs.open(recoveryFilePath);
+        historyEvents.addAll(RecoveryParser.parseDAGRecoveryFile(in));
+      } catch (FileNotFoundException fnf) {
+        // Ignore, the file doesn't exist
+      } catch (IOException e) {
+        throw e;
+      } finally {
+        if (in != null) {
+          in.close();
         }
       }
     }
@@ -425,16 +427,16 @@ public class RecoveryParser {
     }
   }
 
-  private Path getSummaryPath(Path attemptRrecoveryDataDir) {
-    return TezCommonUtils.getSummaryRecoveryPath(attemptRrecoveryDataDir);
+  private Path getSummaryPath(Path attemptRecoveryDataDir) {
+    return TezCommonUtils.getSummaryRecoveryPath(attemptRecoveryDataDir);
   }
 
-  private FSDataInputStream getSummaryStream(Path summaryPath)
-      throws IOException {
-    if (!recoveryFS.exists(summaryPath)) {
+  private FSDataInputStream getSummaryStream(Path summaryPath, FileStatus summaryFileStatus) throws IOException {
+    try {
+      return FutureIO.awaitFuture(recoveryFS.openFile(summaryPath).withFileStatus(summaryFileStatus).build());
+    } catch (FileNotFoundException fnf) {
       return null;
     }
-    return recoveryFS.open(summaryPath, recoveryBufferSize);
   }
 
   private Path getDAGRecoveryFilePath(Path recoveryDataDir,
@@ -644,7 +646,7 @@ public class RecoveryParser {
 
   /**
    * 1. Read Summary Recovery file and build DAGSummaryData
-   *    Check whether it is recoverable based on the summary file (whether dag is 
+   *    Check whether it is recoverable based on the summary file (whether dag is
    *    in the middle of committing)
    * 2. Read the non-Summary Recovery file and build DAGRecoveryData
    *    Check whether it is recoverable based on both the summary file and non-summary file
@@ -665,7 +667,7 @@ public class RecoveryParser {
           + ", len=" + summaryFileStatus.getLen()
           + ", lastModTime=" + summaryFileStatus.getModificationTime());
       FSDataInputStream summaryStream = getSummaryStream(
-          summaryFile);
+          summaryFile, summaryFileStatus);
       while (true) {
         RecoveryProtos.SummaryEventProto proto;
         try {
@@ -741,12 +743,14 @@ public class RecoveryParser {
             + lastRecoveryFile);
         break;
       }
-      FileStatus fileStatus = recoveryFS.getFileStatus(dagRecoveryFile);
       lastRecoveryFile = dagRecoveryFile;
-      LOG.info("Trying to recover dag from recovery file"
-          + ", dagId=" + lastInProgressDAG.toString()
-          + ", dagRecoveryFile=" + dagRecoveryFile
-          + ", len=" + fileStatus.getLen());
+      LOG.info("Trying to recover dag from recovery file, dagId={}, dagRecoveryFile={}", lastInProgressDAG,
+          dagRecoveryFile);
+      if (LOG.isDebugEnabled()) {
+        FileStatus fileStatus = recoveryFS.getFileStatus(dagRecoveryFile);
+        LOG.debug("Recovery file details: {}", fileStatus);
+      }
+
       FSDataInputStream dagRecoveryStream = recoveryFS.open(dagRecoveryFile, recoveryBufferSize);
       CodedInputStream codedInputStream = CodedInputStream.newInstance(dagRecoveryStream);
       codedInputStream.setSizeLimit(Integer.MAX_VALUE);
@@ -796,10 +800,10 @@ public class RecoveryParser {
           case DAG_FINISHED:
             recoveredDAGData.dagFinishedEvent = (DAGFinishedEvent)event;
             skipAllOtherEvents = true;
-            break; 
+            break;
           case DAG_COMMIT_STARTED:
           case VERTEX_GROUP_COMMIT_STARTED:
-          case VERTEX_GROUP_COMMIT_FINISHED: 
+          case VERTEX_GROUP_COMMIT_FINISHED:
           case CONTAINER_LAUNCHED:
           {
             // Nothing to do for now
@@ -846,9 +850,9 @@ public class RecoveryParser {
           case TASK_STARTED:
           {
             TaskStartedEvent taskStartedEvent = (TaskStartedEvent) event;
-            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskStartedEvent.getTaskID().getVertexID());
+            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskStartedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
-                "Invalid TaskStartedEvent, its vertex does not exist:" + taskStartedEvent.getTaskID().getVertexID());
+                "Invalid TaskStartedEvent, its vertex does not exist:" + taskStartedEvent.getVertexID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.maybeCreateTaskRecoveryData(taskStartedEvent.getTaskID());
             taskRecoveryData.taskStartedEvent = taskStartedEvent;
             break;
@@ -856,9 +860,9 @@ public class RecoveryParser {
           case TASK_FINISHED:
           {
             TaskFinishedEvent taskFinishedEvent = (TaskFinishedEvent) event;
-            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskFinishedEvent.getTaskID().getVertexID());
+            VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(taskFinishedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
-                "Invalid TaskFinishedEvent, its vertex does not exist:" + taskFinishedEvent.getTaskID().getVertexID());
+                "Invalid TaskFinishedEvent, its vertex does not exist:" + taskFinishedEvent.getVertexID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.maybeCreateTaskRecoveryData(taskFinishedEvent.getTaskID());
             taskRecoveryData.taskFinishedEvent = taskFinishedEvent;
             break;
@@ -867,7 +871,7 @@ public class RecoveryParser {
           {
             TaskAttemptStartedEvent taStartedEvent = (TaskAttemptStartedEvent)event;
             VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(
-                taStartedEvent.getTaskAttemptID().getTaskID().getVertexID());
+                taStartedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
                 "Invalid TaskAttemptStartedEvent, its vertexId does not exist, taId=" + taStartedEvent.getTaskAttemptID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.taskRecoveryDataMap
@@ -882,7 +886,7 @@ public class RecoveryParser {
           {
             TaskAttemptFinishedEvent taFinishedEvent = (TaskAttemptFinishedEvent)event;
             VertexRecoveryData vertexRecoveryData = recoveredDAGData.vertexRecoveryDataMap.get(
-                taFinishedEvent.getTaskAttemptID().getTaskID().getVertexID());
+                taFinishedEvent.getVertexID());
             Preconditions.checkArgument(vertexRecoveryData != null,
                 "Invalid TaskAttemtFinishedEvent, its vertexId does not exist, taId=" + taFinishedEvent.getTaskAttemptID());
             TaskRecoveryData taskRecoveryData = vertexRecoveryData.taskRecoveryDataMap
@@ -918,27 +922,27 @@ public class RecoveryParser {
     private VertexFinishedEvent vertexFinishedEvent;
     private Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap =
         new HashMap<TezTaskID, RecoveryParser.TaskRecoveryData>();
-    private boolean commited;
+    private boolean committed;
 
     @VisibleForTesting
     public VertexRecoveryData(VertexInitializedEvent vertexInitedEvent,
         VertexConfigurationDoneEvent vertexReconfigureDoneEvent,
         VertexStartedEvent vertexStartedEvent,
         VertexFinishedEvent vertexFinishedEvent,
-        Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap, boolean commited) {
+        Map<TezTaskID, TaskRecoveryData> taskRecoveryDataMap, boolean committed) {
       super();
       this.vertexInitedEvent = vertexInitedEvent;
       this.vertexConfigurationDoneEvent = vertexReconfigureDoneEvent;
       this.vertexStartedEvent = vertexStartedEvent;
       this.vertexFinishedEvent = vertexFinishedEvent;
       this.taskRecoveryDataMap = taskRecoveryDataMap;
-      this.commited = commited;
+      this.committed = committed;
     }
 
     public VertexRecoveryData(boolean committed) {
-      this.commited = committed;
+      this.committed = committed;
     }
- 
+
     public VertexInitializedEvent getVertexInitedEvent() {
       return vertexInitedEvent;
     }
@@ -987,7 +991,7 @@ public class RecoveryParser {
     }
 
     public boolean isVertexCommitted() {
-      return this.commited;
+      return this.committed;
     }
 
     public TaskRecoveryData getTaskRecoveryData(TezTaskID taskId) {

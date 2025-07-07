@@ -19,13 +19,14 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.TaskIDAware;
 import org.apache.tez.dag.records.TezTaskID;
 
 /**
  * this class encapsulates task related events.
  *
  */
-public class TaskEvent extends TezAbstractEvent<TaskEventType> {
+public class TaskEvent extends TezAbstractEvent<TaskEventType> implements TaskIDAware {
 
   private TezTaskID taskId;
 
@@ -34,6 +35,7 @@ public class TaskEvent extends TezAbstractEvent<TaskEventType> {
     this.taskId = taskId;
   }
 
+  @Override
   public TezTaskID getTaskID() {
     return taskId;
   }

@@ -639,7 +639,7 @@ public class YARNRunner implements ClientProtocol {
       
       tezClient = new MRTezClient("MapReduce", dagAMConf, false, jobLocalResources, ts);
       tezClient.start();
-      tezClient.submitDAGApplication(appId, dag);
+      dagClient = new MRDAGClient(tezClient.submitDAGApplication(appId, dag));
       tezClient.stop();
     } catch (TezException e) {
       throw new IOException(e);
@@ -702,9 +702,6 @@ public class YARNRunner implements ClientProtocol {
     String jobFile = MRApps.getJobFile(conf, user, jobID);
     DAGStatus dagStatus;
     try {
-      if(dagClient == null) {
-        dagClient = MRTezClient.getDAGClient(TypeConverter.toYarn(jobID).getAppId(), tezConf, null);
-      }
       dagStatus = dagClient.getDAGStatus(null);
       return new DAGJobStatus(dagClient.getApplicationReport(), dagStatus, jobFile);
     } catch (TezException e) {

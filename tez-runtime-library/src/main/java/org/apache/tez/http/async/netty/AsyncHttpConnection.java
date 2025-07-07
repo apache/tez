@@ -35,6 +35,7 @@ import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
 import org.apache.tez.util.StopWatch;
+import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,6 +103,16 @@ public class AsyncHttpConnection extends BaseHttpConnection {
               .build();
           DefaultAsyncHttpClientConfig config = builder.build();
           httpAsyncClient = new DefaultAsyncHttpClient(config);
+          TezRuntimeShutdownHandler.addShutdownTask(() -> {
+            try {
+              if (httpAsyncClient != null) {
+                httpAsyncClient.close();
+                httpAsyncClient = null;
+              }
+            } catch (IOException e) {
+              LOG.warn("Error while closing async client (this won't block shutdown)", e);
+            }
+          });
         }
       }
     }
@@ -145,7 +156,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     Request request = rb.setUrl(url.toString()).build();
 
     //for debugging
-    LOG.debug("Request url={}, encHash={}, id={}", url, encHash);
+    LOG.debug("Request url={}, encHash={}", url, encHash);
 
     try {
       //Blocks calling thread until it receives headers, but have the option to defer response body
@@ -165,7 +176,7 @@ public class AsyncHttpConnection extends BaseHttpConnection {
     //verify the response
     int rc = response.getStatusCode();
     if (rc != HttpURLConnection.HTTP_OK) {
-      LOG.debug("Request url={}, id={}", response.getUri());
+      LOG.debug("Request url={}", response.getUri());
       throw new IOException("Got invalid response code " + rc + " from "
           + url + ": " + response.getStatusText());
     }

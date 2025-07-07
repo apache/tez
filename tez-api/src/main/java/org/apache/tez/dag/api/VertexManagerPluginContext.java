@@ -21,6 +21,7 @@ package org.apache.tez.dag.api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -29,7 +30,6 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.dag.api.event.VertexState;
-import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
@@ -72,8 +72,7 @@ public interface VertexManagerPluginContext {
     Integer taskIndex;
     TaskLocationHint locationHint;
     public TaskWithLocationHint(Integer taskIndex, @Nullable TaskLocationHint locationHint) {
-      Preconditions.checkState(taskIndex != null);
-      this.taskIndex = taskIndex;
+      this.taskIndex = Objects.requireNonNull(taskIndex);
       this.locationHint = locationHint;
     }
     

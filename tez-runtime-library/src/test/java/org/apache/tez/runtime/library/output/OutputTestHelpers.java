@@ -14,8 +14,8 @@
 
 package org.apache.tez.runtime.library.output;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -28,7 +28,6 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.runtime.api.MemoryUpdateCallback;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.OutputStatisticsReporter;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
@@ -36,7 +35,10 @@ import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-class OutputTestHelpers {
+final class OutputTestHelpers {
+
+  private OutputTestHelpers() {}
+
   static OutputContext createOutputContext() throws IOException {
     OutputContext outputContext = mock(OutputContext.class);
     Configuration conf = new TezConfiguration();
@@ -48,7 +50,7 @@ class OutputTestHelpers {
     doReturn("destinationVertex").when(outputContext).getDestinationVertexName();
     doReturn(payLoad).when(outputContext).getUserPayload();
     doReturn(workingDirs).when(outputContext).getWorkDirs();
-    doReturn(200 * 1024 * 1024l).when(outputContext).getTotalMemoryAvailableToTask();
+    doReturn(200 * 1024 * 1024L).when(outputContext).getTotalMemoryAvailableToTask();
     doReturn(counters).when(outputContext).getCounters();
     doReturn(statsReporter).when(outputContext).getStatisticsReporter();
     doReturn(new Configuration(false)).when(outputContext).getContainerConfiguration();
@@ -59,21 +61,21 @@ class OutputTestHelpers {
       throws IOException {
     OutputContext ctx = mock(OutputContext.class);
     doAnswer(new Answer<Void>() {
-      @Override public Void answer(InvocationOnMock invocation) throws Throwable {
+      @Override public Void answer(InvocationOnMock invocation) {
         long requestedSize = (Long) invocation.getArguments()[0];
         MemoryUpdateCallbackHandler callback = (MemoryUpdateCallbackHandler) invocation
             .getArguments()[1];
         callback.memoryAssigned(requestedSize);
         return null;
       }
-    }).when(ctx).requestInitialMemory(anyLong(), any(MemoryUpdateCallback.class));
+    }).when(ctx).requestInitialMemory(anyLong(), any());
     doReturn(conf).when(ctx).getContainerConfiguration();
     doReturn(TezUtils.createUserPayloadFromConf(userPayloadConf)).when(ctx).getUserPayload();
     doReturn("taskVertex").when(ctx).getTaskVertexName();
     doReturn("destinationVertex").when(ctx).getDestinationVertexName();
     doReturn("UUID").when(ctx).getUniqueIdentifier();
     doReturn(new String[] { workingDir.toString() }).when(ctx).getWorkDirs();
-    doReturn(200 * 1024 * 1024l).when(ctx).getTotalMemoryAvailableToTask();
+    doReturn(200 * 1024 * 1024L).when(ctx).getTotalMemoryAvailableToTask();
     doReturn(new TezCounters()).when(ctx).getCounters();
     OutputStatisticsReporter statsReporter = mock(OutputStatisticsReporter.class);
     doReturn(statsReporter).when(ctx).getStatisticsReporter();

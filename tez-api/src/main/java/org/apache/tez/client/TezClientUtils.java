@@ -19,6 +19,7 @@
 package org.apache.tez.client;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
@@ -29,6 +30,7 @@ import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,6 +45,8 @@ import java.util.Objects;
 import com.google.common.base.Strings;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.tez.common.JavaOptsChecker;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
@@ -115,39 +119,35 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 @Private
-public class TezClientUtils {
+public final class TezClientUtils {
 
-  private static Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TezClientUtils.class);
   private static final int UTF8_CHUNK_SIZE = 16 * 1024;
 
-  private static FileStatus[] getLRFileStatus(String fileName, Configuration conf) throws
-      IOException {
-    URI uri;
+  private TezClientUtils() {}
+
+  private static RemoteIterator<LocatedFileStatus> getListFilesFileStatus(String configUri, Configuration conf)
+      throws IOException {
+    Path p = getPath(configUri);
+    FileSystem fs = p.getFileSystem(conf);
+    p = fs.resolvePath(p.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
+    FileSystem targetFS = p.getFileSystem(conf);
+    return targetFS.listFiles(p, false);
+  }
+
+  private static Path getPath(String configUri) {
     try {
-      uri = new URI(fileName);
+      return new Path(new URI(configUri));
     } catch (URISyntaxException e) {
-      String message = "Invalid URI defined in configuration for"
-          + " location of TEZ jars. providedURI=" + fileName;
+      String message = "Invalid URI defined in configuration for" + " location of TEZ jars. providedURI=" + configUri;
       LOG.error(message);
       throw new TezUncheckedException(message, e);
-    }
-
-    Path p = new Path(uri);
-    FileSystem fs = p.getFileSystem(conf);
-    p = fs.resolvePath(p.makeQualified(fs.getUri(),
-        fs.getWorkingDirectory()));
-    FileSystem targetFS = p.getFileSystem(conf); 
-    if (targetFS.isDirectory(p)) {
-      return targetFS.listStatus(p);
-    } else {
-      FileStatus fStatus = targetFS.getFileStatus(p);
-      return new FileStatus[]{fStatus};
     }
   }
 
   /**
    * Setup LocalResource map for Tez jars based on provided Configuration
-   * 
+   *
    * @param conf
    *          Configuration to use to access Tez jars' locations
    * @param credentials
@@ -164,7 +164,7 @@ public class TezClientUtils {
     boolean usingTezArchive = false;
 
     if (conf.getBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, false)){
-      LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" + 
+      LOG.info("Ignoring '" + TezConfiguration.TEZ_LIB_URIS + "' since  '" +
             TezConfiguration.TEZ_IGNORE_LIB_URIS + "' is set to true");
     } else {
       // Add tez jars to local resource
@@ -230,15 +230,11 @@ public class TezClientUtils {
         } else {
           type = LocalResourceType.FILE;
         }
+      RemoteIterator<LocatedFileStatus> fileStatuses = getListFilesFileStatus(configUri, conf);
 
-      FileStatus [] fileStatuses = getLRFileStatus(configUri, conf);
-
-      for (FileStatus fStatus : fileStatuses) {
+      while (fileStatuses.hasNext()) {
+        LocatedFileStatus fStatus = fileStatuses.next();
         String linkName;
-        if (fStatus.isDirectory()) {
-          // Skip directories - no recursive search support.
-          continue;
-        }
         // If the resource is an archive, we've already done this work
         if(type != LocalResourceType.ARCHIVE) {
           u = fStatus.getPath().toUri();
@@ -247,8 +243,7 @@ public class TezClientUtils {
           p = remoteFS.resolvePath(p.makeQualified(remoteFS.getUri(),
               remoteFS.getWorkingDirectory()));
           if(null != u.getFragment()) {
-            LOG.warn("Fragment set for link being interpreted as a file," +
-                "URI: " + u.toString());
+            LOG.warn("Fragment set for link being interpreted as a file, URI: {}", u);
           }
         }
 
@@ -321,7 +316,7 @@ public class TezClientUtils {
   /**
    * Verify or create the Staging area directory on the configured Filesystem
    * @param stagingArea Staging area directory path
-   * @return the FileSytem for the staging area directory
+   * @return the FileSystem for the staging area directory
    * @throws IOException
    */
   public static FileSystem ensureStagingDirExists(Configuration conf,
@@ -333,8 +328,13 @@ public class TezClientUtils {
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     realUser = ugi.getShortUserName();
     currentUser = UserGroupInformation.getCurrentUser().getShortUserName();
-    if (fs.exists(stagingArea)) {
-      FileStatus fsStatus = fs.getFileStatus(stagingArea);
+    FileStatus fsStatus = null;
+    try {
+      fsStatus = fs.getFileStatus(stagingArea);
+    } catch (FileNotFoundException fnf) {
+      // Ignore
+    }
+    if (fsStatus != null) {
       String owner = fsStatus.getOwner();
       if (!(owner.equals(currentUser) || owner.equals(realUser))) {
         throw new IOException("The ownership on the staging directory "
@@ -354,7 +354,7 @@ public class TezClientUtils {
     }
     return fs;
   }
-  
+
   /**
    * Populate {@link Credentials} for the URI's to access them from their {@link FileSystem}s
    * @param uris URIs that need to be accessed
@@ -382,7 +382,7 @@ public class TezClientUtils {
    * Obtains tokens for the DAG based on the list of URIs setup in the DAG. The
    * fetched credentials are populated back into the DAG and can be retrieved
    * via dag.getCredentials
-   * 
+   *
    * @param dag
    *          the dag for which credentials need to be setup
    * @param sessionCredentials
@@ -400,9 +400,9 @@ public class TezClientUtils {
     Credentials dagCredentials = new Credentials();
     // All session creds are required for the DAG.
     dagCredentials.mergeAll(sessionCredentials);
-    
+
     // Add additional credentials based on any URIs that the user may have specified.
-    
+
     // Obtain Credentials for any paths that the user may have configured.
     addFileSystemCredentialsFromURIs(dag.getURIsForCredentials(), dagCredentials, conf);
 
@@ -422,7 +422,7 @@ public class TezClientUtils {
           addFileSystemCredentialsFromURIs(dataSink.getURIsForCredentials(), dagCredentials, conf);
         }
       }
-      
+
       for (LocalResource lr: dag.getTaskLocalFiles().values()) {
         lrPaths.add(ConverterUtils.getPathFromYarnURL(lr.getResource()));
       }
@@ -433,7 +433,7 @@ public class TezClientUtils {
     } catch (URISyntaxException e) {
       throw new IOException(e);
     }
-    
+
     return dagCredentials;
   }
 
@@ -503,7 +503,7 @@ public class TezClientUtils {
     String[] amLogParams = parseLogParams(amLogLevelString);
 
     String amLogLevel = amLogParams[0];
-    maybeAddDefaultLoggingJavaOpts(amLogLevel, vargs);
+    TezClientUtils.addLog4jSystemProperties(amLogLevel, vargs);
 
 
     // FIX sun bug mentioned in TEZ-327
@@ -594,7 +594,7 @@ public class TezClientUtils {
       if (amLocalResources != null && !amLocalResources.isEmpty()) {
         amResourceProto = DagTypeConverters.convertFromLocalResources(amLocalResources);
       } else {
-        amResourceProto = DAGProtos.PlanLocalResourcesProto.getDefaultInstance(); 
+        amResourceProto = DAGProtos.PlanLocalResourcesProto.getDefaultInstance();
       }
       amResourceProto.writeDelimitedTo(sessionJarsPBOutStream);
     } finally {
@@ -616,7 +616,7 @@ public class TezClientUtils {
     Map<ApplicationAccessType, String> acls = aclManager.toYARNACls();
 
     if(dag != null) {
-      
+
       DAGPlan dagPB = prepareAndCreateDAGPlan(dag, amConfig, tezJarResources, tezLrsAsArchive,
           sessionCreds, servicePluginsDescriptor, javaOptsChecker);
 
@@ -746,7 +746,7 @@ public class TezClientUtils {
       TokenCache.obtainTokensForFileSystems(credentials, ps, conf);
     }
   }
-  
+
   static DAGPlan prepareAndCreateDAGPlan(DAG dag, AMConfiguration amConfig,
       Map<String, LocalResource> tezJarResources, boolean tezLrsAsArchive,
       Credentials credentials, ServicePluginsDescriptor servicePluginsDescriptor,
@@ -757,21 +757,16 @@ public class TezClientUtils {
     return dag.createDag(amConfig.getTezConfiguration(), dagCredentials, tezJarResources,
         amConfig.getBinaryConfLR(), tezLrsAsArchive, servicePluginsDescriptor, javaOptsChecker);
   }
-  
-  static void maybeAddDefaultLoggingJavaOpts(String logLevel, List<String> vargs) {
-    Objects.requireNonNull(vargs);
-    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
-  }
 
   @Private
   public static String maybeAddDefaultLoggingJavaOpts(String logLevel, String javaOpts) {
     List<String> vargs = new ArrayList<String>(5);
     if (javaOpts != null) {
-      vargs.add(javaOpts);
+      Collections.addAll(vargs, javaOpts.split(" "));
     } else {
       vargs.add("");
     }
-    maybeAddDefaultLoggingJavaOpts(logLevel, vargs);
+    TezClientUtils.addLog4jSystemProperties(logLevel, vargs);
     if (vargs.size() == 1) {
       return vargs.get(0);
     }
@@ -817,6 +812,7 @@ public class TezClientUtils {
   @VisibleForTesting
   public static void addLog4jSystemProperties(String logLevel,
       List<String> vargs) {
+    Objects.requireNonNull(vargs);
     vargs.add("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator");
     vargs.add("-Dlog4j.configuration="
         + TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE);
@@ -1010,11 +1006,11 @@ public class TezClientUtils {
       return javaOpts;
     }
 
-    if ((maxHeapFactor <= 0 && Double.valueOf("-1") != maxHeapFactor) || maxHeapFactor >= 1) {
+    if ((maxHeapFactor <= 0 && Double.parseDouble("-1") != maxHeapFactor) || maxHeapFactor >= 1) {
       return javaOpts;
     }
 
-    if (Double.valueOf("-1") == maxHeapFactor) {
+    if (Double.parseDouble("-1") == maxHeapFactor) {
       maxHeapFactor = resource.getMemory() < TezConstants.TEZ_CONTAINER_SMALL_SLAB_BOUND_MB
         ? TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB
         : TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB;
@@ -1067,6 +1063,7 @@ public class TezClientUtils {
     amOpts = amOpts + tezConf.get(TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS,
         TezConfiguration.TEZ_AM_LAUNCH_CMD_OPTS_DEFAULT);
 
+    amOpts = amOpts + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT;
     amOpts = maybeAddDefaultMemoryJavaOpts(amOpts, capability,
         tezConf.getDouble(TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION,
             TezConfiguration.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_DEFAULT));
@@ -1116,7 +1113,7 @@ public class TezClientUtils {
       int priority = amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY, 0);
       context.setPriority(Priority.newInstance(priority));
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Settting TEZ application priority, applicationId= " + context.getApplicationId() +
+        LOG.debug("Setting TEZ application priority, applicationId= " + context.getApplicationId() +
             ", priority= " + context.getPriority().getPriority());
       }
     }

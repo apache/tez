@@ -145,8 +145,7 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
 
   protected void startRpcServer() {
     try {
-      JobTokenSecretManager jobTokenSecretManager =
-          new JobTokenSecretManager();
+      JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(conf);
       jobTokenSecretManager.addTokenForJob(tokenIdentifier, sessionToken);
 
       server = new RPC.Builder(conf)

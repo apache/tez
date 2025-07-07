@@ -24,12 +24,14 @@ import java.util.Map.Entry;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.EdgeManagerDescriptorProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.RootInputSpecUpdateProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexConfigurationDoneProto;
@@ -37,7 +39,7 @@ import org.apache.tez.runtime.api.InputSpecUpdate;
 
 import com.google.common.collect.Maps;
 
-public class VertexConfigurationDoneEvent implements HistoryEvent {
+public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware {
 
   private TezVertexID vertexID;
   private long reconfigureDoneTime;
@@ -161,7 +163,8 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexConfigurationDoneProto proto = inputStream.readMessage(VertexConfigurationDoneProto.PARSER, null);
+    VertexConfigurationDoneProto proto =
+        inputStream.readMessage(VertexConfigurationDoneProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -182,6 +185,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent {
         + ", setParallelismCalledFlag=" + setParallelismCalledFlag;
   }
 
+  @Override
   public TezVertexID getVertexID() {
     return this.vertexID;
   }

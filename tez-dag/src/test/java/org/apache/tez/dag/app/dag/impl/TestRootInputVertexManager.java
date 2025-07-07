@@ -23,11 +23,11 @@ import static org.apache.tez.dag.app.dag.impl.RootInputVertexManager.TEZ_ROOT_IN
 import static org.apache.tez.dag.app.dag.impl.RootInputVertexManager.TEZ_ROOT_INPUT_VERTEX_MANAGER_MIN_SRC_FRACTION;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyListOf;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -161,7 +161,7 @@ public class TestRootInputVertexManager {
 
     VertexManagerPluginContext mockContext =
         mock(VertexManagerPluginContext.class);
-    when(mockContext.getVertexStatistics(any(String.class)))
+    when(mockContext.getVertexStatistics(any()))
         .thenReturn(mock(VertexStatistics.class));
     when(mockContext.getInputVertexEdgeProperties())
         .thenReturn(mockInputVertices);
@@ -176,7 +176,7 @@ public class TestRootInputVertexManager {
 
     final List<Integer> scheduledTasks = Lists.newLinkedList();
     doAnswer(new ScheduledTasksAnswer(scheduledTasks)).when(
-        mockContext).scheduleTasks(anyListOf(VertexManagerPluginContext.ScheduleTaskRequest.class));
+        mockContext).scheduleTasks(anyList());
 
     // source vertices have 0 tasks. immediate start of all managed tasks
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(0);
@@ -508,7 +508,7 @@ public class TestRootInputVertexManager {
 
     VertexManagerPluginContext mockContext =
         mock(VertexManagerPluginContext.class);
-    when(mockContext.getVertexStatistics(any(String.class)))
+    when(mockContext.getVertexStatistics(any()))
         .thenReturn(mock(VertexStatistics.class));
     when(mockContext.getInputVertexEdgeProperties())
         .thenReturn(mockInputVertices);

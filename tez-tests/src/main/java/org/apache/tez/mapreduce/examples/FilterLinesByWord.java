@@ -84,13 +84,13 @@ public class FilterLinesByWord extends Configured implements Tool {
   private static Logger LOG = LoggerFactory.getLogger(FilterLinesByWord.class);
 
   public static final String FILTER_PARAM_NAME = "tez.runtime.examples.filterbyword.word";
-  
+
   private boolean exitOnCompletion = false;
 
   public FilterLinesByWord(boolean exitOnCompletion) {
     this.exitOnCompletion = exitOnCompletion;
   }
-  
+
   private static void printUsage() {
     System.err.println("Usage filtelinesrbyword <in> <out> <filter_word> [-generateSplitsInClient true/<false>]");
     ToolRunner.printGenericCommandUsage(System.err);
@@ -162,7 +162,7 @@ public class FilterLinesByWord extends Configured implements Tool {
 
     TezClient tezSession = TezClient.create("FilterLinesByWordSession", tezConf,
         commonLocalResources, credentials);
-    tezSession.start(); // Why do I need to start the TezSession.
+    tezSession.start(); // Why do I need to start the TezSession?
 
     Configuration stage1Conf = new JobConf(conf);
     stage1Conf.set(FILTER_PARAM_NAME, filterWord);
@@ -248,9 +248,9 @@ public class FilterLinesByWord extends Configured implements Tool {
           return -1;
         }
       }
-      
+
       dagStatus = dagClient.getDAGStatus(Sets.newHashSet(StatusGetOpts.GET_COUNTERS));
-      
+
     } finally {
       fs.delete(stagingDir, true);
       tezSession.stop();
@@ -260,7 +260,7 @@ public class FilterLinesByWord extends Configured implements Tool {
     LOG.info("Application completed. " + "FinalState=" + dagStatus.getState());
     return dagStatus.getState() == DAGStatus.State.SUCCEEDED ? 0 : 1;
   }
-  
+
   public static void main(String[] args) throws Exception {
     FilterLinesByWord fl = new FilterLinesByWord(true);
     int status = ToolRunner.run(new Configuration(), fl, args);

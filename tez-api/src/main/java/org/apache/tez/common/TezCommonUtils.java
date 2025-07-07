@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
@@ -55,7 +56,7 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import com.google.protobuf.ByteString;
 
 @Private
-public class TezCommonUtils {
+public final class TezCommonUtils {
   public static final FsPermission TEZ_AM_DIR_PERMISSION = FsPermission
       .createImmutable((short) 0700); // rwx--------
   public static final FsPermission TEZ_AM_FILE_PERMISSION = FsPermission
@@ -63,6 +64,8 @@ public class TezCommonUtils {
   private static final Logger LOG = LoggerFactory.getLogger(TezClient.class);
 
   public static final String TEZ_SYSTEM_SUB_DIR = ".tez";
+
+  private TezCommonUtils() {}
 
   /**
    * <p>
@@ -73,7 +76,7 @@ public class TezCommonUtils {
    * function makes sure if the staging directory exists. If not, it creates the
    * directory with permission <code>TEZ_AM_DIR_PERMISSION</code>.
    * </p>
-   * 
+   *
    * @param conf
    *          TEZ configuration
    * @return Fully qualified staging directory
@@ -103,7 +106,7 @@ public class TezCommonUtils {
    * sub-directory (<code>TEZ_SYSTEM_SUB_DIR</code>/<APP_ID>) under the base
    * staging directory, often provided by user.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -134,7 +137,7 @@ public class TezCommonUtils {
    * its temporary files under this sub-directory. The function normally doesn't
    * creates any sub-directory under the base staging directory.
    * </p>
-   * 
+   *
    * @param conf
    *          Tez configuration
    * @param strAppId
@@ -154,7 +157,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store binary configuration
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to configuration
@@ -168,7 +171,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store local resources/session jars
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the session jars
@@ -182,7 +185,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store binary plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @return path to store the plan in binary
@@ -196,7 +199,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store text plan
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param strAppId
@@ -216,28 +219,27 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store recovery information
    * </p>
-   * 
+   *
    * @param tezSysStagingPath
    *          TEZ system level staging directory used for Tez internals
    * @param conf
    *          Tez configuration
    * @return App recovery path
-   * @throws IOException
    */
   @Private
   public static Path getRecoveryPath(Path tezSysStagingPath, Configuration conf)
       throws IOException {
-    Path baseReecoveryPath = new Path(tezSysStagingPath,
+    Path baseRecoveryPath = new Path(tezSysStagingPath,
         TezConstants.DAG_RECOVERY_DATA_DIR_NAME);
-    FileSystem recoveryFS = baseReecoveryPath.getFileSystem(conf);
-    return recoveryFS.makeQualified(baseReecoveryPath);
+    FileSystem recoveryFS = baseRecoveryPath.getFileSystem(conf);
+    return recoveryFS.makeQualified(baseRecoveryPath);
   }
 
   /**
    * <p>
    * Returns a path to store app attempt specific recovery details
    * </p>
-   * 
+   *
    * @param recoveryPath
    *          TEZ recovery directory used for Tez internals
    * @param attemptID
@@ -253,7 +255,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store DAG specific recovery info
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          :TEZ system level staging directory used for Tez internals
    * @param dagID
@@ -269,7 +271,7 @@ public class TezCommonUtils {
    * <p>
    * Returns a path to store summary info for recovery
    * </p>
-   * 
+   *
    * @param attemptRecoverPath
    *          TEZ system level staging directory used for Tez internals
    * @return Summary event path used in recovery
@@ -283,15 +285,22 @@ public class TezCommonUtils {
    * <p>
    * Create a directory with predefined directory permission
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param dir
    *          directory to be created
-   * @throws IOException
    */
   public static void mkDirForAM(FileSystem fs, Path dir) throws IOException {
-    fs.mkdirs(dir, new FsPermission(TEZ_AM_DIR_PERMISSION));
+    FsPermission perm = new FsPermission(TEZ_AM_DIR_PERMISSION);
+    fs.mkdirs(dir, perm);
+    FileStatus fileStatus = fs.getFileStatus(dir);
+    if (!fileStatus.getPermission().equals(perm)) {
+      LOG.warn("Directory " + dir.toString() + " created with unexpected permissions : "
+            + fileStatus.getPermission() + ". Fixing permissions to correct value : "
+            + perm.toString());
+      fs.setPermission(dir, perm);
+    }
   }
 
   /**
@@ -299,18 +308,17 @@ public class TezCommonUtils {
    * Create a file with <code>TEZ_AM_FILE_PERMISSION</code> permission and
    * returns OutputStream
    * </p>
-   * 
+   *
    * @param fs
    *          Filesystem
    * @param filePath
    *          file path to create the file
    * @return FSDataOutputStream
-   * @throws IOException
    */
   public static FSDataOutputStream createFileForAM(FileSystem fs, Path filePath) throws IOException {
     return FileSystem.create(fs, filePath, new FsPermission(TEZ_AM_FILE_PERMISSION));
   }
-  
+
   public static void addAdditionalLocalResources(Map<String, LocalResource> additionalLrs,
       Map<String, LocalResource> originalLRs, String logContext) {
     // TODO TEZ-1798. Handle contents of Tez archives for duplicate LocalResource checks
@@ -410,7 +418,7 @@ public class TezCommonUtils {
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("Credentials: #" + identifier + "Tokens=").append(credentials.numberOfTokens());
+    sb.append("Credentials: #").append(identifier).append("Tokens=").append(credentials.numberOfTokens());
     if (credentials.numberOfTokens() > 0) {
       sb.append(", Services=");
       sb.append(credentials.getAllTokens().stream()
@@ -428,16 +436,14 @@ public class TezCommonUtils {
       Token<JobTokenIdentifier> jobToken) throws IOException {
     DataOutputBuffer dob = new DataOutputBuffer();
     jobToken.write(dob);
-    ByteBuffer bb = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-    return bb;
+    return ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
   }
 
   public static Credentials parseCredentialsBytes(byte[] credentialsBytes) throws IOException {
     Credentials credentials = new Credentials();
     DataInputBuffer dib = new DataInputBuffer();
     try {
-      byte[] tokenBytes = credentialsBytes;
-      dib.reset(tokenBytes, tokenBytes.length);
+      dib.reset(credentialsBytes, credentialsBytes.length);
       credentials.readTokenStorageStream(dib);
       return credentials;
     } finally {
@@ -452,7 +458,7 @@ public class TezCommonUtils {
   }
 
   public static Collection<String> tokenizeString(String str, String delim) {
-    List<String> values = new ArrayList<String>();
+    List<String> values = new ArrayList<>();
     if (str == null || str.isEmpty())
       return values;
     StringTokenizer tokenizer = new StringTokenizer(str, delim);
@@ -526,7 +532,7 @@ public class TezCommonUtils {
     if (val > 0 && val < TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM) {
       return TezConstants.TEZ_AM_CLIENT_HEARTBEAT_TIMEOUT_SECS_MINIMUM * 1000;
     }
-    return val * 1000;
+    return val * 1000L;
   }
 
   /**
@@ -563,7 +569,7 @@ public class TezCommonUtils {
     if (timeoutSecs == 0) {
       timeoutSecs = 1;
     }
-    return 1000l * timeoutSecs;
+    return 1000L * timeoutSecs;
   }
 
   public static int getJavaVersion() {

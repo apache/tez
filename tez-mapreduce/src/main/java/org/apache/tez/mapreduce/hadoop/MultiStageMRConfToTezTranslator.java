@@ -25,13 +25,14 @@ import org.apache.tez.mapreduce.partition.MRPartitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 
 
-public class MultiStageMRConfToTezTranslator {
+public final class MultiStageMRConfToTezTranslator {
+
+  private MultiStageMRConfToTezTranslator() {}
 
   /**
    * Given a single base MRR config, returns a list of complete stage
    * configurations.
-   * 
-   * @param conf
+   *
    * @return list of complete stage configurations given Conifiguration
    */
   @Private
@@ -62,14 +63,13 @@ public class MultiStageMRConfToTezTranslator {
       }
     }
 
-    Configuration confs[] = new Configuration[numStages];
+    Configuration[] confs = new Configuration[numStages];
     Configuration nonItermediateConf = MultiStageMRConfigUtil.extractStageConf(
         conf, "");
+    confs[0] = nonItermediateConf;
     if (numStages == 1) {
-      confs[0] = nonItermediateConf;
       confs[0].setBoolean(MRConfig.IS_MAP_PROCESSOR, true);
     } else {
-      confs[0] = nonItermediateConf;
       confs[numStages - 1] = new Configuration(nonItermediateConf);
       confs[numStages -1].setBoolean(MRConfig.IS_MAP_PROCESSOR, false);
     }

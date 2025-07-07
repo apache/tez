@@ -1,6 +1,6 @@
 package org.apache.tez.runtime.library.utils;
 
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -37,6 +37,8 @@ import com.google.common.primitives.UnsignedBytes;
  */
 final class FastByteComparisons {
 
+  private FastByteComparisons() {}
+
   /**
    * Lexicographically compare two byte arrays.
    */
@@ -48,8 +50,8 @@ final class FastByteComparisons {
 
 
   private interface Comparer<T> {
-    abstract public int compareTo(T buffer1, int offset1, int length1,
-        T buffer2, int offset2, int length2);
+    int compareTo(T buffer1, int offset1, int length1,
+                  T buffer2, int offset2, int length2);
   }
 
   private static Comparer<byte[]> lexicographicalComparerJavaImpl() {
@@ -131,11 +133,9 @@ final class FastByteComparisons {
                   Field f = Unsafe.class.getDeclaredField("theUnsafe");
                   f.setAccessible(true);
                   return f.get(null);
-                } catch (NoSuchFieldException e) {
+                } catch (NoSuchFieldException | IllegalAccessException e) {
                   // It doesn't matter what we throw;
                   // it's swallowed in getBestComparer().
-                  throw new Error();
-                } catch (IllegalAccessException e) {
                   throw new Error();
                 }
               }

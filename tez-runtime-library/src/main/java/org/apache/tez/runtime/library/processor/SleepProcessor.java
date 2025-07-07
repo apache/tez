@@ -46,6 +46,7 @@ import org.apache.tez.runtime.api.ProcessorContext;
 public class SleepProcessor extends AbstractLogicalIOProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(SleepProcessor.class);
+  public static final String SLEEP_VERTEX_NAME = "Sleep";
 
   private int timeToSleepMS;
   protected Map<String, LogicalInput> inputs;

@@ -20,11 +20,11 @@ package org.apache.hadoop.mapreduce.split;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapReduceSplitContainer;
@@ -154,7 +154,7 @@ public class TezMapReduceSplitsGrouper extends TezSplitGrouper {
                                            SplitSizeEstimator estimator,
                                            SplitLocationProvider locationProvider) throws IOException,
       InterruptedException {
-    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
+    Objects.requireNonNull(originalSplits, "Splits must be specified");
     List<SplitContainer> originalSplitContainers = Lists.transform(originalSplits,
         new Function<InputSplit, SplitContainer>() {
           @Override

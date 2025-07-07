@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -276,10 +277,10 @@ public class Vertex {
    * set environment for all vertices via Tezconfiguration#TEZ_TASK_LAUNCH_ENV
    * @param environment
    * @return this Vertex
+   * NullPointerException if {@code environment} is {@code null}
    */
   public Vertex setTaskEnvironment(Map<String, String> environment) {
-    Preconditions.checkArgument(environment != null);
-    this.taskEnvironment.putAll(environment);
+    this.taskEnvironment.putAll(Objects.requireNonNull(environment));
     return this;
   }
 

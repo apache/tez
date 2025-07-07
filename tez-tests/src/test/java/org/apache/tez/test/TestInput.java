@@ -175,7 +175,7 @@ public class TestInput extends AbstractLogicalInput {
               for (int i=0; i<getNumPhysicalInputs(); ++i) {
                 String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
                     " index: " + i + " version: " + lastInputReadyValue);
-                events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue));
+                events.add(InputReadErrorEvent.create(msg, i, lastInputReadyValue, 1, false, false, "localhost"));
                 LOG.info("Failing input: " + msg);
               }
             } else {
@@ -189,7 +189,8 @@ public class TestInput extends AbstractLogicalInput {
                 }
                 String msg = ("FailingInput: " + getContext().getUniqueIdentifier() + 
                     " index: " + index.intValue() + " version: " + lastInputReadyValue);
-                events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue));
+                events.add(InputReadErrorEvent.create(msg, index.intValue(), lastInputReadyValue, 1, false, false,
+                    "localhost"));
                 LOG.info("Failing input: " + msg);
               }
             }
@@ -263,7 +264,7 @@ public class TestInput extends AbstractLogicalInput {
                             getContext().getUniqueIdentifier() + 
                             " index: " + index + " version: " + sourceInputVersion;
               LOG.info(msg);
-              events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion));
+              events.add(InputReadErrorEvent.create(msg, index, sourceInputVersion, 1, false, false, "localhost"));
             }
           }
         }
@@ -351,7 +352,8 @@ public class TestInput extends AbstractLogicalInput {
       if (event instanceof DataMovementEvent) {
         DataMovementEvent dmEvent = (DataMovementEvent) event;
         numCompletedInputs++;
-        LOG.info(getContext().getSourceVertexName() + " Received DataMovement event sourceId : " + dmEvent.getSourceIndex() + 
+        LOG.info(getContext().getInputOutputVertexNames() +
+            " Received DataMovement event sourceId : " + dmEvent.getSourceIndex() +
             " targetId: " + dmEvent.getTargetIndex() +
             " version: " + dmEvent.getVersion() +
             " numInputs: " + getNumPhysicalInputs() +
@@ -391,7 +393,7 @@ public class TestInput extends AbstractLogicalInput {
 
   @Override
   public List<Event> close() throws Exception {
-    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);;
+    getContext().getCounters().findCounter(COUNTER_NAME, COUNTER_NAME).increment(1);
     return null;
   }
 

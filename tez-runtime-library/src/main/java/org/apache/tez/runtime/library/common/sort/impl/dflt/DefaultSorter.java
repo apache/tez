@@ -956,7 +956,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
               new TezIndexRecord(segmentStart, rawLength, partLength);
           spillRec.putIndex(rec, i);
           if (!isFinalMergeEnabled() && reportPartitionStats() && writer != null) {
-            partitionStats[i] += partLength;
+            partitionStats[i] += rawLength;
           }
           writer = null;
         } finally {
@@ -1244,7 +1244,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
       }
       if (spillRecord != null && reportPartitionStats()) {
         for(int i=0; i < spillRecord.size(); i++) {
-          partitionStats[i] += spillRecord.getIndex(i).getPartLength();
+          partitionStats[i] += spillRecord.getIndex(i).getRawLength();
         }
       }
       numShuffleChunks.setValue(numSpills);
@@ -1388,7 +1388,7 @@ public final class DefaultSorter extends ExternalSorter implements IndexedSortab
           new TezIndexRecord(segmentStart, rawLength, partLength);
         spillRec.putIndex(rec, parts);
         if (reportPartitionStats()) {
-          partitionStats[parts] += partLength;
+          partitionStats[parts] += rawLength;
         }
       }
       numShuffleChunks.setValue(1); //final merge has happened

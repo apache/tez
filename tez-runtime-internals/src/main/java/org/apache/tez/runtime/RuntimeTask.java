@@ -18,6 +18,7 @@
 
 package org.apache.tez.runtime;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -26,6 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
@@ -35,6 +38,11 @@ import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.metrics.TaskCounterUpdater;
 
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT;
 
 public abstract class RuntimeTask {
 
@@ -54,6 +62,9 @@ public abstract class RuntimeTask {
   private final TaskStatistics statistics;
   private final AtomicBoolean progressNotified = new AtomicBoolean(false);
 
+  private final long lfsBytesWriteLimit;
+  private static final Logger LOG = LoggerFactory.getLogger(RuntimeTask.class);
+
   protected RuntimeTask(TaskSpec taskSpec, Configuration tezConf,
       TezUmbilical tezUmbilical, String pid, boolean setupSysCounterUpdater) {
     this.taskSpec = taskSpec;
@@ -71,6 +82,8 @@ public abstract class RuntimeTask {
     } else {
       this.counterUpdater = null;
     }
+    this.lfsBytesWriteLimit =
+        tezConf.getLong(TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES, TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT);
   }
 
   protected enum State {
@@ -181,5 +194,37 @@ public abstract class RuntimeTask {
 
   protected final boolean isUpdatingSystemCounters() {
     return counterUpdater != null;
+  }
+
+  /**
+   * Check whether the task has exceeded any configured limits.
+   *
+   * @throws LocalWriteLimitException in case the limit is exceeded.
+   */
+  public void checkTaskLimits() throws LocalWriteLimitException {
+    // check the limit for writing to local file system
+    if (lfsBytesWriteLimit >= 0) {
+      Long lfsBytesWritten = null;
+      try {
+        LocalFileSystem localFS = FileSystem.getLocal(tezConf);
+        lfsBytesWritten = FileSystem.getGlobalStorageStatistics().get(localFS.getScheme()).getLong("bytesWritten");
+      } catch (IOException e) {
+        LOG.warn("Could not get LocalFileSystem bytesWritten counter");
+      }
+      if (lfsBytesWritten != null && lfsBytesWritten > lfsBytesWriteLimit) {
+        throw new LocalWriteLimitException(
+            "Too much write to local file system." + " current value is " + lfsBytesWritten + " the limit is "
+                + lfsBytesWriteLimit);
+      }
+    }
+  }
+
+  /**
+   * Exception thrown when the task exceeds some configured limits.
+   */
+  public static class LocalWriteLimitException extends IOException {
+    public LocalWriteLimitException(String str) {
+      super(str);
+    }
   }
 }

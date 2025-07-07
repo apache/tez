@@ -359,7 +359,7 @@ public class TestTezClientUtils {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
     TezClientUtils.createSessionToken(appId.toString(),
-        new JobTokenSecretManager(), credentials);
+        new JobTokenSecretManager(tezConf), credentials);
     tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     Map<String, LocalResource> m = new HashMap<String, LocalResource>();
     tezConf.setInt(TezConfiguration.TEZ_AM_APPLICATION_PRIORITY, testpriority);
@@ -408,12 +408,12 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, STAGING_DIR.getAbsolutePath());
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("testdag-testSessionTokenInAmClc");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
 
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
     Token<JobTokenIdentifier> jobToken = TokenCache.getSessionToken(credentials);
     assertNotNull(jobToken);
@@ -447,9 +447,9 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsSimple");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
@@ -488,9 +488,9 @@ public class TestTezClientUtils {
 
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
     Credentials credentials = new Credentials();
-    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager();
+    JobTokenSecretManager jobTokenSecretManager = new JobTokenSecretManager(tezConf);
     TezClientUtils.createSessionToken(appId.toString(), jobTokenSecretManager, credentials);
-    DAG dag = DAG.create("testdag");
+    DAG dag = DAG.create("DAG-testAMLoggingOptsPerLogger");
     dag.addVertex(Vertex.create("testVertex", ProcessorDescriptor.create("processorClassname"), 1)
         .setTaskLaunchCmdOpts("initialLaunchOpts"));
     AMConfiguration amConf =
@@ -534,7 +534,8 @@ public class TestTezClientUtils {
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
     assertEquals(tmpOpts + " "
         + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT + " "
-        + amCommandOpts,
+        + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test2: Setup cluster-default command opts explicitly
@@ -543,7 +544,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
 
 
     // Test3: Don't setup Xmx explicitly
@@ -555,7 +557,7 @@ public class TestTezClientUtils {
     // It's OK for the Xmx value to show up before cluster default options, since Xmx will not be replaced if it already exists.
     assertEquals(
         " -Xmx" + ((int) (1024 * factor)) + "m" + " " + tmpOpts + " " + clusterDefaultCommandOpts + " " +
-            amCommandOpts,
+            amCommandOpts + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT,
         amOptsConstructed);
 
     // Test4: Ensure admin options with Xmx does not cause them to be overridden. This should almost never be done though.
@@ -564,7 +566,8 @@ public class TestTezClientUtils {
     tezConf.set(TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS, clusterDefaultCommandOpts);
     amOptsConstructed =
         TezClientUtils.constructAMLaunchOpts(tezConf, Resource.newInstance(1024, 1));
-    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts, amOptsConstructed);
+    assertEquals(tmpOpts + " " + clusterDefaultCommandOpts + " " + amCommandOpts
+        + TezConfiguration.TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT, amOptsConstructed);
   }
 
   @Test(timeout = 5000)
@@ -684,12 +687,13 @@ public class TestTezClientUtils {
 
   @Test
   public void testDefaultLoggingJavaOptsWithRootLogger() {
-    String origJavaOpts = "-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=INFO";
+    String origJavaOpts = "-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=INFO -DtestProperty=value";
     String javaOpts = TezClientUtils.maybeAddDefaultLoggingJavaOpts("FOOBAR", origJavaOpts);
     Assert.assertNotNull(javaOpts);
     Assert.assertTrue(javaOpts.contains("-D" + TezConstants.TEZ_ROOT_LOGGER_NAME + "=FOOBAR"));
     Assert.assertTrue(javaOpts.contains(TezConstants.TEZ_CONTAINER_LOG4J_PROPERTIES_FILE)
         && javaOpts.contains("-Dlog4j.configuratorClass=org.apache.tez.common.TezLog4jConfigurator"));
+    Assert.assertTrue(javaOpts.contains("-DtestProperty=value"));
   }
 
   @Test (timeout = 5000)

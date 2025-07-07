@@ -24,9 +24,11 @@ import java.util.List;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +52,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskAttemptFinishedPro
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-public class TaskAttemptFinishedEvent implements HistoryEvent {
+public class TaskAttemptFinishedEvent implements HistoryEvent, TaskAttemptIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptFinishedEvent.class);
 
@@ -234,7 +236,8 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    TaskAttemptFinishedProto proto = inputStream.readMessage(TaskAttemptFinishedProto.PARSER, null);
+    TaskAttemptFinishedProto proto =
+        inputStream.readMessage(TaskAttemptFinishedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -307,6 +310,7 @@ public class TaskAttemptFinishedEvent implements HistoryEvent {
     return sb.toString();
   }
 
+  @Override
   public TezTaskAttemptID getTaskAttemptID() {
     return taskAttemptId;
   }

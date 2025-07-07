@@ -17,8 +17,8 @@ package org.apache.tez.dag.api;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 
 @SuppressWarnings("unchecked")
@@ -28,8 +28,7 @@ public class NamedEntityDescriptor<T extends NamedEntityDescriptor<T>> extends E
   @InterfaceAudience.Private
   public NamedEntityDescriptor(String entityName, String className) {
     super(className);
-    Preconditions.checkArgument(entityName != null, "EntityName must be specified");
-    this.entityName = entityName;
+    this.entityName = Objects.requireNonNull(entityName, "EntityName must be specified");
   }
 
   public String getEntityName() {

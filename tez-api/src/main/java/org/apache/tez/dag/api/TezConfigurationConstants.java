@@ -27,11 +27,13 @@ import org.apache.tez.common.annotation.ConfigurationProperty;
  */
 @ConfigurationClass(templateFileName = "tez-conf-constants.xml")
 @Private
-public class TezConfigurationConstants {
+public final class TezConfigurationConstants {
 
   static {
     TezConfiguration.setupConfigurationScope(TezConfigurationConstants.class);
   }
+
+  private TezConfigurationConstants() {}
 
   /**
    * String value. Set automatically by the client. The host name of the client the Tez application

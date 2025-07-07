@@ -32,7 +32,9 @@ import org.apache.tez.runtime.api.impl.EventMetaData;
 import org.apache.tez.runtime.api.impl.EventType;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
-public class TezEventUtils {
+public final class TezEventUtils {
+
+  private TezEventUtils() {}
 
   public static TezEventProto toProto(TezEvent event) throws IOException {
     TezEventProto.Builder evtBuilder =

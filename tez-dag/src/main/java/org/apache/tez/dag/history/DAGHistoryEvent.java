@@ -18,9 +18,10 @@
 
 package org.apache.tez.dag.history;
 
+import org.apache.tez.dag.records.DAGIDAware;
 import org.apache.tez.dag.records.TezDAGID;
 
-public class DAGHistoryEvent {
+public class DAGHistoryEvent implements DAGIDAware {
 
   private final HistoryEvent historyEvent;
   private final TezDAGID dagID;
@@ -39,7 +40,8 @@ public class DAGHistoryEvent {
     return historyEvent;
   }
 
-  public TezDAGID getDagID() {
+  @Override
+  public TezDAGID getDAGID() {
     return this.dagID;
   }
 

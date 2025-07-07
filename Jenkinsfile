@@ -35,7 +35,7 @@ pipeline {
         DOCKERFILE = "${SOURCEDIR}/build-tools/docker/Dockerfile"
         YETUS='yetus'
         // Branch or tag name.  Yetus release tags are 'rel/X.Y.Z'
-        YETUS_VERSION='rel/0.12.0'
+        YETUS_VERSION='rel/0.15.1'
 
     }
 
@@ -105,12 +105,7 @@ pipeline {
                         YETUS_ARGS+=("--html-report-file=${WORKSPACE}/${PATCHDIR}/report.html")
 
                         # enable writing back to Github
-                        YETUS_ARGS+=(--github-user="${GITHUB_USER}")
                         YETUS_ARGS+=(--github-token="${GITHUB_TOKEN}")
-
-                        # enable writing back to ASF JIRA
-                        YETUS_ARGS+=(--jira-password="${JIRA_PASSWORD}")
-                        YETUS_ARGS+=(--jira-user="${JIRA_USER}")
 
                         # auto-kill any surefire stragglers during unit test runs
                         YETUS_ARGS+=("--reapermode=kill")
@@ -121,11 +116,10 @@ pipeline {
                         YETUS_ARGS+=("--proclimit=5500")
                         YETUS_ARGS+=("--dockermemlimit=20g")
 
-                        # -1 findbugs issues that show up prior to the patch being applied
-                        # YETUS_ARGS+=("--findbugs-strict-precheck")
-
+                        # -1 spotbugs issues that show up prior to the patch being applied
+                        # YETUS_ARGS+=("--spotbugs-strict-precheck")
                         # rsync these files back into the archive dir
-                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,findbugsXml.xml")
+                        YETUS_ARGS+=("--archive-list=checkstyle-errors.xml,spotbugsXml.xml")
 
                         # URL for user-side presentation in reports and such to our artifacts
                         # (needs to match the archive bits below)
@@ -153,14 +147,13 @@ pipeline {
                         # help keep the ASF boxes clean
                         YETUS_ARGS+=("--sentinel")
 
-                        # use emoji vote so it is easier to find the broken line
-                        YETUS_ARGS+=("--github-use-emoji-vote")
-
-                        # test with Java 8 and 11
-                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-8-openjdk-amd64")
-                        YETUS_ARGS+=("--multijdkdirs=/usr/lib/jvm/java-11-openjdk-amd64")
-                        YETUS_ARGS+=("--multijdktests=compile")
+                        # test with Java 21
+                        YETUS_ARGS+=("--java-home=/usr/lib/jvm/java-21-openjdk-amd64")
                         YETUS_ARGS+=("--debug")
+
+                        # write Yetus report as GitHub comment (YETUS-1102)
+                        YETUS_ARGS+=("--github-write-comment")
+                        YETUS_ARGS+=("--github-use-emoji-vote")
 
                         "${TESTPATCHBIN}" "${YETUS_ARGS[@]}"
                         '''

@@ -94,18 +94,18 @@ public class TimelineCachePluginImpl extends TimelineEntityGroupPlugin implement
     } else if (entityType.equals(EntityTypes.TEZ_VERTEX_ID.name())) {
       TezVertexID vertexID = TezVertexID.fromString(entityId);
       if (vertexID != null) {
-        return createTimelineEntityGroupIds(vertexID.getDAGId());
+        return createTimelineEntityGroupIds(vertexID.getDAGID());
       }
 
     } else if (entityType.equals(EntityTypes.TEZ_TASK_ID.name())) {
       TezTaskID taskID = TezTaskID.fromString(entityId);
       if (taskID != null) {
-        return createTimelineEntityGroupIds(taskID.getVertexID().getDAGId());
+        return createTimelineEntityGroupIds(taskID.getDAGID());
       }
     } else if (entityType.equals(EntityTypes.TEZ_TASK_ATTEMPT_ID.name())) {
       TezTaskAttemptID taskAttemptID = TezTaskAttemptID.fromString(entityId);
       if (taskAttemptID != null) {
-        return createTimelineEntityGroupIds(taskAttemptID.getTaskID().getVertexID().getDAGId());
+        return createTimelineEntityGroupIds(taskAttemptID.getDAGID());
       }
     } else if (entityType.equals(EntityTypes.TEZ_CONTAINER_ID.name())) {
       String cId = entityId;

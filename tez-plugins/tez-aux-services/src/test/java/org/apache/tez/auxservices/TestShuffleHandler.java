@@ -24,7 +24,12 @@ import org.apache.hadoop.util.DiskChecker.DiskErrorException;
 import static org.junit.Assert.assertTrue;
 import static io.netty.buffer.Unpooled.wrappedBuffer;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +47,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.zip.Checksum;
 
 import org.apache.hadoop.conf.Configuration;
@@ -54,9 +62,11 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.nativeio.NativeIO;
+import org.apache.hadoop.yarn.server.api.AuxiliaryLocalPathHandler;
 import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
@@ -95,7 +105,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +114,10 @@ public class TestShuffleHandler {
   private static final File TEST_DIR = new File(System.getProperty("test.build.data"),
       TestShuffleHandler.class.getName()).getAbsoluteFile();
   private static final String HADOOP_TMP_DIR = "hadoop.tmp.dir";
+  private static final String TEST_PARTITION_DATA_STRING = "0123456789";
+
   class MockShuffleHandler extends org.apache.tez.auxservices.ShuffleHandler {
+    private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
     @Override
     protected Shuffle getShuffle(final Configuration conf) {
       return new Shuffle(conf) {
@@ -148,8 +160,38 @@ public class TestShuffleHandler {
         }
       };
     }
+    @Override
+    public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+      return pathHandler;
+    }
   }
 
+  private static class TestAuxiliaryLocalPathHandler
+      implements AuxiliaryLocalPathHandler {
+    @Override
+    public Path getLocalPathForRead(String path) throws IOException {
+      return new Path(TEST_DIR.getAbsolutePath(), path);
+    }
+
+    @Override
+    public Path getLocalPathForWrite(String path) throws IOException {
+      return new Path(TEST_DIR.getAbsolutePath());
+    }
+
+    @Override
+    public Path getLocalPathForWrite(String path, long size)
+        throws IOException {
+      return new Path(TEST_DIR.getAbsolutePath());
+    }
+
+    @Override
+    public Iterable<Path> getAllLocalPathsForRead(String path)
+        throws IOException {
+      ArrayList<Path> paths = new ArrayList<>();
+      paths.add(new Path(TEST_DIR.getAbsolutePath(), path));
+      return paths;
+    }
+  }
   private static class MockShuffleHandler2 extends org.apache.tez.auxservices.ShuffleHandler {
     boolean socketKeepAlive = false;
 
@@ -176,7 +218,8 @@ public class TestShuffleHandler {
         "Could not find application_1234/240/output/attempt_1234_0/file.out.index";
 
     private JobTokenSecretManager secretManager =
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()));
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(getSecret().getBytes()),
+            new TezConfiguration());
 
     protected JobTokenSecretManager getSecretManager(){
       return secretManager;
@@ -279,9 +322,7 @@ public class TestShuffleHandler {
   @Test (timeout = 10000)
   public void testClientClosesConnection() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
       @Override
       protected Shuffle getShuffle(Configuration conf) {
@@ -383,9 +424,7 @@ public class TestShuffleHandler {
   @Test(timeout = 10000)
   public void testKeepAlive() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
     conf.setInt(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT, -100);
@@ -531,14 +570,17 @@ public class TestShuffleHandler {
 
   @Test
   public void testSocketKeepAlive() throws Exception {
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setBoolean(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_ENABLED, true);
     // try setting to -ve keep alive timeout.
     conf.setInt(ShuffleHandler.SHUFFLE_CONNECTION_KEEP_ALIVE_TIME_OUT, -100);
     HttpURLConnection conn = null;
     MockShuffleHandler2 shuffleHandler = new MockShuffleHandler2();
+    AuxiliaryLocalPathHandler pathHandler =
+        mock(AuxiliaryLocalPathHandler.class);
+    when(pathHandler.getLocalPathForRead(anyString())).thenThrow(
+        new IOException("Test"));
+    shuffleHandler.setAuxiliaryLocalPathHandler(pathHandler);
     try {
       shuffleHandler.init(conf);
       shuffleHandler.start();
@@ -575,9 +617,7 @@ public class TestShuffleHandler {
   @Test (timeout = 10000)
   public void testIncompatibleShuffleVersion() throws Exception {
     final int failureNum = 3;
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     ShuffleHandler shuffleHandler = new ShuffleHandler();
     shuffleHandler.init(conf);
     shuffleHandler.start();
@@ -609,9 +649,7 @@ public class TestShuffleHandler {
   @Test (timeout = 10000)
   public void testMaxConnections() throws Exception {
 
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
       @Override
@@ -718,16 +756,12 @@ public class TestShuffleHandler {
    */
   @Test(timeout = 10000)
   public void testRangedFetch() throws IOException {
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         "simple");
     UserGroupInformation.setConfiguration(conf);
-    File absLogDir = new File("target",
-        TestShuffleHandler.class.getSimpleName() + "LocDir").getAbsoluteFile();
-    conf.set(YarnConfiguration.NM_LOCAL_DIRS, absLogDir.getAbsolutePath());
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
     ApplicationId appId = ApplicationId.newInstance(12345, 1);
     LOG.info(appId.toString());
     String appAttemptId = "attempt_12345_1_m_1_0";
@@ -735,25 +769,9 @@ public class TestShuffleHandler {
     String reducerIdStart = "0";
     String reducerIdEnd = "1";
     List<File> fileMap = new ArrayList<>();
-    createShuffleHandlerFiles(absLogDir, user, appId.toString(), appAttemptId,
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
         conf, fileMap);
-    ShuffleHandler shuffleHandler = new ShuffleHandler() {
-
-      @Override
-      protected Shuffle getShuffle(Configuration conf) {
-        // replace the shuffle handler with one stubbed for testing
-        return new Shuffle(conf) {
-
-          @Override
-          protected void verifyRequest(String appid, ChannelHandlerContext ctx,
-                                       HttpRequest request, HttpResponse response, URL requestUri)
-              throws IOException {
-            // Do nothing.
-          }
-
-        };
-      }
-    };
+    ShuffleHandler shuffleHandler = getShuffleHandlerWithNoVerify();
     shuffleHandler.init(conf);
     try {
       shuffleHandler.start();
@@ -806,7 +824,104 @@ public class TestShuffleHandler {
 
     } finally {
       shuffleHandler.close();
-      FileUtil.fullyDelete(absLogDir);
+      FileUtil.fullyDelete(TEST_DIR);
+    }
+  }
+
+  /**
+   * Validate the ranged fetch works as expected for different amount of map attempts and reduce ranges.
+   */
+  @Test(timeout = 30000)
+  public void testRangedFetchMultipleAttempts() throws IOException {
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/1, /*reduceRange*/1);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/5, /*reduceRange*/1);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/10, /*reduceRange*/1);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/100, /*reduceRange*/1);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/1, /*reduceRange*/5);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/5, /*reduceRange*/5);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/10, /*reduceRange*/5);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/100, /*reduceRange*/5);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/1, /*reduceRange*/10);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/5, /*reduceRange*/10);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/10, /*reduceRange*/10);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/100, /*reduceRange*/10);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/1, /*reduceRange*/100);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/5, /*reduceRange*/100);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/10, /*reduceRange*/100);
+    runMultiAttemptMultiRangeShuffleTest(/*attemptRange*/100, /*reduceRange*/100);
+  }
+
+  private void runMultiAttemptMultiRangeShuffleTest(int attemptRange, int reduceRange) throws IOException {
+    Random random = new Random();
+    String user = "randomUser";
+    int firstAttempt = random.nextInt(10);
+    int reducerIdStart = random.nextInt(10);
+    int reducerIdEnd = reducerIdStart + reduceRange - 1;
+
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.setInt(ShuffleHandler.SHUFFLE_MAX_SESSION_OPEN_FILES, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345, 1);
+    LOG.info(appId.toString());
+    List<String> attemptIds = IntStream.range(firstAttempt, firstAttempt + attemptRange)
+        .mapToObj(i -> "attempt_12345_1_m_" + i + "_0").collect(Collectors.toList());
+    List<File> fileMap = new ArrayList<>();
+    for (String attemptId : attemptIds) {
+      createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), attemptId, conf, fileMap, reducerIdStart,
+          reducerIdEnd);
+    }
+    ShuffleHandler shuffleHandler = getShuffleHandlerWithNoVerify();
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt = new Token<JobTokenIdentifier>("identifier".getBytes(), "password".getBytes(),
+          new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler.initializeApplication(new ApplicationInitializationContext(user, appId,
+          ByteBuffer.wrap(outputBuffer.getData(), 0, outputBuffer.getLength())));
+      URL url = new URL("http://127.0.0.1:" + shuffleHandler.getConfig().get(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
+          + "/mapOutput?job=job_12345_0001&dag=1&reduce=" + reducerIdStart + "-" + reducerIdEnd + "&map="
+          + String.join(",", attemptIds));
+      LOG.info("Calling shuffle URL: {}", url);
+      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME, ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION, ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      conn.connect();
+      boolean succeeded = false;
+      try {
+        DataInputStream is = new DataInputStream(conn.getInputStream());
+        for (String attempt : attemptIds) {
+          int partitionCount = WritableUtils.readVInt(is);
+          List<ShuffleHeader> headers = new ArrayList<>(partitionCount);
+          for (int i = reducerIdStart; i <= reducerIdEnd; i++) {
+            ShuffleHeader header = new ShuffleHeader();
+            header.readFields(is);
+            Assert.assertEquals("Incorrect map id", attempt, header.getMapId());
+            Assert.assertEquals("Incorrect reduce id", i, header.getPartition());
+            headers.add(header);
+          }
+          for (ShuffleHeader header : headers) {
+            byte[] bytes = new byte[(int) header.getCompressedLength()];
+            is.read(bytes);
+            Assert.assertEquals(TEST_PARTITION_DATA_STRING, new String(bytes));
+          }
+        }
+        succeeded = true;
+        // Read one more byte to force EOF
+        is.readByte();
+        Assert.fail("More fetch bytes that expected in stream");
+      } catch (EOFException e) {
+        Assert.assertTrue("Failed to copy ranged fetch", succeeded);
+      }
+
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
@@ -820,41 +935,21 @@ public class TestShuffleHandler {
   public void testMapFileAccess() throws IOException {
     // This will run only in NativeIO is enabled as SecureIOUtils need it
     assumeTrue(NativeIO.isAvailable());
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         "kerberos");
     UserGroupInformation.setConfiguration(conf);
-    File absLogDir = new File("target",
-        TestShuffleHandler.class.getSimpleName() + "LocDir").getAbsoluteFile();
-    conf.set(YarnConfiguration.NM_LOCAL_DIRS, absLogDir.getAbsolutePath());
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
     ApplicationId appId = ApplicationId.newInstance(12345, 1);
     LOG.info(appId.toString());
     String appAttemptId = "attempt_12345_1_m_1_0";
     String user = "randomUser";
     String reducerId = "0";
     List<File> fileMap = new ArrayList<File>();
-    createShuffleHandlerFiles(absLogDir, user, appId.toString(), appAttemptId,
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
         conf, fileMap);
-    ShuffleHandler shuffleHandler = new ShuffleHandler() {
-
-      @Override
-      protected Shuffle getShuffle(Configuration conf) {
-        // replace the shuffle handler with one stubbed for testing
-        return new Shuffle(conf) {
-
-          @Override
-          protected void verifyRequest(String appid, ChannelHandlerContext ctx,
-              HttpRequest request, HttpResponse response, URL requestUri)
-              throws IOException {
-            // Do nothing.
-          }
-
-        };
-      }
-    };
+    ShuffleHandler shuffleHandler = getShuffleHandlerWithNoVerify();
     shuffleHandler.init(conf);
     try {
       shuffleHandler.start();
@@ -899,52 +994,59 @@ public class TestShuffleHandler {
       Assert.assertTrue((new String(byteArr)).contains(message));
     } finally {
       shuffleHandler.close();
-      FileUtil.fullyDelete(absLogDir);
+      FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
-  private static void createShuffleHandlerFiles(File logDir, String user,
-      String appId, String appAttemptId, Configuration conf,
-      List<File> fileMap) throws IOException {
-    String attemptDir =
-        StringUtils.join(Path.SEPARATOR,
-            new String[] { logDir.getAbsolutePath(),
-                ShuffleHandler.USERCACHE, user,
-                ShuffleHandler.APPCACHE, appId,"dag_1/" + "output",
-                appAttemptId });
-    File appAttemptDir = new File(attemptDir);
-    appAttemptDir.mkdirs();
-    System.out.println(appAttemptDir.getAbsolutePath());
-    File indexFile = new File(appAttemptDir, "file.out.index");
-    fileMap.add(indexFile);
-    createIndexFile(indexFile, conf);
-    File mapOutputFile = new File(appAttemptDir, "file.out");
-    fileMap.add(mapOutputFile);
-    createMapOutputFile(mapOutputFile, conf);
+  private static void createShuffleHandlerFiles(File logDir, String user, String appId, String appAttemptId,
+      Configuration conf, List<File> fileMap) throws IOException {
+    createShuffleHandlerFiles(logDir, user, appId, appAttemptId, conf, fileMap, 0, 1);
   }
 
-  private static void
-    createMapOutputFile(File mapOutputFile, Configuration conf)
-          throws IOException {
+  private static void createShuffleHandlerFiles(File logDir, String user, String appId, String appAttemptId,
+      Configuration conf, List<File> fileMap, int reduceStart, int reduceEnd) throws IOException {
+    String attemptDir = StringUtils.join(Path.SEPARATOR, new String[] { logDir.getAbsolutePath(),
+        ShuffleHandler.USERCACHE, user, ShuffleHandler.APPCACHE, appId, "dag_1/" + "output", appAttemptId });
+    File appAttemptDir = new File(attemptDir);
+    appAttemptDir.mkdirs();
+    LOG.info(appAttemptDir.getAbsolutePath());
+    File indexFile = new File(appAttemptDir, "file.out.index");
+    fileMap.add(indexFile);
+    createIndexFile(indexFile, conf, reduceStart, reduceEnd);
+    File mapOutputFile = new File(appAttemptDir, "file.out");
+    fileMap.add(mapOutputFile);
+    createMapOutputFile(mapOutputFile, conf, reduceEnd - reduceStart + 1);
+  }
+
+  private static void createMapOutputFile(File mapOutputFile, Configuration conf, int partitionCount)
+      throws IOException {
     FileOutputStream out = new FileOutputStream(mapOutputFile);
-    out.write("Creating new dummy map output file. Used only for testing"
-        .getBytes());
+
+    StringBuilder b = new StringBuilder(partitionCount * TEST_PARTITION_DATA_STRING.length());
+    for (int i = 0; i < partitionCount; i++) {
+      b.append(TEST_PARTITION_DATA_STRING);
+    }
+
+    out.write(b.toString().getBytes());
     out.flush();
     out.close();
   }
 
-  private static void createIndexFile(File indexFile, Configuration conf)
+  private static void createIndexFile(File indexFile, Configuration conf, int reduceStart, int reduceEnd)
       throws IOException {
     if (indexFile.exists()) {
-      System.out.println("Deleting existing file");
+      LOG.info("Deleting existing file");
       indexFile.delete();
     }
     Checksum crc = new PureJavaCrc32();
-    TezSpillRecord tezSpillRecord = new TezSpillRecord(2);
-    tezSpillRecord.putIndex(new TezIndexRecord(0, 10, 10), 0);
-    tezSpillRecord.putIndex(new TezIndexRecord(10, 10, 10), 1);
-    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf,
-        FileSystem.getLocal(conf).getRaw(), crc);
+    TezSpillRecord tezSpillRecord = new TezSpillRecord(reduceEnd + 1);
+    int offset = 0;
+    for (int i = reduceStart; i <= reduceEnd; i++) {
+      tezSpillRecord.putIndex(
+          new TezIndexRecord(offset, TEST_PARTITION_DATA_STRING.length(), TEST_PARTITION_DATA_STRING.length()), i);
+      offset += TEST_PARTITION_DATA_STRING.length();
+    }
+    tezSpillRecord.writeToFile(new Path(indexFile.getAbsolutePath()), conf, FileSystem.getLocal(conf).getRaw(), crc);
   }
 
   @Test
@@ -954,9 +1056,7 @@ public class TestShuffleHandler {
     final File tmpDir = new File(System.getProperty("test.build.data",
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
     // emulate aux services startup with recovery enabled
@@ -1022,9 +1122,7 @@ public class TestShuffleHandler {
     final File tmpDir = new File(System.getProperty("test.build.data",
         System.getProperty("java.io.tmpdir")),
         TestShuffleHandler.class.getName());
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     ShuffleHandler shuffle = new ShuffleHandler();
     // emulate aux services startup with recovery enabled
@@ -1113,7 +1211,7 @@ public class TestShuffleHandler {
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
     String encHash = SecureShuffleUtils.hashFromString(
         SecureShuffleUtils.buildMsgFrom(url),
-        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(jt.getPassword())));
+        new JobTokenSecretManager(JobTokenSecretManager.createSecretKey(jt.getPassword()), new TezConfiguration()));
     conn.addRequestProperty(
         SecureShuffleUtils.HTTP_HEADER_URL_HASH, encHash);
     conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
@@ -1129,24 +1227,21 @@ public class TestShuffleHandler {
   @Test(timeout = 100000)
   public void testGetMapOutputInfo() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         "simple");
     UserGroupInformation.setConfiguration(conf);
-    File absLogDir = new File("target", TestShuffleHandler.class.
-        getSimpleName() + "LocDir").getAbsoluteFile();
-    conf.set(YarnConfiguration.NM_LOCAL_DIRS, absLogDir.getAbsolutePath());
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
     ApplicationId appId = ApplicationId.newInstance(12345, 1);
     String appAttemptId = "attempt_12345_1_m_1_0";
     String user = "randomUser";
     String reducerId = "0";
     List<File> fileMap = new ArrayList<File>();
-    createShuffleHandlerFiles(absLogDir, user, appId.toString(), appAttemptId,
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
         conf, fileMap);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
       @Override
       protected Shuffle getShuffle(Configuration conf) {
         // replace the shuffle handler with one stubbed for testing
@@ -1187,6 +1282,10 @@ public class TestShuffleHandler {
           }
         };
       }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
     };
     shuffleHandler.init(conf);
     try {
@@ -1226,30 +1325,27 @@ public class TestShuffleHandler {
           false, failureEncountered.get());
     } finally {
       shuffleHandler.close();
-      FileUtil.fullyDelete(absLogDir);
+      FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
   @Test(timeout = 5000)
   public void testDagDelete() throws Exception {
     final AtomicBoolean failureEncountered = new AtomicBoolean(false);
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
+    Configuration conf = getInitialConf();
     conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
     conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         "simple");
     UserGroupInformation.setConfiguration(conf);
-    File absLogDir = new File("target", TestShuffleHandler.class.
-        getSimpleName() + "LocDir").getAbsoluteFile();
-    conf.set(YarnConfiguration.NM_LOCAL_DIRS, absLogDir.getAbsolutePath());
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
     ApplicationId appId = ApplicationId.newInstance(12345, 1);
     String appAttemptId = "attempt_12345_1_m_1_0";
     String user = "randomUser";
     List<File> fileMap = new ArrayList<File>();
-    createShuffleHandlerFiles(absLogDir, user, appId.toString(), appAttemptId,
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
         conf, fileMap);
     ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
       @Override
       protected Shuffle getShuffle(Configuration conf) {
         // replace the shuffle handler with one stubbed for testing
@@ -1262,6 +1358,10 @@ public class TestShuffleHandler {
             }
           }
         };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
       }
     };
     shuffleHandler.init(conf);
@@ -1290,7 +1390,7 @@ public class TestShuffleHandler {
           ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
       String dagDirStr =
           StringUtils.join(Path.SEPARATOR,
-              new String[] { absLogDir.getAbsolutePath(),
+              new String[] { TEST_DIR.getAbsolutePath(),
                   ShuffleHandler.USERCACHE, user,
                   ShuffleHandler.APPCACHE, appId.toString(),"dag_1/"});
       File dagDir = new File(dagDirStr);
@@ -1307,7 +1407,180 @@ public class TestShuffleHandler {
           false, failureEncountered.get());
     } finally {
       shuffleHandler.close();
-      FileUtil.fullyDelete(absLogDir);
+      FileUtil.fullyDelete(TEST_DIR);
+    }
+  }
+
+  @Test
+  public void testVertexShuffleDelete() throws Exception {
+    final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+            "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345L, 1);
+    String appAttemptId = "attempt_12345_0001_1_00_000000_0_10003_0";
+    String user = "randomUser";
+    List<File> fileMap = new ArrayList<File>();
+    String vertexDirStr = StringUtils.join(Path.SEPARATOR, new String[] { TEST_DIR.getAbsolutePath(),
+        ShuffleHandler.USERCACHE, user, ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/" + appAttemptId});
+    File vertexDir = new File(vertexDirStr);
+    Assert.assertFalse("vertex directory should not be present", vertexDir.exists());
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
+            conf, fileMap);
+    ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+      @Override
+      protected Shuffle getShuffle(Configuration conf) {
+        // replace the shuffle handler with one stubbed for testing
+        return new Shuffle(conf) {
+          @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx, HttpRequest request,
+              HttpResponse response, URL requestUri) throws IOException {
+            // Do nothing.
+          }
+          @Override
+          protected void sendError(ChannelHandlerContext ctx, String message,
+                                   HttpResponseStatus status) {
+            if (failures.size() == 0) {
+              failures.add(new Error(message));
+              ctx.channel().close();
+            }
+          }
+        };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt =
+              new Token<JobTokenIdentifier>("identifier".getBytes(),
+                      "password".getBytes(), new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler
+              .initializeApplication(new ApplicationInitializationContext(user,
+                      appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
+                      outputBuffer.getLength())));
+      URL url =
+              new URL(
+                      "http://127.0.0.1:"
+                              + shuffleHandler.getConfig().get(
+                              ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
+                              + "/mapOutput?vertexAction=delete&job=job_12345_0001&dag=1&vertex=00");
+      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+              ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+              ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      Assert.assertTrue("Attempt Directory does not exist!", vertexDir.exists());
+      conn.connect();
+      try {
+        DataInputStream is = new DataInputStream(conn.getInputStream());
+        is.close();
+        Assert.assertFalse("Vertex Directory was not deleted", vertexDir.exists());
+      } catch (EOFException e) {
+        fail("Encountered Exception!" + e.getMessage());
+      }
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testFailedTaskAttemptDelete() throws Exception {
+    final ArrayList<Throwable> failures = new ArrayList<Throwable>(1);
+    Configuration conf = getInitialConf();
+    conf.setInt(ShuffleHandler.MAX_SHUFFLE_CONNECTIONS, 3);
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
+        "simple");
+    UserGroupInformation.setConfiguration(conf);
+    conf.set(YarnConfiguration.NM_LOCAL_DIRS, TEST_DIR.getAbsolutePath());
+    ApplicationId appId = ApplicationId.newInstance(12345, 1);
+    String appAttemptId = "attempt_12345_1_m_1_0";
+    String user = "randomUser";
+    List<File> fileMap = new ArrayList<File>();
+    String taskAttemptDirStr =
+            StringUtils.join(Path.SEPARATOR,
+                    new String[] {TEST_DIR.getAbsolutePath(),
+                            ShuffleHandler.USERCACHE, user,
+                            ShuffleHandler.APPCACHE, appId.toString(), "dag_1/output/", appAttemptId});
+    File taskAttemptDir = new File(taskAttemptDirStr);
+    Assert.assertFalse("Task Attempt Directory should not exist", taskAttemptDir.exists());
+    createShuffleHandlerFiles(TEST_DIR, user, appId.toString(), appAttemptId,
+        conf, fileMap);
+    ShuffleHandler shuffleHandler = new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+      @Override
+      protected Shuffle getShuffle(Configuration conf) {
+        // replace the shuffle handler with one stubbed for testing
+        return new Shuffle(conf) {
+          @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx, HttpRequest request,
+              HttpResponse response, URL requestUri) throws IOException {
+            // Do nothing.
+          }
+          @Override
+          protected void sendError(ChannelHandlerContext ctx, String message,
+                                   HttpResponseStatus status) {
+            if (failures.size() == 0) {
+              failures.add(new Error(message));
+              ctx.channel().close();
+            }
+          }
+        };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
+    shuffleHandler.init(conf);
+    try {
+      shuffleHandler.start();
+      DataOutputBuffer outputBuffer = new DataOutputBuffer();
+      outputBuffer.reset();
+      Token<JobTokenIdentifier> jt =
+          new Token<JobTokenIdentifier>("identifier".getBytes(),
+              "password".getBytes(), new Text(user), new Text("shuffleService"));
+      jt.write(outputBuffer);
+      shuffleHandler
+          .initializeApplication(new ApplicationInitializationContext(user,
+              appId, ByteBuffer.wrap(outputBuffer.getData(), 0,
+              outputBuffer.getLength())));
+      URL url =
+          new URL(
+              "http://127.0.0.1:"
+                  + shuffleHandler.getConfig().get(
+                  ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY)
+                  + "/mapOutput?taskAttemptAction=delete&job=job_12345_0001&dag=1&map=" + appAttemptId);
+      HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_NAME,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_NAME);
+      conn.setRequestProperty(ShuffleHeader.HTTP_HEADER_VERSION,
+          ShuffleHeader.DEFAULT_HTTP_HEADER_VERSION);
+      Assert.assertTrue("Task Attempt Directory does not exist!", taskAttemptDir.exists());
+      conn.connect();
+      try {
+        DataInputStream is = new DataInputStream(conn.getInputStream());
+        is.close();
+        Assert.assertFalse("Task Attempt file was not deleted!", taskAttemptDir.exists());
+      } catch (EOFException e) {
+        // ignore
+      }
+      Assert.assertEquals("sendError called due to shuffle error",
+          0, failures.size());
+    } finally {
+      shuffleHandler.close();
+      FileUtil.fullyDelete(TEST_DIR);
     }
   }
 
@@ -1319,7 +1592,7 @@ public class TestShuffleHandler {
     final ChannelHandlerContext mockCtx =
         mock(ChannelHandlerContext.class);
     final Channel mockCh = mock(AbstractChannel.class);
-    final ChannelPipeline mockPipeline = Mockito.mock(ChannelPipeline.class);
+    final ChannelPipeline mockPipeline = mock(ChannelPipeline.class);
 
     // Mock HttpRequest and ChannelFuture
     final FullHttpRequest httpRequest = createHttpRequest();
@@ -1329,18 +1602,15 @@ public class TestShuffleHandler {
         new ShuffleHandler.TimeoutHandler();
 
     // Mock Netty Channel Context and Channel behavior
-    Mockito.doReturn(mockCh).when(mockCtx).channel();
-    Mockito.when(mockCh.pipeline()).thenReturn(mockPipeline);
-    Mockito.when(mockPipeline.get(Mockito.any(String.class))).thenReturn(timerHandler);
+    doReturn(mockCh).when(mockCtx).channel();
+    when(mockCh.pipeline()).thenReturn(mockPipeline);
+    when(mockPipeline.get(any(String.class))).thenReturn(timerHandler);
     when(mockCtx.channel()).thenReturn(mockCh);
-    Mockito.doReturn(mockFuture).when(mockCh).writeAndFlush(Mockito.any(Object.class));
+    doReturn(mockFuture).when(mockCh).writeAndFlush(any());
     when(mockCh.writeAndFlush(Object.class)).thenReturn(mockFuture);
 
     final ShuffleHandler sh = new MockShuffleHandler();
-    Configuration conf = new Configuration();
-    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
-    // The Shuffle handler port associated with the service is bound to but not used.
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
     sh.init(conf);
     sh.start();
     int maxOpenFiles =conf.getInt(ShuffleHandler.SHUFFLE_MAX_SESSION_OPEN_FILES,
@@ -1360,8 +1630,7 @@ public class TestShuffleHandler {
 
   @Test
   public void testShuffleHandlerSendsDiskError() throws Exception {
-    Configuration conf = new Configuration();
-    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    Configuration conf = getInitialConf();
 
     DataInputStream input = null;
     MockShuffleHandlerWithFatalDiskError shuffleHandler =
@@ -1409,8 +1678,8 @@ public class TestShuffleHandler {
       final List<ShuffleHandler.ReduceMapFileCount> listenerList) {
     final ChannelFuture mockFuture = mock(ChannelFuture.class);
     when(mockFuture.channel()).thenReturn(mockCh);
-    Mockito.doReturn(true).when(mockFuture).isSuccess();
-    Mockito.doAnswer(new Answer<Object>() {
+    doReturn(true).when(mockFuture).isSuccess();
+    doAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         //Add ReduceMapFileCount listener to a list
@@ -1420,7 +1689,7 @@ public class TestShuffleHandler {
               invocation.getArguments()[0]);
         return null;
       }
-    }).when(mockFuture).addListener(Mockito.any(
+    }).when(mockFuture).addListener(any(
         ShuffleHandler.ReduceMapFileCount.class));
     return mockFuture;
   }
@@ -1431,5 +1700,65 @@ public class TestShuffleHandler {
       uri = uri.concat("&map=attempt_12345_1_m_" + i + "_0");
     }
     return new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, uri);
+  }
+
+  @Test
+  public void testConfigPortStatic() throws Exception {
+    Random rand = new Random();
+    int port = rand.nextInt(10) + 50000;
+    Configuration conf = new Configuration();
+    // provide a port for ShuffleHandler
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, port);
+    MockShuffleHandler2 shuffleHandler = new MockShuffleHandler2();
+    shuffleHandler.serviceInit(conf);
+    try {
+      shuffleHandler.serviceStart();
+      Assert.assertEquals(port, shuffleHandler.getPort());
+    } finally {
+      shuffleHandler.close();
+    }
+  }
+
+  @Test
+  public void testConfigPortDynamic() throws Exception {
+    Configuration conf = getInitialConf();
+    MockShuffleHandler2 shuffleHandler = new MockShuffleHandler2();
+    shuffleHandler.serviceInit(conf);
+    try {
+      shuffleHandler.serviceStart();
+      Assert.assertTrue("ShuffleHandler should use a random chosen port", shuffleHandler.getPort() > 0);
+    } finally {
+      shuffleHandler.close();
+    }
+  }
+
+  private Configuration getInitialConf() {
+    Configuration conf = new Configuration();
+    conf.set(HADOOP_TMP_DIR, TEST_DIR.getAbsolutePath());
+    // 0 as config, should be dynamically chosen by netty
+    conf.setInt(ShuffleHandler.SHUFFLE_PORT_CONFIG_KEY, 0);
+    return conf;
+  }
+
+  private ShuffleHandler getShuffleHandlerWithNoVerify() {
+    return new ShuffleHandler() {
+      private AuxiliaryLocalPathHandler pathHandler = new TestAuxiliaryLocalPathHandler();
+
+      @Override
+      protected Shuffle getShuffle(Configuration conf) {
+        // replace the shuffle handler with one stubbed for testing
+        return new Shuffle(conf) {
+          @Override
+          protected void verifyRequest(String appid, ChannelHandlerContext ctx, HttpRequest request,
+              HttpResponse response, URL requestUri) throws IOException {
+            // Do nothing.
+          }
+        };
+      }
+      @Override
+      public AuxiliaryLocalPathHandler getAuxiliaryLocalPathHandler() {
+        return pathHandler;
+      }
+    };
   }
 }

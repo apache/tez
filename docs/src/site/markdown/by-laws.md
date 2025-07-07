@@ -124,9 +124,9 @@ This section describes the various actions which are undertaken within the proje
 Votes are open for a period of a minimum of 3 days (excluding weekend days) to allow all active voters time to consider the vote. For any votes requiring full consensus or a 2/3 majority, the vote should remain open for a minimum of 1 week. Votes relating to code changes are not subject to a strict timetable but should be made as timely as possible.
 
 
-[Apache Software Foundation]: http://www.apache.org/foundation/
-[Incubator project]: http://incubator.apache.org/
-[Foundation FAQ]: http://www.apache.org/foundation/faq.html
-[Committer FAQ]: http://www.apache.org/dev/committers.html
-[CLA]: http://www.apache.org/licenses/icla.txt
-[set of roles]: http://www.apache.org/foundation/how-it-works.html#roles
+[Apache Software Foundation]: https://www.apache.org/foundation/
+[Incubator project]: https://incubator.apache.org/
+[Foundation FAQ]: https://www.apache.org/foundation/faq.html
+[Committer FAQ]: https://www.apache.org/dev/committers.html
+[CLA]: https://www.apache.org/licenses/icla.txt
+[set of roles]: https://www.apache.org/foundation/how-it-works.html#roles

@@ -14,54 +14,33 @@
 
 package org.apache.tez.dag.app;
 
-import org.apache.hadoop.yarn.util.MonotonicClock;
-import org.apache.tez.dag.app.dag.DAGState;
-import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.records.TezVertexID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.ByteArrayInputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
-
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
+import org.apache.hadoop.test.LambdaTestUtils;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.util.MonotonicClock;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.tez.client.TezApiVersionInfo;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -71,6 +50,7 @@ import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
@@ -78,13 +58,45 @@ import org.apache.tez.dag.api.records.DAGProtos.DAGPlan;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezUserPayloadProto;
+import org.apache.tez.dag.app.dag.DAGState;
+import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TestDAGAppMaster {
 
@@ -332,6 +344,97 @@ public class TestDAGAppMaster {
     assertEquals(TC_NAME + CLASS_SUFFIX, tcDescriptors.get(1).getClassName());
   }
 
+  @Test(timeout = 60000)
+  public void testShutdownTezAMWithMissingRecoveryAndFailureOnMissingData() throws Exception {
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CREDENTIALS_MERGE, true);
+    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.toString());
+    conf.setBoolean(TezConfiguration.TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA, true);
+    conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, true);
+
+    /*
+      Setting very high timeout because in case when TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA is set, it should
+      not time out, it should get shutdown earlier only without the timeout flow kicking in
+     */
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 1000000000);
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
+
+    FileSystem mockFs = mock(FileSystem.class);
+    when(mockFs.exists(any())).thenReturn(false);
+
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true);
+
+    dam.init(conf);
+    Field field = DAGAppMasterForTest.class.getSuperclass().getDeclaredField("recoveryFS");
+    field.setAccessible(true);
+    field.set(dam, mockFs);
+
+    dam.start();
+
+    ArgumentCaptor<Path> captor = ArgumentCaptor.forClass(Path.class);
+    // This ensures that recovery data file system was called for getting summary files, and it will return false
+    verify(mockFs, times(2)).exists(captor.capture());
+
+    Assert.assertTrue(captor.getAllValues().get(1).toString().contains("/recovery/1/summary"));
+    Assert.assertTrue(captor.getAllValues().get(0).toString().contains("/recovery/1/RecoveryFatalErrorOccurred"));
+
+    verify(dam.mockScheduler).setShouldUnregisterFlag();
+    verify(dam.mockShutdown).shutdown();
+
+    /*
+     * Since the TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA config is set,
+     * DAG will be in ERRORed state if recovery was missing for attempts > 1
+     */
+    assertEquals(DAGAppMasterState.ERROR, dam.getState());
+  }
+
+  @Test
+  public void testShutdownTezAMWithMissingRecoveryAndNoFailureOnMissingData() throws Exception {
+
+    TezConfiguration conf = new TezConfiguration();
+    conf.setBoolean(TezConfiguration.TEZ_AM_CREDENTIALS_MERGE, true);
+    conf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
+    conf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.toString());
+    conf.setBoolean(TezConfiguration.TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA, false);
+    conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, true);
+    conf.setInt(TezConfiguration.TEZ_SESSION_AM_DAG_SUBMIT_TIMEOUT_SECS, 1);
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
+
+    FileSystem mockFs = mock(FileSystem.class);
+    when(mockFs.exists(any())).thenReturn(false);
+
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true);
+
+    dam.init(conf);
+    Field field = DAGAppMasterForTest.class.getSuperclass().getDeclaredField("recoveryFS");
+    field.setAccessible(true);
+    field.set(dam, mockFs);
+
+    dam.start();
+    // Waiting for session timeout interval to kick in, which is set to 1 s
+    Thread.sleep(2000);
+
+    ArgumentCaptor<Path> captor = ArgumentCaptor.forClass(Path.class);
+    // This ensures that recovery data file system was called for getting summary files, and it will return false
+    verify(mockFs, times(2)).exists(captor.capture());
+
+    Assert.assertTrue(captor.getAllValues().get(1).toString().contains("/recovery/1/summary"));
+    Assert.assertTrue(captor.getAllValues().get(0).toString().contains("/recovery/1/RecoveryFatalErrorOccurred"));
+
+    verify(dam.mockScheduler).setShouldUnregisterFlag();
+    verify(dam.mockShutdown).shutdown();
+
+    /*
+     * Since the TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA config is unset,
+     * DAG will be in SUCCEEDED state if recovery was missing and timeout got triggered for attempts > 1
+     */
+    assertEquals(DAGAppMasterState.SUCCEEDED, dam.getState());
+  }
+
   private void verifyDescAndMap(List<NamedEntityDescriptor> descriptors, BiMap<String, Integer> map,
                                 int numExpected, boolean verifyPayload,
                                 String... expectedNames) throws
@@ -394,6 +497,26 @@ public class TestDAGAppMaster {
   }
 
   @Test
+  public void testGetACLFailure() throws Exception {
+    ApplicationId appId = ApplicationId.newInstance(1, 1);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 2);
+    DAGAppMasterForTest dam = new DAGAppMasterForTest(attemptId, true);
+    TezConfiguration conf = new TezConfiguration(false);
+    conf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+    dam.init(conf);
+    LambdaTestUtils.intercept(TezUncheckedException.class,
+        "Cannot get ApplicationACLs before all services have started, The current service state is INITED",
+        () -> dam.getContext().getApplicationACLs());
+    dam.start();
+    dam.stop();
+    Mockito.when(dam.mockShutdown.getShutdownTime()).thenReturn(Date.from(Instant.ofEpochMilli(Time.now())));
+    LambdaTestUtils.intercept(TezUncheckedException.class,
+        " Cannot get ApplicationACLs before all services have started, "
+            + "The current service state is STOPPED. The shutdown hook started at "
+            + dam.mockShutdown.getShutdownTime(), () -> dam.getContext().getApplicationACLs());
+  }
+
+  @Test
   public void testBadProgress() throws Exception {
     TezConfiguration conf = new TezConfiguration();
     conf.setBoolean(TezConfiguration.TEZ_AM_CREDENTIALS_MERGE, true);
@@ -404,7 +527,7 @@ public class TestDAGAppMaster {
 
     // create some sample AM credentials
     Credentials amCreds = new Credentials();
-    JobTokenSecretManager jtsm = new JobTokenSecretManager();
+    JobTokenSecretManager jtsm = new JobTokenSecretManager(conf);
     JobTokenIdentifier identifier = new JobTokenIdentifier(
         new Text(appId.toString()));
     Token<JobTokenIdentifier> sessionToken =
@@ -485,7 +608,7 @@ public class TestDAGAppMaster {
 
     // create some sample AM credentials
     Credentials amCreds = new Credentials();
-    JobTokenSecretManager jtsm = new JobTokenSecretManager();
+    JobTokenSecretManager jtsm = new JobTokenSecretManager(conf);
     JobTokenIdentifier identifier = new JobTokenIdentifier(
         new Text(appId.toString()));
     Token<JobTokenIdentifier> sessionToken =
@@ -630,6 +753,7 @@ public class TestDAGAppMaster {
   public static class DAGAppMasterForTest extends DAGAppMaster {
     private DAGAppMasterShutdownHandler mockShutdown;
     private TaskSchedulerManager mockScheduler = mock(TaskSchedulerManager.class);
+    private DAGAppMasterReadinessService mockAppMasterReadinessService = mock(DAGAppMasterReadinessService.class);
 
     public DAGAppMasterForTest(ApplicationAttemptId attemptId, boolean isSession) {
       super(attemptId, ContainerId.newContainerId(attemptId, 1), "hostname", 12345, 12346,
@@ -640,7 +764,7 @@ public class TestDAGAppMaster {
 
     public static Credentials createCredentials() {
       Credentials creds = new Credentials();
-      JobTokenSecretManager jtsm = new JobTokenSecretManager();
+      JobTokenSecretManager jtsm = new JobTokenSecretManager(new TezConfiguration());
       JobTokenIdentifier jtid = new JobTokenIdentifier(new Text());
       Token<JobTokenIdentifier> token = new Token<JobTokenIdentifier>(jtid, jtsm);
       TokenCache.setSessionToken(token, creds);
@@ -673,6 +797,11 @@ public class TestDAGAppMaster {
     protected TaskSchedulerManager createTaskSchedulerManager(
         List<NamedEntityDescriptor> taskSchedulerDescriptors) {
       return mockScheduler;
+    }
+
+    @Override
+    protected DAGAppMasterReadinessService createAppMasterReadinessService() {
+      return mockAppMasterReadinessService;
     }
   }
 }

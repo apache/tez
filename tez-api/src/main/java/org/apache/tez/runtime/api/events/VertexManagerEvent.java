@@ -19,6 +19,7 @@
 package org.apache.tez.runtime.api.events;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
@@ -26,8 +27,6 @@ import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.dag.api.VertexManagerPlugin;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
-
-import org.apache.tez.common.Preconditions;
 
 /**
  * Event used to send information from a Task to the VertexManager for a vertex.
@@ -50,11 +49,17 @@ public class VertexManagerEvent extends Event {
    */
   private final ByteBuffer userPayload;
 
+  /**
+   * Constructor.
+   *
+   * @param vertexName
+   * @param userPayload
+   * @throws NullPointerException if {@code vertexName} or {@code userPayload}
+   *           is {@code null}
+   */
   private VertexManagerEvent(String vertexName, ByteBuffer userPayload) {
-    Preconditions.checkArgument(vertexName != null);
-    Preconditions.checkArgument(userPayload != null);
-    this.targetVertexName = vertexName;
-    this.userPayload = userPayload;
+    this.targetVertexName = Objects.requireNonNull(vertexName);
+    this.userPayload = Objects.requireNonNull(userPayload);
   }
 
   /**

@@ -21,7 +21,6 @@ package org.apache.tez.dag.app.rm.node;
 import java.util.Objects;
 
 import org.apache.hadoop.yarn.api.records.NodeId;
-import org.apache.tez.common.Preconditions;
 
 /**
  * ExtendedNodeId extends NodeId with unique identifier in addition to hostname and port.
@@ -33,8 +32,7 @@ public class ExtendedNodeId extends NodeId {
   private final String uniqueIdentifier;
 
   public ExtendedNodeId(NodeId nodeId, String uniqueIdentifier) {
-    Preconditions.checkArgument(nodeId != null);
-    this.nodeId = nodeId;
+    this.nodeId = Objects.requireNonNull(nodeId);
     this.uniqueIdentifier = uniqueIdentifier == null ? "" : uniqueIdentifier.trim();
   }
 

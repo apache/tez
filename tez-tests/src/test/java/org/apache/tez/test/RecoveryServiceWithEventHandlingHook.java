@@ -334,7 +334,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
           TaskStartedEvent otherEvent = (TaskStartedEvent) incomingEvent;
           TaskStartedEvent conditionEvent = (TaskStartedEvent) event;
           // compare vertexId and taskId
-          return otherEvent.getTaskID().getVertexID().getId() == conditionEvent.getTaskID().getVertexID().getId()
+          return otherEvent.getVertexID().getId() == conditionEvent.getVertexID().getId()
               && otherEvent.getTaskID().getId() == conditionEvent.getTaskID().getId();
         }
         break;
@@ -344,7 +344,7 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
           TaskFinishedEvent otherEvent = (TaskFinishedEvent) incomingEvent;
           TaskFinishedEvent conditionEvent = (TaskFinishedEvent) event;
           // compare vertexId and taskId
-          return otherEvent.getTaskID().getVertexID().getId() == conditionEvent.getTaskID().getVertexID().getId()
+          return otherEvent.getVertexID().getId() == conditionEvent.getVertexID().getId()
               && otherEvent.getTaskID().getId() == conditionEvent.getTaskID().getId();
         }
         break;
@@ -354,9 +354,9 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
           TaskAttemptStartedEvent otherEvent = (TaskAttemptStartedEvent) incomingEvent;
           TaskAttemptStartedEvent conditionEvent = (TaskAttemptStartedEvent) event;
           // compare vertexId, taskId & taskAttemptId
-          return otherEvent.getTaskAttemptID().getTaskID().getVertexID().getId() 
-              == conditionEvent.getTaskAttemptID().getTaskID().getVertexID().getId()
-              && otherEvent.getTaskAttemptID().getTaskID().getId() == conditionEvent.getTaskAttemptID().getTaskID().getId()
+          return otherEvent.getVertexID().getId()
+              == conditionEvent.getVertexID().getId()
+              && otherEvent.getTaskID().getId() == conditionEvent.getTaskID().getId()
               && otherEvent.getTaskAttemptID().getId() == conditionEvent.getTaskAttemptID().getId();
         }
         break;
@@ -366,9 +366,9 @@ public class RecoveryServiceWithEventHandlingHook extends RecoveryService {
           TaskAttemptFinishedEvent otherEvent = (TaskAttemptFinishedEvent) incomingEvent;
           TaskAttemptFinishedEvent conditionEvent = (TaskAttemptFinishedEvent) event;
           // compare vertexId, taskId & taskAttemptId
-          return otherEvent.getTaskAttemptID().getTaskID().getVertexID().getId() 
-              == conditionEvent.getTaskAttemptID().getTaskID().getVertexID().getId()
-              && otherEvent.getTaskAttemptID().getTaskID().getId() == conditionEvent.getTaskAttemptID().getTaskID().getId()
+          return otherEvent.getVertexID().getId()
+              == conditionEvent.getVertexID().getId()
+              && otherEvent.getTaskID().getId() == conditionEvent.getTaskID().getId()
               && otherEvent.getTaskAttemptID().getId() == conditionEvent.getTaskAttemptID().getId();
         }
         break;

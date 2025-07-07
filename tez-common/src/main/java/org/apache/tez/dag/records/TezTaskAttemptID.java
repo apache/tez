@@ -21,6 +21,7 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -45,7 +46,7 @@ import com.google.common.collect.Interners;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public class TezTaskAttemptID extends TezID {
+public class TezTaskAttemptID extends TezID implements TaskIDAware {
   public static final String ATTEMPT = "attempt";
   private TezTaskID taskId;
 
@@ -59,20 +60,20 @@ public class TezTaskAttemptID extends TezID {
    * Constructs a TaskAttemptID object from given {@link TezTaskID}.  
    * @param taskID TaskID that this task belongs to  
    * @param id the task attempt number
+   * @throws  NullPointerException if {@code taskID} is {@code null}
    */
   public static TezTaskAttemptID getInstance(TezTaskID taskID, int id) {
+    Objects.requireNonNull(taskID);
     return tezTaskAttemptIDCache.intern(new TezTaskAttemptID(taskID, id));
   }
 
   private TezTaskAttemptID(TezTaskID taskId, int id) {
     super(id);
-    if(taskId == null) {
-      throw new IllegalArgumentException("taskId cannot be null");
-    }
     this.taskId = taskId;
   }
 
   /** Returns the {@link TezTaskID} object that this task attempt belongs to */
+  @Override
   public TezTaskID getTaskID() {
     return taskId;
   }

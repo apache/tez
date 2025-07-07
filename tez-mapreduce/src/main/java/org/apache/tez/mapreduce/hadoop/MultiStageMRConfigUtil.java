@@ -18,14 +18,15 @@
 
 package org.apache.tez.mapreduce.hadoop;
 
-import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 
 @Private
-public class MultiStageMRConfigUtil {
+public final class MultiStageMRConfigUtil {
+
+  private MultiStageMRConfigUtil() {}
 
   //////////////////////////////////////////////////////////////////////////////
   //                    Methods based on Stage Num                            //
@@ -73,9 +74,7 @@ public class MultiStageMRConfigUtil {
       String prefix) {
     Configuration strippedConf = new Configuration(false);
     Configuration conf = new Configuration(false);
-    Iterator<Entry<String, String>> confEntries = baseConf.iterator();
-    while (confEntries.hasNext()) {
-      Entry<String, String> entry = confEntries.next();
+    for (Entry<String, String> entry : baseConf) {
       String key = entry.getKey();
       if (key.startsWith(prefix)) {
         // Ignore keys for other intermediate stages in case of an initial or final stage.
@@ -95,9 +94,7 @@ public class MultiStageMRConfigUtil {
     }
     // Replace values from strippedConf into the finalConf. Override values
     // which may have been copied over from the baseConf root level.
-    Iterator<Entry<String, String>> entries = strippedConf.iterator();
-    while (entries.hasNext()) {
-      Entry<String, String> entry = entries.next();
+    for (Entry<String, String> entry : strippedConf) {
       if (!Configuration.isDeprecated(entry.getKey())) {
         conf.set(entry.getKey(), entry.getValue());
       }

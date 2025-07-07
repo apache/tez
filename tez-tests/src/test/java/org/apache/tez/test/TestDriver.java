@@ -20,9 +20,11 @@ package org.apache.tez.test;
 
 import org.apache.hadoop.util.ProgramDriver;
 
-public class TestDriver {
+public final class TestDriver {
 
-  public static void main(String argv[]){
+  private TestDriver() {}
+
+  public static void main(String[] argv){
     int exitCode = -1;
     ProgramDriver pgd = new ProgramDriver();
     try {

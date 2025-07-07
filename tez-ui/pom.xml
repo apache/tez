@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.apache.tez</groupId>
     <artifactId>tez</artifactId>
-    <version>0.10.2-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>tez-ui</artifactId>
   <packaging>war</packaging>
@@ -29,7 +29,7 @@
   <properties>
     <webappDir>src/main/webapp</webappDir>
 
-    <nodeVersion>v5.12.0</nodeVersion>
+    <nodeVersion>v8.9.0</nodeVersion>
     <nodeExecutable>${basedir}/src/main/webapp/node/node</nodeExecutable>
 
     <packageManagerScript>node/yarn/dist/bin/yarn.js</packageManagerScript>
@@ -89,6 +89,10 @@
                   <argument>run</argument>
                   <argument>test:mvn</argument>
                 </arguments>
+                <environmentVariables>
+                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
+                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
+                </environmentVariables>
               </configuration>
             </execution>
           </executions>
@@ -147,6 +151,10 @@
                   <argument>run</argument>
                   <argument>test:mvn</argument>
                 </arguments>
+                <environmentVariables>
+                  <!-- workaround for systems using a newer OpenSSL (3+) which is incompatible with PhantomJS -->
+                  <OPENSSL_CONF>/dev/null</OPENSSL_CONF>
+                </environmentVariables>
               </configuration>
             </execution>
           </executions>
@@ -374,7 +382,7 @@
             </goals>
             <configuration>
               <nodeVersion>${nodeVersion}</nodeVersion>
-              <yarnVersion>v0.21.3</yarnVersion>
+              <yarnVersion>v1.6.0</yarnVersion>
             </configuration>
           </execution>
           <execution>

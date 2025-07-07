@@ -28,7 +28,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-public class IDConverter {
+public final class IDConverter {
+
+  private IDConverter() {}
 
   // FIXME hardcoded assumption that one app is one dag
   public static JobID toMRJobId(TezDAGID dagId) {
@@ -39,7 +41,7 @@ public class IDConverter {
   
   public static TaskID toMRTaskId(TezTaskID taskid) {
     return new TaskID(
-        toMRJobId(taskid.getVertexID().getDAGId()),
+        toMRJobId(taskid.getDAGID()),
         taskid.getVertexID().getId() == 0 ? TaskType.MAP : TaskType.REDUCE,
         taskid.getId());
   }

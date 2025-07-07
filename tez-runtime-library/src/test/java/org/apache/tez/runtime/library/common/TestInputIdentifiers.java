@@ -41,4 +41,23 @@ public class TestInputIdentifiers {
     Assert.assertTrue(set.add(i4));
   }
 
+  @Test(timeout = 5000)
+  public void testInputAttemptIdentifierIncludes() {
+    InputAttemptIdentifier inputData0Attempt0 = new InputAttemptIdentifier(0, 0);
+    InputAttemptIdentifier inputData1Attempt0 = new InputAttemptIdentifier(1, 0);
+    InputAttemptIdentifier inputData2Attempt0 = new InputAttemptIdentifier(2, 0);
+    InputAttemptIdentifier inputData3Attempt0 = new InputAttemptIdentifier(3, 0);
+    InputAttemptIdentifier inputData1Attempt1 = new InputAttemptIdentifier(1, 1);
+    CompositeInputAttemptIdentifier inputData12Attempt0 = new CompositeInputAttemptIdentifier(1, 0, null, 2);
+
+    Assert.assertTrue(inputData1Attempt0.includes(inputData1Attempt0));
+    Assert.assertFalse(inputData1Attempt0.includes(inputData2Attempt0));
+    Assert.assertFalse(inputData1Attempt0.includes(inputData1Attempt1));
+
+    Assert.assertFalse(inputData12Attempt0.includes(inputData0Attempt0));
+    Assert.assertTrue(inputData12Attempt0.includes(inputData1Attempt0));
+    Assert.assertTrue(inputData12Attempt0.includes(inputData2Attempt0));
+    Assert.assertFalse(inputData12Attempt0.includes(inputData3Attempt0));
+    Assert.assertFalse(inputData12Attempt0.includes(inputData1Attempt1));
+  }
 }

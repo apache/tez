@@ -30,9 +30,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Utils {
+public final class Utils {
 
   private static Pattern sanitizeLabelPattern = Pattern.compile("[:\\-\\W]+");
+
+  private Utils() {}
 
   public static String getShortClassName(String className) {
     int pos = className.lastIndexOf(".");

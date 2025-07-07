@@ -36,12 +36,15 @@ import org.apache.tez.dag.api.TezException;
 public class DAGClientImplLocal extends DAGClientImpl {
 
   private BiFunction<Set<StatusGetOpts>, Long, DAGStatus> dagStatusFunction;
+  private BiFunction<Set<StatusGetOpts>, String, VertexStatus> vertexStatusFunction;
 
   public DAGClientImplLocal(ApplicationId appId, String dagId, TezConfiguration conf,
       FrameworkClient frameworkClient, UserGroupInformation ugi,
-      BiFunction<Set<StatusGetOpts>, Long, DAGStatus> dagStatusFunction) {
+      BiFunction<Set<StatusGetOpts>, Long, DAGStatus> dagStatusFunction,
+      BiFunction<Set<StatusGetOpts>, String, VertexStatus> vertexStatusFunction) {
     super(appId, dagId, conf, frameworkClient, ugi);
     this.dagStatusFunction = dagStatusFunction;
+    this.vertexStatusFunction = vertexStatusFunction;
   }
 
   @Override
@@ -49,5 +52,11 @@ public class DAGClientImplLocal extends DAGClientImpl {
       throws TezException, IOException {
     return dagStatusFunction.apply(statusOptions == null ? new HashSet<>() : statusOptions,
         timeout);
+  }
+
+  @Override
+  protected VertexStatus getVertexStatusInternal(@Nullable Set<StatusGetOpts> statusOptions, String vertexName)
+      throws TezException, IOException {
+    return vertexStatusFunction.apply(statusOptions == null ? new HashSet<>() : statusOptions, vertexName);
   }
 }

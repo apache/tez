@@ -63,7 +63,7 @@ import org.apache.tez.common.Preconditions;
  * feeding to {@link SortMergeJoinProcessor}, just like the sort phase before
  * reduce in traditional MapReduce. Then we could move forward the iterators of
  * two inputs in {@link SortMergeJoinProcessor} to find the joined keys since
- * they are both sorted already. <br> <li>Because of the sort implemention
+ * they are both sorted already. <br> <li>Because of the sort implementation
  * difference we describe above, the data requirement is also different for
  * these 2 sort algorithms. For {@link HashJoinExample} It is required that keys
  * in the hashFile are unique. while for {@link SortMergeJoinExample} it is
@@ -133,7 +133,7 @@ public class SortMergeJoinExample extends TezExampleBase {
    * v1 v2 <br>
    * &nbsp;\&nbsp;/ <br>
    * &nbsp;&nbsp;v3 <br>
-   * 
+   *
    * @param tezConf
    * @param inputPath1
    * @param inputPath2
@@ -269,7 +269,7 @@ public class SortMergeJoinExample extends TezExampleBase {
     /**
      * Join 2 sorted inputs both from {@link KeyValuesReader} and write output
      * using {@link KeyValueWriter}
-     * 
+     *
      * @param inputReader1
      * @param inputReader2
      * @param writer

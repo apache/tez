@@ -271,7 +271,7 @@ public class LegacySpeculator extends AbstractService {
   /**
    * Absorbs one TaskAttemptStatus
    *
-   * @param reportedStatus the status report that we got from a task attempt
+   * @param reportedState the status report that we got from a task attempt
    *        that we want to fold into the speculation data for this job
    * @param timestamp the time this status corresponds to.  This matters
    *        because statuses contain progress.
@@ -331,7 +331,7 @@ public class LegacySpeculator extends AbstractService {
   // with
   private long speculationValue(Task task, long now, boolean shouldUseTimeout) {
     Map<TezTaskAttemptID, TaskAttempt> attempts = task.getAttempts();
-    TezTaskID taskID = task.getTaskId();
+    TezTaskID taskID = task.getTaskID();
     long acceptableRuntime = Long.MIN_VALUE;
     long result = Long.MIN_VALUE;
 
@@ -359,7 +359,7 @@ public class LegacySpeculator extends AbstractService {
         if (++numberRunningAttempts > 1) {
           return ALREADY_SPECULATING;
         }
-        runningTaskAttemptID = taskAttempt.getID();
+        runningTaskAttemptID = taskAttempt.getTaskAttemptID();
 
         long taskAttemptStartTime
             = estimator.attemptEnrolledTime(runningTaskAttemptID);
@@ -404,7 +404,7 @@ public class LegacySpeculator extends AbstractService {
                   .hasStagnatedProgress(runningTaskAttemptID, now)) {
                 // Stats have stagnated for a while, simulate heart-beat.
                 // Now simulate the heart-beat
-                statusUpdate(taskAttempt.getID(), taskAttempt.getState(),
+                statusUpdate(taskAttempt.getTaskAttemptID(), taskAttempt.getState(),
                     clock.getTime());
               }
             } else {

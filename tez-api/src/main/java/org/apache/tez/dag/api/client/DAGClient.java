@@ -140,4 +140,13 @@ public abstract class DAGClient implements Closeable {
   public abstract DAGStatus waitForCompletionWithStatusUpdates(@Nullable Set<StatusGetOpts> statusGetOpts)
       throws IOException, TezException, InterruptedException;
 
+  /**
+   * Returns the Tez AM's web ui address if any.
+   *
+   * @return The http web UI address
+   * @throws IOException
+   * @throws TezException
+   */
+  public abstract String getWebUIAddress() throws IOException, TezException;
+
 }

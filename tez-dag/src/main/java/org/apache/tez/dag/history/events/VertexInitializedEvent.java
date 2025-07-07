@@ -25,6 +25,7 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -35,6 +36,7 @@ import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
 import org.apache.tez.dag.history.utils.TezEventUtils;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 import org.apache.tez.dag.recovery.records.RecoveryProtos;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TezEventProto;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexInitializedProto;
@@ -42,7 +44,7 @@ import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
 
-public class VertexInitializedEvent implements HistoryEvent {
+public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
 
   private TezVertexID vertexID;
   private String vertexName;
@@ -157,7 +159,8 @@ public class VertexInitializedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    VertexInitializedProto proto = inputStream.readMessage(VertexInitializedProto.PARSER, null);
+    VertexInitializedProto proto =
+        inputStream.readMessage(VertexInitializedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -180,8 +183,9 @@ public class VertexInitializedEvent implements HistoryEvent {
         + (servicePluginInfo != null ? servicePluginInfo : "null");
   }
 
+  @Override
   public TezVertexID getVertexID() {
-    return this.vertexID;
+    return vertexID;
   }
 
   public long getInitRequestedTime() {

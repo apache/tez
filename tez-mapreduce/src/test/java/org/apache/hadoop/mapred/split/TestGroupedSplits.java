@@ -325,7 +325,7 @@ public class TestGroupedSplits {
     for (int i=0; i<numSplits; i++) {
       mockSplits[i] = mockSplit1;
     }
-    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
     
     // desired splits not set. We end up choosing min/max split size based on 
     // total data and num original splits. In this case, min size will be hit
@@ -556,7 +556,7 @@ public class TestGroupedSplits {
       when(mockSplit.getLocations()).thenReturn(locations);
       mockSplits[i] = mockSplit;
     }
-    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
     
     format.setDesiredNumberOfSplits(1);
     InputSplit[] splits = format.getSplits(job, 1);
@@ -594,7 +594,7 @@ public class TestGroupedSplits {
     when(mockSplit3.getLocations()).thenReturn(new String[] {null, null});
     mockSplits[2] = mockSplit3;
 
-    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
     
     format.setDesiredNumberOfSplits(1);
     InputSplit[] splits = format.getSplits(job, 1);
@@ -643,7 +643,7 @@ public class TestGroupedSplits {
     when(mockSplit5.getLocations()).thenReturn(new String[] {validLocation, null, validLocation2});
     mockSplits[4] = mockSplit4;
 
-    when(mockWrappedFormat.getSplits((JobConf)anyObject(), anyInt())).thenReturn(mockSplits);
+    when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
 
     format.setDesiredNumberOfSplits(numSplits);
     InputSplit[] splits = format.getSplits(job, 1);
@@ -712,7 +712,7 @@ public class TestGroupedSplits {
     InputSplit[] mockSplits = new InputSplit[] { mockSplit1, mockSplit2,
         mockSplit3 };
 
-    when(mockWrappedFormat.getSplits((JobConf) anyObject(), anyInt()))
+    when(mockWrappedFormat.getSplits(any(), anyInt()))
         .thenReturn(mockSplits);
 
     format.setDesiredNumberOfSplits(1);

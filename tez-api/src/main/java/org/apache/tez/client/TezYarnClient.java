@@ -40,6 +40,9 @@ public class TezYarnClient extends FrameworkClient {
 
   private volatile boolean isRunning;
 
+  private String amHost;
+  private int amPort;
+
   protected TezYarnClient(YarnClient yarnClient) {
     this.yarnClient = yarnClient;
   }
@@ -100,11 +103,23 @@ public class TezYarnClient extends FrameworkClient {
       throw new ApplicationNotFoundException("YARN reports no state for application "
           + appId);
     }
+    this.amHost = report.getHost();
+    this.amPort = report.getRpcPort();
     return report;
   }
 
   @Override
   public boolean isRunning() throws IOException {
     return isRunning;
+  }
+
+  @Override
+  public String getAmHost() {
+    return amHost;
+  }
+
+  @Override
+  public int getAmPort() {
+    return amPort;
   }
 }

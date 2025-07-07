@@ -20,12 +20,13 @@ package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.dag.records.VertexIDAware;
 
 /**
  * this class encapsulates vertex related events.
  *
  */
-public class VertexEvent extends TezAbstractEvent<VertexEventType> {
+public class VertexEvent extends TezAbstractEvent<VertexEventType> implements VertexIDAware {
 
   private TezVertexID vertexId;
 
@@ -34,7 +35,8 @@ public class VertexEvent extends TezAbstractEvent<VertexEventType> {
     this.vertexId = vertexId;
   }
 
-  public TezVertexID getVertexId() {
+  @Override
+  public TezVertexID getVertexID() {
     return vertexId;
   }
 }

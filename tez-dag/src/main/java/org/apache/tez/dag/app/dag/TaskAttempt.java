@@ -21,6 +21,7 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -28,17 +29,15 @@ import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptReport;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
+import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
-import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
-import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Read only view of TaskAttempt.
  */
-public interface TaskAttempt {
+public interface TaskAttempt extends TaskAttemptIDAware {
 
   public static class TaskAttemptStatus {
     public TezTaskAttemptID id;
@@ -65,18 +64,20 @@ public interface TaskAttempt {
         }
       }
     }
+
+    @VisibleForTesting
+    public void setCounters(TezCounters counters) {
+      this.counters = counters;
+    }
   }
-  
-  TezTaskAttemptID getID();
-  TezTaskID getTaskID();
-  TezVertexID getVertexID();
-  TezDAGID getDAGID();
 
   Task getTask();
   TaskAttemptReport getReport();
   List<String> getDiagnostics();
   TaskAttemptTerminationCause getTerminationCause();
   TezCounters getCounters();
+  @VisibleForTesting
+  void setCounters(TezCounters counters);
   float getProgress();
   TaskAttemptState getState();
   TaskAttemptState getStateNoLock();

@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -48,7 +49,7 @@ public class TestTezCommonUtils {
   private static final File LOCAL_STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestTezCommonUtils.class.getSimpleName()).getAbsoluteFile();
   private static String RESOLVED_STAGE_DIR;
-  private static Configuration conf = new Configuration();;
+  private static Configuration conf = new Configuration();
   private static String TEST_ROOT_DIR = "target" + Path.SEPARATOR
       + TestTezCommonUtils.class.getName() + "-tmpDir";
   private static MiniDFSCluster dfsCluster = null;
@@ -413,4 +414,17 @@ public class TestTezCommonUtils {
   }
 
 
+  @Test
+  public void testMkDirForAM() throws IOException {
+    Configuration remoteConf = new Configuration();
+    remoteConf.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, TEST_ROOT_DIR);
+    remoteConf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "777");
+    MiniDFSCluster miniDFS = new MiniDFSCluster.Builder(remoteConf).numDataNodes(3).format(true).racks(null)
+        .build();
+    FileSystem remoteFileSystem = miniDFS.getFileSystem();
+    Path path = new Path(TEST_ROOT_DIR + "/testMkDirForAM");
+    TezCommonUtils.mkDirForAM(remoteFileSystem, path);
+    Assert.assertEquals(TezCommonUtils.TEZ_AM_DIR_PERMISSION, remoteFileSystem.getFileStatus(path).getPermission());
+    miniDFS.shutdown();
+  }
 }

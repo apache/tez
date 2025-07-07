@@ -21,11 +21,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.StringInterner;
 
 import com.google.common.collect.Maps;
@@ -40,7 +40,7 @@ public class TaskStatistics implements Writable {
   }
   
   public void addIO(String edgeName, IOStatistics stats) {
-    Preconditions.checkArgument(stats != null, edgeName);
+    Objects.requireNonNull(stats, edgeName);
     ioStatistics.put(StringInterner.intern(edgeName), stats);
   }
   

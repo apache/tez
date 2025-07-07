@@ -143,7 +143,7 @@ public class SlowestVertexAnalyzer extends TezAnalyzerBase implements Analyzer {
       record.add(shuffleMaxSource);
       record.add(Math.max(0, slowestLastEventTime) + "");
       record.add(maxSourceName);
-      //Finding out real_work done at vertex level might be meaningless (as it is quite posisble
+      //Finding out real_work done at vertex level might be meaningless (as it is quite possible
       // that it went to starvation).
 
       StringBuilder sb = new StringBuilder();

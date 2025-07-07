@@ -328,6 +328,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public void onContainersAllocated(List<Container> containers) {
+    super.onContainersAllocated(containers);
+
     AMState appState = getContext().getAMState();
     if (stopRequested || appState == AMState.COMPLETED) {
       LOG.info("Ignoring {} allocations since app is terminating", containers.size());
@@ -458,7 +460,7 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     }
 
     if (sessionContainers.contains(hc)) {
-      LOG.info("Retaining container {} since it is a session container");
+      LOG.info("Retaining container {} since it is a session container", hc);
       hc.resetMatchingLevel();
     } else {
       long now = now();
@@ -780,7 +782,8 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
 
   @Override
   public Resource getAvailableResources() {
-    return client.getAvailableResources();
+    Resource resource = client.getAvailableResources();
+    return resource == null ? Resource.newInstance(0, 0) : resource;
   }
 
   @Override
@@ -945,6 +948,9 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
       assignedVertices.set(vertexIndex);
     }
     cset.add(hc);
+    if (!hc.isNew()) {
+      getContext().containerReused(hc.getContainer());
+    }
     hc.assignTask(request);
   }
 
@@ -1486,6 +1492,10 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
     @Nullable
     Object getLastTask() {
       return lastRequest != null ? lastRequest.getTask() : null;
+    }
+
+    boolean isNew() {
+      return lastRequest == null;
     }
 
     String getMatchingLocation() {
@@ -2087,5 +2097,10 @@ public class DagAwareYarnTaskScheduler extends TaskScheduler
         LOG.warn("Caught exception in thread {}", Thread.currentThread().getName(), t);
       }
     }
+  }
+
+  @Override
+  public int getHeldContainersCount() {
+    return heldContainers.size();
   }
 }

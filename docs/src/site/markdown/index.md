@@ -23,7 +23,7 @@ Introduction
 The Apache TEZ&reg; project is aimed at building an application framework
 which allows for a complex directed-acyclic-graph of tasks for processing
 data. It is currently built atop
-[Apache Hadoop YARN](http://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html).
+[Apache Hadoop YARN](https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/YARN.html).
 
 The 2 main design themes for Tez are:
 

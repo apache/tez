@@ -17,11 +17,6 @@
  */
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -132,13 +127,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -209,7 +208,7 @@ public class TestDAGRecovery {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      TaskImpl task = (TaskImpl) dag.getVertex(event.getTaskID().getVertexID())
+      TaskImpl task = (TaskImpl) dag.getVertex(event.getVertexID())
           .getTask(event.getTaskID());
       task.handle(event);
     }
@@ -220,8 +219,7 @@ public class TestDAGRecovery {
       EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {
-      Vertex vertex = dag.getVertex(event.getTaskAttemptID().getTaskID()
-          .getVertexID());
+      Vertex vertex = dag.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>) ta).handle(event);
@@ -233,7 +231,7 @@ public class TestDAGRecovery {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      VertexImpl vertex = (VertexImpl) dag.getVertex(event.getVertexId());
+      VertexImpl vertex = (VertexImpl) dag.getVertex(event.getVertexID());
       vertex.handle(event);
     }
   }
@@ -327,7 +325,7 @@ public class TestDAGRecovery {
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
     when(appContext.getClock()).thenReturn(new SystemClock());
 
-    Mockito.doAnswer(new Answer() {
+    doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
         Object[] args = invocation.getArguments();
         CallableEvent e = (CallableEvent) args[0];

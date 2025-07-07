@@ -27,7 +27,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 
-public class TezBuilderUtils {
+public final class TezBuilderUtils {
+
+  private TezBuilderUtils() {}
 
   public static TezVertexID newVertexID(TezDAGID dagId, int vertexId) {
     return TezVertexID.getInstance(dagId, vertexId);

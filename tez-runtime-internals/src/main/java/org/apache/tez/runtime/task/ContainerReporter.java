@@ -69,14 +69,15 @@ public class ContainerReporter extends CallableWithNdc<ContainerTask> {
         + " ms after starting to poll."
         + " TaskInfo: shouldDie: "
         + containerTask.shouldDie()
-        + (containerTask.shouldDie() == true ? "" : ", currentTaskAttemptId: "
-            + containerTask.getTaskSpec().getTaskAttemptID()));
+        + (containerTask.shouldDie() ? "" : ", currentTaskAttemptId: "
+        + (containerTask.getTaskSpec() == null ? "none"
+        : containerTask.getTaskSpec().getTaskAttemptID())));
     return containerTask;
   }
 
   private void maybeLogSleepMessage(long sleepTimeMilliSecs) {
     long currentTime = System.currentTimeMillis();
-    if (sleepTimeMilliSecs + currentTime > nextGetTaskPrintTime) {
+    if ((sleepTimeMilliSecs + currentTime) - nextGetTaskPrintTime > 0) {
       LOG.info("Sleeping for " + sleepTimeMilliSecs
           + "ms before retrying getTask again. Got null now. "
           + "Next getTask sleep message after " + LOG_INTERVAL + "ms");

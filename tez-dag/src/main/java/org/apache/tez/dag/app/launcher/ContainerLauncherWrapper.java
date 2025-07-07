@@ -14,9 +14,14 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import java.util.Set;
+
 import org.apache.tez.common.DagContainerLauncher;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
@@ -44,6 +49,19 @@ public class ContainerLauncherWrapper {
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
     if (real instanceof DagContainerLauncher) {
       ((DagContainerLauncher)real).dagComplete(dag, jobTokenSecretManager);
+    }
+  }
+
+  public void vertexComplete(TezVertexID vertex, JobTokenSecretManager jobTokenSecretManager, Set<NodeId> nodeIdList) {
+    if (real instanceof DagContainerLauncher) {
+      ((DagContainerLauncher) real).vertexComplete(vertex, jobTokenSecretManager, nodeIdList);
+    }
+  }
+
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
+    if (real instanceof DagContainerLauncher) {
+      ((DagContainerLauncher) real).taskAttemptFailed(taskAttemptID, jobTokenSecretManager, nodeId);
     }
   }
 }

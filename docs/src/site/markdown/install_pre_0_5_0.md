@@ -20,7 +20,7 @@
 [Install instructions for Tez (post 0.5.0)](./install.html)
 -----------------------------------------------------------------------------------
 
-Install/Deploy Instructions for Tez release pre-0.5.0 E.g. [(Tez-0.4.1)](http://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/)
+Install/Deploy Instructions for Tez release pre-0.5.0 E.g. [(Tez-0.4.1)](https://archive.apache.org/dist/incubator/tez/tez-0.4.1-incubating/)
 --------------------------------------------------------------------------------------------------------------------------------------------------
 
 1.  Deploy Apache Hadoop using either the 2.2.0 release or a compatible

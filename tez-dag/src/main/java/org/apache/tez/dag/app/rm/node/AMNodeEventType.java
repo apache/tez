@@ -28,14 +28,14 @@ public enum AMNodeEventType {
   //Producer: TaskSchedulerEventHandler
   N_TA_SUCCEEDED,
 
-  // Producer: TaskSchedulerEventHnadler, Task(retroactive failure)
+  // Producer: TaskSchedulerEventHandler, Task(retroactive failure)
   N_TA_ENDED,
-  
+
   //Producer: TaskScheduler via TaskSchedulerEventHandler
   N_TURNED_UNHEALTHY,
   N_TURNED_HEALTHY,
   N_NODE_COUNT_UPDATED, // for blacklisting.
-  
+
   //Producer: AMNodeManager
   N_IGNORE_BLACKLISTING_ENABLED,
   N_IGNORE_BLACKLISTING_DISABLED,

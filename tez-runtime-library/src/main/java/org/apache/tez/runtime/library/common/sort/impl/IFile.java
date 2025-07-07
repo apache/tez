@@ -62,7 +62,7 @@ import org.apache.tez.common.counters.TezCounter;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class IFile {
+public final class IFile {
   private static final Logger LOG = LoggerFactory.getLogger(IFile.class);
   public static final int EOF_MARKER = -1; // End of File Marker
   public static final int RLE_MARKER = -2; // Repeat same key marker
@@ -73,6 +73,8 @@ public class IFile {
 
   private static final String INCOMPLETE_READ = "Requested to read %d got %d";
   private static final String REQ_BUFFER_SIZE_TOO_LARGE = "Size of data %d is greater than the max allowed of %d";
+
+  private IFile() {}
 
   /**
    * IFileWriter which stores data in memory for specified limit, beyond
@@ -91,34 +93,22 @@ public class IFile {
    */
   public static class FileBackedInMemIFileWriter extends Writer {
 
-    private FileSystem fs;
+    private final FileSystem fs;
     private boolean bufferFull;
 
     // For lazy creation of file
-    private TezTaskOutput taskOutput;
+    private final TezTaskOutput taskOutput;
     private int totalSize;
 
     private Path outputPath;
-    private CompressionCodec fileCodec;
-    private BoundedByteArrayOutputStream cacheStream;
+    private final CompressionCodec fileCodec;
+    private final BoundedByteArrayOutputStream cacheStream;
 
     private static final int checksumSize = IFileOutputStream.getCheckSumSize();
 
     /**
      * Note that we do not allow compression in in-mem stream.
      * When spilled over to file, compression gets enabled.
-     *
-     * @param keySerialization
-     * @param valSerialization
-     * @param fs
-     * @param taskOutput
-     * @param keyClass
-     * @param valueClass
-     * @param codec
-     * @param writesCounter
-     * @param serializedBytesCounter
-     * @param cacheSize
-     * @throws IOException
      */
     public FileBackedInMemIFileWriter(Serialization<?> keySerialization,
         Serialization<?> valSerialization, FileSystem fs, TezTaskOutput taskOutput,
@@ -151,7 +141,6 @@ public class IFile {
     /**
      * Create in mem stream. In it is too small, adjust it's size
      *
-     * @param size
      * @return in memory stream
      */
     public static BoundedByteArrayOutputStream createBoundedBuffer(int size) {
@@ -168,8 +157,6 @@ public class IFile {
      * out.
      * 3. Create relevant file based writer.
      * 4. Write header and then real data.
-     *
-     * @throws IOException
      */
     private void resetToFileBasedWriter() throws IOException {
       // Close out stream, so that data checksums are written.
@@ -409,7 +396,7 @@ public class IFile {
       // Write EOF_MARKER for key/value length
       WritableUtils.writeVInt(out, EOF_MARKER);
       WritableUtils.writeVInt(out, EOF_MARKER);
-      decompressedBytesWritten += 2 * WritableUtils.getVIntSize(EOF_MARKER);
+      decompressedBytesWritten += 2L * WritableUtils.getVIntSize(EOF_MARKER);
       //account for header bytes
       decompressedBytesWritten += HEADER.length;
 
@@ -451,10 +438,6 @@ public class IFile {
      * one, send IFile.REPEAT_KEY as key parameter.  Should not call this method with
      * IFile.REPEAT_KEY as the first key. It is caller's responsibility to ensure that correct
      * key/value type checks and key/value length (non-negative) checks are done properly.
-     *
-     * @param key
-     * @param value
-     * @throws IOException
      */
     public void append(Object key, Object value) throws IOException {
       int keyLength = 0;
@@ -493,9 +476,6 @@ public class IFile {
     /**
      * Appends the value to previous key. Assumes that the caller has already done relevant checks
      * for identical keys. Also, no validations are done in this method
-     *
-     * @param value
-     * @throws IOException
      */
     public void appendValue(Object value) throws IOException {
       valueSerializer.serialize(value);
@@ -511,9 +491,6 @@ public class IFile {
      * for identical keys. Also, no validations are done in this method. It is caller's responsibility
      * to pass non-negative key/value lengths. Otherwise,IndexOutOfBoundsException could be
      * thrown at runtime.
-     *
-     * @param value
-     * @throws IOException
      */
     public void appendValue(DataInputBuffer value) throws IOException {
       int valueLength = value.getLength() - value.getPosition();
@@ -527,9 +504,6 @@ public class IFile {
     /**
      * Appends the value to previous key. Assumes that the caller has already done relevant checks
      * for identical keys. Also, no validations are done in this method
-     *
-     * @param valuesItr
-     * @throws IOException
      */
     public <V> void appendValues(Iterator<V> valuesItr) throws IOException {
       while(valuesItr.hasNext()) {
@@ -539,12 +513,6 @@ public class IFile {
 
     /**
      * Append key and its associated set of values.
-     *
-     * @param key
-     * @param valuesItr
-     * @param <K>
-     * @param <V>
-     * @throws IOException
      */
     public <K, V> void appendKeyValues(K key, Iterator<V> valuesItr) throws IOException {
       if (valuesItr.hasNext()) {
@@ -561,11 +529,6 @@ public class IFile {
      * one, send IFile.REPEAT_KEY as key parameter.  Should not call this method with
      * IFile.REPEAT_KEY as the first key. It is caller's responsibility to pass non-negative
      * key/value lengths. Otherwise,IndexOutOfBoundsException could be thrown at runtime.
-     *
-     *
-     * @param key
-     * @param value
-     * @throws IOException
      */
     public void append(DataInputBuffer key, DataInputBuffer value) throws IOException {
       int keyLength = key.getLength() - key.getPosition();
@@ -623,7 +586,7 @@ public class IFile {
     }
 
     protected void writeRLE(DataOutputStream out) throws IOException {
-      /**
+      /*
        * To strike a balance between 2 use cases (lots of unique KV in stream
        * vs lots of identical KV in stream), we start off by writing KV pair.
        * If subsequent KV is identical, we write RLE marker along with V_END_MARKER
@@ -638,7 +601,7 @@ public class IFile {
     }
 
     protected void writeValueMarker(DataOutputStream out) throws IOException {
-      /**
+      /*
        * Write V_END_MARKER only in RLE scenario. This will
        * save space in conditions where lots of unique KV pairs are found in the
        * stream.
@@ -706,7 +669,7 @@ public class IFile {
     protected int recNo = 1;
     protected int originalKeyLength;
     protected int prevKeyLength;
-    byte keyBytes[] = new byte[0];
+    private byte[] keyBytes = new byte[0];
 
     protected int currentKeyLength;
     protected int currentValueLength;
@@ -720,7 +683,6 @@ public class IFile {
      *             checksum bytes for the data at the end of the file.
      * @param codec codec
      * @param readsCounter Counter for records read from disk
-     * @throws IOException
      */
     public Reader(FileSystem fs, Path file,
                   CompressionCodec codec,
@@ -739,7 +701,6 @@ public class IFile {
      *               bytes.
      * @param codec codec
      * @param readsCounter Counter for records read from disk
-     * @throws IOException
      */
     public Reader(InputStream in, long length,
         CompressionCodec codec,
@@ -748,7 +709,7 @@ public class IFile {
         int bufferSize) throws IOException {
       this(in, ((in != null) ? (length - HEADER.length) : length), codec,
           readsCounter, bytesReadCounter, readAhead, readAheadLength,
-          bufferSize, ((in != null) ? isCompressedFlagEnabled(in) : false));
+          bufferSize, (in != null && isCompressedFlagEnabled(in)));
       if (in != null && bytesReadCounter != null) {
         bytesReadCounter.increment(IFile.HEADER.length);
       }
@@ -762,7 +723,6 @@ public class IFile {
      *               bytes.
      * @param codec codec
      * @param readsCounter Counter for records read from disk
-     * @throws IOException
      */
     public Reader(InputStream in, long length,
                   CompressionCodec codec,
@@ -799,14 +759,6 @@ public class IFile {
 
     /**
      * Read entire ifile content to memory.
-     *
-     * @param buffer
-     * @param in
-     * @param compressedLength
-     * @param codec
-     * @param ifileReadAhead
-     * @param ifileReadAheadLength
-     * @throws IOException
      */
     public static void readToMemory(byte[] buffer, InputStream in, int compressedLength,
         CompressionCodec codec, boolean ifileReadAhead, int ifileReadAheadLength)
@@ -825,7 +777,6 @@ public class IFile {
               compressedLength);
         } else {
           LOG.warn("Could not obtain decompressor from CodecPool");
-          in = checksumIn;
         }
       }
       try {
@@ -863,7 +814,6 @@ public class IFile {
      * @param in the input stream containing the IFile data
      * @param length the amount of data to read from the input
      * @return the number of bytes copied
-     * @throws IOException
      */
     public static long readToDisk(OutputStream out, InputStream in, long length,
         boolean ifileReadAhead, int ifileReadAheadLength)
@@ -908,7 +858,6 @@ public class IFile {
      * @param off offset
      * @param len length of buffer
      * @return the no. of bytes read
-     * @throws IOException
      */
     private int readData(byte[] buf, int off, int len) throws IOException {
       int bytesRead = 0;
@@ -949,7 +898,6 @@ public class IFile {
      * @param dIn
      * @return true if key length and value length were set to the next
      *         false if end of file (EOF) marker was reached
-     * @throws IOException
      */
     protected boolean positionToNextRecord(DataInput dIn) throws IOException {
       // Sanity check
@@ -1087,9 +1035,7 @@ public class IFile {
       }
     }
 
-    public void reset(int offset) {
-      return;
-    }
+    public void reset(int offset) {}
 
     public void disableChecksumValidation() {
       checksumIn.disableChecksumValidation();

@@ -28,8 +28,11 @@ import java.util.Random;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.apache.hadoop.fs.CommonConfigurationKeys;
 import org.apache.hadoop.fs.FileSystem;
@@ -72,7 +75,7 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
   @SuppressWarnings("unchecked")
   public void testSubmitDagInSessionWithLargeDagPlan() throws Exception {
     int maxIPCMsgSize = 1024;
-    String dagPlanName = "dagplan-name";
+    String dagPlanName = "DAG-testSubmitDagInSessionWithLargeDagPlan";
     File requestFile = tmpFolder.newFile("request-file");
     TezConfiguration conf = new TezConfiguration();
     conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, maxIPCMsgSize);

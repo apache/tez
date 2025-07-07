@@ -24,12 +24,15 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.tez.dag.api.DAGNotRunningException;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.TezException;
 
 import com.google.protobuf.ServiceException;
 
-public class RPCUtil {
+public final class RPCUtil {
+
+  private RPCUtil() {}
 
   /**
    * Returns an instance of {@link TezException}
@@ -55,17 +58,8 @@ public class RPCUtil {
       return ex;
       // RemoteException contains useful information as against the
       // java.lang.reflect exceptions.
-    } catch (NoSuchMethodException e) {
-      throw re;
-    } catch (IllegalArgumentException e) {
-      throw re;
-    } catch (SecurityException e) {
-      throw re;
-    } catch (InstantiationException e) {
-      throw re;
-    } catch (IllegalAccessException e) {
-      throw re;
-    } catch (InvocationTargetException e) {
+    } catch (NoSuchMethodException | IllegalArgumentException | SecurityException | InstantiationException
+            | IllegalAccessException | InvocationTargetException e) {
       throw re;
     }
   }
@@ -85,12 +79,6 @@ public class RPCUtil {
     return instantiateException(cls, re);
   }
 
-  private static <T extends SessionNotRunning> T instantiateSessionNotRunningException(
-      Class<? extends T> cls, RemoteException re) throws RemoteException {
-    return instantiateException(cls, re);
-  }
-
-
   /**
    * Utility method that unwraps and returns appropriate exceptions.
    *
@@ -109,7 +97,7 @@ public class RPCUtil {
     } else {
       if (cause instanceof RemoteException) {
         RemoteException re = (RemoteException) cause;
-        Class<?> realClass = null;
+        Class<?> realClass;
         try {
           realClass = Class.forName(re.getClassName());
         } catch (ClassNotFoundException cnf) {
@@ -125,6 +113,9 @@ public class RPCUtil {
         } else if (DAGNotRunningException.class.isAssignableFrom(realClass)) {
             throw instantiateTezException(
                 realClass.asSubclass(DAGNotRunningException.class), re);
+        } else if (NoCurrentDAGException.class.isAssignableFrom(realClass)) {
+          throw instantiateTezException(
+              realClass.asSubclass(NoCurrentDAGException.class), re);
         } else if (TezException.class.isAssignableFrom(realClass)) {
           throw instantiateTezException(
               realClass.asSubclass(TezException.class), re);

@@ -20,6 +20,7 @@ package org.apache.tez.runtime.library.common.shuffle.impl;
 
 import java.io.IOException;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -56,7 +57,8 @@ public class SimpleFetchedInputAllocator implements FetchedInputAllocator,
 
   // Configuration parameters
   private final long memoryLimit;
-  private final long maxSingleShuffleLimit;
+  @VisibleForTesting
+  final long maxSingleShuffleLimit;
 
   private final long maxAvailableTaskMemory;
   private final long initialMemoryAvailable;

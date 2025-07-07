@@ -20,6 +20,7 @@ package org.apache.tez.dag.library.vertexmanager;
 
 
 import com.google.protobuf.ByteString;
+import java.util.Arrays;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.tez.common.ReflectionUtils;
@@ -32,7 +33,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairRoutingType;
 import org.apache.tez.dag.library.vertexmanager.FairShuffleVertexManager.FairShuffleVertexManagerConfigBuilder;
@@ -56,10 +56,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyMap;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -113,7 +113,7 @@ public class TestShuffleVertexManagerUtils {
         mockContext).scheduleTasks(anyList());
     doAnswer(new reconfigVertexAnswer(mockContext, mockManagedVertexId,
         newEdgeManagers)).when(mockContext).reconfigureVertex(
-        anyInt(), any(VertexLocationHint.class), anyMap());
+        anyInt(), any(), anyMap());
     return mockContext;
   }
 
@@ -126,10 +126,10 @@ public class TestShuffleVertexManagerUtils {
       long uncompressedTotalSize, String vertexName, boolean reportDetailedStats)
       throws IOException {
     ByteBuffer payload;
-    long totalSize = 0;
+    final long totalSize;
     // Use partition sizes to compute the total size.
     if (partitionSizes != null) {
-      totalSize = estimatedUncompressedSum(partitionSizes);
+      totalSize = Arrays.stream(partitionSizes).sum();
     } else {
       totalSize = uncompressedTotalSize;
     }
@@ -168,16 +168,6 @@ public class TestShuffleVertexManagerUtils {
     VertexManagerEvent vmEvent = VertexManagerEvent.create(vertexName, payload);
     vmEvent.setProducerAttemptIdentifier(taId);
     return vmEvent;
-  }
-
-  // Assume 3 : 1 compression ratio to estimate the total size
-  // of all partitions.
-  long estimatedUncompressedSum(long[] partitionStats) {
-    long sum = 0;
-    for (long partition : partitionStats) {
-      sum += partition;
-    }
-    return sum * 3;
   }
 
   public static TaskAttemptIdentifier createTaskAttemptIdentifier(String vName, int tId) {

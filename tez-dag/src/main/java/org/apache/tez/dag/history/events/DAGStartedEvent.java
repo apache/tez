@@ -22,13 +22,15 @@ import java.io.IOException;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.app.dag.DAGState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.DAGIDAware;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.DAGStartedProto;
 
-public class DAGStartedEvent implements HistoryEvent {
+public class DAGStartedEvent implements HistoryEvent, DAGIDAware {
 
   private TezDAGID dagID;
   private long startTime;
@@ -80,7 +82,7 @@ public class DAGStartedEvent implements HistoryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGStartedProto proto = inputStream.readMessage(DAGStartedProto.PARSER, null);
+    DAGStartedProto proto = inputStream.readMessage(DAGStartedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -97,7 +99,8 @@ public class DAGStartedEvent implements HistoryEvent {
     return this.startTime;
   }
 
-  public TezDAGID getDagID() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagID;
   }
 

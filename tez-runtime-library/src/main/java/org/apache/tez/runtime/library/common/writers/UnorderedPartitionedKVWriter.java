@@ -1110,7 +1110,7 @@ public class UnorderedPartitionedKVWriter extends BaseUnorderedPartitionedKVWrit
                   ifileBufferSize);
               while (reader.nextRawKey(keyBufferIFile)) {
                 // TODO Inefficient. If spills are not compressed, a direct copy should be possible
-                // given the current IFile format. Also exteremely inefficient for large records,
+                // given the current IFile format. Also extremely inefficient for large records,
                 // since the entire record will be read into memory.
                 reader.nextRawValue(valBufferIFile);
                 writer.append(keyBufferIFile, valBufferIFile);

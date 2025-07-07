@@ -35,7 +35,7 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 
 @Private
-public class TezYARNUtils {
+public final class TezYARNUtils {
   private static Logger LOG = LoggerFactory.getLogger(TezYARNUtils.class);
 
   public static final String ENV_NAME_REGEX = "[A-Za-z_][A-Za-z0-9_]*";
@@ -48,6 +48,8 @@ public class TezYARNUtils {
       + '='
       + "([^,]*)"                             // val group
   );
+
+  private TezYARNUtils() {}
 
   public static String getFrameworkClasspath(Configuration conf, boolean usingArchive) {
     StringBuilder classpathBuilder = new StringBuilder();
@@ -126,9 +128,11 @@ public class TezYARNUtils {
 
     // Add PWD:PWD/*
     classpathBuilder.append(Environment.PWD.$())
-        .append(File.pathSeparator)
-        .append(Environment.PWD.$() + File.separator + "*")
-        .append(File.pathSeparator);
+            .append(File.pathSeparator)
+            .append(Environment.PWD.$())
+            .append(File.separator)
+            .append("*")
+            .append(File.pathSeparator);
   }
 
   public static void appendToEnvFromInputString(Map<String, String> env,
@@ -161,7 +165,7 @@ public class TezYARNUtils {
   public static void setEnvIfAbsentFromInputString(Map<String, String> env,
       String envString) {
     if (envString != null && envString.length() > 0) {
-      String childEnvs[] = envString.split(",");
+      String[] childEnvs = envString.split(",");
       for (String cEnv : childEnvs) {
         String[] parts = cEnv.split("="); // split on '='
         Matcher m = VAR_SUBBER .matcher(parts[1]);

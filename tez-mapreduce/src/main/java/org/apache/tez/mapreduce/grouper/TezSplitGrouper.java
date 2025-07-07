@@ -22,9 +22,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.util.RackResolver;
@@ -101,6 +103,20 @@ public abstract class TezSplitGrouper {
   public static final String TEZ_GROUPING_NODE_LOCAL_ONLY = "tez.grouping.node.local.only";
   public static final boolean TEZ_GROUPING_NODE_LOCAL_ONLY_DEFAULT = false;
 
+  /**
+   * Number of threads used to initialize the grouped splits, to asynchronously open the readers.
+   */
+  public static final String TEZ_GROUPING_SPLIT_INIT_THREADS = "tez.grouping.split.init.threads";
+  public static final int TEZ_GROUPING_SPLIT_INIT_THREADS_DEFAULT = 4;
+
+  /**
+   * Number of record readers to asynchronously and proactively init.
+   * In order for upstream apps to use this feature, the objects created in the
+   * upstream apps as part TezGroupedSplitsRecordReader call should be thread safe.
+   */
+  @InterfaceStability.Unstable
+  public static final String TEZ_GROUPING_SPLIT_INIT_RECORDREADERS = "tez.grouping.split.init.recordreaders";
+  public static final int TEZ_GROUPING_SPLIT_INIT_RECORDREADERS_DEFAULT = 1;
 
   static class LocationHolder {
     List<SplitContainer> splits;
@@ -166,7 +182,7 @@ public abstract class TezSplitGrouper {
                                                       SplitLocationProviderWrapper locationProvider) throws
       IOException, InterruptedException {
     LOG.info("Grouping splits in Tez");
-    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
+    Objects.requireNonNull(originalSplits, "Splits must be specified");
 
     int configNumSplits = conf.getInt(TEZ_GROUPING_SPLIT_COUNT, 0);
     if (configNumSplits > 0) {
@@ -192,10 +208,12 @@ public abstract class TezSplitGrouper {
 
     long totalLength = 0;
     Map<String, LocationHolder> distinctLocations = createLocationsMap(conf);
+    Map<SplitContainer, String[]> splitToLocationsMap = new HashMap<>(originalSplits.size());
     // go through splits and add them to locations
     for (SplitContainer split : originalSplits) {
       totalLength += estimator.getEstimatedSize(split);
       String[] locations = locationProvider.getPreferredLocations(split);
+      splitToLocationsMap.put(split, locations);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
         allSplitsHaveLocalhost = false;
@@ -235,36 +253,28 @@ public abstract class TezSplitGrouper {
             "Invalid max/min group lengths. Required min>0, max>=min. " +
                 " max: " + maxLengthPerGroup + " min: " + minLengthPerGroup);
       }
+      int newDesiredNumSplits = -1;
       if (lengthPerGroup > maxLengthPerGroup) {
         // splits too big to work. Need to override with max size.
-        int newDesiredNumSplits = (int)(totalLength/maxLengthPerGroup) + 1;
-        LOG.info("Desired splits: " + desiredNumSplits + " too small. " +
-            " Desired splitLength: " + lengthPerGroup +
-            " Max splitLength: " + maxLengthPerGroup +
-            " New desired splits: " + newDesiredNumSplits +
-            " Total length: " + totalLength +
-            " Original splits: " + originalSplits.size());
-
-        desiredNumSplits = newDesiredNumSplits;
+        newDesiredNumSplits = (int)(totalLength/maxLengthPerGroup) + 1;
       } else if (lengthPerGroup < minLengthPerGroup) {
         // splits too small to work. Need to override with size.
-        int newDesiredNumSplits = (int)(totalLength/minLengthPerGroup) + 1;
-        /**
-         * This is a workaround for systems like S3 that pass the same
-         * fake hostname for all splits.
-         */
-        if (!allSplitsHaveLocalhost) {
-          desiredNumSplits = newDesiredNumSplits;
+        newDesiredNumSplits = (int)(totalLength/minLengthPerGroup) + 1;
+        if (allSplitsHaveLocalhost) {
+          // Workaround for systems like S3 that pass the same fake hostname for all splits.
+          LOG.info("Ignore {} configuration cause all splits seem to be on localhost.", TEZ_GROUPING_SPLIT_MIN_SIZE);
+          newDesiredNumSplits = desiredNumSplits;
         }
-
-        LOG.info("Desired splits: " + desiredNumSplits + " too large. " +
-            " Desired splitLength: " + lengthPerGroup +
+      }
+      if (newDesiredNumSplits != -1) {
+        LOG.info("Desired splitLength " + lengthPerGroup + " exceeds min/max bounds. " +
             " Min splitLength: " + minLengthPerGroup +
-            " New desired splits: " + newDesiredNumSplits +
-            " Final desired splits: " + desiredNumSplits +
-            " All splits have localhost: " + allSplitsHaveLocalhost +
+            " Max splitLength: " + maxLengthPerGroup +
+            " Desired splits: " + desiredNumSplits +
+            " New Desired splits: " + newDesiredNumSplits +
             " Total length: " + totalLength +
             " Original splits: " + originalSplits.size());
+        desiredNumSplits = newDesiredNumSplits;
       }
     }
 
@@ -277,7 +287,7 @@ public abstract class TezSplitGrouper {
       groupedSplits = new ArrayList<GroupedSplitContainer>(originalSplits.size());
       for (SplitContainer split : originalSplits) {
         GroupedSplitContainer newSplit =
-            new GroupedSplitContainer(1, wrappedInputFormatName, cleanupLocations(locationProvider.getPreferredLocations(split)),
+            new GroupedSplitContainer(1, wrappedInputFormatName, cleanupLocations(splitToLocationsMap.get(split)),
                 null);
         newSplit.addSplit(split);
         groupedSplits.add(newSplit);
@@ -298,7 +308,7 @@ public abstract class TezSplitGrouper {
     Set<String> locSet = new HashSet<String>();
     for (SplitContainer split : originalSplits) {
       locSet.clear();
-      String[] locations = locationProvider.getPreferredLocations(split);
+      String[] locations = splitToLocationsMap.get(split);
       if (locations == null || locations.length == 0) {
         locations = emptyLocations;
       }
@@ -392,7 +402,7 @@ public abstract class TezSplitGrouper {
           groupLocation = null;
         } else if (doingRackLocal) {
           for (SplitContainer splitH : group) {
-            String[] locations = locationProvider.getPreferredLocations(splitH);
+            String[] locations = splitToLocationsMap.get(splitH);
             if (locations != null) {
               for (String loc : locations) {
                 if (loc != null) {
@@ -487,7 +497,7 @@ public abstract class TezSplitGrouper {
           }
           numRackSplitsToGroup--;
           rackSet.clear();
-          String[] locations = locationProvider.getPreferredLocations(split);
+          String[] locations = splitToLocationsMap.get(split);
           if (locations == null || locations.length == 0) {
             locations = emptyLocations;
           }

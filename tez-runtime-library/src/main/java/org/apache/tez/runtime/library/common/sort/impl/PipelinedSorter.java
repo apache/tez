@@ -622,7 +622,7 @@ public class PipelinedSorter extends ExternalSorter {
             new TezIndexRecord(segmentStart, rawLength, partLength);
         spillRec.putIndex(rec, i);
         if (!isFinalMergeEnabled() && reportPartitionStats()) {
-          partitionStats[i] += partLength;
+          partitionStats[i] += rawLength;
         }
       }
 
@@ -747,7 +747,7 @@ public class PipelinedSorter extends ExternalSorter {
         TezSpillRecord spillRecord = new TezSpillRecord(finalIndexFile, localFs);
         if (reportPartitionStats()) {
           for (int i = 0; i < spillRecord.size(); i++) {
-            partitionStats[i] += spillRecord.getIndex(i).getPartLength();
+            partitionStats[i] += spillRecord.getIndex(i).getRawLength();
           }
         }
         numShuffleChunks.setValue(numSpills);
@@ -832,7 +832,7 @@ public class PipelinedSorter extends ExternalSorter {
             new TezIndexRecord(segmentStart, rawLength, partLength);
         spillRec.putIndex(rec, parts);
         if (reportPartitionStats()) {
-          partitionStats[parts] += partLength;
+          partitionStats[parts] += rawLength;
         }
       }
 
@@ -940,13 +940,12 @@ public class PipelinedSorter extends ExternalSorter {
     public SortSpan(ByteBuffer source, int maxItems, int perItem, RawComparator comparator) {
       capacity = source.remaining();
       int metasize = METASIZE*maxItems;
-      int dataSize = maxItems * perItem;
+      long dataSize = (long) maxItems * (long) perItem;
       if(capacity < (metasize+dataSize)) {
         // try to allocate less meta space, because we have sample data
         metasize = METASIZE*(capacity/(perItem+METASIZE));
       }
-      ByteBuffer reserved = source.duplicate();
-      reserved.mark();
+      ByteBuffer reserved = (ByteBuffer) source.duplicate().mark();
       LOG.info(outputContext.getInputOutputVertexNames() + ": " + "reserved.remaining()=" +
           reserved.remaining() + ", reserved.metasize=" + metasize);
       reserved.position(metasize);

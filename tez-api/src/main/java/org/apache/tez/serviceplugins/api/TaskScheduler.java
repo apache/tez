@@ -14,6 +14,8 @@
 
 package org.apache.tez.serviceplugins.api;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -263,4 +265,19 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
    */
   public abstract void dagComplete() throws ServicePluginException;
 
+  /**
+   * Get the number of held containers.
+   */
+  public int getHeldContainersCount() {
+    return 0;
+  }
+
+  /**
+   * Callback to be used in the event of a container allocation.
+   */
+  protected void onContainersAllocated(List<Container> containers) {
+    for (Container container : containers) {
+      getContext().containerAllocated(container);
+    }
+  }
 }

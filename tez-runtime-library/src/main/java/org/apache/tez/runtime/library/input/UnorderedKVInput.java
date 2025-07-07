@@ -55,7 +55,7 @@ import org.apache.tez.common.Preconditions;
 
 /**
  * {@link UnorderedKVInput} provides unordered key value input by
- * bringing together (shuffling) a set of distributed data and providing a 
+ * bringing together (shuffling) a set of distributed data and providing a
  * unified view to that data. There are no ordering constraints applied by
  * this input.
  */
@@ -92,12 +92,12 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       isStarted.set(true);
       getContext().inputIsReady();
       LOG.info("input fetch not required since there are 0 physical inputs for input vertex: "
-          + getContext().getSourceVertexName());
+          + getContext().getInputOutputVertexNames());
       return Collections.emptyList();
     } else {
-      long initalMemReq = getInitialMemoryReq();
+      long initialMemReq = getInitialMemoryReq();
       memoryUpdateCallbackHandler = new MemoryUpdateCallbackHandler();
-      this.getContext().requestInitialMemory(initalMemReq, memoryUpdateCallbackHandler);
+      this.getContext().requestInitialMemory(initialMemReq, memoryUpdateCallbackHandler);
     }
 
     this.conf.setStrings(TezRuntimeFrameworkConfigs.LOCAL_DIRS, getContext().getWorkDirs());
@@ -148,7 +148,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
       pendingEvents.drainTo(pending);
       if (pending.size() > 0) {
         if (LOG.isDebugEnabled()) {
-          LOG.debug(getContext().getSourceVertexName() + ": " + "NoAutoStart delay in processing first event: "
+          LOG.debug(getContext().getInputOutputVertexNames() + ": " + "NoAutoStart delay in processing first event: "
               + (System.currentTimeMillis() - firstEventReceivedTime));
         }
         inputEventHandler.handleEvents(pending);
@@ -215,7 +215,7 @@ public class UnorderedKVInput extends AbstractLogicalInput {
     if (this.shuffleManager != null) {
       this.shuffleManager.shutdown();
     }
-    
+
     long dataSize = getContext().getCounters()
         .findCounter(TaskCounter.SHUFFLE_BYTES_DECOMPRESSED).getValue();
     getContext().getStatisticsReporter().reportDataSize(dataSize);

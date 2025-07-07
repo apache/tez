@@ -48,6 +48,7 @@ import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetDAGStatusRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetVertexStatusRequestProto;
+import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetWebUIAddressRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.TryKillDAGRequestProto;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -303,4 +304,15 @@ public class DAGClientRPCImpl extends DAGClientInternal {
     throw new TezException("not supported");
   }
 
+  @Override
+  public String getWebUIAddress() throws IOException, TezException {
+    LOG.debug("getWebUIAddress via AM for app: {} dag: {}", appId, dagId);
+    GetWebUIAddressRequestProto.Builder requestProtoBuilder = GetWebUIAddressRequestProto.newBuilder();
+    try {
+      return proxy.getWebUIAddress(null, requestProtoBuilder.build()).getWebUiAddress();
+    } catch (ServiceException e) {
+      RPCUtil.unwrapAndThrowException(e);
+      throw new TezException(e);
+    }
+  }
 }

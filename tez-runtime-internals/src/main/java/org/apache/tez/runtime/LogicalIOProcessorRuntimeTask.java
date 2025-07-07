@@ -953,8 +953,7 @@ public class LogicalIOProcessorRuntimeTask extends RuntimeTask {
         LOG.info("Resetting interrupt for processor");
         Thread.currentThread().interrupt();
       } catch (Throwable e) {
-        LOG.warn(
-            "Ignoring Exception when closing processor(cleanup). Exception class={}, message={}" +
+        LOG.warn("Ignoring Exception when closing processor(cleanup). Exception class={}, message={}",
             e.getClass().getName(), e.getMessage());
       }
     }

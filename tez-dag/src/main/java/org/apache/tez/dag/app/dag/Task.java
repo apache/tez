@@ -28,16 +28,15 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
+import org.apache.tez.dag.records.TaskIDAware;
 import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Read only view of Task.
  */
-public interface Task {
-  TezTaskID getTaskId();
+public interface Task extends TaskIDAware {
   TaskReport getReport();
   TaskState getState();
   TezCounters getCounters();

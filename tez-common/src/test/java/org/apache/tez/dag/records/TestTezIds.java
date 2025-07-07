@@ -38,7 +38,7 @@ public class TestTezIds {
   }
 
   private void verifyVertexInfo(String[] splits, TezVertexID vId) {
-    verifyDagInfo(splits, vId.getDAGId());
+    verifyDagInfo(splits, vId.getDAGID());
     Assert.assertEquals(vId.getId(),
         Integer.valueOf(splits[4]).intValue());
   }

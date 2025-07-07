@@ -152,7 +152,7 @@ public class TaskSpecificLaunchCmdOption {
    * </pre>
    *
    * @param conf
-   * @return a map from the vertex name to a BitSet representing tasks to be instruemented. null if
+   * @return a map from the vertex name to a BitSet representing tasks to be instrumented. null if
    *         the provided configuration is empty or invalid
    */
   private Map<String, BitSet> getSpecificTasks(Configuration conf) {

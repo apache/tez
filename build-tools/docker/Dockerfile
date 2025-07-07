@@ -24,7 +24,7 @@
 #
 ###############
 
-FROM ubuntu:focal AS tezbase
+FROM ubuntu:noble AS tezbase
 
 WORKDIR /root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -42,6 +42,7 @@ ENV DEBCONF_TERSE true
 RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     apt-transport-https \
     apt-utils \
+    bzip2 \
     ca-certificates \
     curl \
     dirmngr \
@@ -95,13 +96,13 @@ RUN add-apt-repository -y ppa:longsleep/golang-backports \
 #############
 
 ######
-# Install Google Protobuf 2.5.0
+# Install Google Protobuf 3.21.1
 ######
-FROM tezbase AS protobuf250
+FROM tezbase AS protobuf
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /opt/protobuf-src \
     && curl -L -s -S \
-      https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz \
+      https://github.com/protocolbuffers/protobuf/releases/download/v21.1/protobuf-java-3.21.1.tar.gz \
       -o /opt/protobuf.tar.gz \
     && tar xzf /opt/protobuf.tar.gz --strip-components 1 -C /opt/protobuf-src
 WORKDIR /opt/protobuf-src
@@ -164,35 +165,28 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ####
 
 ####
-# OpenJDK 8
-####
+# OpenJDK 17
 # hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y openjdk-8-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get -q update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y openjdk-21-jdk \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-####
-# OpenJDK 11 (but keeps default to JDK8)
-# NOTE: This default only works when Apache Yetus is launched
-# _in_ the container and not outside of it!
-####
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y default-jre-headless openjdk-11-jdk-headless \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-java-alternatives -s java-1.8.0-openjdk-amd64 \
-    && rm -f /usr/lib/jvm/default-java \
-    && ln -s java-8-openjdk-amd64 /usr/lib/jvm/default-java
-ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+# Set JAVA_HOME and PATH environment variables
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-######
-# Install findbugs
-######
-# hadolint ignore=DL3008
-RUN apt-get -q update && apt-get -q install --no-install-recommends -y findbugs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-ENV FINDBUGS_HOME /usr
+# Set the default Java version using update-alternatives
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
+
+#######
+# Install SpotBugs 4.9.3
+#######
+RUN mkdir -p /opt/spotbugs \
+    && curl -L -s -S https://github.com/spotbugs/spotbugs/releases/download/4.9.3/spotbugs-4.9.3.tgz \
+      -o /opt/spotbugs.tgz \
+    && tar xzf /opt/spotbugs.tgz --strip-components 1 -C /opt/spotbugs \
+    && chmod +x /opt/spotbugs/bin/*
+ENV SPOTBUGS_HOME /opt/spotbugs
 
 ######
 # Install maven
@@ -229,9 +223,9 @@ RUN apt-get -q update && apt-get -q install --no-install-recommends -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-    && python3 /tmp/get-pip.py \
+    && python3 /tmp/get-pip.py --break-system-packages \
     && rm /usr/local/bin/pip /tmp/get-pip.py \
-    && pip3 install -v \
+    && pip3 install --break-system-packages -v \
         astroid==2.4.2 \
         codespell==2.0 \
         pylint==2.5.3 \
@@ -245,14 +239,12 @@ RUN ln -s /usr/local/bin/pip3 /usr/local/bin/pip
 # Install npm and JSHint
 ###
 # hadolint ignore=DL3008
-RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get -q install --no-install-recommends -y nodejs \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install --no-install-recommends -y nodejs npm \
     && npm install -g \
         jshint@2.12.0 \
         markdownlint-cli@0.23.2 \
-    && rm -rf /root/.npm
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
 
 #####
 # Now all the stuff that was built in parallel
@@ -261,7 +253,7 @@ RUN curl -sSL https://deb.nodesource.com/setup_14.x | bash - \
 COPY --from=shellcheck /bin/shellcheck /bin/shellcheck
 COPY --from=hadolint /bin/hadolint /bin/hadolint
 COPY --from=buf /usr/local/bin/buf /usr/local/bin/buf
-COPY --from=protobuf250 /opt/protobuf /opt/protobuf
+COPY --from=protobuf /opt/protobuf /opt/protobuf
 
 ENV PROTOBUF_HOME /opt/protobuf
 ENV PROTOC_PATH /opt/protobuf/bin/protoc

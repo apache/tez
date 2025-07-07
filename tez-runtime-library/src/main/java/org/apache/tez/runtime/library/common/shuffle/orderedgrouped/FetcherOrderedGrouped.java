@@ -42,8 +42,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
@@ -57,7 +59,7 @@ import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import com.google.common.annotations.VisibleForTesting;
 
 class FetcherOrderedGrouped extends CallableWithNdc<Void> {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(FetcherOrderedGrouped.class);
 
   private static final AtomicInteger nextId = new AtomicInteger(0);
@@ -121,7 +123,6 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                boolean localDiskFetchEnabled,
                                String localHostname,
                                int shufflePort,
-                               String srcNameTrimmed,
                                MapHost mapHost,
                                TezCounter ioErrsCounter,
                                TezCounter wrongLengthErrsCounter,
@@ -129,12 +130,11 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
                                TezCounter wrongMapErrsCounter,
                                TezCounter connectionErrsCounter,
                                TezCounter wrongReduceErrsCounter,
-                               String applicationId,
-                               int dagId,
                                boolean asyncHttp,
                                boolean sslShuffle,
                                boolean verifyDiskChecksum,
-                               boolean compositeFetch) {
+                               boolean compositeFetch,
+                               InputContext inputContext) {
     this.scheduler = scheduler;
     this.allocator = allocator;
     this.exceptionReporter = exceptionReporter;
@@ -149,8 +149,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.badIdErrs = badIdErrsCounter;
     this.connectionErrs = connectionErrsCounter;
     this.wrongReduceErrs = wrongReduceErrsCounter;
-    this.applicationId = applicationId;
-    this.dagId = dagId;
+    this.applicationId = inputContext.getApplicationId().toString();
+    this.dagId = inputContext.getDagIdentifier();
 
     this.ifileReadAhead = ifileReadAhead;
     this.ifileReadAheadLength = ifileReadAheadLength;
@@ -171,7 +171,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     this.verifyDiskChecksum = verifyDiskChecksum;
     this.compositeFetch = compositeFetch;
 
-    this.logIdentifier = "fetcher [" + srcNameTrimmed + "] #" + id;
+    String sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + " -> "
+        + TezUtilsInternal.cleanVertexName(inputContext.getTaskVertexName());
+    this.logIdentifier = "fetcher [" + sourceDestNameTrimmed + "] #" + id;
   }
 
   @VisibleForTesting
@@ -238,8 +240,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
   /**
    * The crux of the matter...
-   * 
-   * @param host {@link MapHost} from which we need to  
+   *
+   * @param host {@link MapHost} from which we need to
    *              shuffle available map-outputs.
    */
   @VisibleForTesting
@@ -270,7 +272,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
       // Loop through available map-outputs and fetch them
       // On any error, faildTasks is not null and we exit
-      // after putting back the remaining maps to the 
+      // after putting back the remaining maps to the
       // yet_to_be_fetched list and marking the failed tasks.
       InputAttemptFetchFailure[] failedTasks = null;
 
@@ -278,7 +280,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
         InputAttemptIdentifier inputAttemptIdentifier =
             remaining.entrySet().iterator().next().getValue();
         // fail immediately after first failure because we dont know how much to
-        // skip for this error in the input stream. So we cannot move on to the 
+        // skip for this error in the input stream. So we cannot move on to the
         // remaining outputs. YARN-1773. Will get to them in the next retry.
         try {
           failedTasks = copyMapOutput(host, input, inputAttemptIdentifier);
@@ -338,8 +340,9 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
   boolean setupConnection(MapHost host, Collection<InputAttemptIdentifier> attempts)
       throws IOException {
     boolean connectSucceeded = false;
+    StringBuilder baseURI = null;
     try {
-      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
+      baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host.getHost(),
           host.getPort(), host.getPartitionId(), host.getPartitionCount(), applicationId, dagId, sslShuffle);
       URL url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts, httpConnectionParams.isKeepAlive());
       httpConnection = ShuffleUtils.getHttpConnection(asyncHttp, url, httpConnectionParams,
@@ -362,13 +365,13 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       }
       ioErrs.increment(1);
       if (!connectSucceeded) {
-        LOG.warn(String.format("Failed to connect from %s to %s with %d inputs", localShuffleHost,
-            host, remaining.size()), ie);
+        LOG.warn("FETCH_FAILURE: Failed to connect from {} to {} with {} inputs, url: {}", localShuffleHost,
+            host, remaining.size(), baseURI, ie);
         connectionErrs.increment(1);
       } else {
-        LOG.warn(String.format(
-            "Failed to verify reply after connecting from %s to %s with %d inputs pending",
-            localShuffleHost, host, remaining.size()), ie);
+        LOG.warn(
+            "FETCH_FAILURE: Failed to verify reply after connecting from {} to {} with {} inputs pending, url: {}",
+            localShuffleHost, host, remaining.size(), baseURI, ie);
       }
 
       // At this point, either the connection failed, or the initial header verification failed.
@@ -484,8 +487,8 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
           if (!stopped) {
             badIdErrs.increment(1);
             LOG.warn("Invalid map id ", e);
-            // Don't know which one was bad, so consider this one bad and dont read
-            // the remaining because we dont know where to start reading from. YARN-1773
+            // Don't know which one was bad, so consider this one bad and don't read
+            // the remaining because we don't know where to start reading from. YARN-1773
             return new InputAttemptFetchFailure[] {
                 new InputAttemptFetchFailure(getNextRemainingAttempt()) };
           } else {
@@ -637,7 +640,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       retryStartTime = currentTime;
     }
 
-    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+    if ((currentTime - retryStartTime) - httpConnectionParams.getReadTimeout() < 0) {
       LOG.warn("Shuffle output from " + host.getHostIdentifier() +
           " failed, retry it.");
       //retry connecting to the host
@@ -649,7 +652,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
       return false;
     }
   }
-  
+
   /**
    * Do some basic verification on the input received -- Being defensive
    * @param compressedLength
@@ -664,7 +667,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     if (compressedLength < 0 || decompressedLength < 0) {
       wrongLengthErrs.increment(1);
       LOG.warn(logIdentifier + " invalid lengths in map output header: id: " +
-          srcAttemptId + " len: " + compressedLength + ", decomp len: " + 
+          srcAttemptId + " len: " + compressedLength + ", decomp len: " +
                decompressedLength);
       return false;
     }
@@ -680,7 +683,7 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (remaining.size() > 0) {
       return remaining.values().iterator().next();

@@ -18,11 +18,16 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -40,18 +45,25 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.tez.common.DrainDispatcher;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
+import org.apache.tez.dag.app.rm.TaskSchedulerManager;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
+import org.junit.Rule;
+import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
@@ -149,7 +161,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -159,6 +170,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.protobuf.ByteString;
 
 public class TestDAGImpl {
+
+  @Rule
+  public TestName testName = new TestName();
 
   private static final Logger LOG = LoggerFactory.getLogger(TestDAGImpl.class);
   private DAGPlan dagPlan;
@@ -171,6 +185,7 @@ public class TestDAGImpl {
   private ACLManager aclManager;
   private ApplicationAttemptId appAttemptId;
   private DAGImpl dag;
+  private TaskSchedulerManager taskSchedulerManager;
   private TaskEventDispatcher taskEventDispatcher;
   private VertexEventDispatcher vertexEventDispatcher;
   private DagEventDispatcher dagEventDispatcher;
@@ -221,7 +236,7 @@ public class TestDAGImpl {
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
     public void handle(DAGEvent event) {
-      DAGImpl dag = chooseDAG(event.getDAGId());
+      DAGImpl dag = chooseDAG(event.getDAGID());
       dag.handle(event);
     }
   }
@@ -230,9 +245,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(TaskEvent event) {
-      TezDAGID id = event.getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskID().getVertexID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       ((EventHandler<TaskEvent>)task).handle(event);
     }
@@ -249,10 +264,10 @@ public class TestDAGImpl {
   private class TaskAttemptEventDisptacher2 implements EventHandler<TaskAttemptEvent> {
     @Override
     public void handle(TaskAttemptEvent event) {
-      TezDAGID id = event.getTaskAttemptID().getTaskID().getVertexID().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getTaskAttemptID().getTaskID().getVertexID());
-      Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
+      Vertex vertex = handler.getVertex(event.getVertexID());
+      Task task = vertex.getTask(event.getTaskID());
       TaskAttempt ta = task.getAttempt(event.getTaskAttemptID());
       ((EventHandler<TaskAttemptEvent>)ta).handle(event);
     }
@@ -264,9 +279,9 @@ public class TestDAGImpl {
     @SuppressWarnings("unchecked")
     @Override
     public void handle(VertexEvent event) {
-      TezDAGID id = event.getVertexId().getDAGId();
+      TezDAGID id = event.getDAGID();
       DAGImpl handler = chooseDAG(id);
-      Vertex vertex = handler.getVertex(event.getVertexId());
+      Vertex vertex = handler.getVertex(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -425,7 +440,7 @@ public class TestDAGImpl {
   }
 
   // Create a plan with 3 vertices: A, B, C. Group(A,B)->C
-  static DAGPlan createGroupDAGPlan() {
+  static DAGPlan createGroupDAGPlan(String dagName) {
     LOG.info("Setting up group dag plan");
     int dummyTaskCount = 1;
     Resource dummyTaskResource = Resource.newInstance(1, 1);
@@ -439,7 +454,7 @@ public class TestDAGImpl {
         ProcessorDescriptor.create("Processor"),
         dummyTaskCount, dummyTaskResource);
 
-    DAG dag = DAG.create("testDag");
+    DAG dag = DAG.create("DAG-" + dagName);
     String groupName1 = "uv12";
     OutputCommitterDescriptor ocd = OutputCommitterDescriptor.create(
         TotalCountingOutputCommitter.class.getName());
@@ -851,12 +866,13 @@ public class TestDAGImpl {
     dispatcher = new DrainDispatcher();
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
+    taskSchedulerManager = mock(TaskSchedulerManager.class);
     execService = mock(ListeningExecutorService.class);
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     when(appContext.getHadoopShim()).thenReturn(defaultShim);
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
-    
-    Mockito.doAnswer(new Answer() {
+
+    doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           CallableEvent e = (CallableEvent) args[0];
@@ -905,7 +921,7 @@ public class TestDAGImpl {
     doReturn(defaultShim).when(groupAppContext).getHadoopShim();
 
     groupDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 3);
-    groupDagPlan = createGroupDAGPlan();
+    groupDagPlan = createGroupDAGPlan(testName.getMethodName());
     groupDag = new DAGImpl(groupDagId, conf, groupDagPlan,
         dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh,
@@ -1174,14 +1190,14 @@ public class TestDAGImpl {
     VertexImpl v2 = (VertexImpl)dagWithCustomEdge.getVertex("vertex2");
     dispatcher.await();
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
     TezEvent tezEvent = new TezEvent(daEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
 
     Assert.assertEquals(VertexState.FAILED, v2.getState());
@@ -1207,11 +1223,11 @@ public class TestDAGImpl {
 
     dispatcher.await();
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     DataMovementEvent daEvent = DataMovementEvent.create(ByteBuffer.wrap(new byte[0]));
     TezEvent tezEvent = new TezEvent(daEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT, "vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1239,13 +1255,13 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputFailedEvent ifEvent = InputFailedEvent.create(0, 1);
     TezEvent tezEvent = new TezEvent(ifEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex1", "vertex2", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
-    v2.getTaskAttemptTezEvents(ta1.getID(), 0, 0, 1000);
+    v2.getTaskAttemptTezEvents(ta1.getTaskAttemptID(), 0, 0, 1000);
     dispatcher.await();
     Assert.assertEquals(VertexState.FAILED, v2.getState());
     
@@ -1270,11 +1286,11 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
 
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
     TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(
         new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
@@ -1301,10 +1317,10 @@ public class TestDAGImpl {
     dispatcher.await();
 
     Task t1= v2.getTask(0);
-    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskId(), 0));
+    TaskAttemptImpl ta1= (TaskAttemptImpl)t1.getAttempt(TezTaskAttemptID.getInstance(t1.getTaskID(), 0));
     InputReadErrorEvent ireEvent = InputReadErrorEvent.create("", 0, 0);
     TezEvent tezEvent = new TezEvent(ireEvent, 
-        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getID()));
+        new EventMetaData(EventProducerConsumerType.INPUT,"vertex2", "vertex1", ta1.getTaskAttemptID()));
     dispatcher.getEventHandler().handle(new VertexEventRouteEvent(v2.getVertexId(), Lists.newArrayList(tezEvent)));
     dispatcher.await();
     // 
@@ -1942,17 +1958,17 @@ public class TestDAGImpl {
     conf.setBoolean(
         TezConfiguration.TEZ_AM_COMMIT_ALL_OUTPUTS_ON_DAG_SUCCESS,
         false);
-    dag = Mockito.spy(new DAGImpl(dagId, conf, dagPlan,
+    dag = spy(new DAGImpl(dagId, conf, dagPlan,
         dispatcher.getEventHandler(), taskCommunicatorManagerInterface,
         fsTokens, clock, "user", thh, appContext));
     StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl> spyStateMachine =
-        Mockito.spy(new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
+        spy(new StateMachineTez<DAGState, DAGEventType, DAGEvent, DAGImpl>(
             dag.stateMachineFactory.make(dag), dag));
     when(dag.getStateMachine()).thenReturn(spyStateMachine);
     dag.entityUpdateTracker = new StateChangeNotifierForTest(dag);
     doReturn(dag).when(appContext).getCurrentDAG();
-    DAGImpl.OutputKey outputKey = Mockito.mock(DAGImpl.OutputKey.class);
-    ListenableFuture future = Mockito.mock(ListenableFuture.class);
+    DAGImpl.OutputKey outputKey = mock(DAGImpl.OutputKey.class);
+    ListenableFuture future = mock(ListenableFuture.class);
     dag.commitFutures.put(outputKey, future);
     initDAG(dag);
     startDAG(dag);
@@ -1975,7 +1991,7 @@ public class TestDAGImpl {
     DAGEventCommitCompleted dagEvent = new DAGEventCommitCompleted(
         dagId, outputKey, false , new RuntimeException("test"));
     doThrow(new RuntimeException("test")).when(
-        dag).logJobHistoryUnsuccesfulEvent(any(DAGState.class), any(TezCounters.class));
+        dag).logJobHistoryUnsuccesfulEvent(any(), any());
     dag.handle(dagEvent);
     dispatcher.await();
     Assert.assertTrue("DAG did not terminate!", dag.getInternalState() == DAGState.FAILED);
@@ -2348,4 +2364,71 @@ public class TestDAGImpl {
 
   }
 
+  @Test(timeout = 5000)
+  public void testTotalContainersUsedCounter() {
+    DAGImpl spy = getDagSpy();
+
+    spy.addUsedContainer(Container.newInstance(ContainerId.fromString("container_e16_1504924099862_7571_01_000005"),
+        mock(NodeId.class), null, null, null, null));
+    spy.addUsedContainer(Container.newInstance(ContainerId.fromString("container_e16_1504924099862_7571_01_000006"),
+        mock(NodeId.class), null, null, null, null));
+
+    spy.onFinish();
+    // 2 calls to addUsedContainer
+    verify(spy, times(2)).addUsedContainer(any(Container.class));
+    // 2 containers were used
+    Assert.assertEquals(2,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.TOTAL_CONTAINERS_USED.name())
+            .getValue());
+  }
+
+  @Test(timeout = 5000)
+  public void testNodesUsedCounter() {
+    DAGImpl spy = getDagSpy();
+
+    Container containerOnHost = mock(Container.class);
+    when(containerOnHost.getNodeId()).thenReturn(NodeId.fromString("localhost:0"));
+    Container containerOnSameHost = mock(Container.class);
+    when(containerOnSameHost.getNodeId()).thenReturn(NodeId.fromString("localhost:0"));
+    Container containerOnDifferentHost = mock(Container.class);
+    when(containerOnDifferentHost.getNodeId()).thenReturn(NodeId.fromString("otherhost:0"));
+    Container containerOnSameHostWithDifferentPort = mock(Container.class);
+    when(containerOnSameHostWithDifferentPort.getNodeId()).thenReturn(NodeId.fromString("localhost:1"));
+
+    spy.addUsedContainer(containerOnHost);
+    spy.addUsedContainer(containerOnSameHost);
+    spy.addUsedContainer(containerOnDifferentHost);
+    spy.addUsedContainer(containerOnSameHostWithDifferentPort);
+
+    when(taskSchedulerManager.getNumClusterNodes(anyBoolean())).thenReturn(10);
+
+    spy.onFinish();
+    // 4 calls to addUsedContainer
+    verify(spy, times(4)).addUsedContainer(any(Container.class));
+
+    // 2 distinct node hosts were seen: localhost, otherhost
+    Assert.assertEquals(2,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName()).findCounter(DAGCounter.NODE_USED_COUNT.name())
+            .getValue());
+
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("localhost"));
+    Assert.assertTrue(spy.nodesUsedByCurrentDAG.contains("otherhost"));
+
+    Assert.assertEquals(10,
+        spy.getAllCounters().getGroup(DAGCounter.class.getName())
+            .findCounter(DAGCounter.NODE_TOTAL_COUNT.name())
+            .getValue());
+  }
+
+  private DAGImpl getDagSpy() {
+    initDAG(mrrDag);
+    dispatcher.await();
+    startDAG(mrrDag);
+    dispatcher.await();
+
+    // needed when onFinish() method is called on a DAGImpl
+    when(mrrAppContext.getTaskScheduler()).thenReturn(taskSchedulerManager);
+
+    return spy(mrrDag);
+  }
 }

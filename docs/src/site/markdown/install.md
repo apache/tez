@@ -34,11 +34,11 @@ or higher.
 
 2.  Build tez using `mvn clean package -DskipTests=true -Dmaven.javadoc.skip=true`
     -   This assumes that you have already installed JDK8 or later and Maven 3 or later.
-    -   Tez also requires Protocol Buffers 2.5.0, including the protoc-compiler.
+    -   Tez also requires Protocol Buffers 3.19.4, including the protoc-compiler.
         *   This can be downloaded from https://github.com/google/protobuf/tags/.
         *   On Mac OS X with the homebrew package manager `brew install protobuf250`
-        *   For rpm-based linux systems, the yum repos may not have the 2.5.0 version.
-            `rpm.pbone.net` has the protobuf-2.5.0 and protobuf-compiler-2.5.0 packages.
+        *   For rpm-based linux systems, the yum repos may not have the 3.19.4 version.
+            `rpm.pbone.net` has the protobuf-3.19.4 and protobuf-compiler-3.19.4 packages.
     -   If you prefer to run the unit tests, remove skipTests from the
         command above.
     -   If you use Eclipse IDE, you can import the projects using

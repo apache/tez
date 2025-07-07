@@ -21,7 +21,7 @@ package org.apache.tez.dag.app.dag.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -155,7 +155,7 @@ public class TestEdge {
     } catch (IllegalArgumentException e) {
       e.printStackTrace();
       Assert.assertTrue(e.getMessage()
-          .contains("ScatteGather edge manager must have destination vertex task parallelism specified"));
+          .contains("ScatterGather edge manager must have destination vertex task parallelism specified"));
     }
     when(mockContext.getDestinationVertexNumTasks()).thenReturn(0);
     manager.getNumSourceTaskPhysicalOutputs(0);
@@ -232,9 +232,9 @@ public class TestEdge {
 
   private void resetTaskMocks(Collection<Task> tasks) {
     for (Task task : tasks) {
-      TezTaskID taskID = task.getTaskId();
+      TezTaskID taskID = task.getTaskID();
       reset(task);
-      doReturn(taskID).when(task).getTaskId();
+      doReturn(taskID).when(task).getTaskID();
     }
   }
 
@@ -243,7 +243,7 @@ public class TestEdge {
     for (int i = 0 ; i < numTasks ; i++) {
       Task task = mock(Task.class);
       TezTaskID taskID = TezTaskID.getInstance(vertexID, i);
-      doReturn(taskID).when(task).getTaskId();
+      doReturn(taskID).when(task).getTaskID();
       tasks.put(taskID, task);
     }
     return tasks;

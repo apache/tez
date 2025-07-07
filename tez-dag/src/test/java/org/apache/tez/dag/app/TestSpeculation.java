@@ -153,9 +153,7 @@ public class TestSpeculation {
                     .contains(UNIT_EXCEPTION_MESSAGE)))) {
                   throw caughtThrowable;
                 }
-                LOG.warn("{} : Failed. Retries remaining: ",
-                    description.getDisplayName(),
-                    retryCount.toString());
+                LOG.warn("{} : Failed. Retries remaining: {}", description.getDisplayName(), retryCount.toString());
               } else {
                 throw caughtThrowable;
               }
@@ -300,7 +298,7 @@ public class TestSpeculation {
               TezConfiguration.TEZ_AM_LEGACY_SPECULATIVE_SINGLE_TASK_VERTEX_TIMEOUT,
               entry.getKey());
 
-      DAG dag = DAG.create("test");
+      DAG dag = DAG.create("DAG-testSingleTaskSpeculation");
       Vertex vA = Vertex.create("A",
               ProcessorDescriptor.create("Proc.class"),
               1);
@@ -326,7 +324,7 @@ public class TestSpeculation {
       Task task = dagImpl.getTask(killedTaId.getTaskID());
       Assert.assertEquals(entry.getValue().intValue(), task.getAttempts().size());
       if (entry.getValue() > 1) {
-        Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getID());
+        Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
         TaskAttempt killedAttempt = task.getAttempt(killedTaId);
         Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
         Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION,
@@ -343,7 +341,7 @@ public class TestSpeculation {
    * @throws Exception the exception
    */
   public void testBasicSpeculation(boolean withProgress) throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("DAG-testBasicSpeculation");
     Vertex vA = Vertex.create("A",
         ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
@@ -369,7 +367,7 @@ public class TestSpeculation {
     Task task = dagImpl.getTask(killedTaId.getTaskID());
     Assert.assertEquals(ASSERT_SPECULATIONS_COUNT_MSG, 2,
         task.getAttempts().size());
-    Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getID());
+    Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed as speculative attempt");
     Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_EFFECTIVE_SPECULATION, 
@@ -380,7 +378,7 @@ public class TestSpeculation {
           .getValue());
       Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
-      org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+      org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
       Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
           .getValue());
     }
@@ -426,7 +424,7 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationPerVertexConf() throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("DAG-testBasicSpeculationPerVertexConf");
     String vNameNoSpec = "A";
     String vNameSpec = "B";
     Vertex vA = Vertex.create(vNameNoSpec, ProcessorDescriptor.create("Proc.class"), 5);
@@ -487,7 +485,7 @@ public class TestSpeculation {
   @Retry
   @Test (timeout=30000)
   public void testBasicSpeculationNotUseful() throws Exception {
-    DAG dag = DAG.create("test");
+    DAG dag = DAG.create("DAG-testBasicSpeculationNotUseful");
     Vertex vA = Vertex.create("A", ProcessorDescriptor.create("Proc.class"), 5);
     dag.addVertex(vA);
 
@@ -508,7 +506,7 @@ public class TestSpeculation {
     Assert.assertEquals(DAGStatus.State.SUCCEEDED, dagClient.getDAGStatus(null).getState());
     Task task = dagImpl.getTask(killedTaId.getTaskID());
     Assert.assertEquals(2, task.getAttempts().size());
-    Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getID());
+    Assert.assertEquals(successTaId, task.getSuccessfulAttempt().getTaskAttemptID());
     TaskAttempt killedAttempt = task.getAttempt(killedTaId);
     Joiner.on(",").join(killedAttempt.getDiagnostics()).contains("Killed speculative attempt as");
     Assert.assertEquals(TaskAttemptTerminationCause.TERMINATED_INEFFECTIVE_SPECULATION, 
@@ -517,7 +515,7 @@ public class TestSpeculation {
         .getValue());
     Assert.assertEquals(1, dagImpl.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
-    org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getTaskID().getVertexID());
+    org.apache.tez.dag.app.dag.Vertex v = dagImpl.getVertex(killedTaId.getVertexID());
     Assert.assertEquals(1, v.getAllCounters().findCounter(TaskCounter.NUM_SPECULATIONS)
         .getValue());
     tezClient.stop();

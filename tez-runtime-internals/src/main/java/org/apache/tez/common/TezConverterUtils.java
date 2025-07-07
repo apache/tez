@@ -28,7 +28,9 @@ import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskFailureTypeProto;
 
-public class TezConverterUtils {
+public final class TezConverterUtils {
+
+  private TezConverterUtils() {}
 
   /**
    * return a {@link URI} from a given url
@@ -36,7 +38,6 @@ public class TezConverterUtils {
    * @param url
    *          url to convert
    * @return path from {@link URL}
-   * @throws URISyntaxException
    */
   @Private
   public static URI getURIFromYarnURL(URL url) throws URISyntaxException {

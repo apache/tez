@@ -23,14 +23,19 @@ import static org.mockito.Mockito.when;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.util.Time;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -136,6 +141,51 @@ public class TestProtoHistoryLoggingService {
   }
 
   @Test
+  public void testProtoMessageSizeReset() throws Exception {
+    // This test case is to confirm that cin.resetSizeCounter() was indeed called
+    ProtoHistoryLoggingService service = createService(false);
+    service.start();
+    TezDAGID dagId = TezDAGID.getInstance(appId, 0);
+    List<HistoryEventProto> protos = new ArrayList<>();
+    for (DAGHistoryEvent event : makeHistoryEvents(dagId, service)) {
+      protos.add(new HistoryEventProtoConverter().convert(event.getHistoryEvent()));
+      service.handle(event);
+    }
+    service.stop();
+
+    TezProtoLoggers loggers = new TezProtoLoggers();
+    Assert.assertTrue(loggers.setup(service.getConfig(), clock));
+
+    // Verify dag events are logged.
+    DatePartitionedLogger<HistoryEventProto> dagLogger = loggers.getDagEventsLogger();
+    Path dagFilePath = dagLogger.getPathForDate(LocalDate.ofEpochDay(0), dagId + "_1");
+    try (ProtoMessageReader<HistoryEventProto> reader = dagLogger.getReader(dagFilePath)) {
+      assertEventsRead(reader, protos, 1, protos.size());
+
+      int totalBytesRead = getTotalBytesRead(reader);
+      // cin.resetSizeCounter() in ProtoMessageWritable.java ensures that
+      // totalBytesRead will always be 0. For reference read javadoc of CodedInputStream.
+      Assert.assertEquals(totalBytesRead, 0);
+    }
+  }
+
+  private static int getTotalBytesRead(ProtoMessageReader<HistoryEventProto> reader) throws NoSuchFieldException,
+      IllegalAccessException {
+    // writable is a private field in ProtoMessageReader.java
+    Field f = reader.getClass().getDeclaredField("writable");
+    f.setAccessible(true);
+    ProtoMessageWritable<HistoryEventProto> writable = (ProtoMessageWritable<HistoryEventProto>) f.get(reader);
+
+    // cin is a private filed in ProtoMessageWritable.java
+    Field c = writable.getClass().getDeclaredField("cin");
+    c.setAccessible(true);
+    CodedInputStream cin = (CodedInputStream) c.get(writable);
+
+    // Goal is to get value of: reader.writable.cin.getTotalBytesRead()
+    return cin.getTotalBytesRead();
+  }
+
+  @Test
   public void testServiceSplitEvents() throws Exception {
     ProtoHistoryLoggingService service = createService(true);
     service.start();
@@ -218,6 +268,23 @@ public class TestProtoHistoryLoggingService {
     // Verify manifest file scanner.
     Assert.assertNull(scanner.getNext());
     scanner.close();
+  }
+
+  @Test
+  public void testDirPermissions() throws IOException {
+    Path basePath = new Path(tempFolder.newFolder().getAbsolutePath());
+    Configuration conf = new Configuration();
+    FileSystem fs = basePath.getFileSystem(conf);
+    FsPermission expectedPermissions = FsPermission.createImmutable((short) 01777);
+
+    // Check the directory already exists and doesn't have the expected permissions.
+    Assert.assertTrue(fs.exists(basePath));
+    Assert.assertNotEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
+
+    new DatePartitionedLogger<>(HistoryEventProto.PARSER, basePath, conf, new FixedClock(Time.now()));
+
+    // Check the permissions they should be same as the expected permissions
+    Assert.assertEquals(expectedPermissions, fs.getFileStatus(basePath).getPermission());
   }
 
   private List<DAGHistoryEvent> makeHistoryEvents(TezDAGID dagId,

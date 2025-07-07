@@ -7,9 +7,9 @@ https://cwiki.apache.org/confluence/display/TEZ
 Requirements:
 
 * JDK 1.8+
-* Maven 3.1 or later
-* Findbugs 2.0.2 or later (if running findbugs)
-* ProtocolBuffer 2.5.0
+* Maven 3.6.3 or later
+* spotbugs 4.9.3 or later (if running spotbugs)
+* ProtocolBuffer 3.21.1
 * Internet connection for first build (to fetch all dependencies)
 * Hadoop version should be 2.7.0 or higher.
 
@@ -36,7 +36,7 @@ Maven build goals:
  * Compile                   : mvn compile
  * Run tests                 : mvn test
  * Create JAR                : mvn package
- * Run findbugs              : mvn compile findbugs:findbugs
+ * Run spotbugs              : mvn compile spotbugs:spotbugs
  * Run checkstyle            : mvn compile checkstyle:checkstyle
  * Install JAR in M2 cache   : mvn install
  * Deploy JAR to Maven repo  : mvn deploy
@@ -117,13 +117,16 @@ It's important to note that maven will still include tez-ui project, but all of 
 ----------------------------------------------------------------------------------
 Protocol Buffer compiler:
 
-The version of Protocol Buffer compiler, protoc, must be 2.5.0 and match the
-version of the protobuf JAR.
+The version of Protocol Buffer compiler, protoc, can be defined on-the-fly as:
+ $ mvn clean install -DskipTests -pl ./tez-api -Dprotobuf.version=3.7.1
 
-If you have multiple versions of protoc in your system, you can set in your 
-build shell the PROTOC_PATH environment variable to point to the one you 
-want to use for the Tez build. If you don't define this environment variable,
-protoc is looked up in the PATH.
+The default version is defined in the root pom.xml.
+
+If you have multiple versions of protoc in your system, you can set in your
+build shell the PROTOC_PATH environment variable to point to the one you
+want to use for the Tez build. If you don't define this environment variable then the
+embedded protoc compiler will be used with the version defined in ${protobuf.version}.
+It detects the platform and executes the corresponding protoc binary at build time.
 
 You can also specify the path to protoc while building using -Dprotoc.path
 

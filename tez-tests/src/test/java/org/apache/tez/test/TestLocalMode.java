@@ -39,6 +39,7 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.VertexStatus;
 import org.apache.tez.examples.OrderedWordCount;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
@@ -60,6 +61,12 @@ import static org.junit.Assert.*;
  */
 @RunWith(Parameterized.class)
 public class TestLocalMode {
+
+  /**
+   * In order to be able to safely get VertexStatus from a running DAG,
+   * the DAG needs to run for a certain amount of time, see TEZ-4475 for details.
+   */
+  private static final int SLEEP_PROCESSOR_TIME_TO_SLEEP_MS = 500;
 
   private static final File STAGING_DIR = new File(System.getProperty("test.build.data"),
       TestLocalMode.class.getName());
@@ -126,22 +133,26 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, true);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithSession", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
 
     dagClient1.close();
     tezClient1.stop();
 
     TezConfiguration tezConf2 = createConf();
-    DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithSession_2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, true);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
     dagClient2.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient2.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient2.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     assertFalse(dagClient1.getExecutionContext().equals(dagClient2.getExecutionContext()));
     dagClient2.close();
     tezClient2.stop();
@@ -154,23 +165,26 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testMultipleClientsWithoutSession", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     dagClient1.close();
     tezClient1.stop();
 
 
     TezConfiguration tezConf2 = createConf();
-    DAG dag2 = createSimpleDAG("dag2", SleepProcessor.class.getName());
+    DAG dag2 = createSimpleDAG("testMultipleClientsWithoutSession_2", SleepProcessor.class.getName());
     TezClient tezClient2 = TezClient.create("commonName", tezConf2, false);
     tezClient2.start();
     DAGClient dagClient2 = tezClient2.submitDAG(dag2);
     dagClient2.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient2.getDAGStatus(null).getState());
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient2.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     assertFalse(dagClient1.getExecutionContext().equals(dagClient2.getExecutionContext()));
     dagClient2.close();
     tezClient2.stop();
@@ -184,12 +198,13 @@ public class TestLocalMode {
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", SleepProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testNoSysExitOnSuccessfulDAG", SleepProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.SUCCEEDED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.SUCCEEDED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     // Sleep for more time than is required for the DAG to complete.
     Thread.sleep((long) (TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT * 1.5));
 
@@ -198,19 +213,20 @@ public class TestLocalMode {
   }
 
   @Test(timeout = 20000)
-  public void testNoSysExitOnFailinglDAG() throws TezException, InterruptedException,
+  public void testNoSysExitOnFailingDAG() throws TezException, InterruptedException,
       IOException {
     TezConfiguration tezConf1 = createConf();
     // Run in non-session mode so that the AM terminates
     TezClient tezClient1 = TezClient.create("commonName", tezConf1, false);
     tezClient1.start();
 
-    DAG dag1 = createSimpleDAG("dag1", FailingProcessor.class.getName());
+    DAG dag1 = createSimpleDAG("testNoSysExitOnFailingDAG", FailingProcessor.class.getName());
 
     DAGClient dagClient1 = tezClient1.submitDAG(dag1);
     dagClient1.waitForCompletion();
     assertEquals(DAGStatus.State.FAILED, dagClient1.getDAGStatus(null).getState());
-
+    assertEquals(VertexStatus.State.FAILED,
+        dagClient1.getVertexStatus(SleepProcessor.SLEEP_VERTEX_NAME, null).getState());
     // Sleep for more time than is required for the DAG to complete.
     Thread.sleep((long) (TezConstants.TEZ_DAG_SLEEP_TIME_BEFORE_EXIT * 1.5));
 
@@ -245,12 +261,15 @@ public class TestLocalMode {
   }
 
   private DAG createSimpleDAG(String dagName, String processorName) {
-    DAG dag = DAG.create(dagName).addVertex(Vertex.create("Sleep", ProcessorDescriptor.create(
-        processorName).setUserPayload(
-        new SleepProcessor.SleepProcessorConfig(1).toUserPayload()), 1));
+    DAG dag = DAG.create(generateDagName("DAG-" + dagName)).addVertex(
+        Vertex.create(SleepProcessor.SLEEP_VERTEX_NAME, ProcessorDescriptor.create(processorName).setUserPayload(
+            new SleepProcessor.SleepProcessorConfig(SLEEP_PROCESSOR_TIME_TO_SLEEP_MS).toUserPayload()), 1));
     return dag;
-
   }
+  private String generateDagName(String baseName) {
+    return baseName + (useDfs ? "_useDfs" : "") + (useLocalModeWithoutNetwork ? "_useLocalModeWithoutNetwork" : "");
+  }
+
   @Test(timeout=30000)
   public void testMultiDAGsOnSession() throws IOException, TezException, InterruptedException {
     int dags = 2;//two dags will be submitted to session

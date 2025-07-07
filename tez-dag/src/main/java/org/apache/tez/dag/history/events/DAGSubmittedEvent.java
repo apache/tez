@@ -24,6 +24,8 @@ import java.util.Map;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
+import org.apache.tez.dag.records.DAGIDAware;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -42,7 +44,7 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 import org.apache.tez.dag.utils.ProtoUtils;
 
 
-public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
+public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent, DAGIDAware {
 
   private static final Logger LOG = LoggerFactory.getLogger(DAGSubmittedEvent.class);
 
@@ -133,7 +135,7 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
 
   @Override
   public void fromProtoStream(CodedInputStream inputStream) throws IOException {
-    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, null);
+    DAGSubmittedProto proto = inputStream.readMessage(DAGSubmittedProto.PARSER, ExtensionRegistry.getEmptyRegistry());
     if (proto == null) {
       throw new IOException("No data found in stream");
     }
@@ -174,7 +176,8 @@ public class DAGSubmittedEvent implements HistoryEvent, SummaryEvent {
     return this.dagPlan;
   }
 
-  public TezDAGID getDagID() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagID;
   }
 

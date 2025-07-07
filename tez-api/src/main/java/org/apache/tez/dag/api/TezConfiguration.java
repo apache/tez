@@ -261,6 +261,51 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_LOG_LEVEL_DEFAULT = "INFO";
 
   /**
+   * By this option, user can easily override the logging pattern which is applied in
+   * TezContainerLogAppender in AM, regardless of the environmental settings.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_LOG_PATTERN_LAYOUT_AM = TEZ_AM_PREFIX + "log.pattern.layout";
+
+  /**
+   * By this option, user can easily override the logging pattern which is applied in
+   * TezContainerLogAppender in tasks, regardless of the environmental settings.
+   */
+  @ConfigurationScope(Scope.VERTEX)
+  @ConfigurationProperty
+  public static final String TEZ_LOG_PATTERN_LAYOUT_TASK = TEZ_TASK_PREFIX + "log.pattern.layout";
+
+  /**
+   * Set pattern to empty string to turn the custom log pattern feature off.
+   */
+  public static final String TEZ_LOG_PATTERN_LAYOUT_DEFAULT = "";
+
+  /**
+   * Comma separated list of keys, which can used for defining keys in MDC. The corresponding values
+   * will be read from Configuration, see tez.mdc.custom.keys.conf.props for further details.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_MDC_CUSTOM_KEYS = TEZ_PREFIX + "mdc.custom.keys";
+
+  /**
+   * Comma separated list of Configuration keys. Tez will try to fill MDC with key value pairs in a
+   * way that a key will be the nth item in tez.mdc.custom.keys and the value will be the value from
+   * a Configuration object pointed by the nth key of tez.mdc.custom.keys.conf.props like below:
+   *
+   * tez.mdc.custom.keys=queryId,otherKey
+   * tez.mdc.custom.keys.conf.props=awesome.sql.app.query.id,awesome.sql.app.other.key
+   *
+   * So MDC will contain key -{@literal >} value pairs as:
+   * queryId  -{@literal >} conf.get("awesome.sql.app.query.id")
+   * otherKey -{@literal >} conf.get("awesome.sql.app.other.key")
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_MDC_CUSTOM_KEYS_CONF_PROPS = TEZ_MDC_CUSTOM_KEYS + ".conf.props";
+
+  /**
    * double value. Represents ratio of unique failed outputs / number of consumer
    * tasks. When this condition or value mentioned in {@link
    * #TEZ_TASK_MAX_ALLOWED_OUTPUT_FAILURES} is met, task would be declared as failed by AM.
@@ -354,6 +399,8 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_AM_LAUNCH_CLUSTER_DEFAULT_CMD_OPTS_DEFAULT =
       "-server -Djava.net.preferIPv4Stack=true -Dhadoop.metrics.log.level=WARN";
 
+  public static final String TEZ_AM_LAUNCH_CLUSTER_JDK17_CMD_OPTS_DEFAULT =
+      " --add-opens java.base/java.lang=ALL-UNNAMED";
   /**
    * String value. Command line options provided during the launch of the Tez
    * AppMaster process. Its recommended to not set any Xmx or Xms in these launch opts so that
@@ -860,7 +907,18 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_AM_YARN_SCHEDULER_CLASS = TEZ_AM_PREFIX + "yarn.scheduler.class";
   public static final String TEZ_AM_YARN_SCHEDULER_CLASS_DEFAULT =
-      "org.apache.tez.dag.app.rm.YarnTaskSchedulerService";
+      "org.apache.tez.dag.app.rm.DagAwareYarnTaskScheduler";
+
+  /**
+   * Int value. The AM waits this amount of time when the first DAG is submitted but not all the services are ready.
+   * This can happen when the client RPC handler is up and able to accept DAGs but e.g. task scheduler
+   * manager is not ready (e.g. a task scheduler is waiting for external resources).
+   * A value equal or less than 0 is not supported and leads to an exception.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS = TEZ_AM_PREFIX + "ready.for.submit.timeout.ms";
+  public static final int TEZ_AM_READY_FOR_SUBMIT_TIMEOUT_MS_DEFAULT = 30000;
 
   /** Int value. The amount of memory in MB to be used by the AppMaster */
   @ConfigurationScope(Scope.AM)
@@ -884,7 +942,33 @@ public class TezConfiguration extends Configuration {
   public static final boolean TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT = false;
 
   /**
-   * Int value. Upper limit on the number of threads used to delete DAG directories on nodes.
+   * Integer value. Instructs AM to delete vertex shuffle data if a vertex and all its
+   * child vertices at a certain depth are completed. Value less than or equal to 0 indicates the feature
+   * is disabled.
+   * Let's say we have a dag  Map1 - Reduce2 - Reduce3 - Reduce4.
+   * case:1 height = 1
+   * when Reduce 2 completes all the shuffle data of Map1 will be deleted and so on for other vertex.
+   * case: 2 height = 2
+   * when Reduce 3 completes all the shuffle data of Map1 will be deleted and so on for other vertex.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_VERTEX_CLEANUP_HEIGHT = TEZ_AM_PREFIX
+      + "vertex.cleanup.height";
+  public static final int TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT = 0;
+
+  /**
+   * Boolean value. Instructs AM to delete intermediate attempt data for failed task attempts.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE = TEZ_AM_PREFIX
+          + "task.attempt.cleanup.on.failure";
+  public static final boolean TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT = false;
+
+  /**
+   * Int value. Upper limit on the number of threads used to delete DAG directories,
+   * Vertex directories and failed task attempts directories on nodes.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
@@ -1755,6 +1839,18 @@ public class TezConfiguration extends Configuration {
       TEZ_PREFIX + "dag.recovery.enabled";
   public static final boolean DAG_RECOVERY_ENABLED_DEFAULT = true;
 
+
+  /**
+   * Boolean value. When set, this enables AM to fail when DAG recovery is enabled and
+   * restarted app master did not find anything to recover
+   * Expert level setting.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA =
+          TEZ_AM_PREFIX + "failure.on.missing.recovery.data";
+  public static final boolean TEZ_AM_FAILURE_ON_MISSING_RECOVERY_DATA_DEFAULT = false;
+
   /**
    * Int value. Size in bytes for the IO buffer size while processing the recovery file.
    * Expert level setting.
@@ -1833,7 +1929,7 @@ public class TezConfiguration extends Configuration {
 
   /**
    * Int value.
-   * The maximium number of tasks running in parallel within the app master process.
+   * The maximum number of tasks running in parallel within the app master process.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
@@ -1954,6 +2050,18 @@ public class TezConfiguration extends Configuration {
       + "tez-ui.webservice.enable";
   public static final boolean TEZ_AM_WEBSERVICE_ENABLE_DEFAULT = true;
 
+  /**
+   * String value. Range of ports that the AM can use for the WebUIService. Leave blank
+   * to use all possible ports. Expert level setting. It's hadoop standard range configuration.
+   * For example 50000-50050,50100-50200
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="boolean")
+  public static final String TEZ_AM_WEBSERVICE_PORT_RANGE = TEZ_AM_PREFIX
+      + "tez-ui.webservice.port-range";
+
+  public static final String TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT = "50000-50050";
+
   // TODO only validate property here, value can also be validated if necessary
   public static void validateProperty(String property, Scope usedScope) {
     Scope validScope = PropertyScope.get(property);
@@ -1992,6 +2100,18 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS =
       TEZ_PREFIX + "test.minicluster.app.wait.on.shutdown.secs";
   public static final long TEZ_TEST_MINI_CLUSTER_APP_WAIT_ON_SHUTDOWN_SECS_DEFAULT = 30;
+
+  /**
+   * Long value
+   * Status Cache timeout window in minutes for the DAGClient.
+   */
+  @Private
+  @ConfigurationScope(Scope.CLIENT)
+  @ConfigurationProperty(type="long")
+  public static final String TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS = TEZ_PREFIX
+      + "client.dag.status.cache.timeout-secs";
+  // Default timeout is 60 seconds.
+  public static final long TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS_DEFAULT = 60;
 
   /**
    * Long value
@@ -2178,4 +2298,37 @@ public class TezConfiguration extends Configuration {
   @ConfigurationProperty
   public static final String TEZ_MRREADER_CONFIG_UPDATE_PROPERTIES = "tez.mrreader.config.update.properties";
 
+  /**
+   *  Frequency at which thread dump should be captured. Supports TimeUnits. This is effective only
+   *  when org.apache.tez.dag.app.ThreadDumpDAGHook is configured to tez.am.hooks or
+   *  org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook is configured to tez.task.attempt.hooks.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_THREAD_DUMP_INTERVAL = "tez.thread.dump.interval";
+  public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
+
+  /**
+   * Limits the amount of data that can be written to LocalFileSystem by a Task.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty(type = "long")
+  public static final String TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES = "tez.task.local-fs.write-limit.bytes";
+  public static final long TEZ_TASK_LOCAL_FS_WRITE_LIMIT_BYTES_DEFAULT = -1;
+
+  /**
+   * Comma-separated list of hook classes implementing org.apache.tez.runtime.hook.TezDAGHook.
+   * e.g. org.apache.tez.dag.app.ThreadDumpDAGHook
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_HOOKS = TEZ_AM_PREFIX + "hooks";
+
+  /**
+   * Comma-separated list of hook classes implementing org.apache.tez.runtime.hook.TezTaskAttemptHook.
+   * e.g. org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_TASK_ATTEMPT_HOOKS = TEZ_TASK_PREFIX + "attempt.hooks";
 }

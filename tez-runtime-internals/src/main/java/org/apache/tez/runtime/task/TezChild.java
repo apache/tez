@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.ipc.RPC;
+import org.apache.hadoop.ipc.CallerContext;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.SecurityUtil;
@@ -49,8 +50,10 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.YarnUncaughtExceptionHandler;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.log4j.helpers.ThreadLocalMap;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
+import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezLocalResource;
@@ -61,9 +64,9 @@ import org.apache.tez.common.counters.Limits;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.records.DAGProtos;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.hadoop.shim.HadoopShim;
@@ -71,7 +74,11 @@ import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.impl.ExecutionContextImpl;
 import org.apache.tez.runtime.common.objectregistry.ObjectRegistryImpl;
+import org.apache.tez.runtime.hook.TezTaskAttemptHook;
 import org.apache.tez.runtime.internals.api.TaskReporterInterface;
+import org.apache.tez.util.LoggingUtils;
+
+import org.apache.tez.util.TezRuntimeShutdownHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,6 +132,7 @@ public class TezChild {
   private TezVertexID lastVertexID;
   private final HadoopShim hadoopShim;
   private final TezExecutors sharedExecutor;
+  private ThreadLocalMap mdcContext;
 
   public TezChild(Configuration conf, String host, int port, String containerIdentifier,
       String tokenIdentifier, int appAttemptNumber, String workingDir, String[] localDirs,
@@ -133,6 +141,7 @@ public class TezChild {
       ExecutionContext executionContext,
       Credentials credentials, long memAvailable, String user, TezTaskUmbilicalProtocol umbilical,
       boolean updateSysCounters, HadoopShim hadoopShim) throws IOException, InterruptedException {
+    this.mdcContext = LoggingUtils.setupLog4j();
     this.defaultConf = conf;
     this.containerIdString = containerIdentifier;
     this.appAttemptNumber = appAttemptNumber;
@@ -172,7 +181,7 @@ public class TezChild {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Executing with tokens:");
       for (Token<?> token : credentials.getAllTokens()) {
-        LOG.debug("",token);
+        LOG.debug("{}", token);
       }
     }
 
@@ -216,7 +225,7 @@ public class TezChild {
 
     while (!executor.isTerminated() && !isShutdown.get()) {
       if (taskCount > 0) {
-        TezUtilsInternal.updateLoggers("");
+        TezUtilsInternal.updateLoggers(defaultConf, "", LoggingUtils.getPatternForTask(defaultConf));
       }
       ListenableFuture<ContainerTask> getTaskFuture = executor.submit(containerReporter);
       boolean error = false;
@@ -240,6 +249,7 @@ public class TezChild {
           shutdown();
         }
       }
+
       TezCommonUtils.logCredentials(LOG, containerTask.getCredentials(), "containerTask");
       if (containerTask.shouldDie()) {
         LOG.info("ContainerTask returned shouldDie=true for container {}, Exiting", containerIdString);
@@ -247,7 +257,20 @@ public class TezChild {
         return new ContainerExecutionResult(ContainerExecutionResult.ExitStatus.SUCCESS, null,
             "Asked to die by the AM");
       } else {
-        String loggerAddend = containerTask.getTaskSpec().getTaskAttemptID().toString();
+        TezTaskAttemptID attemptId = containerTask.getTaskSpec().getTaskAttemptID();
+        Configuration taskConf;
+        if (containerTask.getTaskSpec().getTaskConf() != null) {
+          Configuration copy = new Configuration(defaultConf);
+          TezTaskRunner2.mergeTaskSpecConfToConf(containerTask.getTaskSpec(), copy);
+          taskConf = copy;
+          LoggingUtils.initLoggingContext(mdcContext, copy, attemptId.getTaskID().getVertexID().getDAGID().toString(),
+              attemptId.toString());
+        } else {
+          taskConf = defaultConf;
+          LoggingUtils.initLoggingContext(mdcContext, defaultConf,
+              attemptId.getTaskID().getVertexID().getDAGID().toString(), attemptId.toString());
+        }
+        String loggerAddend = attemptId.toString();
         taskCount++;
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime());
         System.err.println(timeStamp + " Starting to run new task attempt: " +
@@ -256,7 +279,8 @@ public class TezChild {
             containerTask.getTaskSpec().getTaskAttemptID().toString());
         TezUtilsInternal.setHadoopCallerContext(hadoopShim,
             containerTask.getTaskSpec().getTaskAttemptID());
-        TezUtilsInternal.updateLoggers(loggerAddend);
+        TezUtilsInternal.updateLoggers(defaultConf, loggerAddend, LoggingUtils.getPatternForTask(defaultConf));
+
         FileSystem.clearStatistics();
 
         childUGI = handleNewTaskCredentials(containerTask, childUGI);
@@ -270,7 +294,15 @@ public class TezChild {
             serviceConsumerMetadata, serviceProviderEnvMap, startedInputsMap, taskReporter,
             executor, objectRegistry, pid, executionContext, memAvailable, updateSysCounters,
             hadoopShim, sharedExecutor);
+
         boolean shouldDie;
+        final String[] hookClasses = taskConf
+            .getStrings(TezConfiguration.TEZ_TASK_ATTEMPT_HOOKS, new String[0]);
+        final TezTaskAttemptHook[] hooks = new TezTaskAttemptHook[hookClasses.length];
+        for (int i = 0; i < hooks.length; i++) {
+          hooks[i] = ReflectionUtils.createClazzInstance(hookClasses[i]);
+          hooks[i].start(attemptId, taskConf);
+        }
         try {
           TaskRunner2Result result = taskRunner.run();
           LOG.info("TaskRunner2Result: {}", result);
@@ -289,6 +321,9 @@ public class TezChild {
                 e, "TaskExecutionFailure: " + e.getMessage());
           }
         } finally {
+          for (TezTaskAttemptHook hook : hooks) {
+            hook.stop();
+          }
           FileSystem.closeAllForUGI(childUGI);
         }
       }
@@ -372,13 +407,12 @@ public class TezChild {
   private void cleanupOnTaskChanged(ContainerTask containerTask) {
     Preconditions.checkState(!containerTask.shouldDie());
     Preconditions.checkState(containerTask.getTaskSpec() != null);
-    TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getTaskID()
-        .getVertexID();
+    TezVertexID newVertexID = containerTask.getTaskSpec().getTaskAttemptID().getVertexID();
     if (lastVertexID != null) {
       if (!lastVertexID.equals(newVertexID)) {
         objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.VERTEX);
       }
-      if (!lastVertexID.getDAGId().equals(newVertexID.getDAGId())) {
+      if (!lastVertexID.getDAGID().equals(newVertexID.getDAGID())) {
         objectRegistry.clearCache(ObjectRegistryImpl.ObjectLifeCycle.DAG);
         startedInputsMap = HashMultimap.create();
       }
@@ -392,8 +426,10 @@ public class TezChild {
       LOG.info("Shutting down container {}", containerIdString);
       // It's possible that there's pending tasks on the executor. Those should be cancelled.
       List<Runnable> pendingRunnables = executor.shutdownNow();
+      LOG.info("There are {} runnables in shared executor, cancelling those...", pendingRunnables.size());
       for (Runnable r : pendingRunnables) {
-        LOG.info("Cancelling pending runnables during TezChild shutdown for containerId={}", containerIdString);
+        LOG.info("Cancelling pending runnable ({}) during TezChild shutdown for containerId={}", r.hashCode(),
+            containerIdString);
         ((FutureTask)r).cancel(false);
       }
       if (taskReporter != null) {
@@ -403,6 +439,9 @@ public class TezChild {
         RPC.stopProxy(umbilical);
       }
     }
+
+    TezRuntimeShutdownHandler.shutdown();
+    LOG.info("TezChild shutdown finished");
   }
 
   public static class ContainerExecutionResult {
@@ -495,6 +534,7 @@ public class TezChild {
     final int attemptNumber = Integer.parseInt(args[4]);
     final String[] localDirs = TezCommonUtils.getTrimmedStrings(System.getenv(Environment.LOCAL_DIRS
         .name()));
+    CallerContext.setCurrent(new CallerContext.Builder("tez_"+tokenIdentifier).build());
     LOG.info("TezChild starting with PID=" + pid + ", containerIdentifier=" + containerIdentifier);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Info from cmd line: AM-host: " + host + " AM-port: " + port
@@ -524,7 +564,8 @@ public class TezChild {
         System.getenv(), pid, new ExecutionContextImpl(System.getenv(Environment.NM_HOST.name())),
         credentials, Runtime.getRuntime().maxMemory(), System
             .getenv(ApplicationConstants.Environment.USER.toString()), null, true, hadoopShim);
-    tezChild.run();
+    ContainerExecutionResult result = tezChild.run();
+    LOG.info("TezChild is about to exit from main(), run() returned result: {}", result.toString());
   }
 
   private void handleError(Throwable t) {

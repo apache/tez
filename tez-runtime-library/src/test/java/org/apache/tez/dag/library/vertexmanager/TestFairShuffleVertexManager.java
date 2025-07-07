@@ -28,7 +28,6 @@ import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
@@ -311,7 +310,7 @@ public class TestFairShuffleVertexManager
 
     doAnswer(new reconfigVertexAnswer(mockContext, mockManagedVertexId,
         newEdgeManagers)).when(mockContext).reconfigureVertex(
-        anyInt(), any(VertexLocationHint.class), anyMap());
+        anyInt(), any(), anyMap());
 
     // check initialization
     manager = createFairShuffleVertexManager(conf, mockContext,

@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -89,18 +90,17 @@ public class ATSFileParser extends BaseParser implements ATSData {
    *
    * @param verticesJson
    * @throws JSONException
+   * @throws NullPointerException if {@code verticesJson} is {@code null}
    */
   private void processVertices(JSONArray verticesJson) throws JSONException {
     //Process vertex information
-    Preconditions.checkState(verticesJson != null, "Vertex json can not be null");
-    if (verticesJson != null) {
-      LOG.debug("Started parsing vertex");
-      for (int i = 0; i < verticesJson.length(); i++) {
-        VertexInfo vertexInfo = VertexInfo.create(verticesJson.getJSONObject(i));
-        vertexList.add(vertexInfo);
-      }
-      LOG.debug("Finished parsing vertex");
+    Objects.requireNonNull(verticesJson, "Vertex json cannot be null");
+    LOG.debug("Started parsing vertex");
+    for (int i = 0; i < verticesJson.length(); i++) {
+      VertexInfo vertexInfo = VertexInfo.create(verticesJson.getJSONObject(i));
+      vertexList.add(vertexInfo);
     }
+    LOG.debug("Finished parsing vertex");
   }
 
   /**
@@ -108,18 +108,17 @@ public class ATSFileParser extends BaseParser implements ATSData {
    *
    * @param tasksJson
    * @throws JSONException
+   * @throws NullPointerException if {@code verticesJson} is {@code null}
    */
   private void processTasks(JSONArray tasksJson) throws JSONException {
     //Process Task information
-    Preconditions.checkState(tasksJson != null, "Task json can not be null");
-    if (tasksJson != null) {
-      LOG.debug("Started parsing task");
-      for (int i = 0; i < tasksJson.length(); i++) {
-        TaskInfo taskInfo = TaskInfo.create(tasksJson.getJSONObject(i));
-        taskList.add(taskInfo);
-      }
-      LOG.debug("Finished parsing task");
+    Objects.requireNonNull(tasksJson, "Task json can not be null");
+    LOG.debug("Started parsing task");
+    for (int i = 0; i < tasksJson.length(); i++) {
+      TaskInfo taskInfo = TaskInfo.create(tasksJson.getJSONObject(i));
+      taskList.add(taskInfo);
     }
+    LOG.debug("Finished parsing task");
   }
 
   /**
@@ -127,18 +126,18 @@ public class ATSFileParser extends BaseParser implements ATSData {
    *
    * @param taskAttemptsJson
    * @throws JSONException
+   * @throws NullPointerException if {@code taskAttemptsJson} is {@code null}
    */
   private void processAttempts(JSONArray taskAttemptsJson) throws JSONException {
     //Process TaskAttempt information
-    Preconditions.checkState(taskAttemptsJson != null, "Attempts json can not be null");
-    if (taskAttemptsJson != null) {
-      LOG.debug("Started parsing task attempts");
-      for (int i = 0; i < taskAttemptsJson.length(); i++) {
-        TaskAttemptInfo attemptInfo = TaskAttemptInfo.create(taskAttemptsJson.getJSONObject(i));
-        attemptList.add(attemptInfo);
-      }
-      LOG.debug("Finished parsing task attempts");
+    Objects.requireNonNull(taskAttemptsJson, "Attempts json can not be null");
+    LOG.debug("Started parsing task attempts");
+    for (int i = 0; i < taskAttemptsJson.length(); i++) {
+      TaskAttemptInfo attemptInfo =
+          TaskAttemptInfo.create(taskAttemptsJson.getJSONObject(i));
+      attemptList.add(attemptInfo);
     }
+    LOG.debug("Finished parsing task attempts");
   }
 
   /**

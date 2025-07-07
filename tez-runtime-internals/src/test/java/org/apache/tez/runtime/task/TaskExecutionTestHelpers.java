@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -46,12 +47,16 @@ import org.apache.tez.runtime.api.events.TaskAttemptKilledEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezHeartbeatRequest;
 import org.apache.tez.runtime.api.impl.TezHeartbeatResponse;
+
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskExecutionTestHelpers {
+public final class TaskExecutionTestHelpers {
 
   public static final String HEARTBEAT_EXCEPTION_STRING = "HeartbeatException";
+
+  private TaskExecutionTestHelpers() {}
 
   // Uses static fields for signaling. Ensure only used by one test at a time.
   public static class TestProcessor extends AbstractLogicalIOProcessor {
@@ -184,9 +189,7 @@ public class TaskExecutionTestHelpers {
       LOG.info("Await completion");
       processorLock.lock();
       try {
-        if (completed) {
-          return;
-        } else {
+        if (!completed) {
           completionCondition.await();
         }
       } finally {
@@ -295,14 +298,14 @@ public class TaskExecutionTestHelpers {
 
     private static final Logger LOG = LoggerFactory.getLogger(TezTaskUmbilicalForTest.class);
 
-    private final List<TezEvent> requestEvents = new LinkedList<TezEvent>();
+    private final List<TezEvent> requestEvents = new LinkedList<>();
 
     private final ReentrantLock umbilicalLock = new ReentrantLock();
     private final Condition eventCondition = umbilicalLock.newCondition();
     private boolean pendingEvent = false;
     private boolean eventEnacted = false;
 
-    volatile int getTaskInvocations = 0;
+    private final AtomicInteger taskInvocations = new AtomicInteger(0);
 
     private boolean shouldThrowException = false;
     private boolean shouldSendDieSignal = false;
@@ -395,19 +398,20 @@ public class TaskExecutionTestHelpers {
         for (TezEvent event : requestEvents) {
           if (event.getEvent() instanceof TaskAttemptFailedEvent) {
             TaskAttemptFailedEvent failedEvent = (TaskAttemptFailedEvent) event.getEvent();
-            if (failedEvent.getDiagnostics().startsWith(diagStart)) {
+            String diagnostics = getDiagnosticsWithoutNodeIp(failedEvent.getDiagnostics());
+            if (diagnostics.startsWith(diagStart)) {
               if (diagContains != null) {
-                if (failedEvent.getDiagnostics().contains(diagContains)) {
+                if (diagnostics.contains(diagContains)) {
                   assertEquals(taskFailureType, failedEvent.getTaskFailureType());
                   return;
                 } else {
                   fail("Diagnostic message does not contain expected message. Found [" +
-                      failedEvent.getDiagnostics() + "], Expected: [" + diagContains + "]");
+                      diagnostics + "], Expected: [" + diagContains + "]");
                 }
               }
             } else {
               fail("Diagnostic message does not start with expected message. Found [" +
-                  failedEvent.getDiagnostics() + "], Expected: [" + diagStart + "]");
+                  diagnostics + "], Expected: [" + diagStart + "]");
             }
           }
         }
@@ -424,18 +428,19 @@ public class TaskExecutionTestHelpers {
           if (event.getEvent() instanceof TaskAttemptKilledEvent) {
             TaskAttemptKilledEvent killedEvent =
                 (TaskAttemptKilledEvent) event.getEvent();
-            if (killedEvent.getDiagnostics().startsWith(diagStart)) {
+            String diagnostics = getDiagnosticsWithoutNodeIp(killedEvent.getDiagnostics());
+            if (diagnostics.startsWith(diagStart)) {
               if (diagContains != null) {
-                if (killedEvent.getDiagnostics().contains(diagContains)) {
+                if (diagnostics.contains(diagContains)) {
                   return;
                 } else {
                   fail("Diagnostic message does not contain expected message. Found [" +
-                      killedEvent.getDiagnostics() + "], Expected: [" + diagContains + "]");
+                      diagnostics + "], Expected: [" + diagContains + "]");
                 }
               }
             } else {
               fail("Diagnostic message does not start with expected message. Found [" +
-                  killedEvent.getDiagnostics() + "], Expected: [" + diagStart + "]");
+                  diagnostics + "], Expected: [" + diagStart + "]");
             }
           }
         }
@@ -461,20 +466,20 @@ public class TaskExecutionTestHelpers {
     }
 
     @Override
-    public long getProtocolVersion(String protocol, long clientVersion) throws IOException {
+    public long getProtocolVersion(String protocol, long clientVersion) {
       return 0;
     }
 
     @Override
     public ProtocolSignature getProtocolSignature(String protocol, long clientVersion,
-                                                  int clientMethodsHash) throws IOException {
+                                                  int clientMethodsHash) {
       return null;
     }
 
     @Override
     public ContainerTask getTask(ContainerContext containerContext) throws IOException {
       // Return shouldDie = true
-      getTaskInvocations++;
+      taskInvocations.incrementAndGet();
       return new ContainerTask(null, true, null, null, false);
     }
 
@@ -511,18 +516,31 @@ public class TaskExecutionTestHelpers {
         umbilicalLock.unlock();
       }
     }
+
+    public int getTaskInvocations() {
+      return taskInvocations.get();
+    }
+  }
+
+  private static String getDiagnosticsWithoutNodeIp(String diagnostics) {
+    String diagnosticsWithoutIP = diagnostics;
+    if (diagnostics != null && diagnostics.startsWith("Node:")) {
+      diagnosticsWithoutIP = diagnostics.substring(diagnostics.indexOf(" : ") + 3);
+      String nodeIp = diagnostics.substring(5, diagnostics.indexOf(" : "));
+      Assert.assertFalse(nodeIp.isEmpty());
+    }
+
+    return diagnosticsWithoutIP;
   }
 
   @SuppressWarnings("deprecation")
   public static ContainerId createContainerId(ApplicationId appId) {
     ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
-    ContainerId containerId = ContainerId.newInstance(appAttemptId, 1);
-    return containerId;
+    return ContainerId.newInstance(appAttemptId, 1);
   }
 
   public static TaskReporter createTaskReporter(ApplicationId appId, TezTaskUmbilicalForTest umbilical) {
-    TaskReporter taskReporter = new TaskReporter(umbilical, 100, 1000, 100, new AtomicLong(0),
+    return new TaskReporter(umbilical, 100, 1000, 100, new AtomicLong(0),
         createContainerId(appId).toString());
-    return taskReporter;
   }
 }

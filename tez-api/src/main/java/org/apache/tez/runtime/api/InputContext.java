@@ -32,6 +32,12 @@ public interface InputContext extends TaskContext {
    * @return Name of the Source Vertex
    */
   public String getSourceVertexName();
+
+  /**
+   * Returns a convenient, human-readable string describing the input and output vertices.
+   * @return the convenient string
+   */
+  String getInputOutputVertexNames();
   
   /**
    * Get the index of the input in the set of all inputs for the task. The 

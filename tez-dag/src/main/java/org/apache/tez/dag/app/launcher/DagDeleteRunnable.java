@@ -54,7 +54,7 @@ class DagDeleteRunnable implements Runnable {
     try {
       URL baseURL = TezRuntimeUtils.constructBaseURIForShuffleHandlerDagComplete(
           nodeId.getHost(), shufflePort,
-          dag.getApplicationId().toString(), dag.getId(), false);
+          dag.getApplicationId().toString(), dag.getId(), httpConnectionParams.isSslShuffle());
       httpConnection = TezRuntimeUtils.getHttpConnection(true, baseURL, httpConnectionParams,
           "DAGDelete", jobTokenSecretManager);
       httpConnection.connect();

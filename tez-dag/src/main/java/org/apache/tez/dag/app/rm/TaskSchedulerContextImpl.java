@@ -28,6 +28,7 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.ContainerSignatureMatcher;
+import org.apache.tez.common.counters.DAGCounter;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.AppContext;
@@ -70,12 +71,23 @@ public class TaskSchedulerContextImpl implements TaskSchedulerContext {
   }
 
   @Override
+  public void containerAllocated(Container container) {
+    appContext.getCurrentDAG().incrementDagCounter(DAGCounter.TOTAL_CONTAINER_ALLOCATION_COUNT, 1);
+  }
+
+  @Override
+  public void containerReused(Container container) {
+    appContext.getCurrentDAG().incrementDagCounter(DAGCounter.TOTAL_CONTAINER_REUSE_COUNT, 1);
+  }
+
+  @Override
   public void containerCompleted(Object taskLastAllocated, ContainerStatus containerStatus) {
     taskSchedulerManager.containerCompleted(schedulerId, taskLastAllocated, containerStatus);
   }
 
   @Override
   public void containerBeingReleased(ContainerId containerId) {
+    appContext.getCurrentDAG().incrementDagCounter(DAGCounter.TOTAL_CONTAINER_RELEASE_COUNT, 1);
     taskSchedulerManager.containerBeingReleased(schedulerId, containerId);
   }
 

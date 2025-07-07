@@ -523,4 +523,9 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
     return getDAGStatus(statusOptions);
   }
 
+  @Override
+  public String getWebUIAddress() throws IOException, TezException {
+    throw new TezException("DAGClientTimelineImpl.getWebUIAddress is not supported");
+  }
+
 }

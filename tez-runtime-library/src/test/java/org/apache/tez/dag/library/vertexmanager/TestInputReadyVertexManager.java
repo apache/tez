@@ -30,7 +30,6 @@ import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.EdgeProperty.SchedulingType;
 import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
@@ -275,8 +274,7 @@ public class TestInputReadyVertexManager {
     } catch (TezUncheckedException e) {
       e.getMessage().contains("1-1 source vertices must have identical concurrency");
     }
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), (VertexLocationHint) any(),
-        anyMap()); // not invoked
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), any()); // not invoked
     
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(3);
     
@@ -288,8 +286,7 @@ public class TestInputReadyVertexManager {
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId1, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId2, VertexState.CONFIGURED));
     manager.onVertexStateUpdated(new VertexStateUpdate(mockSrcVertexId3, VertexState.CONFIGURED));
-    verify(mockContext, times(1)).reconfigureVertex(anyInt(), (VertexLocationHint) any(),
-        anyMap()); // not invoked
+    verify(mockContext, times(1)).reconfigureVertex(anyInt(), any(), any()); // not invoked
     verify(mockContext, times(2)).doneReconfiguringVertex();
     manager.onVertexStarted(initialCompletions);
     // all 1-1 0's done but not scheduled because v1 is not done

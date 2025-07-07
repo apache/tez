@@ -47,29 +47,30 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.Sort
 @Public
 @Evolving
 @ConfigurationClass(templateFileName = "tez-runtime-default-template.xml")
-public class TezRuntimeConfiguration {
+public final class TezRuntimeConfiguration {
 
   private static final String TEZ_RUNTIME_PREFIX = "tez.runtime.";
 
-  private static final Set<String> tezRuntimeKeys = new HashSet<String>();
-  private static Set<String> umnodifiableTezRuntimeKeySet;
-  private static final Set<String> otherKeys = new HashSet<String>();
-  private static Set<String> unmodifiableOtherKeySet;
-  private static Configuration defaultConf = new Configuration(false);
-  private static final Map<String, String> tezRuntimeConfMap = new HashMap<String, String>();
-  private static final Map<String, String> otherConfMap = new HashMap<String, String>();
+  private static final Set<String> TEZ_RUNTIME_KEYS = new HashSet<>();
+  private static final Set<String> UMNODIFIABLE_TEZ_RUNTIME_KEY_SET;
+  private static final Set<String> OTHER_KEYS = new HashSet<>();
+  private static final Set<String> UNMODIFIABLE_OTHER_KEY_SET;
+  private static final Configuration DEFAULT_CONF = new Configuration(false);
+  private static final Map<String, String> TEZ_RUNTIME_CONF_MAP = new HashMap<>();
+  private static final Map<String, String> OTHER_CONF_MAP = new HashMap<>();
 
   /**
    * Prefixes from Hadoop configuration which are allowed.
    */
-  private static final List<String> allowedPrefixes = new ArrayList<String>();
-  private static List<String> unmodifiableAllowedPrefixes;
+  private static final List<String> ALLOWED_PREFIXES = new ArrayList<>();
 
 
   static {
     Configuration.addDeprecation("tez.runtime.sort.threads",
         TezRuntimeConfiguration.TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
   }
+
+  private TezRuntimeConfiguration() {}
 
   /**
    * Configuration key to enable/disable IFile readahead.
@@ -250,7 +251,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "integer")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it. Sets
    * the number of retries before giving up on downloading from source
    * attempt by consumer. Code internally handles the threshold if set to -1.
@@ -264,7 +265,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "float")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it. Setting
    * to determine if failures happened across a percentage of nodes. This
    * helps in determining if the consumer has to be restarted on continuous
@@ -280,7 +281,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "integer")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it. Setting
    * to determine if the consumer has to be restarted on continuous
    * failures across nodes. Used along with {@link
@@ -294,7 +295,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "float")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it.
    * Maximum percentage of time (compared to overall progress), the fetcher is
    * allowed before concluding that it is stalled.
@@ -307,7 +308,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "float")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it.
    * Fraction to determine whether the shuffle has progressed enough or not
    * If it has not progressed enough, it could be qualified for the consumer.
@@ -321,7 +322,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "float")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it.
    * Provides threshold for determining whether fetching has to be marked
    * unhealthy based on the ratio of (failures/(failures+completed))
@@ -335,7 +336,7 @@ public class TezRuntimeConfiguration {
   @Private
   @Unstable
   @ConfigurationProperty(type = "boolean")
-  /**
+  /*
    * Expert setting made available only for debugging. Do not change it.
    * Provides threshold for determining whether fetching has to be marked
    * unhealthy based on the ratio of (failures/(failures+completed))
@@ -432,7 +433,7 @@ public class TezRuntimeConfiguration {
    * "host1#Map_1#100": from host1 for Map 1 source tasks with 100% likelihood
    * "host1#Map_1#100#fail_only_first": as above but only for input attempts with index 0
    */
-  @ConfigurationProperty(type = "string")
+  @ConfigurationProperty()
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG =
       TEZ_RUNTIME_PREFIX + "shuffle.fetch.testing.errors.config";
   public static final String TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG_DEFAULT = "*#50";
@@ -608,130 +609,130 @@ public class TezRuntimeConfiguration {
   public static final long TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS_DEFAULT = 10000;
 
   static {
-    tezRuntimeKeys.add(TEZ_RUNTIME_IFILE_READAHEAD);
-    tezRuntimeKeys.add(TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
-    tezRuntimeKeys.add(TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_IO_SORT_FACTOR);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SORT_SPILL_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_IO_SORT_MB);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COMBINE_MIN_SPILLS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
-    tezRuntimeKeys.add(
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IFILE_READAHEAD);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IFILE_READAHEAD_BYTES);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IO_FILE_BUFFER_SIZE);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IO_SORT_FACTOR);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SORT_SPILL_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_IO_SORT_MB);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_INDEX_CACHE_MEMORY_LIMIT_BYTES);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_COMBINE_MIN_SPILLS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_PIPELINED_SORTER_SORT_THREADS);
+    TEZ_RUNTIME_KEYS.add(
         TEZ_RUNTIME_PIPELINED_SORTER_MIN_BLOCK_SIZE_IN_MB);
-    tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY);
-    tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB);
-    tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
-    tezRuntimeKeys.add(TEZ_RUNTIME_PARTITIONER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COMBINER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
-    tezRuntimeKeys.add
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_PIPELINED_SORTER_LAZY_ALLOCATE_MEMORY);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_UNORDERED_OUTPUT_BUFFER_SIZE_MB);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_UNORDERED_OUTPUT_MAX_PER_BUFFER_SIZE_BYTES);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_PARTITIONER_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_COMBINER_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_USE_ASYNC_HTTP);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_PARALLEL_COPIES);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_FAILURES_LIMIT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_MAX_TASK_OUTPUT_AT_ONCE);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_NOTIFY_READERROR);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_CONNECT_TIMEOUT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_ENABLED);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_KEEP_ALIVE_MAX_CONNECTIONS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_READ_TIMEOUT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_BUFFER_SIZE);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_ENABLE_SSL);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_VERIFY_DISK_CHECKSUM);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_BUFFER_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MEMORY_LIMIT_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MERGE_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MEMTOMEM_SEGMENTS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_ENABLE_MEMTOMEM);
+    TEZ_RUNTIME_KEYS.add
         (TEZ_RUNTIME_SHUFFLE_ACCEPTABLE_HOST_FETCH_FAILURE_FRACTION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_REPORT_PARTITION_STATS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_VALUE_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COMPRESS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_COMPRESS_CODEC);
-    tezRuntimeKeys.add(TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED);
-    tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE);
-    tezRuntimeKeys.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
-    tezRuntimeKeys.add(TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH);
-    tezRuntimeKeys.add(TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SORTER_CLASS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS);
-    tezRuntimeKeys.add(TEZ_RUNTIME_SHUFFLE_BATCH_WAIT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MIN_FAILURES_PER_HOST);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MAX_STALL_TIME_FRACTION);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_SOURCE_ATTEMPT_ABORT_LIMIT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MAX_ALLOWED_FAILED_FETCH_ATTEMPT_FRACTION);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_MIN_REQUIRED_PROGRESS_FRACTION);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FAILED_CHECK_SINCE_LAST_COMPLETION);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_TESTING_ERRORS_CONFIG);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCH_ENABLE_TESTING_ERRORS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_REPORT_PARTITION_STATS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_INPUT_POST_MERGE_BUFFER_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_GROUP_COMPARATOR_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_INTERNAL_SORTER_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_KEY_COMPARATOR_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_KEY_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_VALUE_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_COMPRESS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_COMPRESS_CODEC);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_KEY_SECONDARY_COMPARATOR_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_EMPTY_PARTITION_INFO_VIA_EVENTS_ENABLED);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_PIPELINED_SHUFFLE_ENABLED);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_ENABLE_FINAL_MERGE_IN_OUTPUT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_ENABLED);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_MAX_SIZE);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_TRANSFER_DATA_VIA_EVENTS_SUPPORT_IN_MEM_FILE);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_RECORDS_BEFORE_PROGRESS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_OPTIMIZE_LOCAL_FETCH);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_OPTIMIZE_SHARED_FETCH);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_CONVERT_USER_PAYLOAD_TO_HISTORY_TEXT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SORTER_CLASS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_CLEANUP_FILES_ON_INTERRUPT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_UNORDERED_PARTITIONED_KVWRITER_BUFFER_MERGE_PERCENT);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_FETCHER_USE_SHARED_POOL);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_HOST_PENALTY_TIME_LIMIT_MS);
+    TEZ_RUNTIME_KEYS.add(TEZ_RUNTIME_SHUFFLE_BATCH_WAIT);
 
-    defaultConf.addResource("core-default.xml");
-    defaultConf.addResource("core-site.xml");
-    defaultConf.addResource("tez-site.xml");
+    DEFAULT_CONF.addResource("core-default.xml");
+    DEFAULT_CONF.addResource("core-site.xml");
+    DEFAULT_CONF.addResource("tez-site.xml");
 
-    for (Map.Entry<String, String> confEntry : defaultConf) {
-      if (tezRuntimeKeys.contains(confEntry.getKey())) {
-        tezRuntimeConfMap.put(confEntry.getKey(), confEntry.getValue());
+    for (Map.Entry<String, String> confEntry : DEFAULT_CONF) {
+      if (TEZ_RUNTIME_KEYS.contains(confEntry.getKey())) {
+        TEZ_RUNTIME_CONF_MAP.put(confEntry.getKey(), confEntry.getValue());
       } else {
         // TODO TEZ-1232 Filter out parameters from TezConfiguration, and Task specific confs
-        otherConfMap.put(confEntry.getKey(), confEntry.getValue());
-        otherKeys.add(confEntry.getKey());
+        OTHER_CONF_MAP.put(confEntry.getKey(), confEntry.getValue());
+        OTHER_KEYS.add(confEntry.getKey());
       }
     }
 
     // Do NOT need all prefixes from the following list. Only specific ones are allowed
     // "hadoop.", "hadoop.security", "io.", "fs.", "ipc.", "net.", "file.", "dfs.", "ha.", "s3.", "nfs3.", "rpc.", "ssl."
-    allowedPrefixes.add("io.");
-    allowedPrefixes.add("file.");
-    allowedPrefixes.add("fs.");
-    allowedPrefixes.add("ssl.");
+    ALLOWED_PREFIXES.add("io.");
+    ALLOWED_PREFIXES.add("file.");
+    ALLOWED_PREFIXES.add("fs.");
+    ALLOWED_PREFIXES.add("ssl.");
 
-    umnodifiableTezRuntimeKeySet = Collections.unmodifiableSet(tezRuntimeKeys);
-    unmodifiableOtherKeySet = Collections.unmodifiableSet(otherKeys);
-    unmodifiableAllowedPrefixes = Collections.unmodifiableList(allowedPrefixes);
+    UMNODIFIABLE_TEZ_RUNTIME_KEY_SET = Collections.unmodifiableSet(TEZ_RUNTIME_KEYS);
+    UNMODIFIABLE_OTHER_KEY_SET = Collections.unmodifiableSet(OTHER_KEYS);
+    List<String> unmodifiableAllowedPrefixes = Collections.unmodifiableList(ALLOWED_PREFIXES);
   }
 
   @Private
   public static Set<String> getRuntimeConfigKeySet() {
-    return umnodifiableTezRuntimeKeySet;
+    return UMNODIFIABLE_TEZ_RUNTIME_KEY_SET;
   }
 
   @Private
   public static Set<String> getRuntimeAdditionalConfigKeySet() {
-    return unmodifiableOtherKeySet;
+    return UNMODIFIABLE_OTHER_KEY_SET;
   }
 
   @Private
   public static List<String> getAllowedPrefixes() {
-    return allowedPrefixes;
+    return ALLOWED_PREFIXES;
   }
 
   @Private
   public static Map<String, String> getTezRuntimeConfigDefaults() {
-    return Collections.unmodifiableMap(tezRuntimeConfMap);
+    return Collections.unmodifiableMap(TEZ_RUNTIME_CONF_MAP);
   }
 
   @Private
   public static Map<String, String> getOtherConfigDefaults() {
-    return Collections.unmodifiableMap(otherConfMap);
+    return Collections.unmodifiableMap(OTHER_CONF_MAP);
   }
 
   public enum ReportPartitionStats {
     @Deprecated
-    /**
+    /*
      * Don't report partition stats. It is the same as NONE.
      * It is defined to maintain backward compatibility given
      * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
@@ -740,7 +741,7 @@ public class TezRuntimeConfiguration {
     DISABLED("false"),
 
     @Deprecated
-    /**
+    /*
      * Report partition stats. It is the same as MEMORY_OPTIMIZED.
      * It is defined to maintain backward compatibility given
      * Configuration @link{#TEZ_RUNTIME_REPORT_PARTITION_STATS} used
@@ -766,7 +767,7 @@ public class TezRuntimeConfiguration {
 
     private final String type;
 
-    private ReportPartitionStats(String type) {
+    ReportPartitionStats(String type) {
       this.type = type;
     }
 

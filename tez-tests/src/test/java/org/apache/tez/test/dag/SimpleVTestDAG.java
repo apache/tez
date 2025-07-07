@@ -40,11 +40,13 @@ import org.apache.tez.test.TestProcessor;
  *     v3
  *
  */
-public class SimpleVTestDAG {
+public final class SimpleVTestDAG {
   static Resource defaultResource = Resource.newInstance(100, 0);
   public static String TEZ_SIMPLE_V_DAG_NUM_TASKS =
       "tez.simple-v-test-dag.num-tasks";
   public static int TEZ_SIMPLE_V_DAG_NUM_TASKS_DEFAULT = 2;
+
+  private SimpleVTestDAG() {}
   
   public static DAG createDAG(String name, 
       Configuration conf) throws Exception {

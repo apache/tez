@@ -20,8 +20,10 @@ package org.apache.tez.dag.api.client.rpc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.ssl.KeyStoreTestUtil;
@@ -41,12 +44,15 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.client.FrameworkClient;
+import org.apache.tez.common.CachedEntity;
+import org.apache.tez.dag.api.NoCurrentDAGException;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGClientImpl;
 import org.apache.tez.dag.api.client.DAGClientTimelineImpl;
 import org.apache.tez.dag.api.client.DAGStatus;
+import org.apache.tez.dag.api.client.DAGStatus.State;
 import org.apache.tez.dag.api.client.DagStatusSource;
 import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.VertexStatus;
@@ -161,30 +167,22 @@ public class TestDAGClient {
                     .setVertexCounters(vertexCountersProto)
                     .build();
   }
-  
-  private static class DAGCounterRequestMatcher extends ArgumentMatcher<GetDAGStatusRequestProto>{
+
+  private static class DAGCounterRequestMatcher implements ArgumentMatcher<GetDAGStatusRequestProto>{
 
     @Override
-    public boolean matches(Object argument) {
-      if (argument instanceof GetDAGStatusRequestProto){
-        GetDAGStatusRequestProto requestProto = (GetDAGStatusRequestProto)argument;
-        return requestProto.getStatusOptionsCount() != 0
-            && requestProto.getStatusOptionsList().get(0) == StatusGetOptsProto.GET_COUNTERS;
-      }
-      return false;
+    public boolean matches(GetDAGStatusRequestProto requestProto) {
+      return requestProto != null && requestProto.getStatusOptionsCount() != 0
+              && requestProto.getStatusOptionsList().get(0) == StatusGetOptsProto.GET_COUNTERS;
     }
   }
-  
-  private static class VertexCounterRequestMatcher extends ArgumentMatcher<GetVertexStatusRequestProto>{
+
+  private static class VertexCounterRequestMatcher implements ArgumentMatcher<GetVertexStatusRequestProto>{
 
     @Override
-    public boolean matches(Object argument) {
-      if (argument instanceof GetVertexStatusRequestProto){
-        GetVertexStatusRequestProto requestProto = (GetVertexStatusRequestProto)argument;
-        return requestProto.getStatusOptionsCount() != 0
-            && requestProto.getStatusOptionsList().get(0) == StatusGetOptsProto.GET_COUNTERS;
-      }
-      return false;
+    public boolean matches(GetVertexStatusRequestProto requestProto) {
+      return requestProto != null && requestProto.getStatusOptionsCount() != 0
+          && requestProto.getStatusOptionsList().get(0) == StatusGetOptsProto.GET_COUNTERS;
     }
   }
   
@@ -199,14 +197,14 @@ public class TestDAGClient {
     dagIdStr = "dag_9999_0001_1";
     mockProxy = mock(DAGClientAMProtocolBlockingPB.class);
     // return the response with Counters is the request match the CounterMatcher
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
+    when(mockProxy.getDAGStatus(isNull(), any()))
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters).build());
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), argThat(new DAGCounterRequestMatcher())))
+    when(mockProxy.getDAGStatus(isNull(), argThat(new DAGCounterRequestMatcher())))
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithCounters).build());
     
-    when(mockProxy.getVertexStatus(isNull(RpcController.class), any(GetVertexStatusRequestProto.class)))
+    when(mockProxy.getVertexStatus(isNull(), any()))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithoutCounters).build());
-    when(mockProxy.getVertexStatus(isNull(RpcController.class), argThat(new VertexCounterRequestMatcher())))
+    when(mockProxy.getVertexStatus(isNull(), argThat(new VertexCounterRequestMatcher())))
       .thenReturn(GetVertexStatusResponseProto.newBuilder().setVertexStatus(vertexStatusProtoWithCounters).build());
 
     TezConfiguration tezConf = new TezConfiguration();
@@ -267,7 +265,7 @@ public class TestDAGClient {
   @Test(timeout = 5000)
   public void testWaitForCompletion() throws Exception{
     // first time return DAG_RUNNING, second time return DAG_SUCCEEDED
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
+    when(mockProxy.getDAGStatus(isNull(), any()))
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(dagStatusProtoWithoutCounters)
           .build())
       .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus
@@ -288,7 +286,7 @@ public class TestDAGClient {
   public void testWaitForCompletionWithStatusUpdates() throws Exception{
 
     // first time and second time return DAG_RUNNING, third time return DAG_SUCCEEDED
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
+    when(mockProxy.getDAGStatus(isNull(), any()))
         .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(
             DAGStatusProto.newBuilder(dagStatusProtoWithCounters)
                 .setState(DAGStatusStateProto.DAG_RUNNING).build()).build())
@@ -314,7 +312,7 @@ public class TestDAGClient {
     verify(mockProxy, times(4))
         .getDAGStatus(rpcControllerArgumentCaptor.capture(), argumentCaptor.capture());
 
-    when(mockProxy.getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class)))
+    when(mockProxy.getDAGStatus(isNull(), any()))
         .thenReturn(GetDAGStatusResponseProto.newBuilder().setDagStatus(
             DAGStatusProto.newBuilder(dagStatusProtoWithCounters)
                 .setState(DAGStatusStateProto.DAG_RUNNING).build()).build())
@@ -374,7 +372,7 @@ public class TestDAGClient {
 
     // Fetch from AM. RUNNING
     dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
+    dagClientRpc.resetCounters();
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
@@ -394,7 +392,7 @@ public class TestDAGClient {
 
     // Fetch from AM. Success.
     dagClient.resetCounters();
-    dagClientRpc.resetCountesr();
+    dagClientRpc.resetCounters();
     rmDagStatus =
         new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING), DagStatusSource.RM);
     dagClient.setRmDagStatus(rmDagStatus);
@@ -438,20 +436,21 @@ public class TestDAGClient {
   }
 
   private static class DAGClientRPCImplForTest extends DAGClientRPCImpl {
-
+    private AtomicReference<TezException> faultAMInjectedRef;
     int numGetStatusViaAmInvocations = 0;
 
     public DAGClientRPCImplForTest(ApplicationId appId, String dagId,
                                    TezConfiguration conf,
                                    @Nullable FrameworkClient frameworkClient) throws IOException {
       super(appId, dagId, conf, frameworkClient, UserGroupInformation.getCurrentUser());
+      faultAMInjectedRef = new AtomicReference<>(null);
     }
 
     void setAMProxy(DAGClientAMProtocolBlockingPB proxy) {
       this.proxy = proxy;
     }
 
-    void resetCountesr() {
+    void resetCounters() {
       numGetStatusViaAmInvocations = 0;
     }
 
@@ -468,7 +467,14 @@ public class TestDAGClient {
     DAGStatus getDAGStatusViaAM(Set<StatusGetOpts> statusOptions, long timeout)
         throws IOException, TezException {
       numGetStatusViaAmInvocations++;
+      if (faultAMInjectedRef.get() != null) {
+        throw faultAMInjectedRef.get();
+      }
       return super.getDAGStatusViaAM(statusOptions, timeout);
+    }
+
+    void injectAMFault(TezException exception) {
+      faultAMInjectedRef.set(exception);
     }
   }
 
@@ -476,7 +482,7 @@ public class TestDAGClient {
 
     private DAGStatus rmDagStatus;
     int numGetStatusViaRmInvocations = 0;
-
+    private volatile boolean faultInjected;
     public DAGClientImplForTest(ApplicationId appId, String dagId, TezConfiguration conf,
         @Nullable FrameworkClient frameworkClient) throws IOException {
       super(appId, dagId, conf, frameworkClient, UserGroupInformation.getCurrentUser());
@@ -497,6 +503,9 @@ public class TestDAGClient {
     @Override
     protected DAGStatus getDAGStatusViaRM() throws TezException, IOException {
       numGetStatusViaRmInvocations++;
+      if (faultInjected) {
+        throw new IOException("Fault Injected for RM");
+      }
       return rmDagStatus;
     }
 
@@ -504,6 +513,18 @@ public class TestDAGClient {
       return isATSEnabled;
     }
 
+    void injectFault() {
+      faultInjected = true;
+    }
+
+    DAGStatus getCachedDAGStatus() {
+      CachedEntity<DAGStatus> cacheRef = getCachedDAGStatusRef();
+      return cacheRef.getValue();
+    }
+
+    void enforceExpirationCachedDAGStatus() {
+      getCachedDAGStatusRef().enforceExpiration();
+    }
   }
 
   private DAGProtos.DAGStatusProto.Builder constructDagStatusProto(DAGStatusStateProto stateProto) {
@@ -529,7 +550,7 @@ public class TestDAGClient {
         return GetDAGStatusResponseProto.newBuilder().setDagStatus(constructDagStatusProto(
             stateProto)).build();
       }
-    }).when(mock).getDAGStatus(isNull(RpcController.class), any(GetDAGStatusRequestProto.class));
+    }).when(mock).getDAGStatus(isNull(), any());
     return mock;
   }
 
@@ -561,7 +582,11 @@ public class TestDAGClient {
     threadGroup.enumerate(threads);
     Thread reloaderThread = null;
     for (Thread thread : threads) {
-      if ((thread.getName() != null) && (thread.getName().contains("Truststore reloader thread"))) {
+      /* Since HADOOP-16524, the reloader thread's name is changed, let's handle the backward compatibility
+       * with a simple OR, as this is just a unit test, it's not worth involving a hadoop version check.
+       */
+      if ((thread.getName() != null) && (thread.getName().contains("Truststore reloader thread"))
+          || (thread.getName().contains("SSL Certificates Store Monitor"))) {
         reloaderThread = thread;
       }
     }
@@ -577,5 +602,133 @@ public class TestDAGClient {
       Thread.sleep(1000);
     }
     Assert.assertFalse("Reloader is still alive", reloaderStillAlive);
+  }
+
+  @Test(timeout = 50000)
+  public void testGetDagStatusWithCachedStatusExpiration() throws Exception {
+    long startTime;
+    long endTime;
+    long diff;
+
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setLong(TezConfiguration.TEZ_DAG_STATUS_POLLINTERVAL_MS, 800L);
+    tezConf.setLong(TezConfiguration.TEZ_CLIENT_DAG_STATUS_CACHE_TIMEOUT_SECS, 100000L);
+    try (DAGClientImplForTest dagClientImpl =
+        new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
+      DAGClientRPCImplForTest dagClientRpc =
+          new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
+      dagClientImpl.setRealClient(dagClientRpc);
+
+      DAGStatus dagStatus;
+      DAGStatus rmDagStatus;
+
+      // Fetch from AM. RUNNING
+      rmDagStatus =
+          new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING),
+              DagStatusSource.RM);
+      dagClientImpl.setRmDagStatus(rmDagStatus);
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_RUNNING, -1));
+
+      startTime = System.currentTimeMillis();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      endTime = System.currentTimeMillis();
+      diff = endTime - startTime;
+      assertTrue(diff > 1500L && diff < 2500L);
+      // Directly from AM
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - one refresh. One with timeout.
+      assertEquals(2, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.RUNNING, dagStatus.getState());
+
+      // Fetch from AM. Success.
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      rmDagStatus =
+          new DAGStatus(constructDagStatusProto(DAGStatusStateProto.DAG_RUNNING),
+              DagStatusSource.RM);
+      dagClientImpl.setRmDagStatus(rmDagStatus);
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
+
+      startTime = System.currentTimeMillis();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      endTime = System.currentTimeMillis();
+      diff = endTime - startTime;
+      assertTrue("diff is " + diff, diff > 500L && diff < 1500L);
+      // Directly from AM
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - previous request cached, so single invocation only.
+      assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+
+      // verify that the cachedDAGStatus is correct
+      DAGStatus cachedDagStatus = dagClientImpl.getCachedDAGStatus();
+      Assert.assertNotNull(cachedDagStatus);
+      Assert.assertSame(dagStatus, cachedDagStatus);
+
+      // When AM proxy throws an exception, the cachedDAGStatus should be returned
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientRpc.injectAMFault(new TezException("injected Fault"));
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+      // get the Status from the cache
+      assertEquals(0, dagClientImpl.numGetStatusViaRmInvocations);
+      // Directly from AM - previous request cached, so single invocation only.
+      assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(DAGStatus.State.SUCCEEDED, dagStatus.getState());
+      Assert.assertSame(dagStatus, cachedDagStatus);
+
+      // test that RM is invoked when the cacheExpires and the AM fails.
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
+      dagClientRpc.injectAMFault(new TezException("injected AM Fault"));
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientImpl.enforceExpirationCachedDAGStatus();
+      dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+      // get the Status from the cache
+      assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
+      assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      assertEquals(State.RUNNING, dagStatus.getState());
+      Assert.assertNotSame(dagStatus, cachedDagStatus);
+
+      // verify that the cachedDAGStatus is null because AM threw exception before setting the
+      // cache.
+      cachedDagStatus = dagClientImpl.getCachedDAGStatus();
+      Assert.assertNull(cachedDagStatus);
+      Assert.assertNotNull(dagStatus);
+
+      // inject fault in RM too. getDAGStatus should return null;
+      dagClientImpl.resetCounters();
+      dagClientRpc.resetCounters();
+      dagClientRpc.setAMProxy(createMockProxy(DAGStatusStateProto.DAG_SUCCEEDED, 1000L));
+      dagClientImpl.injectFault();
+      try {
+        dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class));
+        Assert.fail("The RM should throw IOException");
+      } catch (IOException ioException) {
+        Assert.assertEquals(ioException.getMessage(), "Fault Injected for RM");
+        assertEquals(1, dagClientImpl.numGetStatusViaRmInvocations);
+        assertEquals(1, dagClientRpc.numGetStatusViaAmInvocations);
+      }
+    }
+  }
+
+  @Test
+  public void testDagClientReturnsFailedDAGOnNoCurrentDAGException() throws Exception {
+    TezConfiguration tezConf = new TezConfiguration();
+    tezConf.setBoolean(TezConfiguration.DAG_RECOVERY_ENABLED, false);
+
+    try (DAGClientImplForTest dagClientImpl = new DAGClientImplForTest(mockAppId, dagIdStr, tezConf, null)) {
+
+      DAGClientRPCImplForTest dagClientRpc = new DAGClientRPCImplForTest(mockAppId, dagIdStr, tezConf, null);
+      dagClientImpl.setRealClient(dagClientRpc);
+
+      DAGClientAMProtocolBlockingPB mock = mock(DAGClientAMProtocolBlockingPB.class);
+      dagClientRpc.setAMProxy(mock);
+      dagClientRpc.injectAMFault(new NoCurrentDAGException("dag_0_0_0"));
+
+      DAGStatus dagStatus = dagClientImpl.getDAGStatus(EnumSet.noneOf(StatusGetOpts.class), 2000L);
+      assertEquals(DAGStatus.State.FAILED, dagStatus.getState());
+      assertEquals(NoCurrentDAGException.MESSAGE_PREFIX, dagStatus.getDiagnostics().get(0));
+    }
   }
 }

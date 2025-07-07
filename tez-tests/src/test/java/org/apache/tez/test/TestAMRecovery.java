@@ -463,9 +463,9 @@ public class TestAMRecovery {
       if (historyEvent.getEventType() == HistoryEventType.TASK_ATTEMPT_FINISHED) {
         TaskAttemptFinishedEvent taFinishedEvent =
             (TaskAttemptFinishedEvent) historyEvent;
-        if (taFinishedEvent.getTaskAttemptID().getTaskID().getVertexID()
+        if (taFinishedEvent.getVertexID()
             .getId() == vertexId
-            && taFinishedEvent.getTaskAttemptID().getTaskID().getId() == taskId) {
+            && taFinishedEvent.getTaskID().getId() == taskId) {
           resultEvents.add(taFinishedEvent);
         }
       }

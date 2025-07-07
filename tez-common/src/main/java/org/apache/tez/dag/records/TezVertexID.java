@@ -21,11 +21,11 @@ package org.apache.tez.dag.records;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.collect.Interner;
@@ -35,7 +35,7 @@ import com.google.common.collect.Interners;
  * TezVertexID represents the immutable and unique identifier for
  * a Vertex in a Tez DAG. Each TezVertexID encompasses multiple Tez Tasks.
  *
- * TezVertezID consists of 2 parts. The first part is the {@link TezDAGID},
+ * TezVertexID consists of 2 parts. The first part is the {@link TezDAGID},
  * that is the Tez DAG that this vertex belongs to. The second part is
  * the vertex number.
  *
@@ -44,7 +44,7 @@ import com.google.common.collect.Interners;
  */
 @InterfaceAudience.Public
 @InterfaceStability.Stable
-public class TezVertexID extends TezID {
+public class TezVertexID extends TezID implements DAGIDAware {
   public static final String VERTEX = "vertex";
   static final ThreadLocal<FastNumberFormat> tezVertexIdFormat = new ThreadLocal<FastNumberFormat>() {
 
@@ -67,9 +67,10 @@ public class TezVertexID extends TezID {
    * Constructs a TezVertexID object from given {@link TezDAGID}.
    * @param dagId TezDAGID object for this TezVertexID
    * @param id the tip number
+   * @throws NullPointerException if {@code dagId} is {@code null}
    */
   public static TezVertexID getInstance(TezDAGID dagId, int id) {
-    Preconditions.checkArgument(dagId != null, "DagID cannot be null");
+    Objects.requireNonNull(dagId, "DagID cannot be null");
     return tezVertexIDCache.intern(new TezVertexID(dagId, id));
   }
 
@@ -79,7 +80,8 @@ public class TezVertexID extends TezID {
   }
 
   /** Returns the {@link TezDAGID} object that this tip belongs to */
-  public TezDAGID getDAGId() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagId;
   }
 
@@ -111,7 +113,7 @@ public class TezVertexID extends TezID {
     dagId = TezDAGID.readTezDAGID(in);
     super.readFields(in);
   }
-  
+
   public static TezVertexID readTezVertexID(DataInput in) throws IOException {
     TezDAGID dagID = TezDAGID.readTezDAGID(in);
     int vertexIdInt = TezID.readID(in);
@@ -158,5 +160,4 @@ public class TezVertexID extends TezID {
     }
     return null;
   }
-
 }

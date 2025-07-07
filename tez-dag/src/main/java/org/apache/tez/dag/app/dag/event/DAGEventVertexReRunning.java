@@ -25,7 +25,7 @@ public class DAGEventVertexReRunning extends DAGEvent {
   private TezVertexID vertexId;
 
   public DAGEventVertexReRunning(TezVertexID vertexId) {
-    super(vertexId.getDAGId(), DAGEventType.DAG_VERTEX_RERUNNING);
+    super(vertexId.getDAGID(), DAGEventType.DAG_VERTEX_RERUNNING);
     this.vertexId = vertexId;
   }
 

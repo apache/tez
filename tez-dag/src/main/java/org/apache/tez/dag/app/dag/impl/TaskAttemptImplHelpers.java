@@ -25,9 +25,11 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TaskAttemptImplHelpers {
+public final class TaskAttemptImplHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImplHelpers.class);
+
+  private TaskAttemptImplHelpers() {}
    
   static String[] resolveHosts(String[] src) {
     String[] result = new String[src.length];

@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Simple placeholder for storing CSV results.
@@ -57,7 +58,7 @@ public class CSVResult implements Result {
   }
 
   public void addRecord(String[] record) {
-    Preconditions.checkArgument(record != null, "Record can't be null");
+    Objects.requireNonNull(record, "Record cannot be null");
     Preconditions.checkArgument(record.length == headers.length, "Record length" + record.length +
         " does not match headers length " + headers.length);
     recordsList.add(record);

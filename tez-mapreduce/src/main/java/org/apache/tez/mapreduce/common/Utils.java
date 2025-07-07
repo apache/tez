@@ -30,10 +30,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileSystem.Statistics;
 import org.apache.hadoop.mapred.Counters.Counter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.mapreduce.hadoop.mapred.MRCounters;
+import org.apache.tez.runtime.api.OutputCommitterContext;
+import org.apache.tez.runtime.api.OutputContext;
 
 @Private
-public class Utils {
+public final class Utils {
+
+  private Utils() {}
 
   /**
    * Gets a handle to the Statistics instance based on the scheme associated
@@ -46,7 +51,7 @@ public class Utils {
    */
   @Private
   public static List<Statistics> getFsStatistics(Path path, Configuration conf) throws IOException {
-    List<Statistics> matchedStats = new ArrayList<FileSystem.Statistics>();
+    List<Statistics> matchedStats = new ArrayList<>();
     path = path.getFileSystem(conf).makeQualified(path);
     String scheme = path.toUri().getScheme();
     for (Statistics stats : FileSystem.getAllStatistics()) {
@@ -61,5 +66,12 @@ public class Utils {
     Objects.requireNonNull(tezCounter);
     return new MRCounters.MRCounter(tezCounter);
   }
-  
+
+  public static String getDAGID(OutputCommitterContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
+  }
+
+  public static String getDAGID(OutputContext context) {
+    return TezDAGID.getInstance(context.getApplicationId(), context.getDagIdentifier()).toString();
+  }
 }

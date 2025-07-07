@@ -15,8 +15,8 @@
 package org.apache.tez.dag.app.dag;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -101,7 +101,7 @@ public class TestRootInputInitializerManager {
     eventList.add(te1);
     initializerWrapper.handleInputInitializerEvents(eventList);
 
-    verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+    verify(initializer, never()).handleInputInitializerEvent(any());
     eventList.clear();
 
     // First attempt, Task success notification
@@ -123,7 +123,7 @@ public class TestRootInputInitializerManager {
     eventList.add(te2);
     initializerWrapper.handleInputInitializerEvents(eventList);
 
-    verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+    verify(initializer, never()).handleInputInitializerEvent(any());
     eventList.clear();
     reset(initializer);
 
@@ -176,7 +176,7 @@ public class TestRootInputInitializerManager {
     eventList.add(te1);
     initializerWrapper.handleInputInitializerEvents(eventList);
 
-    verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+    verify(initializer, never()).handleInputInitializerEvent(any());
     eventList.clear();
 
     // First attempt, Task success notification
@@ -192,7 +192,7 @@ public class TestRootInputInitializerManager {
     TezTaskAttemptID srcTaskAttemptId12 = TezTaskAttemptID.getInstance(srcTaskId1, 2);
     // 2nd attempt succeeded
     initializerWrapper.onTaskSucceeded(srcVertexName, srcTaskId1, srcTaskAttemptId12.getId());
-    verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+    verify(initializer, never()).handleInputInitializerEvent(any());
 
     // 2nd attempt send event
     EventMetaData sourceInfo12 =
@@ -203,7 +203,7 @@ public class TestRootInputInitializerManager {
     eventList.add(te2);
     initializerWrapper.handleInputInitializerEvents(eventList);
 
-    verify(initializer, never()).handleInputInitializerEvent(any(List.class));
+    verify(initializer, never()).handleInputInitializerEvent(any());
   }
 
 

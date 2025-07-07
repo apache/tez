@@ -51,6 +51,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.LimitExceededException;
 import org.apache.tez.dag.app.dag.event.DAGEventTerminateDag;
 import org.apache.tez.dag.app.dag.event.DiagnosableEvent;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.state.OnStateChangedCallback;
 import org.apache.tez.state.StateMachineTez;
 import org.slf4j.Logger;
@@ -60,6 +61,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
+import org.apache.hadoop.yarn.api.records.Container;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
@@ -247,6 +250,9 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       new CommitCompletedTransition();
 
   private final MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+  private final Set<ContainerId> containersUsedByCurrentDAG = new HashSet<>();
+  @VisibleForTesting
+  final Set<String> nodesUsedByCurrentDAG = new HashSet<>();
 
   protected static final
     StateMachineFactory<DAGImpl, DAGState, DAGEventType, DAGEvent>
@@ -741,7 +747,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     try {
       // FIXME a better lightweight approach for counters is needed
       if (fullCounters == null && cachedCounters != null
-          && ((cachedCountersTimestamp+10000) > System.currentTimeMillis())) {
+          && ((cachedCountersTimestamp + 10000) - System.currentTimeMillis() > 0)) {
         LOG.info("Asked for counters"
             + ", cachedCountersTimestamp=" + cachedCountersTimestamp
             + ", currentTime=" + System.currentTimeMillis());
@@ -1040,7 +1046,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   }
   
   public TaskAttemptImpl getTaskAttempt(TezTaskAttemptID taId) {
-    return (TaskAttemptImpl) getVertex(taId.getTaskID().getVertexID()).getTask(taId.getTaskID())
+    return (TaskAttemptImpl) getVertex(taId.getVertexID()).getTask(taId.getTaskID())
         .getAttempt(taId);
   }
 
@@ -1206,7 +1212,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    */
   public void handle(DAGEvent event) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing DAGEvent " + event.getDAGId() + " of type "
+      LOG.debug("Processing DAGEvent " + event.getDAGID() + " of type "
           + event.getType() + " while in state " + getInternalState()
           + ". Event: " + event);
     }
@@ -1440,6 +1446,16 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     dagCounters.findCounter(DAGCounter.AM_GC_TIME_MILLIS).setValue(totalDAGGCTime);
   }
   
+  @Override
+  public void incrementDagCounter(DAGCounter counter, int incrValue) {
+    dagCounters.findCounter(counter).increment(incrValue);
+  }
+
+  @Override
+  public void setDagCounter(DAGCounter counter, int setValue) {
+    dagCounters.findCounter(counter).setValue(setValue);
+  }
+
   private DAGState finished(DAGState finalState) {
     boolean dagError = false;
     try {
@@ -1772,6 +1788,13 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
 
     vertex.setInputVertices(inVertices);
     vertex.setOutputVertices(outVertices);
+    boolean cleanupShuffleDataAtVertexLevel = dag.dagConf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+        TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0 && ShuffleUtils.isTezShuffleHandler(dag.dagConf);
+    if (cleanupShuffleDataAtVertexLevel) {
+      int deletionHeight = dag.dagConf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+              TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT);
+      ((VertexImpl) vertex).initShuffleDeletionContext(deletionHeight);
+    }
   }
 
   /**
@@ -2533,5 +2556,40 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
   public DAGImpl setLogDirs(String[] logDirs) {
     this.logDirs = logDirs;
     return this;
+  }
+
+  @Override
+  public void onStart() {
+    startVertexServices();
+  }
+
+  @Override
+  public void onFinish() {
+    stopVertexServices();
+    updateCounters();
+  }
+
+  private void startVertexServices() {
+    for (Vertex v : getVertices().values()) {
+      v.startServices();
+    }
+  }
+
+  void stopVertexServices() {
+    for (Vertex v : getVertices().values()) {
+      v.stopServices();
+    }
+  }
+
+  @Override
+  public void addUsedContainer(Container container) {
+    containersUsedByCurrentDAG.add(container.getId());
+    nodesUsedByCurrentDAG.add(container.getNodeId().getHost());
+  }
+
+  private void updateCounters() {
+    setDagCounter(DAGCounter.TOTAL_CONTAINERS_USED, containersUsedByCurrentDAG.size());
+    setDagCounter(DAGCounter.NODE_USED_COUNT, nodesUsedByCurrentDAG.size());
+    setDagCounter(DAGCounter.NODE_TOTAL_COUNT, appContext.getTaskScheduler().getNumClusterNodes(true));
   }
 }

@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -43,11 +44,14 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.DagContainerLauncher;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
@@ -93,6 +97,9 @@ public class LocalContainerLauncher extends DagContainerLauncher {
   private final boolean isLocalMode;
   int shufflePort = TezRuntimeUtils.INVALID_PORT;
   private DeletionTracker deletionTracker;
+  private boolean dagDelete;
+  private boolean vertexDelete;
+  private boolean failedTaskAttemptDelete;
 
   private final ConcurrentHashMap<ContainerId, ListenableFuture<?>>
       runningContainers =
@@ -155,10 +162,17 @@ public class LocalContainerLauncher extends DagContainerLauncher {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("LocalTaskExecutionThread #%d")
             .build());
     this.taskExecutorService = MoreExecutors.listeningDecorator(rawExecutor);
-    boolean cleanupDagDataOnComplete = ShuffleUtils.isTezShuffleHandler(conf)
-        && conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
+    dagDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+        conf.getBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION,
         TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION_DEFAULT);
-    if (cleanupDagDataOnComplete) {
+    vertexDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+            conf.getInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT,
+                    TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT_DEFAULT) > 0;
+    failedTaskAttemptDelete = ShuffleUtils.isTezShuffleHandler(conf) &&
+        conf.getBoolean(TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE,
+        TezConfiguration.TEZ_AM_TASK_ATTEMPT_CLEANUP_ON_FAILURE_DEFAULT);
+
+    if (dagDelete || vertexDelete || failedTaskAttemptDelete) {
       String deletionTrackerClassName = conf.get(TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS,
           TezConfiguration.TEZ_AM_DELETION_TRACKER_CLASS_DEFAULT);
       deletionTracker = ReflectionUtils.createClazzInstance(
@@ -441,9 +455,23 @@ public class LocalContainerLauncher extends DagContainerLauncher {
 
   @Override
   public void dagComplete(TezDAGID dag, JobTokenSecretManager jobTokenSecretManager) {
-    if (deletionTracker != null) {
+    if (dagDelete && deletionTracker != null) {
       deletionTracker.dagComplete(dag, jobTokenSecretManager);
     }
   }
 
+  @Override
+  public void vertexComplete(TezVertexID dag, JobTokenSecretManager jobTokenSecretManager, Set<NodeId> nodeIdList) {
+    if (vertexDelete && deletionTracker != null) {
+      deletionTracker.vertexComplete(dag, jobTokenSecretManager, nodeIdList);
+    }
+  }
+
+  @Override
+  public void taskAttemptFailed(TezTaskAttemptID taskAttemptID, JobTokenSecretManager jobTokenSecretManager,
+                                NodeId nodeId) {
+    if (failedTaskAttemptDelete && deletionTracker != null) {
+      deletionTracker.taskAttemptFailed(taskAttemptID, jobTokenSecretManager, nodeId);
+    }
+  }
 }

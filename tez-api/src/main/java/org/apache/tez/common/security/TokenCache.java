@@ -45,14 +45,16 @@ import org.apache.tez.dag.api.TezConfiguration;
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
-public class TokenCache {
+public final class TokenCache {
   
   private static final Logger LOG = LoggerFactory.getLogger(TokenCache.class);
+
+  private TokenCache() {}
 
   
   /**
    * auxiliary method to get user's secret keys..
-   * @param alias
+   *
    * @return secret key from the storage
    */
   public static byte[] getSecretKey(Credentials credentials, Text alias) {
@@ -64,10 +66,9 @@ public class TokenCache {
   /**
    * Convenience method to obtain delegation tokens from namenodes 
    * corresponding to the paths passed.
-   * @param credentials
+   * @param credentials credentials
    * @param ps array of paths
    * @param conf configuration
-   * @throws IOException
    */
   public static void obtainTokensForFileSystems(Credentials credentials,
       Path[] ps, Configuration conf) throws IOException {
@@ -80,7 +81,7 @@ public class TokenCache {
   private static final int MAX_FS_OBJECTS = 10;
   static void obtainTokensForFileSystemsInternal(Credentials credentials,
       Path[] ps, Configuration conf) throws IOException {
-    Set<FileSystem> fsSet = new HashSet<FileSystem>();
+    Set<FileSystem> fsSet = new HashSet<>();
     boolean limitExceeded = false;
     for(Path p: ps) {
       FileSystem fs = p.getFileSystem(conf);
@@ -107,8 +108,8 @@ public class TokenCache {
             conf.getStrings(TezConfiguration.TEZ_JOB_FS_SERVERS_TOKEN_RENEWAL_EXCLUDE);
     if (nns != null) {
       String host = fs.getUri().getHost();
-      for(int i = 0; i < nns.length; i++) {
-        if (nns[i].equals(host)) {
+      for (String nn : nns) {
+        if (nn.equals(host)) {
           return true;
         }
       }
@@ -118,11 +119,6 @@ public class TokenCache {
 
   /**
    * get delegation token for a specific FS
-   * @param fs
-   * @param credentials
-   * @param p
-   * @param conf
-   * @throws IOException
    */
   static void obtainTokensForFileSystemsInternal(FileSystem fs, 
       Credentials credentials, Configuration conf) throws IOException {
@@ -137,7 +133,7 @@ public class TokenCache {
       }
     }
 
-    final Token<?> tokens[] = fs.addDelegationTokens(delegTokenRenewer,
+    final Token<?>[] tokens = fs.addDelegationTokens(delegTokenRenewer,
                                                      credentials);
     if (tokens != null) {
       for (Token<?> token : tokens) {
@@ -150,7 +146,6 @@ public class TokenCache {
 
   /**
    * store session specific token
-   * @param t
    */
   @InterfaceAudience.Private
   public static void setSessionToken(Token<? extends TokenIdentifier> t, 

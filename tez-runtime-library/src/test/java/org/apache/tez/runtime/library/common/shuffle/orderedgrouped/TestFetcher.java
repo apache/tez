@@ -19,15 +19,15 @@
 package org.apache.tez.runtime.library.common.shuffle.orderedgrouped;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -90,7 +90,7 @@ public class TestFetcher {
   public static final String HOST = "localhost";
   public static final int PORT = 65;
   public static final int DAG_ID = 1;
-  public static final String APP_ID = "application_1234_1";
+  public static final ApplicationId APP_ID = ApplicationId.newInstance(0, 1);
 
   private TezCounters tezCounters = new TezCounters();
   private TezCounter ioErrsCounter = tezCounters.findCounter(ShuffleScheduler.SHUFFLE_ERR_GRP_NAME,
@@ -121,10 +121,6 @@ public class TestFetcher {
 
     Shuffle shuffle = mock(Shuffle.class);
 
-    InputContext inputContext = mock(InputContext.class);
-    doReturn(new TezCounters()).when(inputContext).getCounters();
-    doReturn("src vertex").when(inputContext).getSourceVertexName();
-
     MapHost mapHost = new MapHost(HOST, PORT, 0, 1);
     InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(0, 0, "attempt");
     mapHost.addKnownMap(inputAttemptIdentifier);
@@ -133,9 +129,9 @@ public class TestFetcher {
 
     FetcherOrderedGrouped fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null, conf,
-            getRawFs(conf), false, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
+            getRawFs(conf), false, HOST, PORT, mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-            wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+            wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
 
     fetcher.call();
     verify(scheduler).getMapsForHost(mapHost);
@@ -151,18 +147,14 @@ public class TestFetcher {
     MergeManager merger = mock(MergeManager.class);
     Shuffle shuffle = mock(Shuffle.class);
 
-    InputContext inputContext = mock(InputContext.class);
-    doReturn(new TezCounters()).when(inputContext).getCounters();
-    doReturn("src vertex").when(inputContext).getSourceVertexName();
-
     final boolean ENABLE_LOCAL_FETCH = true;
     final boolean DISABLE_LOCAL_FETCH = false;
     MapHost mapHost = new MapHost(HOST, PORT, 0, 1);
     FetcherOrderedGrouped fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null, conf,
-            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
+            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-            wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+            wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
 
     // when local mode is enabled and host and port matches use local fetch
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
@@ -171,44 +163,44 @@ public class TestFetcher {
     spyFetcher.fetchNext();
 
     verify(spyFetcher, times(1)).setupLocalDiskFetch(mapHost);
-    verify(spyFetcher, never()).copyFromHost(any(MapHost.class));
+    verify(spyFetcher, never()).copyFromHost(any());
 
     // if hostname does not match use http
     mapHost = new MapHost(HOST + "_OTHER", PORT, 0, 1);
     fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null, conf,
-            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
+            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-            wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+            wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
     spyFetcher.fetchNext();
 
-    verify(spyFetcher, never()).setupLocalDiskFetch(any(MapHost.class));
+    verify(spyFetcher, never()).setupLocalDiskFetch(any());
     verify(spyFetcher, times(1)).copyFromHost(mapHost);
 
     // if port does not match use http
     mapHost = new MapHost(HOST, PORT + 1, 0, 1);
     fetcher =
         new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null, conf,
-            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
+            getRawFs(conf), ENABLE_LOCAL_FETCH, HOST, PORT, mapHost, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-            wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+            wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
     spyFetcher.fetchNext();
 
-    verify(spyFetcher, never()).setupLocalDiskFetch(any(MapHost.class));
+    verify(spyFetcher, never()).setupLocalDiskFetch(any());
     verify(spyFetcher, times(1)).copyFromHost(mapHost);
 
     //if local fetch is not enabled
     mapHost = new MapHost(HOST, PORT, 0, 1);
     fetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle, null, false, 0, null,
-        conf, getRawFs(conf), DISABLE_LOCAL_FETCH, HOST, PORT, "src vertex", mapHost, ioErrsCounter,
+        conf, getRawFs(conf), DISABLE_LOCAL_FETCH, HOST, PORT, mapHost, ioErrsCounter,
         wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-        wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     spyFetcher = spy(fetcher);
     doNothing().when(spyFetcher).setupLocalDiskFetch(mapHost);
 
@@ -224,15 +216,12 @@ public class TestFetcher {
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
     MergeManager merger = mock(MergeManager.class);
     Shuffle shuffle = mock(Shuffle.class);
-    InputContext inputContext = mock(InputContext.class);
-    when(inputContext.getCounters()).thenReturn(new TezCounters());
-    when(inputContext.getSourceVertexName()).thenReturn("");
 
     MapHost host = new MapHost(HOST, PORT, 1, 1);
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle,
-        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, "src vertex", host,
+        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, host,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
 
@@ -277,8 +266,8 @@ public class TestFetcher {
         return mapOutput;
       }
     }).when(spyFetcher)
-        .getMapOutputForDirectDiskFetch(any(InputAttemptIdentifier.class), any(Path.class),
-            any(TezIndexRecord.class));
+        .getMapOutputForDirectDiskFetch(any(), any(),
+            any());
 
     doAnswer(new Answer<Path>() {
       @Override
@@ -286,7 +275,7 @@ public class TestFetcher {
         Object[] args = invocation.getArguments();
         return new Path(SHUFFLE_INPUT_FILE_PREFIX + args[0]);
       }
-    }).when(spyFetcher).getShuffleInputFileName(anyString(), anyString());
+    }).when(spyFetcher).getShuffleInputFileName(any(), any());
 
     for (int i = 0; i < host.getPartitionCount(); i++) {
       doAnswer(new Answer<TezIndexRecord>() {
@@ -302,7 +291,7 @@ public class TestFetcher {
           // match with params for copySucceeded below.
           return new TezIndexRecord(p * 10, (p+1) * 1000, (p+2) * 100);
         }
-      }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId() + i));
+      }).when(spyFetcher).getIndexRecord(any(), eq(host.getPartitionId() + i));
     }
 
     doNothing().when(scheduler).copySucceeded(any(InputAttemptIdentifier.class), any(MapHost.class),
@@ -338,15 +327,12 @@ public class TestFetcher {
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
     MergeManager merger = mock(MergeManager.class);
     Shuffle shuffle = mock(Shuffle.class);
-    InputContext inputContext = mock(InputContext.class);
-    when(inputContext.getCounters()).thenReturn(new TezCounters());
-    when(inputContext.getSourceVertexName()).thenReturn("");
 
     MapHost host = new MapHost(HOST, PORT, 1, 1);
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle,
-        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, "src vertex", host,
+        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, host,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
     final List<CompositeInputAttemptIdentifier> srcAttempts = Arrays.asList(
@@ -383,7 +369,7 @@ public class TestFetcher {
         Object[] args = invocation.getArguments();
         return new Path(SHUFFLE_INPUT_FILE_PREFIX + args[0]);
       }
-    }).when(spyFetcher).getShuffleInputFileName(anyString(), anyString());
+    }).when(spyFetcher).getShuffleInputFileName(any(), anyString());
 
     for (int i = 0; i < host.getPartitionCount(); i++) {
       doAnswer(new Answer<TezIndexRecord>() {
@@ -413,15 +399,12 @@ public class TestFetcher {
     ShuffleScheduler scheduler = mock(ShuffleScheduler.class);
     MergeManager merger = mock(MergeManager.class);
     Shuffle shuffle = mock(Shuffle.class);
-    InputContext inputContext = mock(InputContext.class);
-    when(inputContext.getCounters()).thenReturn(new TezCounters());
-    when(inputContext.getSourceVertexName()).thenReturn("");
 
     MapHost host = new MapHost(HOST, PORT, 1, 2);
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle,
-        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, "src vertex", host,
+        null, false, 0, null, conf, getRawFs(conf), true, HOST, PORT, host,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     FetcherOrderedGrouped spyFetcher = spy(fetcher);
 
 
@@ -476,7 +459,7 @@ public class TestFetcher {
         Object[] args = invocation.getArguments();
         return new Path(SHUFFLE_INPUT_FILE_PREFIX + args[0]);
       }
-    }).when(spyFetcher).getShuffleInputFileName(anyString(), anyString());
+    }).when(spyFetcher).getShuffleInputFileName(any(), any());
 
     for (int i = 0; i < host.getPartitionCount(); i++) {
       doAnswer(new Answer<TezIndexRecord>() {
@@ -494,7 +477,7 @@ public class TestFetcher {
           // match with params for copySucceeded below.
           return new TezIndexRecord(p * 10, (p + 1) * 1000, (p + 2) * 100);
         }
-      }).when(spyFetcher).getIndexRecord(anyString(), eq(host.getPartitionId() + i));
+      }).when(spyFetcher).getIndexRecord(any(), eq(host.getPartitionId() + i));
     }
 
     doNothing().when(scheduler).copySucceeded(any(InputAttemptIdentifier.class), any(MapHost.class),
@@ -593,17 +576,12 @@ public class TestFetcher {
     MergeManager merger = mock(MergeManager.class);
 
     Shuffle shuffle = mock(Shuffle.class);
-    InputContext inputContext = mock(InputContext.class);
-    when(inputContext.getCounters()).thenReturn(new TezCounters());
-    when(inputContext.getSourceVertexName()).thenReturn("");
-    when(inputContext.getApplicationId()).thenReturn(ApplicationId.newInstance(0, 1));
 
-    HttpConnectionParams httpConnectionParams = ShuffleUtils.getHttpConnectionParams(conf);
     final MapHost host = new MapHost(HOST, PORT, 1, 1);
     FetcherOrderedGrouped mockFetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle,
-        null, false, 0, null, conf, getRawFs(conf), false, HOST, PORT, "src vertex", host,
+        null, false, 0, null, conf, getRawFs(conf), false, HOST, PORT, host,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
 
 
@@ -613,7 +591,7 @@ public class TestFetcher {
         new InputAttemptIdentifier(3, 4, InputAttemptIdentifier.PATH_PREFIX + "pathComponent_3")
     );
     doReturn(srcAttempts).when(scheduler).getMapsForHost(host);
-    doReturn(true).when(fetcher).setupConnection(any(MapHost.class), any(Collection.class));
+    doReturn(true).when(fetcher).setupConnection(any(), any());
 
     URL url = ShuffleUtils.constructInputURL("http://" + HOST + ":" + PORT + "/mapOutput?job=job_123&&reduce=1&map=", srcAttempts, false);
     fetcher.httpConnection = new FakeHttpConnection(url, null, "", null);
@@ -627,7 +605,7 @@ public class TestFetcher {
         doReturn(args[0]).when(mapOutput).getAttemptIdentifier();
         return mapOutput;
       }
-    }).when(merger).reserve(any(InputAttemptIdentifier.class), anyInt(), anyInt(), anyInt());
+    }).when(merger).reserve(any(), anyInt(), anyInt(), anyInt());
 
     //Create read timeout when reading data
     doAnswer(new Answer<Void>() {
@@ -636,7 +614,7 @@ public class TestFetcher {
         // Simulate read timeout by throwing proper exception
         throw new FetcherReadTimeoutException("creating fetcher socket read timeout exception");
       }
-    }).when(fetcher).copyMapOutput(any(MapHost.class), any(DataInputStream.class), any(InputAttemptIdentifier.class));
+    }).when(fetcher).copyMapOutput(any(), any(), any());
 
     try {
       fetcher.copyFromHost(host);
@@ -676,11 +654,6 @@ public class TestFetcher {
     MergeManager merger = mock(MergeManager.class);
     Shuffle shuffle = mock(Shuffle.class);
 
-    TezCounters counters = new TezCounters();
-    InputContext inputContext = mock(InputContext.class);
-    when(inputContext.getCounters()).thenReturn(counters);
-    when(inputContext.getSourceVertexName()).thenReturn("");
-
     JobTokenSecretManager jobMgr = mock(JobTokenSecretManager.class);
     doReturn(new byte[10]).when(jobMgr).computeHash(any(byte[].class));
 
@@ -688,9 +661,9 @@ public class TestFetcher {
     final MapHost host = new MapHost(HOST, PORT, 1, 1);
     FetcherOrderedGrouped mockFetcher =
         new FetcherOrderedGrouped(httpConnectionParams, scheduler, merger, shuffle, jobMgr, false,
-            0, null, conf, getRawFs(conf), false, HOST, PORT, "src vertex", host, ioErrsCounter,
+            0, null, conf, getRawFs(conf), false, HOST, PORT, host, ioErrsCounter,
             wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter, connectionErrsCounter,
-            wrongReduceErrsCounter, APP_ID, DAG_ID, true, false, true, false);
+            wrongReduceErrsCounter, true, false, true, false, createMockInputContext());
     final FetcherOrderedGrouped fetcher = spy(mockFetcher);
     fetcher.remaining = new LinkedHashMap<String, InputAttemptIdentifier>();
     final List<InputAttemptIdentifier> srcAttempts = Arrays.asList(
@@ -753,9 +726,9 @@ public class TestFetcher {
     Shuffle shuffle = mock(Shuffle.class);
     MapHost mapHost = new MapHost(HOST, PORT, 0, 1);
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, scheduler, merger, shuffle,
-        null, false, 0, null, conf, getRawFs(conf), false, HOST, PORT, "src vertex", mapHost,
+        null, false, 0, null, conf, getRawFs(conf), false, HOST, PORT, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     fetcher.populateRemainingMap(new LinkedList<InputAttemptIdentifier>(Arrays.asList(srcAttempts)));
     Assert.assertEquals(expectedSrcAttempts.length, fetcher.remaining.size());
     Iterator<Entry<String, InputAttemptIdentifier>> iterator = fetcher.remaining.entrySet().iterator();
@@ -773,9 +746,9 @@ public class TestFetcher {
     InputAttemptIdentifier inputAttemptIdentifier = new InputAttemptIdentifier(0, 0, "attempt");
 
     FetcherOrderedGrouped fetcher = new FetcherOrderedGrouped(null, null, null, null, null, false,
-        0, null, new TezConfiguration(), null, false, HOST, PORT, "src vertex", mapHost,
+        0, null, new TezConfiguration(), null, false, HOST, PORT, mapHost,
         ioErrsCounter, wrongLengthErrsCounter, badIdErrsCounter, wrongMapErrsCounter,
-        connectionErrsCounter, wrongReduceErrsCounter, APP_ID, DAG_ID, false, false, true, false);
+        connectionErrsCounter, wrongReduceErrsCounter, false, false, true, false, createMockInputContext());
     fetcher.remaining = new HashMap<String, InputAttemptIdentifier>();
 
     ShuffleHeader header =
@@ -799,5 +772,18 @@ public class TestFetcher {
       // TODO Auto-generated catch block
       throw new RuntimeException(e);
     }
+  }
+
+
+  private InputContext createMockInputContext() {
+    InputContext inputContext = mock(InputContext.class);
+
+    doReturn(APP_ID).when(inputContext).getApplicationId();
+    doReturn(DAG_ID).when(inputContext).getDagIdentifier();
+    doReturn(new TezCounters()).when(inputContext).getCounters();
+    doReturn("src vertex").when(inputContext).getSourceVertexName();
+    doReturn("task_Vertex").when(inputContext).getTaskVertexName();
+
+    return inputContext;
   }
 }

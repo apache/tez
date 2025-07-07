@@ -49,7 +49,7 @@ public class HttpConnection extends BaseHttpConnection {
   @VisibleForTesting
   protected volatile HttpURLConnection connection;
   private volatile DataInputStream input;
-  private volatile boolean connectionSucceeed;
+  private volatile boolean connectionSucceed;
   private volatile boolean cleanup;
 
   private final JobTokenSecretManager jobTokenSecretMgr;
@@ -147,7 +147,7 @@ public class HttpConnection extends BaseHttpConnection {
       long connectStartTime = System.currentTimeMillis();
       try {
         connection.connect();
-        connectionSucceeed = true;
+        connectionSucceed = true;
         break;
       } catch (IOException ioe) {
         // Don't attempt another connect if already cleanedup.
@@ -253,7 +253,7 @@ public class HttpConnection extends BaseHttpConnection {
   @Override
   public DataInputStream getInputStream() throws IOException {
     stopWatch.reset().start();
-    if (connectionSucceeed) {
+    if (connectionSucceed) {
       input = new DataInputStream(new BufferedInputStream(
               connection.getInputStream(), httpConnParams.getBufferSize()));
     }
@@ -280,7 +280,7 @@ public class HttpConnection extends BaseHttpConnection {
         input.close();
         input = null;
       }
-      if (httpConnParams.isKeepAlive() && connectionSucceeed) {
+      if (httpConnParams.isKeepAlive() && connectionSucceed) {
         // Refer:
         // http://docs.oracle.com/javase/6/docs/technotes/guides/net/http-keepalive.html
         readErrorStream(connection.getErrorStream());

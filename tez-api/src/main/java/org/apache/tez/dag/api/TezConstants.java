@@ -24,7 +24,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
  * Specifies all constant values in Tez
  */
 @Private
-public class TezConstants {
+public final class TezConstants {
 
 
   public static final String TEZ_APPLICATION_MASTER_CLASS =
@@ -129,4 +129,5 @@ public class TezConstants {
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB = 0.7;
   public static final double TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB = 0.8;
 
+  private TezConstants() {}
 }

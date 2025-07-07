@@ -21,16 +21,16 @@
 
 Access control in Tez can be categorized as follows:
 
-  - Modify permissions on the Tez AM ( or Session ). Users with this permision can:
+  - Modify permissions on the Tez AM ( or Session ). Users with this permission can:
     - Submit a DAG to a Tez Session
     - Kill any DAG within the given AM/Session
     - Kill the Session
-  - View permissions on the Tez AM ( or Session ). Users with this permision can:
+  - View permissions on the Tez AM ( or Session ). Users with this permission can:
     - Monitor/View the status of the Session
     - Monitor/View the progress/status of any DAG within the given AM/Session
-  - Modify permissions on a particular Tez DAG. Users with this permision can:
+  - Modify permissions on a particular Tez DAG. Users with this permission can:
     - Kill the DAG
-  - View permissions on a particular Tez DAG. Users with this permision can:
+  - View permissions on a particular Tez DAG. Users with this permission can:
     - Monitor/View the progress/status of the DAG
 
 From the above, you can see that All users/groups that have access to do operations on the AM also have access to similar operations on all DAGs within that AM/session. Also, by default, the owner of the Tez AM,  i.e. the user who started the Tez AM, is considered a super-user and has access to all operations on the AM as well as all DAGs within the AM/Session.

@@ -23,6 +23,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -32,11 +33,13 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.util.functional.FutureIO;
 
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple record reader which reads the TFile and emits it as key, value pair.
@@ -73,9 +76,9 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
 
     FileSystem fs = fileSplit.getPath().getFileSystem(context.getConfiguration());
     splitPath = fileSplit.getPath();
-    fin = fs.open(splitPath);
-    reader = new TFile.Reader(fin, fs.getFileStatus(splitPath).getLen(),
-        context.getConfiguration());
+    FileStatus fileStatus = fs.getFileStatus(splitPath);
+    fin = FutureIO.awaitFuture(fs.openFile(splitPath).withFileStatus(fileStatus).build());
+    reader = new TFile.Reader(fin, fileStatus.getLen(), context.getConfiguration());
     scanner = reader.createScannerByByteRange(start, fileSplit.getLength());
   }
 
@@ -84,7 +87,7 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
     //splitpath contains the machine name. Create the key as splitPath + realKey
     String keyStr = new StringBuilder()
         .append(splitPath.getName()).append(":")
-        .append(new String(keyBytesWritable.getBytes()))
+        .append(new String(keyBytesWritable.getBytes(), StandardCharsets.UTF_8))
         .toString();
 
     /**
@@ -92,7 +95,7 @@ public class TFileRecordReader extends RecordReader<Text, Text> {
      * better to handle such scenarios.
      */
     currentValueReader = new BufferedReader(
-        new InputStreamReader(entry.getValueStream()));
+        new InputStreamReader(entry.getValueStream(), StandardCharsets.UTF_8));
     key.set(keyStr);
     String line = currentValueReader.readLine();
     value.set((line == null) ? "" : line);

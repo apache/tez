@@ -131,7 +131,7 @@ export default MultiTableController.extend({
 
       /**
        * In IE 11 under Windows 7, mouse events are not delivered to the page
-       * anymore at all after a SVG use element that was under the mouse is
+       * anymore at all after an SVG use element that was under the mouse is
        * removed from the DOM in the event listener in response to a mouse click.
        * See https://connect.microsoft.com/IE/feedback/details/796745
        *

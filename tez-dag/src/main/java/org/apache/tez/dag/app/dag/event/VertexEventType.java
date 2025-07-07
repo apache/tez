@@ -34,6 +34,7 @@ public enum VertexEventType {
   V_START,
   V_SOURCE_TASK_ATTEMPT_COMPLETED,
   V_SOURCE_VERTEX_STARTED,
+  V_DELETE_SHUFFLE_DATA,
   
   //Producer:Task
   V_TASK_COMPLETED,

@@ -19,13 +19,14 @@
 package org.apache.tez.dag.app.dag.event;
 
 import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.dag.records.DAGIDAware;
 import org.apache.tez.dag.records.TezDAGID;
 
 /**
  * This class encapsulates job related events.
  *
  */
-public class DAGEvent extends TezAbstractEvent<DAGEventType> {
+public class DAGEvent extends TezAbstractEvent<DAGEventType> implements DAGIDAware {
 
   private TezDAGID dagId;
 
@@ -34,7 +35,8 @@ public class DAGEvent extends TezAbstractEvent<DAGEventType> {
     this.dagId = dagId;
   }
 
-  public TezDAGID getDAGId() {
+  @Override
+  public TezDAGID getDAGID() {
     return dagId;
   }
 

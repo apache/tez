@@ -21,6 +21,7 @@ package org.apache.hadoop.mapreduce.split;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,14 +75,12 @@ public class TezGroupedSplitsInputFormat<K, V> extends InputFormat<K, V>
   }
 
   public void setSplitSizeEstimator(SplitSizeEstimator estimator) {
-    Preconditions.checkArgument(estimator != null);
-    this.estimator = estimator;
+    this.estimator = Objects.requireNonNull(estimator);
     LOG.debug("Split size estimator : {}", estimator);
   }
 
   public void setSplitLocationProvider(SplitLocationProvider locationProvider) {
-    Preconditions.checkArgument(locationProvider != null);
-    this.locationProvider = locationProvider;
+    this.locationProvider = Objects.requireNonNull(locationProvider);
     LOG.debug("Split location provider : {}", locationProvider);
   }
 

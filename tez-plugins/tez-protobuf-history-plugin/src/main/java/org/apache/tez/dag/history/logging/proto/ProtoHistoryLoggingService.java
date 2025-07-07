@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -73,7 +73,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
   }
 
   @Override
-  protected void serviceInit(Configuration conf) throws Exception {
+  protected void serviceInit(Configuration conf) {
     LOG.info("Initing ProtoHistoryLoggingService");
     setConfig(conf);
     loggingDisabled = !conf.getBoolean(TezConfiguration.TEZ_AM_HISTORY_LOGGING_ENABLED,
@@ -146,7 +146,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       } catch (InterruptedException e) {
         LOG.info("EventQueue poll interrupted, ignoring it.", e);
       } catch (IOException e) {
-        TezDAGID dagid = evt.getDagID();
+        TezDAGID dagid = evt.getDAGID();
         HistoryEventType type = evt.getHistoryEvent().getEventType();
         // Retry is hard, because there are several places where this exception can happen
         // the state will get messed up a lot.
@@ -160,7 +160,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       return;
     }
     HistoryEvent historyEvent = event.getHistoryEvent();
-    if (event.getDagID() == null) {
+    if (event.getDAGID() == null) {
       if (historyEvent.getEventType() == HistoryEventType.APP_LAUNCHED) {
         appEventsFile = appEventsWriter.getPath().toString();
         appLaunchedEventOffset = appEventsWriter.getOffset();
@@ -168,7 +168,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
       appEventsWriter.writeProto(converter.convert(historyEvent));
     } else {
       HistoryEventType type = historyEvent.getEventType();
-      TezDAGID dagId = event.getDagID();
+      TezDAGID dagId = event.getDAGID();
       if (type == HistoryEventType.DAG_FINISHED) {
         finishCurrentDag((DAGFinishedEvent)historyEvent);
       } else if (type == HistoryEventType.DAG_SUBMITTED) {
@@ -220,7 +220,7 @@ public class ProtoHistoryLoggingService extends HistoryLoggingService {
           .setAppLaunchedEventOffset(appLaunchedEventOffset)
           .setWriteTime(System.currentTimeMillis());
       if (event != null) {
-        entry.setDagId(event.getDagID().toString());
+        entry.setDagId(event.getDAGID().toString());
       }
       manifestEventsWriter.writeProto(entry.build());
       manifestEventsWriter.hflush();

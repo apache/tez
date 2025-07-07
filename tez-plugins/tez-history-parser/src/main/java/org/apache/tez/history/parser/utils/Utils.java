@@ -42,11 +42,12 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 @InterfaceAudience.Private
-public class Utils {
+public final class Utils {
 
   private static final String LOG4J_CONFIGURATION = "log4j.configuration";
   private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Utils.class);
 
+  private Utils() {}
 
   /**
    * Parse tez counters from json

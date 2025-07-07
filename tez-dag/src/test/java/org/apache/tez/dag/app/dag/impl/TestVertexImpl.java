@@ -20,12 +20,28 @@ package org.apache.tez.dag.app.dag.impl;
 
 import java.nio.ByteBuffer;
 
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.NamedEntityDescriptor;
+import org.apache.tez.dag.app.DAGAppMaster;
+import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
+import org.apache.tez.dag.app.launcher.TezContainerLauncherImpl;
+import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -76,6 +92,7 @@ import org.apache.tez.runtime.api.impl.TaskSpec;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads;
 import org.apache.tez.test.GraceShuffleVertexManagerForTest;
+import org.mockito.Mockito;
 import org.roaringbitmap.RoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -221,7 +238,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mockito.internal.util.collections.Sets;
 
 import com.google.common.base.Joiner;
@@ -386,7 +402,7 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskAttemptEvent event) {
       VertexImpl vertex = vertexIdMap.get(
-        event.getTaskAttemptID().getTaskID().getVertexID());
+        event.getVertexID());
       Task task = vertex.getTask(event.getTaskAttemptID().getTaskID());
       ((EventHandler<TaskAttemptEvent>)task.getAttempt(
           event.getTaskAttemptID())).handle(event);
@@ -399,7 +415,7 @@ public class TestVertexImpl {
     @Override
     public void handle(TaskEvent event) {
       events.add(event);
-      VertexImpl vertex = vertexIdMap.get(event.getTaskID().getVertexID());
+      VertexImpl vertex = vertexIdMap.get(event.getVertexID());
       Task task = vertex.getTask(event.getTaskID());
       if (task != null) {
         ((EventHandler<TaskEvent>)task).handle(event);
@@ -437,7 +453,7 @@ public class TestVertexImpl {
 
     @Override
     public void handle(VertexEvent event) {
-      VertexImpl vertex = vertexIdMap.get(event.getVertexId());
+      VertexImpl vertex = vertexIdMap.get(event.getVertexID());
       ((EventHandler<VertexEvent>) vertex).handle(event);
     }
   }
@@ -793,9 +809,9 @@ public class TestVertexImpl {
      return dag;
   }
 
-  private DAGPlan createDAGPlanWithMixedEdges() {
+  private DAGPlan createDAGPlanWithMixedEdges(String dagName) {
     LOG.info("Setting up mixed edge dag plan");
-    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("MixedEdges");
+    org.apache.tez.dag.api.DAG dag = org.apache.tez.dag.api.DAG.create("DAG-" + dagName);
     org.apache.tez.dag.api.Vertex v1 = org.apache.tez.dag.api.Vertex.create("vertex1",
         ProcessorDescriptor.create("v1.class"), 1, Resource.newInstance(0, 0));
     org.apache.tez.dag.api.Vertex v2 = org.apache.tez.dag.api.Vertex.create("vertex2",
@@ -2395,12 +2411,254 @@ public class TestVertexImpl {
         .build();
   }
 
-  private void setupVertices() {
+  /**
+   * The dag is of the following structure.
+   *    vertex1   vertex2
+   *         \  /
+   *         vertex 3
+   *         /   \
+   *     vertex4 vertex5
+   *         \   /
+   *         vertex6
+   * @return dagPlan
+   */
+
+  public DAGPlan createDAGPlanVertexShuffleDelete() {
+    LOG.info("Setting up dag plan");
+    DAGPlan dag = DAGPlan.newBuilder()
+        .setName("testverteximpl")
+        .setDagConf(DAGProtos.ConfigurationProto.newBuilder()
+            .addConfKeyValues(DAGProtos.PlanKeyValuePair.newBuilder()
+                .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
+                .setValue(3 + "")))
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex1")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host1")
+                        .addRack("rack1")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(1)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x1.y1")
+                        .build()
+                )
+                .setVertexConf(DAGProtos.ConfigurationProto.newBuilder()
+                    .addConfKeyValues(DAGProtos.PlanKeyValuePair.newBuilder()
+                        .setKey(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS)
+                        .setValue(2+"")))
+                .addOutEdgeId("e1")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex2")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host2")
+                        .addRack("rack2")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x2.y2")
+                        .build()
+                )
+                .addOutEdgeId("e2")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex3")
+                .setType(PlanVertexType.NORMAL)
+                .setProcessorDescriptor(TezEntityDescriptorProto.newBuilder().setClassName("x3.y3"))
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host3")
+                        .addRack("rack3")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("foo")
+                        .setTaskModule("x3.y3")
+                        .build()
+                )
+                .addInEdgeId("e1")
+                .addInEdgeId("e2")
+                .addOutEdgeId("e3")
+                .addOutEdgeId("e4")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex4")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host4")
+                        .addRack("rack4")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x4.y4")
+                        .build()
+                )
+                .addInEdgeId("e3")
+                .addOutEdgeId("e5")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex5")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host5")
+                        .addRack("rack5")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x5.y5")
+                        .build()
+                )
+                .addInEdgeId("e4")
+                .addOutEdgeId("e6")
+                .build()
+        )
+        .addVertex(
+            VertexPlan.newBuilder()
+                .setName("vertex6")
+                .setType(PlanVertexType.NORMAL)
+                .addTaskLocationHint(
+                    PlanTaskLocationHint.newBuilder()
+                        .addHost("host6")
+                        .addRack("rack6")
+                        .build()
+                )
+                .setTaskConfig(
+                    PlanTaskConfiguration.newBuilder()
+                        .setNumTasks(2)
+                        .setVirtualCores(4)
+                        .setMemoryMb(1024)
+                        .setJavaOpts("")
+                        .setTaskModule("x6.y6")
+                        .build()
+                )
+                .addInEdgeId("e5")
+                .addInEdgeId("e6")
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v1"))
+                .setInputVertexName("vertex1")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o1"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e1")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i3_v2"))
+                .setInputVertexName("vertex2")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o2"))
+                .setOutputVertexName("vertex3")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e2")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i4_v3"))
+                .setInputVertexName("vertex3")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v4"))
+                .setOutputVertexName("vertex4")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e3")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i5_v3"))
+                .setInputVertexName("vertex3")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o3_v5"))
+                .setOutputVertexName("vertex5")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e4")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v4"))
+                .setInputVertexName("vertex4")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o4"))
+                .setOutputVertexName("vertex6")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e5")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .addEdge(
+            EdgePlan.newBuilder()
+                .setEdgeDestination(TezEntityDescriptorProto.newBuilder().setClassName("i6_v5"))
+                .setInputVertexName("vertex5")
+                .setEdgeSource(TezEntityDescriptorProto.newBuilder().setClassName("o5"))
+                .setOutputVertexName("vertex6")
+                .setDataMovementType(PlanEdgeDataMovementType.SCATTER_GATHER)
+                .setId("e6")
+                .setDataSourceType(PlanEdgeDataSourceType.PERSISTED)
+                .setSchedulingType(PlanEdgeSchedulingType.SEQUENTIAL)
+                .build()
+        )
+        .build();
+
+    return dag;
+  }
+
+  private void setupVertices(boolean cleanupShuffleDataAtVertexLevel) {
     int vCnt = dagPlan.getVertexCount();
     LOG.info("Setting up vertices from dag plan, verticesCnt=" + vCnt);
     vertices = new HashMap<String, VertexImpl>();
     vertexIdMap = new HashMap<TezVertexID, VertexImpl>();
     Configuration dagConf = new Configuration(false);
+    dagConf.setBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION, true);
+    conf.setInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT, cleanupShuffleDataAtVertexLevel ? 1 : 0);
     dagConf.set("abc", "foobar");
     for (int i = 0; i < vCnt; ++i) {
       VertexPlan vPlan = dagPlan.getVertex(i);
@@ -2447,7 +2705,6 @@ public class TestVertexImpl {
 
       Map<Vertex, Edge> outVertices =
           new HashMap<Vertex, Edge>();
-
       for(String inEdgeId : vertexPlan.getInEdgeIdList()){
         EdgePlan edgePlan = edgePlans.get(inEdgeId);
         Vertex inVertex = this.vertices.get(edgePlan.getInputVertexName());
@@ -2472,7 +2729,13 @@ public class TestVertexImpl {
           + ", outputVerticesCnt=" + outVertices.size());
       vertex.setOutputVertices(outVertices);
     }
+
+    for (Map.Entry<String, VertexImpl> vertex : vertices.entrySet()) {
+      VertexImpl vertexImpl = vertex.getValue();
+      vertexImpl.initShuffleDeletionContext(2);
+    }
   }
+
 
   public void setupPreDagCreation() {
     LOG.info("____________ RESETTING CURRENT DAG ____________");
@@ -2483,13 +2746,14 @@ public class TestVertexImpl {
     dagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 1);
     taskSpecificLaunchCmdOption = mock(TaskSpecificLaunchCmdOption.class);
     doReturn(false).when(taskSpecificLaunchCmdOption).addTaskSpecificLaunchCmdOption(
-        any(String.class),
+        any(),
         anyInt());
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  public void setupPostDagCreation() throws TezException {
+  public void setupPostDagCreation(boolean cleanupShuffleDataAtVertexLevel) throws TezException {
     String dagName = "dag0";
+    taskCommunicatorManagerInterface = mock(TaskCommunicatorManagerInterface.class);
     // dispatcher may be created multiple times (setupPostDagCreation may be called multiples)
     if (dispatcher != null) {
       dispatcher.stop();
@@ -2499,6 +2763,40 @@ public class TestVertexImpl {
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getContainerLauncherName(anyInt())).thenReturn(
         TezConstants.getTezYarnServicePluginName());
+    DAGAppMaster mockDagAppMaster = mock(DAGAppMaster.class);
+    when(appContext.getAppMaster()).thenReturn(mockDagAppMaster);
+    doCallRealMethod().when(mockDagAppMaster).vertexComplete(any(TezVertexID.class), any(Set.class));
+    List<NamedEntityDescriptor> containerDescriptors = new ArrayList<>();
+    ContainerLauncherDescriptor containerLaunchers =
+        ContainerLauncherDescriptor.create("ContainerLaunchers",
+            TezContainerLauncherImpl.class.getName());
+    conf.setBoolean(TezConfiguration.TEZ_AM_DAG_CLEANUP_ON_COMPLETION, true);
+    conf.set(TezConfiguration.TEZ_AM_SHUFFLE_AUXILIARY_SERVICE_ID, "tez_shuffle");
+    conf.setInt(TezConfiguration.TEZ_AM_VERTEX_CLEANUP_HEIGHT, 0);
+    try {
+      containerLaunchers.setUserPayload(UserPayload.create(
+          TezUtils.createByteStringFromConf(conf).asReadOnlyByteBuffer()));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    containerDescriptors.add(containerLaunchers);
+    ContainerLauncherManager mockContainerLauncherManager = spy(new ContainerLauncherManager(appContext,
+        taskCommunicatorManagerInterface, "test", containerDescriptors, false));
+    doCallRealMethod().when(mockContainerLauncherManager).vertexComplete(any(
+        TezVertexID.class), any(JobTokenSecretManager.class
+    ), any(Set.class));
+    when(appContext.getAppMaster().getContainerLauncherManager()).thenReturn(
+        mockContainerLauncherManager);
+    mockContainerLauncherManager.init(conf);
+    mockContainerLauncherManager.start();
+    AMContainerMap amContainerMap = mock(AMContainerMap.class);
+    AMContainer amContainer = mock(AMContainer.class);
+    Container mockContainer = mock(Container.class);
+    when(amContainer.getContainer()).thenReturn(mockContainer);
+    when(mockContainer.getNodeId()).thenReturn(mock(NodeId.class));
+    when(mockContainer.getNodeHttpAddress()).thenReturn("localhost:12345");
+    when(amContainerMap.get(any(ContainerId.class))).thenReturn(amContainer);
+    when(appContext.getAllContainers()).thenReturn(amContainerMap);
 
     thh = mock(TaskHeartbeatHandler.class);
     historyEventHandler = mock(HistoryEventHandler.class);
@@ -2525,7 +2823,7 @@ public class TestVertexImpl {
     execService = mock(ListeningExecutorService.class);
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     
-    Mockito.doAnswer(new Answer() {
+    doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
           Object[] args = invocation.getArguments();
           CallableEvent e = (CallableEvent) args[0];
@@ -2557,7 +2855,7 @@ public class TestVertexImpl {
       updateTracker.stop();
     }
     updateTracker = new StateChangeNotifierForTest(appContext.getCurrentDAG());
-    setupVertices();
+    setupVertices(cleanupShuffleDataAtVertexLevel);
     when(dag.getVertex(any(TezVertexID.class))).thenAnswer(new Answer<Vertex>() {
       @Override
       public Vertex answer(InvocationOnMock invocation) throws Throwable {
@@ -2622,7 +2920,7 @@ public class TestVertexImpl {
     setupPreDagCreation();
     dagPlan = createTestDAGPlan();
     invalidDagPlan = createInvalidDAGPlan();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
   }
 
   @After
@@ -2750,7 +3048,7 @@ public class TestVertexImpl {
   public void testNonExistVertexManager() throws TezException {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithNonExistVertexManager();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
@@ -2763,7 +3061,7 @@ public class TestVertexImpl {
   public void testNonExistInputInitializer() throws TezException {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithNonExistInputInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
@@ -2776,7 +3074,7 @@ public class TestVertexImpl {
   public void testNonExistOutputCommitter() throws TezException {
     setupPreDagCreation();
     dagPlan = createDAGPlanWithNonExistOutputCommitter();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     v1.handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
     Assert.assertEquals(VertexState.FAILED, v1.getState());
@@ -2815,7 +3113,7 @@ public class TestVertexImpl {
     setupPreDagCreation();
     // initialize() will make VM call planned() and started() will make VM call done()
     dagPlan = createDAGPlanWithVMException("TestVMStateUpdate", VMExceptionLocation.NoExceptionDoReconfigure);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     TestUpdateListener listener = new TestUpdateListener();
     updateTracker
@@ -2842,7 +3140,7 @@ public class TestVertexImpl {
     Assert.assertEquals("vertex2", listener.events.get(0).getVertexName());
     Assert.assertEquals(org.apache.tez.dag.api.event.VertexState.CONFIGURED,
         listener.events.get(0).getVertexState());
-    updateTracker.unregisterForVertexUpdates("vertex2", listener);    
+    updateTracker.unregisterForVertexUpdates("vertex2", listener);
   }
 
   @Test (timeout=5000)
@@ -3155,7 +3453,7 @@ public class TestVertexImpl {
     int i = 0;
     // iteration maintains order due to linked hash map
     for(Task task : tasks.values()) {
-      Assert.assertEquals(i, task.getTaskId().getId());
+      Assert.assertEquals(i, task.getTaskID().getId());
       i++;
     }
   }
@@ -3638,7 +3936,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3652,10 +3950,10 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.APPLICATION_ERROR));
     dispatcher.await();
@@ -3673,7 +3971,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3687,11 +3985,11 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.INPUT_READ_ERROR));
     dispatcher.await();
@@ -3710,7 +4008,7 @@ public class TestVertexImpl {
     startVertex(v);
     dispatcher.await();
     TaskAttemptImpl ta = (TaskAttemptImpl) v.getTask(0).getAttempts().values().iterator().next();
-    ta.handle(new TaskAttemptEventSchedule(ta.getID(), 2, 2));
+    ta.handle(new TaskAttemptEventSchedule(ta.getTaskAttemptID(), 2, 2));
     
     NodeId nid = NodeId.newInstance("127.0.0.1", 0);
     ContainerId contId = ContainerId.newInstance(appAttemptId, 3);
@@ -3724,11 +4022,11 @@ public class TestVertexImpl {
     containers.addContainerIfNew(container, 0, 0, 0);
     doReturn(containers).when(appContext).getAllContainers();
 
-    ta.handle(new TaskAttemptEventSubmitted(ta.getID(), contId));
-    ta.handle(new TaskAttemptEventStartedRemotely(ta.getID()));
+    ta.handle(new TaskAttemptEventSubmitted(ta.getTaskAttemptID(), contId));
+    ta.handle(new TaskAttemptEventStartedRemotely(ta.getTaskAttemptID()));
     Assert.assertEquals(TaskAttemptStateInternal.RUNNING, ta.getInternalState());
 
-    ta.handle(new TaskAttemptEventAttemptFailed(ta.getID(), TaskAttemptEventType.TA_FAILED,
+    ta.handle(new TaskAttemptEventAttemptFailed(ta.getTaskAttemptID(), TaskAttemptEventType.TA_FAILED,
         TaskFailureType.NON_FATAL,
         "diag", TaskAttemptTerminationCause.OUTPUT_WRITE_ERROR));
     dispatcher.await();
@@ -3824,7 +4122,7 @@ public class TestVertexImpl {
     conf.setFloat(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, 50.0f);
     conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
     dagPlan = createTestDAGPlan();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     initAllVertices(VertexState.INITED);
 
     VertexImpl v4 = vertices.get("vertex4");
@@ -3879,7 +4177,7 @@ public class TestVertexImpl {
     conf.setFloat(TezConfiguration.TEZ_VERTEX_FAILURES_MAXPERCENT, 50.0f);
     conf.setInt(TezConfiguration.TEZ_AM_TASK_MAX_FAILED_ATTEMPTS, 1);
     dagPlan = createTestDAGPlan();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     initAllVertices(VertexState.INITED);
 
     VertexImpl v4 = vertices.get("vertex4");
@@ -3978,7 +4276,7 @@ public class TestVertexImpl {
   public void testTerminatingVertexForTaskComplete() throws Exception {
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan(false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl vertex = spy(vertices.get("A"));
     initVertex(vertex);
     startVertex(vertex);
@@ -3996,7 +4294,7 @@ public class TestVertexImpl {
   public void testTerminatingVertexForVComplete() throws Exception {
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan(false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl vertex = spy(vertices.get("A"));
     initVertex(vertex);
     startVertex(vertex);
@@ -4251,7 +4549,7 @@ public class TestVertexImpl {
   public void testVertexInitWithCustomVertexManager() throws Exception {
     setupPreDagCreation();
     dagPlan = createDAGWithCustomVertexManager();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     
     int numTasks = 3;
     VertexImpl v1 = vertices.get("v1");
@@ -4304,8 +4602,8 @@ public class TestVertexImpl {
   @Test(timeout = 5000)
   public void testVertexManagerHeuristic() throws TezException {
     setupPreDagCreation();
-    dagPlan = createDAGPlanWithMixedEdges();
-    setupPostDagCreation();
+    dagPlan = createDAGPlanWithMixedEdges("testVertexManagerHeuristic");
+    setupPostDagCreation(false);
     initAllVertices(VertexState.INITED);
     Assert.assertEquals(ImmediateStartVertexManager.class, 
         vertices.get("vertex1").getVertexManager().getPlugin().getClass());
@@ -4330,7 +4628,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanForOneToOneSplit("TestInputInitializer", -1, true);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     
     int numTasks = 5;
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
@@ -4397,7 +4695,7 @@ public class TestVertexImpl {
     // create a diamond shaped dag with 1-1 edges. 
     setupPreDagCreation();
     dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     v1.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
@@ -4436,7 +4734,7 @@ public class TestVertexImpl {
     // create a diamond shaped dag with 1-1 edges. 
     setupPreDagCreation();
     dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     v1.vertexReconfigurationPlanned();
     initAllVertices(VertexState.INITED);
@@ -4478,7 +4776,7 @@ public class TestVertexImpl {
     // create a diamond shaped dag with 1-1 edges. 
     setupPreDagCreation();
     dagPlan = createDAGPlanForOneToOneSplit(null, numTasks, false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     VertexImpl v1 = vertices.get("vertex1");
     initAllVertices(VertexState.INITED);
     
@@ -4522,7 +4820,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -4567,7 +4865,7 @@ public class TestVertexImpl {
     setupPreDagCreation();
     dagPlan =
         createDAGPlanWithInitializer0Tasks(RootInitializerSettingParallelismTo0.class.getName());
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl v1 = vertices.get("vertex1");
     VertexImpl v2 = vertices.get("vertex2");
@@ -4615,7 +4913,7 @@ public class TestVertexImpl {
     initializer.setNumVertexStateUpdateEvents(3);
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -4650,7 +4948,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer4();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -4738,7 +5036,7 @@ public class TestVertexImpl {
     initializer.setNumExpectedEvents(4);
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer4();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -4800,7 +5098,7 @@ public class TestVertexImpl {
     Assert.assertEquals(2, v2.getTotalTasks());
     // Generate events from v2 to v3's initializer. 1 from task 0, 2 from task 1
     for (Task task : v2.getTasks().values()) {
-      TezTaskID taskId = task.getTaskId();
+      TezTaskID taskId = task.getTaskID();
       TezTaskAttemptID attemptId = TezTaskAttemptID.getInstance(taskId, 0);
       int numEventsFromTask = taskId.getId() + 1;
       for (int i = 0; i < numEventsFromTask; i++) {
@@ -4861,7 +5159,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer4();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -4941,7 +5239,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer3();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -5027,7 +5325,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -5104,7 +5402,7 @@ public class TestVertexImpl {
   public void testTaskSchedulingWithCustomEdges() throws TezException {
     setupPreDagCreation();
     dagPlan = createCustomDAGWithCustomEdges();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     /**
      *
@@ -5402,7 +5700,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -5432,7 +5730,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithMultipleInitializers("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -5462,7 +5760,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -5499,7 +5797,7 @@ public class TestVertexImpl {
     for (int i=0; i<v1.getTotalTasks(); ++i) {
       Assert.assertEquals(
           1,
-          v1.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v1.getTask(i).getTaskId(), 0),
+          v1.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v1.getTask(i).getTaskID(), 0),
               0, 0, 100).getEvents().size());
     }
     
@@ -5547,7 +5845,7 @@ public class TestVertexImpl {
     for (int i=0; i<v2.getTotalTasks(); ++i) {
       Assert.assertEquals(
           ((i==0) ? 2 : 1),
-          v2.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v2.getTask(i).getTaskId(), 0),
+          v2.getTaskAttemptTezEvents(TezTaskAttemptID.getInstance(v2.getTask(i).getTaskID(), 0),
               0, 0, 100).getEvents().size());
     }
     for (int i = 0; i < 10; i++) {
@@ -5563,7 +5861,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -5638,7 +5936,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputDistributor("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -5673,7 +5971,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     int expectedNumTasks = RootInputSpecUpdaterVertexManager.NUM_TASKS;
     VertexImplWithControlledInitializerManager v3 = (VertexImplWithControlledInitializerManager) vertices
@@ -5703,7 +6001,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithInputInitializer("TestInputInitializer");
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     int expectedNumTasks = RootInputSpecUpdaterVertexManager.NUM_TASKS;
     VertexImplWithControlledInitializerManager v4 = (VertexImplWithControlledInitializerManager) vertices
@@ -6015,7 +6313,7 @@ public class TestVertexImpl {
   public void testVertexGroupInput() throws TezException {
     setupPreDagCreation();
     dagPlan = createVertexGroupDAGPlan();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6044,7 +6342,7 @@ public class TestVertexImpl {
     // been initialized
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan(true);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6093,7 +6391,7 @@ public class TestVertexImpl {
     // been initialized
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan(true);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
     
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6167,7 +6465,7 @@ public class TestVertexImpl {
     // been initialized
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan(false);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6190,7 +6488,7 @@ public class TestVertexImpl {
     // been initialized
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan2();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6215,7 +6513,7 @@ public class TestVertexImpl {
   public void testTez2684() throws IOException, TezException {
     setupPreDagCreation();
     dagPlan = createSamplerDAGPlan2();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6255,7 +6553,7 @@ public class TestVertexImpl {
   public void testVertexGraceParallelism() throws IOException, TezException {
     setupPreDagCreation();
     dagPlan = createDAGPlanForGraceParallelism();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl vA = vertices.get("A");
     VertexImpl vB = vertices.get("B");
@@ -6323,7 +6621,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithCountingVM();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImpl v1 = vertices.get("vertex1");
     VertexImpl v2 = vertices.get("vertex2");
@@ -6380,7 +6678,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.Initialize);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6399,7 +6697,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnRootVertexInitialized);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6423,7 +6721,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexStarted);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6450,7 +6748,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnSourceTaskCompleted);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6486,7 +6784,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestInputInitializer", VMExceptionLocation.OnVertexManagerEventReceived);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6514,7 +6812,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithVMException("TestVMStateUpdate", VMExceptionLocation.OnVertexManagerVertexStateUpdated);
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 = (VertexImplWithControlledInitializerManager) vertices
         .get("vertex1");
@@ -6543,7 +6841,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -6564,7 +6862,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 =
         (VertexImplWithControlledInitializerManager)vertices.get("vertex1");
@@ -6588,7 +6886,7 @@ public class TestVertexImpl {
     useCustomInitializer = true;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithIIException();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithControlledInitializerManager v1 =
         (VertexImplWithControlledInitializerManager)vertices.get("vertex1");
@@ -6616,7 +6914,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -6666,7 +6964,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -6695,7 +6993,7 @@ public class TestVertexImpl {
         (EventHandlingRootInputInitializer) customInitializer;
     setupPreDagCreation();
     dagPlan = createDAGPlanWithRunningInitializer();
-    setupPostDagCreation();
+    setupPostDagCreation(false);
 
     VertexImplWithRunningInputInitializer v1 =
         (VertexImplWithRunningInputInitializer) vertices.get("vertex1");
@@ -7168,8 +7466,8 @@ public class TestVertexImpl {
     TaskImpl task0 = (TaskImpl) v.getTask(tid0);
     TaskImpl task1 = (TaskImpl) v.getTask(tid1);
 
-    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(task0.getTaskId(), 0);
-    TezTaskAttemptID taskAttemptId1 = TezTaskAttemptID.getInstance(task1.getTaskId(), 0);
+    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(task0.getTaskID(), 0);
+    TezTaskAttemptID taskAttemptId1 = TezTaskAttemptID.getInstance(task1.getTaskID(), 0);
     TaskAttemptImpl taskAttempt0 = (TaskAttemptImpl) task0.getAttempt(taskAttemptId0);
     TaskAttemptImpl taskAttempt1 = (TaskAttemptImpl) task1.getAttempt(taskAttemptId1);
 
@@ -7201,7 +7499,7 @@ public class TestVertexImpl {
     VertexImpl v1 = vertices.get("vertex1");
     startVertex(v1);
 
-    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(v1.getTask(0).getTaskId(), 0);
+    TezTaskAttemptID taskAttemptId0 = TezTaskAttemptID.getInstance(v1.getTask(0).getTaskID(), 0);
     TaskAttemptImpl ta0 = (TaskAttemptImpl) v1.getTask(0).getAttempt(taskAttemptId0);
     ta0.handle(new TaskAttemptEventSchedule(taskAttemptId0, 1, 1));
 
@@ -7211,5 +7509,132 @@ public class TestVertexImpl {
     Map<String, LocalResource> localResourceMap = launchRequestEvent.getContainerContext().getLocalResources();
     Assert.assertTrue(localResourceMap.containsKey("dag lr"));
     Assert.assertTrue(localResourceMap.containsKey("vertex lr"));
+  }
+
+  @Test
+  public void testVertexShuffleDelete() throws Exception {
+    setupPreDagCreation();
+    dagPlan = createDAGPlanVertexShuffleDelete();
+    setupPostDagCreation(true);
+    checkSpannedVertices();
+    runVertices();
+    Mockito.verify(appContext.getAppMaster().getContainerLauncherManager(),
+        times(3)).vertexComplete(any(), any(), any());
+  }
+
+  private void checkSpannedVertices() {
+    // vertex1 should have 0 ancestor and 2 children at height = 2
+    VertexImpl v1 = vertices.get("vertex1");
+    checkResults(v1.vShuffleDeletionContext.getAncestors(), new ArrayList<>());
+    checkResults(v1.vShuffleDeletionContext.getChildren(), Arrays.asList("vertex5", "vertex4"));
+
+    // vertex2 should have 0 ancestor and 2 children at height = 2
+    VertexImpl v2 = vertices.get("vertex2");
+    checkResults(v2.vShuffleDeletionContext.getAncestors(), new ArrayList<>());
+    checkResults(v2.vShuffleDeletionContext.getChildren(), Arrays.asList("vertex5", "vertex4"));
+
+    // vertex3 should have 0 ancestor and 1 children at height = 2
+    VertexImpl v3 = vertices.get("vertex3");
+    checkResults(v3.vShuffleDeletionContext.getAncestors(), new ArrayList<>());
+    checkResults(v3.vShuffleDeletionContext.getChildren(), Arrays.asList("vertex6"));
+
+    // vertex4 should have 2 ancestor and 0 children at height = 2
+    VertexImpl v4 = vertices.get("vertex4");
+    checkResults(v4.vShuffleDeletionContext.getAncestors(), Arrays.asList("vertex1", "vertex2"));
+    checkResults(v4.vShuffleDeletionContext.getChildren(), new ArrayList<>());
+
+    // vertex5 should have 2 ancestor and 0 children at height = 2
+    VertexImpl v5 = vertices.get("vertex5");
+    checkResults(v5.vShuffleDeletionContext.getAncestors(), Arrays.asList("vertex1", "vertex2"));
+    checkResults(v5.vShuffleDeletionContext.getChildren(), new ArrayList<>());
+
+    // vertex6 should have 1 ancestor and 0 children at height = 2
+    VertexImpl v6 = vertices.get("vertex6");
+    checkResults(v6.vShuffleDeletionContext.getAncestors(), Arrays.asList("vertex3"));
+    checkResults(v6.vShuffleDeletionContext.getChildren(), new ArrayList<>());
+  }
+
+  private void checkResults(Set<Vertex> actual, List<String> expected) {
+    assertEquals(actual.size(), expected.size());
+    for (Vertex vertex : actual) {
+      assertTrue(expected.contains(vertex.getName()));
+    }
+  }
+
+  private void runVertices() {
+    VertexImpl v1 = vertices.get("vertex1");
+    VertexImpl v2 = vertices.get("vertex2");
+    VertexImpl v3 = vertices.get("vertex3");
+    VertexImpl v4 = vertices.get("vertex4");
+    VertexImpl v5 = vertices.get("vertex5");
+    VertexImpl v6 = vertices.get("vertex6");
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.getEventHandler().handle(new VertexEvent(v2.getVertexId(), VertexEventType.V_INIT));
+    dispatcher.await();
+    dispatcher.getEventHandler().handle(new VertexEvent(v1.getVertexId(), VertexEventType.V_START));
+    dispatcher.getEventHandler().handle(new VertexEvent(v2.getVertexId(), VertexEventType.V_START));
+    dispatcher.await();
+
+    TezTaskID v1t1 = TezTaskID.getInstance(v1.getVertexId(), 0);
+    Map<TezTaskAttemptID, TaskAttempt> attempts = v1.getTask(v1t1).getAttempts();
+    startAttempts(attempts);
+    v1.handle(new VertexEventTaskCompleted(v1t1, TaskState.SUCCEEDED));
+    TezTaskID v2t1 = TezTaskID.getInstance(v2.getVertexId(), 0);
+    attempts = v2.getTask(v2t1).getAttempts();
+    startAttempts(attempts);
+    v2.handle(new VertexEventTaskCompleted(v2t1, TaskState.SUCCEEDED));
+    TezTaskID v2t2 = TezTaskID.getInstance(v2.getVertexId(), 1);
+    attempts = v2.getTask(v2t2).getAttempts();
+    startAttempts(attempts);
+    v2.handle(new VertexEventTaskCompleted(v2t2, TaskState.SUCCEEDED));
+    TezTaskID v3t1 = TezTaskID.getInstance(v3.getVertexId(), 0);
+    v3.scheduleTasks(Lists.newArrayList(ScheduleTaskRequest.create(0, null)));
+    dispatcher.await();
+    attempts = v3.getTask(v3t1).getAttempts();
+    startAttempts(attempts);
+    v3.handle(new VertexEventTaskCompleted(v3t1, TaskState.SUCCEEDED));
+    TezTaskID v3t2 = TezTaskID.getInstance(v3.getVertexId(), 1);
+    attempts = v3.getTask(v3t2).getAttempts();
+    startAttempts(attempts);
+    v3.handle(new VertexEventTaskCompleted(v3t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+    TezTaskID v4t1 = TezTaskID.getInstance(v4.getVertexId(), 0);
+    attempts = v4.getTask(v4t1).getAttempts();
+    startAttempts(attempts);
+    v4.handle(new VertexEventTaskCompleted(v4t1, TaskState.SUCCEEDED));
+    TezTaskID v4t2 = TezTaskID.getInstance(v4.getVertexId(), 1);
+    attempts = v4.getTask(v4t2).getAttempts();
+    startAttempts(attempts);
+    v4.handle(new VertexEventTaskCompleted(v4t2, TaskState.SUCCEEDED));
+    TezTaskID v5t1 = TezTaskID.getInstance(v5.getVertexId(), 0);
+    attempts = v5.getTask(v5t1).getAttempts();
+    startAttempts(attempts);
+    v5.handle(new VertexEventTaskCompleted(v5t1, TaskState.SUCCEEDED));
+    TezTaskID v5t2 = TezTaskID.getInstance(v5.getVertexId(), 1);
+    attempts = v5.getTask(v5t2).getAttempts();
+    startAttempts(attempts);
+    v5.handle(new VertexEventTaskCompleted(v5t2, TaskState.SUCCEEDED));
+    TezTaskID v6t1 = TezTaskID.getInstance(v6.getVertexId(), 0);
+    attempts = v6.getTask(v6t1).getAttempts();
+    startAttempts(attempts);
+    v6.handle(new VertexEventTaskCompleted(v6t1, TaskState.SUCCEEDED));
+    TezTaskID v6t2 = TezTaskID.getInstance(v6.getVertexId(), 1);
+    attempts = v6.getTask(v6t2).getAttempts();
+    startAttempts(attempts);
+    v6.handle(new VertexEventTaskCompleted(v6t2, TaskState.SUCCEEDED));
+    dispatcher.await();
+  }
+
+  private void startAttempts(Map<TezTaskAttemptID, TaskAttempt> attempts) {
+    for (Map.Entry<TezTaskAttemptID, TaskAttempt> entry : attempts.entrySet()) {
+      TezTaskAttemptID id = entry.getKey();
+      TaskAttemptImpl taskAttempt = (TaskAttemptImpl)entry.getValue();
+      taskAttempt.handle(new TaskAttemptEventSchedule(id, 10, 10));
+      dispatcher.await();
+      ContainerId mockContainer = mock(ContainerId.class, RETURNS_DEEP_STUBS);
+      taskAttempt.handle(new TaskAttemptEventSubmitted(id, mockContainer));
+      taskAttempt.handle(new TaskAttemptEventStartedRemotely(id));
+      dispatcher.await();
+    }
   }
 }

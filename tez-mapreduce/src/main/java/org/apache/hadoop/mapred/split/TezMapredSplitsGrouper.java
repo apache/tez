@@ -21,9 +21,9 @@ package org.apache.hadoop.mapred.split;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import com.google.common.base.Function;
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.tez.mapreduce.grouper.GroupedSplitContainer;
 import org.apache.tez.mapreduce.grouper.MapredSplitContainer;
@@ -66,7 +66,7 @@ public class TezMapredSplitsGrouper extends TezSplitGrouper {
   public InputSplit[] getGroupedSplits(Configuration conf,
       InputSplit[] originalSplits, int desiredNumSplits,
       String wrappedInputFormatName, SplitSizeEstimator estimator, SplitLocationProvider locationProvider) throws IOException {
-    Preconditions.checkArgument(originalSplits != null, "Splits must be specified");
+    Objects.requireNonNull(originalSplits, "Splits must be specified");
 
     List<SplitContainer> originalSplitContainers = Lists.transform(Arrays.asList(originalSplits),
         new Function<InputSplit, SplitContainer>() {

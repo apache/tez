@@ -81,10 +81,10 @@ public interface TezCounter extends Writable {
   public default void aggregate(TezCounter other) {
     increment(other.getValue());
   };
- 
+
   /**
    * Return the underlying object if this is a facade.
-   * @return the undelying object.
+   * @return the underlying object.
    */
   @Private
   TezCounter getUnderlyingCounter();

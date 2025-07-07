@@ -34,7 +34,7 @@ public class SpeculatorEventTaskAttemptStatusUpdate extends SpeculatorEvent {
   
   public SpeculatorEventTaskAttemptStatusUpdate(TezTaskAttemptID taId, TaskAttemptState state,
       long timestamp, boolean justStarted) {
-    super(SpeculatorEventType.S_TASK_ATTEMPT_STATUS_UPDATE, taId.getTaskID().getVertexID());
+    super(SpeculatorEventType.S_TASK_ATTEMPT_STATUS_UPDATE, taId.getVertexID());
     this.id = taId;
     this.state = state;
     this.timestamp = timestamp;

@@ -202,8 +202,7 @@ public class TaskCommunicatorManager extends AbstractService implements
   TaskCommunicator createCustomTaskCommunicator(TaskCommunicatorContext taskCommunicatorContext,
                                                 NamedEntityDescriptor taskCommDescriptor)
                                                     throws TezException {
-    LOG.info("Creating TaskCommunicator {}:{} " + taskCommDescriptor.getEntityName(),
-        taskCommDescriptor.getClassName());
+    LOG.info("Creating TaskCommunicator {}:{} ", taskCommDescriptor.getEntityName(), taskCommDescriptor.getClassName());
     Class<? extends TaskCommunicator> taskCommClazz =
         (Class<? extends TaskCommunicator>) ReflectionUtils
             .getClazz(taskCommDescriptor.getClassName());
@@ -350,14 +349,14 @@ public class TaskCommunicatorManager extends AbstractService implements
         }
       }
       if (!eventsForVertex.isEmpty()) {
-        TezVertexID vertexId = taskAttemptID.getTaskID().getVertexID();
+        TezVertexID vertexId = taskAttemptID.getVertexID();
         sendEvent(
             new VertexEventRouteEvent(vertexId, Collections.unmodifiableList(eventsForVertex)));
       }
       taskHeartbeatHandler.pinged(taskAttemptID);
       eventInfo = context
           .getCurrentDAG()
-          .getVertex(taskAttemptID.getTaskID().getVertexID())
+          .getVertex(taskAttemptID.getVertexID())
           .getTaskAttemptTezEvents(taskAttemptID, request.getStartIndex(), request.getPreRoutedStartIndex(),
               request.getMaxEvents());
     }
@@ -387,7 +386,7 @@ public class TaskCommunicatorManager extends AbstractService implements
     // and messages from the scheduler will release the container.
     // TODO TEZ-2003 (post) TEZ-2671 Maybe consider un-registering here itself, since the task is not active anymore,
     // instead of waiting for the unregister to flow through the Container.
-    // Fix along the same lines as TEZ-2124 by introducing an explict context.
+    // Fix along the same lines as TEZ-2124 by introducing an explicit context.
     sendEvent(new TaskAttemptEventAttemptKilled(taskAttemptId,
         diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
         taskAttemptEndReason)));
@@ -400,7 +399,7 @@ public class TaskCommunicatorManager extends AbstractService implements
     // and messages from the scheduler will release the container.
     // TODO TEZ-2003 (post) TEZ-2671 Maybe consider un-registering here itself, since the task is not active anymore,
     // instead of waiting for the unregister to flow through the Container.
-    // Fix along the same lines as TEZ-2124 by introducing an explict context.
+    // Fix along the same lines as TEZ-2124 by introducing an explicit context.
     //TODO-3183. Allow the FailureType to be specified
     sendEvent(new TaskAttemptEventAttemptFailed(taskAttemptId,
         TaskAttemptEventType.TA_FAILED, taskFailureType, diagnostics, TezUtilsInternal.fromTaskAttemptEndReason(
@@ -442,7 +441,7 @@ public class TaskCommunicatorManager extends AbstractService implements
 
     DAG job = context.getCurrentDAG();
     Task task =
-        job.getVertex(taskAttemptId.getTaskID().getVertexID()).
+        job.getVertex(taskAttemptId.getVertexID()).
             getTask(taskAttemptId.getTaskID());
     return task.canCommit(taskAttemptId);
   }

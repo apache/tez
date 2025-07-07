@@ -39,7 +39,7 @@ public interface TaskReporterInterface {
                               String diagnostics, EventMetaData srcMeta) throws IOException,
       TezException;
 
-  boolean taskKilled(TezTaskAttemptID taskAttemtpId, Throwable cause, String diagnostics,
+  boolean taskKilled(TezTaskAttemptID taskAttemptId, Throwable cause, String diagnostics,
                      EventMetaData srcMeta) throws IOException, TezException;
 
   void addEvents(TezTaskAttemptID taskAttemptId, Collection<TezEvent> events);

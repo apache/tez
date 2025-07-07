@@ -21,7 +21,8 @@ package org.apache.tez.dag.api;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 
 /**
- *  Checked Exception thrown upon error
+ *  Thrown by the AM when the DAG for which the status was queried
+ *  is not running anymore: client can decide further action in this case.
  */
 @Private
 public class DAGNotRunningException extends TezException {

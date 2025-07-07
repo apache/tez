@@ -12,6 +12,7 @@ import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.ExecutionContext;
 import org.apache.tez.runtime.api.InputContext;
@@ -37,11 +38,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -87,7 +88,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     ByteBuffer shuffleBuffer = ByteBuffer.allocate(4).putInt(0, 4);
     doReturn(shuffleBuffer).when(inputContext).getServiceProviderMetaData(anyString());
     Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(new JobTokenIdentifier(new Text("text")),
-        new JobTokenSecretManager());
+        new JobTokenSecretManager(new TezConfiguration()));
     ByteBuffer tokenBuffer = TezCommonUtils.serializeServiceData(sessionToken);
     doReturn(tokenBuffer).when(inputContext).getServiceConsumerMetaData(anyString());
     when(inputContext.createTezFrameworkExecutorService(anyInt(), anyString())).thenAnswer(
@@ -95,8 +96,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
           @Override
           public ExecutorService answer(InvocationOnMock invocation) throws Throwable {
             return sharedExecutor.createExecutorService(
-                invocation.getArgumentAt(0, Integer.class),
-                invocation.getArgumentAt(1, String.class));
+                invocation.getArgument(0, Integer.class),
+                invocation.getArgument(1, String.class));
           }
         });
     return inputContext;
@@ -272,7 +273,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(Collections.singletonList(dme2));
 
     // task should issue kill request
-    verify(scheduler, times(1)).killSelf(any(IOException.class), any(String.class));
+    verify(scheduler, times(1)).killSelf(any(), any());
   }
 
   @Test (timeout = 5000)
@@ -307,7 +308,7 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     handler.handleEvents(events);
 
     // task should issue kill request, as inputs are scheduled for download already.
-    verify(scheduler, times(1)).killSelf(any(IOException.class), any(String.class));
+    verify(scheduler, times(1)).killSelf(any(), any());
   }
 
   @Test(timeout = 5000)
@@ -348,8 +349,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     events.add(dme);
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);
-    verify(scheduler).copySucceeded(eq(expectedIdentifier), any(MapHost.class), eq(0l),
-        eq(0l), eq(0l), any(MapOutput.class), eq(true));
+    verify(scheduler).copySucceeded(eq(expectedIdentifier), any(), eq(0L),
+            eq(0L), eq(0L), any(), eq(true));
   }
 
   @Test(timeout = 5000)
@@ -362,8 +363,8 @@ public class TestShuffleInputEventHandlerOrderedGrouped {
     events.add(dme);
     handler.handleEvents(events);
     InputAttemptIdentifier expectedIdentifier = new InputAttemptIdentifier(targetIdx, 0);
-    verify(scheduler).copySucceeded(eq(expectedIdentifier), any(MapHost.class), eq(0l),
-        eq(0l), eq(0l), any(MapOutput.class), eq(true));
+    verify(scheduler).copySucceeded(eq(expectedIdentifier), any(), eq(0L),
+        eq(0L), eq(0L), any(), eq(true));
   }
 
   @Test(timeout = 5000)

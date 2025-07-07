@@ -760,7 +760,7 @@ public class AMWebController extends Controller {
     ArrayList<Map<String, Object>> tasksInfo = new ArrayList<Map<String, Object>>();
     for(Task t : tasks) {
       Map<String, Object> taskInfo = new HashMap<String, Object>();
-      taskInfo.put("id", t.getTaskId().toString());
+      taskInfo.put("id", t.getTaskID().toString());
       taskInfo.put("progress", Float.toString(t.getProgress()));
       taskInfo.put("status", t.getState().toString());
 
@@ -810,7 +810,7 @@ public class AMWebController extends Controller {
         }
 
         TaskAttempt attempt = task.
-            getAttempt(TezTaskAttemptID.getInstance(task.getTaskId(), indexes.get(2)));
+            getAttempt(TezTaskAttemptID.getInstance(task.getTaskID(), indexes.get(2)));
         if(attempt == null) {
           continue;
         }
@@ -858,7 +858,7 @@ public class AMWebController extends Controller {
     ArrayList<Map<String, Object>> attemptsInfo = new ArrayList<Map<String, Object>>();
     for(TaskAttempt a : attempts) {
       Map<String, Object> attemptInfo = new HashMap<String, Object>();
-      attemptInfo.put("id", a.getID().toString());
+      attemptInfo.put("id", a.getTaskAttemptID().toString());
       attemptInfo.put("progress", Float.toString(a.getProgress()));
       attemptInfo.put("status", a.getState().toString());
 

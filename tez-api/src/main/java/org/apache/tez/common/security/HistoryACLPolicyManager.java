@@ -30,7 +30,7 @@ import org.apache.tez.common.security.HistoryACLPolicyException;
 
 /**
  * ACL Policy Manager
- * An instance of this implements any ACL related activity when starting a session or submitting a 
+ * An instance of this implements any ACL related activity when starting a session or submitting a
  * DAG. It is used in the HistoryLoggingService to create domain ids and populate entities with
  * domain id.
  */
@@ -41,7 +41,7 @@ public interface HistoryACLPolicyManager extends Configurable {
   /**
    * Take any necessary steps for setting up both Session ACLs and non session acls. This is called
    * with the am configuration which contains the ACL information to be used to create a domain.
-   * If the method returns a value, then its assumed to be a valid domain and used as domainId.
+   * If the method returns a value, then it's assumed to be a valid domain and used as domainId.
    * If the method returns null, acls are disabled at session level, i.e use default acls at session
    * level.
    * If the method throws an Exception, history logging is disabled for the entire session.

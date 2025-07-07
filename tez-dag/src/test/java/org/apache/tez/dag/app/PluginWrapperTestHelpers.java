@@ -14,9 +14,7 @@
 
 package org.apache.tez.dag.app;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Constructor;
@@ -30,15 +28,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class PluginWrapperTestHelpers {
+public final class PluginWrapperTestHelpers {
 
   private static final Logger LOG = LoggerFactory.getLogger(PluginWrapperTestHelpers.class);
+
+  private PluginWrapperTestHelpers() {}
 
   public static void testDelegation(Class<?> delegateClass, Class<?> rawClass,
                                     Set<String> skipMethods) throws Exception {
     TrackingAnswer answer = new TrackingAnswer();
     Object mock = mock(rawClass, answer);
-    Constructor ctor = delegateClass.getConstructor(rawClass);
+    Constructor<?> ctor = delegateClass.getConstructor(rawClass);
     Object wrapper = ctor.newInstance(mock);
 
     // Run through all the methods on the wrapper, and invoke the methods. Constructs
@@ -48,7 +48,7 @@ public class PluginWrapperTestHelpers {
       if (method.getDeclaringClass().equals(delegateClass) &&
           !skipMethods.contains(method.getName())) {
 
-        assertTrue(method.getExceptionTypes().length == 1);
+        assertEquals(1, method.getExceptionTypes().length);
         assertEquals(Exception.class, method.getExceptionTypes()[0]);
 
         LOG.info("Checking method [{}] with parameterTypes [{}]", method.getName(), Arrays.toString(method.getParameterTypes()));
@@ -65,8 +65,8 @@ public class PluginWrapperTestHelpers {
         if (answer.compareAsPrimitive) {
           assertEquals(answer.lastRetValue, result);
         } else {
-          assertTrue("Expected: " + System.identityHashCode(answer.lastRetValue) + ", actual=" +
-              System.identityHashCode(result), answer.lastRetValue == result);
+          assertSame("Expected: " + System.identityHashCode(answer.lastRetValue) + ", actual=" +
+                  System.identityHashCode(result), answer.lastRetValue, result);
         }
       }
     }
@@ -74,8 +74,7 @@ public class PluginWrapperTestHelpers {
 
   }
 
-  public static Object[] constructMethodArgs(Method method) throws IllegalAccessException,
-      InstantiationException {
+  public static Object[] constructMethodArgs(Method method) {
     Class<?>[] paramTypes = method.getParameterTypes();
     Object[] params = new Object[paramTypes.length];
     for (int i = 0; i < paramTypes.length; i++) {
@@ -112,7 +111,7 @@ public class PluginWrapperTestHelpers {
     } else if (clazz.equals(int.class)) {
       return 224;
     } else if (clazz.equals(long.class)) {
-      return 445l;
+      return 445L;
     } else if (clazz.equals(float.class)) {
       return 2.24f;
     } else if (clazz.equals(double.class)) {

@@ -16,10 +16,10 @@ package org.apache.tez.dag.app;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -256,7 +256,7 @@ public class TestTaskCommunicatorManager2 {
       doReturn(dag).when(appContext).getCurrentDAG();
       doReturn(vertex).when(dag).getVertex(eq(vertexId));
       doReturn(new TaskAttemptEventInfo(0, new LinkedList<TezEvent>(), 0)).when(vertex)
-          .getTaskAttemptTezEvents(any(TezTaskAttemptID.class), anyInt(), anyInt(), anyInt());
+          .getTaskAttemptTezEvents(any(), anyInt(), anyInt(), anyInt());
       doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
       doReturn(credentials).when(appContext).getAppCredentials();
       doReturn(appAcls).when(appContext).getApplicationACLs();
@@ -267,7 +267,7 @@ public class TestTaskCommunicatorManager2 {
       AMContainer amContainer = mock(AMContainer.class);
       Container container = mock(Container.class);
       doReturn(nodeId).when(container).getNodeId();
-      doReturn(amContainer).when(amContainerMap).get(any(ContainerId.class));
+      doReturn(amContainer).when(amContainerMap).get(any());
       doReturn(container).when(amContainer).getContainer();
 
       userPayload = TezUtils.createUserPayloadFromConf(conf);

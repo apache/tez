@@ -58,7 +58,7 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.runtime.api.ObjectRegistry;
+import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
@@ -69,6 +69,7 @@ import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
 import org.apache.tez.runtime.library.common.shuffle.FetchedInput.Type;
 import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezUtilsInternal;
 
 /**
  * Responsible for fetching inputs served by the ShuffleHandler for a single
@@ -131,18 +132,18 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private boolean ifileReadAhead = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_DEFAULT;
   private int ifileReadAheadLength = TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_READAHEAD_BYTES_DEFAULT;
-  
+
   private final JobTokenSecretManager jobTokenSecretMgr;
 
   private final FetcherCallback fetcherCallback;
   private final FetchedInputAllocator inputManager;
   private final ApplicationId appId;
   private final int dagIdentifier;
-  
+
   private final String logIdentifier;
 
   private final String localHostname;
-  
+
   private final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
   protected final int fetcherIdentifier;
@@ -172,7 +173,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   private URL url;
   private volatile DataInputStream input;
-  
+
   BaseHttpConnection httpConnection;
   private HttpConnectionParams httpConnectionParams;
 
@@ -194,8 +195,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   private final boolean isDebugEnabled = LOG.isDebugEnabled();
 
   protected Fetcher(FetcherCallback fetcherCallback, HttpConnectionParams params,
-      FetchedInputAllocator inputManager, ApplicationId appId, int dagIdentifier,
-      JobTokenSecretManager jobTokenSecretManager, String srcNameTrimmed, Configuration conf,
+      FetchedInputAllocator inputManager, InputContext inputContext,
+      JobTokenSecretManager jobTokenSecretManager, Configuration conf,
       RawLocalFileSystem localFs,
       LocalDirAllocator localDirAllocator,
       Path lockPath,
@@ -208,8 +209,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.fetcherCallback = fetcherCallback;
     this.inputManager = inputManager;
     this.jobTokenSecretMgr = jobTokenSecretManager;
-    this.appId = appId;
-    this.dagIdentifier = dagIdentifier;
+    this.appId = inputContext.getApplicationId();
+    this.dagIdentifier = inputContext.getDagIdentifier();
     this.pathToAttemptMap = new HashMap<PathPartition, InputAttemptIdentifier>();
     this.httpConnectionParams = params;
     this.conf = conf;
@@ -218,7 +219,10 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     this.sharedFetchEnabled = sharedFetchEnabled;
 
     this.fetcherIdentifier = fetcherIdGen.getAndIncrement();
-    this.logIdentifier = " fetcher [" + srcNameTrimmed +"] " + fetcherIdentifier;
+
+    String sourceDestNameTrimmed = TezUtilsInternal.cleanVertexName(inputContext.getSourceVertexName()) + " -> "
+        + TezUtilsInternal.cleanVertexName(inputContext.getTaskVertexName());
+    this.logIdentifier = " fetcher [" + sourceDestNameTrimmed +"] " + fetcherIdentifier;
 
     this.localFs = localFs;
     this.localDirAllocator = localDirAllocator;
@@ -341,7 +345,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
           DiskFetchedInput input = (DiskFetchedInput) fetchedInput;
           indexRec = new TezIndexRecord(0, decompressedLength, compressedLength);
           localFs.mkdirs(outputPath.getParent());
-          // avoid pit-falls of speculation
+          // avoid pitfalls of speculation
           tmpPath = outputPath.suffix(tmpSuffix);
           // JDK7 - TODO: use Files implementation to speed up this process
           localFs.copyFromLocalFile(input.getInputPath(), tmpPath);
@@ -455,7 +459,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
             srcAttemptsRemaining.values(), "Requeuing as we didn't get a lock"), null, false);
       } else {
         if (findInputs() == srcAttemptsRemaining.size()) {
-          // double checked after lock
+          // double-checked after lock
           releaseLock(lock);
           lock = null;
           return doLocalDiskFetch(true);
@@ -490,8 +494,9 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
   }
 
   private HostFetchResult setupConnection(Collection<InputAttemptIdentifier> attempts) {
+    StringBuilder baseURI = null;
     try {
-      StringBuilder baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
+      baseURI = ShuffleUtils.constructBaseURIForShuffleHandler(host,
           port, partition, partitionCount, appId.toString(), dagIdentifier, httpConnectionParams.isSslShuffle());
       this.url = ShuffleUtils.constructInputURL(baseURI.toString(), attempts,
           httpConnectionParams.isKeepAlive());
@@ -543,9 +548,8 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
         }
       } else {
         InputAttemptIdentifier firstAttempt = attempts.iterator().next();
-        LOG.warn(String.format(
-            "Fetch Failure while connecting from %s to: %s:%d, attempt: %s Informing ShuffleManager: ",
-            localHostname, host, port, firstAttempt), e);
+        LOG.warn("FETCH_FAILURE: Fetch Failure while connecting from {} to: {}:{}, attempt: {}, url: {}"
+            + " Informing ShuffleManager", localHostname, host, port, firstAttempt, baseURI, e);
         return new HostFetchResult(new FetchResult(host, port, partition, partitionCount, srcAttemptsRemaining.values()),
             new InputAttemptFetchFailure[] { new InputAttemptFetchFailure(firstAttempt) }, true);
       }
@@ -1071,7 +1075,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
       retryStartTime = currentTime;
     }
 
-    if (currentTime - retryStartTime < httpConnectionParams.getReadTimeout()) {
+    if ((currentTime - retryStartTime) - httpConnectionParams.getReadTimeout() < 0) {
       LOG.warn("Shuffle output from " + srcAttemptId +
           " failed (to "+ localHostname +"), retry it.");
       //retry connecting to the host
@@ -1086,7 +1090,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
 
   /**
    * Do some basic verification on the input received -- Being defensive
-   * 
+   *
    * @param compressedLength
    * @param decompressedLength
    * @param fetchPartition
@@ -1116,7 +1120,7 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     }
     return true;
   }
-  
+
   private InputAttemptIdentifier getNextRemainingAttempt() {
     if (srcAttemptsRemaining.size() > 0) {
       return srcAttemptsRemaining.values().iterator().next();
@@ -1133,31 +1137,29 @@ public class Fetcher extends CallableWithNdc<FetchResult> {
     private boolean workAssigned = false;
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, int dagIdentifier,  JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, boolean localDiskFetchEnabled, String localHostname, int shufflePort,
-        boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
-      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
-          jobTokenSecretMgr, srcNameTrimmed, conf, null, null, null, localDiskFetchEnabled,
+        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, boolean localDiskFetchEnabled,
+        String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch) {
+      this.fetcher = new Fetcher(fetcherCallback, params, inputManager, inputContext,
+          jobTokenSecretMgr, conf, null, null, null, localDiskFetchEnabled,
           false, localHostname, shufflePort, asyncHttp, verifyDiskChecksum, compositeFetch);
     }
 
     public FetcherBuilder(FetcherCallback fetcherCallback,
-        HttpConnectionParams params, FetchedInputAllocator inputManager,
-        ApplicationId appId, int dagIdentifier, JobTokenSecretManager jobTokenSecretMgr, String srcNameTrimmed,
-        Configuration conf, RawLocalFileSystem localFs,
+        HttpConnectionParams params, FetchedInputAllocator inputManager, InputContext inputContext,
+        JobTokenSecretManager jobTokenSecretMgr, Configuration conf, RawLocalFileSystem localFs,
         LocalDirAllocator localDirAllocator, Path lockPath,
         boolean localDiskFetchEnabled, boolean sharedFetchEnabled,
         String localHostname, int shufflePort, boolean asyncHttp, boolean verifyDiskChecksum, boolean compositeFetch,
-        boolean enableFetcherTestingErrors, ObjectRegistry objectRegistry) {
+        boolean enableFetcherTestingErrors) {
       if (enableFetcherTestingErrors) {
-        this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, appId, dagIdentifier,
-            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+        this.fetcher = new FetcherWithInjectableErrors(fetcherCallback, params, inputManager, inputContext,
+            jobTokenSecretMgr, conf, localFs, localDirAllocator,
             lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
-            verifyDiskChecksum, compositeFetch, objectRegistry);
+            verifyDiskChecksum, compositeFetch);
       } else {
-        this.fetcher = new Fetcher(fetcherCallback, params, inputManager, appId, dagIdentifier,
-            jobTokenSecretMgr, srcNameTrimmed, conf, localFs, localDirAllocator,
+        this.fetcher = new Fetcher(fetcherCallback, params, inputManager, inputContext,
+            jobTokenSecretMgr, conf, localFs, localDirAllocator,
             lockPath, localDiskFetchEnabled, sharedFetchEnabled, localHostname, shufflePort, asyncHttp,
             verifyDiskChecksum, compositeFetch);
       }

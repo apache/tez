@@ -20,9 +20,20 @@ package org.apache.tez.dag.app.web;
 
 import static org.apache.hadoop.yarn.util.StringHelper.pajoin;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.web.ProfileServlet;
+import org.apache.tez.common.web.ServletToControllerAdapters.ConfServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.JMXJsonServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.StackServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileServletController;
+import org.apache.tez.common.web.ServletToControllerAdapters.ProfileOutputServletController;
+
 import com.google.inject.name.Names;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +43,7 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.webapp.WebApp;
 import org.apache.hadoop.yarn.webapp.WebApps;
 import org.apache.hadoop.yarn.webapp.YarnWebParams;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.AppContext;
 
@@ -51,6 +63,7 @@ public class WebUIService extends AbstractService {
   private final AppContext context;
   private TezAMWebApp tezAMWebApp;
   private WebApp webApp;
+  private String baseUrl = ""; //url without paths, like http://host:port
   private String trackingUrl = "";
   private String historyUrl = "";
 
@@ -88,9 +101,16 @@ public class WebUIService extends AbstractService {
         // certificates, however AM user is not trusted.
         // ideally the withHttpPolicy should be used, however hadoop 2.2 does not have the api
         conf.set("yarn.http.policy", "HTTP_ONLY");
+        if (conf.get(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE) == null) {
+          conf.set(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
+              TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT);
+          LOG.info(
+              "Using default port range for WebUIService: " + conf.get(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE));
+        }
         this.webApp = WebApps
             .$for(this.tezAMWebApp)
             .with(conf)
+            .withPortRange(conf, TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE)
             .start(this.tezAMWebApp);
         InetSocketAddress address = webApp.getListenerAddress();
         if (address != null) {
@@ -105,7 +125,8 @@ public class WebUIService extends AbstractService {
             LOG.warn("Failed to resolve canonical hostname for "
                 + context.getAppMaster().getAppNMHost());
           }
-          trackingUrl = "http://" + hostname + ":" + port + "/ui/";
+          baseUrl = "http://" + hostname + ":" + port;
+          trackingUrl =  baseUrl + "/ui/";
           LOG.info("Instantiated WebUIService at " + trackingUrl);
         }
       } catch (Exception e) {
@@ -123,6 +144,10 @@ public class WebUIService extends AbstractService {
       this.webApp.stop();
     }
     super.serviceStop();
+  }
+
+  public String getBaseUrl() {
+    return baseUrl;
   }
 
   public String getTrackingURL() {
@@ -214,6 +239,22 @@ public class WebUIService extends AbstractService {
           "getTasksInfo");
       route(WS_PREFIX_V2 + pajoin("attemptsInfo", ATTEMPT_ID, DAG_ID), AMWebController.class,
           "getAttemptsInfo");
+      route("/jmx", JMXJsonServletController.class);
+      route("/conf", ConfServletController.class);
+      route("/stacks", StackServletController.class);
+      final String asyncProfilerHome = ProfileServlet.getAsyncProfilerHome();
+      if (asyncProfilerHome != null && !asyncProfilerHome.trim().isEmpty()) {
+        Path tmpDir = Paths.get(ProfileServlet.OUTPUT_DIR);
+        try {
+          Files.createDirectories(tmpDir);
+          route("/prof", ProfileServletController.class);
+          route("/prof-output", ProfileOutputServletController.class);
+        } catch (IOException e) {
+          LOG.info("Could not create directory for profiler output: {} Disabling /prof endpoint... ", tmpDir);
+        }
+      } else {
+        LOG.info("ASYNC_PROFILER_HOME env or -Dasync.profiler.home not specified. Disabling /prof endpoint..");
+      }
     }
   }
 }

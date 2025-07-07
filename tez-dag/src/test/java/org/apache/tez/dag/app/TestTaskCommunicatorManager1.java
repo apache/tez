@@ -19,7 +19,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -144,7 +144,7 @@ public class TestTaskCommunicatorManager1 {
     AMContainer amContainer = mock(AMContainer.class);
     Container container = mock(Container.class);
     doReturn(nodeId).when(container).getNodeId();
-    doReturn(amContainer).when(amContainerMap).get(any(ContainerId.class));
+    doReturn(amContainer).when(amContainerMap).get(any());
     doReturn(container).when(amContainer).getContainer();
 
     Configuration conf = new TezConfiguration();
@@ -360,7 +360,7 @@ public class TestTaskCommunicatorManager1 {
     JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
         "fakeIdentifier"));
     Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
-        new JobTokenSecretManager());
+        new JobTokenSecretManager(conf));
     sessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(sessionToken, credentials);
     UserPayload userPayload = TezUtils.createUserPayloadFromConf(conf);
@@ -381,7 +381,7 @@ public class TestTaskCommunicatorManager1 {
       JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
           "fakeIdentifier"));
       Token<JobTokenIdentifier> sessionToken = new Token<JobTokenIdentifier>(identifier,
-          new JobTokenSecretManager());
+          new JobTokenSecretManager(conf));
       sessionToken.setService(identifier.getJobId());
       TokenCache.setSessionToken(sessionToken, credentials);
 

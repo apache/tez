@@ -21,6 +21,7 @@ package org.apache.tez.runtime.task;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -43,6 +44,7 @@ import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.RuntimeTask;
+import org.apache.tez.runtime.RuntimeTask.LocalWriteLimitException;
 import org.apache.tez.runtime.api.*;
 import org.apache.tez.runtime.api.events.TaskAttemptCompletedEvent;
 import org.apache.tez.runtime.api.events.TaskAttemptFailedEvent;
@@ -71,7 +73,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
  * Responsible for communication between tasks running in a Container and the ApplicationMaster.
  * Takes care of sending heartbeats (regular and OOB) to the AM - to send generated events, and to
  * retrieve events specific to this task.
- * 
+ *
  */
 public class TaskReporter implements TaskReporterInterface {
 
@@ -140,6 +142,8 @@ public class TaskReporter implements TaskReporterInterface {
     private static final float LOG_COUNTER_BACKOFF = 1.3f;
     private static final int HEAP_MEMORY_USAGE_UPDATE_INTERVAL = 5000; // 5 seconds
 
+    private static final int LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL = 10000; // 10 seconds
+
     private final RuntimeTask task;
     private final EventMetaData updateEventMetadata;
 
@@ -164,6 +168,9 @@ public class TaskReporter implements TaskReporterInterface {
     private long usedMemory = 0;
     private long heapMemoryUsageUpdatedTime = System.currentTimeMillis() - HEAP_MEMORY_USAGE_UPDATE_INTERVAL;
 
+    private long localFileSystemBytesWrittenCheckInterval =
+        System.currentTimeMillis() - LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL;
+
     /*
      * Keeps track of regular timed heartbeats. Is primarily used as a timing mechanism to send /
      * log counters.
@@ -171,7 +178,7 @@ public class TaskReporter implements TaskReporterInterface {
     private AtomicInteger nonOobHeartbeatCounter = new AtomicInteger(0);
     private int nextHeartbeatNumToLog = 0;
     /*
-     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM. 
+     * Tracks the last non-OOB heartbeat number at which counters were sent to the AM.
      */
     private int prevCounterSendHeartbeatNum = 0;
 
@@ -260,6 +267,17 @@ public class TaskReporter implements TaskReporterInterface {
         if ((nonOobHeartbeatCounter.get() - prevCounterSendHeartbeatNum) * pollInterval >= sendCounterInterval) {
           sendCounters = true;
           prevCounterSendHeartbeatNum = nonOobHeartbeatCounter.get();
+        }
+        try {
+          long now = System.currentTimeMillis();
+          if (now - localFileSystemBytesWrittenCheckInterval > LOCAL_FILE_SYSTEM_BYTES_WRITTEN_CHECK_INTERVAL) {
+            task.checkTaskLimits();
+            localFileSystemBytesWrittenCheckInterval = now;
+          }
+        } catch (LocalWriteLimitException lwle) {
+          LOG.error("Local FileSystem write limit exceeded", lwle);
+          askedToDie.set(true);
+          return new ResponseWrapper(true, 1);
         }
         updateEvent = new TezEvent(getStatusUpdateEvent(sendCounters), updateEventMetadata);
         events.add(updateEvent);
@@ -361,7 +379,7 @@ public class TaskReporter implements TaskReporterInterface {
         return askedToDie.get();
       }
     }
-    
+
     @VisibleForTesting
     TaskStatusUpdateEvent getStatusUpdateEvent(boolean sendCounters) {
       TezCounters counters = null;
@@ -401,9 +419,10 @@ public class TaskReporter implements TaskReporterInterface {
       if (!finalEventQueued.getAndSet(true)) {
         List<TezEvent> tezEvents = new ArrayList<TezEvent>();
         if (diagnostics == null) {
-          diagnostics = ExceptionUtils.getStackTrace(t);
+          diagnostics = "Node: " + InetAddress.getLocalHost() + " : " + ExceptionUtils.getStackTrace(t);
         } else {
-          diagnostics = diagnostics + ":" + ExceptionUtils.getStackTrace(t);
+          diagnostics =
+              "Node: " + InetAddress.getLocalHost() + " : " + diagnostics + ":" + ExceptionUtils.getStackTrace(t);
         }
         if (isKilled) {
           tezEvents.add(new TezEvent(new TaskAttemptKilledEvent(diagnostics),
@@ -472,10 +491,10 @@ public class TaskReporter implements TaskReporterInterface {
   }
 
   @Override
-  public boolean taskKilled(TezTaskAttemptID taskAttemptID, Throwable t, String diagnostics,
+  public boolean taskKilled(TezTaskAttemptID taskAttemptId, Throwable t, String diagnostics,
                             EventMetaData srcMeta) throws IOException, TezException {
     if(!isShuttingDown()) {
-      return currentCallable.taskTerminated(taskAttemptID, true, null, t, diagnostics, srcMeta);
+      return currentCallable.taskTerminated(taskAttemptId, true, null, t, diagnostics, srcMeta);
     }
     return false;
   }
