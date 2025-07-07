@@ -133,4 +133,71 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
     assertEquals(lrURL.getPort(), port);
     assertEquals(lrURL.getFile(), path);
   }
+
+  @Test(timeout = 5000)
+  public void testSubmitDAGUserGroupInformation() throws Exception {
+    // Create a simple DAG plan and write it to a file
+    String dagPlanName = "test-dag";
+    File requestFile = tmpFolder.newFile("request-file");
+    TezConfiguration conf = new TezConfiguration();
+    
+    DAGPlan dagPlan = DAG.create(dagPlanName)
+        .addVertex(Vertex.create("V", ProcessorDescriptor.create("P"), 1))
+        .createDag(conf, null, null, null, false);
+
+    // Write DAG plan to file
+    try (FileOutputStream fileOutputStream = new FileOutputStream(requestFile)) {
+      SubmitDAGRequestProto.newBuilder().setDAGPlan(dagPlan).build().writeTo(fileOutputStream);
+    }
+
+    // Setup mocks
+    DAGClientHandler dagClientHandler = mock(DAGClientHandler.class);
+    ACLManager aclManager = mock(ACLManager.class);
+    FileSystem mockFs = mock(FileSystem.class);
+    UserGroupInformation mockAmUgi = mock(UserGroupInformation.class);
+    UserGroupInformation mockRpcUgi = mock(UserGroupInformation.class);
+
+    // DAG request with file
+    SubmitDAGRequestProto request = SubmitDAGRequestProto.newBuilder()
+            .setSerializedRequestPath(requestFile.getAbsolutePath())
+            .build();
+
+    when(mockAmUgi.doAs(any(java.security.PrivilegedExceptionAction.class))).thenReturn(request);
+    when(mockRpcUgi.doAs(any(java.security.PrivilegedExceptionAction.class))).thenReturn(request);
+
+    // Create spy on server impl with mocked FileSystem
+    DAGClientAMProtocolBlockingPBServerImpl serverImpl = spy(new DAGClientAMProtocolBlockingPBServerImpl(
+        dagClientHandler, mockFs));
+
+    // Mock behavior
+    when(dagClientHandler.getACLManager()).thenReturn(aclManager);
+    when(aclManager.checkAMModifyAccess(any(UserGroupInformation.class))).thenReturn(true);
+    when(dagClientHandler.submitDAG(any(DAGPlan.class), any())).thenReturn("dag-id");
+    when(mockFs.getConf()).thenReturn(conf);
+
+    //Set the RPC UGI
+    java.lang.reflect.Field rpcUGIField = DAGClientAMProtocolBlockingPBServerImpl.class.getDeclaredField("rpcUGI");
+    rpcUGIField.setAccessible(true);
+    rpcUGIField.set(serverImpl, mockRpcUgi);
+
+    // Test Case 1: When amUGI is available
+    // Set the amUGI field using reflection
+    java.lang.reflect.Field amUGIField = DAGClientAMProtocolBlockingPBServerImpl.class.getDeclaredField("amUGI");
+    amUGIField.setAccessible(true);
+    amUGIField.set(serverImpl, mockAmUgi);
+
+    serverImpl.submitDAG(null, request);
+
+    // Verify amUGI was used for doAs
+    verify(mockAmUgi).doAs(any(java.security.PrivilegedExceptionAction.class));
+
+    // Test Case 2: When amUGI is null
+    // Set amUGI to null
+    amUGIField.set(serverImpl, null);
+
+    // Submit DAG with serialized path
+    serverImpl.submitDAG(null, request);
+    // Verify RPC user (mockRpcUgi) was used for doAs
+    verify(mockRpcUgi).doAs(any(java.security.PrivilegedExceptionAction.class));
+  }
 }
