@@ -143,7 +143,7 @@ public class TestDAGClientAMProtocolBlockingPBServerImpl {
     String dagPlanName = "test-dag";
     File requestFile = tmpFolder.newFile("request-file");
     TezConfiguration conf = new TezConfiguration();
-    
+
     DAGPlan dagPlan = DAG.create(dagPlanName)
         .addVertex(Vertex.create("V", ProcessorDescriptor.create("P"), 1))
         .createDag(conf, null, null, null, false);
