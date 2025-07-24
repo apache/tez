@@ -72,7 +72,7 @@ public class MiniTezCluster extends MiniYARNCluster {
 
   private static final String YARN_CLUSTER_CONFIG = "yarn-site.xml";
 
-  private Path confFilePath;
+  private Path stagingPath;
 
   private long maxTimeToWaitForAppsOnShutdown;
 
@@ -150,8 +150,7 @@ public class MiniTezCluster extends MiniYARNCluster {
     conf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_TIMEOUT_KEY,1000);
 
     try {
-      Path stagingPath = FileContext.getFileContext(conf).makeQualified(
-          new Path(conf.get(MRJobConfig.MR_AM_STAGING_DIR)));
+      stagingPath = FileContext.getFileContext(conf).makeQualified(new Path(conf.get(MRJobConfig.MR_AM_STAGING_DIR)));
       /*
        * Re-configure the staging path on Windows if the file system is localFs.
        * We need to use a absolute path that contains the drive letter. The unit
@@ -211,7 +210,7 @@ public class MiniTezCluster extends MiniYARNCluster {
     File workDir = super.getTestWorkDir();
     Configuration conf = super.getConfig();
 
-    confFilePath = new Path(workDir.getAbsolutePath(), YARN_CLUSTER_CONFIG);
+    Path confFilePath = new Path(workDir.getAbsolutePath(), YARN_CLUSTER_CONFIG);
     File confFile = new File(confFilePath.toString());
     try {
       confFile.createNewFile();
@@ -222,7 +221,6 @@ public class MiniTezCluster extends MiniYARNCluster {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    confFilePath = new Path(confFile.getAbsolutePath());
     conf.setStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         workDir.getAbsolutePath(), System.getProperty("java.class.path"));
     LOG.info("Setting yarn-site.xml via YARN-APP-CP at: "
@@ -311,8 +309,7 @@ public class MiniTezCluster extends MiniYARNCluster {
     }
   }
   
-  public Path getConfigFilePath() {
-    return confFilePath;
+  public Path getStagingPath() {
+    return stagingPath;
   }
-
 }
