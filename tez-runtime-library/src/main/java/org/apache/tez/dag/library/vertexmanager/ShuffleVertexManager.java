@@ -27,6 +27,7 @@ import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
+import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.VertexManagerPluginContext;
@@ -52,6 +53,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Starts scheduling tasks when number of completed source tasks crosses 
@@ -520,6 +522,30 @@ public class ShuffleVertexManager extends ShuffleVertexManagerBase {
     for(Map.Entry<String, SourceVertexInfo> entry : bipartiteItr) {
       entry.getValue().newDescriptor = descriptor;
     }
+
+    // Additionally, update custom edges.
+    Map<String, EdgeProperty> outputEdges = getContext().getOutputVertexEdgeProperties();
+    Map<String, EdgeProperty> updatedEdges = new HashMap<>();
+    for (Map.Entry<String, EdgeProperty> entry : outputEdges.entrySet()) {
+      if (entry.getValue().getDataMovementType() == EdgeProperty.DataMovementType.CUSTOM) {
+        // Build a new custom edge manager configuration with updated parallelism.
+        CustomShuffleEdgeManagerConfig customConfig = new CustomShuffleEdgeManagerConfig(
+                currentParallelism, finalTaskParallelism, basePartitionRange,
+                (remainderRangeForLastShuffler > 0 ? remainderRangeForLastShuffler : basePartitionRange));
+        EdgeManagerPluginDescriptor newDescriptor = EdgeManagerPluginDescriptor.create(CustomShuffleEdgeManager.class.getName());
+        newDescriptor.setUserPayload(customConfig.toUserPayload());
+
+        // Update the EdgeProperty with the new descriptor.
+        EdgeProperty updatedProp = entry.getValue().withDescriptor(newDescriptor);
+        updatedEdges.put(entry.getKey(), updatedProp);
+      }
+    }
+
+    // If any custom edges were updated, propagate the new configuration.
+    if (!updatedEdges.isEmpty()) {
+      getContext().reconfigureVertex(finalTaskParallelism, null, updatedEdges);
+    }
+
     ReconfigVertexParams params =
         new ReconfigVertexParams(finalTaskParallelism, null);
     return params;
