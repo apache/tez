@@ -54,7 +54,6 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
   public TaskScheduler(TaskSchedulerContext taskSchedulerContext) {
     this.taskSchedulerContext = taskSchedulerContext;
   }
-
   /**
    * An entry point for initialization.
    * Order of service setup. Constructor, initialize(), start() - when starting a service.
@@ -279,5 +278,13 @@ public abstract class TaskScheduler implements ServicePluginLifecycle {
     for (Container container : containers) {
       getContext().containerAllocated(container);
     }
+  }
+
+  /**
+   * Collects DAG-level counters from the TaskScheduler, which is then aggregated by the DAG implementation.
+   * @return null by default, handled in upper layers
+   */
+  public TaskSchedulerStatistics getStatistics() {
+    return null;
   }
 }

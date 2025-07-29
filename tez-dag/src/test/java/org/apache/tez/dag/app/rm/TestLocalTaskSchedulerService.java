@@ -33,6 +33,7 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.rm.TestLocalTaskSchedulerService.MockLocalTaskSchedulerSerivce.MockAsyncDelegateRequestHandler;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -233,7 +234,7 @@ public class TestLocalTaskSchedulerService {
           new LocalContainerFactory(getContext().getApplicationAttemptId(), customContainerAppId),
           taskAllocations,
           getContext(),
-          conf);
+          conf, mock(TaskSchedulerStatistics.class));
       return requestHandler;
     }
 
@@ -261,9 +262,10 @@ public class TestLocalTaskSchedulerService {
           LinkedBlockingQueue<SchedulerRequest> taskRequestQueue,
           LocalContainerFactory localContainerFactory,
           HashMap<Object, AllocatedTask> taskAllocations,
-          TaskSchedulerContext appClientDelegate, Configuration conf) {
+          TaskSchedulerContext appClientDelegate, Configuration conf,
+          TaskSchedulerStatistics taskSchedulerStatistics) {
         super(taskRequestQueue, localContainerFactory, taskAllocations,
-            appClientDelegate, conf);
+            appClientDelegate, conf, taskSchedulerStatistics);
       }
 
       @Override
@@ -273,9 +275,10 @@ public class TestLocalTaskSchedulerService {
       }
 
       @Override
-      void allocateTask() {
-        super.allocateTask();
+      AllocateTaskRequest allocateTask() {
+        AllocateTaskRequest request = super.allocateTask();
         allocateCount++;
+        return request;
       }
 
       public void drainRequest(int count) {

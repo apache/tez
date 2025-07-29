@@ -35,6 +35,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.Utils;
+import org.apache.tez.common.counters.AbstractCounters;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
@@ -44,6 +47,7 @@ import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext.AppFinalStatus;
+import org.apache.tez.serviceplugins.api.TaskSchedulerStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1103,5 +1107,13 @@ public class TaskSchedulerManager extends AbstractService implements
   @VisibleForTesting
   public TaskScheduler getTaskScheduler(int taskSchedulerIndex) {
     return taskSchedulers[taskSchedulerIndex].getTaskScheduler();
+  }
+
+  public AbstractCounters<TezCounter, CounterGroup> getCounters() {
+    TaskSchedulerStatistics stats = new TaskSchedulerStatistics();
+    for (TaskSchedulerWrapper taskScheduler : taskSchedulers) {
+      stats.add(taskScheduler.getStatistics());
+    }
+    return stats.getCounters();
   }
 }
