@@ -623,6 +623,7 @@ public class YARNRunner implements ClientProtocol {
     try {
       dagAMConf.set(TezConfiguration.TEZ_AM_STAGING_DIR,
           jobSubmitDir);
+      dagAMConf.setBoolean(TezConfiguration.TEZ_AM_STAGING_BASE_DIR_CLEANUP, true);
       
       // Set Tez parameters based on MR parameters.
       String queueName = jobConf.get(JobContext.QUEUE_NAME,
