@@ -22,8 +22,13 @@ import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.api.TezConfiguration;
 
 /**
- * An {@link ServicePluginsDescriptor} describes the list of plugins running within the AM for
- * sourcing resources, launching and executing work.
+ * An {@link ServicePluginsDescriptor} describes the list of plugins
+ * running within the AM for sourcing resources, launching and executing work.
+ * These plugins will all be of type
+ * {@link org.apache.tez.common.plugin.ServicePluginAware} and will share
+ * a {@link org.apache.tez.common.plugin.InterPluginCommunicator}
+ * object so they are able to send messages
+ * between them.
  */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable

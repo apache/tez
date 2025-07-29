@@ -74,6 +74,8 @@ import org.apache.tez.client.CallerContext;
 import org.apache.tez.client.TezClientUtils;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezUtils;
+import org.apache.tez.common.plugin.InMemoryInterPluginCommunicator;
+import org.apache.tez.common.plugin.InterPluginCommunicator;
 import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.SessionNotRunning;
 import org.apache.tez.dag.api.UserPayload;
@@ -1489,6 +1491,12 @@ public class DAGAppMaster extends AbstractService {
     private final Lock rLock = rwLock.readLock();
     private final Lock wLock = rwLock.writeLock();
     private final EventHandler eventHandler;
+
+    /**
+     * context InterPluginCommunicator.
+     */
+    private final InterPluginCommunicator interPluginCommunicator =
+        new InMemoryInterPluginCommunicator();
     private volatile String queueName;
 
     public RunningAppContext(Configuration config) {
@@ -1758,6 +1766,17 @@ public class DAGAppMaster extends AbstractService {
     @Override
     public void setQueueName(String queueName) {
       this.queueName = queueName;
+    }
+
+    /**
+     * Method to get the {@link InterPluginCommunicator}
+     * in the context.
+     * @return inter plugin communicator to share
+     * objects between plugins.
+     */
+    @Override
+    public InterPluginCommunicator getInterPluginCommunicator() {
+      return interPluginCommunicator;
     }
   }
 

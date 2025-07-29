@@ -175,15 +175,22 @@ public class TaskCommunicatorManager extends AbstractService implements
   @VisibleForTesting
   TaskCommunicator createTaskCommunicator(NamedEntityDescriptor taskCommDescriptor,
                                           int taskCommIndex) throws TezException {
+    TaskCommunicator taskCommunicator;
     if (taskCommDescriptor.getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
-      return createDefaultTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
+      taskCommunicator =
+          createDefaultTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
     } else if (taskCommDescriptor.getEntityName()
         .equals(TezConstants.getTezUberServicePluginName())) {
-      return createUberTaskCommunicator(taskCommunicatorContexts[taskCommIndex]);
+      taskCommunicator = createUberTaskCommunicator(
+          taskCommunicatorContexts[taskCommIndex]);
     } else {
-      return createCustomTaskCommunicator(taskCommunicatorContexts[taskCommIndex],
+      taskCommunicator = createCustomTaskCommunicator(
+          taskCommunicatorContexts[taskCommIndex],
           taskCommDescriptor);
     }
+    taskCommunicator.setInterPluginCommunicator(
+        context.getInterPluginCommunicator());
+    return taskCommunicator;
   }
 
   @VisibleForTesting
