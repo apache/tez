@@ -56,10 +56,6 @@ public class DAGClientHandler {
     return dagAppMaster.getContext().getCurrentDAG();
   }
 
-  private Set<String> getAllDagIDs() {
-    return dagAppMaster.getContext().getAllDAGIDs();
-  }
-
   public List<String> getAllDAGs() throws TezException {
     return Collections.singletonList(getCurrentDAG().getID().toString());
   }
@@ -100,8 +96,11 @@ public class DAGClientHandler {
 
     final String currentDAGIdStr = currentDAG.getID().toString();
     if (!currentDAGIdStr.equals(dagIdStr)) {
-      if (getAllDagIDs().contains(dagIdStr)) {
-        LOG.debug("Looking for finished dagId {} current dag is {}", dagIdStr, currentDAGIdStr);
+      Set<String> recentDagIds = dagAppMaster.getContext().getRecentDAGIDs();
+      if (recentDagIds.contains(dagIdStr)) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Looking for finished dagId " + dagIdStr + " current dag is " + currentDAGIdStr);
+        }
         throw new DAGNotRunningException("DAG " + dagIdStr + " Not running, current dag is " +
             currentDAGIdStr);
       } else {
