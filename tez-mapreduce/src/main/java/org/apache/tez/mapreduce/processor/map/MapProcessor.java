@@ -18,7 +18,6 @@
 package org.apache.tez.mapreduce.processor.map;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -60,24 +59,8 @@ public class MapProcessor extends MRTask{
 
   private static final Logger LOG = LoggerFactory.getLogger(MapProcessor.class);
 
-  protected Map<String, LogicalInput> inputs;
-  protected Map<String, LogicalOutput> outputs;
-  private ProgressHelper progressHelper;
-
   public MapProcessor(ProcessorContext processorContext) {
     super(processorContext, true);
-  }
-
-  @Override
-  public void handleEvents(List<Event> processorEvents) {
-    // TODO Auto-generated method stub
-
-  }
-
-  public void close() throws IOException {
-    if (progressHelper != null) {
-      progressHelper.shutDownProgressTaskService();
-    }
   }
 
   @Override
