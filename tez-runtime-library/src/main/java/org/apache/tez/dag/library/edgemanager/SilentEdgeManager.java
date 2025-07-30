@@ -18,13 +18,13 @@
 
 package org.apache.tez.dag.library.edgemanager;
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.tez.dag.api.EdgeManagerPlugin;
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * A dummy edge manager used in scenarios where application will depend on

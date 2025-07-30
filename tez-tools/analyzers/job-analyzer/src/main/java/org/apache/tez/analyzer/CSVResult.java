@@ -18,13 +18,6 @@
 
 package org.apache.tez.analyzer;
 
-import com.google.common.base.Joiner;
-import org.apache.tez.common.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import org.apache.tez.dag.api.TezException;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,6 +30,14 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.dag.api.TezException;
+
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 /**
  * Simple placeholder for storing CSV results.

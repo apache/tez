@@ -17,17 +17,6 @@
  */
 package org.apache.tez.common.web;
 
-import com.google.common.base.Joiner;
-
-import org.apache.hadoop.http.HttpServer2;
-import org.apache.tez.common.TezUtilsInternal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -40,6 +29,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.hadoop.http.HttpServer2;
+import org.apache.tez.common.TezUtilsInternal;
+
+import com.google.common.base.Joiner;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>

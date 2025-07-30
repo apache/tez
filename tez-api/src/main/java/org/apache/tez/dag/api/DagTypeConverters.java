@@ -27,10 +27,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.zip.Inflater;
-import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
@@ -70,9 +70,9 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeProperty;
 import org.apache.tez.dag.api.records.DAGProtos.PlanEdgeSchedulingType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResource;
-import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceType;
 import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourceVisibility;
+import org.apache.tez.dag.api.records.DAGProtos.PlanLocalResourcesProto;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskConfiguration;
 import org.apache.tez.dag.api.records.DAGProtos.PlanTaskLocationHint;
 import org.apache.tez.dag.api.records.DAGProtos.RootInputLeafOutputProto;
@@ -83,11 +83,11 @@ import org.apache.tez.dag.api.records.DAGProtos.TezEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexExecutionContextProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexLocationHintProto;
+import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ByteString.Output;
-import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 
 @Private
 public final class DagTypeConverters {

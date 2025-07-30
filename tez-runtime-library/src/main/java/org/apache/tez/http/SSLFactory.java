@@ -18,11 +18,21 @@
 
 package org.apache.tez.http;
 
-import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import static org.apache.hadoop.security.ssl.SSLFactory.KEYSTORES_FACTORY_CLASS_KEY;
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_HOSTNAME_VERIFIER_KEY;
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_REQUIRE_CLIENT_CERT_KEY;
+import static org.apache.hadoop.security.ssl.SSLFactory.SSL_SERVER_CONF_KEY;
 
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.JdkSslContext;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.security.GeneralSecurityException;
+import java.util.Objects;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -34,20 +44,11 @@ import org.apache.hadoop.security.ssl.SSLFactory.Mode;
 import org.apache.hadoop.security.ssl.SSLHostnameVerifier;
 import org.apache.hadoop.util.ReflectionUtils;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.security.GeneralSecurityException;
-import java.util.Objects;
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.JdkSslContext;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 
-import static org.apache.hadoop.security.ssl.SSLFactory.KEYSTORES_FACTORY_CLASS_KEY;
-import static org.apache.hadoop.security.ssl.SSLFactory.SSL_CLIENT_CONF_KEY;
-import static org.apache.hadoop.security.ssl.SSLFactory.SSL_HOSTNAME_VERIFIER_KEY;
-import static org.apache.hadoop.security.ssl.SSLFactory.SSL_REQUIRE_CLIENT_CERT_KEY;
-import static org.apache.hadoop.security.ssl.SSLFactory.SSL_SERVER_CONF_KEY;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 
 /**
  * Factory that creates SSLEngine and SSLSocketFactory instances using

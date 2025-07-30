@@ -18,20 +18,20 @@
 
 package org.apache.tez.common;
 
-import com.google.common.base.Charsets;
-import com.google.protobuf.ByteString;
-
 import java.nio.ByteBuffer;
 
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
+import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.api.events.EventProtos.VertexManagerEventProto;
+
+import com.google.common.base.Charsets;
+import com.google.protobuf.ByteString;
 
 public final class ProtoConverters {
 

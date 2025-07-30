@@ -18,27 +18,6 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.UnmodifiableIterator;
-
-import com.google.common.primitives.Ints;
-import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.TezUncheckedException;
-import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
-import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.hadoop.classification.InterfaceAudience.Public;
-import org.apache.hadoop.classification.InterfaceStability.Evolving;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.runtime.api.TaskAttemptIdentifier;
-
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -46,6 +25,28 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
+import javax.annotation.Nullable;
+
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.TezUncheckedException;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.primitives.Ints;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**

@@ -21,7 +21,6 @@ import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncher;
 import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;
-import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 
 public class TezTestServiceContainerLauncherWithErrors extends ContainerLauncher {
 

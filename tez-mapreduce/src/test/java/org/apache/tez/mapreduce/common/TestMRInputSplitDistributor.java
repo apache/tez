@@ -18,9 +18,6 @@
 
 package org.apache.tez.mapreduce.common;
 
-import org.apache.tez.common.TezUtils;
-import org.apache.tez.dag.api.UserPayload;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -34,6 +31,8 @@ import java.util.List;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
+import org.apache.tez.common.TezUtils;
+import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.TezTestUtils;
 import org.apache.tez.mapreduce.hadoop.MRInputHelpers;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
@@ -45,9 +44,10 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializerContext;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
-import org.junit.Test;
 
 import com.google.protobuf.ByteString;
+
+import org.junit.Test;
 
 public class TestMRInputSplitDistributor {
 

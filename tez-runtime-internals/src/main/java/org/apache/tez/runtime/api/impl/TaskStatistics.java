@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-
 import org.apache.tez.util.StringInterner;
 
 import com.google.common.collect.Maps;

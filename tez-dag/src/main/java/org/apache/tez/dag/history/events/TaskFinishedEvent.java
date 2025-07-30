@@ -20,21 +20,23 @@ package org.apache.tez.dag.history.events;
 
 import java.io.IOException;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.common.counters.CounterGroup;
 import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.dag.records.TaskIDAware;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.records.TaskIDAware;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.recovery.records.RecoveryProtos.TaskFinishedProto;
+
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskFinishedEvent implements HistoryEvent, TaskIDAware {
 

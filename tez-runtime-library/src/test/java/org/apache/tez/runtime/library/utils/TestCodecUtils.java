@@ -17,6 +17,8 @@
  */
 package org.apache.tez.runtime.library.utils;
 
+import static org.mockito.Mockito.mock;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,10 +49,9 @@ import org.apache.hadoop.io.compress.ZStandardCodec;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.DummyCompressionCodec;
 import org.apache.tez.runtime.library.common.sort.impl.IFileInputStream;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.mockito.Mockito.mock;
 
 public class TestCodecUtils {
 

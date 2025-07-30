@@ -18,10 +18,10 @@
 
 package org.apache.tez.runtime;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,14 +32,15 @@ import java.util.Set;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.Input;
+import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.Reader;
-import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.impl.TezMergedInputContextImpl;
-import org.junit.Test;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import org.junit.Test;
 
 
 public class TestInputReadyTracker {

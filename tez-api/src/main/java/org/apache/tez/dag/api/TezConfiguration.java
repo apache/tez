@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import java.util.concurrent.TimeUnit;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -37,10 +37,11 @@ import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.annotation.ConfigurationClass;
 import org.apache.tez.common.annotation.ConfigurationProperty;
 import org.apache.tez.dag.api.EdgeProperty.ConcurrentEdgeTriggerType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**

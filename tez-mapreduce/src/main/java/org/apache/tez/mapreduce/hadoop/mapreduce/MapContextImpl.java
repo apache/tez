@@ -82,4 +82,3 @@ public class MapContextImpl<KEYIN,VALUEIN,KEYOUT,VALUEOUT>
   }
 
 }
-     

@@ -27,20 +27,15 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.Deflater;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-
-import org.apache.tez.common.TezUtils;
-import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
 import org.apache.tez.runtime.api.Event;
@@ -49,13 +44,18 @@ import org.apache.tez.runtime.library.api.KeyValuesWriter;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.sort.impl.ExternalSorter;
 import org.apache.tez.runtime.library.common.sort.impl.PipelinedSorter;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.common.sort.impl.dflt.DefaultSorter;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.conf.OrderedPartitionedKVOutputConfig.SorterImpl;
 
-import org.apache.tez.common.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link OrderedPartitionedKVOutput} is an {@link AbstractLogicalOutput} which sorts

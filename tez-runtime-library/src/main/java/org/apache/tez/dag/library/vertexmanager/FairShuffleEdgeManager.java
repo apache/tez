@@ -18,15 +18,15 @@
 
 package org.apache.tez.dag.library.vertexmanager;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import java.util.HashMap;
+
+import javax.annotation.Nullable;
 
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand;
 import org.apache.tez.dag.api.UserPayload;
 
-import javax.annotation.Nullable;
-
-import java.util.HashMap;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * Edge manager for fair routing. Each destination task has its
@@ -150,4 +150,3 @@ public class FairShuffleEdgeManager extends EdgeManagerPluginOnDemand {
     }
   }
 }
-

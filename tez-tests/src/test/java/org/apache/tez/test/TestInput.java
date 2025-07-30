@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.tez.runtime.api.TaskFailureType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -33,14 +30,18 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.Reader;
+import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
 import org.apache.tez.runtime.api.events.InputReadErrorEvent;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * LogicalInput used to writing tests for Tez. Supports fault

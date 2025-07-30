@@ -20,7 +20,7 @@ package org.apache.tez.common;
 
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.TezUncheckedException;
+
 import org.junit.Assert;
 import org.junit.Test;
 

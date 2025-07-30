@@ -21,19 +21,20 @@ package org.apache.tez.mapreduce.lib;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.apache.tez.runtime.api.InputContext;
-import org.apache.tez.runtime.library.api.IOInterruptedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.mapreduce.hadoop.mapreduce.TaskAttemptContextImpl;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MRReaderMapReduce extends MRReader {
 

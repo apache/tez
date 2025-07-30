@@ -28,8 +28,10 @@
 
 package org.apache.tez.dag.app;
 
-import com.google.common.collect.Sets;
 import org.apache.tez.serviceplugins.api.TaskCommunicator;
+
+import com.google.common.collect.Sets;
+
 import org.junit.Test;
 
 public class TestTaskCommunicatorWrapper {

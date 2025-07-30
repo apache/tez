@@ -18,10 +18,10 @@
 
 package org.apache.tez.runtime.api;
 
+import java.util.List;
+
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
-
-import java.util.List;
 
 
 /**

@@ -18,10 +18,10 @@
 
 package org.apache.tez.dag.history;
 
+import java.io.IOException;
+
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
-
-import java.io.IOException;
 
 public interface HistoryEvent {
 

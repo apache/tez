@@ -17,16 +17,11 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
-import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,11 +29,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.BROADCAST;
-import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.apache.tez.dag.api.EdgeManagerPluginDescriptor;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestCartesianProductVertexManager {
   private CartesianProductVertexManager vertexManager;

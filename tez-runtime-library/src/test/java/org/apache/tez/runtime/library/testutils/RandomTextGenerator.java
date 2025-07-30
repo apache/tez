@@ -18,9 +18,9 @@
 
 package org.apache.tez.runtime.library.testutils;
 
-import org.apache.hadoop.io.Text;
-
 import java.util.Random;
+
+import org.apache.hadoop.io.Text;
 
 public final class RandomTextGenerator {
 

@@ -18,20 +18,18 @@
 
 package org.apache.tez.dag.api;
 
-import javax.annotation.Nullable;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.runtime.api.InputInitializer;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 

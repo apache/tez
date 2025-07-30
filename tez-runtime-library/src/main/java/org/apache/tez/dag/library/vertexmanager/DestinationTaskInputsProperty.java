@@ -89,4 +89,3 @@ class DestinationTaskInputsProperty {
         " ,numOfSourceTasks = " + numOfSourceTasks;
   }
 }
-

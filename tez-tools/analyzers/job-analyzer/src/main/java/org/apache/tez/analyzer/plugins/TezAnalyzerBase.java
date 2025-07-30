@@ -39,6 +39,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.tez.analyzer.Analyzer;
 import org.apache.tez.analyzer.CSVResult;
 import org.apache.tez.analyzer.Result;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.ATSImportTool;
 import org.apache.tez.history.parser.ATSFileParser;
@@ -46,7 +47,6 @@ import org.apache.tez.history.parser.ProtoHistoryParser;
 import org.apache.tez.history.parser.SimpleHistoryParser;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 
-import org.apache.tez.common.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

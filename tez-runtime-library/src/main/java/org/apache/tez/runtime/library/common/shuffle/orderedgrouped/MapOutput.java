@@ -22,15 +22,15 @@ import java.io.OutputStream;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BoundedByteArrayOutputStream;
 import org.apache.hadoop.io.FileChunk;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 abstract class MapOutput {

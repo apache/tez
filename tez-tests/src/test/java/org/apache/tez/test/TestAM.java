@@ -19,6 +19,7 @@ package org.apache.tez.test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -41,6 +42,7 @@ import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

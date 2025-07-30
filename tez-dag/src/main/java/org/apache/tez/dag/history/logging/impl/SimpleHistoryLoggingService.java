@@ -23,18 +23,19 @@ import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.tez.common.StreamHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.tez.common.StreamHelper;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.logging.HistoryLoggingService;
+
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SimpleHistoryLoggingService extends HistoryLoggingService {
 

@@ -21,15 +21,15 @@ package org.apache.tez.dag.api.client;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProtoOrBuilder;
-import org.apache.tez.dag.api.TezUncheckedException;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Describes the status of the {@link Vertex}

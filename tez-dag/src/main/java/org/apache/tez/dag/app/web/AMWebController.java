@@ -18,7 +18,6 @@
 
 package org.apache.tez.dag.app.web;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -34,6 +33,28 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.yarn.webapp.Controller;
+import org.apache.hadoop.yarn.webapp.MimeType;
+import org.apache.hadoop.yarn.webapp.View;
+import org.apache.hadoop.yarn.webapp.WebAppException;
+import org.apache.tez.common.counters.CounterGroup;
+import org.apache.tez.common.counters.LimitExceededException;
+import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.dag.api.client.ProgressBuilder;
+import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.dag.DAG;
+import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.TaskAttempt;
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.records.TezDAGID;
+import org.apache.tez.dag.records.TezTaskAttemptID;
+import org.apache.tez.dag.records.TezVertexID;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -41,28 +62,8 @@ import com.google.common.collect.Sets;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.tez.common.counters.CounterGroup;
-import org.apache.tez.common.counters.LimitExceededException;
-import org.apache.tez.common.counters.TezCounter;
-import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.dag.api.client.ProgressBuilder;
-import org.apache.tez.dag.app.dag.Task;
-import org.apache.tez.dag.app.dag.TaskAttempt;
-import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.webapp.Controller;
-import org.apache.hadoop.yarn.webapp.MimeType;
-import org.apache.hadoop.yarn.webapp.View;
-import org.apache.hadoop.yarn.webapp.WebAppException;
-import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.records.TezDAGID;
-import org.apache.tez.dag.records.TezVertexID;
 
 public class AMWebController extends Controller {
 

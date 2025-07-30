@@ -22,18 +22,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.hadoop.fs.GlobalStorageStatistics;
-import org.apache.hadoop.fs.StorageStatistics;
-import org.apache.tez.util.TezMxBeanResourceCalculator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.GlobalStorageStatistics;
+import org.apache.hadoop.fs.StorageStatistics;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.tez.common.GcTimeUpdater;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.util.TezMxBeanResourceCalculator;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**

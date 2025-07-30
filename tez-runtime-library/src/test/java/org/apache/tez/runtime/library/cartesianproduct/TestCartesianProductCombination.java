@@ -17,15 +17,16 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import com.google.common.primitives.Ints;
-import org.junit.Test;
-
-import java.util.List;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
+import com.google.common.primitives.Ints;
+
+import org.junit.Test;
 
 public class TestCartesianProductCombination {
   private void verifyCombination(CartesianProductCombination combination, int[] result, int taskId) {

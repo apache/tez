@@ -21,10 +21,6 @@ package org.apache.tez.examples;
 import java.io.IOException;
 import java.util.Set;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -32,12 +28,14 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.client.TezClient;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.Vertex.VertexExecutionContext;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.dag.api.client.StatusGetOpts;
@@ -51,8 +49,11 @@ import org.apache.tez.runtime.library.conf.OrderedPartitionedKVEdgeConfig;
 import org.apache.tez.runtime.library.partitioner.HashPartitioner;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
-import org.apache.tez.common.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JoinValidate extends TezExampleBase {
   private static final Logger LOG = LoggerFactory.getLogger(JoinValidate.class);

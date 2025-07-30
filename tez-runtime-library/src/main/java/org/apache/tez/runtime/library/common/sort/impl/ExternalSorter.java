@@ -26,13 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Maps;
-import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.OutputStatisticsReporter;
-import org.apache.tez.runtime.library.api.IOInterruptedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -47,10 +40,14 @@ import org.apache.hadoop.util.IndexedSorter;
 import org.apache.hadoop.util.Progressable;
 import org.apache.hadoop.util.QuickSort;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
+import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.OutputContext;
+import org.apache.tez.runtime.api.OutputStatisticsReporter;
+import org.apache.tez.runtime.library.api.IOInterruptedException;
 import org.apache.tez.runtime.library.api.Partitioner;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration.ReportPartitionStats;
@@ -62,7 +59,12 @@ import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeade
 import org.apache.tez.runtime.library.common.sort.impl.IFile.Writer;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.utils.CodecUtils;
-import org.apache.tez.common.Preconditions;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"rawtypes"})
 public abstract class ExternalSorter {

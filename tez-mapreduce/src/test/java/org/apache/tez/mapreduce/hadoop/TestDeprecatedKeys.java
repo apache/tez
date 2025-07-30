@@ -19,14 +19,15 @@
 package org.apache.tez.mapreduce.hadoop;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.library.vertexmanager.ShuffleVertexManager;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.Constants;
+
 import org.junit.Test;
 
 public class TestDeprecatedKeys {

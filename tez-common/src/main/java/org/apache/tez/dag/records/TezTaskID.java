@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
-
 import org.apache.tez.util.FastNumberFormat;
 
 import com.google.common.collect.Interner;

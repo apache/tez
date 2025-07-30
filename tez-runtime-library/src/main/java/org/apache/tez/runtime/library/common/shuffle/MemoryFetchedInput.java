@@ -22,10 +22,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import org.apache.hadoop.io.BoundedByteArrayOutputStream;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.io.NonSyncByteArrayInputStream;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
-
-import org.apache.tez.common.Preconditions;
 
 public class MemoryFetchedInput extends FetchedInput {
 

@@ -28,8 +28,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.client.TimelineReaderFactory.TimelineReaderPseudoAuthenticatedStrategy;
+
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestTimelineReaderFactory {

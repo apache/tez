@@ -14,24 +14,29 @@
 
 package org.apache.tez.dag.app;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.Objects;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Iterables;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.dag.api.TezException;
 import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.Task;
+import org.apache.tez.dag.app.dag.Vertex;
+import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
 import org.apache.tez.dag.app.rm.container.AMContainer;
+import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.ServicePluginError;
@@ -39,13 +44,10 @@ import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorContext;
 import org.apache.tez.serviceplugins.api.TaskHeartbeatRequest;
 import org.apache.tez.serviceplugins.api.TaskHeartbeatResponse;
-import org.apache.tez.dag.api.TezException;
-import org.apache.tez.dag.api.event.VertexState;
-import org.apache.tez.dag.api.event.VertexStateUpdate;
-import org.apache.tez.dag.app.dag.DAG;
-import org.apache.tez.dag.app.dag.Vertex;
-import org.apache.tez.dag.app.dag.VertexStateUpdateListener;
-import org.apache.tez.dag.records.TezTaskAttemptID;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 
 @InterfaceAudience.Private
 public class TaskCommunicatorContextImpl implements TaskCommunicatorContext, VertexStateUpdateListener {

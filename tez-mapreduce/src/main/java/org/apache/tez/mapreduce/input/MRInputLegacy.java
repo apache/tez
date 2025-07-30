@@ -22,9 +22,6 @@ import java.io.IOException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.tez.runtime.api.ProgressFailedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.LimitedPrivate;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
@@ -32,7 +29,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @LimitedPrivate("Hive")
 public class MRInputLegacy extends MRInput {

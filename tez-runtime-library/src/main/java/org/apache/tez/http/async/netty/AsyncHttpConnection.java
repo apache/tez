@@ -18,27 +18,6 @@
 
 package org.apache.tez.http.async.netty;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
-import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClient;
-import org.asynchttpclient.DefaultAsyncHttpClientConfig;
-import org.asynchttpclient.ListenableFuture;
-import org.asynchttpclient.Request;
-import org.asynchttpclient.RequestBuilder;
-import org.asynchttpclient.Response;
-import org.apache.commons.io.IOUtils;
-import org.apache.tez.http.BaseHttpConnection;
-import org.apache.tez.http.HttpConnectionParams;
-import org.apache.tez.http.SSLFactory;
-import org.apache.tez.common.security.JobTokenSecretManager;
-import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
-import org.apache.tez.util.StopWatch;
-import org.apache.tez.util.TezRuntimeShutdownHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -46,6 +25,29 @@ import java.io.PipedOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.tez.common.Preconditions;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
+import org.apache.tez.http.SSLFactory;
+import org.apache.tez.runtime.library.common.security.SecureShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.ShuffleHeader;
+import org.apache.tez.util.StopWatch;
+import org.apache.tez.util.TezRuntimeShutdownHandler;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
+import org.asynchttpclient.ListenableFuture;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.RequestBuilder;
+import org.asynchttpclient.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AsyncHttpConnection extends BaseHttpConnection {
 

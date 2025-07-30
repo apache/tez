@@ -14,6 +14,9 @@
 
 package org.apache.tez.test.dag;
 
+import java.io.IOException;
+import java.util.function.BiConsumer;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.records.Resource;
 import org.apache.tez.common.TezUtils;
@@ -21,9 +24,6 @@ import org.apache.tez.dag.api.*;
 import org.apache.tez.test.TestInput;
 import org.apache.tez.test.TestOutput;
 import org.apache.tez.test.TestProcessor;
-
-import java.io.IOException;
-import java.util.function.BiConsumer;
 
 /**
  * A builder for a DAG with vertices divided into a maximum of 6 levels.

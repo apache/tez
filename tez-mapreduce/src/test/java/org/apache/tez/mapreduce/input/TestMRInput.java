@@ -49,6 +49,7 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.api.InputStatisticsReporter;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+
 import org.junit.Test;
 
 public class TestMRInput {

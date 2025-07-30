@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptReport;
@@ -56,6 +54,10 @@ import org.apache.tez.serviceplugins.api.ServicePluginErrorDefaults;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;

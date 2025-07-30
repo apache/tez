@@ -22,12 +22,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.Charset;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.io.BytesWritable;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestProxyComparator {
   private static final Logger LOG = LoggerFactory.getLogger(TestProxyComparator.class);

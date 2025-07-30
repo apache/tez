@@ -14,9 +14,9 @@
 
 package org.apache.tez.dag.app;
 
-import javax.annotation.Nullable;
-
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -26,10 +26,6 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventType;
 import org.apache.tez.dag.app.dag.event.DAGAppMasterEventUserServiceFatalError;
 import org.apache.tez.dag.app.launcher.ContainerLauncherManager;
-import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
-import org.apache.tez.serviceplugins.api.DagInfo;
-import org.apache.tez.serviceplugins.api.ServicePluginError;
-import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
 import org.apache.tez.dag.app.rm.container.AMContainerEvent;
 import org.apache.tez.dag.app.rm.container.AMContainerEventCompleted;
 import org.apache.tez.dag.app.rm.container.AMContainerEventLaunchFailed;
@@ -38,6 +34,11 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventStopFailed;
 import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 import org.apache.tez.dag.history.DAGHistoryEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;
+import org.apache.tez.serviceplugins.api.ContainerLauncherContext;
+import org.apache.tez.serviceplugins.api.DagInfo;
+import org.apache.tez.serviceplugins.api.ServicePluginError;
+import org.apache.tez.serviceplugins.api.TaskAttemptEndReason;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

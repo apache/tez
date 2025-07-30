@@ -30,33 +30,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hadoop.io.WritableUtils;
-import org.apache.tez.http.BaseHttpConnection;
-import org.apache.tez.http.HttpConnectionParams;
-import org.apache.tez.common.CallableWithNdc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.LocalDirAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.http.BaseHttpConnection;
+import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.api.InputContext;
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
+import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 import org.apache.tez.runtime.library.common.shuffle.orderedgrouped.MapOutput.Type;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
 import org.apache.tez.runtime.library.common.sort.impl.TezSpillRecord;
 import org.apache.tez.runtime.library.exceptions.FetcherReadTimeoutException;
-import org.apache.tez.runtime.library.common.shuffle.InputAttemptFetchFailure;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
-import org.apache.tez.runtime.library.common.shuffle.api.ShuffleHandlerError;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class FetcherOrderedGrouped extends CallableWithNdc<Void> {
 
@@ -815,4 +816,3 @@ class FetcherOrderedGrouped extends CallableWithNdc<Void> {
     return suffix;
   }
 }
-

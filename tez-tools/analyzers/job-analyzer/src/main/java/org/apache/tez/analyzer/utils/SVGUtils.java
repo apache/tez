@@ -17,6 +17,13 @@
  */
 package org.apache.tez.analyzer.utils;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.tez.analyzer.plugins.CriticalPathAnalyzer.CriticalPathStep;
@@ -25,15 +32,9 @@ import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 
 import com.google.common.base.Joiner;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class SVGUtils {
 

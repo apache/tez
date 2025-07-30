@@ -17,14 +17,14 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.tez.dag.api.VertexManagerPluginContext;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 import org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
-
-import java.io.IOException;
-import java.util.List;
 
 /**
  * base class of cartesian product vertex manager implementation

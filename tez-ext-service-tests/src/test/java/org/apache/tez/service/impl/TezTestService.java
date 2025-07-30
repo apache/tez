@@ -19,18 +19,19 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.tez.dag.api.TezConfiguration;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezExecutors;
 import org.apache.tez.common.TezSharedExecutor;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.service.ContainerRunner;
 import org.apache.tez.shufflehandler.ShuffleHandler;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
+
 import org.slf4j.LoggerFactory;
 
 public class TezTestService extends AbstractService implements ContainerRunner {

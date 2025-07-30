@@ -18,11 +18,12 @@
 package org.apache.tez.dag.records;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestTezIds {
 

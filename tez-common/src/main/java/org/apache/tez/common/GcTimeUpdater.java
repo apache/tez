@@ -22,9 +22,9 @@ import java.lang.management.ManagementFactory;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
-import org.apache.tez.common.counters.TaskCounter;
 
 /**
  * An updater that tracks the amount of time this task has spent in GC.

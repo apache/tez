@@ -247,5 +247,3 @@ public class ACLManager {
     return sb.toString();
   }
 }
-
-

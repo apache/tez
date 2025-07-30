@@ -18,6 +18,8 @@
 
 package org.apache.tez.runtime.api.impl;
 
+import static org.apache.tez.runtime.api.events.EventProtos.*;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -30,13 +32,13 @@ import org.apache.tez.common.TezConverterUtils;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.events.CompositeDataMovementEvent;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
-import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.EventProtos;
 import org.apache.tez.runtime.api.events.EventProtos.CompositeEventProto;
-import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.CompositeRoutedDataMovementEventProto;
+import org.apache.tez.runtime.api.events.EventProtos.DataMovementEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputFailedEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.InputReadErrorEventProto;
 import org.apache.tez.runtime.api.events.EventProtos.RootInputDataInformationEventProto;
@@ -57,8 +59,6 @@ import org.apache.tez.runtime.internals.api.events.SystemEventProtos.TaskAttempt
 import com.google.protobuf.AbstractMessage;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
-
-import static org.apache.tez.runtime.api.events.EventProtos.*;
 
 public class TezEvent implements Writable {
 

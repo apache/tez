@@ -23,19 +23,18 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
-import org.junit.Assert;
-import org.junit.Test;
-
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.Priority;
-
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AllocatedTask;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.AsyncDelegateRequestHandler;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.LocalContainerFactory;
 import org.apache.tez.dag.app.rm.LocalTaskSchedulerService.SchedulerRequest;
+import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestLocalTaskScheduler {
 

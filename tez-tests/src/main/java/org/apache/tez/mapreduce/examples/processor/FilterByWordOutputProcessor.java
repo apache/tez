@@ -20,9 +20,6 @@ package org.apache.tez.mapreduce.examples.processor;
 
 import java.util.List;
 
-import org.apache.tez.common.ProgressHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.tez.mapreduce.output.MROutput;
 import org.apache.tez.mapreduce.processor.SimpleMRProcessor;
 import org.apache.tez.mapreduce.processor.map.MapProcessor;
@@ -33,6 +30,9 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValueWriter;
 import org.apache.tez.runtime.library.input.UnorderedKVInput;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class FilterByWordOutputProcessor extends SimpleMRProcessor {

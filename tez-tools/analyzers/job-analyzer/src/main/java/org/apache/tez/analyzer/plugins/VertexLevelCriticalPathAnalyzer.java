@@ -18,13 +18,10 @@
 
 package org.apache.tez.analyzer.plugins;
 
-import com.google.common.base.Functions;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ToolRunner;
@@ -35,10 +32,13 @@ import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Functions;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 /**
  * Identify a set of vertices which fall in the critical path in a DAG.

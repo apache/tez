@@ -28,10 +28,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.hadoop.conf.Configurable;
@@ -41,10 +37,15 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezException;
+import org.apache.tez.mapreduce.grouper.TezSplitGrouper;
 
-import org.apache.tez.common.Preconditions;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An InputFormat that provides a generic grouping around the splits

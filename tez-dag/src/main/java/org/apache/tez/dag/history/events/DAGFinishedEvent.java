@@ -22,9 +22,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
@@ -41,6 +38,9 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.SummaryEventProto;
 
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 
 public class DAGFinishedEvent implements HistoryEvent, SummaryEvent, DAGIDAware {
 

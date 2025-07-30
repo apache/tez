@@ -26,8 +26,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -50,6 +48,9 @@ import org.apache.tez.examples.TezExampleBase;
 import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import org.apache.tez.util.StopWatch;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RPCLoadGen extends TezExampleBase {
 

@@ -22,11 +22,11 @@ import java.util.List;
 
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
-import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.DAGStatusProto.Builder;
+import org.apache.tez.dag.api.records.DAGProtos.DAGStatusStateProto;
+import org.apache.tez.dag.api.records.DAGProtos.StringProgressPairProto;
 import org.apache.tez.dag.app.dag.DAGState;
 
 public class DAGStatusBuilder extends DAGStatus {

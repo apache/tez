@@ -66,6 +66,9 @@ import org.apache.tez.runtime.library.testutils.KVDataGen;
 import org.apache.tez.runtime.library.testutils.KVDataGen.KVPair;
 import org.apache.tez.runtime.library.utils.BufferUtils;
 import org.apache.tez.runtime.library.utils.CodecUtils;
+
+import com.google.protobuf.ByteString;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -73,8 +76,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.protobuf.ByteString;
 
 public class TestIFile {
 

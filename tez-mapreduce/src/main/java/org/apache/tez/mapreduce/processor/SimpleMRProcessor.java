@@ -20,8 +20,6 @@ package org.apache.tez.mapreduce.processor;
 import java.io.IOException;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Evolving;
 import org.apache.tez.mapreduce.output.MROutput;
@@ -31,6 +29,9 @@ import org.apache.tez.runtime.api.ProcessorContext;
 import org.apache.tez.runtime.library.processor.SimpleProcessor;
 
 import com.google.common.collect.Lists;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link SimpleProcessor} that provides Map Reduce specific post

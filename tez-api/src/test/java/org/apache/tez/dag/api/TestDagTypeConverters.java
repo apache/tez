@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -45,10 +44,11 @@ import org.apache.tez.serviceplugins.api.ContainerLauncherDescriptor;
 import org.apache.tez.serviceplugins.api.ServicePluginsDescriptor;
 import org.apache.tez.serviceplugins.api.TaskCommunicatorDescriptor;
 import org.apache.tez.serviceplugins.api.TaskSchedulerDescriptor;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.google.common.collect.Sets;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestDagTypeConverters {
 

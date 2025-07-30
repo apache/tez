@@ -17,9 +17,10 @@ package org.apache.tez.mapreduce.grouper;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.tez.dag.api.TezUncheckedException;
+
+import com.google.common.collect.Lists;
 
 
 /**

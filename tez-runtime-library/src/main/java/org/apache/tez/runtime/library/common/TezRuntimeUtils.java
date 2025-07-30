@@ -25,18 +25,16 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 
+import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputByteBuffer;
 import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.http.SSLFactory;
 import org.apache.tez.http.async.netty.AsyncHttpConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.hadoop.classification.InterfaceAudience.Private;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.TaskContext;
 import org.apache.tez.runtime.library.api.Partitioner;
@@ -44,6 +42,9 @@ import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.combine.Combiner;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutput;
 import org.apache.tez.runtime.library.common.task.local.output.TezTaskOutputFiles;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Private
 public final class TezRuntimeUtils {

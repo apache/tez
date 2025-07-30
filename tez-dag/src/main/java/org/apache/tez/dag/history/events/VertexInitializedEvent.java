@@ -23,9 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.InputInitializerDescriptor;
@@ -43,6 +40,9 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexInitializedProto
 import org.apache.tez.runtime.api.impl.TezEvent;
 
 import com.google.common.collect.Lists;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 
 public class VertexInitializedEvent implements HistoryEvent, VertexIDAware {
 

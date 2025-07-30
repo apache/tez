@@ -32,11 +32,11 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.dag.api.VertexGroup.GroupInfo;
 import org.apache.tez.runtime.api.LogicalIOProcessor;
 
-import org.apache.tez.common.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 

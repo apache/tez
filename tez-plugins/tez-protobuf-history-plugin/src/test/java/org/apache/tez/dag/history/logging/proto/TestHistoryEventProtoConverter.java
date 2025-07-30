@@ -81,11 +81,12 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.runtime.api.TaskFailureType;
+
+import com.google.common.collect.Lists;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 public class TestHistoryEventProtoConverter {
   private ApplicationAttemptId applicationAttemptId;

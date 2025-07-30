@@ -18,8 +18,8 @@
 
 package org.apache.tez.runtime.api;
 
-import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.tez.dag.api.client.VertexStatus;
 
 /**

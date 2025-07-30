@@ -17,8 +17,6 @@ package org.apache.tez.service.impl;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
@@ -27,6 +25,9 @@ import org.apache.tez.service.TezTestServiceProtocolBlockingPB;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerRequestProto;
 import org.apache.tez.test.service.rpc.TezTestServiceProtocolProtos.RunContainerResponseProto;
+
+import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
 
 public class TezTestServiceProtocolClientImpl implements TezTestServiceProtocolBlockingPB {

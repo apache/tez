@@ -17,13 +17,14 @@
  */
 package org.apache.tez.common;
 
-import org.apache.hadoop.yarn.event.Event;
-import org.apache.hadoop.yarn.event.EventHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.hadoop.yarn.event.Event;
+import org.apache.hadoop.yarn.event.EventHandler;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DrainDispatcher extends AsyncDispatcher {
   static final String DEFAULT_NAME = "dispatcher";

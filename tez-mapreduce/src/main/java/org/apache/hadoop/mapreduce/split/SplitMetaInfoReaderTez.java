@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +34,9 @@ import org.apache.hadoop.mapreduce.split.JobSplit.TaskSplitMetaInfo;
 import org.apache.hadoop.util.functional.FutureIO;
 import org.apache.tez.common.MRFrameworkConfigs;
 import org.apache.tez.mapreduce.hadoop.MRJobConfig;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility that reads the split meta info and creates split meta info objects

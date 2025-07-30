@@ -17,6 +17,9 @@
  */
 package org.apache.tez.auxservices;
 
+import static org.apache.tez.auxservices.IndexCache.INDEX_CACHE_MB;
+import static org.junit.Assert.*;
+
 import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -26,19 +29,16 @@ import java.util.zip.CheckedOutputStream;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ChecksumException;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.security.UserGroupInformation;
-
 import org.apache.tez.runtime.library.common.Constants;
 import org.apache.tez.runtime.library.common.sort.impl.TezIndexRecord;
+
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.tez.auxservices.IndexCache.INDEX_CACHE_MB;
-import static org.junit.Assert.*;
 
 public class TestIndexCache {
   private Configuration conf;

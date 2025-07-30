@@ -18,13 +18,13 @@
 
 package org.apache.tez.runtime.task;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.tez.common.CallableWithNdc;
 import org.apache.tez.common.ContainerContext;
 import org.apache.tez.common.ContainerTask;
 import org.apache.tez.common.TezTaskUmbilicalProtocol;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -18,10 +18,10 @@
 
 package org.apache.tez.dag.app;
 
-import org.apache.hadoop.yarn.util.Clock;
-
 import java.util.Collection;
 import java.util.LinkedList;
+
+import org.apache.hadoop.yarn.util.Clock;
 
 public class MockClock implements Clock {
   

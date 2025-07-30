@@ -20,10 +20,10 @@
 
 package org.apache.tez.runtime.library.conf;
 
-import javax.annotation.Nullable;
-
 import java.util.Map;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;

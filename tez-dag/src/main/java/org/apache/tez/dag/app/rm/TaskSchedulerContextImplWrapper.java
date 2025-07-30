@@ -18,8 +18,6 @@
 
 package org.apache.tez.dag.app.rm;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +25,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import com.google.common.annotations.VisibleForTesting;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -42,6 +42,8 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.ServicePluginError;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Makes use of an ExecutionService to invoke application callbacks. Methods

@@ -27,15 +27,16 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Set;
 
-import org.apache.tez.runtime.api.ProgressFailedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.tez.runtime.api.Input;
-import org.apache.tez.runtime.api.MergedLogicalInput;
 import org.apache.tez.runtime.api.MergedInputContext;
+import org.apache.tez.runtime.api.MergedLogicalInput;
+import org.apache.tez.runtime.api.ProgressFailedException;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A {@link MergedLogicalInput} which merges multiple

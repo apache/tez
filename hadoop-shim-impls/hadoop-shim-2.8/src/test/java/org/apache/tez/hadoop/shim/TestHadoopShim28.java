@@ -19,6 +19,7 @@
 package org.apache.tez.hadoop.shim;
 
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+
 import org.junit.Assert;
 import org.junit.Test;
 

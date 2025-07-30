@@ -29,13 +29,12 @@ import javax.annotation.Nullable;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.event.VertexState;
 import org.apache.tez.runtime.api.InputSpecUpdate;
 import org.apache.tez.runtime.api.VertexStatistics;
 import org.apache.tez.runtime.api.events.CustomProcessorEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
-
-import org.apache.tez.common.Preconditions;
 
 /**
  * Object with API's to interact with the Tez execution engine

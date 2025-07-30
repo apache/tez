@@ -25,11 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.google.protobuf.ExtensionRegistry;
 import org.apache.hadoop.io.Writable;
 
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 

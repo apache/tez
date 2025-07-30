@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -64,6 +63,9 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.HadoopShim;
+
+import com.google.protobuf.CodedInputStream;
+
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;

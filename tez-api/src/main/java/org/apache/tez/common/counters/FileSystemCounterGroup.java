@@ -22,22 +22,21 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import com.google.common.base.Joiner;
-
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.util.StringInterner;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 
 /**
  * An abstract class to provide common implementation of the filesystem

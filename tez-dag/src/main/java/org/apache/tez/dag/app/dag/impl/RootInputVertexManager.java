@@ -27,8 +27,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.annotations.VisibleForTesting;
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
@@ -46,13 +48,12 @@ import org.apache.tez.runtime.api.events.InputConfigureVertexTasksEvent;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
 import org.apache.tez.runtime.api.events.InputUpdatePayloadEvent;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import org.apache.tez.common.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 
-import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RootInputVertexManager extends VertexManagerPlugin {
 

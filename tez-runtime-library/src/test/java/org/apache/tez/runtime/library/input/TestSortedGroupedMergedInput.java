@@ -37,6 +37,7 @@ import org.apache.tez.runtime.api.MergedInputContext;
 import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.library.api.KeyValueReader;
 import org.apache.tez.runtime.library.api.KeyValuesReader;
+
 import org.junit.Test;
 
 public class TestSortedGroupedMergedInput {

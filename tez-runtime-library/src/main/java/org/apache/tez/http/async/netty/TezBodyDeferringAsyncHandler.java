@@ -17,16 +17,6 @@
  */
 package org.apache.tez.http.async.netty;
 
-import org.asynchttpclient.AsyncHandler;
-import org.asynchttpclient.HttpResponseBodyPart;
-import org.asynchttpclient.HttpResponseStatus;
-import org.asynchttpclient.Response;
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.netty.handler.codec.http.HttpHeaders;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +27,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.hadoop.classification.InterfaceAudience;
+
+import io.netty.handler.codec.http.HttpHeaders;
+
+import org.asynchttpclient.AsyncHandler;
+import org.asynchttpclient.HttpResponseBodyPart;
+import org.asynchttpclient.HttpResponseStatus;
+import org.asynchttpclient.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Same as {@link org.asynchttpclient.BodyDeferringAsyncHandler} with additional checks handle

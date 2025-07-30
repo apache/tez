@@ -33,4 +33,3 @@ public class AMSchedulerEventDeallocateContainer extends AMSchedulerEvent {
     return this.containerId;
   }
 }
-

@@ -20,10 +20,11 @@ package org.apache.tez.common.security;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.google.common.collect.Sets;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestDAGAccessControls {
 

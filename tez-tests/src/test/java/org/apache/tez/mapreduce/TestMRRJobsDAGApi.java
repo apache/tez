@@ -45,8 +45,6 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -68,9 +66,10 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.tez.client.TezClientUtils;
-import org.apache.tez.client.TezClient;
 import org.apache.tez.client.TezAppMasterStatus;
+import org.apache.tez.client.TezClient;
+import org.apache.tez.client.TezClientUtils;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.common.TezClassLoader;
 import org.apache.tez.common.TezUtils;
@@ -96,8 +95,8 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.dag.api.Vertex;
 import org.apache.tez.dag.api.client.DAGClient;
 import org.apache.tez.dag.api.client.DAGStatus;
-import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.api.client.DAGStatus.State;
+import org.apache.tez.dag.api.client.StatusGetOpts;
 import org.apache.tez.dag.history.logging.impl.SimpleHistoryLoggingService;
 import org.apache.tez.mapreduce.common.MRInputAMSplitGenerator;
 import org.apache.tez.mapreduce.examples.BroadcastAndOneToOneExample;
@@ -126,13 +125,15 @@ import org.apache.tez.runtime.library.output.OrderedPartitionedKVOutput;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.test.MiniTezCluster;
+
+import com.google.common.collect.Sets;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestMRRJobsDAGApi {
 

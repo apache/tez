@@ -14,9 +14,9 @@
 
 package org.apache.tez.dag.app.rm;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;

@@ -15,18 +15,20 @@
 
 package org.apache.tez.runtime.task;
 
-import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.impl.TezEvent;
 import org.apache.tez.runtime.api.impl.TezOutputContextImpl;
 import org.apache.tez.runtime.api.impl.TezUmbilical;
 import org.apache.tez.runtime.internals.api.TezTrapEvent;
+
+import com.google.common.base.Preconditions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Class that handles the events after the trap has been activated. At

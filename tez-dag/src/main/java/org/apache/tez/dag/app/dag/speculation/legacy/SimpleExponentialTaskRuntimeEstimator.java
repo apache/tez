@@ -20,6 +20,7 @@ package org.apache.tez.dag.app.dag.speculation.legacy;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -191,4 +192,3 @@ public class SimpleExponentialTaskRuntimeEstimator extends StartEndTimesBase {
     incorporateReading(attemptID, progress, timestamp);
   }
 }
-

@@ -24,25 +24,26 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Inflater;
 
-import com.google.protobuf.ByteString;
-import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
-import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputContext;
+import org.apache.tez.runtime.api.events.CompositeRoutedDataMovementEvent;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.events.InputFailedEvent;
+import org.apache.tez.runtime.library.common.CompositeInputAttemptIdentifier;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleEventHandler;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.DataMovementEventPayloadProto;
 import org.apache.tez.util.StringInterner;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandler {
 
@@ -238,4 +239,3 @@ public class ShuffleInputEventHandlerOrderedGrouped implements ShuffleEventHandl
     return srcAttemptIdentifier;
   }
 }
-

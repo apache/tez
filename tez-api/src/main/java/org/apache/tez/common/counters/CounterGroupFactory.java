@@ -21,10 +21,10 @@ package org.apache.tez.common.counters;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.classification.InterfaceAudience;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import org.apache.hadoop.classification.InterfaceAudience;
 
 /**
  * An abstract class to provide common implementation of the

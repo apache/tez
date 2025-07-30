@@ -25,18 +25,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.annotations.VisibleForTesting;
-
-import org.apache.tez.common.TezUtils;
-import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezCommonUtils;
 import org.apache.tez.common.TezRuntimeFrameworkConfigs;
+import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.runtime.api.AbstractLogicalOutput;
@@ -46,7 +41,13 @@ import org.apache.tez.runtime.api.OutputContext;
 import org.apache.tez.runtime.api.Writer;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
 import org.apache.tez.runtime.library.common.MemoryUpdateCallbackHandler;
+import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.runtime.library.common.writers.UnorderedPartitionedKVWriter;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link UnorderedPartitionedKVOutput} is a {@link LogicalOutput} which can be used to

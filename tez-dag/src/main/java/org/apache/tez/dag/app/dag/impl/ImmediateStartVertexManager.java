@@ -18,12 +18,12 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.VertexManagerPlugin;
@@ -35,10 +35,11 @@ import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.TaskAttemptIdentifier;
 import org.apache.tez.runtime.api.events.VertexManagerEvent;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Starts all tasks immediately on vertex start

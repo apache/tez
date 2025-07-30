@@ -18,9 +18,6 @@
 
 package org.apache.tez.test;
 
-import org.apache.tez.dag.app.MockClock;
-import org.apache.tez.dag.app.MockClock.MockClockListener;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -38,6 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.tez.dag.app.MockClock;
+import org.apache.tez.dag.app.MockClock.MockClockListener;
 
 /** A scheduled executor service with timing that can be controlled for unit tests. */
 public class ControlledScheduledExecutorService implements ScheduledExecutorService, MockClockListener {

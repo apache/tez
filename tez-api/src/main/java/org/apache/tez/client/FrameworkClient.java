@@ -46,10 +46,11 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRespo
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.ServiceException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Private
 public abstract class FrameworkClient {

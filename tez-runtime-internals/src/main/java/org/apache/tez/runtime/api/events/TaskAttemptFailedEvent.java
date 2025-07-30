@@ -18,8 +18,8 @@
 
 package org.apache.tez.runtime.api.events;
 
-import org.apache.tez.runtime.api.TaskFailureType;
 import org.apache.tez.runtime.api.Event;
+import org.apache.tez.runtime.api.TaskFailureType;
 
 public class TaskAttemptFailedEvent extends Event {
 

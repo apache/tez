@@ -17,11 +17,11 @@
  */
 package org.apache.tez.common;
 
-import com.google.common.util.concurrent.MoreExecutors;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 /**
  * A interoperability layer to work with multiple versions of guava.

@@ -17,7 +17,6 @@
  */
 package org.apache.tez.runtime.api;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;

@@ -18,11 +18,12 @@
 
 package org.apache.tez.history.parser;
 
+import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.history.parser.datamodel.DagInfo;
-import org.codehaus.jettison.json.JSONException;
 
-import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.codehaus.jettison.json.JSONException;
 
 /**
  * Main interface to pull data from ATS.
