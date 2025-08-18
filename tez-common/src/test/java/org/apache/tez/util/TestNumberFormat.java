@@ -17,10 +17,10 @@
  */
 package org.apache.tez.util;
 
+import java.text.NumberFormat;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.text.NumberFormat;
 
 public class TestNumberFormat {
 

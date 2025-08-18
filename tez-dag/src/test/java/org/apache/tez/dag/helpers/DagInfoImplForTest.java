@@ -14,11 +14,11 @@
 
 package org.apache.tez.dag.helpers;
 
+import java.util.BitSet;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
 import org.apache.tez.serviceplugins.api.DagInfo;
-
-import java.util.BitSet;
 
 public class DagInfoImplForTest implements DagInfo {
 

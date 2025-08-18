@@ -21,7 +21,6 @@ package org.apache.tez.dag.app.dag;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
@@ -33,6 +32,8 @@ import org.apache.tez.dag.records.TaskAttemptIDAware;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.runtime.api.impl.TezEvent;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Read only view of TaskAttempt.

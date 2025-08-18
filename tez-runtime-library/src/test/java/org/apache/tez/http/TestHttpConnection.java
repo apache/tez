@@ -18,12 +18,12 @@
 
 package org.apache.tez.http;
 
-import com.google.common.base.Throwables;
-import org.apache.tez.http.async.netty.AsyncHttpConnection;
-import org.apache.tez.common.security.JobTokenSecretManager;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -38,12 +38,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import org.apache.tez.common.security.JobTokenSecretManager;
+import org.apache.tez.http.async.netty.AsyncHttpConnection;
+
+import com.google.common.base.Throwables;
+
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class TestHttpConnection {
 

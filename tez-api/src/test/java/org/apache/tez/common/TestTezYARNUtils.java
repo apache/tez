@@ -18,6 +18,9 @@
 
 package org.apache.tez.common;
 
+import static org.apache.tez.common.TezYARNUtils.appendToEnvFromInputString;
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,11 +31,9 @@ import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.apache.tez.common.TezYARNUtils.appendToEnvFromInputString;
-import static org.junit.Assert.assertEquals;
 
 public class TestTezYARNUtils {
 

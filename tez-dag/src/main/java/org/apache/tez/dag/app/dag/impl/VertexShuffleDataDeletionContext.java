@@ -18,10 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
-import org.apache.tez.dag.app.dag.Vertex;
-
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.tez.dag.app.dag.Vertex;
 
 public class VertexShuffleDataDeletionContext {
   private int deletionHeight;

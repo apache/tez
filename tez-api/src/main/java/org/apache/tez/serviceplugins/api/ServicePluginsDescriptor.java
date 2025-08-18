@@ -16,9 +16,9 @@ package org.apache.tez.serviceplugins.api;
 
 import java.util.Arrays;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezConfiguration;
 
 /**

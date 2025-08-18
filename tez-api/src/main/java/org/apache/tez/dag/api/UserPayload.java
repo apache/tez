@@ -18,12 +18,14 @@
 
 package org.apache.tez.dag.api;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
+
 import javax.annotation.Nullable;
 
 import org.apache.hadoop.classification.InterfaceAudience.Public;
 import org.apache.hadoop.classification.InterfaceStability;
+
+import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Wrapper class to hold user payloads

@@ -22,11 +22,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
@@ -43,6 +41,9 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.DAGClientAMProto
 import org.apache.tez.dag.app.security.authorize.TezAMPolicyProvider;
 
 import com.google.protobuf.BlockingService;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DAGClientServer extends AbstractService {
   static final Logger LOG = LoggerFactory.getLogger(DAGClientServer.class);

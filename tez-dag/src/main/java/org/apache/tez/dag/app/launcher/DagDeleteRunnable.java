@@ -18,17 +18,18 @@
 
 package org.apache.tez.dag.app.launcher;
 
+import java.io.IOException;
+import java.net.URL;
+
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.http.BaseHttpConnection;
 import org.apache.tez.http.HttpConnectionParams;
 import org.apache.tez.runtime.library.common.TezRuntimeUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.net.URL;
 
 class DagDeleteRunnable implements Runnable {
   private static final Logger LOG = LoggerFactory.getLogger(DagDeleteRunnable.class);

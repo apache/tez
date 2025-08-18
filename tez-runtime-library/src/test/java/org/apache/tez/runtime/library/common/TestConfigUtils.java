@@ -14,17 +14,18 @@
 
 package org.apache.tez.runtime.library.common;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.tez.runtime.library.api.TezRuntimeConfiguration;
+
 import org.junit.Test;
-
-import java.io.DataInput;
-import java.io.DataOutput;
-
-import static org.junit.Assert.assertEquals;
 
 
 public class TestConfigUtils {

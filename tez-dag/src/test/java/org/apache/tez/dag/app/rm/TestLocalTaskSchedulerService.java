@@ -18,6 +18,9 @@
 
 package org.apache.tez.dag.app.rm;
 
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -33,13 +36,11 @@ import org.apache.tez.dag.app.dag.Task;
 import org.apache.tez.dag.app.rm.TestLocalTaskSchedulerService.MockLocalTaskSchedulerSerivce.MockAsyncDelegateRequestHandler;
 import org.apache.tez.serviceplugins.api.DagInfo;
 import org.apache.tez.serviceplugins.api.TaskSchedulerContext;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 public class TestLocalTaskSchedulerService {
 

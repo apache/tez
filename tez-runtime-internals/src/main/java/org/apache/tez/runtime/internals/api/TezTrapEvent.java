@@ -18,12 +18,12 @@
 
 package org.apache.tez.runtime.internals.api;
 
-import org.apache.tez.common.TezAbstractEvent;
-import org.apache.tez.runtime.api.impl.TezEvent;
+import static org.apache.tez.runtime.internals.api.TezTrapEventType.TRAP_EVENT_TYPE;
 
 import java.util.List;
 
-import static org.apache.tez.runtime.internals.api.TezTrapEventType.TRAP_EVENT_TYPE;
+import org.apache.tez.common.TezAbstractEvent;
+import org.apache.tez.runtime.api.impl.TezEvent;
 
 /**
  * Event sent when no more events should be sent to the AM.

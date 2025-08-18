@@ -24,7 +24,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-
 import org.apache.tez.common.Preconditions;
 
 public class SplitsInClientOptionParser {

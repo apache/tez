@@ -21,8 +21,6 @@ package org.apache.tez.mapreduce.lib;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
@@ -30,12 +28,15 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
-import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.common.counters.TezCounters;
+import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.mapreduce.hadoop.mapred.MRReporter;
 import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.runtime.api.InputContext;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MRReaderMapred extends MRReader {
 

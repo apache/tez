@@ -18,8 +18,9 @@
 
 package org.apache.tez.analyzer.plugins;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.tez.analyzer.Analyzer;
@@ -32,11 +33,12 @@ import org.apache.tez.history.parser.datamodel.EdgeInfo;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo;
 import org.apache.tez.history.parser.datamodel.TaskInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * <p>
@@ -145,4 +147,3 @@ public class OneOnOneEdgeAnalyzer extends TezAnalyzerBase implements Analyzer {
     System.exit(res);
   }
 }
-

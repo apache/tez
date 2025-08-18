@@ -23,6 +23,8 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
@@ -41,9 +43,8 @@ import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.mapreduce.committer.MROutputCommitter;
 import org.apache.tez.mapreduce.hadoop.MRConfig;
 import org.apache.tez.runtime.api.OutputContext;
-import org.junit.Test;
 
-import java.io.File;
+import org.junit.Test;
 
 public class TestMROutputLegacy {
   private static final File TEST_DIR = new File(System.getProperty("test.build.data"),

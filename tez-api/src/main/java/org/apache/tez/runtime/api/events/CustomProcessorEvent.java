@@ -18,11 +18,10 @@
 
 package org.apache.tez.runtime.api.events;
 
-import org.apache.hadoop.classification.InterfaceAudience;
+import java.nio.ByteBuffer;
+
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.tez.runtime.api.Event;
-
-import java.nio.ByteBuffer;
 
 public class CustomProcessorEvent extends Event {
   private ByteBuffer payload;

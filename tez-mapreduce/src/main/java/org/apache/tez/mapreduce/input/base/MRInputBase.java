@@ -18,7 +18,8 @@
 
 package org.apache.tez.mapreduce.input.base;
 
-import org.apache.tez.common.Preconditions;
+import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
@@ -27,6 +28,7 @@ import org.apache.hadoop.mapred.TaskAttemptID;
 import org.apache.hadoop.mapred.TaskID;
 import org.apache.hadoop.mapreduce.TaskType;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.common.counters.TaskCounter;
 import org.apache.tez.common.counters.TezCounter;
@@ -40,11 +42,8 @@ import org.apache.tez.mapreduce.input.MRInput;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos;
 import org.apache.tez.runtime.api.AbstractLogicalInput;
 import org.apache.tez.runtime.api.Event;
-import org.apache.tez.runtime.api.Reader;
 import org.apache.tez.runtime.api.InputContext;
-
-import java.io.IOException;
-import java.util.List;
+import org.apache.tez.runtime.api.Reader;
 
 
 @InterfaceAudience.Private

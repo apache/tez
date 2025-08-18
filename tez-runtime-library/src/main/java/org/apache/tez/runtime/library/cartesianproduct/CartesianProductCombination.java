@@ -17,12 +17,13 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import org.apache.tez.common.Preconditions;
-import com.google.common.primitives.Ints;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.tez.common.Preconditions;
+
+import com.google.common.primitives.Ints;
 
 /**
  * Represent the combination of source chunks. A chunk is one or more source tasks or partitions.

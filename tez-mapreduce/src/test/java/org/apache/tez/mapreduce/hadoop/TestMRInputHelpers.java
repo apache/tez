@@ -46,13 +46,14 @@ import org.apache.tez.dag.api.DataSourceDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitProto;
 import org.apache.tez.runtime.api.events.InputDataInformationEvent;
+
+import com.google.protobuf.ByteString;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.google.protobuf.ByteString;
 
 public class TestMRInputHelpers {
 

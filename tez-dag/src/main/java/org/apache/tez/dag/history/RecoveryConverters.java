@@ -17,9 +17,6 @@
  */
 package org.apache.tez.dag.history;
 
-import org.apache.tez.dag.records.TezTaskAttemptID;
-import org.apache.tez.dag.recovery.records.RecoveryProtos;
-import org.apache.tez.runtime.api.impl.EventMetaData;
 
 public class RecoveryConverters {
 

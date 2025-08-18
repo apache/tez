@@ -19,8 +19,6 @@
 package org.apache.tez.dag.app.dag;
 
 import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.tez.dag.api.event.VertexStateUpdate;
-import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.records.TezTaskID;
 
 @InterfaceAudience.Private

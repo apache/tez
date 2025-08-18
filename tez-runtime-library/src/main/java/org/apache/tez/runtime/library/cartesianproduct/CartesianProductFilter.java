@@ -17,11 +17,11 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import org.apache.tez.dag.api.UserPayload;
+import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 
 import java.util.Map;
 
-import static org.apache.hadoop.classification.InterfaceStability.Evolving;
+import org.apache.tez.dag.api.UserPayload;
 
 /**
  * User can extend this base class and override <method>isValidCombination</method> to implement

@@ -18,8 +18,9 @@
 
 package org.apache.tez.runtime.library.common;
 
-import com.google.common.collect.Range;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+
+import com.google.common.collect.Range;
 
 /**
  * Container for a task number and an attempt number for the task.

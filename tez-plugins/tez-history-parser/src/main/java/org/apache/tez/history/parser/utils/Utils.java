@@ -18,8 +18,7 @@
 
 package org.apache.tez.history.parser.utils;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import java.util.List;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.log4j.ConsoleAppender;
@@ -34,12 +33,14 @@ import org.apache.tez.history.parser.datamodel.Constants;
 import org.apache.tez.history.parser.datamodel.Event;
 import org.apache.tez.history.parser.datamodel.TaskAttemptInfo.DataDependencyEvent;
 import org.apache.tez.util.StringInterner;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 @InterfaceAudience.Private
 public final class Utils {

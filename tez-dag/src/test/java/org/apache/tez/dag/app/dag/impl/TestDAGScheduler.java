@@ -18,6 +18,10 @@
 
 package org.apache.tez.dag.app.dag.impl;
 
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.tez.dag.app.dag.DAG;
 import org.apache.tez.dag.app.dag.DAGScheduler;
@@ -28,14 +32,11 @@ import org.apache.tez.dag.app.dag.event.TaskAttemptEventSchedule;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
-import org.junit.Assert;
-import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import static org.mockito.Mockito.*;
-
-import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestDAGScheduler {
 

@@ -14,7 +14,6 @@
 
 package org.apache.tez.mapreduce.grouper;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,11 +25,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.annotation.Nullable;
+
 import org.apache.hadoop.classification.InterfaceStability;
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.util.RackResolver;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TezUncheckedException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

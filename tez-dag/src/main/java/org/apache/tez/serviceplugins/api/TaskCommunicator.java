@@ -14,9 +14,10 @@
 
 package org.apache.tez.serviceplugins.api;
 
-import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ContainerId;

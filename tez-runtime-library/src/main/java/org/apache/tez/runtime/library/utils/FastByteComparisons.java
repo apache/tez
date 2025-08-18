@@ -23,10 +23,10 @@ import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import sun.misc.Unsafe;
-
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+
+import sun.misc.Unsafe;
 
 /**
  * Same as {@link org.apache.hadoop.io.FastByteComparisons}

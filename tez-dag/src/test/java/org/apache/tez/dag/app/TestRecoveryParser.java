@@ -18,6 +18,9 @@
 
 package org.apache.tez.dag.app;
 
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -27,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import com.google.common.collect.Sets;
-import com.google.protobuf.CodedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,8 +38,6 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
 import org.apache.hadoop.yarn.util.SystemClock;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.oldrecords.TaskAttemptState;
@@ -78,12 +77,11 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.events.DataMovementEvent;
 import org.apache.tez.runtime.api.impl.TezEvent;
-import org.junit.*;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import org.junit.*;
 
 public class TestRecoveryParser {
 

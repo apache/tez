@@ -18,9 +18,9 @@
 
 package org.apache.tez.dag.api.client;
 
-import org.apache.tez.dag.api.client.VertexStatus.State;
 import org.apache.tez.dag.api.records.DAGProtos;
 import org.apache.tez.dag.app.dag.VertexState;
+
 import org.junit.Assert;
 import org.junit.Test;
 

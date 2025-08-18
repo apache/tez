@@ -14,8 +14,8 @@
 
 package org.apache.tez.dag.app.launcher;
 
-import org.apache.tez.common.Preconditions;
 import org.apache.hadoop.classification.InterfaceAudience;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.serviceplugins.api.ContainerLaunchRequest;
 import org.apache.tez.serviceplugins.api.ContainerLauncherOperationBase;
 import org.apache.tez.serviceplugins.api.ContainerStopRequest;

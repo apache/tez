@@ -17,22 +17,24 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import com.google.common.primitives.Ints;
-import org.apache.tez.common.ReflectionUtils;
-import org.apache.tez.dag.api.EdgeManagerPluginContext;
-import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
-import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
-import org.apache.tez.dag.api.TezReflectionException;
-import org.apache.tez.dag.api.UserPayload;
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
 
-import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
+import javax.annotation.Nullable;
+
+import org.apache.tez.common.ReflectionUtils;
+import org.apache.tez.dag.api.EdgeManagerPluginContext;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
+import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
+import org.apache.tez.dag.api.TezReflectionException;
+import org.apache.tez.dag.api.UserPayload;
+
+import com.google.common.primitives.Ints;
 
 class CartesianProductEdgeManagerPartitioned extends CartesianProductEdgeManagerReal {
   private int positionId;

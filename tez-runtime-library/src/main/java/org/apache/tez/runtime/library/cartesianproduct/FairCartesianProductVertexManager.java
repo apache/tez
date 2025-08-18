@@ -17,21 +17,8 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import com.google.common.math.LongMath;
-import com.google.common.primitives.Ints;
-import com.google.protobuf.ByteString;
-import org.apache.tez.dag.api.EdgeProperty;
-import org.apache.tez.dag.api.UserPayload;
-import org.apache.tez.dag.api.VertexManagerPluginContext;
-import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
-import org.apache.tez.dag.api.event.VertexState;
-import org.apache.tez.dag.api.event.VertexStateUpdate;
-import org.apache.tez.runtime.api.TaskAttemptIdentifier;
-import org.apache.tez.runtime.api.events.VertexManagerEvent;
-import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
-import org.apache.tez.runtime.library.utils.Grouper;
-import org.roaringbitmap.RoaringBitmap;
-import org.slf4j.Logger;
+import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -44,8 +31,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
-import static org.apache.tez.dag.api.EdgeProperty.DataMovementType.CUSTOM;
-import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.CartesianProductConfigProto;
+import org.apache.tez.dag.api.EdgeProperty;
+import org.apache.tez.dag.api.UserPayload;
+import org.apache.tez.dag.api.VertexManagerPluginContext;
+import org.apache.tez.dag.api.VertexManagerPluginContext.ScheduleTaskRequest;
+import org.apache.tez.dag.api.event.VertexState;
+import org.apache.tez.dag.api.event.VertexStateUpdate;
+import org.apache.tez.runtime.api.TaskAttemptIdentifier;
+import org.apache.tez.runtime.api.events.VertexManagerEvent;
+import org.apache.tez.runtime.library.shuffle.impl.ShuffleUserPayloads.VertexManagerEventPayloadProto;
+import org.apache.tez.runtime.library.utils.Grouper;
+
+import com.google.common.math.LongMath;
+import com.google.common.primitives.Ints;
+import com.google.protobuf.ByteString;
+
+import org.roaringbitmap.RoaringBitmap;
+import org.slf4j.Logger;
 
 /**
  * In fair cartesian product case, we have one destination task for each source chunk combination.

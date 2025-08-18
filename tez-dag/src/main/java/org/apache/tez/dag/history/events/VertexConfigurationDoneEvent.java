@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.protobuf.CodedInputStream;
-import com.google.protobuf.CodedOutputStream;
-import com.google.protobuf.ExtensionRegistry;
 import org.apache.tez.dag.api.DagTypeConverters;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.VertexLocationHint;
@@ -38,6 +35,9 @@ import org.apache.tez.dag.recovery.records.RecoveryProtos.VertexConfigurationDon
 import org.apache.tez.runtime.api.InputSpecUpdate;
 
 import com.google.common.collect.Maps;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
+import com.google.protobuf.ExtensionRegistry;
 
 public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware {
 

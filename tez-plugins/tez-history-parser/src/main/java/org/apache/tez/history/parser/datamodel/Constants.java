@@ -18,9 +18,9 @@
 
 package org.apache.tez.history.parser.datamodel;
 
-import org.apache.tez.common.ATSConstants;
-
 import static org.apache.hadoop.classification.InterfaceAudience.Private;
+
+import org.apache.tez.common.ATSConstants;
 
 @Private
 public class Constants extends ATSConstants {

@@ -22,16 +22,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.tez.common.Preconditions;
 import org.apache.commons.io.input.BoundedInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.runtime.library.common.InputAttemptIdentifier;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LocalDiskFetchedInput extends FetchedInput {
   private static final Logger LOG = LoggerFactory.getLogger(LocalDiskFetchedInput.class);

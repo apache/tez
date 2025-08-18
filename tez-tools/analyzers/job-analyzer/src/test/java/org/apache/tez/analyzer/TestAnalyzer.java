@@ -60,15 +60,16 @@ import org.apache.tez.test.TestProcessor;
 import org.apache.tez.test.dag.SimpleReverseVTestDAG;
 import org.apache.tez.test.dag.SimpleVTestDAG;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 public class TestAnalyzer {
   private static final Logger LOG = LoggerFactory.getLogger(TestAnalyzer.class);

@@ -25,10 +25,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.security.Credentials;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
-
-import org.apache.tez.common.Preconditions;
 
 /**
  * Represents InputSplitInfo for splits generated to memory. </p>

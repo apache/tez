@@ -23,12 +23,13 @@ import java.net.URL;
 
 import javax.crypto.SecretKey;
 
-import com.google.common.base.Charsets;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.tez.common.security.JobTokenSecretManager;
+
+import com.google.common.base.Charsets;
 
 /**
  *

@@ -20,15 +20,16 @@ package org.apache.tez.dag.api.client;
 
 import java.util.List;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.tez.common.counters.TezCounters;
 import org.apache.tez.dag.api.DagTypeConverters;
+import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusProto.Builder;
 import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
-import org.apache.tez.dag.api.TezUncheckedException;
 import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.records.TezVertexID;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class VertexStatusBuilder extends VertexStatus {
 

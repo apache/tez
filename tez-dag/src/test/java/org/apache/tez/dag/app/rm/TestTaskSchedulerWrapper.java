@@ -14,9 +14,11 @@
 
 package org.apache.tez.dag.app.rm;
 
-import com.google.common.collect.Sets;
 import org.apache.tez.dag.app.PluginWrapperTestHelpers;
 import org.apache.tez.serviceplugins.api.TaskScheduler;
+
+import com.google.common.collect.Sets;
+
 import org.junit.Test;
 
 public class TestTaskSchedulerWrapper {

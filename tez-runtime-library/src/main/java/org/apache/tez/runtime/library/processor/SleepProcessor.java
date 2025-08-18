@@ -24,17 +24,19 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Charsets;
-import org.apache.tez.common.ProgressHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
+import org.apache.tez.common.ProgressHelper;
 import org.apache.tez.dag.api.UserPayload;
 import org.apache.tez.runtime.api.AbstractLogicalIOProcessor;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.LogicalInput;
 import org.apache.tez.runtime.api.LogicalOutput;
 import org.apache.tez.runtime.api.ProcessorContext;
+
+import com.google.common.base.Charsets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A simple sleep processor implementation that sleeps for the configured

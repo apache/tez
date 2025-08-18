@@ -19,10 +19,9 @@
 package org.apache.tez.runtime.api;
 
 import java.util.List;
-import java.util.Map;
 
-import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.tez.dag.api.event.VertexStateUpdate;
 import org.apache.tez.runtime.api.events.InputInitializerEvent;
 

@@ -17,16 +17,17 @@
  */
 package org.apache.tez.runtime.library.cartesianproduct;
 
-import com.google.common.primitives.Ints;
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductCombination.fromTaskId;
+import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
+
+import javax.annotation.Nullable;
+
 import org.apache.tez.dag.api.EdgeManagerPluginContext;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.CompositeEventRouteMetadata;
 import org.apache.tez.dag.api.EdgeManagerPluginOnDemand.EventRouteMetadata;
 import org.apache.tez.runtime.library.utils.Grouper;
 
-import javax.annotation.Nullable;
-
-import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductCombination.fromTaskId;
-import static org.apache.tez.runtime.library.cartesianproduct.CartesianProductUserPayload.*;
+import com.google.common.primitives.Ints;
 
 
 class FairCartesianProductEdgeManager extends CartesianProductEdgeManagerReal {

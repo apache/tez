@@ -22,18 +22,16 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.serializer.Deserializer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.tez.common.Preconditions;
 import org.apache.tez.common.counters.TezCounter;
 import org.apache.tez.runtime.library.common.sort.impl.TezRawKeyValueIterator;
 
-import org.apache.tez.common.Preconditions;
 
 /**
  * Iterates values while keys match in sorted input.
