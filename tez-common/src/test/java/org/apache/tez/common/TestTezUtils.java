@@ -305,7 +305,7 @@ public class TestTezUtils {
   public void testReadTezConfigurationXmlFromClasspath() throws IOException {
     InputStream is = ClassLoader.getSystemResourceAsStream(TezConfiguration.TEZ_SITE_XML);
     Configuration conf = TezUtilsInternal.readTezConfigurationXml(is);
-    assertEquals(conf.get("tez.lib.uris"), "tez.tar.gz");
+    assertEquals("tez.tar.gz", conf.get("tez.lib.uris"));
   }
 
   @Test(timeout = 5000)
@@ -318,13 +318,13 @@ public class TestTezUtils {
 
     assertFalse(spd.areContainersEnabled());
     assertTrue(spd.isUberEnabled());
-    assertEquals(tsd.getClassName(), "testScheduler0_class");
-    assertEquals(tsd.getEntityName(), "testScheduler0");
-    assertEquals(cld.getClassName(), "testLauncher0_class");
-    assertEquals(cld.getEntityName(), "testLauncher0");
-    assertEquals(tcd.getClassName(), "testComm0_class");
-    assertEquals(tcd.getEntityName(), "testComm0");
-    assertEquals(tcd.getUserPayload().getVersion(), 1);
-    assertArrayEquals(tcd.getUserPayload().deepCopyAsArray(), new byte[] {0, 0, 0, 1});
+    assertEquals("testScheduler0_class", tsd.getClassName());
+    assertEquals("testScheduler0", tsd.getEntityName());
+    assertEquals("testLauncher0_class", cld.getClassName());
+    assertEquals("testLauncher0", cld.getEntityName());
+    assertEquals("testComm0_class", tcd.getClassName());
+    assertEquals("testComm0", tcd.getEntityName());
+    assertEquals(1, tcd.getUserPayload().getVersion());
+    assertArrayEquals(new byte[] {0, 0, 0, 1}, tcd.getUserPayload().deepCopyAsArray());
   }
 }
