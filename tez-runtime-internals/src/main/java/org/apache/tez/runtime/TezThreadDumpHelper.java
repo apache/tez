@@ -20,6 +20,8 @@ package org.apache.tez.runtime;
 
 import static org.apache.hadoop.yarn.conf.YarnConfiguration.DEFAULT_NM_REMOTE_APP_LOG_DIR;
 import static org.apache.hadoop.yarn.conf.YarnConfiguration.NM_REMOTE_APP_LOG_DIR;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INITIAL_DELAY;
+import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL;
 import static org.apache.tez.dag.api.TezConfiguration.TEZ_THREAD_DUMP_INTERVAL_DEFAULT;
 
@@ -28,6 +30,7 @@ import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -55,11 +58,13 @@ public class TezThreadDumpHelper {
 
   private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
   private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
+  private final long initialDelay;
 
   private ScheduledExecutorService periodicThreadDumpServiceExecutor;
 
-  private TezThreadDumpHelper(long duration, Configuration conf) throws IOException {
+  private TezThreadDumpHelper(long duration, long initialDelay, Configuration conf) throws IOException {
     this.duration = duration;
+    this.initialDelay = initialDelay;
     Appender appender = org.apache.log4j.Logger.getRootLogger().getAppender(TezConstants.TEZ_CONTAINER_LOGGER_NAME);
     if (appender instanceof TezContainerLogAppender) {
       this.basePath = new Path(((TezContainerLogAppender) appender).getContainerLogDir());
@@ -69,8 +74,8 @@ public class TezThreadDumpHelper {
       this.basePath = new Path(conf.get(NM_REMOTE_APP_LOG_DIR, DEFAULT_NM_REMOTE_APP_LOG_DIR));
       this.fs = this.basePath.getFileSystem(conf);
     }
-    LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms frequency and at " +
-        "path: {}", duration, basePath);
+    LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms frequency and at "
+        + "path: {} with an initial delay of {}", duration, basePath, initialDelay);
   }
 
   public static TezThreadDumpHelper getInstance(Configuration conf) {
@@ -78,9 +83,11 @@ public class TezThreadDumpHelper {
         TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
     Preconditions.checkArgument(periodicThreadDumpFrequency > 0, "%s must be positive duration",
         TEZ_THREAD_DUMP_INTERVAL);
+    long initialDelay = conf.getTimeDuration(TEZ_THREAD_DUMP_INITIAL_DELAY, TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT,
+        TimeUnit.MILLISECONDS);
 
     try {
-      return new TezThreadDumpHelper(periodicThreadDumpFrequency, conf);
+      return new TezThreadDumpHelper(periodicThreadDumpFrequency, initialDelay, conf);
     } catch (IOException e) {
       throw new TezUncheckedException("Can not initialize periodic thread dump service", e);
     }
@@ -91,7 +98,8 @@ public class TezThreadDumpHelper {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("PeriodicThreadDumpService{" + name + "} #%d")
             .build());
     Runnable threadDumpCollector = new ThreadDumpCollector(basePath, name, fs);
-    periodicThreadDumpServiceExecutor.schedule(threadDumpCollector, duration, TimeUnit.MILLISECONDS);
+    periodicThreadDumpServiceExecutor.scheduleWithFixedDelay(threadDumpCollector, initialDelay, duration,
+        TimeUnit.MILLISECONDS);
     return this;
   }
 
@@ -128,7 +136,7 @@ public class TezThreadDumpHelper {
       if (!Thread.interrupted()) {
         try (FSDataOutputStream fsStream = fs.create(
             new Path(path, name + "_" + System.currentTimeMillis() + ".jstack"));
-            PrintStream printStream = new PrintStream(fsStream, false, "UTF8")) {
+            PrintStream printStream = new PrintStream(fsStream, false, StandardCharsets.UTF_8)) {
           printThreadInfo(printStream, name);
         } catch (IOException e) {
           throw new RuntimeException(e);
