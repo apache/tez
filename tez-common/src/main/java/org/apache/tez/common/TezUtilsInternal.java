@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -74,12 +75,19 @@ public final class TezUtilsInternal {
 
   private TezUtilsInternal() {}
 
-  public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws
-      IOException {
+  public static ConfigurationProto readUserSpecifiedTezConfiguration(String baseDir) throws IOException {
     File confPBFile = new File(baseDir, TezConstants.TEZ_PB_BINARY_CONF_NAME);
     try (FileInputStream fis = new FileInputStream(confPBFile)) {
       return ConfigurationProto.parseFrom(fis);
     }
+  }
+
+  public static Configuration readTezConfigurationXml(InputStream is) {
+    Configuration configuration = new Configuration();
+    if (is != null) {
+      configuration.addResource(is);
+    }
+    return configuration;
   }
 
   public static void addUserSpecifiedTezConfiguration(Configuration conf,

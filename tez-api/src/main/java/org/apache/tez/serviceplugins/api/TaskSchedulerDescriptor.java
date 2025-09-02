@@ -22,6 +22,12 @@ import org.apache.tez.dag.api.NamedEntityDescriptor;
 @InterfaceStability.Unstable
 public class TaskSchedulerDescriptor extends NamedEntityDescriptor<TaskSchedulerDescriptor> {
 
+  /**
+   * Public constructor to allow this descriptor to be instantiated by Jackson.
+   */
+  @InterfaceAudience.Private
+  public TaskSchedulerDescriptor() { }
+
   private TaskSchedulerDescriptor(String taskSchedulerName, String schedulerClassname) {
     super(taskSchedulerName, schedulerClassname);
   }
