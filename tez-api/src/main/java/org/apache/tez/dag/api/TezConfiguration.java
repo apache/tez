@@ -2310,6 +2310,16 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_THREAD_DUMP_INTERVAL_DEFAULT = "100ms";
 
   /**
+   * Time after which the first thread dump should be captured. Supports TimeUnits. This is effective only
+   * when org.apache.tez.dag.app.ThreadDumpDAGHook is configured to tez.am.hooks or
+   * org.apache.tez.runtime.task.ThreadDumpTaskAttemptHook is configured to tez.task.attempt.hooks.
+   */
+  @ConfigurationScope(Scope.DAG)
+  @ConfigurationProperty
+  public static final String TEZ_THREAD_DUMP_INITIAL_DELAY = "tez.thread.dump.initial.delay";
+  public static final String TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT = "0ms";
+
+  /**
    * Limits the amount of data that can be written to LocalFileSystem by a Task.
    */
   @ConfigurationScope(Scope.DAG)

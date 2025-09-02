@@ -628,18 +628,24 @@ public class TestTezJobs {
     RemoteIterator<LocatedFileStatus> files = localFs.listFiles(jstackPath, true);
     boolean appMasterDumpFound = false;
     boolean tezChildDumpFound = false;
+    int numAppMasterDumps = 0;
+    int numTezChildDumps = 0;
     while (files.hasNext()) {
       LocatedFileStatus file = files.next();
       if (file.getPath().getName().endsWith(".jstack")) {
         if (file.getPath().getName().contains("attempt")) {
           tezChildDumpFound = true;
+          numTezChildDumps++;
         } else {
           appMasterDumpFound = true;
+          numAppMasterDumps++;
         }
       }
     }
     assertTrue(tezChildDumpFound);
     assertTrue(appMasterDumpFound);
+    assertTrue(numAppMasterDumps >= 2);
+    assertTrue(numTezChildDumps >= 2);
   }
 
   /**
