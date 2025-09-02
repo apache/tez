@@ -102,6 +102,9 @@ public final class TezConstants {
   /// Version-related Environment variables
   public static final String TEZ_CLIENT_VERSION_ENV = "TEZ_CLIENT_VERSION";
 
+  //Arbitrary opaque ID to identify AM instances from AMRegistryClient
+  public static final String TEZ_AM_UUID = "UUID";
+
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_YARN_CONTAINERS = "TezYarn";
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_IN_AM = "TezUber";
 

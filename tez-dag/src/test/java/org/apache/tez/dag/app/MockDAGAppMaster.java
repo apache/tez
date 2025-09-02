@@ -500,7 +500,7 @@ public class MockDAGAppMaster extends DAGAppMaster {
       Credentials credentials, String jobUserName, int handlerConcurrency, int numConcurrentContainers) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs,  new TezApiVersionInfo().getVersion(),
-        credentials, jobUserName, null);
+        credentials, jobUserName, null, null);
     shutdownHandler = new MockDAGAppMasterShutdownHandler();
     this.launcherGoFlag = launcherGoFlag;
     this.initFailFlag = initFailFlag;

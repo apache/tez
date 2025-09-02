@@ -415,7 +415,7 @@ public class LocalClient extends FrameworkClient {
           versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto)
       : new DAGAppMaster(applicationAttemptId, cId, currentHost, nmPort, nmHttpPort,
           SystemClock.getInstance(), appSubmitTime, isSession, userDir, localDirs, logDirs,
-          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto);
+          versionInfo.getVersion(), credentials, jobUserName, amPluginDescriptorProto, null);
   }
 
   @Override

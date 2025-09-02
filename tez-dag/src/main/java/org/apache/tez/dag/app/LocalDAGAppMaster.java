@@ -37,7 +37,7 @@ public class LocalDAGAppMaster extends DAGAppMaster {
       Credentials credentials, String jobUserName, AMPluginDescriptorProto pluginDescriptorProto) {
     super(applicationAttemptId, containerId, nmHost, nmPort, nmHttpPort, clock, appSubmitTime,
         isSession, workingDirectory, localDirs, logDirs, clientVersion, credentials, jobUserName,
-        pluginDescriptorProto);
+        pluginDescriptorProto, null);
   }
 
   @Override

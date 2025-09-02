@@ -2349,4 +2349,11 @@ public class TezConfiguration extends Configuration {
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_STANDALONE_CONFS = TEZ_AM_PREFIX + "standalone.confs";
+
+  /**
+  * String value. The class to be used for the AM registry.
+  */
+ @ConfigurationScope(Scope.AM)
+ @ConfigurationProperty
+ public static final String TEZ_AM_REGISTRY_CLASS = TEZ_AM_PREFIX + "registry.class";
 }
