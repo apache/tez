@@ -52,19 +52,20 @@ import org.slf4j.LoggerFactory;
 
 public class TezThreadDumpHelper {
 
-  private final long duration;
+  private final long threadDumpFrequency;
+  private final long threadDumpInitialDelay;
   private final Path basePath;
   private final FileSystem fs;
 
   private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
   private static final Logger LOG = LoggerFactory.getLogger(TezThreadDumpHelper.class);
-  private final long initialDelay;
 
   private ScheduledExecutorService periodicThreadDumpServiceExecutor;
 
-  private TezThreadDumpHelper(long duration, long initialDelay, Configuration conf) throws IOException {
-    this.duration = duration;
-    this.initialDelay = initialDelay;
+  private TezThreadDumpHelper(long threadDumpFrequency, long threadDumpInitialDelay, Configuration conf)
+      throws IOException {
+    this.threadDumpFrequency = threadDumpFrequency;
+    this.threadDumpInitialDelay = threadDumpInitialDelay;
     Appender appender = org.apache.log4j.Logger.getRootLogger().getAppender(TezConstants.TEZ_CONTAINER_LOGGER_NAME);
     if (appender instanceof TezContainerLogAppender) {
       this.basePath = new Path(((TezContainerLogAppender) appender).getContainerLogDir());
@@ -75,19 +76,20 @@ public class TezThreadDumpHelper {
       this.fs = this.basePath.getFileSystem(conf);
     }
     LOG.info("Periodic Thread Dump Capture Service Configured to capture Thread Dumps at {} ms frequency and at "
-        + "path: {} with an initial delay of {}", duration, basePath, initialDelay);
+        + "path: {} with an initial delay of {}", threadDumpFrequency, basePath, threadDumpInitialDelay);
   }
 
   public static TezThreadDumpHelper getInstance(Configuration conf) {
-    long periodicThreadDumpFrequency = conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL,
-        TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
-    Preconditions.checkArgument(periodicThreadDumpFrequency > 0, "%s must be positive duration",
-        TEZ_THREAD_DUMP_INTERVAL);
-    long initialDelay = conf.getTimeDuration(TEZ_THREAD_DUMP_INITIAL_DELAY, TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT,
-        TimeUnit.MILLISECONDS);
+    long threadDumpFrequency =
+        conf.getTimeDuration(TEZ_THREAD_DUMP_INTERVAL, TEZ_THREAD_DUMP_INTERVAL_DEFAULT, TimeUnit.MILLISECONDS);
+    Preconditions.checkArgument(threadDumpFrequency > 0, "%s must be positive duration", TEZ_THREAD_DUMP_INTERVAL);
+    long threadDumpInitialDelay =
+        conf.getTimeDuration(TEZ_THREAD_DUMP_INITIAL_DELAY, TEZ_THREAD_DUMP_INITIAL_DELAY_DEFAULT,
+            TimeUnit.MILLISECONDS);
+    Preconditions.checkArgument(threadDumpInitialDelay >= 0, "%s can not be negative", TEZ_THREAD_DUMP_INITIAL_DELAY);
 
     try {
-      return new TezThreadDumpHelper(periodicThreadDumpFrequency, initialDelay, conf);
+      return new TezThreadDumpHelper(threadDumpFrequency, threadDumpInitialDelay, conf);
     } catch (IOException e) {
       throw new TezUncheckedException("Can not initialize periodic thread dump service", e);
     }
@@ -98,8 +100,8 @@ public class TezThreadDumpHelper {
         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("PeriodicThreadDumpService{" + name + "} #%d")
             .build());
     Runnable threadDumpCollector = new ThreadDumpCollector(basePath, name, fs);
-    periodicThreadDumpServiceExecutor.scheduleWithFixedDelay(threadDumpCollector, initialDelay, duration,
-        TimeUnit.MILLISECONDS);
+    periodicThreadDumpServiceExecutor.scheduleWithFixedDelay(threadDumpCollector, threadDumpInitialDelay,
+        threadDumpFrequency, TimeUnit.MILLISECONDS);
     return this;
   }
 
