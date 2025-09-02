@@ -48,7 +48,7 @@ public class TestAMRegistry {
     String className = "org.apache.tez.dag.api.client.registry.TestAMRegistry$SkeletonAMRegistry";
     conf.set(TezConfiguration.TEZ_AM_REGISTRY_CLASS, className);
     amRegistry = AMRegistryUtils.createAMRegistry(conf);
-    assertEquals(amRegistry.getClass().getName(), className);
+    assertEquals(className, amRegistry.getClass().getName());
   }
 
   @Test(timeout = 5000)
@@ -57,14 +57,10 @@ public class TestAMRegistry {
     when(dagClientServer.getBindAddress()).thenReturn(new InetSocketAddress("testhost", 1000));
     ApplicationId appId = ApplicationId.newInstance(0, 1);
     String id = UUID.randomUUID().toString();
-    AMRecord record = AMRegistryUtils.recordForDAGClientServer(
-        appId,
-        id,
-        dagClientServer
-    );
-    assertEquals(record.getApplicationId(), appId);
-    assertEquals(record.getHost(), "testhost");
-    assertEquals(record.getPort(), 1000);
+    AMRecord record = AMRegistryUtils.recordForDAGClientServer(appId, id, dagClientServer);
+    assertEquals(appId, record.getApplicationId());
+    assertEquals("testhost", record.getHost());
+    assertEquals(1000, record.getPort());
     assertEquals(record.getId(), id);
   }
 
@@ -82,8 +78,7 @@ public class TestAMRegistry {
       DAGAppMaster.initAmRegistry(appAttemptId.getApplicationId(), uuid, amRegistry, dagClientServer);
       dagClientServer.init(new Configuration());
       dagClientServer.start();
-      AMRecord record =
-          AMRegistryUtils.recordForDAGClientServer(appId, uuid, dagClientServer);
+      AMRecord record = AMRegistryUtils.recordForDAGClientServer(appId, uuid, dagClientServer);
       verify(amRegistry, times(1)).add(record);
     } finally {
       dagClientServer.stop();
@@ -97,5 +92,4 @@ public class TestAMRegistry {
     @Override public void add(AMRecord server) throws Exception { }
     @Override public void remove(AMRecord server) throws Exception { }
   }
-
 }

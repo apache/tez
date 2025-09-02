@@ -670,14 +670,12 @@ public class DAGAppMaster extends AbstractService {
   }
 
   @VisibleForTesting
-  public static void initAmRegistry(ApplicationId appId, String amUUID, AMRegistry amRegistry, DAGClientServer dagClientServer) throws Exception {
-    if(amRegistry != null) {
+  public static void initAmRegistry(ApplicationId appId, String amUUID, AMRegistry amRegistry,
+      DAGClientServer dagClientServer) {
+    if (amRegistry != null) {
       dagClientServer.registerServiceListener((service) -> {
         if (service.isInState(STATE.STARTED)) {
-          AMRecord amRecord = AMRegistryUtils.recordForDAGClientServer(
-              appId,
-              amUUID,
-              dagClientServer);
+          AMRecord amRecord = AMRegistryUtils.recordForDAGClientServer(appId, amUUID, dagClientServer);
           try {
             amRegistry.add(amRecord);
           } catch (Exception e) {

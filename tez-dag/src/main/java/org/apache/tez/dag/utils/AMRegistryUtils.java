@@ -28,19 +28,18 @@ import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.client.DAGClientServer;
 import org.apache.tez.dag.api.client.registry.AMRegistry;
 
-public class AMRegistryUtils {
-  public static AMRecord recordForDAGClientServer(ApplicationId appId, String opaqueId, DAGClientServer dagClientServer) {
+public final class AMRegistryUtils {
+
+  private AMRegistryUtils() {}
+
+  public static AMRecord recordForDAGClientServer(ApplicationId appId, String opaqueId,
+      DAGClientServer dagClientServer) {
     InetSocketAddress address = dagClientServer.getBindAddress();
     return new AMRecord(appId, address.getHostName(), address.getPort(), opaqueId);
   }
 
   public static AMRegistry createAMRegistry(Configuration conf) throws Exception {
     String tezAMRegistryClass = conf.get(TezConfiguration.TEZ_AM_REGISTRY_CLASS);
-    if(tezAMRegistryClass == null) {
-      return null;
-    } else {
-      AMRegistry amRegistry = ReflectionUtils.createClazzInstance(tezAMRegistryClass);
-      return amRegistry;
-    }
+    return tezAMRegistryClass == null ? null : ReflectionUtils.createClazzInstance(tezAMRegistryClass);
   }
 }

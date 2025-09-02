@@ -22,30 +22,26 @@ import org.apache.hadoop.service.AbstractService;
 import org.apache.tez.client.registry.AMRecord;
 
 /**
- * Base class for AMRegistry implementation
- * Implementation class is configured by tez.am.registry.class
- * Implementations should implement relevant service lifecycle operations:
- *   init, serviceStart, serviceStop, etc..
+ * Base class for AMRegistry implementations.
+ * The specific implementation class is configured by `tez.am.registry.class`.
  *
- *  init/serviceStart will be invoked during DAGAppMaster.serviceInit
- *
- *  serviceStop will invoked on DAGAppMaster shutdown
+ * Implementations should handle the relevant service lifecycle operations:
+ * `init`, `serviceStart`, `serviceStop`, etc.
+ * - `init` and `serviceStart` are invoked during `DAGAppMaster.serviceInit`.
+ * - `serviceStop` is invoked on `DAGAppMaster` shutdown.
  */
 public abstract class AMRegistry extends AbstractService {
 
-  /* Implementations should provide a public no-arg constructor */
+  /* Implementations should provide a public no-arg constructor. */
   protected AMRegistry(String name) {
     super(name);
   }
 
-  /* Under typical usage, add will be called once automatically with an AMRecord
-     for the DAGClientServer servicing an AM
-   */
+  /* Under typical usage, add() will be called once automatically with an AMRecord
+     for the DAGClientServer that services an AM. */
   public abstract void add(AMRecord server) throws Exception;
 
-  /*
-    Under typical usage, implementations should remove any stale AMRecords upon serviceStop
-   */
+  /* Under typical usage, implementations should remove any stale AMRecords upon serviceStop. */
   public abstract void remove(AMRecord server) throws Exception;
 
 }

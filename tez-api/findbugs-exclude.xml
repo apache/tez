@@ -131,4 +131,24 @@
     <Bug pattern="IS2_INCONSISTENT_SYNC" />
   </Match>
 
+  <!-- TEZ-4008 -->
+  <Match>
+    <Class name="org.apache.tez.client.registry.AMRecord" />
+    <Method name="&lt;init&gt;"
+            params="org.apache.hadoop.yarn.api.records.ApplicationId, java.lang.String, int, java.lang.String"
+            returns="void"/>
+    <Bug pattern="EI_EXPOSE_REP2" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.client.registry.AMRecord" />
+    <Method name="&lt;init&gt;" params="org.apache.hadoop.registry.client.types.ServiceRecord"/>
+    <Bug pattern="CT_CONSTRUCTOR_THROW" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.client.registry.AMRecord" />
+    <Method name="getApplicationId" />
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
 </FindBugsFilter>

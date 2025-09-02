@@ -22,25 +22,23 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-import com.google.common.base.Preconditions;
 
 /**
- * Represents an instance of an AM (DAGClientServer) in the AM registry
+ * Represents an instance of an AM (DAGClientServer) in the AM registry.
  */
 @InterfaceAudience.Public
 public class AMRecord {
-  private ApplicationId appId;
-  private String host;
-  private int port;
-  private String id;
-  private final static String APP_ID_RECORD_KEY = "appId";
-  private final static String HOST_RECORD_KEY = "host";
-  private final static String PORT_RECORD_KEY = "port";
-  private final static String OPAQUE_ID_KEY = "id";
+  private static final String APP_ID_RECORD_KEY = "appId";
+  private static final String HOST_RECORD_KEY = "host";
+  private static final String PORT_RECORD_KEY = "port";
+  private static final String OPAQUE_ID_KEY = "id";
+
+  private final ApplicationId appId;
+  private final String host;
+  private final int port;
+  private final String id;
 
   public AMRecord(ApplicationId appId, String host, int port, String id) {
-    Preconditions.checkNotNull(appId);
-    Preconditions.checkNotNull(host);
     this.appId = appId;
     this.host = host;
     this.port = port;
@@ -49,7 +47,6 @@ public class AMRecord {
   }
 
   public AMRecord(AMRecord other) {
-    Preconditions.checkNotNull(other);
     this.appId = other.getApplicationId();
     this.host = other.getHost();
     this.port = other.getPort();
@@ -57,17 +54,10 @@ public class AMRecord {
   }
 
   public AMRecord(ServiceRecord serviceRecord) {
-    String serviceAppId = serviceRecord.get(APP_ID_RECORD_KEY);
-    Preconditions.checkNotNull(serviceAppId);
-    this.appId = ApplicationId.fromString(serviceAppId);
-    String serviceHost = serviceRecord.get(HOST_RECORD_KEY);
-    Preconditions.checkNotNull(serviceHost);
-    this.host = serviceHost;
-    String servicePort = serviceRecord.get(PORT_RECORD_KEY);
-    this.port = Integer.parseInt(servicePort);
-    String serviceId = serviceRecord.get(OPAQUE_ID_KEY);
-    Preconditions.checkNotNull(serviceId);
-    this.id = serviceId;
+    this.appId = ApplicationId.fromString(serviceRecord.get(APP_ID_RECORD_KEY));
+    this.host = serviceRecord.get(HOST_RECORD_KEY);
+    this.port = Integer.parseInt(serviceRecord.get(PORT_RECORD_KEY));
+    this.id = serviceRecord.get(OPAQUE_ID_KEY);
   }
 
   public ApplicationId getApplicationId() {
@@ -82,12 +72,13 @@ public class AMRecord {
     return port;
   }
 
-  public String getId() { return id; }
+  public String getId() {
+    return id;
+  }
 
   @Override
   public boolean equals(Object other) {
-    if(other instanceof AMRecord) {
-      AMRecord otherRecord = (AMRecord) other;
+    if (other instanceof AMRecord otherRecord) {
       return appId.equals(otherRecord.appId)
           && host.equals(otherRecord.host)
           && port == otherRecord.port
@@ -95,11 +86,6 @@ public class AMRecord {
     } else {
       return false;
     }
-  }
-
-  @Override
-  public int hashCode() {
-    return appId.hashCode() * host.hashCode() * id.hashCode() + port;
   }
 
   public ServiceRecord toServiceRecord() {
@@ -111,4 +97,8 @@ public class AMRecord {
     return serviceRecord;
   }
 
+  @Override
+  public int hashCode() {
+    return appId.hashCode() * host.hashCode() * id.hashCode() + port;
+  }
 }
