@@ -103,7 +103,7 @@ public final class TezConstants {
   public static final String TEZ_CLIENT_VERSION_ENV = "TEZ_CLIENT_VERSION";
 
   //Arbitrary opaque ID to identify AM instances from AMRegistryClient
-  public static final String TEZ_AM_UUID = "UUID";
+  public static final String TEZ_AM_UUID = "TEZ_AM_UUID";
 
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_YARN_CONTAINERS = "TezYarn";
   private static final String TEZ_AM_SERVICE_PLUGIN_NAME_IN_AM = "TezUber";

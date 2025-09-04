@@ -75,7 +75,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-yarn-registry</artifactId>
+      <artifactId>hadoop-registry</artifactId>
       <version>${hadoop.version}</version>
     </dependency>
     <dependency>

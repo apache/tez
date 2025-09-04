@@ -19,8 +19,12 @@
 package org.apache.tez.dag.api.client.registry;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.util.UUID;
@@ -45,9 +49,10 @@ public class TestAMRegistry {
     Configuration conf = new Configuration();
     AMRegistry amRegistry = AMRegistryUtils.createAMRegistry(conf);
     assertNull(amRegistry);
-    String className = "org.apache.tez.dag.api.client.registry.TestAMRegistry$SkeletonAMRegistry";
+    String className = SkeletonAMRegistry.class.getName();
     conf.set(TezConfiguration.TEZ_AM_REGISTRY_CLASS, className);
     amRegistry = AMRegistryUtils.createAMRegistry(conf);
+    assertNotNull(amRegistry);
     assertEquals(className, amRegistry.getClass().getName());
   }
 
