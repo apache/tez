@@ -129,12 +129,13 @@ public class BroadcastAndOneToOneExample extends Configured implements Tool {
 
     int numBroadcastTasks = 2;
     int numOneToOneTasks = 3;
+    int numNMs;
     if (doLocalityCheck) {
-      YarnClient yarnClient = YarnClient.createYarnClient();
-      yarnClient.init(tezConf);
-      yarnClient.start();
-      int numNMs = yarnClient.getNodeReports(NodeState.RUNNING).size();
-      yarnClient.stop();
+      try (YarnClient yarnClient = YarnClient.createYarnClient()) {
+        yarnClient.init(tezConf);
+        yarnClient.start();
+        numNMs = yarnClient.getNodeReports(NodeState.RUNNING).size();
+      }
       // create enough 1-1 tasks to run in parallel
       numOneToOneTasks = numNMs - numBroadcastTasks - 1;// 1 AM
       if (numOneToOneTasks < 1) {
