@@ -644,7 +644,7 @@ public class TaskSchedulerManager extends AbstractService implements
         // Use the provided appId instead of constructing one for containers.
         customAppIdIdentifier = appContext.getApplicationID().getClusterTimestamp();
       } else {
-        customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);
+      customAppIdIdentifier = SCHEDULER_APP_ID_BASE + (j++ * SCHEDULER_APP_ID_INCREMENT);
       }
       taskSchedulers[i] = new TaskSchedulerWrapper(createTaskScheduler(host, port,
           trackingUrl, appContext, taskSchedulerDescriptors[i], customAppIdIdentifier, i));
