@@ -159,7 +159,8 @@ public class TezTaskCommunicatorImpl extends TaskCommunicator {
               conf.getInt(TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT,
                   TezConfiguration.TEZ_AM_TASK_LISTENER_THREAD_COUNT_DEFAULT))
           .setPortRangeConfig(TezConfiguration.TEZ_AM_TASK_AM_PORT_RANGE)
-          .setSecretManager(jobTokenSecretManager).build();
+          .setSecretManager(jobTokenSecretManager)
+          .build();
 
       // Enable service authorization?
       if (conf.getBoolean(

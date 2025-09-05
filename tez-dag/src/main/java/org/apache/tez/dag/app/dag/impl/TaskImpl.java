@@ -55,7 +55,7 @@ import org.apache.tez.dag.api.oldrecords.TaskReport;
 import org.apache.tez.dag.api.oldrecords.TaskState;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.RecoveryParser.TaskRecoveryData;
+import org.apache.tez.dag.app.RecoveryParser;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.StateChangeNotifier;
@@ -143,8 +143,7 @@ public class TaskImpl implements Task, EventHandler<TaskEvent> {
   long scheduledTime;
   final StateChangeNotifier stateChangeNotifier;
 
-  private final TaskRecoveryData recoveryData;
-
+  private final RecoveryParser.TaskRecoveryData recoveryData;
   private final List<TezEvent> tezEventsForTaskAttempts = new ArrayList<TezEvent>();
   static final ArrayList<TezEvent> EMPTY_TASK_ATTEMPT_TEZ_EVENTS =
       new ArrayList(0);

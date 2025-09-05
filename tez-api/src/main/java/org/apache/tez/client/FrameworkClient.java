@@ -19,6 +19,7 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -46,6 +47,8 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRespo
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
+import org.apache.tez.frameworkplugins.ClientFrameworkService;
+import org.apache.tez.frameworkplugins.FrameworkUtils;
 
 import com.google.protobuf.ServiceException;
 
@@ -57,6 +60,9 @@ public abstract class FrameworkClient {
   protected static final Logger LOG = LoggerFactory.getLogger(FrameworkClient.class);
 
   public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
+    Optional<FrameworkClient> pluginClient =
+        FrameworkUtils.get(ClientFrameworkService.class, tezConf)
+            .flatMap(framework -> framework.createOrGetFrameworkClient(tezConf));
 
     boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
@@ -65,6 +71,8 @@ public abstract class FrameworkClient {
       } catch (TezReflectionException e) {
         throw new TezUncheckedException("Fail to create LocalClient", e);
       }
+    } else if (pluginClient.isPresent()) {
+      return pluginClient.get();
     }
     return new TezYarnClient(YarnClient.createYarnClient());
   }

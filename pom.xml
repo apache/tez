@@ -69,6 +69,7 @@
     <commons-io.version>2.16.0</commons-io.version>
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
+    <curator.version>2.7.1</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
     <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
     <spotbugs.version>4.9.3</spotbugs.version>
@@ -735,6 +736,11 @@
             <artifactId>netty</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-registry</artifactId>
+        <version>${hadoop.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>

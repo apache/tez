@@ -286,7 +286,6 @@ public class DAGClientRPCImpl extends DAGClientInternal {
       // attempt not running
       return false;
     }
-
     proxy = TezClientUtils.getAMProxy(conf, appReport.getHost(), appReport.getRpcPort(),
         appReport.getClientToAMToken(), ugi);
     return true;
