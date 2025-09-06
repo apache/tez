@@ -149,6 +149,8 @@ public final class TezClientUtils {
     }
   }
 
+
+
   /**
    * Setup LocalResource map for Tez jars based on provided Configuration
    *
@@ -186,7 +188,7 @@ public final class TezClientUtils {
           + conf.get(TezConfiguration.TEZ_LIB_URIS_CLASSPATH));
 
       usingTezArchive = addLocalResources(conf, tezJarUris,
-                         tezJarResources, credentials);
+          tezJarResources, credentials);
 
       if (tezJarResources.isEmpty()) {
         throw new TezUncheckedException(
@@ -263,8 +265,8 @@ public final class TezClientUtils {
 
         // Add URI fragment or just the filename
         Path name = new Path((null == u.getFragment())
-          ? p.getName()
-          : u.getFragment());
+            ? p.getName()
+            : u.getFragment());
         if (name.isAbsolute()) {
           throw new IllegalArgumentException("Resource name must be "
               + "relative, not absolute: " + name
@@ -577,7 +579,7 @@ public final class TezClientUtils {
     // don't overwrite existing conf, needed for TezClient.getClient() so existing containers have stable resource fingerprints
     if(!binaryConfPath.getFileSystem(tezConf).exists(binaryConfPath)) {
       ConfigurationProto finalConfProto = createFinalConfProtoForApp(tezConf,
-              servicePluginsDescriptor);
+          servicePluginsDescriptor);
 
       FSDataOutputStream amConfPBOutBinaryStream = null;
       try {
@@ -618,12 +620,12 @@ public final class TezClientUtils {
     }
 
     LocalResource sessionJarsPBLRsrc =
-      TezClientUtils.createLocalResource(fs,
-        sessionJarsPath, LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
+        TezClientUtils.createLocalResource(fs,
+            sessionJarsPath, LocalResourceType.FILE,
+            LocalResourceVisibility.APPLICATION);
     amLocalResources.put(
-      TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME,
-      sessionJarsPBLRsrc);
+        TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME,
+        sessionJarsPBLRsrc);
 
     String user = UserGroupInformation.getCurrentUser().getShortUserName();
     ACLManager aclManager = new ACLManager(user, amConfig.getTezConfiguration());
@@ -655,9 +657,9 @@ public final class TezClientUtils {
       }
 
       amLocalResources.put(TezConstants.TEZ_PB_PLAN_BINARY_NAME,
-        TezClientUtils.createLocalResource(fs,
-          binaryPath, LocalResourceType.FILE,
-          LocalResourceVisibility.APPLICATION));
+          TezClientUtils.createLocalResource(fs,
+              binaryPath, LocalResourceType.FILE,
+              LocalResourceVisibility.APPLICATION));
 
       if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
         Path textPath = localizeDagPlanAsText(dagPB, fs, amConfig, strAppId, tezSysStagingPath);
@@ -688,7 +690,7 @@ public final class TezClientUtils {
 
     Collection<String> tagsFromConf =
         amConfig.getTezConfiguration().getTrimmedStringCollection(
-        TezConfiguration.TEZ_APPLICATION_TAGS);
+            TezConfiguration.TEZ_APPLICATION_TAGS);
 
     appContext.setApplicationType(TezConstants.TEZ_APPLICATION_TYPE);
     if (tagsFromConf != null && !tagsFromConf.isEmpty()) {
@@ -709,8 +711,8 @@ public final class TezClientUtils {
     appContext.setAMContainerSpec(amContainer);
 
     appContext.setMaxAppAttempts(
-      amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
-        TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
+        amConfig.getTezConfiguration().getInt(TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS,
+            TezConfiguration.TEZ_AM_MAX_APP_ATTEMPTS_DEFAULT));
 
     return appContext;
 
@@ -848,7 +850,7 @@ public final class TezClientUtils {
   }
 
   public static ConfigurationProto createFinalConfProtoForApp(Configuration amConf,
-    ServicePluginsDescriptor servicePluginsDescriptor) {
+      ServicePluginsDescriptor servicePluginsDescriptor) {
     assert amConf != null;
     ConfigurationProto.Builder builder = ConfigurationProto.newBuilder();
     for (Entry<String, String> entry : amConf) {
@@ -949,7 +951,7 @@ public final class TezClientUtils {
               + ", trackingUrl=" + appReport.getTrackingUrl()
               + ", diagnostics="
               + (appReport.getDiagnostics() != null ? appReport.getDiagnostics()
-                  : TezClient.NO_CLUSTER_DIAGNOSTICS_MSG);
+              : TezClient.NO_CLUSTER_DIAGNOSTICS_MSG);
           LOG.info(msg);
           throw new SessionNotRunning(msg);
         }
@@ -1015,7 +1017,7 @@ public final class TezClientUtils {
   public static String maybeAddDefaultMemoryJavaOpts(String javaOpts, Resource resource,
       double maxHeapFactor) {
     if ((javaOpts != null && !javaOpts.isEmpty()
-          && (javaOpts.contains("-Xmx") || javaOpts.contains("-Xms")))
+        && (javaOpts.contains("-Xmx") || javaOpts.contains("-Xms")))
         || (resource.getMemory() <= 0)) {
       return javaOpts;
     }
@@ -1026,8 +1028,8 @@ public final class TezClientUtils {
 
     if (Double.parseDouble("-1") == maxHeapFactor) {
       maxHeapFactor = resource.getMemory() < TezConstants.TEZ_CONTAINER_SMALL_SLAB_BOUND_MB
-        ? TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB
-        : TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB;
+          ? TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_SMALL_SLAB
+          : TezConstants.TEZ_CONTAINER_MAX_JAVA_HEAP_FRACTION_LARGE_SLAB;
     }
     int maxMemory = (int)(resource.getMemory() * maxHeapFactor);
     maxMemory = maxMemory <= 0 ? 1 : maxMemory;
@@ -1037,7 +1039,7 @@ public final class TezClientUtils {
   }
 
   private static boolean checkAncestorPermissionsForAllUsers(Configuration conf, Path pathComponent,
-                                                             FsAction permission) throws IOException {
+      FsAction permission) throws IOException {
     FileSystem fs = pathComponent.getFileSystem(conf);
 
     if (Shell.WINDOWS && fs instanceof LocalFileSystem) {
