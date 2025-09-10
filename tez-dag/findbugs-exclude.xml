@@ -273,4 +273,11 @@
     <Bug pattern="EI_EXPOSE_REP2"/>
   </Match>
 
+  <!-- TEZ-4007: ZkStandaloneServerFrameworkService exposes shared registry -->
+  <Match>
+    <Class name="org.apache.tez.frameworkplugins.zookeeper.ZkStandaloneServerFrameworkService"/>
+    <Method name="getAMRegistry"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
 </FindBugsFilter>

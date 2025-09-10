@@ -23,25 +23,62 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.tez.dag.api.TezConfiguration;
 
 import com.google.common.base.Preconditions;
 
-public class ZkConfig {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-  private String zkQuorum;
-  private String zkNamespace;
-  private int curatorBackoffSleep;
-  private int curatorMaxRetries;
-  private int sessionTimeoutMs;
-  private int connectionTimeoutMs;
+public class ZkConfig {
+  private static final Logger LOG = LoggerFactory.getLogger(ZkConfig.class);
+
+  // if namespace defined in config is 'foo' and COMPUTE_GROUP_NAME env is 'bar' then the zkpaths will be of format
+  // /tez-external-sessions/foo/bar
+  private final static String ZK_NAMESPACE_PREFIX = "/tez-external-sessions";
+  public final static String COMPUTE_GROUP_NAME_ENV = "COMPUTE_GROUP_NAME";
+  public final static String DEFAULT_COMPUTE_GROUP_NAME = "default-compute";
+
+  private final String zkQuorum;
+  private final String zkNamespace;
+  private final int curatorBackoffSleep;
+  private final int curatorMaxRetries;
+  private final int sessionTimeoutMs;
+  private final int connectionTimeoutMs;
 
   public ZkConfig(Configuration conf) {
     zkQuorum = conf.get(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM);
     Preconditions.checkNotNull(zkQuorum);
-    zkNamespace = conf.get(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE,
+
+    String fullZkNamespace = ZK_NAMESPACE_PREFIX;
+
+    String namespace = conf.get(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE,
         TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE_DEFAULT);
-    Preconditions.checkNotNull(zkNamespace);
+    Preconditions.checkNotNull(namespace);
+    if (namespace.startsWith(Path.SEPARATOR)) {
+      fullZkNamespace += namespace;
+    } else {
+      fullZkNamespace = fullZkNamespace + Path.SEPARATOR + namespace;
+    }
+
+    boolean enableComputeGroups = conf.getBoolean(TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS,
+      TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT);
+    if (enableComputeGroups) {
+      final String subNamespace = System.getenv(COMPUTE_GROUP_NAME_ENV);
+      if (subNamespace != null && !subNamespace.isEmpty()) {
+        if (subNamespace.startsWith(Path.SEPARATOR)) {
+          fullZkNamespace += subNamespace;
+        } else {
+          fullZkNamespace = fullZkNamespace + Path.SEPARATOR + subNamespace;
+        }
+        LOG.info("Compute groups enabled: subNamespace: {} fullZkNamespace: {}", subNamespace, fullZkNamespace);
+      }
+    } else {
+      LOG.info("Compute groups disabled: fullZkNamespace: {}", fullZkNamespace);
+    }
+    zkNamespace = fullZkNamespace;
+
     curatorBackoffSleep = conf.getInt(TezConfiguration.TEZ_AM_CURATOR_BACKOFF_SLEEP,
         TezConfiguration.TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT);
     curatorMaxRetries = conf.getInt(TezConfiguration.TEZ_AM_CURATOR_MAX_RETRIES,

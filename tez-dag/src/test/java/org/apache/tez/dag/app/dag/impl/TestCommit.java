@@ -105,6 +105,8 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.frameworkplugins.AMExtensions;
+import org.apache.tez.frameworkplugins.yarn.YarnServerFrameworkService;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.api.OutputCommitterContext;
@@ -155,6 +157,7 @@ public class TestCommit {
 
   private ExecutorService rawExecutor;
   private ListeningExecutorService execService;
+  private AMExtensions amExtensions = new YarnServerFrameworkService.YarnAMExtensions();
 
   private class DagEventDispatcher implements EventHandler<DAGEvent> {
     @Override
@@ -306,6 +309,7 @@ public class TestCommit {
     fsTokens = new Credentials();
     appContext = mock(AppContext.class);
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
+    when(appContext.getAmExtensions()).thenReturn(amExtensions);
     rawExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
         .setDaemon(true).setNameFormat("App Shared Pool - " + "#%d").build());
     execService = MoreExecutors.listeningDecorator(rawExecutor);

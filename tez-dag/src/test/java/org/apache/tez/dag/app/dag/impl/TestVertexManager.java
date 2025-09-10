@@ -277,6 +277,7 @@ public class TestVertexManager {
     verify(mockHandler, times(1)).handle(requestCaptor.capture());
     CustomProcessorEvent cpe =
       (CustomProcessorEvent)(requestCaptor.getValue().getEvents().get(0).getEvent());
+
     // should be able to get payload any times
     for (int i = 0; i < 2; i++) {
       ByteBuffer payloadBuffer = cpe.getPayload();

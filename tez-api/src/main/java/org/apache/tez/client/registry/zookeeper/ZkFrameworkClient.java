@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,20 +32,17 @@ import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.dag.api.TezConfiguration;
-import org.apache.tez.dag.api.TezException;
 
 public class ZkFrameworkClient extends FrameworkClient {
 
   private AMRecord amRecord;
-  private TezConfiguration tezConf;
   private ZkAMRegistryClient amRegistryClient = null;
-  private boolean isRunning = false;
+  private volatile boolean isRunning = false;
   private String amHost;
   private int amPort;
 
   @Override
   public synchronized void init(TezConfiguration tezConf) {
-    this.tezConf = tezConf;
     if (this.amRegistryClient == null) {
       try {
         this.amRegistryClient = ZkAMRegistryClient.getClient(tezConf);
@@ -56,25 +53,61 @@ public class ZkFrameworkClient extends FrameworkClient {
     }
   }
 
-  @Override public void start() {
+  @Override
+  public void start() {
     try {
       this.amRegistryClient.start();
+      isRunning = true;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    isRunning = true;
   }
 
-  @Override public void stop() {
+  @Override
+  public void stop() {
     isRunning = false;
-    amRegistryClient.close();
+    close();
   }
 
-  @Override public void close() throws IOException {
-    amRegistryClient.close();
+  @Override
+  public void close() {
+    if (amRegistryClient != null) {
+      amRegistryClient.close();
+    }
   }
 
-  @Override public YarnClientApplication createApplication() throws YarnException, IOException {
+  /**
+   * Creates a dummy {@link YarnClientApplication} using a pre-existing {@link ApplicationId}
+   * rather than requesting a new one from the ResourceManager.
+   *
+   * <p><strong>Note:</strong> This is a <em>dummy, backward-compatibility implementation</em>.
+   * Instead of allocating a fresh application ID from the ResourceManager, this method
+   * reuses the {@code applicationId} already obtained via {@code getApplicationReport()}.
+   * This allows legacy code paths to continue operating without requiring actual
+   * creation of a new application.</p>
+   *
+   * <p>Hidden assumption here: this method assumes that
+   * {@code getApplicationReport()} has already been called before
+   * {@code createApplication()}, ensuring that {@code amRecord.getApplicationId()}
+   * is always available. This assumption holds in all supported usage patterns:
+   * the only code path where {@code createApplication()} might be called first is
+   * {@code TezClient.submitDAGApplication()}, but that path is never exercised in
+   * Zookeeper standalone mode because that mode assumes applications are already
+   * running. Therefore, the ordering guarantee is valid in practice.</p>
+   *
+   * <p>
+   * The method constructs a minimal {@link ApplicationSubmissionContext} and a
+   * synthetic {@link GetNewApplicationResponse}, both populated with the already
+   * known application ID. These objects are then wrapped into a
+   * {@link YarnClientApplication} instance and returned.
+   * </p>
+   *
+   * @return a {@link YarnClientApplication} backed by a submission context and
+   *         a mocked {@link GetNewApplicationResponse}, both tied to the pre-existing
+   *         application ID.
+   */
+  @Override
+  public YarnClientApplication createApplication() {
     ApplicationSubmissionContext context = Records.newRecord(ApplicationSubmissionContext.class);
     ApplicationId appId = amRecord.getApplicationId();
     context.setApplicationId(appId);
@@ -83,17 +116,18 @@ public class ZkFrameworkClient extends FrameworkClient {
     return new YarnClientApplication(response, context);
   }
 
-  @Override public ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext)
-      throws YarnException, IOException, TezException {
-    //Unused
+  @Override
+  public ApplicationId submitApplication(ApplicationSubmissionContext appSubmissionContext) {
     return null;
   }
 
-  @Override public void killApplication(ApplicationId appId) throws YarnException, IOException {
-    amRegistryClient.close();
+  @Override
+  public void killApplication(ApplicationId appId) throws YarnException, IOException {
+    close();
   }
 
-  @Override public ApplicationReport getApplicationReport(ApplicationId appId) throws YarnException, IOException {
+  @Override
+  public ApplicationReport getApplicationReport(ApplicationId appId) throws YarnException, IOException {
     ApplicationReport report = Records.newRecord(ApplicationReport.class);
     report.setApplicationId(appId);
     report.setTrackingUrl("");
@@ -113,7 +147,8 @@ public class ZkFrameworkClient extends FrameworkClient {
     return report;
   }
 
-  @Override public boolean isRunning() throws IOException {
+  @Override
+  public boolean isRunning() {
     return isRunning;
   }
 

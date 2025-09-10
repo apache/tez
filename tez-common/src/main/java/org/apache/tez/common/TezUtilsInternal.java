@@ -94,11 +94,11 @@ public final class TezUtilsInternal {
   }
 
   public static ConfigurationProto loadConfProtoFromText() throws IOException {
-    try(InputStream cis = ClassLoader.getSystemResourceAsStream(TezConfiguration.TEZ_SITE_XML);
-        InputStream sis = ClassLoader.getSystemResourceAsStream(TezConstants.SERVICE_PLUGINS_DESCRIPTOR_JSON)) {
+    try (InputStream cis = ClassLoader.getSystemResourceAsStream(TezConfiguration.TEZ_SITE_XML);
+         InputStream sis = ClassLoader.getSystemResourceAsStream(TezConstants.SERVICE_PLUGINS_DESCRIPTOR_JSON)) {
       Configuration confFromXml = TezUtilsInternal.readTezConfigurationXml(cis);
-      for(String confFile : confFromXml.getTrimmedStringCollection(TezConfiguration.TEZ_AM_STANDALONE_CONFS)) {
-        try(InputStream additionalInput = ClassLoader.getSystemResourceAsStream(confFile)) {
+      for (String confFile : confFromXml.getTrimmedStringCollection(TezConfiguration.TEZ_AM_STANDALONE_CONFS)) {
+        try (InputStream additionalInput = ClassLoader.getSystemResourceAsStream(confFile)) {
           Configuration additionalConfFromXml = TezUtilsInternal.readTezConfigurationXml(additionalInput);
           confFromXml.addResource(additionalConfFromXml);
         }

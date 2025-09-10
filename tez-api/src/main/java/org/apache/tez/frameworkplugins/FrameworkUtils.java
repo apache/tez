@@ -18,19 +18,20 @@
 package org.apache.tez.frameworkplugins;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.ServiceLoader;
 
 import javax.annotation.Nullable;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezReflectionException;
 
-public class FrameworkUtils {
+public final class FrameworkUtils {
+
+  private FrameworkUtils() {}
 
   /*
     Searches for a FrameworkService provider which implements a target interface.
@@ -52,7 +53,7 @@ public class FrameworkUtils {
             META-INF/services/org.apache.tez.frameworkplugins.ClientFrameworkService
             or META-INF/services/org.apache.tez.frameworkplugins.ServerFrameworkService
    */
-  public static <T extends FrameworkService> Optional<T> get(Class<T> interfaze, @Nullable TezConfiguration conf) {
+  public static <T extends FrameworkService> T get(Class<T> interfaze, @Nullable Configuration conf) {
     try {
       if ((conf != null) && (conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE) != null)) {
         return getByMode(interfaze, conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE));
@@ -61,38 +62,35 @@ public class FrameworkUtils {
       } else {
         return getByServiceLoader(interfaze);
       }
-    } catch(TezReflectionException e) {
-      throw new RuntimeException("Failed to load framework service for interface: " + interfaze.getName());
+    } catch (TezReflectionException e) {
+      throw new RuntimeException("Failed to load framework service for interface: " + interfaze.getName(), e);
     }
   }
 
-  private static <T extends FrameworkService> Optional<T> getByServiceLoader(Class<T> interfaze) {
+  private static <T extends FrameworkService> T getByServiceLoader(Class<T> interfaze) {
     List<T> services = new ArrayList<>();
     ServiceLoader<T> frameworkService = ServiceLoader.load(interfaze);
-    Iterator<T> it = frameworkService.iterator();
-    while (it.hasNext()) {
-      T service = it.next();
+    for (T service : frameworkService) {
       services.add(service);
     }
-    if(services.size() == 0) {
-      return Optional.empty();
+    if (services.isEmpty()) {
+      return null;
     } else if (services.size() > 1) {
       throw new RuntimeException("Layering of multiple framework services is not supported."
           + " Please provide only one implementation class in configuration.");
     }
     //services is guaranteed to have one element at this point
-    return Optional.of(services.get(0));
+    return services.getFirst();
   }
 
-  private static <T> Optional<T> getByMode(Class<T> interfaze, String mode) throws TezReflectionException {
+  private static <T> T getByMode(Class<T> interfaze, String mode) throws TezReflectionException {
     mode = mode.toUpperCase();
-    String clazz = null;
-    if(interfaze == ClientFrameworkService.class) {
-      clazz = FrameworkMode.valueOf(mode).clientClassName;
+    String clazz;
+    if (interfaze == ClientFrameworkService.class) {
+      clazz = FrameworkMode.valueOf(mode).getClientClassName();
     } else {
-      clazz = FrameworkMode.valueOf(mode).serverClassName;
+      clazz = FrameworkMode.valueOf(mode).getServerClassName();
     }
-    return Optional.of(ReflectionUtils.createClazzInstance(clazz));
+    return ReflectionUtils.createClazzInstance(clazz);
   }
-
 }

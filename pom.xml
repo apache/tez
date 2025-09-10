@@ -69,7 +69,7 @@
     <commons-io.version>2.16.0</commons-io.version>
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
-    <curator.version>2.7.1</curator.version>
+    <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
     <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
     <spotbugs.version>4.9.3</spotbugs.version>
@@ -748,6 +748,18 @@
         <version>${hadoop.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.curator</groupId>
+        <artifactId>curator-test</artifactId>
+        <version>${curator.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>

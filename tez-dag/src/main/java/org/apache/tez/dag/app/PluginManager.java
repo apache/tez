@@ -174,6 +174,11 @@ public class PluginManager {
       for (TezNamedEntityDescriptorProto namedEntityDescriptorProto : namedEntityDescriptorProtos) {
         NamedEntityDescriptor descriptor = DagTypeConverters
             .convertNamedDescriptorFromProto(namedEntityDescriptorProto);
+        if (descriptor.getUserPayload() == null) {
+          //If custom-plugin descriptor includes no payload, include the defaultPayload
+          //Useful in providing Configuration payload for hand-written JSON descriptors
+          descriptor.setUserPayload(defaultPayload);
+        }
         addDescriptor(resultList, pluginMap, descriptor);
       }
     }

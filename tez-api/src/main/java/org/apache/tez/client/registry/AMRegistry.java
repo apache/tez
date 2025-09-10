@@ -20,7 +20,6 @@ package org.apache.tez.client.registry;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
@@ -31,19 +30,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Base class for AMRegistry implementation
- * Implementation class is configured by tez.am.registry.class
- * Implementations should implement relevant service lifecycle operations:
- *   init, serviceStart, serviceStop, etc..
+ * Base class for {@code AMRegistry} implementations.
  *
- *  init/serviceStart will be invoked during DAGAppMaster.serviceInit
+ * <p>The specific implementation is configured via the
+ * {@code tez.am.registry.class} property.</p>
  *
- *  serviceStop will invoked on DAGAppMaster shutdown
+ * <p>Implementations are expected to provide appropriate service lifecycle
+ * behavior, including:
+ * <ul>
+ *   <li>{@code init}</li>
+ *   <li>{@code serviceStart}</li>
+ *   <li>{@code serviceStop}</li>
+ * </ul>
+ * </p>
+ *
+ * <p>{@code init} and {@code serviceStart} are invoked during
+ * {@code DAGAppMaster.serviceInit()}, while {@code serviceStop} is called
+ * when {@code DAGAppMaster} shuts down.</p>
  */
 public abstract class AMRegistry extends AbstractService {
 
   private static final Logger LOG = LoggerFactory.getLogger(AMRegistry.class);
-  protected List<AMRecord> amRecords = new ArrayList<>();
+  private List<AMRecord> amRecords = new ArrayList<>();
 
   @Override
   public void init(Configuration conf) {
@@ -79,13 +87,14 @@ public abstract class AMRegistry extends AbstractService {
 
   public abstract void remove(AMRecord server) throws Exception;
 
-  public Optional<ApplicationId> generateNewId() throws Exception {
-    return Optional.empty();
+  public ApplicationId generateNewId() throws Exception {
+    return null;
   }
 
-  public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, int port);
+  public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port, String computeName);
 
-  @Override public void serviceStop() throws Exception {
+  @Override
+  public void serviceStop() throws Exception {
     List<AMRecord> records = new ArrayList<>(amRecords);
     for(AMRecord record : records) {
       remove(record);

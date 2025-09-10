@@ -24,32 +24,75 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Interface for client-side AM discovery
+ * Client-side interface for discovering Application Master (AM) instances
+ * registered in the AM registry.
+ *
+ * <p>Implementations are responsible for locating AM endpoints and returning
+ * their metadata. This API is used by client components to discover running
+ * Tez AMs.</p>
+ *
+ * <p>Listeners may be registered to receive notifications when AM records
+ * appear or are removed.</p>
  */
 public abstract class AMRegistryClient implements Closeable {
 
-  protected List<AMRegistryClientListener> listeners = new ArrayList<>();
+  private final List<AMRegistryClientListener> listeners = new ArrayList<>();
 
-  //Get AM info given an appId
+  /**
+   * Returns the current set of registered listeners.
+   *
+   * @return a mutable list of listeners
+   */
+  protected List<AMRegistryClientListener> getListeners() {
+    return listeners;
+  }
+
+  /**
+   * Lookup AM metadata for the given application ID.
+   *
+   * @param appId the application ID
+   * @return the AM record if found, otherwise {@code null}
+   * @throws IOException if the lookup fails
+   */
   public abstract AMRecord getRecord(String appId) throws IOException;
 
-  //Get all AM infos in the registry
+  /**
+   * Retrieve all AM records known in the registry.
+   *
+   * @return a list of AM records (possibly empty)
+   * @throws IOException if the fetch fails
+   */
   public abstract List<AMRecord> getAllRecords() throws IOException;
 
+  /**
+   * Register a listener for AM registry events.
+   * The listener will be notified when AM records are added or removed.
+   *
+   * @param listener the listener to add
+   */
   public synchronized void addListener(AMRegistryClientListener listener) {
     listeners.add(listener);
   }
 
+  /**
+   * Notify listeners of a newly added AM record.
+   *
+   * @param record the added AM record
+   */
   protected synchronized void notifyOnAdded(AMRecord record) {
-    for(AMRegistryClientListener listener : listeners) {
+    for (AMRegistryClientListener listener : listeners) {
       listener.onAdd(record);
     }
   }
 
+  /**
+   * Notify listeners of a removed AM record.
+   *
+   * @param record the removed AM record
+   */
   protected synchronized void notifyOnRemoved(AMRecord record) {
-    for(AMRegistryClientListener listener : listeners) {
+    for (AMRegistryClientListener listener : listeners) {
       listener.onRemove(record);
     }
   }
-
 }
