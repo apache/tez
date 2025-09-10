@@ -222,12 +222,12 @@ public class TestTezClient {
   }
 
   @Test (timeout = 5000)
-  public void testTezclientReconnect() throws Exception {
+  public void testTezClientReconnect() throws Exception {
     testTezClientReconnect(true);
   }
 
   @Test (timeout = 5000, expected = IllegalStateException.class)
-  public void testTezclientReconnectNoSession() throws Exception {
+  public void testTezClientReconnectNoSession() throws Exception {
     testTezClientReconnect(false);
   }
 
@@ -517,7 +517,8 @@ public class TestTezClient {
     TezClientForTest client2 = configureAndCreateTezClient(lrs, isSession, null);
 
     //Submission Context 2
-    ArgumentCaptor<ApplicationSubmissionContext> captorClient2 = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    ArgumentCaptor<ApplicationSubmissionContext> captorClient2 =
+            ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
     when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
             .thenReturn(YarnApplicationState.RUNNING);
 
@@ -854,6 +855,7 @@ public class TestTezClient {
 
     // Session mode via conf
     tezClient = TezClient.newBuilder("client", tezConfWitSession).build();
+    assertTrue(tezClient.isSession);
     assertNull(tezClient.servicePluginsDescriptor);
     assertNotNull(tezClient.apiVersionInfo);
     amConf = tezClient.amConfig;
@@ -865,6 +867,7 @@ public class TestTezClient {
 
     // Non-Session mode via conf
     tezClient = TezClient.newBuilder("client", tezConfNoSession).build();
+    assertFalse(tezClient.isSession);
     assertNull(tezClient.servicePluginsDescriptor);
     assertNotNull(tezClient.apiVersionInfo);
     amConf = tezClient.amConfig;
@@ -876,6 +879,7 @@ public class TestTezClient {
 
     // no-session via config. API explicit session.
     tezClient = TezClient.newBuilder("client", tezConfNoSession).setIsSession(true).build();
+    assertTrue(tezClient.isSession);
     assertNull(tezClient.servicePluginsDescriptor);
     assertNotNull(tezClient.apiVersionInfo);
     amConf = tezClient.amConfig;
@@ -889,6 +893,7 @@ public class TestTezClient {
     tezClient = TezClient.newBuilder("client", tezConfWitSession).setCredentials(credentials)
         .setLocalResources(localResourceMap).setServicePluginDescriptor(servicePluginsDescriptor)
         .build();
+    assertTrue(tezClient.isSession);
     assertEquals(servicePluginsDescriptor, tezClient.servicePluginsDescriptor);
     assertNotNull(tezClient.apiVersionInfo);
     amConf = tezClient.amConfig;

@@ -703,16 +703,20 @@ public class TestTezClientUtils {
     String val = "localhost:2181";
     conf.set("yarn.resourcemanager.zk-address", val);
 
-    Map<String, String> expected = new HashMap<String, String>();
+    Map<String, String> expected = new HashMap<>();
     expected.put("yarn.resourcemanager.zk-address", val);
 
     ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
 
     for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
-      String v = expected.remove(kvPair.getKey());
-      assertEquals(v, kvPair.getValue());
+      if (expected.containsKey(kvPair.getKey())) { // fix for polluting keys
+        String v = expected.remove(kvPair.getKey());
+        // this way the test still validates that the original
+        // key/value pairs can be found in the proto's conf
+        assertEquals("Unexpected value for key: " + kvPair.getKey(), v, kvPair.getValue());
+      }
     }
-    assertTrue(expected.isEmpty());
+    assertTrue("Expected keys not found in conf: " + expected.keySet(), expected.isEmpty());
   }
 
   @Test (timeout = 5000)

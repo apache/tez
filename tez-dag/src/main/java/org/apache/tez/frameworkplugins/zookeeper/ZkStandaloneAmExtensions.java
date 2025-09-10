@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,27 +34,28 @@ import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.common.security.TokenCache;
 import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.frameworkplugins.AmExtensions;
 import org.apache.tez.frameworkplugins.ServerFrameworkService;
 
 public class ZkStandaloneAmExtensions implements AmExtensions {
 
-  ServerFrameworkService myFrameworkService;
+  private final ServerFrameworkService frameworkService;
 
-  public ZkStandaloneAmExtensions(ServerFrameworkService myFrameworkService) {
-    this.myFrameworkService = myFrameworkService;
+  public ZkStandaloneAmExtensions(ServerFrameworkService frameworkService) {
+    this.frameworkService = frameworkService;
   }
 
-  @Override public Optional<ContainerId> allocateContainerId(Configuration conf)  {
+  @Override
+  public ContainerId allocateContainerId(Configuration conf)  {
     try {
-      Optional<AMRegistry> amRegistry = myFrameworkService.createOrGetAMRegistry(conf);
-      if(amRegistry.isPresent()) {
+      Optional<AMRegistry> amRegistry = frameworkService.createOrGetAMRegistry(conf);
+      if (amRegistry.isPresent()) {
         ApplicationId appId = amRegistry.get().generateNewId().get();
-        // attempId is set to 1 only then APP_LAUNCHED event gets triggered
+        // attemptId is set to 1 only then APP_LAUNCHED event gets triggered
         ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(appId, 1);
-        return Optional.of(ContainerId.newContainerId(applicationAttemptId, 0));
+        return ContainerId.newContainerId(applicationAttemptId, 0);
       } else {
         throw new RuntimeException("AMRegistry is required for ZkStandaloneAmExtensions");
       }
@@ -64,41 +65,28 @@ public class ZkStandaloneAmExtensions implements AmExtensions {
     }
   }
 
-  @Override public boolean checkTaskResources(Map<String, Vertex> vertices, AppContext appContext) {
-    return false;
+  @Override
+  public void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) {
+    // no-op: Zookeeper-based framework current enforce task resources at the moment
   }
 
   @Override
-  public boolean isUsingYarnServicePlugin() {
-    return false;
-  }
-
-  @Override public Optional<DAGProtos.ConfigurationProto> loadConfigurationProto()  {
-    try {
-      return Optional.of(TezUtilsInternal.loadConfProtoFromText());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  public DAGProtos.ConfigurationProto loadConfigurationProto() throws IOException {
+    return TezUtilsInternal.loadConfProtoFromText();
   }
 
   @Override
-  public Optional<Token<JobTokenIdentifier>> getSessionToken(
-      ApplicationAttemptId appAttemptID,
-      JobTokenSecretManager jobTokenSecretManager,
-      Credentials amCredentials
-  ) {
-    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(
-        appAttemptID.getApplicationId().toString()));
-    Token<JobTokenIdentifier> newSessionToken = new Token(identifier,
-        jobTokenSecretManager);
+  public Token<JobTokenIdentifier> getSessionToken(ApplicationAttemptId appAttemptID,
+      JobTokenSecretManager jobTokenSecretManager, Credentials amCredentials) {
+    JobTokenIdentifier identifier = new JobTokenIdentifier(new Text(appAttemptID.getApplicationId().toString()));
+    Token<JobTokenIdentifier> newSessionToken = new Token<>(identifier, jobTokenSecretManager);
     newSessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(newSessionToken, amCredentials);
-    return Optional.of(newSessionToken);
+    return newSessionToken;
   }
 
   @Override
-  public Optional<DAGProtos.PlanLocalResourcesProto> getAdditionalSessionResources(String dir) {
-    return Optional.of(DAGProtos.PlanLocalResourcesProto.getDefaultInstance());
+  public DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) {
+    return DAGProtos.PlanLocalResourcesProto.getDefaultInstance();
   }
-
 }

@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.tez.mapreduce;
 
 import java.util.StringTokenizer;
@@ -12,10 +29,11 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import com.google.common.base.Preconditions;
 
 public class TokenProcessor extends SimpleProcessor {
-  IntWritable one = new IntWritable(1);
-  Text word = new Text();
-  static String INPUT = "Input";
-  static String SUMMATION = "Summation";
+  private static final String INPUT = "Input";
+  private static final String SUMMATION = "Summation";
+
+  private final IntWritable one = new IntWritable(1);
+  private final Text word = new Text();
 
   public TokenProcessor(ProcessorContext context) {
     super(context);
@@ -41,5 +59,4 @@ public class TokenProcessor extends SimpleProcessor {
       }
     }
   }
-
 }

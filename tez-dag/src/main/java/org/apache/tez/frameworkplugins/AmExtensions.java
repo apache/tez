@@ -17,8 +17,8 @@
  */
 package org.apache.tez.frameworkplugins;
 
+import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -28,36 +28,65 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.dag.Vertex;
 
-/*
-  Plugin points to provide alternate AM behavior that
-  is either too small or too scattered to be usefully encapsulated as its own service
+/**
+ * Extension points for customizing AM behavior.
+ *
+ * <p>These hooks allow injecting alternate or additional logic into the
+ * Application Master without requiring a standalone service. They are
+ * intended for behaviors that are too small or cross-cutting to justify
+ * a dedicated service.</p>
  */
 public interface AmExtensions {
 
-  //Override default Configuration loading at DAGAppMaster.main
-  default Optional<DAGProtos.ConfigurationProto> loadConfigurationProto() { return Optional.empty(); }
+  /**
+   * Override the default configuration loading performed in
+   * {@code DAGAppMaster.main(...)}.
+   *
+   * @return a {@link DAGProtos.ConfigurationProto} representing the final configuration
+   * @throws IOException if configuration loading fails
+   */
+  DAGProtos.ConfigurationProto loadConfigurationProto() throws IOException;
 
-  //Override default behavior to give ContainerId to AM
-  default Optional<ContainerId> allocateContainerId(Configuration conf) { return Optional.empty(); }
+  /**
+   * Override the default logic used to assign a {@link ContainerId} to the AM.
+   *
+   * @param conf the Tez configuration
+   * @return the allocated {@link ContainerId}
+   */
+  ContainerId allocateContainerId(Configuration conf);
 
-  //Whether this framework requires addition of the default Yarn ServicePlugins
-  default boolean isUsingYarnServicePlugin() {
-    return true;
-  }
+  /**
+   * Validate resource constraints for tasks before execution.
+   *
+   * @param vertices mapping of vertex names to their DAG vertices
+   * @param clusterInfo cluster resource information
+   * @throws TaskResourceException if resource requirements cannot be satisfied
+   */
+  void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws TaskResourceException;
 
-  //Whether to check task resources against ClusterInfo
-  default boolean checkTaskResources(Map<String, Vertex> vertices, AppContext appContext) { return true; }
-
-  default Optional<Token<JobTokenIdentifier>> getSessionToken(
+  /**
+   * Create or override the session token used for AM authentication.
+   *
+   * @param appAttemptID current application attempt ID
+   * @param jobTokenSecretManager token secret manager
+   * @param amCredentials AM credentials store
+   * @return the session token
+   */
+  Token<JobTokenIdentifier> getSessionToken(
       ApplicationAttemptId appAttemptID,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials amCredentials
-  ) { return Optional.empty(); }
+  );
 
-  default Optional<DAGProtos.PlanLocalResourcesProto> getAdditionalSessionResources(String dir) {
-    return Optional.empty();
-  }
+  /**
+   * Provide additional local resources required for the AM session.
+   *
+   * @param workingDirectory the AM working directory
+   * @return protocol buffers describing local session resources
+   * @throws IOException if resources cannot be discovered or packaged
+   */
+  DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) throws IOException;
 }

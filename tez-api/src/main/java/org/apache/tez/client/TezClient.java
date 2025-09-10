@@ -672,8 +672,6 @@ public class TezClient {
     }
 
     Map<String, LocalResource> tezJarResources = getTezJarResources(sessionCredentials);
-
-
     DAGPlan dagPlan = TezClientUtils.prepareAndCreateDAGPlan(dag, amConfig, tezJarResources,
         usingTezArchiveDeploy, sessionCredentials, servicePluginsDescriptor, javaOptsChecker);
 
@@ -688,7 +686,6 @@ public class TezClient {
 
     // if request size exceeds maxSubmitDAGRequestSizeThroughIPC, we serialize them to HDFS
     SubmitDAGRequestProto request = requestBuilder.build();
-
     if (request.getSerializedSize() > maxSubmitDAGRequestSizeThroughIPC) {
       Path dagPlanPath = new Path(TezCommonUtils.getTezSystemStagingPath(amConfig.getTezConfiguration(),
           sessionAppId.toString()), TezConstants.TEZ_PB_PLAN_BINARY_NAME +

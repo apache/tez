@@ -157,6 +157,11 @@ public class AMRecord {
   }
 
   @Override
+  public String toString() {
+    return toServiceRecord().attributes().toString();
+  }
+
+  @Override
   public int hashCode() {
     return Objects.hash(appId, host, port, externalId);
   }

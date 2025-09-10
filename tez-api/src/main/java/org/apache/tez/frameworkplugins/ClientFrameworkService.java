@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,19 +17,26 @@
  */
 package org.apache.tez.frameworkplugins;
 
-import java.util.Optional;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.FrameworkClient;
-import org.apache.tez.client.registry.AMRegistryClient;
 
-/*
-  FrameworkService that runs code within the client process that is using TezClient
-  Bundles together a compatible FrameworkClient and AMRegistryClient
+/**
+ * A {@code FrameworkService} that runs within the client process using {@code TezClient}.
+ *
+ * <p>This service bundles together a compatible {@code FrameworkClient} and
+ * {@code AMRegistryClient} to enable communication and coordination with the
+ * Application Master.</p>
+ *
+ * <p>Implementations must provide a {@link FrameworkClient} instance that will
+ * be used by the Tez client layer.</p>
  */
 public interface ClientFrameworkService extends FrameworkService {
-  //Provide an impl. for org.apache.tez.client.FrameworkClient
-  Optional<FrameworkClient> createOrGetFrameworkClient(Configuration conf);
-  //Provide an impl. for org.apache.tez.registry.AMRegistryClient
-  Optional<AMRegistryClient> createOrGetRegistryClient(Configuration conf);
+
+  /**
+   * Create a new {@link FrameworkClient} instance used by the client-side
+   * Tez runtime.
+   *
+   * @return a new {@code FrameworkClient} instance
+   */
+  FrameworkClient newFrameworkClient();
 }
