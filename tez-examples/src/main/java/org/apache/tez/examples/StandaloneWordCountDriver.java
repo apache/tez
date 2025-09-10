@@ -43,23 +43,13 @@ import org.apache.tez.dag.api.client.StatusGetOpts;
 import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Private
 public abstract class StandaloneWordCountDriver {
-
-  private static final Logger LOG = LoggerFactory.getLogger(StandaloneWordCountDriver.class);
-
   private static TezClient tezClientInternal;
 
   public static void main(String[] args) throws Exception {
-    ExampleBase clazz = new StandaloneWordCount();
-    _execute(clazz, args, null, null);
-  }
-
-  private static int _execute(ExampleBase clazz, String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws
-          Exception {
-    tezConf = new TezConfiguration();
+    TezConfiguration tezConf = new TezConfiguration();
     tezConf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "localhost:2181");
     ZkAMRegistryClient registryClientZk = ZkAMRegistryClient.getClient(tezConf);
     registryClientZk.start();
@@ -70,12 +60,11 @@ public abstract class StandaloneWordCountDriver {
     tezConf.setBoolean(TezConfiguration.TEZ_IGNORE_LIB_URIS, true);
     tezClientInternal = createTezClient(am.getApplicationId().toString(), tezConf);
     StandaloneWordCount standaloneWordCount = new StandaloneWordCount();
-    return standaloneWordCount.runJob(otherArgs, tezConf, tezClientInternal);
+
+    standaloneWordCount.runJob(args, tezConf, tezClientInternal);
   }
 
   public static int runDag(DAG dag, ApplicationId appId, Logger logger) throws Exception {
-    //tezClientInternal.waitTillReady();
-
     CallerContext callerContext = CallerContext.create("TezExamples",
         "Tez Example DAG: " + dag.getName());
 
@@ -105,5 +94,4 @@ public abstract class StandaloneWordCountDriver {
     TezClient tezClient = TezClient.create("TezExampleApplication", tezConf, true, null, credentials);
     return tezClient.getClient(appId);
   }
-
 }

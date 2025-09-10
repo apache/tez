@@ -12,10 +12,11 @@ import org.apache.tez.runtime.library.processor.SimpleProcessor;
 import com.google.common.base.Preconditions;
 
 public class TokenProcessor extends SimpleProcessor {
-  IntWritable one = new IntWritable(1);
-  Text word = new Text();
-  static String INPUT = "Input";
-  static String SUMMATION = "Summation";
+  private static final String INPUT = "Input";
+  private static final String SUMMATION = "Summation";
+
+  private final IntWritable one = new IntWritable(1);
+  private final Text word = new Text();
 
   public TokenProcessor(ProcessorContext context) {
     super(context);
@@ -41,5 +42,4 @@ public class TokenProcessor extends SimpleProcessor {
       }
     }
   }
-
 }

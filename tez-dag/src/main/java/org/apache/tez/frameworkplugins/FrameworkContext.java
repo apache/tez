@@ -17,16 +17,30 @@
  */
 package org.apache.tez.frameworkplugins;
 
-import java.util.Optional;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.client.registry.AMRegistry;
+import org.apache.tez.frameworkplugins.yarn.YarnServerFrameworkService;
 
-/*
-  FrameworkService that runs code within the AM process launched from DAGAppMaster.main(..)
-  Bundles together an AMRegistry and AmExtensions impl. that are compatible.
+/**
+ * A container for framework-related objects used by the AM process.
+ * Provides default implementations when no framework service is available.
  */
-public interface ServerFrameworkService extends FrameworkService {
-  Optional<AMRegistry> createOrGetAMRegistry(Configuration conf);
-  AmExtensions createAmExtensions();
+public final class FrameworkContext {
+
+  private final ServerFrameworkService frameworkService;
+  private final AmExtensions amExtensions;
+
+  public FrameworkContext(Configuration conf) {
+    this.frameworkService = FrameworkUtils.get(ServerFrameworkService.class, conf)
+        .orElse(new YarnServerFrameworkService());
+    this.amExtensions = frameworkService.createAmExtensions();
+  }
+
+  public ServerFrameworkService getFrameworkService() {
+    return frameworkService;
+  }
+
+  public AmExtensions getAmExtensions() {
+    return amExtensions;
+  }
+
 }

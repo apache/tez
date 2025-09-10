@@ -33,7 +33,7 @@ public class ZookeeperStandaloneServerFrameworkService implements ServerFramewor
   }
 
   @Override
-  public Optional<AmExtensions> createOrGetDAGAppMasterExtensions() {
-    return Optional.of(new ZkStandaloneAmExtensions(this));
+  public AmExtensions createAmExtensions() {
+    return new ZkStandaloneAmExtensions(this);
   }
 }

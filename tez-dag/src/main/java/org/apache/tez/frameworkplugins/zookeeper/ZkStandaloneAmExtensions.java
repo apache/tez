@@ -47,14 +47,15 @@ public class ZkStandaloneAmExtensions implements AmExtensions {
     this.myFrameworkService = myFrameworkService;
   }
 
-  @Override public Optional<ContainerId> allocateContainerId(Configuration conf)  {
+  @Override
+  public ContainerId allocateContainerId(Configuration conf)  {
     try {
       Optional<AMRegistry> amRegistry = myFrameworkService.createOrGetAMRegistry(conf);
-      if(amRegistry.isPresent()) {
+      if (amRegistry.isPresent()) {
         ApplicationId appId = amRegistry.get().generateNewId().get();
         // attempId is set to 1 only then APP_LAUNCHED event gets triggered
         ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(appId, 1);
-        return Optional.of(ContainerId.newContainerId(applicationAttemptId, 0));
+        return ContainerId.newContainerId(applicationAttemptId, 0);
       } else {
         throw new RuntimeException("AMRegistry is required for ZkStandaloneAmExtensions");
       }
@@ -64,7 +65,8 @@ public class ZkStandaloneAmExtensions implements AmExtensions {
     }
   }
 
-  @Override public boolean checkTaskResources(Map<String, Vertex> vertices, AppContext appContext) {
+  @Override
+  public boolean checkTaskResources(Map<String, Vertex> vertices, AppContext appContext) {
     return false;
   }
 
@@ -73,16 +75,12 @@ public class ZkStandaloneAmExtensions implements AmExtensions {
     return false;
   }
 
-  @Override public Optional<DAGProtos.ConfigurationProto> loadConfigurationProto()  {
-    try {
-      return Optional.of(TezUtilsInternal.loadConfProtoFromText());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  @Override public DAGProtos.ConfigurationProto loadConfigurationProto() throws IOException {
+    return TezUtilsInternal.loadConfProtoFromText();
   }
 
   @Override
-  public Optional<Token<JobTokenIdentifier>> getSessionToken(
+  public Token<JobTokenIdentifier> getSessionToken(
       ApplicationAttemptId appAttemptID,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials amCredentials
@@ -93,12 +91,11 @@ public class ZkStandaloneAmExtensions implements AmExtensions {
         jobTokenSecretManager);
     newSessionToken.setService(identifier.getJobId());
     TokenCache.setSessionToken(newSessionToken, amCredentials);
-    return Optional.of(newSessionToken);
+    return newSessionToken;
   }
 
   @Override
-  public Optional<DAGProtos.PlanLocalResourcesProto> getAdditionalSessionResources(String dir) {
-    return Optional.of(DAGProtos.PlanLocalResourcesProto.getDefaultInstance());
+  public DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) {
+    return DAGProtos.PlanLocalResourcesProto.getDefaultInstance();
   }
-
 }

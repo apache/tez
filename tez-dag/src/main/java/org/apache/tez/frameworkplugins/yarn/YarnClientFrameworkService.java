@@ -15,18 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
+package org.apache.tez.frameworkplugins.yarn;
 
 import java.util.Optional;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.client.registry.AMRegistry;
+import org.apache.tez.client.FrameworkClient;
+import org.apache.tez.frameworkplugins.ClientFrameworkService;
 
-/*
-  FrameworkService that runs code within the AM process launched from DAGAppMaster.main(..)
-  Bundles together an AMRegistry and AmExtensions impl. that are compatible.
+/**
+ * YARN-based client framework service implementation.
+ * Provides default YARN framework client functionality.
  */
-public interface ServerFrameworkService extends FrameworkService {
-  Optional<AMRegistry> createOrGetAMRegistry(Configuration conf);
-  AmExtensions createAmExtensions();
+public class YarnClientFrameworkService implements ClientFrameworkService {
+
+  @Override
+  public Optional<FrameworkClient> createOrGetFrameworkClient(Configuration conf) {
+    // Return empty for now - YARN mode doesn't require a custom framework client
+    return Optional.empty();
+  }
 }

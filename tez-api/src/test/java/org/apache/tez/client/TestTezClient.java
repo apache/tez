@@ -517,7 +517,8 @@ public class TestTezClient {
     TezClientForTest client2 = configureAndCreateTezClient(lrs, isSession, null);
 
     //Submission Context 2
-    ArgumentCaptor<ApplicationSubmissionContext> captorClient2 = ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
+    ArgumentCaptor<ApplicationSubmissionContext> captorClient2 =
+            ArgumentCaptor.forClass(ApplicationSubmissionContext.class);
     when(client2.mockYarnClient.getApplicationReport(client2.mockAppId).getYarnApplicationState())
             .thenReturn(YarnApplicationState.RUNNING);
 

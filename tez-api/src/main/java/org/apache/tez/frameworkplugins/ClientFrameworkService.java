@@ -21,7 +21,6 @@ import java.util.Optional;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.client.FrameworkClient;
-import org.apache.tez.client.registry.AMRegistryClient;
 
 /*
   FrameworkService that runs code within the client process that is using TezClient
@@ -30,6 +29,4 @@ import org.apache.tez.client.registry.AMRegistryClient;
 public interface ClientFrameworkService extends FrameworkService {
   //Provide an impl. for org.apache.tez.client.FrameworkClient
   Optional<FrameworkClient> createOrGetFrameworkClient(Configuration conf);
-  //Provide an impl. for org.apache.tez.registry.AMRegistryClient
-  Optional<AMRegistryClient> createOrGetRegistryClient(Configuration conf);
 }

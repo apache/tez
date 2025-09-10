@@ -12,7 +12,7 @@ import org.apache.tez.runtime.api.events.InputInitializerEvent;
 
 public class FakeInputInitializer extends InputInitializer {
 
-  private static final int srcParallelism = 1;
+  private static final int SRC_PARALLELISM = 1;
 
   /**
    * Constructor an instance of the InputInitializer. Classes extending this to create a
@@ -29,8 +29,8 @@ public class FakeInputInitializer extends InputInitializer {
   @Override
   public List<Event> initialize() throws Exception {
     List<org.apache.tez.runtime.api.Event> list = new ArrayList<>();
-    list.add(InputConfigureVertexTasksEvent.create(srcParallelism, null, null));
-    for (int i = 0; i < srcParallelism; i++) {
+    list.add(InputConfigureVertexTasksEvent.create(SRC_PARALLELISM, null, null));
+    for (int i = 0; i < SRC_PARALLELISM; i++) {
       list.add(InputDataInformationEvent.createWithObjectPayload(i, null));
     }
     return list;
@@ -38,6 +38,5 @@ public class FakeInputInitializer extends InputInitializer {
 
   @Override
   public void handleInputInitializerEvent(List<InputInitializerEvent> events) throws Exception {
-
   }
 }

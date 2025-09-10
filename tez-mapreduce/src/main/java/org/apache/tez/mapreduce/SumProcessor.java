@@ -14,8 +14,8 @@ public class SumProcessor extends SimpleMRProcessor {
     super(context);
   }
 
-  static String OUTPUT = "Output";
-  static String TOKENIZER = "Tokenizer";
+  private static final String OUTPUT = "Output";
+  private static final String TOKENIZER = "Tokenizer";
 
   @Override
   public void run() throws Exception {

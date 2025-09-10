@@ -37,7 +37,6 @@ import org.apache.tez.dag.api.TezException;
 public class ZkFrameworkClient extends FrameworkClient {
 
   private AMRecord amRecord;
-  private TezConfiguration tezConf;
   private ZkAMRegistryClient amRegistryClient = null;
   private boolean isRunning = false;
   private String amHost;
@@ -45,7 +44,6 @@ public class ZkFrameworkClient extends FrameworkClient {
 
   @Override
   public synchronized void init(TezConfiguration tezConf) {
-    this.tezConf = tezConf;
     if (this.amRegistryClient == null) {
       try {
         this.amRegistryClient = ZkAMRegistryClient.getClient(tezConf);

@@ -15,18 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
 
-import java.util.Optional;
+@Public
+@Evolving
+package org.apache.tez.runtime.library;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.tez.client.registry.AMRegistry;
-
-/*
-  FrameworkService that runs code within the AM process launched from DAGAppMaster.main(..)
-  Bundles together an AMRegistry and AmExtensions impl. that are compatible.
- */
-public interface ServerFrameworkService extends FrameworkService {
-  Optional<AMRegistry> createOrGetAMRegistry(Configuration conf);
-  AmExtensions createAmExtensions();
-}
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;

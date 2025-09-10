@@ -92,7 +92,6 @@ import org.apache.hadoop.yarn.event.Event;
 import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.hadoop.yarn.util.Clock;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.ResourceCalculatorProcessTree;
 import org.apache.hadoop.yarn.util.SystemClock;
 import org.apache.log4j.helpers.ThreadLocalMap;
@@ -186,9 +185,7 @@ import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.Simple2LevelVersionComparator;
-import org.apache.tez.frameworkplugins.AmExtensions;
-import org.apache.tez.frameworkplugins.FrameworkUtils;
-import org.apache.tez.frameworkplugins.ServerFrameworkService;
+import org.apache.tez.frameworkplugins.FrameworkContext;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShimsLoader;
 import org.apache.tez.runtime.hook.TezDAGHook;
@@ -231,10 +228,7 @@ import org.slf4j.LoggerFactory;
 public class DAGAppMaster extends AbstractService {
 
   private static final Logger LOG = LoggerFactory.getLogger(DAGAppMaster.class);
-  private static Optional<ServerFrameworkService> frameworkService =
-      FrameworkUtils.get(ServerFrameworkService.class, null);
-  public static Optional<AmExtensions> amExts =
-      frameworkService.flatMap(fs -> fs.createOrGetDAGAppMasterExtensions());
+  private FrameworkContext frameworkContext;
 
   /**
    * Priority of the DAGAppMaster shutdown hook.
@@ -439,6 +433,7 @@ public class DAGAppMaster extends AbstractService {
   protected void serviceInit(final Configuration conf) throws Exception {
 
     this.amConf = conf;
+    this.frameworkContext = new FrameworkContext(this.amConf);
     initResourceCalculatorPlugins();
     this.hadoopShim = new HadoopShimsLoader(this.amConf).getHadoopShim();
 
@@ -508,16 +503,15 @@ public class DAGAppMaster extends AbstractService {
 
     addIfService(dispatcher, false);
 
-
-      recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
-      recoveryFS = recoveryDataDir.getFileSystem(conf);
-      currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
-              appAttemptID.getAttemptId());
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Stage directory information for AppAttemptId :" + this.appAttemptID
-                + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
-                + " recoveryAttemptDir :" + currentRecoveryDataDir);
-      }
+    recoveryDataDir = TezCommonUtils.getRecoveryPath(tezSystemStagingDir, conf);
+    recoveryFS = recoveryDataDir.getFileSystem(conf);
+    currentRecoveryDataDir = TezCommonUtils.getAttemptRecoveryPath(recoveryDataDir,
+            appAttemptID.getAttemptId());
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Stage directory information for AppAttemptId :" + this.appAttemptID
+              + " tezSystemStagingDir :" + tezSystemStagingDir + " recoveryDataDir :" + recoveryDataDir
+              + " recoveryAttemptDir :" + currentRecoveryDataDir);
+    }
     recoveryEnabled = conf.getBoolean(TezConfiguration.DAG_RECOVERY_ENABLED,
         TezConfiguration.DAG_RECOVERY_ENABLED_DEFAULT);
 
@@ -533,9 +527,8 @@ public class DAGAppMaster extends AbstractService {
 
     jobTokenSecretManager = new JobTokenSecretManager(amConf);
 
-    sessionToken = amExts.flatMap(amExtensions -> amExtensions.getSessionToken(
-        appAttemptID, jobTokenSecretManager, amCredentials
-    )).orElse(TokenCache.getSessionToken(amCredentials));
+    sessionToken = frameworkContext.getAmExtensions().getSessionToken(
+        appAttemptID, jobTokenSecretManager, amCredentials);
 
     if (sessionToken == null) {
       throw new RuntimeException("Could not find session token in AM Credentials");
@@ -623,11 +616,7 @@ public class DAGAppMaster extends AbstractService {
     if (!versionMismatch) {
       if (isSession) {
         DAGProtos.PlanLocalResourcesProto amLocalResourceProto =
-            amExts.flatMap(amExtensions -> amExtensions.getAdditionalSessionResources(workingDirectory))
-                .orElse(null);
-        if(amLocalResourceProto == null) {
-          amLocalResourceProto = getAdditionalSessionResources(workingDirectory);
-        }
+            frameworkContext.getAmExtensions().getAdditionalSessionResources(workingDirectory);
         amResources.putAll(DagTypeConverters.convertFromPlanLocalResources(amLocalResourceProto));
       }
     }
@@ -640,8 +629,7 @@ public class DAGAppMaster extends AbstractService {
         Executors.newFixedThreadPool(threadCount, new ThreadFactoryBuilder()
             .setDaemon(true).setNameFormat("App Shared Pool - #%d").build());
     execService = MoreExecutors.listeningDecorator(rawExecutor);
-    Optional<AMRegistry> amRegistry =
-        frameworkService.flatMap(service -> service.createOrGetAMRegistry(conf));
+    Optional<AMRegistry> amRegistry = frameworkContext.getFrameworkService().createOrGetAMRegistry(conf);
     if(amRegistry.isPresent()) {
       initAmRegistry(appAttemptID.getApplicationId(), amRegistry.get(), clientRpcServer);
       addIfService(amRegistry.get(), false);
@@ -669,21 +657,8 @@ public class DAGAppMaster extends AbstractService {
     }
   }
 
-  private static DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) throws IOException {
-    FileInputStream sessionResourcesStream = null;
-    try {
-      sessionResourcesStream =
-          new FileInputStream(new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
-      return DAGProtos.PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
-    } finally {
-      if (sessionResourcesStream != null) {
-        sessionResourcesStream.close();
-      }
-    }
-  }
-
   @VisibleForTesting
-  public static void initAmRegistry(ApplicationId appId, AMRegistry amRegistry, DAGClientServer dagClientServer) throws Exception {
+  public static void initAmRegistry(ApplicationId appId, AMRegistry amRegistry, DAGClientServer dagClientServer) {
     dagClientServer.registerServiceListener((service) -> {
       if (service.isInState(STATE.STARTED)) {
         AMRecord amRecord = amRegistry.createAmRecord(
@@ -1804,6 +1779,11 @@ public class DAGAppMaster extends AbstractService {
     public void setQueueName(String queueName) {
       this.queueName = queueName;
     }
+
+    @Override
+    public org.apache.tez.frameworkplugins.FrameworkContext getFrameworkContext() {
+      return frameworkContext;
+    }
   }
 
   private String getShutdownTimeString() {
@@ -2421,8 +2401,6 @@ public class DAGAppMaster extends AbstractService {
       Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
       final String pid = System.getenv().get("JVM_PID");
 
-      String containerIdStr = System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-
       String nodeHostString = System.getenv(ApplicationConstants.Environment.NM_HOST.name());
       String nodePortString = System.getenv(ApplicationConstants.Environment.NM_PORT.name());
       String nodeHttpPortString = System.getenv(ApplicationConstants.Environment.NM_HTTP_PORT.name());
@@ -2437,17 +2415,12 @@ public class DAGAppMaster extends AbstractService {
 
       Configuration conf = new Configuration();
 
-      DAGProtos.ConfigurationProto confProto = amExts.flatMap(amExt -> amExt.loadConfigurationProto()).orElse(null);
-      if (confProto == null) {
-        confProto = TezUtilsInternal
-            .readUserSpecifiedTezConfiguration(System.getenv(ApplicationConstants.Environment.PWD.name()));
-      }
+      FrameworkContext mainFrameworkContext = new FrameworkContext(conf);
+      DAGProtos.ConfigurationProto confProto = mainFrameworkContext.getAmExtensions().loadConfigurationProto();
       TezUtilsInternal.addUserSpecifiedTezConfiguration(conf, confProto.getConfKeyValuesList());
 
-      ContainerId containerId = amExts.flatMap(amExt -> amExt.allocateContainerId(conf)).orElse(null);
-      if (containerId == null) {
-        containerId = ConverterUtils.toContainerId(containerIdStr);
-      }
+      ContainerId containerId = mainFrameworkContext.getAmExtensions().allocateContainerId(conf);
+
       ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
       org.apache.hadoop.ipc.CallerContext.setCurrent(new org.apache.hadoop.ipc.CallerContext
               .Builder("tez_appmaster_" + containerId.getApplicationAttemptId()
@@ -2776,7 +2749,8 @@ public class DAGAppMaster extends AbstractService {
             null :
             amPluginDescriptorProto.getTaskSchedulersList()),
         tezYarnEnabled, uberEnabled, defaultPayload);
-    processSchedulerDescriptors(taskSchedulerDescriptors, isLocal, defaultPayload, taskSchedulerPluginMap);
+    // When called from tests, there is no running instance context; default to true
+    processSchedulerDescriptors(taskSchedulerDescriptors, isLocal, defaultPayload, taskSchedulerPluginMap, true);
 
     parsePlugin(containerLauncherDescriptors, containerLauncherPluginMap,
         (amPluginDescriptorProto == null ||
@@ -2830,11 +2804,8 @@ public class DAGAppMaster extends AbstractService {
   @VisibleForTesting
   static void processSchedulerDescriptors(List<NamedEntityDescriptor> descriptors, boolean isLocal,
                                           UserPayload defaultPayload,
-                                          BiMap<String, Integer> schedulerPluginMap) {
-    boolean isUsingYarnServicePlugin = true;
-    if(amExts.isPresent()) {
-      isUsingYarnServicePlugin = amExts.get().isUsingYarnServicePlugin();
-    }
+                                          BiMap<String, Integer> schedulerPluginMap,
+                                          boolean isUsingYarnServicePlugin) {
     if (isLocal) {
       boolean foundUberServiceName = false;
       for (NamedEntityDescriptor descriptor : descriptors) {

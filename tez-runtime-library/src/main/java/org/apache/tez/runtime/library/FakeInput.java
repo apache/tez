@@ -11,7 +11,7 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 
 public class FakeInput extends AbstractLogicalInput {
 
-  private static final int numRecordPerSrc = 10;
+  private static final int NUM_RECORD_PER_SRC = 10;
 
   /**
    * Constructor an instance of the LogicalInput. Classes extending this one to create a
@@ -35,7 +35,6 @@ public class FakeInput extends AbstractLogicalInput {
 
   @Override
   public void handleEvents(List<org.apache.tez.runtime.api.Event> inputEvents) throws Exception {
-
   }
 
   @Override
@@ -45,21 +44,20 @@ public class FakeInput extends AbstractLogicalInput {
 
   @Override
   public void start() throws Exception {
-
   }
 
   @Override
   public Reader getReader() throws Exception {
     return new KeyValueReader() {
-      String[] keys = new String[numRecordPerSrc];
+      private final String[] keys = new String[NUM_RECORD_PER_SRC];
 
       int i = -1;
 
       @Override
       public boolean next() throws IOException {
         if (i == -1) {
-          for (int j = 0; j < numRecordPerSrc; j++) {
-            keys[j] = ""+j;
+          for (int j = 0; j < NUM_RECORD_PER_SRC; j++) {
+            keys[j] = "" + j;
           }
         }
         i++;

@@ -92,7 +92,6 @@ import org.apache.tez.dag.api.records.DAGProtos.PlanKeyValuePair;
 import org.apache.tez.dag.api.records.DAGProtos.PlanVertexGroupInfo;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
-import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.RecoveryParser;
 import org.apache.tez.dag.app.RecoveryParser.DAGRecoveryData;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
@@ -1614,10 +1613,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     }
 
     // check task resources, only check it in non-local mode
-    boolean checkTaskResources = true;
-    if(DAGAppMaster.amExts.isPresent()) {
-      checkTaskResources = DAGAppMaster.amExts.get().checkTaskResources(vertexMap, appContext);
-    }
+    boolean checkTaskResources = appContext.getFrameworkContext().getAmExtensions().checkTaskResources(vertexMap, appContext);
     if (!appContext.isLocal() && checkTaskResources) {
       for (Vertex v : vertexMap.values()) {
         // TODO TEZ-2003 (post) TEZ-2624 Ideally, this should be per source.
