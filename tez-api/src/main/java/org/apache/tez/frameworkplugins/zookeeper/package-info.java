@@ -6,25 +6,19 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
 
+@Public
+@Evolving
+package org.apache.tez.frameworkplugins.zookeeper;
 
-import org.apache.tez.client.FrameworkClient;
-
-/*
-  FrameworkService that runs code within the client process that is using TezClient
-  Bundles together a compatible FrameworkClient and AMRegistryClient
- */
-public interface ClientFrameworkService extends FrameworkService {
-  //Provide an impl. for org.apache.tez.client.FrameworkClient
-  FrameworkClient newFrameworkClient();
-}
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;

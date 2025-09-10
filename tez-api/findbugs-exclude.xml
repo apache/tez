@@ -151,4 +151,11 @@
     <Method name="getApplicationId" />
     <Bug pattern="EI_EXPOSE_REP" />
   </Match>
+
+  <!-- TEZ-4007 -->
+  <Match>
+    <Class name="org.apache.tez.client.registry.zookeeper.ZkFrameworkClient" />
+    <Field name="amPort" />
+    <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE" />
+  </Match>
 </FindBugsFilter>

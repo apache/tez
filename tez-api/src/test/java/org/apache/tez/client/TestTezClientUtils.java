@@ -709,8 +709,12 @@ public class TestTezClientUtils {
     ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
 
     for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
-      String v = expected.remove(kvPair.getKey());
-      assertEquals(v, kvPair.getValue());
+      if (expected.containsKey(kvPair.getKey())) { // fix for polluting keys
+        String v = expected.remove(kvPair.getKey());
+        // this way the test still validates that the original
+        // key/value pairs can be found in the proto's conf
+        assertEquals(v, kvPair.getValue());
+      }
     }
     assertTrue(expected.isEmpty());
   }

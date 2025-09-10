@@ -15,16 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
 
+@Public
+@Evolving
+package org.apache.tez.runtime.library;
 
-import org.apache.tez.client.FrameworkClient;
-
-/*
-  FrameworkService that runs code within the client process that is using TezClient
-  Bundles together a compatible FrameworkClient and AMRegistryClient
- */
-public interface ClientFrameworkService extends FrameworkService {
-  //Provide an impl. for org.apache.tez.client.FrameworkClient
-  FrameworkClient newFrameworkClient();
-}
+import org.apache.hadoop.classification.InterfaceAudience.Public;
+import org.apache.hadoop.classification.InterfaceStability.Evolving;

@@ -17,8 +17,13 @@
  */
 package org.apache.tez.frameworkplugins;
 
-//Marker for a FrameworkService
-//extended by ClientFrameworkService and ServerFrameworkService
+/**
+ * Marker interface for framework-level services in Tez.
+ * <p>
+ * This interface is extended by {@link ClientFrameworkService} and
+ * {@link ServerFrameworkService} to represent client-side and server-side
+ * framework service implementations, respectively.
+ * </p>
+ */
 public interface FrameworkService {
-
 }

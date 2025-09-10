@@ -15,16 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
+package org.apache.tez.frameworkplugins.yarn;
 
-
+import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.tez.client.FrameworkClient;
+import org.apache.tez.client.TezYarnClient;
+import org.apache.tez.frameworkplugins.ClientFrameworkService;
 
-/*
-  FrameworkService that runs code within the client process that is using TezClient
-  Bundles together a compatible FrameworkClient and AMRegistryClient
+/**
+ * YARN-based client framework service implementation.
+ * Provides default YARN framework client functionality.
  */
-public interface ClientFrameworkService extends FrameworkService {
-  //Provide an impl. for org.apache.tez.client.FrameworkClient
-  FrameworkClient newFrameworkClient();
+public class YarnClientFrameworkService implements ClientFrameworkService {
+
+  @Override
+  public FrameworkClient newFrameworkClient() {
+    return new TezYarnClient(YarnClient.createYarnClient());
+  }
 }

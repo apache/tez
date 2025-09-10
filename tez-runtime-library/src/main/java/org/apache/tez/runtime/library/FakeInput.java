@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.tez.runtime.library;
 
 import java.io.IOException;
@@ -11,16 +28,19 @@ import org.apache.tez.runtime.library.api.KeyValueReader;
 
 public class FakeInput extends AbstractLogicalInput {
 
-  private static final int numRecordPerSrc = 10;
+  private static final int NUM_RECORD_PER_SRC = 10;
 
   /**
-   * Constructor an instance of the LogicalInput. Classes extending this one to create a
-   * LogicalInput, must provide the same constructor so that Tez can create an instance of the
-   * class at runtime.
+   * Constructs an instance of {@code LogicalInput}.
+   * <p>
+   * Classes extending this one to create a custom {@code LogicalInput} must provide
+   * the same constructor signature so that Tez can instantiate the class at runtime.
+   * </p>
    *
-   * @param inputContext      the {@link InputContext} which provides
-   *                          the Input with context information within the running task.
-   * @param numPhysicalInputs the number of physical inputs that the logical input will
+   * @param inputContext       the {@link InputContext} that provides the input
+   *                           with contextual information within the running task
+   * @param numPhysicalInputs  the number of physical inputs associated with this
+   *                           logical input
    */
   public FakeInput(InputContext inputContext, int numPhysicalInputs) {
     super(inputContext, numPhysicalInputs);
@@ -35,7 +55,6 @@ public class FakeInput extends AbstractLogicalInput {
 
   @Override
   public void handleEvents(List<org.apache.tez.runtime.api.Event> inputEvents) throws Exception {
-
   }
 
   @Override
@@ -45,21 +64,20 @@ public class FakeInput extends AbstractLogicalInput {
 
   @Override
   public void start() throws Exception {
-
   }
 
   @Override
   public Reader getReader() throws Exception {
     return new KeyValueReader() {
-      String[] keys = new String[numRecordPerSrc];
+      private final String[] keys = new String[NUM_RECORD_PER_SRC];
 
-      int i = -1;
+      private int i = -1;
 
       @Override
       public boolean next() throws IOException {
         if (i == -1) {
-          for (int j = 0; j < numRecordPerSrc; j++) {
-            keys[j] = ""+j;
+          for (int j = 0; j < NUM_RECORD_PER_SRC; j++) {
+            keys[j] = "" + j;
           }
         }
         i++;

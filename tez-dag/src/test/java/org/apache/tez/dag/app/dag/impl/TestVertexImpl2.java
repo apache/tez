@@ -373,13 +373,15 @@ public class TestVertexImpl2 {
       this.vertexName = "testvertex";
       this.vertexExecutionContext = vertexExecutionContext;
       this.defaultExecutionContext = defaultDagExecitionContext;
+
+      UserPayload defaultPayload;
+      try {
+        defaultPayload = TezUtils.createUserPayloadFromConf(new Configuration(false));
+      } catch (IOException e) {
+        throw new TezUncheckedException(e);
+      }
+
       if (numPlugins == 0) { // Add default container plugins only
-        UserPayload defaultPayload;
-        try {
-          defaultPayload = TezUtils.createUserPayloadFromConf(new Configuration(false));
-        } catch (IOException e) {
-          throw new TezUncheckedException(e);
-        }
         PluginManager.parsePlugin(Lists.newLinkedList(), taskSchedulers, null, true, false, defaultPayload);
         PluginManager.parsePlugin(Lists.newLinkedList(), containerLaunchers, null, true, false, defaultPayload);
         PluginManager.parsePlugin(Lists.newLinkedList(), taskComms, null, true, false, defaultPayload);
@@ -402,9 +404,10 @@ public class TestVertexImpl2 {
                       DAGProtos.TezEntityDescriptorProto.newBuilder()
                           .setClassName(append(TASK_COMM_NAME_BASE, i))).build());
         }
-        PluginManager.parsePlugin(Lists.newLinkedList(), taskSchedulers, schedulerList, false, false, null);
-        PluginManager.parsePlugin(Lists.newLinkedList(), containerLaunchers, launcherList, false, false, null);
-        PluginManager.parsePlugin(Lists.newLinkedList(), taskComms, taskCommList, false, false, null);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskSchedulers, schedulerList, false, false, defaultPayload);
+        PluginManager.parsePlugin(Lists.newLinkedList(), containerLaunchers, launcherList, false, false,
+            defaultPayload);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskComms, taskCommList, false, false, defaultPayload);
       }
 
       this.appContext = createDefaultMockAppContext();

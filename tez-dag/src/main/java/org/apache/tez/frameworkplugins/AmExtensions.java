@@ -17,8 +17,8 @@
  */
 package org.apache.tez.frameworkplugins;
 
+import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.Credentials;
@@ -28,7 +28,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.common.security.JobTokenIdentifier;
 import org.apache.tez.common.security.JobTokenSecretManager;
 import org.apache.tez.dag.api.records.DAGProtos;
-import org.apache.tez.dag.app.AppContext;
+import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.dag.Vertex;
 
 /*
@@ -38,26 +38,19 @@ import org.apache.tez.dag.app.dag.Vertex;
 public interface AmExtensions {
 
   //Override default Configuration loading at DAGAppMaster.main
-  default Optional<DAGProtos.ConfigurationProto> loadConfigurationProto() { return Optional.empty(); }
+  DAGProtos.ConfigurationProto loadConfigurationProto() throws IOException;
 
   //Override default behavior to give ContainerId to AM
-  default Optional<ContainerId> allocateContainerId(Configuration conf) { return Optional.empty(); }
+  ContainerId allocateContainerId(Configuration conf);
 
-  //Whether this framework requires addition of the default Yarn ServicePlugins
-  default boolean isUsingYarnServicePlugin() {
-    return true;
-  }
+  //Check task resource constraints
+  void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws TaskResourceException;
 
-  //Whether to check task resources against ClusterInfo
-  default boolean checkTaskResources(Map<String, Vertex> vertices, AppContext appContext) { return true; }
-
-  default Optional<Token<JobTokenIdentifier>> getSessionToken(
+  Token<JobTokenIdentifier> getSessionToken(
       ApplicationAttemptId appAttemptID,
       JobTokenSecretManager jobTokenSecretManager,
       Credentials amCredentials
-  ) { return Optional.empty(); }
+  );
 
-  default Optional<DAGProtos.PlanLocalResourcesProto> getAdditionalSessionResources(String dir) {
-    return Optional.empty();
-  }
+  DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) throws IOException;
 }

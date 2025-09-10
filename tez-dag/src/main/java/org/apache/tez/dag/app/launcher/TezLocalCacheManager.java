@@ -80,8 +80,9 @@ public class TezLocalCacheManager {
 
     try {
       // construct new threads with helpful names
-      ThreadFactory threadFactory =
-          new ThreadFactoryBuilder().setNameFormat("TezLocalCacheManager Downloader #%d").build();
+      ThreadFactory threadFactory = new ThreadFactoryBuilder()
+          .setNameFormat("TezLocalCacheManager Downloader #%d")
+          .build();
       threadPool = Executors.newCachedThreadPool(threadFactory);
 
       // start all fetches
@@ -107,7 +108,6 @@ public class TezLocalCacheManager {
           Path dest = new Path(downloadDir.toAbsolutePath().toString());
           FSDownload downloader = new FSDownload(fileContext, ugi, conf, dest, resource);
           Future<Path> downloadedPath = threadPool.submit(downloader);
-
           resourceInfo.put(resource, new ResourceInfo(downloadedPath, linkPath));
         }
       }

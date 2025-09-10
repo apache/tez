@@ -19,7 +19,6 @@
 package org.apache.tez.client;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.conf.Configuration;
@@ -27,7 +26,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.RPCUtil;
@@ -49,6 +47,7 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequest
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
 import org.apache.tez.frameworkplugins.ClientFrameworkService;
 import org.apache.tez.frameworkplugins.FrameworkUtils;
+import org.apache.tez.frameworkplugins.yarn.YarnClientFrameworkService;
 
 import com.google.protobuf.ServiceException;
 
@@ -60,10 +59,6 @@ public abstract class FrameworkClient {
   protected static final Logger LOG = LoggerFactory.getLogger(FrameworkClient.class);
 
   public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
-    Optional<FrameworkClient> pluginClient =
-        FrameworkUtils.get(ClientFrameworkService.class, tezConf)
-            .flatMap(framework -> framework.createOrGetFrameworkClient(tezConf));
-
     boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
       try {
@@ -71,10 +66,11 @@ public abstract class FrameworkClient {
       } catch (TezReflectionException e) {
         throw new TezUncheckedException("Fail to create LocalClient", e);
       }
-    } else if (pluginClient.isPresent()) {
-      return pluginClient.get();
+    } else {
+      ClientFrameworkService clientFrameworkService = FrameworkUtils.get(ClientFrameworkService.class, tezConf);
+      return clientFrameworkService == null ? new YarnClientFrameworkService().newFrameworkClient()
+          : clientFrameworkService.newFrameworkClient();
     }
-    return new TezYarnClient(YarnClient.createYarnClient());
   }
 
   /**

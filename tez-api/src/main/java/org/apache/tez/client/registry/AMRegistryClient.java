@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Interface for client-side AM discovery
+ * Interface for client-side AM discovery.
  */
 public abstract class AMRegistryClient implements Closeable {
 
