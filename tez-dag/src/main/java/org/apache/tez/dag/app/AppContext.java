@@ -140,4 +140,6 @@ public interface AppContext {
   public HadoopShim getHadoopShim();
 
   public DAGRecoveryData getDAGRecoveryData();
+
+  org.apache.tez.frameworkplugins.FrameworkContext getFrameworkContext();
 }

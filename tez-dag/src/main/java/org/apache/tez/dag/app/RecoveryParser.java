@@ -46,6 +46,7 @@ import org.apache.tez.dag.app.dag.VertexState;
 import org.apache.tez.dag.app.dag.impl.DAGImpl;
 import org.apache.tez.dag.history.HistoryEvent;
 import org.apache.tez.dag.history.HistoryEventType;
+import org.apache.tez.dag.history.events.*;
 import org.apache.tez.dag.history.events.AMLaunchedEvent;
 import org.apache.tez.dag.history.events.AMStartedEvent;
 import org.apache.tez.dag.history.events.ContainerLaunchedEvent;

@@ -698,6 +698,24 @@ public class TestTezClientUtils {
   }
 
   @Test (timeout = 5000)
+  public void testConfYarnZkWorkaround() {
+    Configuration conf = new Configuration(false);
+    String val = "localhost:2181";
+    conf.set("yarn.resourcemanager.zk-address", val);
+
+    Map<String, String> expected = new HashMap<String, String>();
+    expected.put("yarn.resourcemanager.zk-address", val);
+
+    ConfigurationProto confProto = TezClientUtils.createFinalConfProtoForApp(conf, null);
+
+    for (PlanKeyValuePair kvPair : confProto.getConfKeyValuesList()) {
+      String v = expected.remove(kvPair.getKey());
+      assertEquals(v, kvPair.getValue());
+    }
+    assertTrue(expected.isEmpty());
+  }
+
+  @Test (timeout = 5000)
   public void testConfSerializationForAm() {
     Configuration conf =new Configuration(false);
     String val1 = "fixedProperty";
