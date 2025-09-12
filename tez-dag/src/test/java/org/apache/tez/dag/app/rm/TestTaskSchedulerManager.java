@@ -80,8 +80,8 @@ import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.ContainerContext;
 import org.apache.tez.dag.app.ContainerHeartbeatHandler;
-import org.apache.tez.dag.app.DAGAppMaster;
 import org.apache.tez.dag.app.DAGAppMasterState;
+import org.apache.tez.dag.app.PluginManager;
 import org.apache.tez.dag.app.ServicePluginLifecycleAbstractService;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.dag.DAG;
@@ -865,14 +865,16 @@ public class TestTaskSchedulerManager {
     UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(tezConf);
 
     // Parse plugins
-    List<NamedEntityDescriptor> tsDescriptors = Lists.newLinkedList();
+    PluginManager pluginManager = new PluginManager();
+    PluginManager.PluginDescriptors pluginDescriptors = pluginManager.parseAllPlugins(false, defaultPayload);
+    List<NamedEntityDescriptor> tsDescriptors = pluginDescriptors.getTaskSchedulerDescriptors();
     BiMap<String, Integer> tsMap = HashBiMap.create();
-    DAGAppMaster.parseAllPlugins(tsDescriptors, tsMap, Lists.newLinkedList(), HashBiMap.create(), Lists.newLinkedList(),
-        HashBiMap.create(), null, false, defaultPayload);
 
     // Only TezYarn found.
     Assert.assertEquals(1, tsDescriptors.size());
     Assert.assertEquals(TezConstants.getTezYarnServicePluginName(), tsDescriptors.get(0).getEntityName());
+    Assert.assertEquals(1, pluginManager.getTaskSchedulers().size());
+    Assert.assertTrue(pluginManager.getTaskSchedulers().containsKey(TezConstants.getTezYarnServicePluginName()));
 
     // Construct eventHandler
     TestTaskSchedulerHelpers.CapturingEventHandler eventHandler = new TestTaskSchedulerHelpers.CapturingEventHandler();

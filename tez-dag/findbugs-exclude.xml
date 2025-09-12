@@ -248,4 +248,29 @@
     <Bug pattern="EI_EXPOSE_REP2"/>
   </Match>
 
+  <!-- TEZ-4647 PluginManager EI_EXPOSE_REP warnings -->
+  <Match>
+    <Class name="org.apache.tez.dag.app.PluginManager"/>
+    <Method name="getTaskSchedulers"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.PluginManager"/>
+    <Method name="getContainerLaunchers"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.PluginManager"/>
+    <Method name="getTaskCommunicators"/>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.dag.app.PluginManager"/>
+    <Method name="&lt;init&gt;"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+
 </FindBugsFilter>
