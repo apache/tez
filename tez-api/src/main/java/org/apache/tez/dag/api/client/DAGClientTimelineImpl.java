@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.hadoop.classification.InterfaceAudience.Private;
@@ -52,11 +54,6 @@ import org.apache.tez.dag.api.records.DAGProtos.VertexStatusStateProto;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.WebResource;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -212,7 +209,7 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
  @Override
   public void close() throws IOException {
     if (httpClient != null) {
-      httpClient.destroy();
+      httpClient.close();
       httpClient = null;
     }
     if (timelineReaderStrategy != null) {
@@ -426,26 +423,14 @@ public class DAGClientTimelineImpl extends DAGClientInternal {
   @VisibleForTesting
   protected JSONObject getJsonRootEntity(String url) throws TezException {
     try {
-      WebResource wr = getCachedHttpClient().resource(url);
-      ClientResponse response = wr.accept(MediaType.APPLICATION_JSON_TYPE)
-          .type(MediaType.APPLICATION_JSON_TYPE)
-          .get(ClientResponse.class);
-
-      final ClientResponse.Status clientResponseStatus = response.getClientResponseStatus();
-      if (clientResponseStatus != ClientResponse.Status.OK) {
-        throw new TezException("Failed to get response from YARN Timeline:" +
-            " errorCode:" + clientResponseStatus + ", url:" + url);
-      }
-
-      return response.getEntity(JSONObject.class);
-    } catch (ClientHandlerException e) {
+      Client client = getCachedHttpClient();
+      WebTarget target = client.target(url);
+      String json = target.request(MediaType.APPLICATION_JSON_TYPE)
+          .accept(MediaType.APPLICATION_JSON_TYPE)
+          .get(String.class);
+      return new JSONObject(json);
+    } catch (Exception e) {
       throw new TezException("Error processing response from YARN Timeline", e);
-    } catch (UniformInterfaceException e) {
-      throw new TezException("Error accessing content from YARN Timeline - unexpected response", e);
-    } catch (IllegalArgumentException e) {
-      throw new TezException("Error accessing content from YARN Timeline - invalid url", e);
-    } catch (IOException e) {
-      throw new TezException("Error failed to get http client", e);
     }
   }
 
