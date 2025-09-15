@@ -189,7 +189,7 @@ public class PluginManager {
   public static void addDescriptor(List<NamedEntityDescriptor> list, BiMap<String, Integer> pluginMap,
                             NamedEntityDescriptor namedEntityDescriptor) {
     list.add(namedEntityDescriptor);
-    pluginMap.put(list.get(list.size() - 1).getEntityName(), list.size() - 1);
+    pluginMap.put(list.getLast().getEntityName(), list.size() - 1);
   }
 
   /**
