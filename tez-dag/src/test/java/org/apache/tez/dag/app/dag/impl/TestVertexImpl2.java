@@ -37,7 +37,6 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.util.Clock;
 import org.apache.tez.common.TezUtils;
 import org.apache.tez.dag.api.DagTypeConverters;
-import org.apache.tez.dag.api.NamedEntityDescriptor;
 import org.apache.tez.dag.api.TaskLocationHint;
 import org.apache.tez.dag.api.TezConfiguration;
 import org.apache.tez.dag.api.TezConstants;
@@ -52,7 +51,7 @@ import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.VertexPlan;
 import org.apache.tez.dag.app.AppContext;
 import org.apache.tez.dag.app.ContainerContext;
-import org.apache.tez.dag.app.DAGAppMaster;
+import org.apache.tez.dag.app.PluginManager;
 import org.apache.tez.dag.app.TaskCommunicatorManagerInterface;
 import org.apache.tez.dag.app.TaskHeartbeatHandler;
 import org.apache.tez.dag.app.dag.DAG;
@@ -381,13 +380,9 @@ public class TestVertexImpl2 {
         } catch (IOException e) {
           throw new TezUncheckedException(e);
         }
-        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskSchedulers, null,
-            true, false, defaultPayload);
-        DAGAppMaster
-            .parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), containerLaunchers, null,
-                true, false, defaultPayload);
-        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskComms, null,
-            true, false, defaultPayload);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskSchedulers, null, true, false, defaultPayload);
+        PluginManager.parsePlugin(Lists.newLinkedList(), containerLaunchers, null, true, false, defaultPayload);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskComms, null, true, false, defaultPayload);
       } else { // Add N plugins, no YARN defaults
         List<TezNamedEntityDescriptorProto> schedulerList = new LinkedList<>();
         List<TezNamedEntityDescriptorProto> launcherList = new LinkedList<>();
@@ -407,13 +402,9 @@ public class TestVertexImpl2 {
                       DAGProtos.TezEntityDescriptorProto.newBuilder()
                           .setClassName(append(TASK_COMM_NAME_BASE, i))).build());
         }
-        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskSchedulers,
-            schedulerList, false, false, null);
-        DAGAppMaster.parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), containerLaunchers,
-            launcherList, false, false, null);
-        DAGAppMaster
-            .parsePlugin(Lists.<NamedEntityDescriptor>newLinkedList(), taskComms, taskCommList,
-                false, false, null);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskSchedulers, schedulerList, false, false, null);
+        PluginManager.parsePlugin(Lists.newLinkedList(), containerLaunchers, launcherList, false, false, null);
+        PluginManager.parsePlugin(Lists.newLinkedList(), taskComms, taskCommList, false, false, null);
       }
 
       this.appContext = createDefaultMockAppContext();
@@ -557,4 +548,5 @@ public class TestVertexImpl2 {
     doReturn(mockDag).when(appContext).getCurrentDAG();
     return appContext;
   }
+
 }
