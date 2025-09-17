@@ -65,6 +65,7 @@ public class SpillAnalyzerImpl extends TezAnalyzerBase implements Analyzer {
     minOutputBytesPerTask = Math.max(0, config.getLong(OUTPUT_BYTES_THRESHOLD,
         OUTPUT_BYTES_THRESHOLD_DEFAULT));
     this.csvResult = new CSVResult(headers);
+    this.configProperties.add(OUTPUT_BYTES_THRESHOLD);
   }
 
   @Override
