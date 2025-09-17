@@ -264,7 +264,9 @@ public class ATSImportTool extends Configured implements Tool {
 
       //write downloaded part to zipfile.  This is done to avoid any memory pressure when
       // downloading and writing 1000s of tasks.
-      ZipEntry zipEntry = new ZipEntry("part-" + System.currentTimeMillis() + ".json");
+      String zipEntryName = "part-" + System.nanoTime() + ".json";
+      ZipEntry zipEntry = new ZipEntry(zipEntryName);
+      LOG.debug("Putting {} entities to a zip entry: {}", entities.length(), zipEntryName);
       zos.putNextEntry(zipEntry);
       JSONObject finalJson = new JSONObject();
       finalJson.put(tag, entities);
