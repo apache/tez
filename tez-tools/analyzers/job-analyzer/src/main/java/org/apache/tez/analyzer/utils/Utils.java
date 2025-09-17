@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.apache.tez.dag.utils.Graph;
 import org.apache.tez.history.parser.datamodel.AdditionalInputOutputDetails;
 import org.apache.tez.history.parser.datamodel.DagInfo;
 import org.apache.tez.history.parser.datamodel.EdgeInfo;
 import org.apache.tez.history.parser.datamodel.VertexInfo;
-
-import com.sun.istack.Nullable;
 
 public final class Utils {
 
