@@ -78,7 +78,6 @@
     <hadoop.version>3.4.1</hadoop.version>
     <jdk.tools.version>1.8</jdk.tools.version>
     <jersey.version>1.19.4</jersey.version>
-    <jettison.version>1.5.4</jettison.version>
     <jsr305.version>3.0.0</jsr305.version>
     <junit.version>4.13.2</junit.version>
     <leveldbjni-all.version>1.8</leveldbjni-all.version>
@@ -773,11 +772,6 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.codehaus.jettison</groupId>
-        <artifactId>jettison</artifactId>
-        <version>${jettison.version}</version>
       </dependency>
       <dependency>
         <groupId>com.sun.jersey</groupId>
