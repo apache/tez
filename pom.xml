@@ -784,11 +784,6 @@
         <artifactId>jersey-client</artifactId>
        <version>${jersey.version}</version>
       </dependency>
-      <dependency>
-        <groupId>com.sun.jersey</groupId>
-        <artifactId>jersey-json</artifactId>
-        <version>${jersey.version}</version>
-      </dependency>
       <!-- BouncyCastle should be in default scope to make their way to tez.tar.gz since Hadoop 3.4.1 -->
       <dependency>
         <groupId>org.bouncycastle</groupId>
