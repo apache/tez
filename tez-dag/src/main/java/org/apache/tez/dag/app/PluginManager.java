@@ -28,7 +28,6 @@ import org.apache.tez.dag.api.records.DAGProtos.AMPluginDescriptorProto;
 import org.apache.tez.dag.api.records.DAGProtos.TezNamedEntityDescriptorProto;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
@@ -127,9 +126,6 @@ public class PluginManager {
             amPluginDescriptorProto.getTaskSchedulersList()),
         tezYarnEnabled, uberEnabled, defaultPayload);
 
-    // post-process task scheduler plugin descriptors
-    processSchedulerDescriptors(taskSchedulerDescriptors, isLocal, defaultPayload, taskSchedulers);
-
     // parse container launcher plugins
     parsePlugin(containerLauncherDescriptors, containerLaunchers,
         (amPluginDescriptorProto == null ||
@@ -190,38 +186,6 @@ public class PluginManager {
                             NamedEntityDescriptor namedEntityDescriptor) {
     list.add(namedEntityDescriptor);
     pluginMap.put(list.getLast().getEntityName(), list.size() - 1);
-  }
-
-  /**
-   * Process scheduler descriptors with framework-specific logic.
-   */
-  public void processSchedulerDescriptors(List<NamedEntityDescriptor> descriptors, boolean isLocal,
-                                          UserPayload defaultPayload,
-                                          BiMap<String, Integer> schedulerPluginMap) {
-    if (isLocal) {
-      boolean foundUberServiceName = false;
-      for (NamedEntityDescriptor<?> descriptor : descriptors) {
-        if (descriptor.getEntityName().equals(TezConstants.getTezUberServicePluginName())) {
-          foundUberServiceName = true;
-          break;
-        }
-      }
-      Preconditions.checkState(foundUberServiceName);
-    } else {
-      boolean foundYarn = false;
-      for (NamedEntityDescriptor descriptor : descriptors) {
-        if (descriptor.getEntityName().equals(TezConstants.getTezYarnServicePluginName())) {
-          foundYarn = true;
-          break;
-        }
-      }
-      if (!foundYarn) {
-        NamedEntityDescriptor<?> yarnDescriptor =
-            new NamedEntityDescriptor(TezConstants.getTezYarnServicePluginName(), null)
-                .setUserPayload(defaultPayload);
-        addDescriptor(descriptors, schedulerPluginMap, yarnDescriptor);
-      }
-    }
   }
 
   /**
