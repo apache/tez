@@ -18,7 +18,9 @@
 
 package org.apache.tez.tools;
 
-import com.google.common.base.Objects;
+import java.io.IOException;
+import java.util.regex.Pattern;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -36,11 +38,11 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.Utils;
+
+import com.google.common.base.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.regex.Pattern;
 
 /**
  * Simple pig loader function (mainly loader) which reads TFile and emits every line as a tuple of
