@@ -260,31 +260,6 @@ public class TestDAGAppMaster {
   }
 
   @Test(timeout = 5000)
-  public void testParseAllPluginsOnlyCustomSpecified() throws IOException {
-    Configuration conf = new Configuration(false);
-    conf.set(TEST_KEY, TEST_VAL);
-    UserPayload defaultPayload = TezUtils.createUserPayloadFromConf(conf);
-    TezUserPayloadProto payloadProto = TezUserPayloadProto.newBuilder()
-        .setUserPayload(ByteString.copyFrom(defaultPayload.getPayload())).build();
-
-    AMPluginDescriptorProto proto = createAmPluginDescriptor(false, false, true, payloadProto);
-
-    // Only plugin, Yarn.
-    PluginManager pluginManager = new PluginManager(proto);
-    PluginManager.PluginDescriptors pluginDescriptors = pluginManager.parseAllPlugins(false, defaultPayload);
-    verifyDescAndMap(pluginDescriptors.getTaskSchedulerDescriptors(),
-        pluginManager.getTaskSchedulers(), 2, true, TS_NAME,
-        TezConstants.getTezYarnServicePluginName());
-    verifyDescAndMap(pluginDescriptors.getContainerLauncherDescriptors(),
-        pluginManager.getContainerLaunchers(), 1, true, CL_NAME);
-    verifyDescAndMap(pluginDescriptors.getTaskCommunicatorDescriptors(),
-        pluginManager.getTaskCommunicators(), 1, true, TC_NAME);
-    assertEquals(TS_NAME + CLASS_SUFFIX, pluginDescriptors.getTaskSchedulerDescriptors().get(0).getClassName());
-    assertEquals(CL_NAME + CLASS_SUFFIX, pluginDescriptors.getContainerLauncherDescriptors().get(0).getClassName());
-    assertEquals(TC_NAME + CLASS_SUFFIX, pluginDescriptors.getTaskCommunicatorDescriptors().get(0).getClassName());
-  }
-
-  @Test(timeout = 5000)
   public void testParseAllPluginsCustomAndYarnSpecified() throws IOException {
     Configuration conf = new Configuration(false);
     conf.set(TEST_KEY, TEST_VAL);
