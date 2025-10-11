@@ -87,10 +87,7 @@
            .nav-list .active a:hover {
              background-color: #a0a0a0;
            }
-           #banner .pull-left {
-             height: 82px;
-           }
-           #banner .pull-right {
+           #banner .pull-left, #banner .pull-right {
              height: 82px;
            }
            #banner .pull-left img {
