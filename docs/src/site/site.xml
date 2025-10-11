@@ -100,6 +100,8 @@
            #banner .pull-right img {
              height: 100%;
              width: auto;
+             padding: 4px;
+             box-sizing: border-box;
            }
       </style>]]>
     </head>
