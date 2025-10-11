@@ -40,8 +40,6 @@
   <bannerLeft>
     <name>Apache Tez</name>
     <src>./images/ApacheTezLogo_lowres.png</src>
-    <width>25%</width>
-    <height>25%</height>
     <href>https://tez.apache.org/</href>
   </bannerLeft>
 
@@ -88,6 +86,20 @@
            }
            .nav-list .active a:hover {
              background-color: #a0a0a0;
+           }
+           #banner .pull-left {
+             height: 82px;
+           }
+           #banner .pull-right {
+             height: 82px;
+           }
+           #banner .pull-left img {
+             height: 100%;
+             width: auto;
+           }
+           #banner .pull-right img {
+             height: 100%;
+             width: auto;
            }
       </style>]]>
     </head>
