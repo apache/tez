@@ -21,7 +21,11 @@ package org.apache.tez.dag.history.logging.ats;
 import java.io.IOException;
 import java.util.Random;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -39,10 +43,6 @@ import org.apache.tez.dag.api.client.DAGStatus;
 import org.apache.tez.runtime.library.processor.SleepProcessor;
 import org.apache.tez.runtime.library.processor.SleepProcessor.SleepProcessorConfig;
 import org.apache.tez.tests.MiniTezClusterWithTimeline;
-
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -115,16 +115,18 @@ public class TestATSHistoryWithMiniCluster {
 
   // To be replaced after Timeline has java APIs for domains
   private <K> K getTimelineData(String url, Class<K> clazz) {
-    Client client = new Client();
-    WebResource resource = client.resource(url);
+    Client client = ClientBuilder.newClient();
+    WebTarget target = client.target(url);
 
-    ClientResponse response = resource.accept(MediaType.APPLICATION_JSON)
-        .get(ClientResponse.class);
+    Response response = target.request(MediaType.APPLICATION_JSON)
+        .get();
     Assert.assertEquals(200, response.getStatus());
-    Assert.assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getType());
+    Assert.assertTrue(MediaType.APPLICATION_JSON_TYPE.isCompatible(response.getMediaType()));
 
-    K entity = response.getEntity(clazz);
+    K entity = response.readEntity(clazz);
     Assert.assertNotNull(entity);
+    response.close();
+    client.close();
     return entity;
   }
 
