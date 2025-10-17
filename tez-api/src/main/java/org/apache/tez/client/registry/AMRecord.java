@@ -39,12 +39,12 @@ public class AMRecord {
   private static final String APP_ID_RECORD_KEY = "appId";
   private static final String HOST_RECORD_KEY = "host";
   private static final String PORT_RECORD_KEY = "port";
-  private static final String OPAQUE_ID_KEY = "id";
+  private static final String EXTERNAL_ID_KEY = "externalId";
 
   private final ApplicationId appId;
   private final String host;
   private final int port;
-  private final String id;
+  private final String externalId;
 
   /**
    * Creates a new {@code AMRecord} with the given application ID, host, port, and identifier.
@@ -57,14 +57,14 @@ public class AMRecord {
    * @param appId the {@link ApplicationId} of the Tez application
    * @param host the hostname where the Application Master is running
    * @param port the port number on which the Application Master is listening
-   * @param id an opaque identifier for the record; if {@code null}, defaults to an empty string
+   * @param externalId an opaque identifier for the record; if {@code null}, defaults to an empty string
    */
-  public AMRecord(ApplicationId appId, String host, int port, String id) {
+  public AMRecord(ApplicationId appId, String host, int port, String externalId) {
     this.appId = appId;
     this.host = host;
     this.port = port;
-    //If id is not provided, convert to empty string
-    this.id = (id == null) ? "" : id;
+    //externalId is optional, if not provided, convert to empty string
+    this.externalId = (externalId == null) ? "" : externalId;
   }
 
   /**
@@ -81,7 +81,7 @@ public class AMRecord {
     this.appId = other.getApplicationId();
     this.host = other.getHost();
     this.port = other.getPort();
-    this.id = other.getId();
+    this.externalId = other.getExternalId();
   }
 
   /**
@@ -99,7 +99,7 @@ public class AMRecord {
     this.appId = ApplicationId.fromString(serviceRecord.get(APP_ID_RECORD_KEY));
     this.host = serviceRecord.get(HOST_RECORD_KEY);
     this.port = Integer.parseInt(serviceRecord.get(PORT_RECORD_KEY));
-    this.id = serviceRecord.get(OPAQUE_ID_KEY);
+    this.externalId = serviceRecord.get(EXTERNAL_ID_KEY);
   }
 
   public ApplicationId getApplicationId() {
@@ -114,8 +114,8 @@ public class AMRecord {
     return port;
   }
 
-  public String getId() {
-    return id;
+  public String getExternalId() {
+    return externalId;
   }
 
   @Override
@@ -127,7 +127,7 @@ public class AMRecord {
       return appId.equals(otherRecord.appId)
           && host.equals(otherRecord.host)
           && port == otherRecord.port
-          && id.equals(otherRecord.id);
+          && externalId.equals(otherRecord.externalId);
     } else {
       return false;
     }
@@ -152,12 +152,12 @@ public class AMRecord {
     serviceRecord.set(APP_ID_RECORD_KEY, appId);
     serviceRecord.set(HOST_RECORD_KEY, host);
     serviceRecord.set(PORT_RECORD_KEY, port);
-    serviceRecord.set(OPAQUE_ID_KEY, id);
+    serviceRecord.set(EXTERNAL_ID_KEY, externalId);
     return serviceRecord;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(appId, host, port, id);
+    return Objects.hash(appId, host, port, externalId);
   }
 }

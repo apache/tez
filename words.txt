@@ -1,0 +1,10 @@
+Apple
+Banana
+Car
+Apple
+Banana
+Car
+Dog
+Elephant
+Friend
+Game

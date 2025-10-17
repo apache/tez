@@ -66,7 +66,8 @@ public class DAGClientServer extends AbstractService {
   public void serviceStart() {
     try {
       Configuration conf = getConfig();
-      InetSocketAddress addr = new InetSocketAddress(0);
+      int rpcPort = conf.getInt(TezConfiguration.TEZ_AM_RPC_PORT, TezConfiguration.TEZ_AM_RPC_PORT_DEFAULT);
+      InetSocketAddress addr = new InetSocketAddress(rpcPort);
 
       DAGClientAMProtocolBlockingPBServerImpl service =
           new DAGClientAMProtocolBlockingPBServerImpl(realInstance, stagingFs);
@@ -82,7 +83,7 @@ public class DAGClientServer extends AbstractService {
 
       server = createServer(DAGClientAMProtocolBlockingPB.class, addr, conf,
                             numHandlers, blockingService, TezConfiguration.TEZ_AM_CLIENT_AM_PORT_RANGE);
-      
+
       // Enable service authorization?
       if (conf.getBoolean(
           CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION,
@@ -116,7 +117,7 @@ public class DAGClientServer extends AbstractService {
   public InetSocketAddress getBindAddress() {
     return bindAddress;
   }
-  
+
   public void setClientAMSecretKey(ByteBuffer key) {
     if (key != null && key.hasRemaining()) {
       // non-empty key. must be useful
