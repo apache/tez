@@ -133,6 +133,11 @@ public class TestAM {
     checkAddress(webUIAddress + "/prof", 202);
     checkAddress(webUIAddress + "/prof-output");
 
+    HttpURLConnection connection =
+        (HttpURLConnection) new URL(webUIAddress + "/prof-output?file=../etc/web").openConnection();
+    connection.connect();
+    assertTrue(new String(connection.getInputStream().readAllBytes()).contains("Access denied: Invalid Path"));
+
     URL url = new URL(webUIAddress);
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
         TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE_DEFAULT);

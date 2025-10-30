@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.servlet.ServletException;
@@ -43,7 +44,15 @@ public class ProfileOutputServlet extends DefaultServlet {
       writeMessage(response, "Run the profiler to be able to receive its output");
       return;
     }
-    File outputFile = new File(ProfileServlet.OUTPUT_DIR, queriedFile);
+    Path outputDir = Paths.get(ProfileServlet.OUTPUT_DIR).toAbsolutePath().normalize();
+    Path requestedPath = outputDir.resolve(queriedFile).normalize();
+
+    if (!requestedPath.startsWith(outputDir)) {
+      writeMessage(response, "Access denied: Invalid Path");
+      return;
+    }
+    File outputFile = requestedPath.toFile();
+
     if (!outputFile.exists()) {
       writeMessage(response, "Requested file does not exist: " + queriedFile);
       return;
