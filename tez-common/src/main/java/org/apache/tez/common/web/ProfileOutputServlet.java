@@ -48,6 +48,7 @@ public class ProfileOutputServlet extends DefaultServlet {
     Path requestedPath = outputDir.resolve(queriedFile).normalize();
 
     if (!requestedPath.startsWith(outputDir)) {
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       writeMessage(response, "Access denied: Invalid Path");
       return;
     }

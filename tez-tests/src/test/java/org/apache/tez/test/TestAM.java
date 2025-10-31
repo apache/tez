@@ -17,6 +17,7 @@
  */
 package org.apache.tez.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -24,6 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configuration.IntegerRanges;
@@ -136,7 +139,8 @@ public class TestAM {
     HttpURLConnection connection =
         (HttpURLConnection) new URL(webUIAddress + "/prof-output?file=../etc/web").openConnection();
     connection.connect();
-    assertTrue(new String(connection.getInputStream().readAllBytes()).contains("Access denied: Invalid Path"));
+    assertEquals(HttpServletResponse.SC_FORBIDDEN, connection.getResponseCode());
+    assertTrue(new String(connection.getErrorStream().readAllBytes()).contains("Access denied: Invalid Path"));
 
     URL url = new URL(webUIAddress);
     IntegerRanges portRange = conf.getRange(TezConfiguration.TEZ_AM_WEBSERVICE_PORT_RANGE,
