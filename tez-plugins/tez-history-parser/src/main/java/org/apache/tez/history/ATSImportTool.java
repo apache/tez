@@ -23,17 +23,18 @@ import static org.apache.hadoop.classification.InterfaceStability.Evolving;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -42,11 +43,9 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.LineIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.http.HttpConfig;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
@@ -60,16 +59,6 @@ import org.apache.tez.history.parser.utils.Utils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
-import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
-import com.sun.jersey.json.impl.provider.entity.JSONRootElementProvider;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -169,7 +158,7 @@ public class ATSImportTool extends Configured implements Tool {
       throw e;
     } finally {
       if (httpClient != null) {
-        httpClient.destroy();
+        httpClient.close();
       }
       IOUtils.closeQuietly(fos);
     }
@@ -288,65 +277,45 @@ public class ATSImportTool extends Configured implements Tool {
     }
   }
 
-  private void logErrorMessage(ClientResponse response) throws IOException {
-    LOG.error("Response status={}", response.getClientResponseStatus().toString());
-    LineIterator it = null;
+  private void logErrorMessage(Response response) {
+    LOG.error("Response status={}", Integer.toString(response.getStatus()));
     try {
-      it = IOUtils.lineIterator(response.getEntityInputStream(), UTF8);
-      while (it.hasNext()) {
-        String line = it.nextLine();
-        LOG.error(line);
+      String entity = response.readEntity(String.class);
+      if (entity != null) {
+        LOG.error(entity);
       }
-    } finally {
-      if (it != null) {
-        it.close();
-      }
+    } catch (Exception ignore) {
+      // ignore
     }
   }
 
   //For secure cluster, this should work as long as valid ticket is available in the node.
   private JSONObject getJsonRootEntity(String url) throws TezException, IOException {
     try {
-      WebResource wr = getHttpClient().resource(url);
-      ClientResponse response = wr.accept(MediaType.APPLICATION_JSON_TYPE)
-          .type(MediaType.APPLICATION_JSON_TYPE)
-          .get(ClientResponse.class);
+      WebTarget target = getHttpClient().target(url);
+      Response response = target.request(MediaType.APPLICATION_JSON_TYPE)
+          .accept(MediaType.APPLICATION_JSON_TYPE)
+          .get();
 
-      if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
+      if (response.getStatus() != Response.Status.OK.getStatusCode()) {
         // In the case of secure cluster, if there is any auth exception it sends the data back as
         // a html page and JSON parsing could throw exceptions. Instead, get the stream contents
         // completely and log it in case of error.
         logErrorMessage(response);
         throw new TezException("Failed to get response from YARN Timeline: url: " + url);
       }
-      return response.getEntity(JSONObject.class);
-    } catch (ClientHandlerException e) {
+      String json = response.readEntity(String.class);
+      return new JSONObject(json);
+    } catch (Exception e) {
       throw new TezException("Error processing response from YARN Timeline. URL=" + url, e);
-    } catch (UniformInterfaceException e) {
-      throw new TezException("Error accessing content from YARN Timeline - unexpected response. "
-          + "URL=" + url, e);
-    } catch (IllegalArgumentException e) {
-      throw new TezException("Error accessing content from YARN Timeline - invalid url. URL=" + url,
-          e);
     }
   }
 
   private Client getHttpClient() {
     if (httpClient == null) {
-      ClientConfig config = new DefaultClientConfig(JSONRootElementProvider.App.class);
-      HttpURLConnectionFactory urlFactory = new PseudoAuthenticatedURLConnectionFactory();
-      return new Client(new URLConnectionClientHandler(urlFactory), config);
+      return ClientBuilder.newClient();
     }
     return httpClient;
-  }
-
-  static class PseudoAuthenticatedURLConnectionFactory implements HttpURLConnectionFactory {
-    @Override
-    public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
-      String tokenString = (url.getQuery() == null ? "?" : "&") + "user.name=" +
-          URLEncoder.encode(UserGroupInformation.getCurrentUser().getShortUserName(), "UTF8");
-      return (HttpURLConnection) (new URL(url.toString() + tokenString)).openConnection();
-    }
   }
 
   @Override
