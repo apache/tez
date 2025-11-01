@@ -186,7 +186,7 @@ public final class TezClientUtils {
           + conf.get(TezConfiguration.TEZ_LIB_URIS_CLASSPATH));
 
       usingTezArchive = addLocalResources(conf, tezJarUris,
-                         tezJarResources, credentials);
+          tezJarResources, credentials);
 
       if (tezJarResources.isEmpty()) {
         throw new TezUncheckedException(
@@ -619,8 +619,8 @@ public final class TezClientUtils {
 
     LocalResource sessionJarsPBLRsrc =
       TezClientUtils.createLocalResource(fs,
-        sessionJarsPath, LocalResourceType.FILE,
-        LocalResourceVisibility.APPLICATION);
+          sessionJarsPath, LocalResourceType.FILE,
+          LocalResourceVisibility.APPLICATION);
     amLocalResources.put(
       TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME,
       sessionJarsPBLRsrc);
@@ -656,8 +656,8 @@ public final class TezClientUtils {
 
       amLocalResources.put(TezConstants.TEZ_PB_PLAN_BINARY_NAME,
         TezClientUtils.createLocalResource(fs,
-          binaryPath, LocalResourceType.FILE,
-          LocalResourceVisibility.APPLICATION));
+            binaryPath, LocalResourceType.FILE,
+            LocalResourceVisibility.APPLICATION));
 
       if (Level.DEBUG.isGreaterOrEqual(Level.toLevel(amLogLevel))) {
         Path textPath = localizeDagPlanAsText(dagPB, fs, amConfig, strAppId, tezSysStagingPath);
