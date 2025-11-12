@@ -26,7 +26,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.tez.tools.javadoc.model.Config;
 import org.apache.tez.tools.javadoc.model.ConfigProperty;
 
