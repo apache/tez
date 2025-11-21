@@ -56,7 +56,7 @@ public class ZkStandaloneAMExtensions implements AMExtensions {
         ApplicationAttemptId applicationAttemptId = ApplicationAttemptId.newInstance(appId, 1);
         return ContainerId.newContainerId(applicationAttemptId, 0);
       } else {
-        throw new RuntimeException("AMRegistry is required for ZkStandaloneAmExtensions");
+        throw new IllegalStateException("AMRegistry must not be null for standalone AM mode");
       }
     } catch (Exception e) {
       throw new RuntimeException(e);

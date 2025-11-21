@@ -2374,13 +2374,13 @@ public class TezConfiguration extends Configuration {
 
 
   /**
-   * Integer value. Initial backoff sleep duration (in milliseconds) for Curator retries.
-   * It's used when creating a CuratorFramework for the ZooKeeper registry.
+   * Initial backoff sleep duration for Curator retries. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP = TEZ_AM_PREFIX + "curator.backoff.sleep";
-  public static final int TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT = 1000;
+  public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT = "1000ms";
 
   /**
    * Integer value. Maximum number of retries for Curator operations.
@@ -2392,22 +2392,22 @@ public class TezConfiguration extends Configuration {
   public static final int TEZ_AM_CURATOR_MAX_RETRIES_DEFAULT = 3;
 
   /**
-   * Integer value. Session timeout (in milliseconds) for Curator framework.
-   * It's used when creating a CuratorFramework for the ZooKeeper registry.
+   * Session timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT = TEZ_AM_PREFIX + "curator.session.timeout";
-  public static final int TEZ_AM_CURATOR_SESSION_TIMEOUT_DEFAULT = 150000;
+  public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT_DEFAULT = "150000ms";
 
   /**
-   * Integer value. Connection timeout (in milliseconds) for Curator framework.
-   * It's used when creating a CuratorFramework for the ZooKeeper registry.
+   * Connection timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT = TEZ_AM_PREFIX + "curator.connection.timeout";
-  public static final int TEZ_AM_CURATOR_CONNECTION_TIMEOUT_DEFAULT = 15000;
+  public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT_DEFAULT = "15000ms";
 
 
   @ConfigurationScope(Scope.AM)

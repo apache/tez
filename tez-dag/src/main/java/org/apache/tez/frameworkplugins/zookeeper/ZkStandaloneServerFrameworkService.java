@@ -30,17 +30,36 @@ import org.slf4j.LoggerFactory;
 
 public class ZkStandaloneServerFrameworkService implements ServerFrameworkService {
   private static final Logger LOG = LoggerFactory.getLogger(ZkStandaloneServerFrameworkService.class);
-  private ZkAMRegistry amRegistry;
+  private final ZkStandaloneAMExtensions amExtensions = new ZkStandaloneAMExtensions(this);
+  private volatile ZkAMRegistry amRegistry;
 
+  /**
+   * Returns a singleton {@link AMRegistry} instance backed by ZooKeeper.
+   *
+   * <p>If the registry has not yet been created, this method initializes and starts
+   * a new {@link ZkAMRegistry} using the external AM identifier obtained from the
+   * {@code TEZ_AM_EXTERNAL_ID} environment variable.</p>
+   *
+   * <p>When the registry is used as a service within the DAGAppMaster, the
+   * DAGAppMaster is responsible for managing its lifecycle, including closure.</p>
+   *
+   * @param conf the configuration used to initialize the registry; must not be null
+   * @return the initialized and started {@link AMRegistry} instance
+   * @throws IllegalStateException if the {@code TEZ_AM_EXTERNAL_ID} environment variable is not set
+   * @throws RuntimeException if an error occurs while creating, initializing, or starting the registry
+   */
   @Override
   public synchronized AMRegistry getAMRegistry(Configuration conf) {
     if (amRegistry == null) {
+      final String externalId = System.getenv(TezConstants.TEZ_AM_EXTERNAL_ID);
+      if (externalId == null) {
+        throw new IllegalStateException(
+            TezConstants.TEZ_AM_EXTERNAL_ID + " environment variable is not set for standalone AM");
+      }
       try {
-        final String externalID = System.getenv(TezConstants.TEZ_AM_EXTERNAL_ID);
-        amRegistry = new ZkAMRegistry(externalID);
+        amRegistry = new ZkAMRegistry(externalId);
         amRegistry.init(conf);
-        amRegistry.start();
-        LOG.info("Created Zookeeper based AM Registry with externalID: {}", externalID);
+        LOG.info("Created Zookeeper based AM Registry with externalId: {}", externalId);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -50,6 +69,6 @@ public class ZkStandaloneServerFrameworkService implements ServerFrameworkServic
 
   @Override
   public AMExtensions getAMExtensions() {
-    return new ZkStandaloneAMExtensions(this);
+    return amExtensions;
   }
 }

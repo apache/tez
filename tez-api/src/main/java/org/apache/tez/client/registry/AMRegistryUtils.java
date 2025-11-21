@@ -15,10 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tez.frameworkplugins;
+package org.apache.tez.client.registry;
 
-public class TaskResourceException extends Exception {
-  public TaskResourceException(String msg) {
-    super(msg);
+import java.io.IOException;
+
+import org.apache.hadoop.registry.client.binding.RegistryUtils;
+import org.apache.hadoop.registry.client.types.ServiceRecord;
+
+public final class AMRegistryUtils {
+
+  private AMRegistryUtils() {}
+
+  public static AMRecord jsonStringToRecord(String json) throws IOException {
+    RegistryUtils.ServiceRecordMarshal marshal = new RegistryUtils.ServiceRecordMarshal();
+    ServiceRecord serviceRecord = marshal.fromJson(json);
+    return new AMRecord(serviceRecord);
+  }
+
+  public static String recordToJsonString(AMRecord amRecord) throws IOException {
+    RegistryUtils.ServiceRecordMarshal marshal = new RegistryUtils.ServiceRecordMarshal();
+    return marshal.toJson(amRecord.toServiceRecord());
   }
 }

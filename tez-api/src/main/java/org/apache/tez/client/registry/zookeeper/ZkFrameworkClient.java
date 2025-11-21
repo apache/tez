@@ -33,6 +33,8 @@ import org.apache.tez.client.FrameworkClient;
 import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.dag.api.TezConfiguration;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class ZkFrameworkClient extends FrameworkClient {
 
   private AMRecord amRecord;
@@ -43,10 +45,9 @@ public class ZkFrameworkClient extends FrameworkClient {
 
   @Override
   public synchronized void init(TezConfiguration tezConf) {
-    if (this.amRegistryClient == null) {
+    if (amRegistryClient == null) {
       try {
-        this.amRegistryClient = ZkAMRegistryClient.getClient(tezConf);
-        this.isRunning = true;
+        amRegistryClient = ZkAMRegistryClient.getClient(tezConf);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -56,7 +57,7 @@ public class ZkFrameworkClient extends FrameworkClient {
   @Override
   public void start() {
     try {
-      this.amRegistryClient.start();
+      amRegistryClient.start();
       isRunning = true;
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -131,15 +132,15 @@ public class ZkFrameworkClient extends FrameworkClient {
     ApplicationReport report = Records.newRecord(ApplicationReport.class);
     report.setApplicationId(appId);
     report.setTrackingUrl("");
-    amRecord = amRegistryClient.getRecord(appId.toString());
+    amRecord = amRegistryClient.getRecord(appId);
     // this could happen if the AM died, the AM record store under path will not exist
     if (amRecord == null) {
       report.setYarnApplicationState(YarnApplicationState.FINISHED);
       report.setFinalApplicationStatus(FinalApplicationStatus.FAILED);
       report.setDiagnostics("AM record not found (likely died) in zookeeper for application id: " + appId);
     } else {
-      report.setHost(amRecord.getHost());
-      amHost = amRecord.getHost();
+      report.setHost(amRecord.getHostName());
+      amHost = amRecord.getHostName();
       amPort = amRecord.getPort();
       report.setRpcPort(amRecord.getPort());
       report.setYarnApplicationState(YarnApplicationState.RUNNING);
@@ -160,5 +161,10 @@ public class ZkFrameworkClient extends FrameworkClient {
   @Override
   public int getAmPort() {
     return amPort;
+  }
+
+  @VisibleForTesting
+  boolean isZkInitialized() {
+    return amRegistryClient.isInitialized();
   }
 }

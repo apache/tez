@@ -19,27 +19,27 @@
 package org.apache.tez.client.registry.zookeeper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
-import org.apache.curator.shaded.com.google.common.base.Charsets;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.client.registry.AMRegistryClient;
-import org.apache.tez.client.registry.AMRegistryClientListener;
+import org.apache.tez.client.registry.AMRegistryUtils;
 import org.apache.tez.dag.api.TezConfiguration;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -57,9 +57,12 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
   private static final Map<String, ZkAMRegistryClient> INSTANCES = new HashMap<>();
 
   private final Configuration conf;
-  //Cache of known AMs
-  private final ConcurrentHashMap<String, AMRecord> amRecordCache = new ConcurrentHashMap<>();
+  // Cache of known AMs
+  private final ConcurrentHashMap<ApplicationId, AMRecord> amRecordCache = new ConcurrentHashMap<>();
+
   private CuratorFramework client;
+  private TreeCache cache;
+  private ZkRegistryListener listener;
 
   private ZkAMRegistryClient(final Configuration conf) {
     this.conf = conf;
@@ -86,7 +89,7 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
    * @throws IOException if the data cannot be deserialized into a {@link ServiceRecord}
    */
   public static AMRecord getAMRecord(final ChildData childData) throws IOException {
-    // not a leaf path. Only leaf path contains AMRecord
+    // Not a leaf path. Only leaf path contains AMRecord.
     if (!childData.getPath().contains(ApplicationId.appIdStrPrefix)) {
       return null;
     }
@@ -95,11 +98,9 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
     if (data.length == 0) {
       return null;
     }
-    String value = new String(data, Charsets.UTF_8);
+    String value = new String(data, StandardCharsets.UTF_8);
     try {
-      RegistryUtils.ServiceRecordMarshal marshal = new RegistryUtils.ServiceRecordMarshal();
-      ServiceRecord serviceRecord = marshal.fromJson(value);
-      return new AMRecord(serviceRecord);
+      return AMRegistryUtils.jsonStringToRecord(value);
     } catch (JsonParseException e) {
       //Not a json AMRecord (SRV), could be some other data.
       LOG.warn("Non-json data received while de-serializing AMRecord: {}. Ignoring...", value);
@@ -110,19 +111,18 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
   public void start() throws Exception {
     ZkConfig zkConf = new ZkConfig(this.conf);
     client = zkConf.createCuratorFramework();
-    final TreeCache cache = new TreeCache(client, zkConf.getZkNamespace());
+    cache = new TreeCache(client, zkConf.getZkNamespace());
     client.start();
     cache.start();
-    cache.getListenable().addListener(new ZkRegistryListener());
+    listener = new ZkRegistryListener();
+    cache.getListenable().addListener(listener);
   }
 
   @Override
-  public AMRecord getRecord(String appId) {
-    if (amRecordCache.get(appId) == null) {
-      return null;
-    }
-    //Return a copy
-    return new AMRecord(amRecordCache.get(appId));
+  public AMRecord getRecord(ApplicationId appId) {
+    AMRecord rec = amRecordCache.get(appId);
+    // Return a copy.
+    return rec == null ? null : new AMRecord(rec);
   }
 
   @Override
@@ -131,13 +131,13 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
   }
 
   @Override
-  public synchronized void addListener(AMRegistryClientListener listener) {
-    getListeners().add(listener);
+  public void close() {
+    IOUtils.closeQuietly(cache);
+    IOUtils.closeQuietly(client);
   }
 
-  @Override
-  public void close() {
-    client.close();
+  public boolean isInitialized() {
+    return listener.initialized;
   }
 
   /**
@@ -145,6 +145,8 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
    * when child nodes under the monitored path change.
    */
   private class ZkRegistryListener implements TreeCacheListener {
+
+    private boolean initialized = false;
 
     @Override
     public void childEvent(final CuratorFramework clientParam, final TreeCacheEvent event) throws Exception {
@@ -159,8 +161,8 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
           } else {
             AMRecord amRecord = getAMRecord(childData);
             if (amRecord != null) {
-              LOG.info("AM registered with data: {}. Notifying {} listeners.", amRecord, getListeners().size());
-              amRecordCache.put(amRecord.getApplicationId().toString(), amRecord);
+              LOG.info("AM registered with data: {}. Notifying listeners.", amRecord);
+              amRecordCache.put(amRecord.getApplicationId(), amRecord);
               notifyOnAdded(amRecord);
             }
           }
@@ -171,8 +173,8 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
           } else {
             AMRecord amRecord = getAMRecord(childData);
             if (amRecord != null) {
-              LOG.info("AM updated data: {}. Notifying {} listeners.", amRecord, getListeners().size());
-              amRecordCache.put(amRecord.getApplicationId().toString(), amRecord);
+              LOG.info("AM updated data: {}. Notifying listeners.", amRecord);
+              amRecordCache.put(amRecord.getApplicationId(), amRecord);
               notifyOnAdded(amRecord);
             }
           }
@@ -183,12 +185,14 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
           } else {
             AMRecord amRecord = getAMRecord(childData);
             if (amRecord != null) {
-              LOG.info("AM removed: {}. Notifying {} listeners.", amRecord, getListeners().size());
-              amRecordCache.remove(amRecord.getApplicationId().toString(), amRecord);
+              LOG.info("AM removed: {}. Notifying listeners.", amRecord);
+              amRecordCache.remove(amRecord.getApplicationId(), amRecord);
               notifyOnRemoved(amRecord);
             }
           }
           break;
+        case INITIALIZED:
+          this.initialized = true;
         default:
           if (childData == null) {
             LOG.info("Ignored event {}", event.getType());

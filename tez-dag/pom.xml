@@ -212,6 +212,7 @@
           <argLine>${test.jvm.args}</argLine>
           <environmentVariables>
             <LOG_DIRS>${test.log.dir}</LOG_DIRS>
+            <TEZ_AM_EXTERNAL_ID>test-external-id</TEZ_AM_EXTERNAL_ID>
           </environmentVariables>
         </configuration>
       </plugin>

@@ -172,4 +172,16 @@
             returns="void"/>
     <Bug pattern="EI_EXPOSE_REP2" />
   </Match>
+
+  <Match>
+    <Class name="org.apache.tez.client.registry.AMRecord" />
+    <Method name="toServiceRecord" />
+    <Bug pattern="EI_EXPOSE_REP" />
+  </Match>
+
+  <Match>
+    <Class name="org.apache.tez.frameworkplugins.FrameworkUtils" />
+    <Method name="get" params="java.lang.Class, org.apache.hadoop.conf.Configuration, java.lang.Class" returns="org.apache.tez.frameworkplugins.FrameworkService" />
+    <Bug pattern="REFLC_REFLECTION_MAY_INCREASE_ACCESSIBILITY_OF_CLASS" />
+  </Match>
 </FindBugsFilter>

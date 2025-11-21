@@ -23,6 +23,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.yarn.api.records.ApplicationId;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Client-side interface for discovering Application Master (AM) instances
  * registered in the AM registry.
@@ -35,17 +40,9 @@ import java.util.List;
  * appear or are removed.</p>
  */
 public abstract class AMRegistryClient implements Closeable {
+  private static final Logger LOG = LoggerFactory.getLogger(AMRegistryClient.class);
 
   private final List<AMRegistryClientListener> listeners = new ArrayList<>();
-
-  /**
-   * Returns the current set of registered listeners.
-   *
-   * @return a mutable list of listeners
-   */
-  protected List<AMRegistryClientListener> getListeners() {
-    return listeners;
-  }
 
   /**
    * Lookup AM metadata for the given application ID.
@@ -54,7 +51,7 @@ public abstract class AMRegistryClient implements Closeable {
    * @return the AM record if found, otherwise {@code null}
    * @throws IOException if the lookup fails
    */
-  public abstract AMRecord getRecord(String appId) throws IOException;
+  public abstract AMRecord getRecord(ApplicationId appId) throws IOException;
 
   /**
    * Retrieve all AM records known in the registry.
@@ -81,7 +78,26 @@ public abstract class AMRegistryClient implements Closeable {
    */
   protected synchronized void notifyOnAdded(AMRecord record) {
     for (AMRegistryClientListener listener : listeners) {
-      listener.onAdd(record);
+      try {
+        listener.onAdd(record);
+      } catch (Exception e) {
+        LOG.warn("Exception while calling AM add listener, AM record {}", record, e);
+      }
+    }
+  }
+
+  /**
+   * Notify listeners of an updated AM record.
+   *
+   * @param record the updated AM record
+   */
+  protected synchronized void notifyOnUpdated(AMRecord record) {
+    for (AMRegistryClientListener listener : listeners) {
+      try {
+        listener.onUpdate(record);
+      } catch (Exception e) {
+        LOG.warn("Exception while calling AM update listener, AM record {}", record, e);
+      }
     }
   }
 
@@ -92,7 +108,11 @@ public abstract class AMRegistryClient implements Closeable {
    */
   protected synchronized void notifyOnRemoved(AMRecord record) {
     for (AMRegistryClientListener listener : listeners) {
-      listener.onRemove(record);
+      try {
+        listener.onRemove(record);
+      } catch (Exception e) {
+        LOG.warn("Exception while calling AM remove listener, AM record {}", record, e);
+      }
     }
   }
 }

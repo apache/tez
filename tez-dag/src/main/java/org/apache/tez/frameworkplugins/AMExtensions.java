@@ -63,9 +63,9 @@ public interface AMExtensions {
    *
    * @param vertices mapping of vertex names to their DAG vertices
    * @param clusterInfo cluster resource information
-   * @throws TaskResourceException if resource requirements cannot be satisfied
+   * @throws Exception if resource requirements cannot be satisfied
    */
-  void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws TaskResourceException;
+  void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws Exception;
 
   /**
    * Create or override the session token used for AM authentication.

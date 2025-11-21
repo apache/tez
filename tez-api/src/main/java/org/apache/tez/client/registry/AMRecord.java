@@ -19,6 +19,7 @@
 package org.apache.tez.client.registry;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
@@ -51,6 +52,8 @@ public class AMRecord {
   private final String externalId;
   private final String computeName;
 
+  private ServiceRecord serviceRecord;
+
   /**
    * Creates a new {@code AMRecord} with the given application ID, host, port, and identifier.
    * <p>
@@ -74,8 +77,8 @@ public class AMRecord {
     this.hostIp = hostIp;
     this.port = port;
     //externalId is optional, if not provided, convert to empty string
-    this.externalId = (externalId == null) ? "" : externalId;
-    this.computeName = (computeName == null) ? ZkConfig.DEFAULT_COMPUTE_GROUP_NAME : computeName;
+    this.externalId = Optional.ofNullable(externalId).orElse("");
+    this.computeName = Optional.ofNullable(computeName).orElse(ZkConfig.DEFAULT_COMPUTE_GROUP_NAME);
   }
 
   /**
@@ -89,12 +92,15 @@ public class AMRecord {
    * @param other the {@code AMRecord} instance to copy
    */
   public AMRecord(AMRecord other) {
-    this.appId = other.getApplicationId();
-    this.hostName = other.getHost();
-    this.hostIp = other.getHostIp();
-    this.port = other.getPort();
-    this.externalId = other.getExternalId();
-    this.computeName = other.getComputeName();
+    this.appId = other.appId;
+    this.hostName = other.hostName;
+    this.hostIp = other.hostIp;
+    this.port = other.port;
+    this.externalId = other.externalId;
+    this.computeName = other.computeName;
+    // all fields are final immutable, we can copy the serviceRecord,
+    // if it's initialized there already, as it won't change
+    this.serviceRecord = other.serviceRecord;
   }
 
   /**
@@ -119,10 +125,6 @@ public class AMRecord {
 
   public ApplicationId getApplicationId() {
     return appId;
-  }
-
-  public String getHost() {
-    return hostName;
   }
 
   public String getHostName() {
@@ -150,8 +152,7 @@ public class AMRecord {
     if (this == other) {
       return true;
     }
-    if (other instanceof AMRecord) {
-      AMRecord otherRecord = (AMRecord) other;
+    if (other instanceof AMRecord otherRecord) {
       return appId.equals(otherRecord.appId)
           && hostName.equals(otherRecord.hostName)
           && hostIp.equals(otherRecord.hostIp)
@@ -178,13 +179,17 @@ public class AMRecord {
    * @return a {@link ServiceRecord} populated with the values of this {@code AMRecord}
    */
   public ServiceRecord toServiceRecord() {
-    ServiceRecord serviceRecord = new ServiceRecord();
+    if (serviceRecord != null) {
+      return serviceRecord;
+    }
+    serviceRecord = new ServiceRecord();
     serviceRecord.set(APP_ID_RECORD_KEY, appId);
     serviceRecord.set(HOST_NAME_RECORD_KEY, hostName);
     serviceRecord.set(HOST_IP_RECORD_KEY, hostIp);
     serviceRecord.set(PORT_RECORD_KEY, port);
     serviceRecord.set(EXTERNAL_ID_KEY, externalId);
     serviceRecord.set(COMPUTE_GROUP_NAME_KEY, computeName);
+
     return serviceRecord;
   }
 

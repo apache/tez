@@ -537,12 +537,15 @@ public class TestTezClient {
             Resource.newInstance(1, 1));
     dag = DAG.create("DAG2").addVertex(vertex2).addTaskLocalFiles(lrDAG);
 
+    dagClient.close();
     //DAG 2 submit
     dagClient = client2.submitDAG(dag);
 
     //DAG 2 assertions
     assertTrue(dagClient.getExecutionContext().contains(appId.toString()));
     assertEquals(dagClient.getSessionIdentifierString(), appId.toString());
+
+    dagClient.close();
   }
 
   @Test (timeout=5000)

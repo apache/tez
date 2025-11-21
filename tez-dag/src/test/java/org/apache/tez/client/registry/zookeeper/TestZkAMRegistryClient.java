@@ -18,7 +18,12 @@
 
 package org.apache.tez.client.registry.zookeeper;
 
-import static org.junit.Assert.*;
+
+import static org.apache.tez.frameworkplugins.FrameworkMode.STANDALONE_ZOOKEEPER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.List;
@@ -105,7 +110,7 @@ public class TestZkAMRegistryClient {
    *   <li>Create and start a {@link ZkAMRegistryClient} with an event listener</li>
    *   <li>Start a {@link MockDAGAppMaster} which registers itself to ZooKeeper</li>
    *   <li>Verify that the registry client's listener is notified of the AM registration</li>
-   *   <li>Verify the AM record can be retrieved via {@link ZkAMRegistryClient#getRecord(String)}</li>
+   *   <li>Verify the AM record can be retrieved via {@link ZkAMRegistryClient#getRecord(ApplicationId)}</li>
    *   <li>Verify the AM appears in the list from {@link ZkAMRegistryClient#getAllRecords()}</li>
    *   <li>Validate all expected fields (host, port, applicationId) are correctly set</li>
    * </ol>
@@ -164,10 +169,10 @@ public class TestZkAMRegistryClient {
     assertTrue("AM was not discovered by registry client", amDiscovered.get());
 
     // Verify the AM record is available through the registry client
-    AMRecord amRecord = registryClient.getRecord(appId.toString());
+    AMRecord amRecord = registryClient.getRecord(appId);
     assertNotNull("AM record should be retrievable from registry", amRecord);
     assertEquals("Application ID should match", appId, amRecord.getApplicationId());
-    assertNotNull("Host should be set", amRecord.getHost());
+    assertNotNull("Host should be set", amRecord.getHostName());
     assertTrue("Port should be positive", amRecord.getPort() > 0);
 
     // Verify getAllRecords also returns the AM
@@ -183,12 +188,11 @@ public class TestZkAMRegistryClient {
       }
     }
     assertTrue("AM record should be in getAllRecords", found);
-    LOG.info("Test completed successfully. AM was discovered: {}", amRecord);
   }
 
   private TezConfiguration getTezConfForZkDiscovery() {
     TezConfiguration tezConf = new TezConfiguration();
-    tezConf.set(TezConfiguration.TEZ_FRAMEWORK_MODE, "STANDALONE_ZOOKEEPER");
+    tezConf.set(TezConfiguration.TEZ_FRAMEWORK_MODE, STANDALONE_ZOOKEEPER.name());
     tezConf.set(TezConfiguration.TEZ_AM_ZOOKEEPER_QUORUM, "localhost:" + zkServer.getPort());
     tezConf.setBoolean(TezConfiguration.TEZ_LOCAL_MODE, true);
     tezConf.set(TezConfiguration.TEZ_AM_STAGING_DIR, TEST_DIR.toString());

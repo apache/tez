@@ -28,10 +28,10 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.client.registry.AMRegistry;
+import org.apache.tez.client.registry.AMRegistryUtils;
 import org.apache.tez.client.registry.zookeeper.ZkConfig;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -49,13 +49,12 @@ public class ZkAMRegistry extends AMRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZkAMRegistry.class);
 
-  private final List<AMRecord> amRecords = new ArrayList<>();
+  private final List<AMRecord> amRecords = Collections.synchronizedList(new ArrayList<>());
   private final String externalId;
 
   private CuratorFramework client = null;
   private String namespace = null;
   private ZkConfig zkConfig = null;
-  private boolean started = false;
 
   public ZkAMRegistry(String externalId) {
     super("ZkAMRegistry");
@@ -64,47 +63,52 @@ public class ZkAMRegistry extends AMRegistry {
 
   @Override
   public void serviceInit(Configuration conf) {
-    if (zkConfig == null) {
-      zkConfig = new ZkConfig(conf);
-      this.client = zkConfig.createCuratorFramework();
-      this.namespace = zkConfig.getZkNamespace();
-      LOG.info("AMRegistryZkImpl initialized");
-    }
+    zkConfig = new ZkConfig(conf);
+    this.client = zkConfig.createCuratorFramework();
+    this.namespace = zkConfig.getZkNamespace();
+    LOG.info("ZkAMRegistry initialized");
   }
 
   @Override
   public void serviceStart() throws Exception {
-    if (!started) {
-      client.start();
-      started = true;
-      LOG.info("AMRegistryZkImpl started");
-    }
+    client.start();
+    LOG.info("ZkAMRegistry started");
   }
 
-  //Deletes from Zookeeper AMRecords that were added by this instance
+  /**
+   * Shuts down the service by removing all {@link AMRecord} entries from ZooKeeper
+   * that were created by this instance.
+   *
+   * <p>After all removal attempts, the ZooKeeper client is closed and the shutdown
+   * is logged.</p>
+   *
+   * @throws Exception if a failure occurs while closing the ZooKeeper client
+   */
   @Override
   public void serviceStop() throws Exception {
-    List<AMRecord> records = new ArrayList<>(amRecords);
-    for (AMRecord amRecord : records) {
-      remove(amRecord);
+    for (AMRecord amRecord : new ArrayList<>(amRecords)) {
+      try {
+        remove(amRecord);
+      } catch (Exception e) {
+        LOG.warn("Exception while trying to remove AMRecord: {}", amRecord, e);
+      }
     }
     client.close();
-    LOG.info("AMRegistryZkImpl shutdown");
+    LOG.info("ZkAMRegistry shutdown");
   }
 
   //Serialize AMRecord to ServiceRecord and deliver the JSON bytes to
   //zkNode at the path:  <TEZ_AM_REGISTRY_NAMESPACE>/<appId>
   @Override
   public void add(AMRecord server) throws Exception {
-    RegistryUtils.ServiceRecordMarshal marshal = new RegistryUtils.ServiceRecordMarshal();
-    String json = marshal.toJson(server.toServiceRecord());
+    String json = AMRegistryUtils.recordToJsonString(server);
     try {
-      final String path = namespace + "/" + server.getApplicationId().toString();
+      final String path = pathFor(server);
       client.setData().forPath(path, json.getBytes(StandardCharsets.UTF_8));
       LOG.info("Added AMRecord to zkpath {}", path);
     } catch (KeeperException.NoNodeException nne) {
       client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL)
-          .forPath(namespace + "/" + server.getApplicationId().toString(), json.getBytes(StandardCharsets.UTF_8));
+          .forPath(pathFor(server), json.getBytes(StandardCharsets.UTF_8));
     }
     amRecords.add(server);
   }
@@ -112,7 +116,7 @@ public class ZkAMRegistry extends AMRegistry {
   @Override
   public void remove(AMRecord server) throws Exception {
     amRecords.remove(server);
-    final String path = namespace + "/" + server.getApplicationId().toString();
+    final String path = pathFor(server);
     client.delete().forPath(path);
     LOG.info("Deleted AMRecord from zkpath {}", path);
   }
@@ -140,8 +144,10 @@ public class ZkAMRegistry extends AMRegistry {
             .create()
             .withMode(CreateMode.EPHEMERAL)
             .forPath(namespace + "/" + tryAppId.toString(), new byte[0]);
+        LOG.debug("Successfully created application id {} for namespace {}", tryAppId, namespace);
         success = true;
       } catch (KeeperException.NodeExistsException nodeExists) {
+        LOG.info("Node already exists in ZK for application id {}", tryId);
         long elapsedTime = System.currentTimeMillis() - startTime;
         retryPolicy.allowRetry(i + 1, elapsedTime, RetryLoop.getDefaultRetrySleeper());
         tryId++;
@@ -171,5 +177,9 @@ public class ZkAMRegistry extends AMRegistry {
     } catch (KeeperException.NodeExistsException nodeExists) {
       LOG.info("Namespace already exists, will use existing: {}", namespace);
     }
+  }
+
+  private String pathFor(AMRecord record) {
+    return namespace + "/" + record.getApplicationId().toString();
   }
 }

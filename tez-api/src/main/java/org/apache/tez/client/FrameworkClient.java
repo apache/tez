@@ -67,9 +67,9 @@ public abstract class FrameworkClient {
         throw new TezUncheckedException("Fail to create LocalClient", e);
       }
     } else {
-      ClientFrameworkService clientFrameworkService = FrameworkUtils.get(ClientFrameworkService.class, tezConf);
-      return clientFrameworkService == null ? new YarnClientFrameworkService().newFrameworkClient()
-          : clientFrameworkService.newFrameworkClient();
+      ClientFrameworkService clientFrameworkService = FrameworkUtils.get(ClientFrameworkService.class, tezConf,
+          YarnClientFrameworkService.class);
+      return clientFrameworkService.newFrameworkClient();
     }
   }
 

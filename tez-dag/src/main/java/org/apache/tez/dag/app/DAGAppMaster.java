@@ -647,8 +647,7 @@ public class DAGAppMaster extends AbstractService {
   }
 
   private static ServerFrameworkService getFrameworkService(Configuration conf) {
-    ServerFrameworkService frameworkService = FrameworkUtils.get(ServerFrameworkService.class, conf);
-    return frameworkService == null ? new YarnServerFrameworkService() : frameworkService;
+    return FrameworkUtils.get(ServerFrameworkService.class, conf, YarnServerFrameworkService.class);
   }
 
   @VisibleForTesting

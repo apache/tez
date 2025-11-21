@@ -29,7 +29,6 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.Resource;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.tez.client.registry.AMRegistry;
 import org.apache.tez.common.TezUtilsInternal;
 import org.apache.tez.common.security.JobTokenIdentifier;
@@ -41,7 +40,6 @@ import org.apache.tez.dag.app.ClusterInfo;
 import org.apache.tez.dag.app.dag.Vertex;
 import org.apache.tez.frameworkplugins.AMExtensions;
 import org.apache.tez.frameworkplugins.ServerFrameworkService;
-import org.apache.tez.frameworkplugins.TaskResourceException;
 
 /**
  * YARN-based server framework service implementation.
@@ -78,11 +76,11 @@ public class YarnServerFrameworkService implements ServerFrameworkService {
     @Override
     public ContainerId allocateContainerId(Configuration conf) {
       String containerIdStr = System.getenv(ApplicationConstants.Environment.CONTAINER_ID.name());
-      return ConverterUtils.toContainerId(containerIdStr);
+      return ContainerId.fromString(containerIdStr);
     }
 
     @Override
-    public void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws TaskResourceException {
+    public void checkTaskResources(Map<String, Vertex> vertices, ClusterInfo clusterInfo) throws Exception {
       Resource maxContainerCapability = clusterInfo.getMaxContainerCapability();
       for (Vertex v : vertices.values()) {
         // TODO TEZ-2003 (post) TEZ-2624 Ideally, this should be per source.
@@ -90,7 +88,7 @@ public class YarnServerFrameworkService implements ServerFrameworkService {
           String msg = "Vertex's TaskResource is beyond the cluster container capability," +
               "Vertex=" + v.getLogIdentifier() +", Requested TaskResource=" + v.getTaskResource()
               + ", Cluster MaxContainerCapability=" + maxContainerCapability;
-          throw new TaskResourceException(msg);
+          throw new Exception(msg);
         }
       }
     }
@@ -105,15 +103,9 @@ public class YarnServerFrameworkService implements ServerFrameworkService {
 
     @Override
     public DAGProtos.PlanLocalResourcesProto getAdditionalSessionResources(String workingDirectory) throws IOException {
-      FileInputStream sessionResourcesStream = null;
-      try {
-        sessionResourcesStream =
-            new FileInputStream(new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME));
+      try (FileInputStream sessionResourcesStream = new FileInputStream(
+          new File(workingDirectory, TezConstants.TEZ_AM_LOCAL_RESOURCES_PB_FILE_NAME))) {
         return DAGProtos.PlanLocalResourcesProto.parseDelimitedFrom(sessionResourcesStream);
-      } finally {
-        if (sessionResourcesStream != null) {
-          sessionResourcesStream.close();
-        }
       }
     }
   }

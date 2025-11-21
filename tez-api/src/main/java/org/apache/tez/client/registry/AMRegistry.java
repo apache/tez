@@ -18,16 +18,10 @@
 
 package org.apache.tez.client.registry;
 
-import java.util.ArrayList;
-import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
-import org.apache.hadoop.service.ServiceStateException;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Base class for {@code AMRegistry} implementations.
@@ -43,62 +37,19 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code serviceStop}</li>
  * </ul>
  * </p>
- *
- * <p>{@code init} and {@code serviceStart} are invoked during
- * {@code DAGAppMaster.serviceInit()}, while {@code serviceStop} is called
- * when {@code DAGAppMaster} shuts down.</p>
  */
 public abstract class AMRegistry extends AbstractService {
-
-  private static final Logger LOG = LoggerFactory.getLogger(AMRegistry.class);
-  private List<AMRecord> amRecords = new ArrayList<>();
-
-  @Override
-  public void init(Configuration conf) {
-    try {
-      this.serviceInit(conf);
-    } catch (Exception e) {
-      LOG.error("Failed to init AMRegistry: name={}, type={}", getName(), getClass().getName());
-      throw ServiceStateException.convert(e);
-    }
-  }
-
-  @Override
-  public void start() {
-    try {
-      this.serviceStart();
-    } catch(Exception e) {
-      LOG.error("Failed to start AMRegistry: name={}, type={}", getName(), getClass().getName());
-      throw ServiceStateException.convert(e);
-    }
-  }
-
   /* Implementations should provide a public no-arg constructor */
   protected AMRegistry(String name) {
     super(name);
   }
 
-  /* Under typical usage, add will be called once automatically with an AMRecord
-     for the DAGClientServer servicing an AM
-   */
-  public void add(AMRecord server) throws Exception {
-    amRecords.add(server);
-  }
+  public abstract void add(AMRecord server) throws Exception;
 
   public abstract void remove(AMRecord server) throws Exception;
 
-  public ApplicationId generateNewId() throws Exception {
-    return null;
-  }
+  public abstract ApplicationId generateNewId() throws Exception;
 
   public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port,
                                           String computeName);
-
-  @Override
-  public void serviceStop() throws Exception {
-    List<AMRecord> records = new ArrayList<>(amRecords);
-    for(AMRecord record : records) {
-      remove(record);
-    }
-  }
 }

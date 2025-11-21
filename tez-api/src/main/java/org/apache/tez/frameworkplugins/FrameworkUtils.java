@@ -17,9 +17,6 @@
  */
 package org.apache.tez.frameworkplugins;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ServiceLoader;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +27,9 @@ import org.apache.tez.dag.api.TezConstants;
 import org.apache.tez.dag.api.TezReflectionException;
 
 public final class FrameworkUtils {
+
+  private static final String SERVER_FRAMEWORK_SERVICE_INTERFACE_NAME =
+      "org.apache.tez.frameworkplugins.ServerFrameworkService";
 
   private FrameworkUtils() {}
 
@@ -47,49 +47,37 @@ public final class FrameworkUtils {
      2. If conf is null or the parameter TEZ_FRAMEWORK_MODE is not set
         and the environment var TEZ_FRAMEWORK_MODE is not empty:
             the value of the environment var will be used
-     3. Otherwise:
-       the default java.util.ServiceLoader behavior will be used,
-       i.e. the implementation classname should appear in a file on the classpath at the location
-            META-INF/services/org.apache.tez.frameworkplugins.ClientFrameworkService
-            or META-INF/services/org.apache.tez.frameworkplugins.ServerFrameworkService
+     3. Otherwise: the default class will be instantiated and returned
    */
-  public static <T extends FrameworkService> T get(Class<T> interfaze, @Nullable Configuration conf) {
+  public static <T extends FrameworkService> T get(Class<T> interfaze, @Nullable Configuration conf,
+                                                   Class<?> defaultClazz) {
+    String modeInConf = conf != null ? conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE) : null;
+    String modeInEnv = System.getenv(TezConstants.TEZ_FRAMEWORK_MODE);
     try {
-      if ((conf != null) && (conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE) != null)) {
-        return getByMode(interfaze, conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE));
-      } else if (System.getenv(TezConstants.TEZ_FRAMEWORK_MODE) != null) {
-        return getByMode(interfaze, System.getenv(TezConstants.TEZ_FRAMEWORK_MODE));
+      if (modeInConf != null) {
+        return getByMode(interfaze, modeInConf);
+      } else if (modeInEnv != null) {
+        return getByMode(interfaze, modeInEnv);
+      } else if (defaultClazz != null) {
+        return (T) defaultClazz.newInstance();
       } else {
-        return getByServiceLoader(interfaze);
+        throw new RuntimeException(
+            "Framework service not found in any mode: configuration, environment, or default class");
       }
-    } catch (TezReflectionException e) {
+    } catch (TezReflectionException | InstantiationException | IllegalAccessException e) {
       throw new RuntimeException("Failed to load framework service for interface: " + interfaze.getName(), e);
     }
-  }
-
-  private static <T extends FrameworkService> T getByServiceLoader(Class<T> interfaze) {
-    List<T> services = new ArrayList<>();
-    ServiceLoader<T> frameworkService = ServiceLoader.load(interfaze);
-    for (T service : frameworkService) {
-      services.add(service);
-    }
-    if (services.isEmpty()) {
-      return null;
-    } else if (services.size() > 1) {
-      throw new RuntimeException("Layering of multiple framework services is not supported."
-          + " Please provide only one implementation class in configuration.");
-    }
-    //services is guaranteed to have one element at this point
-    return services.getFirst();
   }
 
   private static <T> T getByMode(Class<T> interfaze, String mode) throws TezReflectionException {
     mode = mode.toUpperCase();
     String clazz;
-    if (interfaze == ClientFrameworkService.class) {
+    if (ClientFrameworkService.class == interfaze) {
       clazz = FrameworkMode.valueOf(mode).getClientClassName();
-    } else {
+    } else if (SERVER_FRAMEWORK_SERVICE_INTERFACE_NAME.equals(interfaze.getCanonicalName())) {
       clazz = FrameworkMode.valueOf(mode).getServerClassName();
+    } else {
+      throw new IllegalArgumentException("Unsupported FrameworkService: " + interfaze.getName());
     }
     return ReflectionUtils.createClazzInstance(clazz);
   }

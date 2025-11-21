@@ -138,7 +138,6 @@ import org.apache.tez.dag.records.TezVertexID;
 import org.apache.tez.dag.utils.RelocalizationUtils;
 import org.apache.tez.dag.utils.TaskSpecificLaunchCmdOption;
 import org.apache.tez.dag.utils.TezBuilderUtils;
-import org.apache.tez.frameworkplugins.TaskResourceException;
 import org.apache.tez.runtime.api.OutputCommitter;
 import org.apache.tez.runtime.library.common.shuffle.ShuffleUtils;
 import org.apache.tez.state.OnStateChangedCallback;
@@ -1616,7 +1615,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     if (!appContext.isLocal()) {
       try {
         appContext.getAmExtensions().checkTaskResources(vertexMap, appContext.getClusterInfo());
-      } catch (TaskResourceException e) {
+      } catch (Exception e) {
         LOG.error(e.getMessage());
         addDiagnostic(e.getMessage());
         finished(DAGState.FAILED);

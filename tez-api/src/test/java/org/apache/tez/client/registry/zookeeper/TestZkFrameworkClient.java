@@ -28,10 +28,10 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.test.TestingServer;
 import org.apache.hadoop.registry.client.binding.RegistryUtils;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
+import org.apache.hadoop.test.LambdaTestUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.tez.client.registry.AMRecord;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -84,7 +84,7 @@ public class TestZkFrameworkClient {
     zkFrameworkClient = new ZkFrameworkClient();
     zkFrameworkClient.init(tezConf);
 
-    assertTrue("Client should be running after init", zkFrameworkClient.isRunning());
+    assertFalse("Client should not be running after init", zkFrameworkClient.isRunning());
 
     zkFrameworkClient.start();
     assertTrue("Client should be running after start", zkFrameworkClient.isRunning());
@@ -103,16 +103,14 @@ public class TestZkFrameworkClient {
     // Register a mock AM in ZooKeeper
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
     String testHostName = "test-host";
-    String testHostIp = "127.0.0.1";
     int testPort = 12345;
-    registerMockAM(tezConf, appId, testHostName, testHostIp, testPort);
+    registerMockAM(tezConf, appId, testHostName, testPort);
 
     zkFrameworkClient = new ZkFrameworkClient();
     zkFrameworkClient.init(tezConf);
     zkFrameworkClient.start();
 
-    // Give time for ZK registry to initialize
-    Thread.sleep(500);
+    LambdaTestUtils.await(1000, 100, () -> zkFrameworkClient.isZkInitialized());
 
     ApplicationReport report = zkFrameworkClient.getApplicationReport(appId);
 
@@ -120,8 +118,6 @@ public class TestZkFrameworkClient {
     assertEquals("Application ID should match", appId, report.getApplicationId());
     assertEquals("Host should match", testHostName, report.getHost());
     assertEquals("Port should match", testPort, report.getRpcPort());
-    assertEquals("Application state should be RUNNING", YarnApplicationState.RUNNING,
-        report.getYarnApplicationState());
     assertEquals("AM host should be cached", testHostName, zkFrameworkClient.getAmHost());
     assertEquals("AM port should be cached", testPort, zkFrameworkClient.getAmPort());
   }
@@ -137,16 +133,14 @@ public class TestZkFrameworkClient {
     zkFrameworkClient.init(tezConf);
     zkFrameworkClient.start();
 
-    // Give time for ZK registry to initialize
-    Thread.sleep(500);
-
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
+
+    LambdaTestUtils.await(1000, 100, () -> zkFrameworkClient.isZkInitialized());
+
     ApplicationReport report = zkFrameworkClient.getApplicationReport(appId);
 
     assertNotNull("Application report should not be null", report);
     assertEquals("Application ID should match", appId, report.getApplicationId());
-    assertEquals("Application state should be FINISHED", YarnApplicationState.FINISHED,
-        report.getYarnApplicationState());
     assertEquals("Final status should be FAILED", FinalApplicationStatus.FAILED,
         report.getFinalApplicationStatus());
     assertTrue("Diagnostics should mention missing AM",
@@ -162,14 +156,13 @@ public class TestZkFrameworkClient {
 
     // Register a mock AM in ZooKeeper
     ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 1);
-    registerMockAM(tezConf, appId, "test-host", "127.0.0.1", 12345);
+    registerMockAM(tezConf, appId, "test-host", 12345);
 
     zkFrameworkClient = new ZkFrameworkClient();
     zkFrameworkClient.init(tezConf);
     zkFrameworkClient.start();
 
-    // Give time for ZK registry to initialize
-    Thread.sleep(500);
+    LambdaTestUtils.await(1000, 100, () -> zkFrameworkClient.isZkInitialized());
 
     // Need to call getApplicationReport first to populate amRecord
     zkFrameworkClient.getApplicationReport(appId);
@@ -214,10 +207,10 @@ public class TestZkFrameworkClient {
     return tezConf;
   }
 
-  private void registerMockAM(TezConfiguration tezConf, ApplicationId appId, String hostName, String hostIp, int port)
+  private void registerMockAM(TezConfiguration tezConf, ApplicationId appId, String hostName, int port)
       throws Exception {
     // Create AM record and publish it directly to ZooKeeper
-    AMRecord amRecord = new AMRecord(appId, hostName, hostIp, port, "test-external-id", "test-compute");
+    AMRecord amRecord = new AMRecord(appId, hostName, "127.0.0.1", port, "test-external-id", "test-compute");
     ServiceRecord serviceRecord = amRecord.toServiceRecord();
 
     RegistryUtils.ServiceRecordMarshal marshal = new RegistryUtils.ServiceRecordMarshal();
