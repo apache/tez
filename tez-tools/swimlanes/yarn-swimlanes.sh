@@ -32,4 +32,4 @@ else
 fi
 echo "History was written into $TMP"
 
-python "$DIR/swimlane.py" -o "$APPID.svg" "$TMP"
+python3 "$DIR/swimlane.py" -o "$APPID.svg" "$TMP"

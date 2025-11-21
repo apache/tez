@@ -26,11 +26,11 @@ Before using the tool, make sure to install texttable using `pip install texttab
 
 To use the tool, run
 
-`python counter-diff.py dag_1.zip dag_2.zip [--detail]`
+`python3 counter-diff.py dag_1.zip dag_2.zip [--detail]`
 
 This will print counter output difference between the specified DAGs like this
 
-Example: `python counter-diff.py dag_1499978510619_0002_143.zip dag_1499978510619_0002_144.zip`
+Example: `python3 counter-diff.py dag_1499978510619_0002_143.zip dag_1499978510619_0002_144.zip`
 
 ```
 +-------------------+-------------------------------------+----------------------------+----------------------------+-------------+

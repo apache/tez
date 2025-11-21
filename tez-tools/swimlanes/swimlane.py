@@ -17,8 +17,8 @@
 # under the License.
 #
 
-import sys,math,os.path
-import StringIO
+import sys
+import io
 from amlogparser import AMLog
 from getopt import getopt
 
@@ -61,7 +61,7 @@ class SVGHelper(object):
 		self.height = h
 		self.parent = parent
 		if(not parent):
-			self.lines = StringIO.StringIO()
+			self.lines = io.StringIO()
 			self.write("""<?xml version="1.0" standalone="no"?>
 		<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 		""")
@@ -105,11 +105,13 @@ Input files for this tool can be prepared by "yarn logs -applicationId <applicat
 def main(argv):
 	(opts, args) = getopt(argv, "o:t:f:")
 	out = sys.stdout
+	out_filename = "stdout"
 	ticks = -1 # precision of 1/tick
 	fraction = -1
 	for k,v in opts:
 		if(k == "-o"):
 			out = open(v, "w")
+			out_filename = v
 		if(k == "-t"):
 			ticks = int(v)
 		if(k == "-f"):
@@ -120,10 +122,10 @@ def main(argv):
 	log = AMLog(args[0]).structure()
 	lanes = [c.name for c in sorted(log.containers.values(), key=lambda a: a.start)]
 	marginTop = 128
-	marginRight = 100;
+	marginRight = 100
 	laneSize = 24
 	y = len(lanes)*laneSize
-	items = attempts(log)
+	items = list(attempts(log))
 	maxx = max([a[4] for a in items])
 	if ticks == -1:
 		ticks = min(1000, (maxx - log.zero)/2048)
@@ -132,15 +134,15 @@ def main(argv):
 	svg = SVGHelper(x+2*marginRight+256, y+2*marginTop)
 	a = marginTop
 	svg.text(x/2, 32, log.name, style="font-size: 32px; text-anchor: middle")	
-	containerMap = dict(zip(list(lanes), xrange(len(lanes))))
+	containerMap = dict(zip(list(lanes), range(len(lanes))))
 	svg.text(marginRight - 16, marginTop - 32, "Container ID", "text-anchor:end; font-size: 16px;")
 	# draw a grid
 	for l in lanes:
 		a += laneSize
 		svg.text(marginRight - 4, a, l, "text-anchor:end; font-size: 16px;")
 		svg.line(marginRight, a, marginRight+x, a, "stroke: #ccc")
-	for x1 in set(range(0, x, 10*ticks)) | set([x]):
-		svg.text(marginRight+x1, marginTop-laneSize/2, "%0.2f s" % ((x1 *  ticks)/1000), "text-anchor: middle; font-size: 12px")
+	for x1 in set(range(0, int(x), int(10*ticks))) | set([x]):
+		svg.text(marginRight+x1, marginTop-laneSize/2, "%0.2f s" % ((x1 * ticks)/1000), "text-anchor: middle; font-size: 12px")
 		svg.line(marginRight+x1, marginTop-laneSize/2, marginRight+x1, marginTop+y, "stroke: #ddd")
 	svg.line(marginRight, marginTop, marginRight+x, marginTop)
 	svg.line(marginRight, y+marginTop, marginRight+x, y+marginTop)
@@ -178,7 +180,7 @@ def main(argv):
 			x1 = marginRight+xdomain(c.start)
 			x2 = marginRight+xdomain(c.finish)
 			y2 = y1 + laneSize - 2
-			locality = (c.kvs.has_key("DATA_LOCAL_TASKS") * 1) + (c.kvs.has_key("RACK_LOCAL_TASKS")*2)
+			locality = ("DATA_LOCAL_TASKS" in c.kvs) * 1 + ("RACK_LOCAL_TASKS" in c.kvs) * 2
 			#CompletedLogs may not be present in latest tez logs
 			link = c.kvs.get("completedLogs", "")
 			svg.rect(x1, y1, x2, y2, title=c.name, style="fill: %s; stroke: #ccc;" % (colour), link=link)
@@ -193,9 +195,14 @@ def main(argv):
 			percentX = finishes[int(len(finishes)*fraction)]
 			svg.line(marginRight+xdomain(percentX), marginTop, marginRight+xdomain(percentX), y+marginTop, style="stroke: red")
 			svg.text(marginRight+xdomain(percentX), y+marginTop+12, "%d%% (%0.1fs)" % (int(fraction*100), (percentX - dag.start)/1000.0), style="font-size:12px; text-anchor: middle")
+	
 	out.write(svg.flush())
-	out.close()
-	print("Output svg is written into: " + str(out))
+	
+	# Do not close sys.stdout as it causes print() to fail afterwards
+	if out is not sys.stdout:
+		out.close()
+	
+	print("Output svg is written into: " + str(out_filename))
 
 if __name__ == "__main__":
 	sys.exit(main(sys.argv[1:]))

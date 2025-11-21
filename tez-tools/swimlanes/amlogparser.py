@@ -17,14 +17,12 @@
 # under the License.
 #
 
-import sys,re
+import sys
+import re
 from itertools import groupby
-from bz2 import BZ2File
-from gzip import GzipFile as GZFile
-try:
-	from urllib.request import urlopen
-except:
-	from urllib2 import urlopen as urlopen
+import bz2
+import gzip
+from urllib.request import urlopen
 
 class AMRawEvent(object):
 	def __init__(self, ts, dag, event, args):
@@ -39,7 +37,7 @@ def first(l):
 	return (l[:1] or [None])[0]
 
 def kv_add(d, k, v):
-	if(d.has_key(k)):
+	if(k in d):
 		oldv = d[k]
 		if(type(oldv) is list):
 			oldv.append(v)
@@ -50,7 +48,7 @@ def kv_add(d, k, v):
 		d[k] = v
 			
 def csv_kv(args):
-	kvs = {};
+	kvs = {}
 	pairs = [p.strip() for p in args.split(",")]
 	for kv in pairs:
 		if(kv.find("=") == -1):
@@ -160,10 +158,11 @@ class Task(object):
 
 class Attempt(object):
 	def __init__(self, pair):
-		start = first(filter(lambda a: a.event == "TASK_ATTEMPT_STARTED", pair))
-		finish = first(filter(lambda a: a.event == "TASK_ATTEMPT_FINISHED", pair))
+		# Consuming iterators immediately with list() for Py3 compatibility
+		start = first(list(filter(lambda a: a.event == "TASK_ATTEMPT_STARTED", pair)))
+		finish = first(list(filter(lambda a: a.event == "TASK_ATTEMPT_FINISHED", pair)))
 		if start is None or finish is None:
-			print [start, finish];
+			print([start, finish])
 		self.raw = finish
 		self.kvs = csv_kv(start.args)
 		if finish is not None:
@@ -186,26 +185,28 @@ class Attempt(object):
 
 def open_file(f):
 	if(f.endswith(".gz")):
-		return GZFile(f)
+		return gzip.open(f, "rt")
 	elif(f.endswith(".bz2")):
-		return BZ2File(f)
+		return bz2.open(f, "rt")
 	elif(f.startswith("http://")):
 		return urlopen(f)
-	return open(f)
+	return open(f, "r")
 
 class AMLog(object):	
 	def init(self):
 		ID=r'[^\]]*'
 		TS=r'[0-9:\-, ]*'
 		MAIN_RE=r'^(?P<ts>%(ts)s) [?INFO]? [(?P<thread>%(id)s)] \|?((HistoryEventHandler.criticalEvents)|((org.apache.tez.dag.)?history.HistoryEventHandler))\|?: [HISTORY][DAG:(?P<dag>%(id)s)][Event:(?P<event>%(id)s)]: (?P<args>.*)'
-		MAIN_RE = MAIN_RE.replace('[','\[').replace(']','\]')
+		# Fix for SyntaxWarning: using raw strings
+		MAIN_RE = MAIN_RE.replace('[', r'\[').replace(']', r'\]')
 		MAIN_RE = MAIN_RE % {'ts' : TS, 'id' : ID}
 		self.MAIN_RE = re.compile(MAIN_RE)
 	
 	def __init__(self, f):
 		fp = open_file(f)
 		self.init()
-		self.events = filter(lambda a:a, [self.parse(l.strip()) for l in fp])
+		# Filter returns iterator in Py3, list() ensures immediate execution
+		self.events = list(filter(lambda a:a, [self.parse(l.strip()) for l in fp]))
 	
 	def structure(self):
 		am = self.appmaster() # this is a copy
@@ -221,7 +222,7 @@ class AMLog(object):
 		for d in dags:
 			d.structure(vertexes)
 		for a in attempts:
-			if containers.has_key(a.container):
+			if a.container in containers:
 				c = containers[a.container]
 				c.node = a.node
 			else:
@@ -242,7 +243,7 @@ class AMLog(object):
 		for ev in self.events:
 			if ev.event == "CONTAINER_STOPPED":
 				kvs = csv_kv(ev.args)
-				if containermap.has_key(kvs["containerId"]):
+				if kvs["containerId"] in containermap:
 					containermap[kvs["containerId"]].stop = int(kvs["stoppedTime"])
 					containermap[kvs["containerId"]].status = int(kvs["exitStatus"])
 		return containers
@@ -265,18 +266,23 @@ class AMLog(object):
 		key = lambda a:a[0]
 		value = lambda a:a[1]
 		raw = [(csv_kv(ev.args)["taskAttemptId"], ev) for ev in self.events if ev.event == "TASK_ATTEMPT_STARTED" or ev.event == "TASK_ATTEMPT_FINISHED"]
-		pairs = groupby(sorted(raw), key = key)
-		attempts = [Attempt(map(value,p)) for (k,p) in pairs]
+		# FIX: explicitly pass key to sorted() to avoid comparing AMRawEvent objects
+		# which causes TypeError in Python 3
+		pairs = groupby(sorted(raw, key=key), key = key)
+		# Map returns iterator in Py3, list() creates the necessary list
+		attempts = [Attempt(list(map(value,p))) for (k,p) in pairs]
 		return attempts
 	
 	def parse(self, l):		
 		if(l.find("[HISTORY]") != -1):
 			m = self.MAIN_RE.match(l)
-			ts = m.group("ts")
-			dag = m.group("dag")
-			event = m.group("event")
-			args = m.group("args")
-			return AMRawEvent(ts, dag, event, args)
+			if m:
+				ts = m.group("ts")
+				dag = m.group("dag")
+				event = m.group("event")
+				args = m.group("args")
+				return AMRawEvent(ts, dag, event, args)
+		return None
 
 def main(argv):
 	tree = AMLog(argv[0]).structure()
@@ -284,7 +290,7 @@ def main(argv):
 	# AM -> container
 	for d in tree.dags:
 		for a in d.attempts():
-			print [a.vertex, a.name, a.container, a.start, a.finish]
+			print([a.vertex, a.name, a.container, a.start, a.finish])
 
 if __name__ == "__main__":
 	main(sys.argv[1:])

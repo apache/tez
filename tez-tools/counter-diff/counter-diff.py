@@ -17,13 +17,18 @@
 # under the License.
 #
 
-import imp, json, os, shutil, sys, tempfile, zipfile
+import json
+import os
+import shutil
+import sys
+import tempfile
+import zipfile
+
 try:
-    imp.find_module('texttable')
     from texttable import Texttable
 except ImportError:
-	sys.stderr.write("Could not import Texttable\nRetry after 'pip install texttable'\n")
-	exit()
+    print("Could not import Texttable. Retry after 'pip install texttable'", file=sys.stderr)
+    sys.exit(1)
 
 tmpdir = tempfile.mkdtemp()
 
@@ -47,28 +52,33 @@ def diff(file1, file2):
 	# also in dag.json data is inside "dag" root node
 	file1_using_dag_json = True
 	dag_json_file1 = os.path.join(file1_dir, "dag.json")
-	if os.path.isfile(dag_json_file1) == False:
+	if not os.path.isfile(dag_json_file1):
 		file1_using_dag_json = False
 		dag_json_file1 = os.path.join(file1_dir, "TEZ_DAG")
-		if os.path.isfile(dag_json_file1) == False:
-			print "Unable to find dag.json/TEZ_DAG file inside the archive " + file1
-			exit()
+		if not os.path.isfile(dag_json_file1):
+			print("Unable to find dag.json/TEZ_DAG file inside the archive " + file1)
+			sys.exit()
 
 	file2_using_dag_json = True
 	dag_json_file2 = os.path.join(file2_dir, "dag.json")
-	if os.path.isfile(dag_json_file2) == False:
+	if not os.path.isfile(dag_json_file2):
 		file2_using_dag_json = False
 		dag_json_file2 = os.path.join(file2_dir, "TEZ_DAG")
-		if os.path.isfile(dag_json_file2) == False:
-			print "Unable to find dag.json/TEZ_DAG file inside the archive " + file1
-			exit()
+		if not os.path.isfile(dag_json_file2):
+			print("Unable to find dag.json/TEZ_DAG file inside the archive " + file1)
+			sys.exit()
 
 	# populate diff table
 	difftable = {}
 	with open(dag_json_file1) as data_file:
 		file1_dag_json = json.load(data_file)["dag"] if file1_using_dag_json else json.load(data_file)
-		counters = file1_dag_json['otherinfo']['counters']
-		for group in counters['counterGroups']:
+		
+		# Safe access to otherinfo and counters
+		otherinfo = file1_dag_json.get('otherinfo', {})
+		counters = otherinfo.get('counters', {})
+		
+		# Iterate only if counterGroups exists
+		for group in counters.get('counterGroups', []):
 			countertable = {}
 			for counter in group['counters']:
 				counterName = counter['counterName']
@@ -78,22 +88,24 @@ def diff(file1, file2):
 			groupName = group['counterGroupName']
 			difftable[groupName] = countertable
 
-		# add other info
-		otherinfo = file1_dag_json['otherinfo']
+		# add other info safely
 		countertable = {}
-		countertable["TIME_TAKEN"] = [otherinfo['timeTaken']]
-		countertable["COMPLETED_TASKS"] = [otherinfo['numCompletedTasks']]
-		countertable["SUCCEEDED_TASKS"] = [otherinfo['numSucceededTasks']]
-		countertable["FAILED_TASKS"] = [otherinfo['numFailedTasks']]
-		countertable["KILLED_TASKS"] = [otherinfo['numKilledTasks']]
-		countertable["FAILED_TASK_ATTEMPTS"] = [otherinfo['numFailedTaskAttempts']]
-		countertable["KILLED_TASK_ATTEMPTS"] = [otherinfo['numKilledTaskAttempts']]
+		countertable["TIME_TAKEN"] = [otherinfo.get('timeTaken', 0)]
+		countertable["COMPLETED_TASKS"] = [otherinfo.get('numCompletedTasks', 0)]
+		countertable["SUCCEEDED_TASKS"] = [otherinfo.get('numSucceededTasks', 0)]
+		countertable["FAILED_TASKS"] = [otherinfo.get('numFailedTasks', 0)]
+		countertable["KILLED_TASKS"] = [otherinfo.get('numKilledTasks', 0)]
+		countertable["FAILED_TASK_ATTEMPTS"] = [otherinfo.get('numFailedTaskAttempts', 0)]
+		countertable["KILLED_TASK_ATTEMPTS"] = [otherinfo.get('numKilledTaskAttempts', 0)]
 		difftable['otherinfo'] = countertable
 
 	with open(dag_json_file2) as data_file:
 		file2_dag_json = json.load(data_file)["dag"] if file2_using_dag_json else json.load(data_file)
-		counters = file2_dag_json['otherinfo']['counters']
-		for group in counters['counterGroups']:
+		
+		otherinfo = file2_dag_json.get('otherinfo', {})
+		counters = otherinfo.get('counters', {})
+		
+		for group in counters.get('counterGroups', []):
 			groupName = group['counterGroupName']
 			if groupName not in difftable:
 				difftable[groupName] = {}
@@ -105,16 +117,15 @@ def diff(file1, file2):
 					countertable[counterName] = [0]
 				countertable[counterName].append(counter['counterValue'])
 
-		# append other info
-		otherinfo = file2_dag_json['otherinfo']
+		# append other info safely
 		countertable = difftable['otherinfo']
-		countertable["TIME_TAKEN"].append(otherinfo['timeTaken'])
-		countertable["COMPLETED_TASKS"].append(otherinfo['numCompletedTasks'])
-		countertable["SUCCEEDED_TASKS"].append(otherinfo['numSucceededTasks'])
-		countertable["FAILED_TASKS"].append(otherinfo['numFailedTasks'])
-		countertable["KILLED_TASKS"].append(otherinfo['numKilledTasks'])
-		countertable["FAILED_TASK_ATTEMPTS"].append(otherinfo['numFailedTaskAttempts'])
-		countertable["KILLED_TASK_ATTEMPTS"].append(otherinfo['numKilledTaskAttempts'])
+		countertable["TIME_TAKEN"].append(otherinfo.get('timeTaken', 0))
+		countertable["COMPLETED_TASKS"].append(otherinfo.get('numCompletedTasks', 0))
+		countertable["SUCCEEDED_TASKS"].append(otherinfo.get('numSucceededTasks', 0))
+		countertable["FAILED_TASKS"].append(otherinfo.get('numFailedTasks', 0))
+		countertable["KILLED_TASKS"].append(otherinfo.get('numKilledTasks', 0))
+		countertable["FAILED_TASK_ATTEMPTS"].append(otherinfo.get('numFailedTaskAttempts', 0))
+		countertable["KILLED_TASK_ATTEMPTS"].append(otherinfo.get('numKilledTaskAttempts', 0))
 		difftable['otherinfo'] = countertable
 
 	# if some counters are missing, consider it as 0 and compute delta difference
@@ -134,7 +145,7 @@ def print_table(difftable, name1, name2, detailed=False):
 	table = Texttable(max_width=0)
 	table.set_cols_align(["l", "l", "l", "l", "l"])
 	table.set_cols_valign(["m", "m", "m", "m", "m"])
-	table.add_row(["Counter Group", "Counter Name", name1, name2, "delta"]);
+	table.add_row(["Counter Group", "Counter Name", name1, name2, "delta"])
 	for k in sorted(difftable):
 		# ignore task specific counters in default output
 		if not detailed and ("_INPUT_" in k or "_OUTPUT_" in k):
@@ -177,13 +188,13 @@ def print_table(difftable, name1, name2, detailed=False):
 
 		table.add_row(row)
 
-	print table.draw() + "\n"
+	print(table.draw() + "\n")
 
 
 def main(argv):
 	sysargs = len(argv)
 	if sysargs < 2:
-		print "Usage: python counter-diff.py dag_file1.zip dag_file2.zip [--detail]"
+		print("Usage: python3 counter-diff.py dag_file1.zip dag_file2.zip [--detail]")
 		return -1
 
 	file1 = argv[0]
