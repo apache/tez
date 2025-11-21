@@ -91,7 +91,8 @@ public abstract class AMRegistry extends AbstractService {
     return null;
   }
 
-  public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port, String computeName);
+  public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port,
+                                          String computeName);
 
   @Override
   public void serviceStop() throws Exception {

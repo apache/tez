@@ -214,7 +214,8 @@ public class TestZkFrameworkClient {
     return tezConf;
   }
 
-  private void registerMockAM(TezConfiguration tezConf, ApplicationId appId, String hostName, String hostIp, int port) throws Exception {
+  private void registerMockAM(TezConfiguration tezConf, ApplicationId appId, String hostName, String hostIp, int port)
+      throws Exception {
     // Create AM record and publish it directly to ZooKeeper
     AMRecord amRecord = new AMRecord(appId, hostName, hostIp, port, "test-external-id", "test-compute");
     ServiceRecord serviceRecord = amRecord.toServiceRecord();

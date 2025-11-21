@@ -164,4 +164,12 @@
     <Method name="&lt;init&gt;" params="org.apache.hadoop.yarn.client.api.YarnClient" returns="void" />
     <Bug pattern="EI_EXPOSE_REP2" />
   </Match>
+
+  <Match>
+    <Class name="org.apache.tez.client.registry.AMRecord" />
+    <Method name="&lt;init&gt;"
+            params="org.apache.hadoop.yarn.api.records.ApplicationId, java.lang.String, java.lang.String, int, java.lang.String, java.lang.String"
+            returns="void"/>
+    <Bug pattern="EI_EXPOSE_REP2" />
+  </Match>
 </FindBugsFilter>

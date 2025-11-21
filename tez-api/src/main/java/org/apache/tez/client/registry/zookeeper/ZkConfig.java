@@ -63,7 +63,7 @@ public class ZkConfig {
     }
 
     boolean enableComputeGroups = conf.getBoolean(TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS,
-      TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT);
+        TezConfiguration.TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT);
     if (enableComputeGroups) {
       final String subNamespace = System.getenv(COMPUTE_GROUP_NAME_ENV);
       if (subNamespace != null && !subNamespace.isEmpty()) {

@@ -59,14 +59,16 @@ public class AMRecord {
    * Although this constructor may not be used directly within Tez internals,
    * it is part of the public API for Tez clients that handle unmanaged sessions.
    *
-   * @param appId the {@link ApplicationId} of the Tez application
-   * @param hostName the hostname where the Application Master is running
-   * @param hostIp the IP address of the Application Master host
-   * @param port the RPC port number on which the Application Master is listening
-   * @param externalId an optional external identifier for the record; if {@code null}, defaults to an empty string
-   * @param computeName the compute group or cluster name; if {@code null}, defaults to {@link ZkConfig#DEFAULT_COMPUTE_GROUP_NAME}
+   * @param appId       the {@link ApplicationId} of the Tez application
+   * @param hostName    the hostname where the Application Master is running
+   * @param hostIp      the IP address of the Application Master host
+   * @param port        the RPC port number on which the Application Master is listening
+   * @param externalId  an optional external identifier for the record; if {@code null}, defaults to an empty string
+   * @param computeName the compute group or cluster name; if {@code null},
+   *                    defaults to {@link ZkConfig#DEFAULT_COMPUTE_GROUP_NAME}
    */
-  public AMRecord(ApplicationId appId, String hostName, String hostIp, int port, String externalId, String computeName) {
+  public AMRecord(ApplicationId appId, String hostName, String hostIp, int port, String externalId,
+                  String computeName) {
     this.appId = appId;
     this.hostName = hostName;
     this.hostIp = hostIp;
