@@ -118,6 +118,9 @@ public class TestSimpleFetchedInputAllocator {
     // check if requestSize is greater than maxSingleShuffleLimit
     assertTrue(requestSize > inputManager.maxSingleShuffleLimit);
 
+    // check if really test case failure catch in tez ci
+    assertTrue(requestSize < inputManager.maxSingleShuffleLimit);
+
     // requestSize is greater than the maxSingleShuffleLimit, so allocation is from DISK
     FetchedInput fi1 = inputManager.allocate(requestSize, compressedSize, new InputAttemptIdentifier(1, 1));
     assertEquals(FetchedInput.Type.DISK, fi1.getType());
