@@ -24,7 +24,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 if [[ -f $APPID ]]; then
     echo "Reading yarn logs from local file: $APPID"
-    cat "$APPID" | grep HISTORY > "$TMP"
+    grep "HISTORY" "$APPID" > "$TMP"
 else
     YARN=$(which yarn);
     echo "Fetching yarn logs for $APPID"
