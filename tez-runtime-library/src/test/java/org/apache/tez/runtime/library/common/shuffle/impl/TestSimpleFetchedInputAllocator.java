@@ -96,7 +96,7 @@ public class TestSimpleFetchedInputAllocator {
     File localDirs = new File(System.getProperty("test.build.data", "/tmp"), this.getClass().getName());
     Configuration conf = new Configuration();
 
-    long jvmMax = Runtime.getRuntime().maxMemory();
+    long jvmMax = 1073741824L;
     LOG.info("jvmMax: " + jvmMax);
 
     float bufferPercent = 0.1f;
@@ -111,7 +111,7 @@ public class TestSimpleFetchedInputAllocator {
             "srcName", UUID.randomUUID().toString(), 123, conf,
             jvmMax, inMemThreshold);
 
-    long requestSize = (long) (0.4f * inMemThreshold) + 100L;
+    long requestSize = inMemThreshold + 100L;
     long compressedSize = 1L;
     LOG.info("RequestSize: " + requestSize);
 
