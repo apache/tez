@@ -78,8 +78,8 @@ public class TestZkAMRegistry {
   public void testGenerateNewIdProducesUniqueIds() throws Exception {
     TezConfiguration conf = createTezConf();
     try (ZkAMRegistry registry = new ZkAMRegistry("external-id")) {
-      registry.serviceInit(conf);
-      registry.serviceStart();
+      registry.init(conf);
+      registry.start();
 
       ApplicationId first = registry.generateNewId();
       ApplicationId second = registry.generateNewId();
@@ -100,8 +100,8 @@ public class TestZkAMRegistry {
     conf.setInt(TezConfiguration.TEZ_AM_CURATOR_MAX_RETRIES, 29);
 
     try (ZkAMRegistry registry = new ZkAMRegistry("external-id")) {
-      registry.serviceInit(conf);
-      registry.serviceStart();
+      registry.init(conf);
+      registry.start();
 
       ExecutorService executor = Executors.newFixedThreadPool(threadCount);
       CountDownLatch startLatch = new CountDownLatch(1);
@@ -157,8 +157,8 @@ public class TestZkAMRegistry {
 
     try (ZkAMRegistry registry = new ZkAMRegistry("external-id");
          CuratorFramework checkClient = zkConfig.createCuratorFramework()) {
-      registry.serviceInit(conf);
-      registry.serviceStart();
+      registry.init(conf);
+      registry.start();
 
       checkClient.start();
 

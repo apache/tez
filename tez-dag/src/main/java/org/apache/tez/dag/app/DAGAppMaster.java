@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -618,11 +620,6 @@ public class DAGAppMaster extends AbstractService {
         Executors.newFixedThreadPool(threadCount, new ThreadFactoryBuilder()
             .setDaemon(true).setNameFormat("App Shared Pool - #%d").build());
     execService = MoreExecutors.listeningDecorator(rawExecutor);
-    AMRegistry amRegistry = frameworkService.getAMRegistry(conf);
-    if (amRegistry != null) {
-      initAmRegistry(appAttemptID.getApplicationId(), amRegistry, clientRpcServer);
-      addIfService(amRegistry, false);
-    }
 
     initServices(conf);
     super.serviceInit(conf);
@@ -650,16 +647,35 @@ public class DAGAppMaster extends AbstractService {
     return FrameworkUtils.get(ServerFrameworkService.class, conf, YarnServerFrameworkService.class);
   }
 
-  @VisibleForTesting
-  public void initAmRegistry(ApplicationId appId, AMRegistry amRegistry, DAGClientServer dagClientServer) {
-    dagClientServer.registerServiceListener((service) -> {
+  protected void initClientRpcServer() {
+    clientRpcServer = new DAGClientServer(clientHandler, appAttemptID, recoveryFS);
+    addIfService(clientRpcServer, true);
+
+    initAmRegistryCallbackForRecordAdd();
+  }
+
+  /**
+   * Initializes an AM registry callback when the clientRpcServer is already initialized
+   */
+  private void initAmRegistryCallbackForRecordAdd() {
+    AMRegistry amRegistry = frameworkService.getAMRegistry(this.amConf);
+    if (amRegistry == null) {
+      return;
+    }
+    if (clientRpcServer == null){
+      throw new IllegalStateException(
+          "Client RPC Server has not been initialized before attempting to initialize an AM registry");
+    }
+
+    ApplicationId appId = appAttemptID.getApplicationId();
+
+    clientRpcServer.registerServiceListener((service) -> {
       if (service.isInState(STATE.STARTED)) {
+        InetSocketAddress rpcServerAddress = clientRpcServer.getBindAddress();
+
         final String computeName = System.getenv(ZkConfig.COMPUTE_GROUP_NAME_ENV);
-        AMRecord amRecord = amRegistry.createAmRecord(
-            appId, dagClientServer.getBindAddress().getHostName(),
-            dagClientServer.getBindAddress().getAddress().getHostAddress(),
-            dagClientServer.getBindAddress().getPort(), computeName
-        );
+        AMRecord amRecord = amRegistry.createAmRecord(appId, rpcServerAddress.getHostName(),
+            rpcServerAddress.getAddress().getHostAddress(), rpcServerAddress.getPort(), computeName);
         try {
           amRegistry.add(amRecord);
           LOG.info("Added AMRecord: {} to registry..", amRecord);
@@ -668,11 +684,6 @@ public class DAGAppMaster extends AbstractService {
         }
       }
     });
-  }
-
-  protected void initClientRpcServer() {
-    clientRpcServer = new DAGClientServer(clientHandler, appAttemptID, recoveryFS);
-    addIfService(clientRpcServer, true);
   }
 
   @VisibleForTesting
@@ -1967,6 +1978,9 @@ public class DAGAppMaster extends AbstractService {
         firstException = ex;
       }
     }
+
+    Optional.ofNullable(frameworkService.getAMRegistry(this.amConf)).ifPresent(AMRegistry::close);
+
     //after stopping all services, rethrow the first exception raised
     if (firstException != null) {
       throw ServiceStateException.convert(firstException);

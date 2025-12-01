@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * Clients should use org.apache.tez.dag.api.client.registry.zookeeper.ZkAMRegistryClient instead.
  */
 @InterfaceAudience.Private
-public class ZkAMRegistry extends AMRegistry {
+public class ZkAMRegistry implements AMRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZkAMRegistry.class);
 
@@ -57,20 +57,17 @@ public class ZkAMRegistry extends AMRegistry {
   private ZkConfig zkConfig = null;
 
   public ZkAMRegistry(String externalId) {
-    super("ZkAMRegistry");
     this.externalId = externalId;
   }
 
-  @Override
-  public void serviceInit(Configuration conf) {
+  public void init(Configuration conf) {
     zkConfig = new ZkConfig(conf);
     this.client = zkConfig.createCuratorFramework();
     this.namespace = zkConfig.getZkNamespace();
     LOG.info("ZkAMRegistry initialized");
   }
 
-  @Override
-  public void serviceStart() throws Exception {
+  public void start() throws Exception {
     client.start();
     LOG.info("ZkAMRegistry started");
   }
@@ -81,11 +78,8 @@ public class ZkAMRegistry extends AMRegistry {
    *
    * <p>After all removal attempts, the ZooKeeper client is closed and the shutdown
    * is logged.</p>
-   *
-   * @throws Exception if a failure occurs while closing the ZooKeeper client
    */
-  @Override
-  public void serviceStop() throws Exception {
+  public void close() {
     for (AMRecord amRecord : new ArrayList<>(amRecords)) {
       try {
         remove(amRecord);

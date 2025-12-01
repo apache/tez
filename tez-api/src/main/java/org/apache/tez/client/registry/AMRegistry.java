@@ -19,7 +19,6 @@
 package org.apache.tez.client.registry;
 
 
-import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 
@@ -38,18 +37,16 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
  * </ul>
  * </p>
  */
-public abstract class AMRegistry extends AbstractService {
-  /* Implementations should provide a public no-arg constructor */
-  protected AMRegistry(String name) {
-    super(name);
-  }
+public interface AMRegistry extends AutoCloseable {
 
-  public abstract void add(AMRecord server) throws Exception;
+  void add(AMRecord server) throws Exception;
 
-  public abstract void remove(AMRecord server) throws Exception;
+  void remove(AMRecord server) throws Exception;
 
-  public abstract ApplicationId generateNewId() throws Exception;
+  ApplicationId generateNewId() throws Exception;
 
-  public abstract AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port,
+  AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port,
                                           String computeName);
+
+  void close();
 }

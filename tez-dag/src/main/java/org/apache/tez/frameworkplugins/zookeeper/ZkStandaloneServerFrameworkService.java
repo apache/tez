@@ -59,6 +59,7 @@ public class ZkStandaloneServerFrameworkService implements ServerFrameworkServic
       try {
         amRegistry = new ZkAMRegistry(externalId);
         amRegistry.init(conf);
+        amRegistry.start();
         LOG.info("Created Zookeeper based AM Registry with externalId: {}", externalId);
       } catch (Exception e) {
         throw new RuntimeException(e);
