@@ -18,8 +18,11 @@
 package org.apache.tez.frameworkplugins;
 
 
+import java.lang.reflect.InvocationTargetException;
+
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.tez.common.ReflectionUtils;
 import org.apache.tez.dag.api.TezConfiguration;
@@ -54,17 +57,18 @@ public final class FrameworkUtils {
     String modeInConf = conf != null ? conf.get(TezConfiguration.TEZ_FRAMEWORK_MODE) : null;
     String modeInEnv = System.getenv(TezConstants.TEZ_FRAMEWORK_MODE);
     try {
-      if (modeInConf != null) {
+      if (StringUtils.isNotEmpty(modeInConf)) {
         return getByMode(interfaze, modeInConf);
-      } else if (modeInEnv != null) {
+      } else if (StringUtils.isNotEmpty(modeInEnv)) {
         return getByMode(interfaze, modeInEnv);
       } else if (defaultClazz != null) {
-        return (T) defaultClazz.newInstance();
+        return (T) defaultClazz.getDeclaredConstructor().newInstance();
       } else {
         throw new RuntimeException(
             "Framework service not found in any mode: configuration, environment, or default class");
       }
-    } catch (TezReflectionException | InstantiationException | IllegalAccessException e) {
+    } catch (TezReflectionException | InstantiationException | IllegalAccessException | NoSuchMethodException |
+             InvocationTargetException e) {
       throw new RuntimeException("Failed to load framework service for interface: " + interfaze.getName(), e);
     }
   }

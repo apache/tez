@@ -39,14 +39,12 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
  */
 public interface AMRegistry extends AutoCloseable {
 
-  void add(AMRecord server) throws Exception;
+  void add(AMRecord record) throws Exception;
 
-  void remove(AMRecord server) throws Exception;
+  void remove(AMRecord record) throws Exception;
 
   ApplicationId generateNewId() throws Exception;
 
   AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port,
                                           String computeName);
-
-  void close();
 }

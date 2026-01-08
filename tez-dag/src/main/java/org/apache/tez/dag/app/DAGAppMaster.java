@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.Timer;
@@ -1979,7 +1978,17 @@ public class DAGAppMaster extends AbstractService {
       }
     }
 
-    Optional.ofNullable(frameworkService.getAMRegistry(this.amConf)).ifPresent(AMRegistry::close);
+    AMRegistry registry = frameworkService.getAMRegistry(this.amConf);
+    if (registry != null) {
+      try {
+        registry.close();
+      } catch (Exception e) {
+        LOG.warn("Failed to close registry", e);
+        if (firstException != null) {
+          firstException = e;
+        }
+      }
+    }
 
     //after stopping all services, rethrow the first exception raised
     if (firstException != null) {

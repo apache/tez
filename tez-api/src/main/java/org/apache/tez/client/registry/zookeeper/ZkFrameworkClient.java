@@ -37,11 +37,9 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ZkFrameworkClient extends FrameworkClient {
 
-  private AMRecord amRecord;
+  private volatile AMRecord amRecord;
   private ZkAMRegistryClient amRegistryClient = null;
   private volatile boolean isRunning = false;
-  private String amHost;
-  private int amPort;
 
   @Override
   public synchronized void init(TezConfiguration tezConf) {
@@ -56,6 +54,9 @@ public class ZkFrameworkClient extends FrameworkClient {
 
   @Override
   public void start() {
+    if (isRunning) {
+      return;
+    }
     try {
       amRegistryClient.start();
       isRunning = true;
@@ -140,8 +141,6 @@ public class ZkFrameworkClient extends FrameworkClient {
       report.setDiagnostics("AM record not found (likely died) in zookeeper for application id: " + appId);
     } else {
       report.setHost(amRecord.getHostName());
-      amHost = amRecord.getHostName();
-      amPort = amRecord.getPort();
       report.setRpcPort(amRecord.getPort());
       report.setYarnApplicationState(YarnApplicationState.RUNNING);
     }
@@ -155,12 +154,12 @@ public class ZkFrameworkClient extends FrameworkClient {
 
   @Override
   public String getAmHost() {
-    return amHost;
+    return amRecord == null ? null : amRecord.getHostName();
   }
 
   @Override
   public int getAmPort() {
-    return amPort;
+    return amRecord == null ? 0 : amRecord.getPort();
   }
 
   @VisibleForTesting

@@ -81,7 +81,7 @@ public abstract class AMRegistryClient implements Closeable {
       try {
         listener.onAdd(record);
       } catch (Exception e) {
-        LOG.warn("Exception while calling AM add listener, AM record {}", record, e);
+        LOG.warn("Exception while notifying AM add listener for record {}", record, e);
       }
     }
   }
@@ -96,7 +96,7 @@ public abstract class AMRegistryClient implements Closeable {
       try {
         listener.onUpdate(record);
       } catch (Exception e) {
-        LOG.warn("Exception while calling AM update listener, AM record {}", record, e);
+        LOG.warn("Exception while notifying AM update listener for record {}", record, e);
       }
     }
   }
@@ -111,7 +111,7 @@ public abstract class AMRegistryClient implements Closeable {
       try {
         listener.onRemove(record);
       } catch (Exception e) {
-        LOG.warn("Exception while calling AM remove listener, AM record {}", record, e);
+        LOG.warn("Exception while notifying AM remove listener for record {}", record, e);
       }
     }
   }

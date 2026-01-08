@@ -113,6 +113,7 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
     client = zkConf.createCuratorFramework();
     cache = new TreeCache(client, zkConf.getZkNamespace());
     client.start();
+    client.blockUntilConnected();
     cache.start();
     listener = new ZkRegistryListener();
     cache.getListenable().addListener(listener);
@@ -175,7 +176,7 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
             if (amRecord != null) {
               LOG.info("AM updated data: {}. Notifying listeners.", amRecord);
               amRecordCache.put(amRecord.getApplicationId(), amRecord);
-              notifyOnAdded(amRecord);
+              notifyOnUpdated(amRecord);
             }
           }
           break;

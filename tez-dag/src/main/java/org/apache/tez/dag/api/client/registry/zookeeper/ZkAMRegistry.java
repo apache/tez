@@ -156,7 +156,7 @@ public class ZkAMRegistry implements AMRegistry {
   }
 
   @Override
-  public AMRecord createAmRecord(ApplicationId appId,  String hostName, String hostIp, int port, String computeName) {
+  public AMRecord createAmRecord(ApplicationId appId, String hostName, String hostIp, int port, String computeName) {
     return new AMRecord(appId, hostName, hostIp, port, externalId, computeName);
   }
 

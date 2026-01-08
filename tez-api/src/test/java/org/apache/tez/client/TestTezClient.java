@@ -546,6 +546,8 @@ public class TestTezClient {
     assertEquals(dagClient.getSessionIdentifierString(), appId.toString());
 
     dagClient.close();
+    client.stop();
+    client2.stop();
   }
 
   @Test (timeout=5000)
