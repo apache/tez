@@ -68,6 +68,25 @@ public final class ZkAMRegistryClient extends AMRegistryClient {
     this.conf = conf;
   }
 
+  static {
+    /*
+     * Shutdown hook to close all open ZooKeeper clients.
+     *
+     * The relationship between TezClient and ZooKeeper is as follows:
+     *   TezClient -> FrameworkClient (ZkFrameworkClient) -> ZkAMRegistryClient
+     *
+     * By design, the upstream application is not always expected to explicitly close the Tez client.
+     * Connecting to an external session does not imply a strict lifecycle, unlike the classic YARN mode,
+     * where closing the client also destroys the YARN application and its Application Master.
+     *
+     * As a result, this call path may not always be executed. Nevertheless, Tez attempts to proactively
+     * shut down shared ZooKeeper clients via this shutdown hook to prevent resource leaks.
+     */
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      INSTANCES.values().forEach(ZkAMRegistryClient::close);
+    }));
+  }
+
   public static synchronized ZkAMRegistryClient getClient(final Configuration conf) {
     String namespace = conf.get(TezConfiguration.TEZ_AM_REGISTRY_NAMESPACE);
     ZkAMRegistryClient registry = INSTANCES.get(namespace);
