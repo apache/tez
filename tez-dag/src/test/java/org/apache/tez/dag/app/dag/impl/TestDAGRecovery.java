@@ -116,6 +116,7 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.frameworkplugins.yarn.YarnServerFrameworkService;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.runtime.api.Event;
 import org.apache.tez.runtime.api.InputInitializer;
@@ -325,6 +326,7 @@ public class TestDAGRecovery {
     when(appContext.getHadoopShim()).thenReturn(new DefaultHadoopShim());
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
     when(appContext.getClock()).thenReturn(new SystemClock());
+    when(appContext.getAmExtensions()).thenReturn(new YarnServerFrameworkService.YarnAMExtensions());
 
     doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {

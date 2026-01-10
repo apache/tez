@@ -1612,19 +1612,14 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       addVertex(v);
     }
 
-    // check task resources, only check it in non-local mode
     if (!appContext.isLocal()) {
-      for (Vertex v : vertexMap.values()) {
-        // TODO TEZ-2003 (post) TEZ-2624 Ideally, this should be per source.
-        if (v.getTaskResource().compareTo(appContext.getClusterInfo().getMaxContainerCapability()) > 0) {
-          String msg = "Vertex's TaskResource is beyond the cluster container capability," +
-              "Vertex=" + v.getLogIdentifier() +", Requested TaskResource=" + v.getTaskResource()
-              + ", Cluster MaxContainerCapability=" + appContext.getClusterInfo().getMaxContainerCapability();
-          LOG.error(msg);
-          addDiagnostic(msg);
-          finished(DAGState.FAILED);
-          return DAGState.FAILED;
-        }
+      try {
+        appContext.getAmExtensions().checkTaskResources(vertexMap, appContext.getClusterInfo());
+      } catch (Exception e) {
+        LOG.error(e.getMessage());
+        addDiagnostic(e.getMessage());
+        finished(DAGState.FAILED);
+        return DAGState.FAILED;
       }
     }
 
@@ -1769,7 +1764,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
     Map<Vertex, Edge> outVertices =
         new HashMap<Vertex, Edge>();
 
-    for(String inEdgeId : vertexPlan.getInEdgeIdList()){
+    for (String inEdgeId : vertexPlan.getInEdgeIdList()) {
       EdgePlan edgePlan = edgePlans.get(inEdgeId);
       Vertex inVertex = dag.vertexMap.get(edgePlan.getInputVertexName());
       Edge edge = dag.edges.get(inEdgeId);
@@ -1778,7 +1773,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
       inVertices.put(inVertex, edge);
     }
 
-    for(String outEdgeId : vertexPlan.getOutEdgeIdList()){
+    for (String outEdgeId : vertexPlan.getOutEdgeIdList()) {
       EdgePlan edgePlan = edgePlans.get(outEdgeId);
       Vertex outVertex = dag.vertexMap.get(edgePlan.getOutputVertexName());
       Edge edge = dag.edges.get(outEdgeId);
@@ -1803,7 +1798,7 @@ public class DAGImpl implements org.apache.tez.dag.app.dag.DAG,
    * <ul>
    * <li>
    * 1. For the completed dag, recover the dag to the desired state and also its vertices,
-   *    but not task & task attempt. This recovery is sync call (after this Transition, 
+   *    but not task & task attempt. This recovery is sync call (after this Transition,
    *    DAG & vertices are all recovered to the desired state)
    * </li>
    * <li>

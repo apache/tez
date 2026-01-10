@@ -69,10 +69,11 @@
     <commons-io.version>2.16.0</commons-io.version>
     <commons-lang.version>2.6</commons-lang.version>
     <clover.license>${user.home}/clover.license</clover.license>
+    <curator.version>5.9.0</curator.version>
     <dependency-check-maven.version>3.2.0</dependency-check-maven.version>
     <dependency-maven-plugin.version>3.8.1</dependency-maven-plugin.version>
-    <spotbugs.version>4.9.3</spotbugs.version>
-    <spotbugs-maven-plugin.version>4.9.3.0</spotbugs-maven-plugin.version>
+    <spotbugs.version>4.9.8</spotbugs.version>
+    <spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
     <frontend-maven-plugin.version>1.8.0</frontend-maven-plugin.version>
     <guava.version>32.0.1-jre</guava.version>
     <hadoop.version>3.4.2</hadoop.version>
@@ -738,10 +739,27 @@
       </dependency>
       <dependency>
         <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-registry</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-hdfs</artifactId>
         <version>${hadoop.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.curator</groupId>
+        <artifactId>curator-test</artifactId>
+        <version>${curator.version}</version>
+        <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>

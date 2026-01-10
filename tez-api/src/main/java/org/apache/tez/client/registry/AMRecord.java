@@ -19,10 +19,12 @@
 package org.apache.tez.client.registry;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.tez.client.registry.zookeeper.ZkConfig;
 
 
 /**
@@ -37,14 +39,20 @@ import org.apache.hadoop.yarn.api.records.ApplicationId;
 @InterfaceAudience.Public
 public class AMRecord {
   private static final String APP_ID_RECORD_KEY = "appId";
-  private static final String HOST_RECORD_KEY = "host";
+  private static final String HOST_NAME_RECORD_KEY = "hostName";
+  private static final String HOST_IP_RECORD_KEY = "hostIp";
   private static final String PORT_RECORD_KEY = "port";
-  private static final String OPAQUE_ID_KEY = "id";
+  private static final String EXTERNAL_ID_KEY = "externalId";
+  private static final String COMPUTE_GROUP_NAME_KEY = "computeName";
 
   private final ApplicationId appId;
-  private final String host;
+  private final String hostName;
+  private final String hostIp;
   private final int port;
-  private final String id;
+  private final String externalId;
+  private final String computeName;
+
+  private ServiceRecord serviceRecord;
 
   /**
    * Creates a new {@code AMRecord} with the given application ID, host, port, and identifier.
@@ -54,17 +62,23 @@ public class AMRecord {
    * Although this constructor may not be used directly within Tez internals,
    * it is part of the public API for Tez clients that handle unmanaged sessions.
    *
-   * @param appId the {@link ApplicationId} of the Tez application
-   * @param host the hostname where the Application Master is running
-   * @param port the port number on which the Application Master is listening
-   * @param id an opaque identifier for the record; if {@code null}, defaults to an empty string
+   * @param appId       the {@link ApplicationId} of the Tez application
+   * @param hostName    the hostname where the Application Master is running
+   * @param hostIp      the IP address of the Application Master host
+   * @param port        the RPC port number on which the Application Master is listening
+   * @param externalId  an optional external identifier for the record; if {@code null}, defaults to an empty string
+   * @param computeName the compute group or cluster name; if {@code null},
+   *                    defaults to {@link ZkConfig#DEFAULT_COMPUTE_GROUP_NAME}
    */
-  public AMRecord(ApplicationId appId, String host, int port, String id) {
+  public AMRecord(ApplicationId appId, String hostName, String hostIp, int port, String externalId,
+                  String computeName) {
     this.appId = appId;
-    this.host = host;
+    this.hostName = hostName;
+    this.hostIp = hostIp;
     this.port = port;
-    //If id is not provided, convert to empty string
-    this.id = (id == null) ? "" : id;
+    //externalId is optional, if not provided, convert to empty string
+    this.externalId = Optional.ofNullable(externalId).orElse("");
+    this.computeName = Optional.ofNullable(computeName).orElse(ZkConfig.DEFAULT_COMPUTE_GROUP_NAME);
   }
 
   /**
@@ -78,10 +92,15 @@ public class AMRecord {
    * @param other the {@code AMRecord} instance to copy
    */
   public AMRecord(AMRecord other) {
-    this.appId = other.getApplicationId();
-    this.host = other.getHost();
-    this.port = other.getPort();
-    this.id = other.getId();
+    this.appId = other.appId;
+    this.hostName = other.hostName;
+    this.hostIp = other.hostIp;
+    this.port = other.port;
+    this.externalId = other.externalId;
+    this.computeName = other.computeName;
+    // all fields are final immutable, we can copy the serviceRecord,
+    // if it's initialized there already, as it won't change
+    this.serviceRecord = other.serviceRecord;
   }
 
   /**
@@ -97,25 +116,35 @@ public class AMRecord {
    */
   public AMRecord(ServiceRecord serviceRecord) {
     this.appId = ApplicationId.fromString(serviceRecord.get(APP_ID_RECORD_KEY));
-    this.host = serviceRecord.get(HOST_RECORD_KEY);
+    this.hostName = serviceRecord.get(HOST_NAME_RECORD_KEY);
+    this.hostIp = serviceRecord.get(HOST_IP_RECORD_KEY);
     this.port = Integer.parseInt(serviceRecord.get(PORT_RECORD_KEY));
-    this.id = serviceRecord.get(OPAQUE_ID_KEY);
+    this.externalId = serviceRecord.get(EXTERNAL_ID_KEY);
+    this.computeName = serviceRecord.get(COMPUTE_GROUP_NAME_KEY);
   }
 
   public ApplicationId getApplicationId() {
     return appId;
   }
 
-  public String getHost() {
-    return host;
+  public String getHostName() {
+    return hostName;
+  }
+
+  public String getHostIp() {
+    return hostIp;
   }
 
   public int getPort() {
     return port;
   }
 
-  public String getId() {
-    return id;
+  public String getExternalId() {
+    return externalId;
+  }
+
+  public String getComputeName() {
+    return computeName;
   }
 
   @Override
@@ -125,9 +154,11 @@ public class AMRecord {
     }
     if (other instanceof AMRecord otherRecord) {
       return appId.equals(otherRecord.appId)
-          && host.equals(otherRecord.host)
+          && hostName.equals(otherRecord.hostName)
+          && hostIp.equals(otherRecord.hostIp)
           && port == otherRecord.port
-          && id.equals(otherRecord.id);
+          && externalId.equals(otherRecord.externalId)
+          && computeName.equals(otherRecord.computeName);
     } else {
       return false;
     }
@@ -148,16 +179,27 @@ public class AMRecord {
    * @return a {@link ServiceRecord} populated with the values of this {@code AMRecord}
    */
   public ServiceRecord toServiceRecord() {
-    ServiceRecord serviceRecord = new ServiceRecord();
+    if (serviceRecord != null) {
+      return serviceRecord;
+    }
+    serviceRecord = new ServiceRecord();
     serviceRecord.set(APP_ID_RECORD_KEY, appId);
-    serviceRecord.set(HOST_RECORD_KEY, host);
+    serviceRecord.set(HOST_NAME_RECORD_KEY, hostName);
+    serviceRecord.set(HOST_IP_RECORD_KEY, hostIp);
     serviceRecord.set(PORT_RECORD_KEY, port);
-    serviceRecord.set(OPAQUE_ID_KEY, id);
+    serviceRecord.set(EXTERNAL_ID_KEY, externalId);
+    serviceRecord.set(COMPUTE_GROUP_NAME_KEY, computeName);
+
     return serviceRecord;
   }
 
   @Override
+  public String toString() {
+    return toServiceRecord().attributes().toString();
+  }
+
+  @Override
   public int hashCode() {
-    return Objects.hash(appId, host, port, id);
+    return Objects.hash(appId, hostName, hostIp, externalId, computeName, port);
   }
 }

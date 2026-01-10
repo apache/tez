@@ -43,7 +43,7 @@ public class TezYarnClient extends FrameworkClient {
   private String amHost;
   private int amPort;
 
-  protected TezYarnClient(YarnClient yarnClient) {
+  public TezYarnClient(YarnClient yarnClient) {
     this.yarnClient = yarnClient;
   }
 

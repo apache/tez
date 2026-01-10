@@ -140,6 +140,8 @@ import org.apache.tez.dag.records.TezDAGID;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 import org.apache.tez.dag.records.TezTaskID;
 import org.apache.tez.dag.records.TezVertexID;
+import org.apache.tez.frameworkplugins.AMExtensions;
+import org.apache.tez.frameworkplugins.yarn.YarnServerFrameworkService;
 import org.apache.tez.hadoop.shim.DefaultHadoopShim;
 import org.apache.tez.hadoop.shim.HadoopShim;
 import org.apache.tez.runtime.api.OutputCommitter;
@@ -210,6 +212,7 @@ public class TestDAGImpl {
   private TaskAttemptEventDispatcher taskAttemptEventDispatcher;
   private ClusterInfo clusterInfo = new ClusterInfo(Resource.newInstance(8192,10));
   private HadoopShim defaultShim = new DefaultHadoopShim();
+  private AMExtensions amExtensions = new YarnServerFrameworkService.YarnAMExtensions();
 
   static {
     Limits.reset();
@@ -872,6 +875,7 @@ public class TestDAGImpl {
     final ListenableFuture<Void> mockFuture = mock(ListenableFuture.class);
     when(appContext.getHadoopShim()).thenReturn(defaultShim);
     when(appContext.getApplicationID()).thenReturn(appAttemptId.getApplicationId());
+    doReturn(amExtensions).when(appContext).getAmExtensions();
 
     doAnswer(new Answer() {
       public ListenableFuture<Void> answer(InvocationOnMock invocation) {
@@ -902,6 +906,7 @@ public class TestDAGImpl {
     doReturn(aclManager).when(mrrAppContext).getAMACLManager();
     doReturn(execService).when(mrrAppContext).getExecService();
     doReturn(defaultShim).when(mrrAppContext).getHadoopShim();
+    doReturn(amExtensions).when(mrrAppContext).getAmExtensions();
 
     mrrDagId = TezDAGID.getInstance(appAttemptId.getApplicationId(), 2);
     mrrDagPlan = createTestMRRDAGPlan();
@@ -935,6 +940,7 @@ public class TestDAGImpl {
         .when(groupAppContext).getApplicationID();
     doReturn(historyEventHandler).when(groupAppContext).getHistoryHandler();
     doReturn(clusterInfo).when(groupAppContext).getClusterInfo();
+    doReturn(amExtensions).when(groupAppContext).getAmExtensions();
 
     // reset totalCommitCounter to 0
     TotalCountingOutputCommitter.totalCommitCounter = 0;
@@ -1005,6 +1011,7 @@ public class TestDAGImpl {
     doReturn(appAttemptId.getApplicationId()).when(dagWithCustomEdgeAppContext).getApplicationID();
     doReturn(historyEventHandler).when(dagWithCustomEdgeAppContext).getHistoryHandler();
     doReturn(clusterInfo).when(dagWithCustomEdgeAppContext).getClusterInfo();
+    doReturn(amExtensions).when(dagWithCustomEdgeAppContext).getAmExtensions();
     dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDisptacher2());
     dispatcher.register(AMSchedulerEventType.class, new AMSchedulerEventHandler());
     when(dagWithCustomEdgeAppContext.getContainerLauncherName(anyInt())).thenReturn(

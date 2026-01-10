@@ -85,6 +85,10 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-registry</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-server-web-proxy</artifactId>
     </dependency>
     <dependency>
@@ -148,6 +152,11 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-test</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -203,6 +212,7 @@
           <argLine>${test.jvm.args}</argLine>
           <environmentVariables>
             <LOG_DIRS>${test.log.dir}</LOG_DIRS>
+            <TEZ_AM_EXTERNAL_ID>test-external-id</TEZ_AM_EXTERNAL_ID>
           </environmentVariables>
         </configuration>
       </plugin>

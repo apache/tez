@@ -26,7 +26,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.tez.common.RPCUtil;
@@ -46,6 +45,9 @@ import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.GetAMStatusRespo
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.ShutdownSessionRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGRequestProto;
 import org.apache.tez.dag.api.client.rpc.DAGClientAMProtocolRPC.SubmitDAGResponseProto;
+import org.apache.tez.frameworkplugins.ClientFrameworkService;
+import org.apache.tez.frameworkplugins.FrameworkUtils;
+import org.apache.tez.frameworkplugins.yarn.YarnClientFrameworkService;
 
 import com.google.protobuf.ServiceException;
 
@@ -57,7 +59,6 @@ public abstract class FrameworkClient {
   protected static final Logger LOG = LoggerFactory.getLogger(FrameworkClient.class);
 
   public static FrameworkClient createFrameworkClient(TezConfiguration tezConf) {
-
     boolean isLocal = tezConf.getBoolean(TezConfiguration.TEZ_LOCAL_MODE, TezConfiguration.TEZ_LOCAL_MODE_DEFAULT);
     if (isLocal) {
       try {
@@ -65,8 +66,11 @@ public abstract class FrameworkClient {
       } catch (TezReflectionException e) {
         throw new TezUncheckedException("Fail to create LocalClient", e);
       }
+    } else {
+      ClientFrameworkService clientFrameworkService = FrameworkUtils.get(ClientFrameworkService.class, tezConf,
+          YarnClientFrameworkService.class);
+      return clientFrameworkService.newFrameworkClient();
     }
-    return new TezYarnClient(YarnClient.createYarnClient());
   }
 
   /**
