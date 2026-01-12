@@ -23,7 +23,8 @@ import org.apache.tez.client.registry.zookeeper.ZkFrameworkClient;
 import org.apache.tez.frameworkplugins.ClientFrameworkService;
 
 public class ZkStandaloneClientFrameworkService implements ClientFrameworkService {
-  @Override public FrameworkClient newFrameworkClient() {
+  @Override
+  public FrameworkClient newFrameworkClient() {
     return new ZkFrameworkClient();
   }
 }

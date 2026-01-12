@@ -518,10 +518,7 @@ public class DAGAppMaster extends AbstractService {
       appAttemptID, jobTokenSecretManager, amCredentials);
 
     if (sessionToken == null) {
-      sessionToken = TokenCache.getSessionToken(amCredentials);
-      if (sessionToken == null) {
-        throw new RuntimeException("Could not find session token in AM Credentials");
-      }
+      throw new RuntimeException("Could not find session token in AM Credentials");
     }
 
     // Prepare the TaskAttemptListener server for authentication of Containers
