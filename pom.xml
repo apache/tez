@@ -88,7 +88,6 @@
     <maven-project-info-reports-plugin.version>3.1.2</maven-project-info-reports-plugin.version>
     <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
     <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
-    <spotless-maven-plugin.version>2.46.1</spotless-maven-plugin.version>
     <metrics-core.version>3.1.0</metrics-core.version>
     <mockito-core.version>4.8.1</mockito-core.version>
     <netty.version>4.1.116.Final</netty.version>
@@ -102,6 +101,7 @@
     <servlet-api.version>3.1.0</servlet-api.version>
     <slf4j.version>1.7.36</slf4j.version>
     <snappy-java.version>1.1.10.4</snappy-java.version>
+    <spotless-maven-plugin.version>3.1.0</spotless-maven-plugin.version>
     <test.build.data>${project.build.directory}/tmp</test.build.data>
     <wro4j-maven-plugin.version>1.7.9</wro4j-maven-plugin.version>
     <test.jvm.args>
