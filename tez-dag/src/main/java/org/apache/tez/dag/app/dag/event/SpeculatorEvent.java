@@ -23,12 +23,12 @@ import org.apache.tez.dag.records.TezVertexID;
 
 public class SpeculatorEvent extends TezAbstractEvent<SpeculatorEventType> {
   private final TezVertexID vertexId;
-  
+
   public SpeculatorEvent(SpeculatorEventType type, TezVertexID vertexId) {
     super(type);
     this.vertexId = vertexId;
   }
-  
+
   public TezVertexID getVertexId() {
     return vertexId;
   }

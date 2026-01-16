@@ -27,8 +27,8 @@ import org.apache.tez.dag.app.rm.container.AMContainerEventType;
 public class ContainerHeartbeatHandler extends
     HeartbeatHandlerBase<ContainerId> {
 
- 
-  public ContainerHeartbeatHandler(AppContext context, 
+
+  public ContainerHeartbeatHandler(AppContext context,
       int expectedConcurrency) {
     super(context, expectedConcurrency, "ContainerHeartbeatHandler");
   }

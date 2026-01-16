@@ -64,7 +64,7 @@ public class TestAMNodeTracker {
 
   DrainDispatcher dispatcher;
   EventHandler eventHandler;
-  
+
   @Before
   public void setup() {
     dispatcher = new DrainDispatcher();
@@ -72,7 +72,7 @@ public class TestAMNodeTracker {
     dispatcher.start();
     eventHandler = dispatcher.getEventHandler();
   }
-  
+
   class TestEventHandler implements EventHandler{
     List<Event> events = Lists.newLinkedList();
     @SuppressWarnings("unchecked")
@@ -82,12 +82,12 @@ public class TestAMNodeTracker {
       eventHandler.handle(event);
     }
   }
-  
+
   @After
   public void teardown() {
     dispatcher.stop();
   }
-  
+
   @Test(timeout=5000)
   public void testHealthUpdateKnownNode() {
     AppContext appContext = mock(AppContext.class);

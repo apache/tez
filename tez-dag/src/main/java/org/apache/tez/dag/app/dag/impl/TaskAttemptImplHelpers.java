@@ -30,7 +30,7 @@ public final class TaskAttemptImplHelpers {
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImplHelpers.class);
 
   private TaskAttemptImplHelpers() {}
-   
+
   static String[] resolveHosts(String[] src) {
     String[] result = new String[src.length];
     for (int i = 0; i < src.length; i++) {
@@ -57,7 +57,7 @@ public final class TaskAttemptImplHelpers {
 
   private static final Pattern ipPattern = // Pattern for matching ip
     Pattern.compile("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
-  
+
   static boolean isIP(String src) {
     return ipPattern.matcher(src).matches();
   }

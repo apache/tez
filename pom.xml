@@ -1024,6 +1024,7 @@
                 <order>java,javax,org.apache,com,net,io</order>
               </importOrder>
               <removeUnusedImports/>
+              <trimTrailingWhitespace/>
             </java>
           </configuration>
         </plugin>

@@ -45,11 +45,11 @@ public final class MultiStageMRConfToTezTranslator {
 
     // Read split info from HDFS
     conf.setBoolean(MRJobConfig.MR_TEZ_SPLITS_VIA_EVENTS, false);
-    
+
     // Setup Tez partitioner class
     conf.set(TezRuntimeConfiguration.TEZ_RUNTIME_PARTITIONER_CLASS,
         MRPartitioner.class.getName());
-    
+
     // Setup Tez Combiner class if required.
     // This would already have been set since the call is via JobClient
     boolean useNewApi = conf.getBoolean("mapred.mapper.new-api", false);

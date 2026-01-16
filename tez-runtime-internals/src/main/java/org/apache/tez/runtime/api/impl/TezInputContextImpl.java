@@ -62,7 +62,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   private final Map<String, LogicalInput> inputs;
   private volatile InputReadyTracker inputReadyTracker;
   private final InputStatisticsReporterImpl statsReporter;
-  
+
   class InputStatisticsReporterImpl implements InputStatisticsReporter {
 
     @Override
@@ -76,15 +76,15 @@ public class TezInputContextImpl extends TezTaskContextImpl
     public void reportItemsProcessed(long items) {
       // this is a concurrent map. Plus we are not adding/deleting entries
       runtimeTask.getTaskStatistics().getIOStatistics().get(sourceVertexName)
-          .setItemsProcessed(items);      
+          .setItemsProcessed(items);
     }
-    
+
   }
 
   @Private
   public TezInputContextImpl(Configuration conf, String[] workDirs,
                              int appAttemptNumber,
-                             TezUmbilical tezUmbilical, String dagName, 
+                             TezUmbilical tezUmbilical, String dagName,
                              String taskVertexName, String sourceVertexName,
                              int vertexParallelism, TezTaskAttemptID taskAttemptID,
                              int inputIndex, @Nullable UserPayload userPayload,
@@ -142,7 +142,7 @@ public class TezInputContextImpl extends TezTaskContextImpl
   public UserPayload getUserPayload() {
     return userPayload;
   }
-  
+
   @Override
   public int getInputIndex() {
     return inputIndex;

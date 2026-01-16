@@ -49,7 +49,7 @@ public class VertexConfigurationDoneEvent implements HistoryEvent, VertexIDAware
   private Map<String, InputSpecUpdate> rootInputSpecUpdates;
   private boolean setParallelismCalledFlag;
 
-  public VertexConfigurationDoneEvent() {  
+  public VertexConfigurationDoneEvent() {
   }
 
   public VertexConfigurationDoneEvent(TezVertexID vertexID,

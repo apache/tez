@@ -22,7 +22,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.tez.dag.records.TaskAttemptTerminationCause;
 import org.apache.tez.dag.records.TezTaskAttemptID;
 
-public class TaskAttemptEventContainerTerminatedBySystem extends TaskAttemptEvent 
+public class TaskAttemptEventContainerTerminatedBySystem extends TaskAttemptEvent
   implements DiagnosableEvent, TaskAttemptEventTerminationCauseEvent {
 
   private final ContainerId containerId;

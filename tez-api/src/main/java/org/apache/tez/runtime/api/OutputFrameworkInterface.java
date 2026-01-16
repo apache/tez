@@ -34,7 +34,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  * During initialization, Outputs must specify an initial memory requirement via
  * {@link OutputContext}.requestInitialMemory
  * <p/>
- * 
+ *
  * Users are expected to derive from {@link AbstractLogicalOutput}
  *
  */

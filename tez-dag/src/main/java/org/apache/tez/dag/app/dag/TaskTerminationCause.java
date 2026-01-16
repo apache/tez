@@ -28,10 +28,10 @@ public enum TaskTerminationCause {
 
   /** Other vertex failed causing DAG to fail thus killing the parent vertex  */
   OTHER_VERTEX_FAILURE,
-  
+
   /** One of the tasks for the source/destination vertex failed.  */
-  OTHER_TASK_FAILURE, 
-  
+  OTHER_TASK_FAILURE,
+
   /** One of the tasks of the destination vertex failed. */
   OWN_TASK_FAILURE,
 
@@ -39,6 +39,6 @@ public enum TaskTerminationCause {
    * throw Exception
    */
   AM_USERCODE_FAILURE,
-  
+
   TASK_RESCHEDULE_IN_COMMITTING,
 }

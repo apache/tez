@@ -30,7 +30,7 @@ import org.apache.commons.collections4.IteratorUtils;
 
 public class MRCounters extends org.apache.hadoop.mapred.Counters {
   private final org.apache.tez.common.counters.TezCounters raw;
-  
+
   public MRCounters(org.apache.tez.common.counters.TezCounters raw) {
     this.raw = raw;
   }
@@ -116,7 +116,7 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
   public String makeEscapedCompactString() {
     return toEscapedCompactString(this);
   }
-  
+
   public static class MRCounterGroup extends org.apache.hadoop.mapred.Counters.Group {
     private final org.apache.tez.common.counters.CounterGroup group;
     public MRCounterGroup(org.apache.tez.common.counters.CounterGroup group) {
@@ -204,10 +204,10 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
       return result;
     }
   }
-  
+
   public static class MRCounter extends Counter {
     private final org.apache.tez.common.counters.TezCounter raw;
-    
+
     public MRCounter(org.apache.tez.common.counters.TezCounter raw) {
       this.raw = raw;
     }
@@ -294,24 +294,24 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
     org.apache.hadoop.mapreduce.Counter underlyingCounter =
         counter.getUnderlyingCounter();
     if (underlyingCounter instanceof org.apache.hadoop.mapreduce.counters.FrameworkCounterGroup.FrameworkCounter) {
-      org.apache.hadoop.mapreduce.counters.FrameworkCounterGroup.FrameworkCounter 
-      real = 
+      org.apache.hadoop.mapreduce.counters.FrameworkCounterGroup.FrameworkCounter
+      real =
       (org.apache.hadoop.mapreduce.counters.FrameworkCounterGroup.FrameworkCounter)underlyingCounter;
       return new org.apache.tez.common.counters.FrameworkCounterGroup.FrameworkCounter(
           real.getKey(), real.getGroupName());
     } else if (underlyingCounter instanceof org.apache.hadoop.mapreduce.counters.FileSystemCounterGroup.FSCounter) {
-      org.apache.hadoop.mapreduce.counters.FileSystemCounterGroup.FSCounter real = 
+      org.apache.hadoop.mapreduce.counters.FileSystemCounterGroup.FSCounter real =
           (org.apache.hadoop.mapreduce.counters.FileSystemCounterGroup.FSCounter)underlyingCounter;
       return new org.apache.tez.common.counters.FileSystemCounterGroup.FSCounter(
           real.getScheme(), convert(real.getFileSystemCounter()));
     } else {
       return new org.apache.tez.common.counters.GenericCounter(
-          underlyingCounter.getName(), 
-          underlyingCounter.getDisplayName(), 
+          underlyingCounter.getName(),
+          underlyingCounter.getDisplayName(),
           underlyingCounter.getValue());
     }
   }
-  
+
   static org.apache.tez.common.counters.FileSystemCounter convert(
       org.apache.hadoop.mapreduce.FileSystemCounter c) {
     switch (c) {
@@ -328,6 +328,6 @@ public class MRCounters extends org.apache.hadoop.mapred.Counters {
       default:
         throw new IllegalArgumentException("Unknow FileSystemCounter: " + c);
     }
-    
+
   }
 }

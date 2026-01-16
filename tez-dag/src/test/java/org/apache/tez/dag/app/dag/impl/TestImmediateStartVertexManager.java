@@ -48,11 +48,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestImmediateStartVertexManager {
-  
+
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Test (timeout=5000)
   public void testBasic() {
-    HashMap<String, EdgeProperty> mockInputVertices = 
+    HashMap<String, EdgeProperty> mockInputVertices =
         new HashMap<String, EdgeProperty>();
     final String mockSrcVertexId1 = "Vertex1";
     EdgeProperty eProp1 = EdgeProperty.create(
@@ -74,9 +74,9 @@ public class TestImmediateStartVertexManager {
         SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("out"),
         InputDescriptor.create("in"));
-    
+
     final String mockManagedVertexId = "Vertex4";
-    
+
     mockInputVertices.put(mockSrcVertexId1, eProp1);
     mockInputVertices.put(mockSrcVertexId2, eProp2);
     mockInputVertices.put(mockSrcVertexId3, eProp3);
@@ -88,7 +88,7 @@ public class TestImmediateStartVertexManager {
     when(mockContext.getVertexNumTasks(mockSrcVertexId1)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId2)).thenReturn(2);
     when(mockContext.getVertexNumTasks(mockSrcVertexId3)).thenReturn(2);
-    
+
     final HashSet<Integer> scheduledTasks = new HashSet<Integer>();
     doAnswer(new Answer() {
       public Object answer(InvocationOnMock invocation) {
@@ -100,7 +100,7 @@ public class TestImmediateStartVertexManager {
           }
           return null;
       }}).when(mockContext).scheduleTasks(anyList());
-    
+
     List<TaskAttemptIdentifier> emptyCompletions = null;
     ImmediateStartVertexManager manager = new ImmediateStartVertexManager(mockContext);
     manager.initialize();
@@ -130,5 +130,5 @@ public class TestImmediateStartVertexManager {
     verify(mockContext, times(2)).scheduleTasks(anyList());
     Assert.assertEquals(4, scheduledTasks.size());
   }
-  
+
 }

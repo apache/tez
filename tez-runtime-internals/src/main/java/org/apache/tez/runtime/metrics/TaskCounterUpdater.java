@@ -57,10 +57,10 @@ public class TaskCounterUpdater {
   private ResourceCalculatorProcessTree pTree;
   private long initCpuCumulativeTime = 0;
   private final String pid;
-  
+
   public TaskCounterUpdater(TezCounters counters, Configuration conf, String pid) {
     this.tezCounters = counters;
-    this.conf = conf;   
+    this.conf = conf;
     this.gcUpdater = new GcTimeUpdater(tezCounters);
     this.pid = pid;
     initResourceCalculatorPlugin();
@@ -85,14 +85,14 @@ public class TaskCounterUpdater {
     gcUpdater.incrementGcCounter();
     updateResourceCounters();
   }
-  
+
   private void recordInitialCpuStats() {
     if (pTree != null) {
       pTree.updateProcessTree();
       initCpuCumulativeTime = pTree.getCumulativeCpuTime();
     }
   }
-  
+
   /**
    * Update resource information counters
    */
@@ -114,7 +114,7 @@ public class TaskCounterUpdater {
     tezCounters.findCounter(TaskCounter.PHYSICAL_MEMORY_BYTES).setValue(pMem);
     tezCounters.findCounter(TaskCounter.VIRTUAL_MEMORY_BYTES).setValue(vMem);
   }
-  
+
   /**
    * Updates the {@link TaskCounter#COMMITTED_HEAP_BYTES} counter to reflect the
    * current total committed heap space usage of this JVM.
@@ -124,12 +124,12 @@ public class TaskCounterUpdater {
     tezCounters.findCounter(TaskCounter.COMMITTED_HEAP_BYTES)
             .setValue(currentHeapUsage);
   }
-  
+
   private void initResourceCalculatorPlugin() {
     Class<? extends ResourceCalculatorProcessTree> clazz = this.conf.getClass(
         TezConfiguration.TEZ_TASK_RESOURCE_CALCULATOR_PROCESS_TREE_CLASS,
         TezMxBeanResourceCalculator.class,
-        ResourceCalculatorProcessTree.class); 
+        ResourceCalculatorProcessTree.class);
 
     pTree = ResourceCalculatorProcessTree.getResourceCalculatorProcessTree(pid, clazz, conf);
 

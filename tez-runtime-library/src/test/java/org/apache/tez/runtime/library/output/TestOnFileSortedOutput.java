@@ -90,7 +90,7 @@ public class TestOnFileSortedOutput {
   //For sorter (pipelined / Default)
   private SorterImpl sorterImpl;
   private int sorterThreads;
-  
+
   final AtomicLong outputSize = new AtomicLong();
   final AtomicLong numRecords = new AtomicLong();
 
@@ -383,7 +383,7 @@ public class TestOnFileSortedOutput {
     serviceProviderMetaData.writeInt(PORT);
 
     TezCounters counters = new TezCounters();
-    
+
     OutputStatisticsReporter reporter = mock(OutputStatisticsReporter.class);
     doAnswer(new Answer() {
       @Override public Object answer(InvocationOnMock invocation) throws Throwable {
@@ -398,7 +398,7 @@ public class TestOnFileSortedOutput {
       }
     }).when(reporter).reportItemsProcessed(anyLong());
 
-    
+
     OutputContext context = mock(OutputContext.class);
     doReturn(localConf).when(context).getContainerConfiguration();
     doReturn(counters).when(context).getCounters();

@@ -22,7 +22,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.mapred.InputSplit;
 
-/* the two big differences between the mapred.* and mapreduce.* split classes 
+/* the two big differences between the mapred.* and mapreduce.* split classes
  * is that mapreduce throws InterruptedExceptions */
 public interface SplitSizeEstimator {
   long getEstimatedSize(InputSplit split) throws IOException;

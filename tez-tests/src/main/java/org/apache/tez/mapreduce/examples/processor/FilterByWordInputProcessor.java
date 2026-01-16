@@ -93,7 +93,7 @@ public class FilterByWordInputProcessor extends AbstractLogicalIOProcessor {
     if (_outputs.size() != 1) {
       throw new IllegalStateException("FilterByWordInputProcessor processor can only work with a single output");
     }
-    
+
     for (LogicalInput input : _inputs.values()) {
       input.start();
     }

@@ -110,7 +110,7 @@ public class TestGroupedSplits {
     // create a combined split for the files
     TextInputFormat wrappedFormat = new TextInputFormat();
     wrappedFormat.configure(job);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setDesiredNumberOfSplits(1);
@@ -255,11 +255,11 @@ public class TestGroupedSplits {
     FileInputFormat.setInputPaths(job, workDir);
     TextInputFormat wrappedFormat = new TextInputFormat();
     wrappedFormat.configure(job);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setInputFormat(wrappedFormat);
-    
+
     // TextInputFormat will produce 3 splits
     for (int j=1; j<=3; ++j) {
       format.setDesiredNumberOfSplits(j);
@@ -270,12 +270,12 @@ public class TestGroupedSplits {
         assertEquals("compressed splits == " + j, j, splits.length);
       }
       List<Text> results = new ArrayList<Text>();
-      for (int i=0; i<splits.length; ++i) { 
+      for (int i=0; i<splits.length; ++i) {
         List<Text> read = readSplit(format, splits[i], job);
         results.addAll(read);
       }
       assertEquals("splits length", 11, results.size());
-  
+
       final String[] firstList =
         {"the quick", "brown", "fox jumped", "over", " the lazy", " dog"};
       final String[] secondList = {"is", "gzip"};
@@ -303,18 +303,18 @@ public class TestGroupedSplits {
       assertEquals("splits["+i+"]", first[i], results.get(start+i).toString());
     }
     return first.length+start;
-  }  
-  
+  }
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test(timeout=10000)
   public void testGroupedSplitSize() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);
-    
+
     job = (JobConf) TezSplitGrouper.newConfigBuilder(job)
         .setGroupingSplitSize(50*1000*1000l, 500*1000*1000l)
         .build();
@@ -327,35 +327,35 @@ public class TestGroupedSplits {
       mockSplits[i] = mockSplit1;
     }
     when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
-    
-    // desired splits not set. We end up choosing min/max split size based on 
+
+    // desired splits not set. We end up choosing min/max split size based on
     // total data and num original splits. In this case, min size will be hit
     InputSplit[] splits = format.getSplits(job, 0);
     assertEquals(25, splits.length);
-    
+
     // split too big. override with max
     format.setDesiredNumberOfSplits(1);
     splits = format.getSplits(job, 0);
     assertEquals(4, splits.length);
-    
+
     // splits too small. override with min
     format.setDesiredNumberOfSplits(1000);
     splits = format.getSplits(job, 0);
     assertEquals(25, splits.length);
-    
+
   }
-  
+
   class TestInputSplit implements InputSplit {
     long length;
     String[] locations;
     int position;
-    
+
     public TestInputSplit(long length, String[] locations, int position) {
       this.length = length;
       this.locations = locations;
       this.position = position;
     }
-    
+
     @Override
     public void write(DataOutput out) throws IOException {
     }
@@ -373,12 +373,12 @@ public class TestGroupedSplits {
     public String[] getLocations() throws IOException {
       return locations;
     }
-    
+
     public int getPosition() {
       return position;
     }
   }
-  
+
   @Test (timeout=5000)
   public void testMaintainSplitOrdering() throws IOException {
     int numLocations = 3;
@@ -393,14 +393,14 @@ public class TestGroupedSplits {
         origSplits[pos] = new TestInputSplit(splitLength, splitLoc, pos);
       }
     }
-    
+
     TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
     JobConf conf = new JobConf(defaultConf);
     conf = (JobConf) TezSplitGrouper.newConfigBuilder(conf)
     .setGroupingSplitSize(splitLength*3, splitLength*3)
     .setGroupingRackSplitSizeReduction(1)
     .build();
-    
+
     // based on the above settings the 3 nodes will each group 3 splits.
     // the remainig 3 splits (1 from each node) will be grouped at rack level (default-rack)
     // all of them will maintain ordering
@@ -457,7 +457,7 @@ public class TestGroupedSplits {
     .setGroupingSplitSize(splitLength*3, splitLength*3)
     .setGroupingRackSplitSizeReduction(1)
     .build();
-    
+
     // based on the above settings the 3 nodes will each group 3 splits.
     // the remainig 3 splits (1 from each node) will be grouped at rack level (default-rack)
     // all of them will maintain ordering
@@ -536,17 +536,17 @@ public class TestGroupedSplits {
     //splits should be 1
     assertEquals(1, groupedSplits.length);
   }
-  
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test(timeout=10000)
   public void testGroupedSplitWithDuplicates() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);
-    
+
     // put multiple splits with multiple copies in the same location
     String[] locations = {"common", "common", "common"};
     int numSplits = 3;
@@ -558,7 +558,7 @@ public class TestGroupedSplits {
       mockSplits[i] = mockSplit;
     }
     when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
-    
+
     format.setDesiredNumberOfSplits(1);
     InputSplit[] splits = format.getSplits(job, 1);
     assertEquals(1, splits.length);
@@ -568,17 +568,17 @@ public class TestGroupedSplits {
     Set<InputSplit> splitSet = Sets.newHashSet(split.wrappedSplits);
     assertEquals(numSplits, splitSet.size());
   }
-  
+
   @SuppressWarnings({ "rawtypes", "unchecked" })
   @Test(timeout=10000)
   public void testGroupedSplitWithBadLocations() throws IOException {
     JobConf job = new JobConf(defaultConf);
     InputFormat mockWrappedFormat = mock(InputFormat.class);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);
-    
+
     // put multiple splits with multiple copies in the same location
     int numSplits = 3;
     InputSplit[] mockSplits = new InputSplit[numSplits];
@@ -596,7 +596,7 @@ public class TestGroupedSplits {
     mockSplits[2] = mockSplit3;
 
     when(mockWrappedFormat.getSplits(any(), anyInt())).thenReturn(mockSplits);
-    
+
     format.setDesiredNumberOfSplits(1);
     InputSplit[] splits = format.getSplits(job, 1);
     assertEquals(1, splits.length);
@@ -677,7 +677,7 @@ public class TestGroupedSplits {
         .build();
 
     InputFormat mockWrappedFormat = mock(InputFormat.class);
-    TezGroupedSplitsInputFormat<LongWritable , Text> format = 
+    TezGroupedSplitsInputFormat<LongWritable , Text> format =
         new TezGroupedSplitsInputFormat<LongWritable, Text>();
     format.setConf(job);
     format.setInputFormat(mockWrappedFormat);

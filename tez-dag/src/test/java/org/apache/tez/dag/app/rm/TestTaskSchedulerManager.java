@@ -133,7 +133,7 @@ import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("rawtypes")
 public class TestTaskSchedulerManager {
-  
+
   class TestEventHandler implements EventHandler{
     List<Event> events = Lists.newLinkedList();
     @Override
@@ -141,11 +141,11 @@ public class TestTaskSchedulerManager {
       events.add(event);
     }
   }
-  
+
   class MockTaskSchedulerManager extends TaskSchedulerManager {
 
     final AtomicBoolean notify = new AtomicBoolean(false);
-    
+
     public MockTaskSchedulerManager(AppContext appContext,
                                     DAGClientServer clientService, EventHandler eventHandler,
                                     ContainerSignatureMatcher containerSignatureMatcher,
@@ -162,7 +162,7 @@ public class TestTaskSchedulerManager {
       taskSchedulerServiceWrappers[0] =
           new ServicePluginLifecycleAbstractService<>(taskSchedulers[0].getTaskScheduler());
     }
-    
+
     @Override
     protected void notifyForTest() {
       synchronized (notify) {
@@ -170,7 +170,7 @@ public class TestTaskSchedulerManager {
         notify.notifyAll();
       }
     }
-    
+
   }
 
   AppContext mockAppContext;
@@ -342,21 +342,21 @@ public class TestTaskSchedulerManager {
         taskSchedulerManager.notify.wait();
       }
     }
-    
+
     // verify mockTaskAttempt affinitized to expected affCId
     verify(mockTaskScheduler, times(1)).allocateTask(mockTaskAttempt, resource, affCId,
         Priority.newInstance(3), null, event);
-    
+
     taskSchedulerManager.stop();
     taskSchedulerManager.close();
   }
-  
+
   @Test (timeout = 5000)
   public void testContainerPreempted() throws IOException {
     Configuration conf = new Configuration(false);
     taskSchedulerManager.init(conf);
     taskSchedulerManager.start();
-    
+
     String diagnostics = "Container preempted by RM.";
     TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
     ContainerStatus mockStatus = mock(ContainerStatus.class);
@@ -444,13 +444,13 @@ public class TestTaskSchedulerManager {
     taskSchedulerManager.stop();
     taskSchedulerManager.close();
   }
-  
+
   @Test (timeout = 5000)
   public void testContainerDiskFailed() throws IOException {
     Configuration conf = new Configuration(false);
     taskSchedulerManager.init(conf);
     taskSchedulerManager.start();
-    
+
     String diagnostics = "NM disk failed.";
     TaskAttemptImpl mockTask = mock(TaskAttemptImpl.class);
     ContainerStatus mockStatus = mock(ContainerStatus.class);

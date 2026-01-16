@@ -36,7 +36,7 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
  * the vertex and the taskLocationHints define the possible nodes on which the
  * tasks should be run based on the location of the splits that will be
  * processed by each task.
- * 
+ *
  * The getSplitsProto method is not supported by this implementation.
  */
 public class InputSplitInfoDisk implements InputSplitInfo {
@@ -102,7 +102,7 @@ public class InputSplitInfoDisk implements InputSplitInfo {
     throw new UnsupportedOperationException("Not supported for Type: "
         + getType());
   }
-  
+
   @Override
   public Credentials getCredentials() {
     return this.credentials;

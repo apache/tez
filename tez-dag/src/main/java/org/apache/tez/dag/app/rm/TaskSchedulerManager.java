@@ -499,9 +499,9 @@ public class TaskSchedulerManager extends AbstractService implements
         Vertex vertex = appContext.getCurrentDAG().getVertex(taskAffinity.getVertexName());
         Objects.requireNonNull(vertex, "Invalid vertex in task based affinity " + taskAffinity
             + " for attempt: " + taskAttempt.getTaskAttemptID());
-        int taskIndex = taskAffinity.getTaskIndex(); 
-        Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(), 
-            "Invalid taskIndex in task based affinity " + taskAffinity 
+        int taskIndex = taskAffinity.getTaskIndex();
+        Preconditions.checkState(taskIndex >=0 && taskIndex < vertex.getTotalTasks(),
+            "Invalid taskIndex in task based affinity " + taskAffinity
             + " for attempt: " + taskAttempt.getTaskAttemptID());
         TaskAttempt affinityAttempt = vertex.getTask(taskIndex).getSuccessfulAttempt();
         if (affinityAttempt != null) {
@@ -653,7 +653,7 @@ public class TaskSchedulerManager extends AbstractService implements
     }
   }
 
-  
+
   @Override
   public synchronized void serviceStart() throws Exception {
     // clientService is null in case of LocalDAGAppMaster
@@ -712,7 +712,7 @@ public class TaskSchedulerManager extends AbstractService implements
     };
     this.eventHandlingThread.start();
   }
-  
+
   protected void notifyForTest() {
   }
 
@@ -834,7 +834,7 @@ public class TaskSchedulerManager extends AbstractService implements
   public synchronized void setApplicationRegistrationData(
       int schedulerId,
       Resource maxContainerCapability,
-      Map<ApplicationAccessType, String> appAcls, 
+      Map<ApplicationAccessType, String> appAcls,
       ByteBuffer clientAMSecretKey,
       String queueName) {
     this.appContext.getClusterInfo().setMaxContainerCapability(

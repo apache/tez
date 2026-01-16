@@ -42,12 +42,12 @@ public interface OutputContext extends TaskContext {
   String getInputOutputVertexNames();
 
   /**
-   * Get the index of the output in the set of all outputs for the task. The 
+   * Get the index of the output in the set of all outputs for the task. The
    * index will be consistent and valid only among the tasks of this vertex.
    * @return index
    */
   int getOutputIndex();
-  
+
   /**
    * Get an {@link OutputStatisticsReporter} for this {@link Output} that can
    * be used to report statistics like data size

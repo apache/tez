@@ -37,7 +37,7 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
   public TaskStatusUpdateEvent() {
   }
 
-  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress, TaskStatistics statistics, 
+  public TaskStatusUpdateEvent(TezCounters tezCounters, float progress, TaskStatistics statistics,
       boolean progressNotified) {
     this.tezCounters = tezCounters;
     this.progress = progress;
@@ -52,11 +52,11 @@ public class TaskStatusUpdateEvent extends Event implements Writable {
   public float getProgress() {
     return progress;
   }
-  
+
   public TaskStatistics getStatistics() {
     return statistics;
   }
-  
+
   public boolean getProgressNotified() {
     return progressNotified;
   }

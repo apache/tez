@@ -57,9 +57,9 @@ public interface AppContext {
   ApplicationId getApplicationID();
 
   TezDAGID getCurrentDAGID();
-  
+
   long getCumulativeCPUTime();
-  
+
   long getCumulativeGCTime();
 
   ApplicationAttemptId getApplicationAttemptId();

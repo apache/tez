@@ -137,7 +137,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    *                  provided configuration. If TezClient is specified, local mode option can not been
    *                  specified in arguments, it takes no effect.
    * @return Zero indicates success, non-zero indicates failure
-   * @throws Exception 
+   * @throws Exception
    */
   public int run(TezConfiguration conf, String[] args, @Nullable TezClient tezClient) throws
       Exception {
@@ -310,7 +310,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
    */
   protected abstract int runJob(String[] args, TezConfiguration tezConf,
                                 TezClient tezClient) throws Exception;
-  
+
   @Private
   @VisibleForTesting
   public ApplicationId getAppId() {

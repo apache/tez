@@ -50,10 +50,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements an {@link InputInitializer} that generates Map Reduce 
+ * Implements an {@link InputInitializer} that generates Map Reduce
  * splits in the App Master. This may utilizes the up to date cluster
- * information to create an optimal distribution of splits. This is the 
- * recommended {@link InputInitializer} to use when reading Map Reduce 
+ * information to create an optimal distribution of splits. This is the
+ * recommended {@link InputInitializer} to use when reading Map Reduce
  * compatible data sources.
  */
 @Public
@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 public class MRInputAMSplitGenerator extends InputInitializer {
 
   private boolean sendSerializedEvents;
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(MRInputAMSplitGenerator.class);
 
   public MRInputAMSplitGenerator(
@@ -82,7 +82,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
     sw.reset().start();
     Configuration conf = new JobConf(getContext().getVertexConfiguration());
     TezUtils.addToConfFromByteString(conf, userPayloadProto.getConfigurationBytes());
-    
+
     sendSerializedEvents = conf.getBoolean(
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD,
         MRJobConfig.MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT);
@@ -128,7 +128,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
 
     List<Event> events = Lists.newArrayListWithCapacity(inputSplitInfo
         .getNumTasks() + 1);
-    
+
     InputConfigureVertexTasksEvent configureVertexEvent = InputConfigureVertexTasksEvent.create(
         inputSplitInfo.getNumTasks(),
         VertexLocationHint.create(inputSplitInfo.getTaskLocationHints()),
@@ -161,7 +161,7 @@ public class MRInputAMSplitGenerator extends InputInitializer {
         }
       }
     }
-    
+
     return events;
   }
 

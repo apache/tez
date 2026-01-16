@@ -47,24 +47,24 @@ import org.apache.hadoop.util.ToolRunner;
 
 /**
  * Given a set of sorted datasets keyed with the same class and yielding
- * equal partitions, it is possible to effect a join of those datasets 
+ * equal partitions, it is possible to effect a join of those datasets
  * prior to the map. The example facilitates the same.
  *
  * To run: bin/hadoop jar build/hadoop-examples.jar join
  *            [-r <i>reduces</i>]
- *            [-inFormat <i>input format class</i>] 
- *            [-outFormat <i>output format class</i>] 
- *            [-outKey <i>output key class</i>] 
- *            [-outValue <i>output value class</i>] 
+ *            [-inFormat <i>input format class</i>]
+ *            [-outFormat <i>output format class</i>]
+ *            [-outKey <i>output key class</i>]
+ *            [-outValue <i>output value class</i>]
  *            [-joinOp &lt;inner|outer|override&gt;]
- *            [<i>in-dir</i>]* <i>in-dir</i> <i>out-dir</i> 
+ *            [<i>in-dir</i>]* <i>in-dir</i> <i>out-dir</i>
  */
 public class Join extends Configured implements Tool {
   public static final String REDUCES_PER_HOST = "mapreduce.join.reduces_per_host";
   static int printUsage() {
     System.out.println("join [-r <reduces>] " +
                        "[-inFormat <input format class>] " +
-                       "[-outFormat <output format class>] " + 
+                       "[-outFormat <output format class>] " +
                        "[-outKey <output key class>] " +
                        "[-outValue <output value class>] " +
                        "[-joinOp <inner|outer|override>] " +
@@ -87,19 +87,19 @@ public class Join extends Configured implements Tool {
     int num_reduces = (int) (cluster.getMaxReduceTasks() * 0.9);
     String join_reduces = conf.get(REDUCES_PER_HOST);
     if (join_reduces != null) {
-       num_reduces = cluster.getTaskTrackers() * 
+       num_reduces = cluster.getTaskTrackers() *
                        Integer.parseInt(join_reduces);
     }
     Job job = new Job(conf);
     job.setJobName("join");
     job.setJarByClass(Sort.class);
 
-    job.setMapperClass(Mapper.class);        
+    job.setMapperClass(Mapper.class);
     job.setReducerClass(Reducer.class);
 
-    Class<? extends InputFormat> inputFormatClass = 
+    Class<? extends InputFormat> inputFormatClass =
       SequenceFileInputFormat.class;
-    Class<? extends OutputFormat> outputFormatClass = 
+    Class<? extends OutputFormat> outputFormatClass =
       SequenceFileOutputFormat.class;
     Class<? extends WritableComparable> outputKeyClass = BytesWritable.class;
     Class<? extends Writable> outputValueClass = TupleWritable.class;
@@ -110,16 +110,16 @@ public class Join extends Configured implements Tool {
         if ("-r".equals(args[i])) {
           num_reduces = Integer.parseInt(args[++i]);
         } else if ("-inFormat".equals(args[i])) {
-          inputFormatClass = 
+          inputFormatClass =
             Class.forName(args[++i]).asSubclass(InputFormat.class);
         } else if ("-outFormat".equals(args[i])) {
-          outputFormatClass = 
+          outputFormatClass =
             Class.forName(args[++i]).asSubclass(OutputFormat.class);
         } else if ("-outKey".equals(args[i])) {
-          outputKeyClass = 
+          outputKeyClass =
             Class.forName(args[++i]).asSubclass(WritableComparable.class);
         } else if ("-outValue".equals(args[i])) {
-          outputValueClass = 
+          outputValueClass =
             Class.forName(args[++i]).asSubclass(Writable.class);
         } else if ("-joinOp".equals(args[i])) {
           op = args[++i];
@@ -144,7 +144,7 @@ public class Join extends Configured implements Tool {
       return printUsage();
     }
 
-    FileOutputFormat.setOutputPath(job, 
+    FileOutputFormat.setOutputPath(job,
       new Path(otherArgs.remove(otherArgs.size() - 1)));
     List<Path> plist = new ArrayList<Path>(otherArgs.size());
     for (String s : otherArgs) {
@@ -152,7 +152,7 @@ public class Join extends Configured implements Tool {
     }
 
     job.setInputFormatClass(CompositeInputFormat.class);
-    job.getConfiguration().set(CompositeInputFormat.JOIN_EXPR, 
+    job.getConfiguration().set(CompositeInputFormat.JOIN_EXPR,
       CompositeInputFormat.compose(op, inputFormatClass,
       plist.toArray(new Path[0])));
     job.setOutputFormatClass(outputFormatClass);
@@ -165,7 +165,7 @@ public class Join extends Configured implements Tool {
     int ret = job.waitForCompletion(true) ? 0 : 1 ;
     Date end_time = new Date();
     System.out.println("Job ended: " + end_time);
-    System.out.println("The job took " + 
+    System.out.println("The job took " +
         (end_time.getTime() - startTime.getTime()) /1000 + " seconds.");
     return ret;
   }

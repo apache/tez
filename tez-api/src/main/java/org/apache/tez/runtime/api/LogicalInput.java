@@ -25,7 +25,7 @@ import org.apache.hadoop.classification.InterfaceAudience.Public;
  * edge. A {@link LogicalIOProcessor} sees a single Logical Input per incoming
  * edge. It provides a unified view that hides the details of the actual physical
  * inputs
- * 
+ *
  * User implementations are expected to derive from {@link AbstractLogicalInput}
  */
 @Public

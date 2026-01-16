@@ -87,7 +87,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       runtimeTask.getTaskStatistics().getIOStatistics().get(destinationVertexName)
       .setItemsProcessed(items);
     }
-    
+
   }
 
   @Private
@@ -102,7 +102,7 @@ public class TezOutputContextImpl extends TezTaskContextImpl
       Map<String, String> auxServiceEnv, MemoryDistributor memDist,
       OutputDescriptor outputDescriptor, ObjectRegistry objectRegistry,
       ExecutionContext executionContext, long memAvailable, TezExecutors sharedExecutor) {
-    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName, 
+    super(conf, workDirs, appAttemptNumber, dagName, taskVertexName,
         vertexParallelism, taskAttemptID,
         wrapCounters(runtimeTask, taskVertexName, destinationVertexName, conf),
         runtimeTask, tezUmbilical, serviceConsumerMetadata,

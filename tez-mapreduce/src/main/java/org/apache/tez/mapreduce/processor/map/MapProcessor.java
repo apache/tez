@@ -140,7 +140,7 @@ public class MapProcessor extends MRTask{
 
     done();
   }
-  
+
 
   /**
    * Update the job with details about the file split
@@ -156,11 +156,11 @@ public class MapProcessor extends MRTask{
     }
     LOG.info("Processing mapred split: " + inputSplit);
   }
-  
+
   private void updateJobWithSplit(
       final JobConf job, org.apache.hadoop.mapreduce.InputSplit inputSplit) {
     if (inputSplit instanceof org.apache.hadoop.mapreduce.lib.input.FileSplit) {
-      org.apache.hadoop.mapreduce.lib.input.FileSplit fileSplit = 
+      org.apache.hadoop.mapreduce.lib.input.FileSplit fileSplit =
           (org.apache.hadoop.mapreduce.lib.input.FileSplit) inputSplit;
       job.set(JobContext.MAP_INPUT_FILE, fileSplit.getPath().toString());
       job.setLong(JobContext.MAP_INPUT_START, fileSplit.getStart());
@@ -180,9 +180,9 @@ public class MapProcessor extends MRTask{
     // Done only for MRInput.
     // TODO use new method in MRInput to get required info
     //input.initialize(job, master);
-    
+
     InputSplit inputSplit = input.getOldInputSplit();
-    
+
     updateJobWithSplit(job, inputSplit);
 
     RecordReader in = new OldRecordReader(input);
@@ -193,7 +193,7 @@ public class MapProcessor extends MRTask{
         (MapRunnable)ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
 
     runner.run(in, collector, (Reporter)reporter);
-    
+
     // Set progress to 1.0f if there was no exception,
     reporter.setProgress(1.0f);
     // start the sort phase only if there are reducers
@@ -231,7 +231,7 @@ public class MapProcessor extends MRTask{
         new NewOutputCollector(out);
 
     org.apache.hadoop.mapreduce.InputSplit split = in.getNewInputSplit();
-    
+
     updateJobWithSplit(job, split);
 
     org.apache.hadoop.mapreduce.MapContext
@@ -249,7 +249,7 @@ public class MapProcessor extends MRTask{
     mapper.run(mapperContext);
     // Set progress to 1.0f if there was no exception,
     reporter.setProgress(1.0f);
-    
+
     this.statusUpdate();
     input.close();
     output.close(mapperContext);

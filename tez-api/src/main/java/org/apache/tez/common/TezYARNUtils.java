@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -162,7 +162,7 @@ public final class TezYARNUtils {
       }
     }
   }
-  
+
   public static void setEnvIfAbsentFromInputString(Map<String, String> env,
       String envString) {
     if (envString != null && envString.length() > 0) {
@@ -189,7 +189,7 @@ public final class TezYARNUtils {
       }
     }
   }
-  
+
   public static void addToEnvironment(
       Map<String, String> environment,
       String variable, String value, String classPathSeparator) {
@@ -199,7 +199,7 @@ public final class TezYARNUtils {
     } else {
       val = val + classPathSeparator + value;
     }
-    environment.put(StringInterner.weakIntern(variable), 
+    environment.put(StringInterner.weakIntern(variable),
         StringInterner.weakIntern(val));
   }
 

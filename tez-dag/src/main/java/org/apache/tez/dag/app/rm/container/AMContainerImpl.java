@@ -103,7 +103,7 @@ public class AMContainerImpl implements AMContainer {
   private long lastTaskFinishTime;
 
   private TezDAGID lastTaskDAGID;
-  
+
   // An assign can happen even during wind down. e.g. NodeFailure caused the
   // wind down, and an allocation was pending in the AMScheduler. This could
   // be modelled as a separate state.
@@ -124,7 +124,7 @@ public class AMContainerImpl implements AMContainer {
   private boolean credentialsChanged = false;
 
   private boolean completedMessageSent = false;
-  
+
   // TODO Consider registering with the TAL, instead of the TAL pulling.
   // Possibly after splitting TAL and ContainerListener.
 
@@ -473,7 +473,7 @@ public class AMContainerImpl implements AMContainer {
     @Override
     public void transition(AMContainerImpl container, AMContainerEvent cEvent) {
       AMContainerEventLaunchRequest event = (AMContainerEventLaunchRequest) cEvent;
-      
+
       ContainerContext containerContext = event.getContainerContext();
       // Clone - don't use the object that is passed in, since this is likely to
       // be modified here.
@@ -611,7 +611,7 @@ public class AMContainerImpl implements AMContainer {
         container.handleExtraTAAssign(event, container.currentAttempt);
         return AMContainerState.STOP_REQUESTED;
       }
-      
+
       Map<String, LocalResource> taskLocalResources = event.getRemoteTaskLocalResources();
       Preconditions.checkState(container.additionalLocalResources == null,
           "No additional resources should be pending when assigning a new task");
@@ -710,7 +710,7 @@ public class AMContainerImpl implements AMContainer {
                   container.currentAttempt,
                   errorMessage,
                   // if termination cause is generic exited then replace with specific
-                  (event.getTerminationCause() == TaskAttemptTerminationCause.CONTAINER_EXITED ? 
+                  (event.getTerminationCause() == TaskAttemptTerminationCause.CONTAINER_EXITED ?
                       TaskAttemptTerminationCause.CONTAINER_LAUNCH_FAILED : event.getTerminationCause()));
         }
         container.registerFailedAttempt(container.currentAttempt);
@@ -747,7 +747,7 @@ public class AMContainerImpl implements AMContainer {
       }
       container.unregisterFromTAListener(ContainerEndReason.OTHER, getMessage(container, cEvent));
       container.logStopped(container.currentAttempt == null ?
-          ContainerExitStatus.SUCCESS 
+          ContainerExitStatus.SUCCESS
           : ContainerExitStatus.INVALID);
       container.sendStopRequestToNM();
     }
@@ -1001,7 +1001,7 @@ public class AMContainerImpl implements AMContainer {
       AMContainerEventCompleted event = (AMContainerEventCompleted) cEvent;
       String diag = event.getDiagnostics();
       for (TezTaskAttemptID taId : container.failedAssignments) {
-        container.sendTerminatedToTaskAttempt(taId, diag, 
+        container.sendTerminatedToTaskAttempt(taId, diag,
             TaskAttemptTerminationCause.CONTAINER_EXITED);
       }
       if (container.currentAttempt != null) {
@@ -1131,13 +1131,13 @@ public class AMContainerImpl implements AMContainer {
     final Clock clock = appContext.getClock();
     final HistoryEventHandler historyHandler = appContext.getHistoryHandler();
     ContainerStoppedEvent lEvt = new ContainerStoppedEvent(containerId,
-        clock.getTime(), 
-        exitStatus, 
+        clock.getTime(),
+        exitStatus,
         appContext.getApplicationAttemptId());
     historyHandler.handle(
         new DAGHistoryEvent(appContext.getCurrentDAGID(),lEvt));
   }
-  
+
   protected void deAllocate() {
     sendEvent(new AMSchedulerEventDeallocateContainer(containerId, schedulerId));
   }
@@ -1146,7 +1146,7 @@ public class AMContainerImpl implements AMContainer {
       TezTaskAttemptID taId, String message, TaskAttemptTerminationCause errCause) {
     sendEvent(new TaskAttemptEventContainerTerminated(containerId, taId, message, errCause));
   }
-  
+
   protected void sendContainerTerminatedBySystemToTaskAttempt(
     TezTaskAttemptID taId, String message, TaskAttemptTerminationCause errorCause) {
       sendEvent(new TaskAttemptEventContainerTerminatedBySystem(containerId, taId, message, errorCause));
@@ -1163,7 +1163,7 @@ public class AMContainerImpl implements AMContainer {
     }
   }
 
-  protected void sendNodeFailureToTA(TezTaskAttemptID taId, String message, 
+  protected void sendNodeFailureToTA(TezTaskAttemptID taId, String message,
       TaskAttemptTerminationCause errorCause) {
     sendEvent(new TaskAttemptEventNodeFailed(taId, message, errorCause));
   }

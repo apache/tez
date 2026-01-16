@@ -56,14 +56,14 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-// The objective of these tests is to make sure the large job simulations pass 
+// The objective of these tests is to make sure the large job simulations pass
 // within the memory limits set by the junit tests (1GB)
-// For large jobs please increase memory limits to account for memory used by the 
+// For large jobs please increase memory limits to account for memory used by the
 // simulation code itself
 public class TestMemoryWithEvents {
   static Configuration defaultConf;
   static FileSystem localFs;
-  
+
   static {
     try {
       defaultConf = new Configuration(false);
@@ -91,7 +91,7 @@ public class TestMemoryWithEvents {
     System.out.println("##### Heap utilization statistics [MB] for " + name);
 
     runtime.gc();
-    
+
     //Print used memory
     System.out.println("##### Used Memory:"
         + (runtime.totalMemory() - runtime.freeMemory()) / mb);
@@ -99,25 +99,25 @@ public class TestMemoryWithEvents {
     //Print free memory
     System.out.println("##### Free Memory:"
         + runtime.freeMemory() / mb);
-     
+
     //Print total available memory
     System.out.println("##### Total Memory:" + runtime.totalMemory() / mb);
 
     //Print Maximum available memory
     System.out.println("##### Max Memory:" + runtime.maxMemory() / mb);
-    
+
     //Print Maximum heartbeat time
     long numHeartbeats = mockApp.numHearbeats.get();
     if (numHeartbeats == 0) {
       numHeartbeats = 1;
     }
-    System.out.println("##### Heartbeat (ms) :" 
-        + " latency avg: " + ((mockApp.heartbeatTime.get() / numHeartbeats) / microsPerMs) 
+    System.out.println("##### Heartbeat (ms) :"
+        + " latency avg: " + ((mockApp.heartbeatTime.get() / numHeartbeats) / microsPerMs)
         + " cpu total: " + (mockApp.heartbeatCpu.get() / microsPerMs)
         + " cpu avg: " + ((mockApp.heartbeatCpu.get() / numHeartbeats) / microsPerMs)
         + " numHeartbeats: " + mockApp.numHearbeats.get());
   }
-  
+
   private void testMemory(DAG dag, boolean sendDMEvents) throws Exception {
     StopWatch stopwatch = new StopWatch();
     stopwatch.start();
@@ -126,7 +126,7 @@ public class TestMemoryWithEvents {
     MockTezClient tezClient = new MockTezClient("testMockAM", tezconf, true, null, null, null,
         null, false, false, numThreads, 1000);
     tezClient.start();
-    
+
     MockDAGAppMaster mockApp = tezClient.getLocalClient().getMockApp();
     MockContainerLauncher mockLauncher = mockApp.getContainerLauncher();
     mockLauncher.startScheduling(false);
@@ -142,7 +142,7 @@ public class TestMemoryWithEvents {
     System.out.println("Time taken(ms): " + stopwatch.now(TimeUnit.MILLISECONDS));
     tezClient.stop();
   }
-  
+
   public static class SimulationInitializer extends InputInitializer {
     public SimulationInitializer(InputInitializerContext initializerContext) {
       super(initializerContext);
@@ -176,7 +176,7 @@ public class TestMemoryWithEvents {
     dag.addVertex(vA).addVertex(vB);
     testMemory(dag, false);
   }
-  
+
   @Ignore
   @Test (timeout = 600000)
   public void testMemoryOneToOne() throws Exception {
@@ -206,7 +206,7 @@ public class TestMemoryWithEvents {
                 OutputDescriptor.create("Out"), InputDescriptor.create("In"))));
     testMemory(dag, true);
   }
-  
+
   @Ignore
   @Test (timeout = 600000)
   public void testMemoryScatterGather() throws Exception {

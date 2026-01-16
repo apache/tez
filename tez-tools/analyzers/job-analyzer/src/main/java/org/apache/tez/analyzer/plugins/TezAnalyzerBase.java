@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 public abstract class TezAnalyzerBase extends Configured implements Tool, Analyzer {
 
   private static final Logger LOG = LoggerFactory.getLogger(TezAnalyzerBase.class);
-  
+
   private static final String EVENT_FILE_NAME = "eventFileName";
   private static final String OUTPUT_DIR = "outputDir";
   private static final String SAVE_RESULTS = "saveResults";
@@ -88,7 +88,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
         (EVENT_FILE_NAME)
         .desc("File with event data for the DAG").hasArg()
         .required(false).build();
-    
+
     Option fromSimpleHistoryOption = Option.builder().argName(FROM_SIMPLE_HISTORY).longOpt
         (FROM_SIMPLE_HISTORY)
         .desc("Event data from Simple History logging. Must also specify event file")
@@ -114,11 +114,11 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     opts.addOption(help);
     return opts;
   }
-  
+
   protected String getOutputDir() {
     return outputDir;
   }
-  
+
   private void printUsage() {
     System.err.println("Analyzer base options are");
     Options options = buildOptions();
@@ -139,7 +139,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       return -1;
     }
     saveResults = cmdLine.hasOption(SAVE_RESULTS);
-    
+
     if(cmdLine.hasOption(HELP)) {
       printUsage();
       return 0;
@@ -167,7 +167,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
     }
 
     DagInfo dagInfo = null;
-    
+
     if (files.isEmpty()) {
       if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
         System.err.println("Event file name must be specified when using simple history");
@@ -194,7 +194,7 @@ public abstract class TezAnalyzerBase extends Configured implements Tool, Analyz
       files.add(new File(outputDir
           + Path.SEPARATOR + dagId + ".zip"));
     }
-    
+
     Preconditions.checkState(!files.isEmpty());
     if (cmdLine.hasOption(FROM_SIMPLE_HISTORY)) {
       SimpleHistoryParser parser = new SimpleHistoryParser(files);

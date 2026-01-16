@@ -636,7 +636,7 @@ public class TestHistoryEventTimelineConversion {
 
     final Map<String, Object> otherInfo = timelineEntity.getOtherInfo();
     Assert.assertEquals(17, otherInfo.size());
-    Assert.assertEquals(tezTaskAttemptID.toString(), 
+    Assert.assertEquals(tezTaskAttemptID.toString(),
         timelineEntity.getOtherInfo().get(ATSConstants.CREATION_CAUSAL_ATTEMPT));
     Assert.assertEquals(creationTime, timelineEntity.getOtherInfo().get(ATSConstants.CREATION_TIME));
     Assert.assertEquals(allocationTime, timelineEntity.getOtherInfo().get(ATSConstants.ALLOCATION_TIME));
@@ -1153,7 +1153,7 @@ public class TestHistoryEventTimelineConversion {
     TezVertexID vId = tezVertexID;
     Map<String, EdgeProperty> edgeMgrs =
         new HashMap<String, EdgeProperty>();
-    
+
     edgeMgrs.put("a", EdgeProperty.create(EdgeManagerPluginDescriptor.create("a.class")
         .setHistoryText("text"), DataSourceType.PERSISTED, SchedulingType.SEQUENTIAL,
         OutputDescriptor.create("Out"), InputDescriptor.create("In")));

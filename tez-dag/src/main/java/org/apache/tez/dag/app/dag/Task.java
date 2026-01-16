@@ -52,23 +52,23 @@ public interface Task extends TaskIDAware {
    * Can the output of the taskAttempt be committed. Note that once the task
    * gives a go for a commit, further canCommit requests from any other attempts
    * should return false.
-   * 
+   *
    * @param taskAttemptID
    * @return whether the attempt's output can be committed or not.
    */
   boolean canCommit(TezTaskAttemptID taskAttemptID);
-  
+
   public Vertex getVertex();
-  
+
   public ArrayList<TezEvent> getTaskAttemptTezEvents(TezTaskAttemptID attemptID,
       int fromEventId, int maxEvents);
-  
+
   public List<String> getDiagnostics();
 
   public void registerTezEvent(TezEvent tezEvent);
-  
+
   public TaskSpec getBaseTaskSpec();
-  
+
   public TaskLocationHint getTaskLocationHint();
 
   long getFirstAttemptStartTime();

@@ -25,7 +25,7 @@ public class TaskAttemptIdentifierImpl implements TaskAttemptIdentifier {
 
   private final TaskIdentifier taskIdentifier;
   private final TezTaskAttemptID attemptId;
-  
+
   public TaskAttemptIdentifierImpl(String dagName, String vertexName, TezTaskAttemptID attemptId) {
     this.attemptId = attemptId;
     this.taskIdentifier = new TaskIdentifierImpl(dagName, vertexName, attemptId.getTaskID());
@@ -35,12 +35,12 @@ public class TaskAttemptIdentifierImpl implements TaskAttemptIdentifier {
   public int getIdentifier() {
     return attemptId.getId();
   }
-  
+
   @Override
   public TaskIdentifier getTaskIdentifier() {
     return taskIdentifier;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -57,12 +57,12 @@ public class TaskAttemptIdentifierImpl implements TaskAttemptIdentifier {
       return false;
     }
   }
-  
+
   @Override
   public String toString() {
     return taskIdentifier.toString() + " Attempt: [" + getIdentifier() + "]";
   }
-  
+
   @Override
   public int hashCode() {
     return attemptId.hashCode();

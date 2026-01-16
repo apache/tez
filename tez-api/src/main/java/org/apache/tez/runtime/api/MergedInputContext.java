@@ -33,19 +33,19 @@ public interface MergedInputContext {
    * @return {@link UserPayload}
    */
   public UserPayload getUserPayload();
-  
+
   /**
    * Inform the framework that the specific Input is ready for consumption.
-   * 
+   *
    * This method can be invoked multiple times.
    */
   public void inputIsReady();
-  
+
   /**
    * Inform the framework that progress has been made
    */
   public void notifyProgress();
-  
+
   /**
    * Get the work directories for the Input
    * @return an array of work dirs

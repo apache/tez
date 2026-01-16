@@ -102,7 +102,7 @@ public final class DagTypeConverters {
       default : throw new RuntimeException("unknown 'visibility': " + visibility);
     }
   }
-  
+
   public static List<PlanLocalResource> convertToDAGPlan(Map<String, LocalResource> lrs) {
     List<PlanLocalResource> planLrs = Lists.newArrayListWithCapacity(lrs.size());
     for (Entry<String, LocalResource> entry : lrs.entrySet()) {
@@ -224,7 +224,7 @@ public final class DagTypeConverters {
     }
     return VertexLocationHint.create(outputList);
   }
-  
+
   public static String convertToDAGPlan(URL resource) {
     Path p;
     try {
@@ -281,7 +281,7 @@ public final class DagTypeConverters {
     }
     return edgePlanMap;
   }
-  
+
   public static PlanEdgeProperty convertToProto(EdgeProperty prop) {
     PlanEdgeProperty.Builder edgePropBuilder = PlanEdgeProperty.newBuilder();
     edgePropBuilder.setDataMovementType(convertToDAGPlan(prop.getDataMovementType()));
@@ -294,10 +294,10 @@ public final class DagTypeConverters {
       edgePropBuilder.setEdgeManager(DagTypeConverters.convertToDAGPlan(prop
           .getEdgeManagerDescriptor()));
     }
-    
+
     return edgePropBuilder.build();
   }
-  
+
   public static EdgeProperty convertFromProto(PlanEdgeProperty edge) {
       return EdgeProperty.create(
           (edge.hasEdgeManager() ?

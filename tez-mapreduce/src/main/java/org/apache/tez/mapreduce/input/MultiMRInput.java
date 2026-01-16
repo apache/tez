@@ -98,10 +98,10 @@ public class MultiMRInput extends MRInputBase {
                                                                  @Nullable Class<?> inputFormat) {
     MultiMRInputConfigBuilder configBuilder = new MultiMRInputConfigBuilder(conf, inputFormat);
     configBuilder.setInputClassName(MultiMRInput.class.getName()).groupSplits(false);
-    
+
     return configBuilder;
   }
-  
+
   public static class MultiMRInputConfigBuilder extends MRInput.MRInputConfigBuilder {
     private MultiMRInputConfigBuilder(Configuration conf, Class<?> inputFormat) {
       super(conf, inputFormat);

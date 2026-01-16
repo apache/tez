@@ -85,7 +85,7 @@ public class TestVertexManager {
   Vertex mockVertex;
   EventHandler mockHandler;
   ArgumentCaptor<VertexEventInputDataInformation> requestCaptor;
-  
+
   @Before
   public void setup() {
     mockAppContext = mock(AppContext.class, RETURNS_DEEP_STUBS);
@@ -139,7 +139,7 @@ public class TestVertexManager {
             mockVertex, mockAppContext, mock(StateChangeNotifier.class));
   }
 
-  
+
   @Test(timeout = 5000)
   public void testOnRootVertexInitialized() throws Exception {
     Configuration conf = new Configuration();
@@ -195,7 +195,7 @@ public class TestVertexManager {
     verify(mockHandler, times(1)).handle(requestCaptor.capture());
     List<TezEvent> tezEventsAfterInput1 = requestCaptor.getValue().getEvents();
     assertEquals(0, tezEventsAfterInput1.size());
-    
+
     InputDescriptor id2 = mock(InputDescriptor.class);
     List<Event> events2 = new LinkedList<Event>();
     InputDataInformationEvent diEvent2 =

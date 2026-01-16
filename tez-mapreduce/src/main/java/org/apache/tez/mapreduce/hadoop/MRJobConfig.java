@@ -27,13 +27,13 @@ public interface MRJobConfig {
 
   @Private
   static final String MR_TEZ_PREFIX = "mapreduce.tez.";
-  
+
   // Put all of the attribute names in here so that Job and JobContext are
   // consistent.
   public static final String INPUT_FORMAT_CLASS_ATTR = "mapreduce.job.inputformat.class";
-  
+
   public static final String NEW_API_MAPPER_CONFIG = "mapred.mapper.new-api";
-  
+
   public static final String NEW_API_REDUCER_CONFIG = "mapred.reducer.new-api";
 
   public static final String MAP_CLASS_ATTR = "mapreduce.job.map.class";
@@ -69,7 +69,7 @@ public interface MRJobConfig {
   public static final String JVM_NUMTASKS_TORUN = "mapreduce.job.jvm.numtasks";
 
   public static final String SPLIT_FILE = "mapreduce.job.splitfile";
-  
+
   public static final String SPLIT_METAINFO_MAXSIZE = "mapreduce.job.split.metainfo.maxsize";
   public static final long DEFAULT_SPLIT_METAINFO_MAXSIZE = 10000000L;
 
@@ -187,13 +187,13 @@ public interface MRJobConfig {
   public static final String NUM_REDUCE_PROFILES = "mapreduce.task.profile.reduces";
 
   public static final String TASK_MAP_PROFILE_PARAMS = "mapreduce.task.profile.map.params";
-  
+
   public static final String TASK_REDUCE_PROFILE_PARAMS = "mapreduce.task.profile.reduce.params";
-  
+
   public static final String TASK_TIMEOUT = "mapreduce.task.timeout";
 
   public static final String TASK_TIMEOUT_CHECK_INTERVAL_MS = "mapreduce.task.timeout.check-interval-ms";
-  
+
   public static final String TASK_ID = "mapreduce.task.id";
 
   public static final String TASK_OUTPUT_DIR = "mapreduce.task.output.dir";
@@ -320,11 +320,11 @@ public interface MRJobConfig {
   public static final String JOB_ACL_MODIFY_JOB = "mapreduce.job.acl-modify-job";
 
   public static final String DEFAULT_JOB_ACL_MODIFY_JOB = " ";
-  
+
   /* config for tracking the local file where all the credentials for the job
    * credentials.
    */
-  public static final String MAPREDUCE_JOB_CREDENTIALS_BINARY = 
+  public static final String MAPREDUCE_JOB_CREDENTIALS_BINARY =
       "mapreduce.job.credentials.binary";
 
   public static final String JOB_SUBMITHOST =
@@ -357,23 +357,23 @@ public interface MRJobConfig {
   public static final String MR_AM_PREFIX = MR_PREFIX + "am.";
 
   /** The number of client retires to the AM - before reconnecting to the RM
-   * to fetch Application State. 
+   * to fetch Application State.
    */
-  public static final String MR_CLIENT_TO_AM_IPC_MAX_RETRIES = 
+  public static final String MR_CLIENT_TO_AM_IPC_MAX_RETRIES =
     MR_PREFIX + "client-am.ipc.max-retries";
   public static final int DEFAULT_MR_CLIENT_TO_AM_IPC_MAX_RETRIES = 3;
-  
+
   /**
    * The number of client retries to the RM/HS/AM before throwing exception.
    */
-  public static final String MR_CLIENT_MAX_RETRIES = 
+  public static final String MR_CLIENT_MAX_RETRIES =
     MR_PREFIX + "client.max-retries";
   public static final int DEFAULT_MR_CLIENT_MAX_RETRIES = 3;
-  
+
   /** The staging directory for map reduce.*/
-  public static final String MR_AM_STAGING_DIR = 
+  public static final String MR_AM_STAGING_DIR =
     MR_AM_PREFIX+"staging-dir";
-  public static final String DEFAULT_MR_AM_STAGING_DIR = 
+  public static final String DEFAULT_MR_AM_STAGING_DIR =
     "/tmp/hadoop-yarn/staging";
 
   /** The amount of memory the MR app master needs.*/
@@ -397,12 +397,12 @@ public interface MRJobConfig {
   public static final String DEFAULT_MR_AM_ADMIN_COMMAND_OPTS = "";
 
   /** Root Logging level passed to the MR app master.*/
-  public static final String MR_AM_LOG_LEVEL = 
+  public static final String MR_AM_LOG_LEVEL =
     MR_AM_PREFIX+"log.level";
   public static final String DEFAULT_MR_AM_LOG_LEVEL = "INFO";
 
   /**The number of splits when reporting progress in MR*/
-  public static final String MR_AM_NUM_PROGRESS_SPLITS = 
+  public static final String MR_AM_NUM_PROGRESS_SPLITS =
     MR_AM_PREFIX+"num-progress-splits";
   public static final int DEFAULT_MR_AM_NUM_PROGRESS_SPLITS = 12;
 
@@ -413,7 +413,7 @@ public interface MRJobConfig {
   public static final String MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT =
     MR_AM_PREFIX+"containerlauncher.thread-count-limit";
 
-  public static final int DEFAULT_MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT = 
+  public static final int DEFAULT_MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT =
       500;
 
   /** Number of threads to handle job client RPC requests.*/
@@ -421,15 +421,15 @@ public interface MRJobConfig {
     MR_AM_PREFIX + "job.client.thread-count";
   public static final int DEFAULT_MR_AM_JOB_CLIENT_THREAD_COUNT = 1;
 
-  /** 
+  /**
    * Range of ports that the MapReduce AM can use when binding. Leave blank
    * if you want all possible ports.
    */
-  public static final String MR_AM_JOB_CLIENT_PORT_RANGE = 
+  public static final String MR_AM_JOB_CLIENT_PORT_RANGE =
     MR_AM_PREFIX + "job.client.port-range";
-  
+
   /** Enable blacklisting of nodes in the job.*/
-  public static final String MR_AM_JOB_NODE_BLACKLISTING_ENABLE = 
+  public static final String MR_AM_JOB_NODE_BLACKLISTING_ENABLE =
     MR_AM_PREFIX  + "job.node-blacklisting.enable";
 
   /** Ignore blacklisting if a certain percentage of nodes have been blacklisted */
@@ -437,21 +437,21 @@ public interface MRJobConfig {
       MR_AM_PREFIX + "job.node-blacklisting.ignore-threshold-node-percent";
   public static final int DEFAULT_MR_AM_IGNORE_BLACKLISTING_BLACKLISTED_NODE_PERCENT =
       33;
-  
+
   /** Enable job recovery.*/
-  public static final String MR_AM_JOB_RECOVERY_ENABLE = 
+  public static final String MR_AM_JOB_RECOVERY_ENABLE =
     MR_AM_PREFIX + "job.recovery.enable";
 
-  /** 
+  /**
    * Limit on the number of reducers that can be preempted to ensure that at
    *  least one map task can run if it needs to. Percentage between 0.0 and 1.0
    */
-  public static final String MR_AM_JOB_REDUCE_PREEMPTION_LIMIT = 
+  public static final String MR_AM_JOB_REDUCE_PREEMPTION_LIMIT =
     MR_AM_PREFIX  + "job.reduce.preemption.limit";
   public static final float DEFAULT_MR_AM_JOB_REDUCE_PREEMPTION_LIMIT = 0.5f;
-  
+
   /** AM ACL disabled. **/
-  public static final String JOB_AM_ACCESS_DISABLED = 
+  public static final String JOB_AM_ACCESS_DISABLED =
     "mapreduce.job.am-access-disabled";
   public static final boolean DEFAULT_JOB_AM_ACCESS_DISABLED = false;
 
@@ -459,7 +459,7 @@ public interface MRJobConfig {
    * Limit reduces starting until a certain percentage of maps have finished.
    *  Percentage between 0.0 and 1.0
    */
-  public static final String MR_AM_JOB_REDUCE_RAMPUP_UP_LIMIT = 
+  public static final String MR_AM_JOB_REDUCE_RAMPUP_UP_LIMIT =
     MR_AM_PREFIX  + "job.reduce.rampup.limit";
   public static final float DEFAULT_MR_AM_JOB_REDUCE_RAMP_UP_LIMIT = 0.5f;
 
@@ -472,7 +472,7 @@ public interface MRJobConfig {
     MR_AM_PREFIX
     + "job.task.estimator.exponential.smooth.lambda-ms";
 
-  public static final long DEFAULT_MR_AM_TASK_ESTIMATOR_SMOOTH_LAMBDA_MS = 
+  public static final long DEFAULT_MR_AM_TASK_ESTIMATOR_SMOOTH_LAMBDA_MS =
   1000L * 60;
 
   /** true if the smoothing rate should be exponential.*/
@@ -509,9 +509,9 @@ public interface MRJobConfig {
    * Set to false for multi-user clusters.  This is an internal config that
    * is set by the MR framework and read by it too.
    */
-  public static final String MR_AM_CREATE_JH_INTERMEDIATE_BASE_DIR = 
+  public static final String MR_AM_CREATE_JH_INTERMEDIATE_BASE_DIR =
     MR_AM_PREFIX + "create-intermediate-jh-base-dir";
-  
+
   public static final String MR_AM_HISTORY_MAX_UNFLUSHED_COMPLETE_EVENTS =
       MR_AM_PREFIX + "history.max-unflushed-events";
   public static final int DEFAULT_MR_AM_HISTORY_MAX_UNFLUSHED_COMPLETE_EVENTS =
@@ -531,10 +531,10 @@ public interface MRJobConfig {
       MR_AM_PREFIX + "history.use-batched-flush.queue-size.threshold";
   public static final int DEFAULT_MR_AM_HISTORY_USE_BATCHED_FLUSH_QUEUE_SIZE_THRESHOLD =
       50;
-  
+
   public static final String MR_AM_ENV =
       MR_AM_PREFIX + "env";
-  
+
   public static final String MR_AM_ADMIN_USER_ENV =
       MR_AM_PREFIX + "admin.user.env";
 
@@ -591,10 +591,10 @@ public interface MRJobConfig {
 
   /** The log directory for the containers */
   public static final String TASK_LOG_DIR = MR_PREFIX + "container.log.dir";
-  
+
   public static final String TASK_LOG_SIZE = MR_PREFIX + "container.log.filesize";
-  
-  public static final String MAPREDUCE_V2_CHILD_CLASS = 
+
+  public static final String MAPREDUCE_V2_CHILD_CLASS =
       "org.apache.hadoop.mapred.YarnChild";
 
   public static final String APPLICATION_ATTEMPT_ID =
@@ -603,17 +603,17 @@ public interface MRJobConfig {
   /*
    * MR AM Service Authorization
    */
-  public static final String   
+  public static final String
   MR_AM_SECURITY_SERVICE_AUTHORIZATION_TASK_UMBILICAL =
       "security.job.task.protocol.acl";
-  public static final String   
+  public static final String
   MR_AM_SECURITY_SERVICE_AUTHORIZATION_CLIENT =
       "security.job.client.protocol.acl";
 
   /**
    * CLASSPATH for all YARN MapReduce applications.
    */
-  public static final String MAPREDUCE_APPLICATION_CLASSPATH = 
+  public static final String MAPREDUCE_APPLICATION_CLASSPATH =
       "mapreduce.application.classpath";
 
   /**
@@ -633,7 +633,7 @@ public interface MRJobConfig {
   @InterfaceAudience.Private
   static final String HS_DELEGATION_TOKEN_REQUIRED
       = "mapreduce.history.server.delegationtoken.required";
-  
+
   public static final String MROUTPUT_FILE_NAME_PREFIX
       = MR_TEZ_PREFIX + "mroutput.file-name.prefix";
 
@@ -644,9 +644,9 @@ public interface MRJobConfig {
 
   public static final String MRR_INTERMEDIATE_STAGE_PREFIX =
       "mrr.intermediate.stage.";
-  
+
   // TODO Move this over to Tez
-  public static final String MRR_VERTEX_PREFIX = 
+  public static final String MRR_VERTEX_PREFIX =
       "mrr.vertex.";
 
   public static final String VERTEX_NAME = "mapreduce.task.vertex.name";
@@ -658,5 +658,5 @@ public interface MRJobConfig {
   public static final String MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD = MR_TEZ_PREFIX
       + "input.initializer.serialize.event.payload";
   public static final boolean MR_TEZ_INPUT_INITIALIZER_SERIALIZE_EVENT_PAYLOAD_DEFAULT = true;
-  
+
 }

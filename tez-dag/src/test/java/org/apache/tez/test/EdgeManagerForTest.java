@@ -76,7 +76,7 @@ public class EdgeManagerForTest extends EdgeManagerPluginOnDemand {
 
   @Override
   public void routeInputSourceTaskFailedEventToDestination(int sourceTaskIndex,
-      Map<Integer, List<Integer>> destinationTaskAndInputIndices) { 
+      Map<Integer, List<Integer>> destinationTaskAndInputIndices) {
   }
 
   @Override
@@ -107,7 +107,7 @@ public class EdgeManagerForTest extends EdgeManagerPluginOnDemand {
       throws Exception {
     return 0;
   }
-  
+
   // End of overridden methods
 
 }

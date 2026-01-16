@@ -57,7 +57,7 @@ public class MemoryDistributor {
   private final int numTotalInputs;
   private final int numTotalOutputs;
   private final Configuration conf;
-  
+
   private AtomicInteger numInputsSeen = new AtomicInteger(0);
   private AtomicInteger numOutputsSeen = new AtomicInteger(0);
 
@@ -103,7 +103,7 @@ public class MemoryDistributor {
   }
 
 
-  
+
   /**
    * Used by the Tez framework to request memory on behalf of user requests.
    */

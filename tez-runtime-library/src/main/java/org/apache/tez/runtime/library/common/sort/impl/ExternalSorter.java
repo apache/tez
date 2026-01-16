@@ -111,7 +111,7 @@ public abstract class ExternalSorter {
   protected final SerializationContext serializationContext;
   protected final Serializer keySerializer;
   protected final Serializer valSerializer;
-  
+
   protected final boolean ifileReadAhead;
   protected final int ifileReadAheadLength;
   protected final int ifileBufferSize;
@@ -159,7 +159,7 @@ public abstract class ExternalSorter {
   // additional spills. Compressed size - so may not represent the size in the
   // sort buffer)
   protected final TezCounter additionalSpillBytesWritten;
-  
+
   protected final TezCounter additionalSpillBytesRead;
   // Number of spills written & consumed by the same task to generate the final file
   protected final TezCounter numAdditionalSpills;
@@ -213,7 +213,7 @@ public abstract class ExternalSorter {
         + ", serialization=" + conf.get(CommonConfigurationKeys.IO_SERIALIZATIONS_KEY)
         + ", reportPartitionStats=" + reportPartitionStats);
 
-    //    counters    
+    //    counters
     mapOutputByteCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES);
     mapOutputRecordCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_RECORDS);
     outputBytesWithOverheadCounter = outputContext.getCounters().findCounter(TaskCounter.OUTPUT_BYTES_WITH_OVERHEAD);
@@ -240,7 +240,7 @@ public abstract class ExternalSorter {
     this.ifileBufferSize = conf.getInt("io.file.buffer.size",
         TezRuntimeConfiguration.TEZ_RUNTIME_IFILE_BUFFER_SIZE_DEFAULT);
 
-    
+
     // Task outputs
     mapOutputFile = TezRuntimeUtils.instantiateTaskOutputManager(conf, outputContext);
 
@@ -328,9 +328,9 @@ public abstract class ExternalSorter {
   }
 
   public static long getInitialMemoryRequirement(Configuration conf, long maxAvailableTaskMemory) {
-    int initialMemRequestMb = 
+    int initialMemRequestMb =
         conf.getInt(
-            TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB, 
+            TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB,
             TezRuntimeConfiguration.TEZ_RUNTIME_IO_SORT_MB_DEFAULT);
     long reqBytes = ((long) initialMemRequestMb) << 20;
     //Higher bound checks are done in individual sorter implementations

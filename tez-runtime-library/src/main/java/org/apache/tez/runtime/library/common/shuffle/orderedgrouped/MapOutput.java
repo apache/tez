@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 abstract class MapOutput {
   private static final Logger LOG = LoggerFactory.getLogger(MapOutput.class);
   private static AtomicInteger ID = new AtomicInteger(0);
-  
+
   public enum Type {
     WAIT,
     MEMORY,
@@ -119,7 +119,7 @@ abstract class MapOutput {
   public byte[] getMemory() {
     return null;
   }
-  
+
   public OutputStream getDisk() {
     return null;
   }
@@ -136,27 +136,27 @@ abstract class MapOutput {
 
   public void commit() throws IOException {
   }
-  
+
   public void abort() {
   }
-  
+
   public String toString() {
     return "MapOutput( AttemptIdentifier: " + attemptIdentifier + ", Type: " + getType() + ")";
   }
-  
-  public static class MapOutputComparator 
+
+  public static class MapOutputComparator
   implements Comparator<MapOutput> {
     public int compare(MapOutput o1, MapOutput o2) {
-      if (o1.id == o2.id) { 
+      if (o1.id == o2.id) {
         return 0;
       }
-      
+
       if (o1.getSize() < o2.getSize()) {
         return -1;
       } else if (o1.getSize() > o2.getSize()) {
         return 1;
       }
-      
+
       if (o1.id < o2.id) {
         return -1;
       } else {

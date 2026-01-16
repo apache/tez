@@ -134,7 +134,7 @@ public class TestDAGRecovery2 {
     TezClientUtils.ensureStagingDirExists(conf, remoteStagingDir);
 
     TezConfiguration tezConf = createSessionConfig(remoteStagingDir);
-    
+
     tezSession = TezClient.create("TestDAGRecovery2", tezConf);
     tezSession.start();
   }

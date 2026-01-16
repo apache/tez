@@ -159,7 +159,7 @@ public class TestMRRJobsDAGApi {
     } catch (IOException io) {
       throw new RuntimeException("problem starting mini dfs cluster", io);
     }
-    
+
     if (mrrTezCluster == null) {
       mrrTezCluster = new MiniTezCluster(TestMRRJobsDAGApi.class.getName(),
           1, 1, 1);
@@ -185,7 +185,7 @@ public class TestMRRJobsDAGApi {
     }
     // TODO Add cleanup code.
   }
-  
+
   @Test(timeout = 60000)
   public void testSleepJob() throws TezException, IOException, InterruptedException {
     SleepProcessorConfig spConf = new SleepProcessorConfig(1);
@@ -616,7 +616,7 @@ public class TestMRRJobsDAGApi {
     UserPayload stage1Payload = TezUtils.createUserPayloadFromConf(stage1Conf);
     UserPayload stage2Payload = TezUtils.createUserPayloadFromConf(stage2Conf);
     UserPayload stage3Payload = TezUtils.createUserPayloadFromConf(stage3Conf);
-    
+
     DAG dag = DAG.create("testMRRSleepJobDagSubmit-" + random.nextInt(1000));
 
     Class<? extends InputInitializer> inputInitializerClazz =
@@ -789,7 +789,7 @@ public class TestMRRJobsDAGApi {
     return LocalResource.newInstance(resourceURL, type, visibility,
         resourceSize, resourceModificationTime);
   }
-  
+
   @Test(timeout = 60000)
   public void testVertexGroups() throws Exception {
     LOG.info("Running Group Test");
@@ -803,7 +803,7 @@ public class TestMRRJobsDAGApi {
     writer.write("efgh ");
     writer.close();
     out.close();
-    
+
     UnionExample job = new UnionExample();
     if (job.run(inPath.toString(), outPath.toString(), mrrTezCluster.getConfig())) {
       LOG.info("Success VertexGroups Test");
@@ -811,7 +811,7 @@ public class TestMRRJobsDAGApi {
       throw new TezUncheckedException("VertexGroups Test Failed");
     }
   }
-  
+
   @Test(timeout = 60000)
   public void testBroadcastAndOneToOne() throws Exception {
     LOG.info("Running BroadcastAndOneToOne Test");
@@ -853,7 +853,7 @@ public class TestMRRJobsDAGApi {
       return super.initialize();
     }
   }
-  
+
   private static void createTestJar(OutputStream outStream, String dummyClassName)
       throws URISyntaxException, IOException {
     JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();

@@ -137,7 +137,7 @@ public class TestTaskImpl {
   private MockTaskImpl mockTask;
   private TaskSpec mockTaskSpec;
   private Vertex mockVertex;
-  
+
   @SuppressWarnings("rawtypes")
   class TestEventHandler implements EventHandler<Event> {
     List<Event> events = new ArrayList<Event>();
@@ -378,7 +378,7 @@ public class TestTaskImpl {
     scheduleTaskAttempt(taskId);
     killTask(taskId);
   }
-  
+
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
@@ -484,7 +484,7 @@ public class TestTaskImpl {
     mockTask.handle(createTaskTASucceededEvent(mockTask.getLastAttempt().getTaskAttemptID()));
     assertEquals(TaskStateInternal.KILLED, mockTask.getInternalState());
   }
-  
+
   /**
    * {@link TaskState#RUNNING}->{@link TaskState#KILLED}
    */
@@ -694,7 +694,7 @@ public class TestTaskImpl {
 
     assertTaskSucceededState();
   }
-  
+
 
   @Test(timeout = 5000)
   public void testEventBacklogDuringTaskAttemptCommit() {
@@ -724,17 +724,17 @@ public class TestTaskImpl {
     launchTaskAttempt(mockTask.getLastAttempt().getTaskAttemptID());
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
     TezTaskAttemptID lastTAId = mockTask.getLastAttempt().getTaskAttemptID();
-    
+
     // Add a speculative task attempt that succeeds
     mockTask.handle(createTaskTAAddSpecAttempt(mockTask.getLastAttempt().getTaskAttemptID()));
     launchTaskAttempt(mockTask.getLastAttempt().getTaskAttemptID());
     updateAttemptState(mockTask.getLastAttempt(), TaskAttemptState.RUNNING);
-    
+
     assertEquals(2, mockTask.getAttemptList().size());
-    
+
     // previous running attempt should be the casual TA of this speculative attempt
     Assert.assertEquals(lastTAId, mockTask.getLastAttempt().getSchedulingCausalTA());
-    
+
     assertTrue("Second attempt should commit",
         mockTask.canCommit(mockTask.getAttemptList().get(1).getTaskAttemptID()));
     assertFalse("First attempt should not commit",
@@ -746,7 +746,7 @@ public class TestTaskImpl {
     failRunningTaskAttempt(mockTask.getLastAttempt().getTaskAttemptID());
 
     assertEquals(2, mockTask.getAttemptList().size());
-    
+
     assertFalse("Second attempt should not commit",
         mockTask.canCommit(mockTask.getAttemptList().get(1).getTaskAttemptID()));
     assertTrue("First attempt should commit",
@@ -757,7 +757,7 @@ public class TestTaskImpl {
 
     assertTaskSucceededState();
   }
-  
+
   @SuppressWarnings("rawtypes")
   @Test(timeout = 5000)
   public void testTaskSucceedAndRetroActiveFailure() {
@@ -787,7 +787,7 @@ public class TestTaskImpl {
     TezEvent mockTezEvent = mock(TezEvent.class);
     EventMetaData meta = new EventMetaData(EventProducerConsumerType.INPUT, "Vertex", "Edge", mockDestId);
     when(mockTezEvent.getSourceInfo()).thenReturn(meta);
-    TaskAttemptEventOutputFailed outputFailedEvent = 
+    TaskAttemptEventOutputFailed outputFailedEvent =
         new TaskAttemptEventOutputFailed(mockDestId, mockTezEvent, 1);
     mockTask.handle(
         createTaskTAFailedEvent(mockTask.getLastAttempt().getTaskAttemptID(), TaskFailureType.NON_FATAL,
@@ -799,7 +799,7 @@ public class TestTaskImpl {
     Assert.assertEquals(AMNodeEventType.N_TA_ENDED, event.getType());
     event = eventHandler.events.get(eventHandler.events.size()-1);
     Assert.assertEquals(VertexEventType.V_TASK_RESCHEDULED, event.getType());
-    
+
     // report of output read error should be the causal TA
     List<MockTaskAttemptImpl> attempts = mockTask.getAttemptList();
     Assert.assertEquals(2, attempts.size());
@@ -841,7 +841,7 @@ public class TestTaskImpl {
     assertEquals(0, mockTask.taskStartedEventLogged);
     assertEquals(1, mockTask.taskFinishedEventLogged);
   }
-  
+
   @Test(timeout = 5000)
   public void testDiagnostics_Kill(){
     TezTaskID taskId = getNewTaskID();
@@ -1440,7 +1440,7 @@ public class TestTaskImpl {
     List<MockTaskAttemptImpl> getAttemptList() {
       return taskAttempts;
     }
-    
+
     @Override
     public Vertex getVertex() {
       return vertex;
@@ -1498,12 +1498,12 @@ public class TestTaskImpl {
     public TaskAttemptState getState() {
       return state;
     }
-    
+
     @Override
     public TaskAttemptState getStateNoLock() {
       return state;
     }
-    
+
     @Override
     public ContainerId getAssignedContainerID() {
       return mockContainerId;

@@ -24,7 +24,7 @@ public class DagIdentifierImpl implements DagIdentifier {
 
   private final TezDAGID dagId;
   private final String dagName;
-  
+
   public DagIdentifierImpl(String dagName, TezDAGID dagId) {
     this.dagId = dagId;
     this.dagName = dagName;
@@ -39,7 +39,7 @@ public class DagIdentifierImpl implements DagIdentifier {
   public int getIdentifier() {
     return dagId.getId();
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -56,12 +56,12 @@ public class DagIdentifierImpl implements DagIdentifier {
       return false;
     }
   }
-  
+
   @Override
   public String toString() {
     return "Dag: " + dagName + ":[" + getIdentifier() + "]";
   }
-  
+
   @Override
   public int hashCode() {
     return dagId.hashCode();

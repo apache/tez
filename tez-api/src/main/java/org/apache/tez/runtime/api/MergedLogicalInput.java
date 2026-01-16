@@ -65,11 +65,11 @@ public abstract class MergedLogicalInput implements LogicalInput {
   public final List<Input> getInputs() {
     return inputs;
   }
-  
+
   public final MergedInputContext getContext() {
     return context;
   }
-  
+
   @Override
   public final void start() throws Exception {
     if (!isStarted.getAndSet(true)) {

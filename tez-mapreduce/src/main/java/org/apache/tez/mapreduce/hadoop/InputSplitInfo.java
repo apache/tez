@@ -31,10 +31,10 @@ import org.apache.tez.mapreduce.protos.MRRuntimeProtos.MRSplitsProto;
 
 /**
  * Provides information about input splits.</p>
- * 
+ *
  * The get*Path methods are only applicable when generating splits to disk. The
  * getSplitsProto method is only applicable when generating splits to memory.
- * 
+ *
  */
 @Private
 @Unstable
@@ -62,18 +62,18 @@ public interface InputSplitInfo {
    * Get the splits proto
    */
   public abstract MRSplitsProto getSplitsProto();
-  
+
   /**
    * Get the number of splits that were generated. Same as number of tasks that
    * should be run for the vertex processing these set of splits.
    */
   public abstract int getNumTasks();
-  
+
   /**
    * Get the {@link Type} of the InputSplitInfo
    */
   public abstract Type getType();
-  
+
   /**
    * Get {@link Credentials} which may be required to access the splits.
    * @return {@link Credentials} which may be required to access the splits.

@@ -33,7 +33,7 @@ import org.apache.tez.runtime.library.api.KeyValuesReader;
 
 /**
  * Implements a {@link MergedLogicalInput} that merges the incoming inputs
- * (e.g. from a {@link GroupInputEdge} and provide a unified view of the 
+ * (e.g. from a {@link GroupInputEdge} and provide a unified view of the
  * input. It concatenates all the inputs to provide a unified view
  */
 
@@ -96,9 +96,9 @@ public class ConcatenatedMergedKeyValuesInput extends MergedLogicalInput {
       return (1.0f)*(currentReaderIndex + 1)/getInputs().size();
     }
   }
-   
+
   /**
-   * Provides a {@link KeyValuesReader} that iterates over the 
+   * Provides a {@link KeyValuesReader} that iterates over the
    * concatenated input data
    */
   @Override

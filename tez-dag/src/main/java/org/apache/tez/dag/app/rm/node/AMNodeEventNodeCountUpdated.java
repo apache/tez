@@ -21,12 +21,12 @@ package org.apache.tez.dag.app.rm.node;
 public class AMNodeEventNodeCountUpdated extends AMNodeEvent {
 
   private final int count;
-  
+
   public AMNodeEventNodeCountUpdated(int nodeCount, int sourceId) {
     super(null, sourceId, AMNodeEventType.N_NODE_COUNT_UPDATED);
     this.count = nodeCount;
   }
-  
+
   public int getNodeCount() {
     return this.count;
   }
