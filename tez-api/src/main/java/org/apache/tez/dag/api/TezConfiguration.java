@@ -866,6 +866,12 @@ public class TezConfiguration extends Configuration {
   public static final boolean
     TEZ_AM_NODE_UNHEALTHY_RESCHEDULE_TASKS_DEFAULT = false;
 
+  /** Int value. Port used for AM RPC*/
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty(type="integer")
+  public static final String TEZ_AM_RPC_PORT = TEZ_AM_PREFIX + "rpc.port";
+  public static final int TEZ_AM_RPC_PORT_DEFAULT = 0;
+
   /** Int value. Number of threads to handle client RPC requests. Expert level setting.*/
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty(type="integer")
@@ -2344,16 +2350,74 @@ public class TezConfiguration extends Configuration {
   public static final String TEZ_TASK_ATTEMPT_HOOKS = TEZ_TASK_PREFIX + "attempt.hooks";
 
   /**
-   * Comma-separated list of additional hadoop config files to load from CLASSPATH in standalone mode.
+   * String value. ZooKeeper quorum connection string used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_ZOOKEEPER_QUORUM = TEZ_AM_PREFIX + "zookeeper.quorum";
+
+  /**
+   * String value. Namespace in ZooKeeper registry for the Application Master.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_REGISTRY_NAMESPACE = TEZ_AM_PREFIX + "registry.namespace";
+  public static final String TEZ_AM_REGISTRY_NAMESPACE_DEFAULT = "/tez_am/server";
+
+  /**
+   * Boolean value. Whether to enable compute groups, see further details in ZkConfig.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS = TEZ_AM_PREFIX + "registry.enable.compute.groups";
+  public static final boolean TEZ_AM_REGISTRY_ENABLE_COMPUTE_GROUPS_DEFAULT = false;
+
+
+  /**
+   * Initial backoff sleep duration for Curator retries. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP = TEZ_AM_PREFIX + "curator.backoff.sleep";
+  public static final String TEZ_AM_CURATOR_BACKOFF_SLEEP_DEFAULT = "1000ms";
+
+  /**
+   * Integer value. Maximum number of retries for Curator operations.
+   * It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_MAX_RETRIES = TEZ_AM_PREFIX + "curator.max.retries";
+  public static final int TEZ_AM_CURATOR_MAX_RETRIES_DEFAULT = 3;
+
+  /**
+   * Session timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT = TEZ_AM_PREFIX + "curator.session.timeout";
+  public static final String TEZ_AM_CURATOR_SESSION_TIMEOUT_DEFAULT = "150000ms";
+
+  /**
+   * Connection timeout for Curator framework. Supports TimeUnits.
+   * Default unit is milliseconds. It's used when creating a CuratorFramework for the ZooKeeper registry.
+   */
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT = TEZ_AM_PREFIX + "curator.connection.timeout";
+  public static final String TEZ_AM_CURATOR_CONNECTION_TIMEOUT_DEFAULT = "15000ms";
+
+
+  @ConfigurationScope(Scope.AM)
+  @ConfigurationProperty
+  public static final String TEZ_FRAMEWORK_MODE = TEZ_PREFIX + ".framework.mode";
+
+  /**
+   * List of additional hadoop config files to load from CLASSPATH in ZOOKEEPER_STANDALONE framework mode.
    */
   @ConfigurationScope(Scope.AM)
   @ConfigurationProperty
   public static final String TEZ_AM_STANDALONE_CONFS = TEZ_AM_PREFIX + "standalone.confs";
-
-  /**
-  * String value. The class to be used for the AM registry.
-  */
-  @ConfigurationScope(Scope.AM)
-  @ConfigurationProperty
-  public static final String TEZ_AM_REGISTRY_CLASS = TEZ_AM_PREFIX + "registry.class";
 }

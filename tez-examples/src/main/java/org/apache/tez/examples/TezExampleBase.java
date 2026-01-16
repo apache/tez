@@ -123,7 +123,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
     hadoopShim = new HadoopShimsLoader(conf).getHadoopShim();
 
-    return _execute(otherArgs, null, null);
+    return execute(otherArgs, null, null);
   }
 
   /**
@@ -160,7 +160,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
       generateSplitInClient = true;
     }
     String[] otherArgs = optionParser.getRemainingArgs();
-    return _execute(otherArgs, conf, tezClient);
+    return execute(otherArgs, conf, tezClient);
   }
 
   /**
@@ -215,8 +215,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     return 0;
   }
 
-  private int _execute(String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws
-      Exception {
+  protected int execute(String[] otherArgs, TezConfiguration tezConf, TezClient tezClient) throws Exception {
 
     int result = _validateArgs(otherArgs);
     if (result != 0) {
@@ -250,7 +249,7 @@ public abstract class TezExampleBase extends Configured implements Tool {
     }
   }
 
-  private TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
+  protected TezClient createTezClient(TezConfiguration tezConf) throws IOException, TezException {
     TezClient tezClient = TezClient.create("TezExampleApplication", tezConf);
     if(reconnectAppId != null) {
       ApplicationId appId = TezClient.appIdfromString(reconnectAppId);

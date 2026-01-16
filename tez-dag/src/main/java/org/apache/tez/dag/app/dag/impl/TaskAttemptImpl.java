@@ -132,7 +132,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   private static final Logger LOG = LoggerFactory.getLogger(TaskAttemptImpl.class);
   private static final String LINE_SEPARATOR = System
       .getProperty("line.separator");
-  
+
   public static class DataEventDependencyInfo {
     long timestamp;
     TezTaskAttemptID taId;
@@ -576,7 +576,6 @@ public class TaskAttemptImpl implements TaskAttempt,
     this.hungIntervalMax = conf.getLong(
         TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS, 
         TezConfiguration.TEZ_TASK_PROGRESS_STUCK_INTERVAL_MS_DEFAULT);
-
     this.recoveryData = appContext.getDAGRecoveryData() == null ?
         null : appContext.getDAGRecoveryData().getTaskAttemptRecoveryData(attemptId);
   }
@@ -1267,7 +1266,7 @@ public class TaskAttemptImpl implements TaskAttempt,
             return TaskAttemptStateInternal.NEW;
           }
         }
-        // No matter whether TaskAttemptStartedEvent is seen, send corresponding event to move 
+        // No matter whether TaskAttemptStartedEvent is seen, send corresponding event to move
         // TA to the state of TaskAttemptFinishedEvent
         TaskAttemptFinishedEvent taFinishedEvent =
             ta.recoveryData.getTaskAttemptFinishedEvent();
